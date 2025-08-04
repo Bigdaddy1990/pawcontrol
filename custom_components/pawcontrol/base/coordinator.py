@@ -1,0 +1,2 @@
+class BaseCoordinator:
+    pass

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">
+  <style>
+    .label { font: 14px sans-serif; }
+    .title { font: bold 16px sans-serif; }
+  </style>
+  <text x="20" y="30" class="title">Options Flow</text>
+  <rect x="20" y="50" width="12" height="12" fill="white" stroke="black" />
+  <text x="23" y="60" class="label">✓</text>
+  <text x="40" y="60" class="label">GPS Tracking</text>
+  <rect x="20" y="80" width="12" height="12" fill="white" stroke="black" />
+  <text x="40" y="90" class="label">Health Module</text>
+  <rect x="20" y="110" width="12" height="12" fill="white" stroke="black" />
+  <text x="23" y="120" class="label">✓</text>
+  <text x="40" y="120" class="label">Walk Module</text>
+  <rect x="20" y="140" width="12" height="12" fill="white" stroke="black" />
+  <text x="40" y="150" class="label">Notifications</text>
+</svg>
