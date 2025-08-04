@@ -1,21 +1,23 @@
-"""Simplified coordinator for Paw Control - REPARIERT."""
+"""Coordinator for Paw Control integration."""
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.config_entries import ConfigEntry
 
-from .const import DOMAIN, CONF_DOG_NAME
+from .const import DOMAIN, CONF_DOG_NAME, ENTITIES
+from .helpers.entity import EntityHelper
+from .helpers.datetime import DateTimeHelper
+from .helpers.config import ConfigHelper
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class PawControlCoordinator(DataUpdateCoordinator):
-    """Simplified coordinator for Paw Control."""
+    """Coordinator for Paw Control."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -25,19 +27,34 @@ class PawControlCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(minutes=5),
         )
-        self.dog_name = entry.data[CONF_DOG_NAME]
+        self.dog_name = entry.data[CONF_DOG_NAME].lower().replace(" ", "_")
         self.entry = entry
+        
+        # Initialize helpers
+        self.entity_helper = EntityHelper(hass, self.dog_name)
+        self.datetime_helper = DateTimeHelper(hass)
+        self.config_helper = ConfigHelper(hass, entry)
+
+    async def async_setup_entities(self) -> None:
+        """Setup all required entities."""
+        _LOGGER.info("Setting up entities for %s", self.dog_name)
+        
+        try:
+            # Verwende EntityHelper für die Erstellung
+            await self.entity_helper.setup_all_entities()
+                
+        except Exception as e:
+            _LOGGER.error("Error setting up entities for %s: %s", self.dog_name, e)
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from entities."""
         try:
             data = {
                 "dog_name": self.dog_name,
-                "last_updated": datetime.now().isoformat(),
+                "last_updated": self.datetime_helper.get_current_datetime_iso(),
                 "feeding_status": await self._get_feeding_status(),
                 "activity_status": await self._get_activity_status(),
                 "health_status": await self._get_health_status(),
-                "location_status": await self._get_location_status(),
             }
             
             return data
@@ -49,16 +66,25 @@ class PawControlCoordinator(DataUpdateCoordinator):
     async def _get_feeding_status(self) -> Dict[str, Any]:
         """Get feeding status."""
         try:
-            morning_state = self.hass.states.get(f"input_boolean.{self.dog_name}_feeding_morning")
-            evening_state = self.hass.states.get(f"input_boolean.{self.dog_name}_feeding_evening")
-            last_feeding_state = self.hass.states.get(f"input_datetime.{self.dog_name}_last_feeding")
-            
-            return {
-                "morning_fed": morning_state.state == "on" if morning_state else False,
-                "evening_fed": evening_state.state == "on" if evening_state else False,
-                "last_feeding": last_feeding_state.state if last_feeding_state else None,
-                "needs_feeding": not (morning_state and morning_state.state == "on"),
+            feeding_entities = {
+                "morning": f"input_boolean.{self.dog_name}_feeding_morning",
+                "lunch": f"input_boolean.{self.dog_name}_feeding_lunch", 
+                "evening": f"input_boolean.{self.dog_name}_feeding_evening",
             }
+            
+            status = {}
+            needs_feeding = True
+            
+            for meal_time, entity_id in feeding_entities.items():
+                state = self.hass.states.get(entity_id)
+                fed = state.state == "on" if state else False
+                status[f"{meal_time}_fed"] = fed
+                if fed:
+                    needs_feeding = False
+            
+            status["needs_feeding"] = needs_feeding
+            return status
+            
         except Exception as e:
             _LOGGER.error("Error getting feeding status: %s", e)
             return {}
@@ -66,19 +92,15 @@ class PawControlCoordinator(DataUpdateCoordinator):
     async def _get_activity_status(self) -> Dict[str, Any]:
         """Get activity status."""
         try:
-            outside_state = self.hass.states.get(f"input_boolean.{self.dog_name}_outside")
-            walked_state = self.hass.states.get(f"input_boolean.{self.dog_name}_walked_today")
-            poop_state = self.hass.states.get(f"input_boolean.{self.dog_name}_poop_done")
-            last_walk_state = self.hass.states.get(f"input_datetime.{self.dog_name}_last_walk")
             walk_count_state = self.hass.states.get(f"counter.{self.dog_name}_walk_count")
+            last_walk_state = self.hass.states.get(f"input_datetime.{self.dog_name}_last_walk")
+            
+            walk_count = int(walk_count_state.state) if walk_count_state else 0
             
             return {
-                "was_outside": outside_state.state == "on" if outside_state else False,
-                "walked_today": walked_state.state == "on" if walked_state else False,
-                "poop_done": poop_state.state == "on" if poop_state else False,
+                "walk_count": walk_count,
                 "last_walk": last_walk_state.state if last_walk_state else None,
-                "walk_count": int(walk_count_state.state) if walk_count_state else 0,
-                "needs_walk": not (walked_state and walked_state.state == "on"),
+                "needs_walk": walk_count == 0,
             }
         except Exception as e:
             _LOGGER.error("Error getting activity status: %s", e)
@@ -88,30 +110,14 @@ class PawControlCoordinator(DataUpdateCoordinator):
         """Get health status."""
         try:
             weight_state = self.hass.states.get(f"input_number.{self.dog_name}_weight")
-            health_notes_state = self.hass.states.get(f"input_text.{self.dog_name}_health_notes")
+            health_status_state = self.hass.states.get(f"input_select.{self.dog_name}_health_status")
             
             return {
                 "weight": float(weight_state.state) if weight_state else None,
-                "health_notes": health_notes_state.state if health_notes_state else "",
-                "status": "good",  # Simplified status
+                "health_status": health_status_state.state if health_status_state else "gut",
             }
         except Exception as e:
             _LOGGER.error("Error getting health status: %s", e)
-            return {}
-
-    async def _get_location_status(self) -> Dict[str, Any]:
-        """Get location status."""
-        try:
-            location_state = self.hass.states.get(f"input_text.{self.dog_name}_current_location")
-            signal_state = self.hass.states.get(f"input_number.{self.dog_name}_gps_signal_strength")
-            
-            return {
-                "current_location": location_state.state if location_state else "Unknown",
-                "gps_signal": float(signal_state.state) if signal_state else 0,
-                "gps_available": bool(location_state and location_state.state),
-            }
-        except Exception as e:
-            _LOGGER.error("Error getting location status: %s", e)
             return {}
 
     def get_status_summary(self) -> str:
@@ -123,19 +129,16 @@ class PawControlCoordinator(DataUpdateCoordinator):
             feeding = self.data.get("feeding_status", {})
             activity = self.data.get("activity_status", {})
             
-            fed = feeding.get("morning_fed", False) or feeding.get("evening_fed", False)
-            walked = activity.get("walked_today", False)
-            outside = activity.get("was_outside", False)
+            needs_feeding = feeding.get("needs_feeding", True)
+            needs_walk = activity.get("needs_walk", True)
             
-            if fed and walked and outside:
+            if not needs_feeding and not needs_walk:
                 return "✅ Alles erledigt"
-            elif fed and (walked or outside):
-                return "📝 Teilweise erledigt"
-            elif not fed and not walked:
+            elif needs_feeding and needs_walk:
                 return "⏰ Fütterung & Spaziergang ausstehend"
-            elif not fed:
+            elif needs_feeding:
                 return "🍽️ Fütterung ausstehend"
-            elif not walked:
+            elif needs_walk:
                 return "🚶 Spaziergang ausstehend"
             else:
                 return "👍 Gut"
