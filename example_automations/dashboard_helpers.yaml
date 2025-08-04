@@ -1,0 +1,81 @@
+input_select:
+  pawcontrol_feeding:
+    name: "\U0001F37D\uFE0F F\xFCtterungsarten"
+    options:
+    - "Fr\xFChst\xFCck"
+    - Mittagessen
+    - Abendessen
+    - Leckerli
+    initial: "Fr\xFChst\xFCck"
+    icon: mdi:checkbox-multiple-marked
+    multiple: true
+
+input_boolean:
+  pawcontrol_gps_tracking:
+    name: "\U0001F6F0\uFE0F GPS-Tracking & Gassi-Protokollierung"
+    initial: false
+
+input_select:
+  pawcontrol_gassi_trigger:
+    name: "\U0001F6AA T\xFCrsensor / Hundeklappe zur Gassi-Erkennung"
+    options:
+    - sensor.tuersensor
+    - sensor.hundeklappe
+    initial: sensor.tuersensor
+
+input_select:
+  pawcontrol_push_targets:
+    name: "\U0001F514 Push-Empf\xE4nger (automatisch oder manuell)"
+    options:
+    - notify.mobile_app_phone
+    - notify.telegram
+    - notify.notify
+    initial: notify.notify
+
+input_boolean:
+  pawcontrol_health_tracking_gewicht:
+    name: "\U0001F9E0 Gesundheitsdaten je Hund aktivieren \u2013 Gewicht"
+  pawcontrol_health_tracking_medikamente:
+    name: "\U0001F9E0 Gesundheitsdaten je Hund aktivieren \u2013 Medikamente"
+  pawcontrol_health_tracking_impfungen:
+    name: "\U0001F9E0 Gesundheitsdaten je Hund aktivieren \u2013 Impfungen"
+
+input_select:
+  pawcontrol_dashboard_mode:
+    name: "\U0001F4CA Dashboard-Modus"
+    options:
+    - cards
+    - full
+    initial: cards
+
+input_number:
+  pawcontrol_dog_count:
+    name: "\U0001F436 Anzahl eigener Hunde"
+    initial: 1
+    min: 1
+    max: 5
+    step: 1
+input_boolean:
+  pawcontrol_guest_dogs:
+    name: "\U0001F43E Besuchshunde ber\xFCcksichtigen?"
+input_text:
+  pawcontrol_dog_1_name:
+    name: Hund 1 Name
+    min: 1
+    max: 30
+  pawcontrol_dog_2_name:
+    name: Hund 2 Name
+    min: 1
+    max: 30
+  pawcontrol_dog_3_name:
+    name: Hund 3 Name
+    min: 1
+    max: 30
+  pawcontrol_dog_4_name:
+    name: Hund 4 Name
+    min: 1
+    max: 30
+  pawcontrol_dog_5_name:
+    name: Hund 5 Name
+    min: 1
+    max: 30

@@ -1,0 +1,21 @@
+- action:
+  - data:
+      actions:
+      - action: mark_fed
+        title: Gefüttert
+      - action: snooze
+        title: Später erinnern
+      dog_name: Rocky
+      message: Mittagessen für Rocky steht noch aus!
+    service: python_script.pawcontrol_send_notification
+  alias: 'Erinnerung: mittagessen für Rocky fehlt'
+  condition:
+  - condition: state
+    entity_id: input_boolean.feeding_rocky_mittagessen_done
+    state: 'off'
+  id: reminder_feed_rocky_mittagessen
+  mode: single
+  trigger:
+  - at:
+      input_datetime: feeding_rocky_mittagessen_time
+    platform: time

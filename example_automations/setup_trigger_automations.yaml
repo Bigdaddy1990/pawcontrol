@@ -1,0 +1,25 @@
+
+alias: 🐾 PawControl – Setup aktualisieren bei Konfigurationsänderung
+trigger:
+  - platform: state
+    entity_id: input_select.pawcontrol_feeding_modes
+  - platform: state
+    entity_id: input_select.pawcontrol_dashboard_mode
+  - platform: state
+    entity_id: input_select.pawcontrol_push_targets
+  - platform: state
+    entity_id: input_boolean.pawcontrol_gps_tracking
+  - platform: state
+    entity_id: input_select.pawcontrol_gassi_trigger
+  - platform: state
+    entity_id: input_boolean.pawcontrol_health_tracking_gewicht
+  - platform: state
+    entity_id: input_boolean.pawcontrol_health_tracking_medikamente
+  - platform: state
+    entity_id: input_boolean.pawcontrol_health_tracking_impfungen
+
+action:
+  - service: pawcontrol.initialize_setup
+    data: {}
+
+mode: single

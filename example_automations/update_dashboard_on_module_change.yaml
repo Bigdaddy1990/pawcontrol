@@ -1,0 +1,14 @@
+alias: 🧩 PawControl – Multi-Dashboard bei Moduländerung aktualisieren
+id: pawcontrol_update_multi_dashboard
+trigger:
+  - platform: state
+    entity_id:
+      - input_boolean.module_gps_enabled
+      - input_boolean.module_health_enabled
+      - input_boolean.module_walk_enabled
+      - input_boolean.module_notifications_enabled
+      - input_text.pawcontrol_dogs
+condition: []
+action:
+  - service: pawcontrol.generate_multi_dashboard
+mode: restart

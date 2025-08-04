@@ -1,0 +1,13 @@
+- action:
+  - data:
+      dog_name: Luna
+    service: python_script.pawcontrol_gassi_trigger
+  alias: Gassi Trigger für Luna
+  condition: []
+  id: gassi_trigger_luna
+  mode: single
+  trigger:
+  - entity_id: device_tracker.luna
+    from: home
+    platform: state
+    to: not_home

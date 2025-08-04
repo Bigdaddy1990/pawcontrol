@@ -1,0 +1,10 @@
+homeassistant:
+  name: Paw Control
+  country: DE
+
+automation: !include_dir_merge_list automations/generated
+
+python_script:
+
+logger:
+  default: info
