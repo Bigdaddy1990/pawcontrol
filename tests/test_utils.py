@@ -64,3 +64,15 @@ def test_validate_dog_name_whitespace_only():
 
 def test_validate_dog_name_rejects_non_string():
     assert not utils.validate_dog_name(None)
+
+
+def test_sanitize_entity_id_handles_none():
+    assert utils.sanitize_entity_id(None) == "unknown"
+
+
+def test_is_valid_email_rejects_non_string():
+    assert not utils.is_valid_email(None)
+
+
+def test_is_valid_phone_rejects_non_string():
+    assert not utils.is_valid_phone(None)
