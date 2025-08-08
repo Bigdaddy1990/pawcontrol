@@ -37,3 +37,11 @@ def test_calculate_distance_valid():
 
 def test_calculate_distance_invalid():
     assert utils.calculate_distance(91, 0, 0, 1) == 0.0
+
+
+def test_validate_dog_name_valid_characters():
+    assert utils.validate_dog_name("Fido_Ä")
+
+
+def test_validate_dog_name_invalid_characters():
+    assert not utils.validate_dog_name("Bad*Name!")

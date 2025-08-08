@@ -42,6 +42,7 @@ from .const import (
     MIN_DOG_WEIGHT,
     MAX_DOG_WEIGHT,
 )
+from .utils import validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,20 +83,21 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         
         if user_input is not None:
-            # Validate dog name
+            # Validate dog name using shared validator
             dog_name = user_input.get(CONF_DOG_NAME, "").strip()
-            if len(dog_name) < MIN_DOG_NAME_LENGTH or len(dog_name) > MAX_DOG_NAME_LENGTH:
+            if not validate_dog_name(dog_name):
                 errors[CONF_DOG_NAME] = "invalid_name"
             elif self._dog_name_exists(dog_name):
                 errors[CONF_DOG_NAME] = "name_exists"
-            
+
             if not errors:
+                user_input[CONF_DOG_NAME] = dog_name
                 self._current_dog = user_input
                 # Automatically suggest size based on weight if provided
                 if CONF_DOG_WEIGHT in user_input and CONF_DOG_SIZE not in user_input:
                     weight = user_input[CONF_DOG_WEIGHT]
                     self._current_dog[CONF_DOG_SIZE] = self._suggest_size_by_weight(weight)
-                
+
                 return await self.async_step_modules()
         
         schema = vol.Schema(
