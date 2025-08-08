@@ -47,13 +47,20 @@ def test_validate_dog_name_invalid_characters():
     assert not utils.validate_dog_name("Bad*Name!")
 
 
+def test_filter_invalid_modules_removes_unknown():
+    modules = {"feeding": {"enabled": True}, "unknown": {"enabled": True}}
+    filtered = utils.filter_invalid_modules(modules)
+    assert "feeding" in filtered
+    assert "unknown" not in filtered
+
+def test_filter_invalid_modules_handles_non_dict():
+    assert utils.filter_invalid_modules([]) == {}
+    
 def test_validate_dog_name_strips_whitespace():
     assert utils.validate_dog_name("  Fido  ")
 
-
 def test_validate_dog_name_whitespace_only():
     assert not utils.validate_dog_name("   ")
-
 
 def test_validate_dog_name_rejects_non_string():
     assert not utils.validate_dog_name(None)
