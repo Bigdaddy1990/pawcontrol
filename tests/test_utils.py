@@ -53,6 +53,14 @@ def test_filter_invalid_modules_removes_unknown():
     assert "feeding" in filtered
     assert "unknown" not in filtered
 
-
 def test_filter_invalid_modules_handles_non_dict():
     assert utils.filter_invalid_modules([]) == {}
+    
+def test_validate_dog_name_strips_whitespace():
+    assert utils.validate_dog_name("  Fido  ")
+
+def test_validate_dog_name_whitespace_only():
+    assert not utils.validate_dog_name("   ")
+
+def test_validate_dog_name_rejects_non_string():
+    assert not utils.validate_dog_name(None)

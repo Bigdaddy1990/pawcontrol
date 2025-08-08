@@ -33,10 +33,19 @@ _LOGGER = logging.getLogger(__name__)
 
 # Validation Functions
 def validate_dog_name(name: str) -> bool:
-    """Validate dog name."""
+    """Validate dog name.
+
+    Leading and trailing whitespace is ignored so that names entered with
+    accidental spaces are still considered valid. Non-string inputs are
+    rejected early.
+    """
+    if not isinstance(name, str):
+        return False
+
+    name = name.strip()
     if not name or len(name) < MIN_DOG_NAME_LENGTH or len(name) > MAX_DOG_NAME_LENGTH:
         return False
-    
+
     # Allow letters, numbers, spaces, hyphens, underscores, and umlauts
     pattern = r"^[a-zA-ZäöüÄÖÜß0-9\s\-_.]+$"
     return bool(re.match(pattern, name))
