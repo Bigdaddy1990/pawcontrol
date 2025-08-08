@@ -24,7 +24,7 @@ from .const import (
     MODULE_VISITOR,
 )
 from .coordinator import PawControlCoordinator
-from .helper_factory import HelperFactory
+from .helpers import ImprovedModuleManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,8 +47,10 @@ class ModuleManager:
         self.dog_name = dog_config.get(CONF_DOG_NAME, "unknown")
         self.dog_id = self._sanitize_name(self.dog_name)
         
-        # Initialize helper factory
-        self.helper_factory = HelperFactory(hass, self.dog_name)
+        # Initialize helper manager for dynamic helper entity creation
+        self.helper_factory = ImprovedModuleManager(
+            hass, entry, coordinator, dog_config
+        )
         
         # Track enabled modules
         self._enabled_modules: Dict[str, Any] = {}
@@ -132,50 +134,50 @@ class ModuleManager:
     async def _setup_feeding_module(self, config: dict[str, Any]) -> None:
         """Set up feeding module helpers and entities."""
         # Create feeding-related input entities using helper factory
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_fed_breakfast",
             "Frühstück gefüttert",
             icon="mdi:food-apple"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_fed_lunch",
             "Mittagessen gefüttert",
             icon="mdi:food"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_fed_dinner",
             "Abendessen gefüttert",
             icon="mdi:food-variant"
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_feeding",
             "Letzte Fütterung",
             has_time=True,
             has_date=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_breakfast_time",
             "Frühstückszeit",
             has_time=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_lunch_time",
             "Mittagszeit",
             has_time=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_dinner_time",
             "Abendessenzeit",
             has_time=True
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_daily_food_amount",
             "Tägliche Futtermenge",
             min_value=50,
@@ -185,20 +187,20 @@ class ModuleManager:
             icon="mdi:weight"
         )
         
-        await self.helper_factory.create_counter(
+        await self.helper_factory.async_create_counter(
             f"{self.dog_id}_meals_today",
             "Mahlzeiten heute",
             icon="mdi:counter"
         )
         
-        await self.helper_factory.create_input_select(
+        await self.helper_factory.async_create_input_select(
             f"{self.dog_id}_food_type",
             "Futterart",
             ["Trockenfutter", "Nassfutter", "BARF", "Selbstgekocht", "Gemischt"],
             icon="mdi:food-drumstick"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_feeding_notes",
             "Fütterungsnotizen",
             max_length=255,
@@ -209,25 +211,25 @@ class ModuleManager:
 
     async def _setup_gps_module(self, config: dict[str, Any]) -> None:
         """Set up GPS module helpers and entities."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_gps_tracking",
             "GPS-Tracking aktiv",
             icon="mdi:crosshairs-gps"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_is_outside",
             "Ist draußen",
             icon="mdi:dog-side"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_walk_in_progress",
             "Spaziergang läuft",
             icon="mdi:walk"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_gps_signal",
             "GPS-Signalstärke",
             min_value=0,
@@ -237,7 +239,7 @@ class ModuleManager:
             icon="mdi:signal"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_distance_from_home",
             "Entfernung von Zuhause",
             min_value=0,
@@ -247,7 +249,7 @@ class ModuleManager:
             icon="mdi:map-marker-distance"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_geofence_radius",
             "Geofence-Radius",
             min_value=10,
@@ -258,14 +260,14 @@ class ModuleManager:
             icon="mdi:map-marker-radius"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_current_location",
             "Aktueller Standort",
             max_length=100,
             icon="mdi:map-marker"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_home_coordinates",
             "Heimkoordinaten",
             max_length=50,
@@ -276,19 +278,19 @@ class ModuleManager:
 
     async def _setup_health_module(self, config: dict[str, Any]) -> None:
         """Set up health module helpers and entities."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_needs_medication",
             "Benötigt Medikation",
             icon="mdi:pill"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_health_alert",
             "Gesundheitsalarm",
             icon="mdi:alert-circle"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_temperature",
             "Temperatur",
             min_value=35.0,
@@ -299,7 +301,7 @@ class ModuleManager:
             icon="mdi:thermometer"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_weight",
             "Gewicht",
             min_value=0.5,
@@ -309,7 +311,7 @@ class ModuleManager:
             icon="mdi:weight-kilogram"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_health_score",
             "Gesundheitsscore",
             min_value=0,
@@ -320,48 +322,48 @@ class ModuleManager:
             icon="mdi:heart-pulse"
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_vet_visit",
             "Letzter Tierarztbesuch",
             has_date=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_next_vet_appointment",
             "Nächster Tierarzttermin",
             has_date=True,
             has_time=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_medication",
             "Letzte Medikation",
             has_date=True,
             has_time=True
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_symptoms",
             "Symptome",
             max_length=255,
             icon="mdi:stethoscope"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_medication_notes",
             "Medikationsnotizen",
             max_length=255,
             icon="mdi:note-medical"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_vet_contact",
             "Tierarztkontakt",
             max_length=255,
             icon="mdi:phone"
         )
         
-        await self.helper_factory.create_input_select(
+        await self.helper_factory.async_create_input_select(
             f"{self.dog_id}_health_status",
             "Gesundheitsstatus",
             ["Ausgezeichnet", "Sehr gut", "Gut", "Normal", "Unwohl", "Krank"],
@@ -372,27 +374,27 @@ class ModuleManager:
 
     async def _setup_walk_module(self, config: dict[str, Any]) -> None:
         """Set up walk module helpers and entities."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_needs_walk",
             "Braucht Spaziergang",
             icon="mdi:dog-service",
             initial=True
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_walk_completed",
             "Spaziergang erledigt",
             icon="mdi:check-circle"
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_walk",
             "Letzter Spaziergang",
             has_date=True,
             has_time=True
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_daily_walk_duration",
             "Tägliche Spaziergang-Dauer",
             min_value=0,
@@ -402,7 +404,7 @@ class ModuleManager:
             icon="mdi:timer"
         )
         
-        await self.helper_factory.create_input_number(
+        await self.helper_factory.async_create_input_number(
             f"{self.dog_id}_walk_distance_today",
             "Spaziergang-Distanz heute",
             min_value=0,
@@ -412,20 +414,20 @@ class ModuleManager:
             icon="mdi:map-marker-path"
         )
         
-        await self.helper_factory.create_counter(
+        await self.helper_factory.async_create_counter(
             f"{self.dog_id}_walks_today",
             "Spaziergänge heute",
             icon="mdi:counter"
         )
         
-        await self.helper_factory.create_input_select(
+        await self.helper_factory.async_create_input_select(
             f"{self.dog_id}_preferred_walk_type",
             "Bevorzugter Spaziergang",
             ["Kurz", "Normal", "Lang", "Training", "Freilauf"],
             icon="mdi:map"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_walk_notes",
             "Spaziergang-Notizen",
             max_length=255,
@@ -436,28 +438,28 @@ class ModuleManager:
 
     async def _setup_notifications_module(self, config: dict[str, Any]) -> None:
         """Set up notifications module helpers."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_notifications_enabled",
             "Benachrichtigungen aktiv",
             icon="mdi:bell",
             initial=True
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_feeding_reminders",
             "Fütterungs-Erinnerungen",
             icon="mdi:bell-ring",
             initial=True
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_walk_reminders",
             "Spaziergang-Erinnerungen",
             icon="mdi:bell-alert",
             initial=True
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_health_alerts",
             "Gesundheits-Alarme",
             icon="mdi:bell-plus",
@@ -468,20 +470,20 @@ class ModuleManager:
 
     async def _setup_automation_module(self, config: dict[str, Any]) -> None:
         """Set up automation module helpers."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_automation_enabled",
             "Automatisierung aktiv",
             icon="mdi:robot"
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_auto_feeding_reminder",
             "Auto Fütterungs-Erinnerung",
             icon="mdi:alarm",
             initial=True
         )
         
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_auto_walk_detection",
             "Auto Spaziergang-Erkennung",
             icon="mdi:motion-sensor"
@@ -496,26 +498,26 @@ class ModuleManager:
 
     async def _setup_training_module(self, config: dict[str, Any]) -> None:
         """Set up training module helpers."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_training_session",
             "Trainingseinheit",
             icon="mdi:whistle"
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_training",
             "Letztes Training",
             has_date=True,
             has_time=True
         )
         
-        await self.helper_factory.create_counter(
+        await self.helper_factory.async_create_counter(
             f"{self.dog_id}_training_sessions_week",
             "Trainingseinheiten diese Woche",
             icon="mdi:counter"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_learned_commands",
             "Gelernte Kommandos",
             max_length=255,
@@ -526,25 +528,25 @@ class ModuleManager:
 
     async def _setup_grooming_module(self, config: dict[str, Any]) -> None:
         """Set up grooming module helpers."""
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_grooming",
             "Letzte Pflege",
             has_date=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_bath",
             "Letztes Bad",
             has_date=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_last_nail_trim",
             "Letzte Krallenpflege",
             has_date=True
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_grooming_notes",
             "Pflegenotizen",
             max_length=255,
@@ -555,34 +557,34 @@ class ModuleManager:
 
     async def _setup_visitor_module(self, config: dict[str, Any]) -> None:
         """Set up visitor module helpers."""
-        await self.helper_factory.create_input_boolean(
+        await self.helper_factory.async_create_input_boolean(
             f"{self.dog_id}_visitor_mode",
             "Besuchermodus",
             icon="mdi:account-group"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_visitor_name",
             "Besuchername",
             max_length=100,
             icon="mdi:account"
         )
         
-        await self.helper_factory.create_input_text(
+        await self.helper_factory.async_create_input_text(
             f"{self.dog_id}_visitor_instructions",
             "Besucheranweisungen",
             max_length=500,
             icon="mdi:clipboard-text"
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_visitor_start",
             "Besucherbeginn",
             has_date=True,
             has_time=True
         )
         
-        await self.helper_factory.create_input_datetime(
+        await self.helper_factory.async_create_input_datetime(
             f"{self.dog_id}_visitor_end",
             "Besucherende",
             has_date=True,
