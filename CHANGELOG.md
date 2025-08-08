@@ -81,8 +81,12 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ---
 
-## [Unreleased] - Geplante Features
+## [Unreleased]
 
+### Fixed
+- Added missing `issue_tracker` and Home Assistant version requirement to manifest to satisfy installation validation.
+
+### Geplante Features
 Siehe [ROADMAP.md](ROADMAP.md) für alle geplanten Features und Entwicklungsschritte.
 
 ---
