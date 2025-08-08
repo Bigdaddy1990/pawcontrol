@@ -508,21 +508,25 @@ def get_activity_status_emoji(activity_type: str, status: str = "active") -> str
     return activity_emojis.get(status, "📝")
 
 
-def sanitize_entity_id(name: str) -> str:
+def sanitize_entity_id(name: str | None) -> str:
     """Sanitize a name for use in entity IDs."""
+    # Ensure we have a string to work with
+    if not isinstance(name, str):
+        name = str(name) if name is not None else ""
+
     # Convert to lowercase
     name = name.lower()
-    
+
     # Replace spaces and special characters with underscores
     name = re.sub(r"[^a-z0-9]+", "_", name)
-    
+
     # Remove leading/trailing underscores
     name = name.strip("_")
-    
+
     # Replace multiple underscores with single
     name = re.sub(r"_+", "_", name)
-    
-    return name
+
+    return name or "unknown"
 
 
 def parse_time_string(time_str: str) -> tuple[int, int] | None:
@@ -643,17 +647,22 @@ def calculate_water_intake(weight_kg: float, activity_level: str = "Normal") -> 
         return 500.0  # Default
 
 
-def is_valid_email(email: str) -> bool:
+def is_valid_email(email: str | None) -> bool:
     """Validate email address."""
+    if not isinstance(email, str):
+        return False
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 
 
-def is_valid_phone(phone: str) -> bool:
+def is_valid_phone(phone: str | None) -> bool:
     """Validate phone number (basic international format)."""
+    if not isinstance(phone, str):
+        return False
+
     # Remove spaces and dashes
     phone = re.sub(r"[\s\-]", "", phone)
-    
+
     # Check if it's a valid phone number pattern
     pattern = r"^[+]?[0-9]{8,15}$"
     return bool(re.match(pattern, phone))
