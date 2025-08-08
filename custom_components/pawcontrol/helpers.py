@@ -31,6 +31,7 @@ from homeassistant.components.counter import (
     DOMAIN as COUNTER_DOMAIN,
     Counter,
 )
+from homeassistant.util import slugify
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +40,13 @@ STORAGE_KEY_PREFIX = "pawcontrol_helpers"
 
 
 class ImprovedModuleManager:
-    """Improved module manager with proper helper creation."""
+    """Improved module manager with proper helper creation.
+
+    The ``dog_id`` attribute is generated using Home Assistant's
+    :func:`slugify <homeassistant.util.slugify>` utility, which strips
+    invalid characters to produce a safe identifier. If slugification
+    results in an empty string, the manager falls back to ``"unknown"``.
+    """
     
     def __init__(
         self,
@@ -67,8 +74,8 @@ class ImprovedModuleManager:
         self._created_helpers: dict[str, dict] = {}
         
     def _sanitize_name(self, name: str) -> str:
-        """Sanitize name for entity IDs."""
-        return name.lower().replace(" ", "_").replace("-", "_")
+        """Generate a slugified name for entity IDs."""
+        return slugify(name) or "unknown"
     
     async def async_initialize(self) -> None:
         """Initialize the module manager and load existing helpers."""
