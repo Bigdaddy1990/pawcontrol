@@ -509,20 +509,26 @@ def get_activity_status_emoji(activity_type: str, status: str = "active") -> str
 
 
 def sanitize_entity_id(name: str) -> str:
-    """Sanitize a name for use in entity IDs."""
+    """Sanitize a name for use in Home Assistant entity IDs.
+
+    Ensures a valid string is returned by removing unsupported characters,
+    collapsing whitespace and providing a sensible fallback when the name
+    would otherwise be empty.
+    """
     # Convert to lowercase
     name = name.lower()
-    
+
     # Replace spaces and special characters with underscores
     name = re.sub(r"[^a-z0-9]+", "_", name)
-    
+
     # Remove leading/trailing underscores
     name = name.strip("_")
-    
+
     # Replace multiple underscores with single
     name = re.sub(r"_+", "_", name)
-    
-    return name
+
+    # Ensure we always return a non-empty identifier
+    return name or "unnamed"
 
 
 def parse_time_string(time_str: str) -> tuple[int, int] | None:

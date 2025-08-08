@@ -64,3 +64,8 @@ def test_validate_dog_name_whitespace_only():
 
 def test_validate_dog_name_rejects_non_string():
     assert not utils.validate_dog_name(None)
+
+
+def test_sanitize_entity_id_provides_fallback_for_empty_names():
+    """Sanitized entity IDs should never be empty."""
+    assert utils.sanitize_entity_id("!!!") == "unnamed"

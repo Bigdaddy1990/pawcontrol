@@ -25,6 +25,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .helper_factory import HelperFactory
+from .utils import sanitize_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,8 +79,12 @@ class ModuleManager:
         await self.helper_factory.async_initialize()
 
     def _sanitize_name(self, name: str) -> str:
-        """Sanitize name for entity IDs."""
-        return name.lower().replace(" ", "_").replace("-", "_")
+        """Sanitize name for entity IDs.
+
+        Delegates to :func:`sanitize_entity_id` to ensure consistent rules
+        across the integration and properly handle special characters.
+        """
+        return sanitize_entity_id(name)
 
     async def async_enable_module(
         self, module_id: str, module_config: dict[str, Any]
