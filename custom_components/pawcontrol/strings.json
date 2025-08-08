@@ -1,0 +1,334 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "PawControl ist bereits konfiguriert",
+      "no_dogs": "Keine Hunde konfiguriert"
+    },
+    "error": {
+      "invalid_age": "Ungültiges Alter (0-25 Jahre)",
+      "invalid_name": "Ungültiger Hundename (2-30 Zeichen, nur Buchstaben, Zahlen, Leerzeichen, Bindestriche)",
+      "invalid_weight": "Ungültiges Gewicht (0.5-100 kg)",
+      "name_exists": "Ein Hund mit diesem Namen existiert bereits",
+      "unknown": "Unbekannter Fehler aufgetreten"
+    },
+    "step": {
+      "add_another": {
+        "data": {
+          "add_another": "Weiteren Hund hinzufügen"
+        },
+        "data_description": {
+          "add_another": "Aktivieren Sie dies, um einen weiteren Hund hinzuzufügen"
+        },
+        "description": "{dog_name} wurde hinzugefügt. Möchten Sie einen weiteren Hund hinzufügen?",
+        "title": "Weiteren Hund hinzufügen?"
+      },
+      "dog_basic": {
+        "data": {
+          "activity_level": "Aktivitätslevel",
+          "dog_age": "Alter (Jahre)",
+          "dog_breed": "Rasse",
+          "dog_name": "Hundename",
+          "dog_size": "Größenkategorie",
+          "dog_weight": "Gewicht (kg)",
+          "health_status": "Gesundheitsstatus",
+          "mood": "Stimmung"
+        },
+        "data_description": {
+          "activity_level": "Normales Aktivitätslevel",
+          "dog_age": "Alter in Jahren",
+          "dog_breed": "Rasse Ihres Hundes (optional)",
+          "dog_name": "Name Ihres Hundes (2-30 Zeichen)",
+          "dog_size": "Größenkategorie basierend auf dem Gewicht",
+          "dog_weight": "Gewicht in Kilogramm",
+          "health_status": "Aktueller Gesundheitszustand",
+          "mood": "Aktuelle Stimmung"
+        },
+        "description": "Bitte geben Sie die Grunddaten Ihres Hundes ein.",
+        "title": "Grundlegende Hundedaten"
+      },
+      "module_config": {
+        "data": {},
+        "data_description": {},
+        "description": "Konfigurieren Sie die ausgewählten Module.",
+        "title": "Modulkonfiguration"
+      },
+      "modules": {
+        "data": {
+          "dashboard": "📊 Dashboard",
+          "feeding": "🍽️ Fütterung",
+          "gps": "📍 GPS-Tracking",
+          "health": "🏥 Gesundheit",
+          "notifications": "🔔 Benachrichtigungen",
+          "walk": "🚶 Spaziergänge"
+        },
+        "data_description": {
+          "dashboard": "Automatisches Dashboard erstellen",
+          "feeding": "Fütterungszeiten und -erinnerungen verwalten",
+          "gps": "GPS-Position und Geofencing",
+          "health": "Gesundheitsdaten und Tierarzttermine verwalten",
+          "notifications": "Push-Benachrichtigungen für wichtige Ereignisse",
+          "walk": "Spaziergänge tracken und planen"
+        },
+        "description": "Wählen Sie die Module aus, die Sie für {dog_name} aktivieren möchten.",
+        "title": "Module auswählen"
+      },
+      "user": {
+        "data": {},
+        "data_description": {},
+        "description": "Willkommen bei PawControl! Lassen Sie uns Ihren Hund einrichten.",
+        "title": "PawControl einrichten"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "emergency_mode": {
+        "name": "Notfallmodus"
+      },
+      "gps_tracking": {
+        "name": "GPS-Tracking"
+      },
+      "health_alert": {
+        "name": "Gesundheitsalarm"
+      },
+      "is_hungry": {
+        "name": "Ist hungrig"
+      },
+      "is_outside": {
+        "name": "Ist draußen"
+      },
+      "needs_attention": {
+        "name": "Braucht Aufmerksamkeit"
+      },
+      "needs_walk": {
+        "name": "Braucht Spaziergang"
+      },
+      "visitor_mode": {
+        "name": "Besuchermodus"
+      }
+    },
+    "button": {
+      "emergency": {
+        "name": "NOTFALL"
+      },
+      "feed_breakfast": {
+        "name": "Frühstück füttern"
+      },
+      "feed_dinner": {
+        "name": "Abendessen füttern"
+      },
+      "mark_outside": {
+        "name": "Als draußen markieren"
+      },
+      "quick_feed": {
+        "name": "Jetzt füttern"
+      },
+      "reset_daily": {
+        "name": "Tagesdaten zurücksetzen"
+      },
+      "start_walk": {
+        "name": "Spaziergang starten"
+      },
+      "update_gps": {
+        "name": "GPS aktualisieren"
+      }
+    },
+    "select": {
+      "activity_level": {
+        "name": "Aktivitätslevel",
+        "state": {
+          "high": "Hoch",
+          "low": "Niedrig",
+          "normal": "Normal",
+          "very_high": "Sehr hoch",
+          "very_low": "Sehr niedrig"
+        }
+      },
+      "food_type": {
+        "name": "Futterart",
+        "state": {
+          "barf": "BARF",
+          "dry": "Trockenfutter",
+          "homemade": "Selbstgekocht",
+          "mixed": "Gemischt",
+          "wet": "Nassfutter"
+        }
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus",
+        "state": {
+          "excellent": "Ausgezeichnet",
+          "good": "Gut",
+          "normal": "Normal",
+          "sick": "Krank",
+          "unwell": "Unwohl",
+          "very_good": "Sehr gut"
+        }
+      },
+      "mood": {
+        "name": "Stimmung",
+        "state": {
+          "angry": "😠 Ärgerlich",
+          "anxious": "😰 Ängstlich",
+          "happy": "😊 Fröhlich",
+          "neutral": "😐 Neutral",
+          "sad": "😟 Traurig",
+          "tired": "😴 Müde"
+        }
+      },
+      "preferred_walk_type": {
+        "name": "Bevorzugter Spaziergang",
+        "state": {
+          "free": "Freilauf",
+          "long": "Lang",
+          "normal": "Normal",
+          "short": "Kurz",
+          "training": "Training"
+        }
+      },
+      "size_category": {
+        "name": "Größenkategorie",
+        "state": {
+          "giant": "Riesig",
+          "large": "Groß",
+          "medium": "Mittel",
+          "small": "Klein",
+          "toy": "Toy"
+        }
+      }
+    },
+    "sensor": {
+      "activity_score": {
+        "name": "Aktivitätsscore"
+      },
+      "daily_summary": {
+        "name": "Tageszusammenfassung"
+      },
+      "distance_from_home": {
+        "name": "Entfernung von Zuhause"
+      },
+      "gps_signal": {
+        "name": "GPS-Signal"
+      },
+      "happiness_score": {
+        "name": "Glücklichkeitsscore"
+      },
+      "health_score": {
+        "name": "Gesundheitsscore"
+      },
+      "location": {
+        "name": "Standort"
+      },
+      "meals_today": {
+        "name": "Mahlzeiten heute"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "emergency": "🚨 Notfall",
+          "hungry": "🍽️ Hungrig",
+          "needs_walk": "🚶 Braucht Spaziergang",
+          "ok": "✅ Alles OK",
+          "outside": "🌳 Draußen",
+          "sleeping": "😴 Schläft",
+          "visitor": "👥 Besuchermodus"
+        }
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "walk_distance_today": {
+        "name": "Spaziergang-Distanz heute"
+      },
+      "walks_today": {
+        "name": "Spaziergänge heute"
+      },
+      "weight": {
+        "name": "Gewicht"
+      }
+    },
+    "switch": {
+      "auto_walk_detection": {
+        "name": "Auto Spaziergang-Erkennung"
+      },
+      "emergency_mode": {
+        "name": "Notfallmodus"
+      },
+      "health_monitoring": {
+        "name": "Gesundheitsüberwachung"
+      },
+      "medication_reminder": {
+        "name": "Medikations-Erinnerung"
+      },
+      "training_session": {
+        "name": "Trainingseinheit"
+      },
+      "visitor_mode": {
+        "name": "Besuchermodus"
+      },
+      "walk_in_progress": {
+        "name": "Spaziergang läuft"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {},
+        "data_description": {},
+        "description": "Optionen für PawControl. Wählen Sie einen Hund zum Bearbeiten oder fügen Sie einen neuen hinzu.",
+        "title": "PawControl Optionen"
+      }
+    }
+  },
+  "services": {
+    "feed_dog": {
+      "description": "Markiert eine Fütterung für den Hund",
+      "fields": {
+        "amount": {
+          "description": "Futtermenge in Gramm",
+          "name": "Menge"
+        },
+        "dog_name": {
+          "description": "Name des zu fütternden Hundes",
+          "name": "Hundename"
+        },
+        "food_type": {
+          "description": "Art des Futters",
+          "name": "Futterart"
+        },
+        "meal_type": {
+          "description": "Art der Mahlzeit (auto = automatisch basierend auf Uhrzeit)",
+          "name": "Mahlzeit-Typ"
+        },
+        "notes": {
+          "description": "Zusätzliche Notizen zur Fütterung",
+          "name": "Notizen"
+        }
+      },
+      "name": "Hund füttern"
+    },
+    "start_walk": {
+      "description": "Startet einen Spaziergang mit dem Hund",
+      "fields": {
+        "dog_name": {
+          "description": "Name des Hundes",
+          "name": "Hundename"
+        },
+        "location": {
+          "description": "Ort des Spaziergangs",
+          "name": "Ort"
+        },
+        "walk_type": {
+          "description": "Art des Spaziergangs",
+          "name": "Spaziergang-Typ"
+        },
+        "with_gps": {
+          "description": "GPS-Tracking aktivieren",
+          "name": "Mit GPS"
+        }
+      },
+      "name": "Spaziergang starten"
+    }
+  }
+}
