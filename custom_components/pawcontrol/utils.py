@@ -1,6 +1,7 @@
 """Utility functions for PawControl integration."""
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta
 from math import radians, sin, cos, sqrt, atan2
@@ -23,15 +24,28 @@ from .const import (
     SIZE_LARGE,
     SIZE_GIANT,
     EARTH_RADIUS_M,
+    ALL_MODULES,
 )
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 # Validation Functions
 def validate_dog_name(name: str) -> bool:
-    """Validate dog name."""
+    """Validate dog name.
+
+    Leading and trailing whitespace is ignored so that names entered with
+    accidental spaces are still considered valid. Non-string inputs are
+    rejected early.
+    """
+    if not isinstance(name, str):
+        return False
+
+    name = name.strip()
     if not name or len(name) < MIN_DOG_NAME_LENGTH or len(name) > MAX_DOG_NAME_LENGTH:
         return False
-    
+
     # Allow letters, numbers, spaces, hyphens, underscores, and umlauts
     pattern = r"^[a-zA-ZäöüÄÖÜß0-9\s\-_.]+$"
     return bool(re.match(pattern, name))
@@ -81,6 +95,28 @@ def validate_gps_accuracy(accuracy: float) -> bool:
         return 0 <= acc <= 1000  # meters
     except (ValueError, TypeError):
         return False
+
+
+# Configuration Utilities
+def filter_invalid_modules(modules: dict[str, Any]) -> dict[str, Any]:
+    """Remove unknown modules from configuration.
+
+    Returns a new dictionary containing only modules defined in
+    :const:`ALL_MODULES`. Unknown modules are logged and discarded to avoid
+    setup errors when the configuration was manually edited or imported from
+    an older version.
+    """
+    if not isinstance(modules, dict):
+        return {}
+
+    valid: dict[str, Any] = {}
+    for module_id, config in modules.items():
+        if module_id in ALL_MODULES:
+            valid[module_id] = config
+        else:
+            _LOGGER.warning("Unknown module '%s' removed from configuration", module_id)
+
+    return valid
 
 
 # Calculation Functions

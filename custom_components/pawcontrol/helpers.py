@@ -293,6 +293,14 @@ class ImprovedModuleManager:
         
         if initial is None:
             initial = options[0]
+        elif initial not in options:
+            _LOGGER.warning(
+                "Initial value '%s' not in options for %s; using '%s'",
+                initial,
+                entity_id,
+                options[0],
+            )
+            initial = options[0]
         
         # Create the input select configuration
         config = {
