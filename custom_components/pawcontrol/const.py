@@ -252,6 +252,7 @@ MIN_TEMPERATURE: Final = 35.0
 MAX_TEMPERATURE: Final = 42.0
 
 # GPS Constants
+EARTH_RADIUS_M: Final = 6_371_000  # Earth's radius in meters
 GPS_ACCURACY_EXCELLENT: Final = 5  # meters
 GPS_ACCURACY_GOOD: Final = 15
 GPS_ACCURACY_ACCEPTABLE: Final = 50

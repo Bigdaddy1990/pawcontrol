@@ -22,6 +22,7 @@ from .const import (
     SIZE_MEDIUM,
     SIZE_LARGE,
     SIZE_GIANT,
+    EARTH_RADIUS_M,
 )
 
 
@@ -86,20 +87,20 @@ def validate_gps_accuracy(accuracy: float) -> bool:
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance between two GPS coordinates using Haversine formula."""
     try:
+        if not validate_coordinates(lat1, lon1) or not validate_coordinates(lat2, lon2):
+            return 0.0
+
         # Convert to radians
         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-        
+
         # Haversine formula
         dlat = lat2 - lat1
         dlon = lon2 - lon1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1-a))
-        
-        # Earth's radius in meters
-        radius = 6371000
-        
-        return radius * c
-    except Exception:
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return EARTH_RADIUS_M * c
+    except (ValueError, TypeError):
         return 0.0
 
 
