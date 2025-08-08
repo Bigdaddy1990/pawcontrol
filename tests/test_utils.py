@@ -45,3 +45,15 @@ def test_validate_dog_name_valid_characters():
 
 def test_validate_dog_name_invalid_characters():
     assert not utils.validate_dog_name("Bad*Name!")
+
+
+def test_validate_dog_name_strips_whitespace():
+    assert utils.validate_dog_name("  Fido  ")
+
+
+def test_validate_dog_name_whitespace_only():
+    assert not utils.validate_dog_name("   ")
+
+
+def test_validate_dog_name_rejects_non_string():
+    assert not utils.validate_dog_name(None)
