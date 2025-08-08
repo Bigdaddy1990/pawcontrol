@@ -380,18 +380,25 @@ class ImprovedModuleManager:
         # This needs to be properly integrated with HA's helper infrastructure
         
         full_entity_id = f"{domain}.pawcontrol_{entity_id}"
-        
-        # Store in the integration's data for entity platforms to use
-        if "helpers" not in self.hass.data.get("pawcontrol", {}):
-            if "pawcontrol" not in self.hass.data:
-                self.hass.data["pawcontrol"] = {}
-            self.hass.data["pawcontrol"]["helpers"] = {}
-        
-        self.hass.data["pawcontrol"]["helpers"][full_entity_id] = config
-        
+
+        helpers = self._get_helpers_storage()
+        helpers[full_entity_id] = config
+
         # Trigger a config entry reload to create the entities
         # This is a simplified approach - actual implementation would be more complex
-        _LOGGER.debug(f"Added helper config for {full_entity_id}")
+        _LOGGER.debug("Added helper config for %s", full_entity_id)
+
+    def _get_helpers_storage(self) -> dict[str, Any]:
+        """Return a writable helpers storage mapping.
+
+        This accessor ensures that the nested ``hass.data`` structure used
+        for PawControl helper tracking exists, creating any missing levels
+        as needed, and always returns a mutable dictionary. Callers may
+        freely read from or update the returned mapping to manage helper
+        configuration internally.
+        """
+        pawcontrol_data = self.hass.data.setdefault("pawcontrol", {})
+        return pawcontrol_data.setdefault("helpers", {})
     
     async def async_remove_all_helpers(self) -> None:
         """Remove all helpers for this dog."""
