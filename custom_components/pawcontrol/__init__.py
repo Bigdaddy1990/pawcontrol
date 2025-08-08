@@ -27,6 +27,7 @@ from .coordinator import PawControlCoordinator
 from .modules import ModuleManager
 from .services import async_register_services, async_unregister_services
 from .setup_manager import PawControlSetupManager
+from .utils import filter_invalid_modules
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,9 +73,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         dog_name = dog_config.get(CONF_DOG_NAME)
         if not dog_name:
             continue
-            
+
+        modules = dog_config.get(CONF_MODULES, {})
+        dog_config[CONF_MODULES] = filter_invalid_modules(modules)
+
         _LOGGER.info(f"Initializing coordinator for dog: {dog_name}")
-        
+
         # Create coordinator for this dog
         coordinator = PawControlCoordinator(hass, entry, dog_config)
         
