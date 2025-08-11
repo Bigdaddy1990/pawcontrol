@@ -20,6 +20,7 @@ from .const import (
     MODULE_TRAINING,
 )
 
+# Initialize module logger
 _LOGGER = logging.getLogger(__name__)
 
 
