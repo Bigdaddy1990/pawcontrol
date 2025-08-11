@@ -25,7 +25,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Environment :: Plugins",
 ]
-requires-python = ">=3.11"
 dependencies = [
     "homeassistant>=2024.1.0",
     "voluptuous>=0.13.1",
