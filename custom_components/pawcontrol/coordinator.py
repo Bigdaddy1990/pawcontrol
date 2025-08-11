@@ -557,19 +557,8 @@ class PawControlCoordinator(DataUpdateCoordinator):
         _LOGGER.warning(f"Emergency mode activated: {level} - {note}")
         await self.async_request_refresh()
 
-    async def generate_report(self, scope: str, target: str, format_type: str) -> None:
-        """Generate activity report."""
-        _LOGGER.info(f"Generating {scope} report in {format_type} format to {target}")
-        # Implementation would generate and send/save report
-        # This is a placeholder for the actual implementation
-        pass
-
-    async def export_health_data(self, dog_id: str, date_from: str, date_to: str, format_type: str) -> None:
-        """Export health data for a dog."""
-        _LOGGER.info(f"Exporting health data for {dog_id} from {date_from} to {date_to} in {format_type} format")
-        # Implementation would export data to file
-        # This is a placeholder for the actual implementation
-        pass
+    # Report generation is handled by ReportGenerator class
+    # See report_generator.py for implementation
 
     @property
     def visitor_mode(self) -> bool:

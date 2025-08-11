@@ -36,6 +36,7 @@ from .coordinator import PawControlCoordinator
 from .helpers.scheduler import setup_schedulers, cleanup_schedulers
 from .helpers.setup_sync import SetupSync
 from .helpers.notification_router import NotificationRouter
+from .report_generator import ReportGenerator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,11 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         raise ConfigEntryNotReady from err
     
-    # Store coordinator
+    # Store coordinator and helpers
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "notification_router": NotificationRouter(hass, entry),
         "setup_sync": SetupSync(hass, entry),
+        "report_generator": ReportGenerator(hass, entry),
     }
     
     # Register devices for each dog
@@ -291,8 +293,8 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
         format_type = call.data.get("format", "text")
         
         for entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
-            await coordinator.generate_report(scope, target, format_type)
+            report_generator = hass.data[DOMAIN][entry_id]["report_generator"]
+            await report_generator.generate_report(scope, target, format_type)
     
     async def handle_export_data(call: ServiceCall) -> None:
         """Handle data export service."""
@@ -302,8 +304,8 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
         format_type = call.data.get("format", "csv")
         
         for entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
-            await coordinator.export_health_data(dog_id, date_from, date_to, format_type)
+            report_generator = hass.data[DOMAIN][entry_id]["report_generator"]
+            await report_generator.export_health_data(dog_id, date_from, date_to, format_type)
     
     # Register all services
     hass.services.async_register(DOMAIN, SERVICE_DAILY_RESET, handle_daily_reset)

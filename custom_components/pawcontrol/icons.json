@@ -1,0 +1,107 @@
+{
+  "services": {
+    "daily_reset": "mdi:restart",
+    "sync_setup": "mdi:sync",
+    "notify_test": "mdi:bell-ring",
+    "start_walk": "mdi:dog-side",
+    "end_walk": "mdi:home",
+    "walk_dog": "mdi:walk",
+    "feed_dog": "mdi:food",
+    "log_health_data": "mdi:heart-pulse",
+    "log_medication": "mdi:pill",
+    "start_grooming_session": "mdi:content-cut",
+    "play_with_dog": "mdi:tennis-ball",
+    "start_training_session": "mdi:school",
+    "toggle_visitor_mode": "mdi:account-group",
+    "activate_emergency_mode": "mdi:alert-circle",
+    "generate_report": "mdi:file-document",
+    "export_health_data": "mdi:database-export"
+  },
+  "entities": {
+    "sensor": {
+      "last_walk": "mdi:clock-outline",
+      "last_feeding": "mdi:clock-outline",
+      "walks_today": "mdi:counter",
+      "feedings_today": "mdi:counter",
+      "total_distance_today": "mdi:map-marker-distance",
+      "calories_burned_today": "mdi:fire",
+      "walk_duration": "mdi:timer",
+      "walk_distance": "mdi:map-marker-distance",
+      "next_meal": "mdi:food-clock",
+      "feeding_breakfast": "mdi:food-apple",
+      "feeding_lunch": "mdi:food",
+      "feeding_dinner": "mdi:food-variant",
+      "feeding_snack": "mdi:cookie",
+      "weight": "mdi:weight",
+      "activity_level": "mdi:run",
+      "last_grooming": "mdi:content-cut",
+      "days_since_grooming": "mdi:calendar-clock",
+      "training_sessions_today": "mdi:school",
+      "play_duration_today": "mdi:tennis-ball",
+      "poop_count_today": "mdi:emoticon-poop",
+      "last_action": "mdi:history"
+    },
+    "binary_sensor": {
+      "walk_in_progress": "mdi:dog-side",
+      "needs_walk": "mdi:walk",
+      "is_hungry": "mdi:food-alert",
+      "needs_grooming": "mdi:content-cut",
+      "is_home": "mdi:home",
+      "visitor_mode": "mdi:account-group",
+      "emergency_mode": "mdi:alert-circle"
+    },
+    "button": {
+      "start_walk": "mdi:dog-side",
+      "end_walk": "mdi:home",
+      "quick_walk": "mdi:walk",
+      "feed_breakfast": "mdi:food-apple",
+      "feed_lunch": "mdi:food",
+      "feed_dinner": "mdi:food-variant",
+      "feed_snack": "mdi:cookie",
+      "log_weight": "mdi:weight",
+      "give_medication": "mdi:pill",
+      "groom_bath": "mdi:shower",
+      "groom_brush": "mdi:brush",
+      "groom_nails": "mdi:content-cut",
+      "start_training": "mdi:school",
+      "log_play": "mdi:tennis-ball",
+      "log_poop": "mdi:emoticon-poop",
+      "notify_test": "mdi:bell-ring",
+      "daily_reset": "mdi:restart",
+      "generate_report": "mdi:file-document",
+      "sync_setup": "mdi:sync"
+    },
+    "number": {
+      "walk_reminder_interval": "mdi:timer",
+      "feeding_reminder_interval": "mdi:timer",
+      "weight_target": "mdi:weight",
+      "walk_distance_target": "mdi:map-marker-distance",
+      "grooming_interval": "mdi:calendar-clock",
+      "max_snacks_per_day": "mdi:cookie",
+      "daily_calorie_target": "mdi:fire"
+    },
+    "select": {
+      "activity_level": "mdi:run",
+      "feeding_schedule": "mdi:calendar-clock",
+      "preferred_walk_time": "mdi:clock-outline",
+      "grooming_type": "mdi:content-cut",
+      "notification_priority": "mdi:bell"
+    },
+    "text": {
+      "health_notes": "mdi:note-text",
+      "medication_notes": "mdi:pill",
+      "training_notes": "mdi:school",
+      "grooming_notes": "mdi:content-cut",
+      "walk_notes": "mdi:walk"
+    },
+    "switch": {
+      "walk_reminders": "mdi:bell",
+      "feeding_reminders": "mdi:bell",
+      "auto_walk_detection": "mdi:auto-fix",
+      "gps_tracking": "mdi:crosshairs-gps",
+      "visitor_mode": "mdi:account-group",
+      "emergency_mode": "mdi:alert",
+      "debug_mode": "mdi:bug"
+    }
+  }
+}
