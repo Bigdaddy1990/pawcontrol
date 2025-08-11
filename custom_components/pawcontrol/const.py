@@ -1,7 +1,27 @@
 """Constants for the Paw Control integration."""
 
+from homeassistant.const import Platform
+
 DOMAIN = "pawcontrol"
-PLATFORMS = ["sensor", "binary_sensor", "button", "number", "select", "text", "switch"]
+
+# Platforms the integration implements.
+#
+# Home Assistant expects these to be `Platform` enum values rather than raw
+# strings.  Using plain strings works in some places, but methods such as
+# `async_forward_entry_setups` and `async_unload_platforms` now validate the
+# incoming values and will raise errors if they're not `Platform` instances.
+# This caused the integration setup and unload routines to fail.  Using the
+# proper enum values ensures compatibility with Home Assistant's expectations
+# and fixes the integration errors.
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.TEXT,
+    Platform.SWITCH,
+]
 
 # Configuration
 CONF_DOGS = "dogs"
