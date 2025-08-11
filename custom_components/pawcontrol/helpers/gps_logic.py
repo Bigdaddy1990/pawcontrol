@@ -26,6 +26,7 @@ from ..const import (
     CONF_DEVICE_TRACKERS,
     CONF_PERSON_ENTITIES,
     CONF_DOOR_SENSOR,
+    CONF_DOGS,
     DEFAULT_MIN_WALK_DISTANCE_M,
     DEFAULT_MIN_WALK_DURATION_MIN,
     DEFAULT_IDLE_TIMEOUT_MIN,
@@ -221,7 +222,7 @@ class GPSLogic:
         _LOGGER.debug("Door opened - potential walk start")
         
         # Mark potential walk start for all dogs
-        dogs = self.entry.options.get("dogs", [])
+        dogs = self.entry.options.get(CONF_DOGS, [])
         for dog in dogs:
             dog_id = dog.get("dog_id")
             if dog_id and dog_id not in self._walk_sessions:
@@ -364,11 +365,11 @@ class GPSLogic:
             if dog_data and "walk" in dog_data:
                 dog_data["walk"]["walk_distance_m"] = round(distance_m, 1)
 
-    def _get_dogs_for_entity(self, entity_id: str) -> List[str]:
+    def _get_dogs_for_entity(self, entity_id: str) -> list[str]:
         """Get list of dogs associated with a tracked entity."""
         # For now, return all dogs
         # In a more complex setup, this could map specific trackers to specific dogs
-        dogs = self.entry.options.get("dogs", [])
+        dogs = self.entry.options.get(CONF_DOGS, [])
         return [dog.get("dog_id") for dog in dogs if dog.get("dog_id")]
 
     def check_idle_timeout(self) -> None:
