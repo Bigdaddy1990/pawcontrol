@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- Provide a summary of the changes in this pull request -->
+
 
 ## Testing
 
@@ -14,3 +14,4 @@
 - [ ] Documentation updated if needed
 - [ ] All tests passing
 
+- Provide a brief summary of your changes

@@ -3,3 +3,7 @@ contact_links:
   - name: Discussions
     url: https://github.com/Bigdaddy1990/pawcontrol/discussions
     about: Please use GitHub Discussions for questions and ideas
+  - name: Documentation
+    url: https://github.com/Bigdaddy1990/pawcontrol#readme
+    about: Read the documentation before opening an issue.
+

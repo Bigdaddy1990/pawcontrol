@@ -16,6 +16,7 @@ from ..const import (
     CONF_NOTIFICATIONS,
     CONF_NOTIFY_FALLBACK,
     CONF_PERSON_ENTITIES,
+    CONF_SOURCES,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_QUIET_END,
@@ -184,7 +185,7 @@ class NotificationRouter:
         targets = []
         
         # Check for person-based notifications
-        person_entities = self.entry.options.get("sources", {}).get(
+        person_entities = self.entry.options.get(CONF_SOURCES, {}).get(
             CONF_PERSON_ENTITIES, []
         )
         
@@ -223,8 +224,10 @@ class NotificationRouter:
                 # and produce an invalid service name. Using ``split('.', 1)``
                 # and taking the last element preserves the entire service
                 # identifier while also handling values without a domain
-                # prefix, ensuring we don't misroute the notification.
-                service = fallback.split(".", 1)[-1]
+                # prefix, ensuring we don't misroute the notification. Any
+                # remaining periods must be converted to underscores to match
+                # how Home Assistant names services.
+                service = fallback.split(".", 1)[-1].replace(".", "_")
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
