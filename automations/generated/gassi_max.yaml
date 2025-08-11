@@ -1,9 +1,0 @@
-- action:
-  - data:
-      dog_name: Max
-    service: python_script.pawcontrol_gassi_trigger
-  alias: Gassi Trigger für Max
-  condition: []
-  id: gassi_trigger_max
-  mode: single
-  trigger: []
