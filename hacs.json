@@ -1,6 +1,5 @@
 {
   "name": "Paw Control",
   "render_readme": true,
-  "country": "DE",
-  "homeassistant": "2024.1.0"
+  "content_in_root": false
 }
