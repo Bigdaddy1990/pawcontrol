@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Mapping
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -243,9 +243,19 @@ class PawControlCoordinator(DataUpdateCoordinator):
         
         return round(walk_calories + play_calories, 1)
 
-    def update_options(self, options: dict) -> None:
-        """Update coordinator options."""
-        self.entry._options = options
+    def update_options(self, options: dict[str, Any] | Mapping[str, Any]) -> None:
+        """Update coordinator options.
+
+        ``ConfigEntry`` stores options internally as a mutable dict so that
+        Home Assistant can merge updates. Accept any mapping (including plain
+        ``dict``) and copy it to a new dict rather than wrapping it in
+        ``MappingProxyType``; the public ``entry.options`` property will expose
+        an immutable view for consumers, while the underlying dict remains
+        updateable.
+        """
+        # Make a shallow copy to detach from the source mapping and retain
+        # Home Assistant's expected mutability for ``_options``.
+        self.entry._options = dict(options)
         self._initialize_dog_data()
 
     def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
