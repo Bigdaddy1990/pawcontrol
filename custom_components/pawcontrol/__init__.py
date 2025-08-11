@@ -65,8 +65,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "notification_router": NotificationRouter(hass, entry),
         "setup_sync": SetupSync(hass, entry),
-        "report_generator": ReportGenerator(hass, entry),
     }
+
+    # Report generator depends on the coordinator being stored above, so
+    # instantiate it only after the shared data structure has been created.
+    hass.data[DOMAIN][entry.entry_id]["report_generator"] = ReportGenerator(hass, entry)
     
     # Register devices for each dog
     await _register_devices(hass, entry)
