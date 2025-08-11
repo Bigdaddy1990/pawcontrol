@@ -20,6 +20,7 @@ from .const import (
     MODULE_TRAINING,
 )
 
+# Initialize module logger
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -65,8 +66,9 @@ async def async_setup_entry(
     entities.append(
         ExportPathText(hass, coordinator, entry)
     )
-    
-    async_add_entities(entities, True)
+
+    # Use keyword argument for readability and to avoid ambiguous positional booleans.
+    async_add_entities(entities, update_before_add=True)
 
 
 class PawControlTextBase(TextEntity):
@@ -118,7 +120,9 @@ class PawControlTextBase(TextEntity):
     async def async_set_value(self, value: str) -> None:
         """Set the text value."""
         self._stored_value = value
-        _LOGGER.info(f"{self._attr_name} for {self._dog_name} updated")
+        # Use parameterized logging to defer string formatting until needed,
+        # following logging best practices.
+        _LOGGER.info("%s for %s updated", self._attr_name, self._dog_name)
 
 
 class HealthNotesText(PawControlTextBase):
@@ -178,7 +182,11 @@ class MedicationNotesText(PawControlTextBase):
     @property
     def native_value(self) -> str | None:
         """Return the current value."""
-        return f"{self.dog_data.get('health', {}).get('medication_name', '')} - {self.dog_data.get('health', {}).get('medication_dose', '')}"
+        health = self.dog_data.get("health", {})
+        return (
+            f"{health.get('medication_name', '')} - "
+            f"{health.get('medication_dose', '')}"
+        )
 
 
 class VetNotesText(PawControlTextBase):
@@ -271,5 +279,7 @@ class ExportPathText(TextEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Set the text value."""
-        _LOGGER.info(f"Export path set to {value}")
+        # Use parameterized logging to avoid unnecessary formatting unless
+        # the message is emitted, per logging best practices.
+        _LOGGER.info("Export path set to %s", value)
         # Would update the config entry options
