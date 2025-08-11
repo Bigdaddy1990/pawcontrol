@@ -46,7 +46,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control sensor entities."""
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "coordinator"
+    ]
     
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
@@ -110,8 +112,10 @@ async def async_setup_entry(
             ActivityLevelSensor(coordinator, dog_id, dog_name),
             CaloriesBurnedSensor(coordinator, dog_id, dog_name),
         ])
-    
-    async_add_entities(entities, True)
+
+    # Use keyword argument for clarity instead of a positional boolean,
+    # following best practices for readability.
+    async_add_entities(entities, update_before_add=True)
 
 
 class PawControlSensorBase(CoordinatorEntity, SensorEntity):
@@ -307,7 +311,8 @@ class FeedingCountSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return the feeding count for this meal type."""
-        return self.dog_data.get("feeding", {}).get("feedings_today", {}).get(self._meal_type, 0)
+        feedings = self.dog_data.get("feeding", {}).get("feedings_today", {})
+        return feedings.get(self._meal_type, 0)
 
 
 class WeightSensor(PawControlSensorBase):
