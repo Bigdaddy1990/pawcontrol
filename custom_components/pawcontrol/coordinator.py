@@ -203,6 +203,8 @@ class PawControlCoordinator(DataUpdateCoordinator):
             days_since = (dt_util.now() - last_grooming).days
             return days_since >= data["grooming_interval_days"]
         except (ValueError, TypeError):
+            # Fall back to needing grooming when the timestamp can't be parsed
+            # to avoid falsely assuming grooming occurred
             return True
 
     def _calculate_activity_level(self, dog_id: str) -> str:
