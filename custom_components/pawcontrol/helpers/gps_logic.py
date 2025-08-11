@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.components.device_tracker import DOMAIN as TRACKER_DOMAIN
 from homeassistant.components.person import DOMAIN as PERSON_DOMAIN
