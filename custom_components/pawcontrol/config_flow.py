@@ -211,7 +211,13 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         needs_door_sensor = any(
             dog.get(CONF_DOG_MODULES, {}).get(MODULE_WALK, False) for dog in self._dogs
         )
-        needs_gps = any(dog.get(CONF_DOG_MODULES, {}).get(MODULE_GPS, False) for dog in self._dogs)
+        needs_gps = any(
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_GPS, False) for dog in self._dogs
+        )
+
+        # If no modules require external sources, skip this step entirely
+        if not needs_door_sensor and not needs_gps:
+            return await self.async_step_notifications()
 
         schema_dict = {}
 
@@ -228,6 +234,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 EntitySelectorConfig(domain="device_tracker", multiple=True)
             )
 
+        # Optional calendar and weather integrations
         schema_dict[vol.Optional(CONF_CALENDAR, default=None)] = vol.Any(
             None,
             EntitySelector(EntitySelectorConfig(domain="calendar")),
@@ -237,9 +244,6 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             EntitySelector(EntitySelectorConfig(domain="weather")),
         )
 
-        if not schema_dict:
-            # No sources needed, skip to notifications
-            return await self.async_step_notifications()
         return self.async_show_form(
             step_id="sources",
             data_schema=vol.Schema(schema_dict, extra=vol.ALLOW_EXTRA),
