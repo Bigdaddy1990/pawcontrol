@@ -4,16 +4,11 @@ from homeassistant.const import Platform
 
 DOMAIN = "pawcontrol"
 
-# Platforms the integration implements.
-#
-# Home Assistant expects these to be `Platform` enum values rather than raw
-# strings.  Using plain strings works in some places, but methods such as
-# `async_forward_entry_setups` and `async_unload_platforms` now validate the
-# incoming values and will raise errors if they're not `Platform` instances.
-# This caused the integration setup and unload routines to fail.  Using the
-# proper enum values ensures compatibility with Home Assistant's expectations
-# and fixes the integration errors.
-PLATFORMS = [
+# Platforms the integration implements. Home Assistant now validates that these
+# values are instances of the ``Platform`` enum; using raw strings would cause
+# setup and unload to fail.  Typing the list helps static checkers catch any
+# accidental regression back to string values.
+PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
