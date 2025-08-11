@@ -208,14 +208,23 @@ class NotificationRouter:
             
             if fallback:
                 # Extract service name from entity
+                # ``notify`` services may contain additional dots after the
+                # domain portion (e.g. ``notify.mobile_app.pixel_7``). Using a
+                # plain ``split('.')`` followed by index ``[1]`` would yield
+                # ``"mobile_app"`` and drop ``"pixel_7"``, producing an invalid
+                # service name.  By limiting the split to one occurrence,
+                # ``split('.', 1)[1]`` preserves everything after the first dot
+                # and leaves the full service identifier intact.
                 if "." in fallback:
-                    service = fallback.split(".")[1]
+                    service = fallback.split(".", 1)[1]
                 else:
                     service = fallback
-                
+
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
-                    _LOGGER.debug(f"Using fallback notification target: {service}")
+                    _LOGGER.debug(
+                        f"Using fallback notification target: {service}"
+                    )
         
         # If still no targets, try to find any mobile_app service
         if not targets:
