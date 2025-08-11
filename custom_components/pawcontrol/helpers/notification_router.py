@@ -200,7 +200,9 @@ class NotificationRouter:
                 # splitting just once we keep the full identifier (``john.doe``)
                 # and then normalize any remaining dots to underscores so
                 # ``notify.mobile_app_john_doe`` remains intact.
-                person_name = person_entity.split(".", 1)[-1].replace(".", "_")
+                person_name = (
+                    person_entity.split(".", 1)[-1].replace(".", "_").lower()
+                )
                 notify_service = f"mobile_app_{person_name}"
 
                 # Check if service exists
@@ -225,7 +227,7 @@ class NotificationRouter:
                 # prefix, ensuring we don't misroute the notification. Any
                 # remaining periods must be converted to underscores to match
                 # how Home Assistant names services.
-                service = fallback.split(".", 1)[-1].replace(".", "_")
+                service = fallback.split(".", 1)[-1].replace(".", "_").lower()
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
