@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/yourusername/pawcontrol)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/Bigdaddy1990/pawcontrol)
 
 ## 🎯 Features
 
@@ -37,7 +37,7 @@ Paw Control is a comprehensive Home Assistant integration for managing your dogs
 1. Open HACS in your Home Assistant instance
 2. Click on "Integrations"
 3. Click the three dots menu and select "Custom repositories"
-4. Add this repository URL: `https://github.com/yourusername/pawcontrol`
+4. Add this repository URL: `https://github.com/bigdaddy1990/pawcontrol`
 5. Select "Integration" as the category
 6. Click "Add"
 7. Search for "Paw Control" and install it
@@ -176,17 +176,10 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Home Assistant Community
-- HACS Team
-- All contributors and testers
-
 ## 📞 Support
 
-- [Issue Tracker](https://github.com/yourusername/pawcontrol/issues)
-- [Discussions](https://github.com/yourusername/pawcontrol/discussions)
-- [Home Assistant Community Forum](https://community.home-assistant.io/)
+- [Issue Tracker](https://github.com/Bigdaddy1990/pawcontrol/issues)
+- [Discussions](https://github.com/Bigdaddy1990/pawcontrol/discussions)
 
 ---
 
