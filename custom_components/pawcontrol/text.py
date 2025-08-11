@@ -3,23 +3,25 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.text import TextEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_HEALTH,
     MODULE_TRAINING,
 )
+
+if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 # Initialize module logger
 _LOGGER = logging.getLogger(__name__)
@@ -120,6 +122,9 @@ class PawControlTextBase(TextEntity):
         # Use parameterized logging to defer string formatting until needed,
         # following logging best practices.
         _LOGGER.info("%s for %s updated", self._attr_name, self._dog_name)
+        # Ensure Home Assistant is notified about the updated value so the
+        # UI and automations receive the change immediately.
+        self.async_write_ha_state()
 
 
 class HealthNotesText(PawControlTextBase):
