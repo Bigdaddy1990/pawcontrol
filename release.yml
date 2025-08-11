@@ -58,7 +58,7 @@ jobs:
             2. Go to "Integrations"
             3. Click the three dots (⋮) in the top right
             4. Select "Custom repositories"
-            5. Add URL: `https://github.com/Bigdaddy1990/pawcontrol`
+            5. Add URL: `https://github.com/bigdaddy1990/pawcontrol`
             6. Category: "Integration"
             7. Click "Add"
             8. Search for "Paw Control" and install
@@ -74,7 +74,7 @@ jobs:
             See the commit history for detailed changes in this release.
             
             ### Support
-            - 🐛 Bug Reports: [GitHub Issues](https://github.com/Bigdaddy1990/pawcontrol/issues)
-            - 💡 Feature Requests: [GitHub Discussions](https://github.com/Bigdaddy1990/pawcontrol/discussions)
+            - 🐛 Bug Reports: [GitHub Issues](https://github.com/bigdaddy1990/pawcontrol/issues)
+            - 💡 Feature Requests: [GitHub Discussions](https://github.com/bigdaddy1990/pawcontrol/discussions)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
