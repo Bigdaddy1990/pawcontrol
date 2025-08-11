@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -38,6 +39,22 @@ from .helpers.notification_router import NotificationRouter
 from .helpers.scheduler import cleanup_schedulers, setup_schedulers
 from .helpers.setup_sync import SetupSync
 from .report_generator import ReportGenerator
+from .schemas import (
+    SERVICE_EMERGENCY_MODE_SCHEMA,
+    SERVICE_END_WALK_SCHEMA,
+    SERVICE_EXPORT_DATA_SCHEMA,
+    SERVICE_FEED_DOG_SCHEMA,
+    SERVICE_GENERATE_REPORT_SCHEMA,
+    SERVICE_LOG_HEALTH_SCHEMA,
+    SERVICE_LOG_MEDICATION_SCHEMA,
+    SERVICE_NOTIFY_TEST_SCHEMA,
+    SERVICE_PLAY_SESSION_SCHEMA,
+    SERVICE_START_GROOMING_SCHEMA,
+    SERVICE_START_WALK_SCHEMA,
+    SERVICE_TOGGLE_VISITOR_SCHEMA,
+    SERVICE_TRAINING_SESSION_SCHEMA,
+    SERVICE_WALK_DOG_SCHEMA,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,7 +163,7 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
             name=f"🐕 {dog_name}",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
 
 
@@ -311,23 +328,112 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             report_generator = hass.data[DOMAIN][entry_id]["report_generator"]
             await report_generator.export_health_data(dog_id, date_from, date_to, format_type)
     
-    # Register all services
-    hass.services.async_register(DOMAIN, SERVICE_DAILY_RESET, handle_daily_reset)
-    hass.services.async_register(DOMAIN, SERVICE_SYNC_SETUP, handle_sync_setup)
-    hass.services.async_register(DOMAIN, SERVICE_NOTIFY_TEST, handle_notify_test)
-    hass.services.async_register(DOMAIN, SERVICE_START_WALK, handle_start_walk)
-    hass.services.async_register(DOMAIN, SERVICE_END_WALK, handle_end_walk)
-    hass.services.async_register(DOMAIN, SERVICE_WALK_DOG, handle_walk_dog)
-    hass.services.async_register(DOMAIN, SERVICE_FEED_DOG, handle_feed_dog)
-    hass.services.async_register(DOMAIN, SERVICE_LOG_HEALTH, handle_log_health)
-    hass.services.async_register(DOMAIN, SERVICE_LOG_MEDICATION, handle_log_medication)
-    hass.services.async_register(DOMAIN, SERVICE_START_GROOMING, handle_start_grooming)
-    hass.services.async_register(DOMAIN, SERVICE_PLAY_WITH_DOG, handle_play_session)
-    hass.services.async_register(DOMAIN, SERVICE_START_TRAINING, handle_training_session)
-    hass.services.async_register(DOMAIN, SERVICE_TOGGLE_VISITOR, handle_toggle_visitor)
-    hass.services.async_register(DOMAIN, SERVICE_EMERGENCY_MODE, handle_emergency_mode)
-    hass.services.async_register(DOMAIN, SERVICE_GENERATE_REPORT, handle_generate_report)
-    hass.services.async_register(DOMAIN, SERVICE_EXPORT_DATA, handle_export_data)
+    # Register all services with schema validation
+    hass.services.async_register(
+        DOMAIN, SERVICE_DAILY_RESET, handle_daily_reset
+    )
+    
+    hass.services.async_register(
+        DOMAIN, SERVICE_SYNC_SETUP, handle_sync_setup
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_NOTIFY_TEST, 
+        handle_notify_test,
+        schema=SERVICE_NOTIFY_TEST_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_START_WALK, 
+        handle_start_walk,
+        schema=SERVICE_START_WALK_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_END_WALK, 
+        handle_end_walk,
+        schema=SERVICE_END_WALK_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_WALK_DOG, 
+        handle_walk_dog,
+        schema=SERVICE_WALK_DOG_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_FEED_DOG, 
+        handle_feed_dog,
+        schema=SERVICE_FEED_DOG_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_LOG_HEALTH, 
+        handle_log_health,
+        schema=SERVICE_LOG_HEALTH_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_LOG_MEDICATION, 
+        handle_log_medication,
+        schema=SERVICE_LOG_MEDICATION_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_START_GROOMING, 
+        handle_start_grooming,
+        schema=SERVICE_START_GROOMING_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_PLAY_WITH_DOG, 
+        handle_play_session,
+        schema=SERVICE_PLAY_SESSION_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_START_TRAINING, 
+        handle_training_session,
+        schema=SERVICE_TRAINING_SESSION_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_TOGGLE_VISITOR, 
+        handle_toggle_visitor,
+        schema=SERVICE_TOGGLE_VISITOR_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_EMERGENCY_MODE, 
+        handle_emergency_mode,
+        schema=SERVICE_EMERGENCY_MODE_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_GENERATE_REPORT, 
+        handle_generate_report,
+        schema=SERVICE_GENERATE_REPORT_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, 
+        SERVICE_EXPORT_DATA, 
+        handle_export_data,
+        schema=SERVICE_EXPORT_DATA_SCHEMA
+    )
 
 
 def _unregister_services(hass: HomeAssistant) -> None:

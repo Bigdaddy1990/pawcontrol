@@ -26,7 +26,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class PawControlCoordinator(DataUpdateCoordinator):
+class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     """Manage fetching and updating Paw Control data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -39,9 +39,9 @@ class PawControlCoordinator(DataUpdateCoordinator):
         )
         self.entry = entry
         self._dog_data: Dict[str, Dict[str, Any]] = {}
-        self._visitor_mode = False
-        self._emergency_mode = False
-        self._emergency_level = "info"
+        self._visitor_mode: bool = False
+        self._emergency_mode: bool = False
+        self._emergency_level: str = "info"
         self._initialize_dog_data()
 
     def _initialize_dog_data(self) -> None:
@@ -157,7 +157,25 @@ class PawControlCoordinator(DataUpdateCoordinator):
             return self._dog_data
             
         except Exception as err:
-            raise UpdateFailed(f"Error updating data: {err}")
+            raise UpdateFailed(f"Error updating data: {err}") from err
+
+    def _parse_datetime(self, date_string: str | None) -> datetime | None:
+        """Parse a datetime string safely with timezone awareness."""
+        if not date_string:
+            return None
+        
+        try:
+            # Try to parse ISO format
+            parsed_dt = datetime.fromisoformat(date_string)
+            
+            # Ensure timezone awareness
+            if parsed_dt.tzinfo is None:
+                parsed_dt = dt_util.as_local(parsed_dt)
+            
+            return parsed_dt
+        except (ValueError, TypeError, AttributeError):
+            _LOGGER.debug(f"Failed to parse datetime: {date_string}")
+            return None
 
     def _calculate_needs_walk(self, dog_id: str) -> bool:
         """Calculate if dog needs a walk."""
@@ -166,15 +184,12 @@ class PawControlCoordinator(DataUpdateCoordinator):
         if data["walk_in_progress"]:
             return False
             
-        if not data["last_walk"]:
+        last_walk_dt = self._parse_datetime(data["last_walk"])
+        if not last_walk_dt:
             return True
-            
-        try:
-            last_walk = datetime.fromisoformat(data["last_walk"])
-            hours_since_walk = (dt_util.now() - last_walk).total_seconds() / 3600
-            return hours_since_walk >= DEFAULT_WALK_THRESHOLD_HOURS
-        except (ValueError, TypeError):
-            return True
+        
+        hours_since_walk = (dt_util.now() - last_walk_dt).total_seconds() / 3600
+        return hours_since_walk >= DEFAULT_WALK_THRESHOLD_HOURS
 
     def _calculate_is_hungry(self, dog_id: str) -> bool:
         """Calculate if dog is hungry based on feeding schedule."""
@@ -195,17 +210,12 @@ class PawControlCoordinator(DataUpdateCoordinator):
         """Calculate if dog needs grooming."""
         data = self._dog_data[dog_id]["grooming"]
         
-        if not data["last_grooming"]:
+        last_grooming_dt = self._parse_datetime(data["last_grooming"])
+        if not last_grooming_dt:
             return True
-            
-        try:
-            last_grooming = datetime.fromisoformat(data["last_grooming"])
-            days_since = (dt_util.now() - last_grooming).days
-            return days_since >= data["grooming_interval_days"]
-        except (ValueError, TypeError):
-            # Fall back to needing grooming when the timestamp can't be parsed
-            # to avoid falsely assuming grooming occurred
-            return True
+        
+        days_since = (dt_util.now() - last_grooming_dt).days
+        return days_since >= data["grooming_interval_days"]
 
     def _calculate_activity_level(self, dog_id: str) -> str:
         """Calculate activity level based on today's activities."""
@@ -221,7 +231,7 @@ class PawControlCoordinator(DataUpdateCoordinator):
         else:
             return "high"
 
-    def _calculate_next_medication(self, dog_id: str) -> Optional[datetime]:
+    def _calculate_next_medication(self, dog_id: str) -> datetime | None:
         """Calculate next medication due time."""
         # This would be implemented based on medication schedules
         # For now, return None
@@ -246,17 +256,8 @@ class PawControlCoordinator(DataUpdateCoordinator):
         return round(walk_calories + play_calories, 1)
 
     def update_options(self, options: dict[str, Any] | Mapping[str, Any]) -> None:
-        """Update coordinator options.
-
-        ``ConfigEntry`` stores options internally as a mutable dict so that
-        Home Assistant can merge updates. Accept any mapping (including plain
-        ``dict``) and copy it to a new dict rather than wrapping it in
-        ``MappingProxyType``; the public ``entry.options`` property will expose
-        an immutable view for consumers, while the underlying dict remains
-        updateable.
-        """
-        # Make a shallow copy to detach from the source mapping and retain
-        # Home Assistant's expected mutability for ``_options``.
+        """Update coordinator options."""
+        # Make a shallow copy to detach from the source mapping
         self.entry._options = dict(options)
         self._initialize_dog_data()
 
@@ -337,13 +338,10 @@ class PawControlCoordinator(DataUpdateCoordinator):
             return
         
         # Calculate duration
-        if walk_data["walk_start_time"]:
-            try:
-                start_time = datetime.fromisoformat(walk_data["walk_start_time"])
-                duration = (dt_util.now() - start_time).total_seconds() / 60
-                walk_data["walk_duration_min"] = round(duration, 1)
-            except ValueError:
-                walk_data["walk_duration_min"] = 0
+        start_time_dt = self._parse_datetime(walk_data["walk_start_time"])
+        if start_time_dt:
+            duration = (dt_util.now() - start_time_dt).total_seconds() / 60
+            walk_data["walk_duration_min"] = round(duration, 1)
         
         walk_data["walk_in_progress"] = False
         walk_data["last_walk"] = dt_util.now().isoformat()
@@ -568,9 +566,6 @@ class PawControlCoordinator(DataUpdateCoordinator):
         self._emergency_level = level
         _LOGGER.warning(f"Emergency mode activated: {level} - {note}")
         await self.async_request_refresh()
-
-    # Report generation is handled by ReportGenerator class
-    # See report_generator.py for implementation
 
     @property
     def visitor_mode(self) -> bool:
