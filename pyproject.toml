@@ -49,11 +49,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/pawcontrol"
-Documentation = "https://github.com/yourusername/pawcontrol/wiki"
-Repository = "https://github.com/yourusername/pawcontrol"
-Issues = "https://github.com/yourusername/pawcontrol/issues"
-Changelog = "https://github.com/yourusername/pawcontrol/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/bigdaddy1990/pawcontrol"
+Documentation = "https://github.com/bigdaddy1990/pawcontrol/wiki"
+Repository = "https://github.com/bigdaddy1990/pawcontrol"
+Issues = "https://github.com/bigdaddy1990/pawcontrol/issues"
+Changelog = "https://github.com/bigdaddy1990/pawcontrol/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 platforms = ["any"]
