@@ -16,6 +16,7 @@ from ..const import (
     CONF_NOTIFICATIONS,
     CONF_NOTIFY_FALLBACK,
     CONF_PERSON_ENTITIES,
+    CONF_SOURCES,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_QUIET_END,
@@ -184,7 +185,7 @@ class NotificationRouter:
         targets = []
         
         # Check for person-based notifications
-        person_entities = self.entry.options.get("sources", {}).get(
+        person_entities = self.entry.options.get(CONF_SOURCES, {}).get(
             CONF_PERSON_ENTITIES, []
         )
         
