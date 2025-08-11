@@ -108,7 +108,7 @@ def check_integration():
     if services_path.exists():
         try:
             with open(services_path) as f:
-                services = yaml.safe_load(f)
+                content = f.read()
             
             expected = [
                 "daily_reset", "start_walk", "end_walk", "feed_dog",
