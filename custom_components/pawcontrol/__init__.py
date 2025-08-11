@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.typing import ConfigType
 
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant, ServiceCall
+    from homeassistant.helpers.typing import ConfigType
+
+from . import coordinator as coordinator_mod
 from .const import (
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     EVENT_DAILY_RESET,
     PLATFORMS,
@@ -35,7 +38,6 @@ from .const import (
     SERVICE_TOGGLE_VISITOR,
     SERVICE_WALK_DOG,
 )
-from . import coordinator as coordinator_mod
 from .helpers import notification_router as notification_router_mod
 from .helpers import scheduler as scheduler_mod
 from .helpers import setup_sync as setup_sync_mod
@@ -60,13 +62,13 @@ from .schemas import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
+async def async_setup(hass: 'HomeAssistant', _config: 'ConfigType') -> bool:
     """Set up the Paw Control component."""
     hass.data.setdefault(DOMAIN, {})
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool:
     """Set up Paw Control from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -111,7 +113,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool:
     """Unload a config entry."""
     # Cleanup schedulers
     await scheduler_mod.cleanup_schedulers(hass, entry)
@@ -130,7 +132,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_update_options(hass: 'HomeAssistant', entry: 'ConfigEntry') -> None:
     """Update options."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     setup_sync_helper = hass.data[DOMAIN][entry.entry_id]["setup_sync"]
@@ -149,7 +151,7 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await coordinator.async_request_refresh()
 
 
-async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _register_devices(hass: 'HomeAssistant', entry: 'ConfigEntry') -> None:
     """Register devices for each dog."""
     device_registry = dr.async_get(hass)
 
@@ -168,10 +170,12 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
 
 
-async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _register_services(  # noqa: C901
+    hass: 'HomeAssistant', _entry: 'ConfigEntry'
+) -> None:
     """Register services for the integration."""
 
-    async def handle_daily_reset(call: ServiceCall) -> None:
+    async def handle_daily_reset(_call: 'ServiceCall') -> None:
         """Handle daily reset service."""
         _LOGGER.info("Executing daily reset")
         hass.bus.async_fire(EVENT_DAILY_RESET)
@@ -181,14 +185,14 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.reset_daily_counters()
 
-    async def handle_sync_setup(call: ServiceCall) -> None:
+    async def handle_sync_setup(_call: 'ServiceCall') -> None:
         """Handle setup sync service."""
         _LOGGER.info("Syncing setup")
         for entry_id in hass.data[DOMAIN]:
             setup_sync = hass.data[DOMAIN][entry_id]["setup_sync"]
             await setup_sync.sync_all()
 
-    async def handle_notify_test(call: ServiceCall) -> None:
+    async def handle_notify_test(call: 'ServiceCall') -> None:
         """Handle notification test service."""
         dog_id = call.data.get("dog_id")
         message = call.data.get("message", f"Test notification for {dog_id}")
@@ -201,7 +205,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 dog_id=dog_id,
             )
 
-    async def handle_start_walk(call: ServiceCall) -> None:
+    async def handle_start_walk(call: 'ServiceCall') -> None:
         """Handle start walk service."""
         dog_id = call.data.get("dog_id")
         source = call.data.get("source", "manual")
@@ -210,7 +214,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.start_walk(dog_id, source)
 
-    async def handle_end_walk(call: ServiceCall) -> None:
+    async def handle_end_walk(call: 'ServiceCall') -> None:
         """Handle end walk service."""
         dog_id = call.data.get("dog_id")
         reason = call.data.get("reason", "manual")
@@ -219,7 +223,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.end_walk(dog_id, reason)
 
-    async def handle_walk_dog(call: ServiceCall) -> None:
+    async def handle_walk_dog(call: 'ServiceCall') -> None:
         """Handle quick walk log service."""
         dog_id = call.data.get("dog_id")
         duration = call.data.get("duration_min", 30)
@@ -229,7 +233,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.log_walk(dog_id, duration, distance)
 
-    async def handle_feed_dog(call: ServiceCall) -> None:
+    async def handle_feed_dog(call: 'ServiceCall') -> None:
         """Handle feed dog service."""
         dog_id = call.data.get("dog_id")
         meal_type = call.data.get("meal_type", "snack")
@@ -240,7 +244,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.feed_dog(dog_id, meal_type, portion_g, food_type)
 
-    async def handle_log_health(call: ServiceCall) -> None:
+    async def handle_log_health(call: 'ServiceCall') -> None:
         """Handle health data logging service."""
         dog_id = call.data.get("dog_id")
         weight_kg = call.data.get("weight_kg")
@@ -250,7 +254,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.log_health_data(dog_id, weight_kg, note)
 
-    async def handle_log_medication(call: ServiceCall) -> None:
+    async def handle_log_medication(call: 'ServiceCall') -> None:
         """Handle medication logging service."""
         dog_id = call.data.get("dog_id")
         medication_name = call.data.get("medication_name")
@@ -260,7 +264,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.log_medication(dog_id, medication_name, dose)
 
-    async def handle_start_grooming(call: ServiceCall) -> None:
+    async def handle_start_grooming(call: 'ServiceCall') -> None:
         """Handle grooming session service."""
         dog_id = call.data.get("dog_id")
         grooming_type = call.data.get("type", "brush")
@@ -270,7 +274,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.start_grooming(dog_id, grooming_type, notes)
 
-    async def handle_play_session(call: ServiceCall) -> None:
+    async def handle_play_session(call: 'ServiceCall') -> None:
         """Handle play session service."""
         dog_id = call.data.get("dog_id")
         duration_min = call.data.get("duration_min", 15)
@@ -280,7 +284,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.log_play_session(dog_id, duration_min, intensity)
 
-    async def handle_training_session(call: ServiceCall) -> None:
+    async def handle_training_session(call: 'ServiceCall') -> None:
         """Handle training session service."""
         dog_id = call.data.get("dog_id")
         topic = call.data.get("topic")
@@ -291,7 +295,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.log_training(dog_id, topic, duration_min, notes)
 
-    async def handle_toggle_visitor(call: ServiceCall) -> None:
+    async def handle_toggle_visitor(call: 'ServiceCall') -> None:
         """Handle visitor mode toggle service."""
         enabled = call.data.get("enabled")
 
@@ -299,7 +303,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.set_visitor_mode(enabled)
 
-    async def handle_emergency_mode(call: ServiceCall) -> None:
+    async def handle_emergency_mode(call: 'ServiceCall') -> None:
         """Handle emergency mode service."""
         level = call.data.get("level", "info")
         note = call.data.get("note", "")
@@ -308,7 +312,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
             await coordinator.activate_emergency_mode(level, note)
 
-    async def handle_generate_report(call: ServiceCall) -> None:
+    async def handle_generate_report(call: 'ServiceCall') -> None:
         """Handle report generation service."""
         scope = call.data.get("scope", "daily")
         target = call.data.get("target", "notification")
@@ -318,7 +322,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
             report_generator = hass.data[DOMAIN][entry_id]["report_generator"]
             await report_generator.generate_report(scope, target, format_type)
 
-    async def handle_export_data(call: ServiceCall) -> None:
+    async def handle_export_data(call: 'ServiceCall') -> None:
         """Handle data export service."""
         dog_id = call.data.get("dog_id")
         date_from = call.data.get("from")
@@ -420,7 +424,7 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
     )
 
 
-def _unregister_services(hass: HomeAssistant) -> None:
+def _unregister_services(hass: 'HomeAssistant') -> None:
     """Unregister all services."""
     services = [
         SERVICE_DAILY_RESET,
