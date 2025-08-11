@@ -156,7 +156,9 @@ class DefaultFoodTypeSelect(PawControlSelectBase):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
-        _LOGGER.info(f"Default food type for {self._dog_name} set to {option}")
+        _LOGGER.info("Default food type for %s set to %s", self._dog_name, option)
+        self.dog_data.setdefault("feeding", {})["last_food_type"] = option
+        await self.coordinator.async_request_refresh()
 
 
 class PreferredMealTimeSelect(PawControlSelectBase):
@@ -182,7 +184,9 @@ class PreferredMealTimeSelect(PawControlSelectBase):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
-        _LOGGER.info(f"Meal schedule for {self._dog_name} set to {option}")
+        _LOGGER.info("Meal schedule for %s set to %s", self._dog_name, option)
+        self.dog_data.setdefault("feeding", {})["meal_schedule"] = option
+        await self.coordinator.async_request_refresh()
 
 
 class DefaultGroomingTypeSelect(PawControlSelectBase):
@@ -252,7 +256,9 @@ class TrainingTopicSelect(PawControlSelectBase):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
-        _LOGGER.info(f"Training topic for {self._dog_name} set to {option}")
+        _LOGGER.info("Training topic for %s set to %s", self._dog_name, option)
+        self.dog_data.setdefault("training", {})["last_topic"] = option
+        await self.coordinator.async_request_refresh()
 
 
 class TrainingIntensitySelect(PawControlSelectBase):
@@ -278,7 +284,9 @@ class TrainingIntensitySelect(PawControlSelectBase):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
-        _LOGGER.info(f"Training intensity for {self._dog_name} set to {option}")
+        _LOGGER.info("Training intensity for %s set to %s", self._dog_name, option)
+        self.dog_data.setdefault("training", {})["intensity"] = option
+        await self.coordinator.async_request_refresh()
 
 
 class ActivityLevelSelect(PawControlSelectBase):
