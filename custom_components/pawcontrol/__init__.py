@@ -1,6 +1,7 @@
 """The Paw Control integration for Home Assistant."""
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import Any
 
@@ -73,7 +74,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = PawControlCoordinator(hass, entry)
 
     try:
-        await coordinator.async_config_entry_first_refresh()
+        refresh = coordinator.async_config_entry_first_refresh()
+        if inspect.isawaitable(refresh):
+            await refresh
     except Exception as err:
         raise ConfigEntryNotReady from err
 
