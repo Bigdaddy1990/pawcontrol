@@ -49,13 +49,76 @@ async def async_setup_entry(
         
         # Module enable/disable switches
         entities.extend([
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_WALK, "Walk Module", "mdi:dog-side"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_FEEDING, "Feeding Module", "mdi:food"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_HEALTH, "Health Module", "mdi:heart"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_GROOMING, "Grooming Module", "mdi:content-cut"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_TRAINING, "Training Module", "mdi:school"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_NOTIFICATIONS, "Notifications", "mdi:bell"),
-            ModuleSwitch(hass, coordinator, dog_id, dog_name, MODULE_GPS, "GPS Tracking", "mdi:map-marker"),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_WALK,
+                "Walk Module",
+                "mdi:dog-side",
+                modules.get(MODULE_WALK, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_FEEDING,
+                "Feeding Module",
+                "mdi:food",
+                modules.get(MODULE_FEEDING, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_HEALTH,
+                "Health Module",
+                "mdi:heart",
+                modules.get(MODULE_HEALTH, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_GROOMING,
+                "Grooming Module",
+                "mdi:content-cut",
+                modules.get(MODULE_GROOMING, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_TRAINING,
+                "Training Module",
+                "mdi:school",
+                modules.get(MODULE_TRAINING, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_NOTIFICATIONS,
+                "Notifications",
+                "mdi:bell",
+                modules.get(MODULE_NOTIFICATIONS, False),
+            ),
+            ModuleSwitch(
+                hass,
+                coordinator,
+                dog_id,
+                dog_name,
+                MODULE_GPS,
+                "GPS Tracking",
+                "mdi:map-marker",
+                modules.get(MODULE_GPS, False),
+            ),
         ])
         
         # Feature switches
@@ -141,10 +204,29 @@ class PawControlSwitchBase(SwitchEntity):
 
 
 class ModuleSwitch(PawControlSwitchBase):
-    """Switch to enable/disable a module."""
+    """Switch to enable or disable a module.
 
-    def __init__(self, hass, coordinator, dog_id, dog_name, module_id, module_name, icon):
-        """Initialize the switch."""
+    The initial enabled state is supplied via the ``enabled`` argument so the
+    switch can be created without querying the coordinator's config entry.
+    """
+
+    def __init__(
+        self,
+        hass,
+        coordinator,
+        dog_id,
+        dog_name,
+        module_id,
+        module_name,
+        icon,
+        enabled: bool = False,
+    ) -> None:
+        """Initialize the switch.
+
+        Args:
+            enabled: If ``True`` the module starts enabled and the switch will
+                report as on.
+        """
         super().__init__(
             hass,
             coordinator,
@@ -155,15 +237,13 @@ class ModuleSwitch(PawControlSwitchBase):
             icon,
         )
         self._module_id = module_id
-
-    @property
-    def is_on(self) -> bool:
-        """Return true if module is enabled."""
-        # Get from config
-        for dog in self.hass.data[DOMAIN].get(list(self.hass.data[DOMAIN].keys())[0], {}).get("coordinator").entry.options.get(CONF_DOGS, []):
-            if dog.get(CONF_DOG_ID) == self._dog_id:
-                return dog.get(CONF_DOG_MODULES, {}).get(self._module_id, False)
-        return False
+        # Store the initial enabled state directly rather than asking the
+        # coordinator or config entry. Test coordinators may lack an ``entry``
+        # attribute and the coordinator does not persist per-module state,
+        # making such lookups unreliable and causing attribute errors during
+        # entity setup. Keeping the value in ``_is_on`` ensures consistent
+        # startup behavior.
+        self._is_on = enabled
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable the module."""
