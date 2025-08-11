@@ -1,16 +1,13 @@
 {
   "domain": "pawcontrol",
-  "name": "PawControl",
+  "name": "Paw Control",
   "version": "1.0.0",
-  "documentation": "https://github.com/your-github/pawcontrol",
-  "issue_tracker": "https://github.com/your-github/pawcontrol/issues",
-  "dependencies": [],
-  "codeowners": [
-    "@your-github"
-  ],
+  "documentation": "https://github.com/yourusername/pawcontrol",
+  "issue_tracker": "https://github.com/yourusername/pawcontrol/issues",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "iot_class": "local_polling",
   "requirements": [],
-  "after_dependencies": [],
-  "iot_class": "local_push",
-  "homeassistant": "2024.6.0",
-  "config_flow": true
+  "dependencies": [],
+  "after_dependencies": ["mobile_app", "person", "zone", "calendar"]
 }

@@ -1,10 +1,142 @@
 {
-  "component": "PawControl",
+  "title": "Paw Control",
   "config": {
     "step": {
       "user": {
-        "title": "PawControl Einrichtung",
-        "description": "Gib die Konfigurationsdaten für deinen Hund ein."
+        "title": "Willkommen bei Paw Control",
+        "description": "Lass uns dein intelligentes Hundemanagementsystem einrichten. Wie viele Hunde hast du?",
+        "data": {
+          "num_dogs": "Anzahl der Hunde"
+        }
+      },
+      "dog_config": {
+        "title": "Hund {dog_num} von {total_dogs} konfigurieren",
+        "description": "Gib die Details für deinen Hund ein und wähle die zu aktivierenden Module.",
+        "data": {
+          "dog_id": "Hunde-ID (eindeutige Kennung)",
+          "name": "Name des Hundes",
+          "breed": "Rasse",
+          "age": "Alter (Jahre)",
+          "weight": "Gewicht (kg)",
+          "size": "Größe",
+          "module_walk": "Gassi-Tracking aktivieren",
+          "module_feeding": "Fütterungsverwaltung aktivieren",
+          "module_health": "Gesundheitstracking aktivieren",
+          "module_gps": "GPS-Tracking aktivieren",
+          "module_notifications": "Benachrichtigungen aktivieren",
+          "module_dashboard": "Dashboard aktivieren",
+          "module_grooming": "Pflege-Tracking aktivieren",
+          "module_medication": "Medikamenten-Erinnerungen aktivieren",
+          "module_training": "Training-Tracking aktivieren"
+        }
+      },
+      "sources": {
+        "title": "Datenquellen konfigurieren",
+        "description": "Wähle optionale Datenquellen für erweiterte Funktionen. Leer lassen zum Überspringen.",
+        "data": {
+          "door_sensor": "Türsensor (für Gassi-Erkennung)",
+          "person_entities": "Personen-Entitäten (für Anwesenheit)",
+          "device_trackers": "Geräte-Tracker (für GPS)",
+          "calendar": "Kalender (für Termine)",
+          "weather": "Wetter-Anbieter"
+        }
+      },
+      "notifications": {
+        "title": "Benachrichtigungen konfigurieren",
+        "description": "Stelle ein, wie und wann du Benachrichtigungen erhalten möchtest.",
+        "data": {
+          "notify_fallback": "Fallback-Benachrichtigungsdienst",
+          "quiet_hours_start": "Ruhezeit Beginn",
+          "quiet_hours_end": "Ruhezeit Ende",
+          "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
+          "snooze_min": "Schlummerdauer (Minuten)"
+        }
+      },
+      "system": {
+        "title": "Systemeinstellungen",
+        "description": "Konfiguriere systemweite Einstellungen und Wartungsoptionen.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "export_path": "Export-Pfad (optional)",
+          "export_format": "Export-Format",
+          "visitor_mode": "Besuchermodus aktivieren"
+        }
+      }
+    },
+    "error": {
+      "duplicate_dog_id": "Diese Hunde-ID existiert bereits. Bitte wähle eine eindeutige Kennung.",
+      "invalid_path": "Ungültiger Export-Pfad",
+      "invalid_time": "Ungültiges Zeitformat"
+    },
+    "abort": {
+      "single_instance_allowed": "Es ist nur eine Instanz von Paw Control erlaubt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paw Control Optionen",
+        "description": "Wähle, was du konfigurieren möchtest.",
+        "menu_options": {
+          "dogs": "Hunde verwalten",
+          "sources": "Datenquellen",
+          "notifications": "Benachrichtigungen",
+          "system": "Systemeinstellungen"
+        }
+      },
+      "dogs": {
+        "title": "Hunde verwalten",
+        "description": "Um Hunde hinzuzufügen oder zu entfernen, konfiguriere die Integration bitte neu.",
+        "data": {}
+      },
+      "sources": {
+        "title": "Datenquellen konfigurieren",
+        "description": "Aktualisiere deine Datenquellenverbindungen.",
+        "data": {
+          "door_sensor": "Türsensor",
+          "person_entities": "Personen-Entitäten",
+          "device_trackers": "Geräte-Tracker",
+          "calendar": "Kalender",
+          "weather": "Wetter-Anbieter"
+        }
+      },
+      "notifications": {
+        "title": "Benachrichtigungen konfigurieren",
+        "description": "Benachrichtigungseinstellungen anpassen.",
+        "data": {
+          "notify_fallback": "Fallback-Benachrichtigungsdienst",
+          "quiet_hours_start": "Ruhezeit Beginn",
+          "quiet_hours_end": "Ruhezeit Ende",
+          "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
+          "snooze_min": "Schlummerdauer (Minuten)"
+        }
+      },
+      "system": {
+        "title": "Systemeinstellungen",
+        "description": "Systemeinstellungen konfigurieren.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "export_path": "Export-Pfad",
+          "export_format": "Export-Format",
+          "visitor_mode": "Besuchermodus"
+        }
+      }
+    }
+  },
+  "selector": {
+    "dog_size": {
+      "options": {
+        "small": "Klein (< 10kg)",
+        "medium": "Mittel (10-25kg)",
+        "large": "Groß (25-45kg)",
+        "xlarge": "Sehr groß (> 45kg)"
+      }
+    },
+    "export_format": {
+      "options": {
+        "csv": "CSV",
+        "json": "JSON",
+        "pdf": "PDF"
       }
     }
   }

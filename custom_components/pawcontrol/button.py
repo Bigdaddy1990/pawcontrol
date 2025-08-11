@@ -1,4 +1,4 @@
-"""Button platform for PawControl integration."""
+"""Button platform for Paw Control integration."""
 from __future__ import annotations
 
 import logging
@@ -7,21 +7,22 @@ from typing import Any
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
+    CONF_DOGS,
+    CONF_DOG_ID,
     CONF_DOG_NAME,
-    ICON_FOOD,
-    ICON_WALK,
-    ICON_EMERGENCY,
-    SERVICE_FEED_DOG,
-    SERVICE_START_WALK,
-    SERVICE_EMERGENCY,
-    SERVICE_RESET_DATA,
+    CONF_DOG_MODULES,
+    MODULE_WALK,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_GROOMING,
+    MODULE_TRAINING,
+    MODULE_NOTIFICATIONS,
 )
-from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,342 +32,518 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PawControl button entities."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    
+    """Set up Paw Control button entities."""
     entities = []
-    for dog_name, dog_data in entry_data.items():
-        coordinator = dog_data["coordinator"]
-        config = dog_data["config"]
-        
-        # Add module-specific buttons
-        modules = config.get("modules", {})
-        
-        if modules.get("feeding", {}).get("enabled", False):
-            entities.extend([
-                PawControlFeedBreakfastButton(hass, coordinator, config),
-                PawControlFeedDinnerButton(hass, coordinator, config),
-                PawControlQuickFeedButton(hass, coordinator, config),
-            ])
-        
-        if modules.get("walk", {}).get("enabled", False):
-            entities.extend([
-                PawControlStartWalkButton(hass, coordinator, config),
-                PawControlMarkOutsideButton(hass, coordinator, config),
-            ])
-        
-        # Always add emergency and reset buttons
-        entities.extend([
-            PawControlEmergencyButton(hass, coordinator, config),
-            PawControlResetDailyDataButton(hass, coordinator, config),
-        ])
-        
-        if modules.get("gps", {}).get("enabled", False):
-            entities.append(PawControlUpdateGPSButton(hass, coordinator, config))
+    dogs = entry.options.get(CONF_DOGS, [])
     
-    async_add_entities(entities)
+    for dog in dogs:
+        dog_id = dog.get(CONF_DOG_ID)
+        if not dog_id:
+            continue
+        
+        dog_name = dog.get(CONF_DOG_NAME, dog_id)
+        modules = dog.get(CONF_DOG_MODULES, {})
+        
+        # Walk module buttons
+        if modules.get(MODULE_WALK):
+            entities.extend([
+                StartWalkButton(hass, dog_id, dog_name),
+                EndWalkButton(hass, dog_id, dog_name),
+                QuickWalkButton(hass, dog_id, dog_name),
+            ])
+        
+        # Feeding module buttons
+        if modules.get(MODULE_FEEDING):
+            entities.extend([
+                FeedBreakfastButton(hass, dog_id, dog_name),
+                FeedLunchButton(hass, dog_id, dog_name),
+                FeedDinnerButton(hass, dog_id, dog_name),
+                FeedSnackButton(hass, dog_id, dog_name),
+            ])
+        
+        # Health module buttons
+        if modules.get(MODULE_HEALTH):
+            entities.extend([
+                LogWeightButton(hass, dog_id, dog_name),
+                GiveMedicationButton(hass, dog_id, dog_name),
+            ])
+        
+        # Grooming module buttons
+        if modules.get(MODULE_GROOMING):
+            entities.extend([
+                GroomBathButton(hass, dog_id, dog_name),
+                GroomBrushButton(hass, dog_id, dog_name),
+                GroomNailsButton(hass, dog_id, dog_name),
+            ])
+        
+        # Training module buttons
+        if modules.get(MODULE_TRAINING):
+            entities.extend([
+                StartTrainingButton(hass, dog_id, dog_name),
+                LogPlaySessionButton(hass, dog_id, dog_name),
+            ])
+        
+        # Notification test button
+        if modules.get(MODULE_NOTIFICATIONS):
+            entities.append(
+                NotifyTestButton(hass, dog_id, dog_name)
+            )
+        
+        # Always add poop tracking button
+        entities.append(
+            LogPoopButton(hass, dog_id, dog_name)
+        )
+    
+    # Global buttons
+    entities.extend([
+        DailyResetButton(hass),
+        GenerateReportButton(hass),
+        SyncSetupButton(hass),
+    ])
+    
+    async_add_entities(entities, True)
 
 
-class PawControlButtonBase(CoordinatorEntity, ButtonEntity):
-    """Base class for PawControl buttons."""
+class PawControlButtonBase(ButtonEntity):
+    """Base class for Paw Control buttons."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
         hass: HomeAssistant,
-        coordinator: PawControlCoordinator,
-        config: dict[str, Any],
+        dog_id: str,
+        dog_name: str,
+        button_type: str,
+        name: str,
+        icon: str,
     ) -> None:
         """Initialize the button."""
-        super().__init__(coordinator)
         self.hass = hass
-        self._config = config
-        self._dog_name = config.get(CONF_DOG_NAME, "Unknown")
-        self._dog_id = self._dog_name.lower().replace(" ", "_")
-
-    @property
-    def device_info(self):
-        """Return device info."""
-        return {
-            "identifiers": {(DOMAIN, self._dog_id)},
-            "name": f"PawControl - {self._dog_name}",
-            "manufacturer": "PawControl",
-            "model": "Dog Management System",
-            "sw_version": "1.0.0",
-        }
-
-
-class PawControlFeedBreakfastButton(PawControlButtonBase):
-    """Button to mark breakfast feeding."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_feed_breakfast"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Frühstück füttern"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_FOOD
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        await self.hass.services.async_call(
-            DOMAIN,
-            SERVICE_FEED_DOG,
-            {
-                "dog_name": self._dog_name,
-                "meal_type": "breakfast",
-            },
-            blocking=False,
+        self._dog_id = dog_id
+        self._dog_name = dog_name
+        self._button_type = button_type
+        
+        self._attr_name = name
+        self._attr_icon = icon
+        self._attr_unique_id = f"{DOMAIN}.{dog_id}.button.{button_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, dog_id)},
+            name=f"🐕 {dog_name}",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
         )
-        _LOGGER.info(f"Marked breakfast feeding for {self._dog_name}")
 
 
-class PawControlFeedDinnerButton(PawControlButtonBase):
-    """Button to mark dinner feeding."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_feed_dinner"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Abendessen füttern"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_FOOD
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        await self.hass.services.async_call(
-            DOMAIN,
-            SERVICE_FEED_DOG,
-            {
-                "dog_name": self._dog_name,
-                "meal_type": "dinner",
-            },
-            blocking=False,
-        )
-        _LOGGER.info(f"Marked dinner feeding for {self._dog_name}")
-
-
-class PawControlQuickFeedButton(PawControlButtonBase):
-    """Button for quick feeding (auto-detect meal type)."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_quick_feed"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Jetzt füttern"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:food-drumstick-outline"
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        await self.hass.services.async_call(
-            DOMAIN,
-            SERVICE_FEED_DOG,
-            {
-                "dog_name": self._dog_name,
-                "meal_type": "auto",
-            },
-            blocking=False,
-        )
-        _LOGGER.info(f"Quick feed for {self._dog_name}")
-
-
-class PawControlStartWalkButton(PawControlButtonBase):
+class StartWalkButton(PawControlButtonBase):
     """Button to start a walk."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_start_walk"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Spaziergang starten"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_WALK
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "start_walk", "Start Walk", "mdi:dog-side")
 
     async def async_press(self) -> None:
-        """Handle the button press."""
+        """Handle button press."""
         await self.hass.services.async_call(
             DOMAIN,
-            SERVICE_START_WALK,
+            "start_walk",
+            {"dog_id": self._dog_id, "source": "manual"},
+            blocking=False,
+        )
+
+
+class EndWalkButton(PawControlButtonBase):
+    """Button to end a walk."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "end_walk", "End Walk", "mdi:home")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "end_walk",
+            {"dog_id": self._dog_id, "reason": "manual"},
+            blocking=False,
+        )
+
+
+class QuickWalkButton(PawControlButtonBase):
+    """Button to log a quick walk."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "quick_walk", "Quick Walk (30min)", "mdi:walk")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "walk_dog",
             {
-                "dog_name": self._dog_name,
-                "walk_type": "Normal",
+                "dog_id": self._dog_id,
+                "duration_min": 30,
+                "distance_m": 1000,
             },
             blocking=False,
         )
-        _LOGGER.info(f"Started walk for {self._dog_name}")
 
 
-class PawControlMarkOutsideButton(PawControlButtonBase):
-    """Button to mark dog as outside."""
+class FeedBreakfastButton(PawControlButtonBase):
+    """Button to log breakfast feeding."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_mark_outside"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Als draußen markieren"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:nature"
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "feed_breakfast", "Feed Breakfast", "mdi:food-apple")
 
     async def async_press(self) -> None:
-        """Handle the button press."""
-        # Update coordinator status
-        self.coordinator._data["status"]["is_outside"] = True
-        await self.coordinator.async_request_refresh()
-        
-        # Update helper if exists
-        entity_id = f"input_boolean.pawcontrol_{self._dog_id}_is_outside"
-        await self.hass.services.async_call(
-            "input_boolean",
-            "turn_on",
-            {"entity_id": entity_id},
-            blocking=False,
-        )
-        _LOGGER.info(f"Marked {self._dog_name} as outside")
-
-
-class PawControlEmergencyButton(PawControlButtonBase):
-    """Button to trigger emergency mode."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_emergency"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} NOTFALL"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_EMERGENCY
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        # Toggle emergency mode
-        current_state = self.coordinator.data.get("status", {}).get("emergency_mode", False)
-        
+        """Handle button press."""
         await self.hass.services.async_call(
             DOMAIN,
-            SERVICE_EMERGENCY,
+            "feed_dog",
             {
-                "dog_name": self._dog_name,
-                "activate": not current_state,
-                "reason": "Manuell ausgelöst" if not current_state else None,
+                "dog_id": self._dog_id,
+                "meal_type": "breakfast",
+                "portion_g": 200,
+                "food_type": "dry",
             },
             blocking=False,
         )
-        _LOGGER.warning(f"Emergency mode {'activated' if not current_state else 'deactivated'} for {self._dog_name}")
 
 
-class PawControlResetDailyDataButton(PawControlButtonBase):
-    """Button to reset daily data."""
+class FeedLunchButton(PawControlButtonBase):
+    """Button to log lunch feeding."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_reset_daily"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Tagesdaten zurücksetzen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:restart"
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "feed_lunch", "Feed Lunch", "mdi:food")
 
     async def async_press(self) -> None:
-        """Handle the button press."""
+        """Handle button press."""
         await self.hass.services.async_call(
             DOMAIN,
-            SERVICE_RESET_DATA,
+            "feed_dog",
             {
-                "dog_name": self._dog_name,
-                "confirm": "RESET",
-                "reset_type": "daily",
+                "dog_id": self._dog_id,
+                "meal_type": "lunch",
+                "portion_g": 150,
+                "food_type": "wet",
             },
             blocking=False,
         )
-        _LOGGER.info(f"Reset daily data for {self._dog_name}")
 
 
-class PawControlUpdateGPSButton(PawControlButtonBase):
-    """Button to update GPS location."""
+class FeedDinnerButton(PawControlButtonBase):
+    """Button to log dinner feeding."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_update_gps"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} GPS aktualisieren"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:crosshairs-gps"
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "feed_dinner", "Feed Dinner", "mdi:food-variant")
 
     async def async_press(self) -> None:
-        """Handle the button press."""
-        # This would trigger a GPS update
-        # For now, just log it
-        _LOGGER.info(f"GPS update requested for {self._dog_name}")
-        
-        # Could integrate with actual GPS tracking here
-        # For example, get home location and update
-        home = self.hass.states.get("zone.home")
-        if home:
-            lat = home.attributes.get("latitude")
-            lon = home.attributes.get("longitude")
-            
-            await self.hass.services.async_call(
-                DOMAIN,
-                "update_gps",
-                {
-                    "dog_name": self._dog_name,
-                    "latitude": lat,
-                    "longitude": lon,
-                    "accuracy": 10,
-                    "source": "Home Zone",
-                },
-                blocking=False,
-            )
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "feed_dog",
+            {
+                "dog_id": self._dog_id,
+                "meal_type": "dinner",
+                "portion_g": 200,
+                "food_type": "dry",
+            },
+            blocking=False,
+        )
+
+
+class FeedSnackButton(PawControlButtonBase):
+    """Button to log snack feeding."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "feed_snack", "Give Snack", "mdi:cookie")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "feed_dog",
+            {
+                "dog_id": self._dog_id,
+                "meal_type": "snack",
+                "portion_g": 50,
+                "food_type": "treat",
+            },
+            blocking=False,
+        )
+
+
+class LogWeightButton(PawControlButtonBase):
+    """Button to log weight."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "log_weight", "Log Weight", "mdi:weight")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        # In a real implementation, this would open a dialog to enter weight
+        _LOGGER.info(f"Weight logging requested for {self._dog_name}")
+
+
+class GiveMedicationButton(PawControlButtonBase):
+    """Button to log medication."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "give_medication", "Give Medication", "mdi:pill")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "log_medication",
+            {
+                "dog_id": self._dog_id,
+                "medication_name": "Daily Supplement",
+                "dose": "1 tablet",
+            },
+            blocking=False,
+        )
+
+
+class GroomBathButton(PawControlButtonBase):
+    """Button to log bath grooming."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "groom_bath", "Give Bath", "mdi:shower")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "start_grooming_session",
+            {
+                "dog_id": self._dog_id,
+                "type": "bath",
+                "notes": "Full bath with shampoo",
+            },
+            blocking=False,
+        )
+
+
+class GroomBrushButton(PawControlButtonBase):
+    """Button to log brush grooming."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "groom_brush", "Brush Fur", "mdi:brush")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "start_grooming_session",
+            {
+                "dog_id": self._dog_id,
+                "type": "brush",
+                "notes": "Regular brushing",
+            },
+            blocking=False,
+        )
+
+
+class GroomNailsButton(PawControlButtonBase):
+    """Button to log nail grooming."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "groom_nails", "Trim Nails", "mdi:content-cut")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "start_grooming_session",
+            {
+                "dog_id": self._dog_id,
+                "type": "nails",
+                "notes": "Nail trimming",
+            },
+            blocking=False,
+        )
+
+
+class StartTrainingButton(PawControlButtonBase):
+    """Button to start training session."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "start_training", "Start Training", "mdi:school")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "start_training_session",
+            {
+                "dog_id": self._dog_id,
+                "topic": "Basic Commands",
+                "duration_min": 15,
+                "notes": "Sit, stay, come practice",
+            },
+            blocking=False,
+        )
+
+
+class LogPlaySessionButton(PawControlButtonBase):
+    """Button to log play session."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "log_play", "Log Play Session", "mdi:tennis-ball")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "play_with_dog",
+            {
+                "dog_id": self._dog_id,
+                "duration_min": 20,
+                "intensity": "medium",
+            },
+            blocking=False,
+        )
+
+
+class LogPoopButton(PawControlButtonBase):
+    """Button to log poop."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "log_poop", "Log Poop", "mdi:emoticon-poop")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        # Update coordinator data
+        coordinator = self.hass.data[DOMAIN].get(list(self.hass.data[DOMAIN].keys())[0], {}).get("coordinator")
+        if coordinator:
+            dog_data = coordinator.get_dog_data(self._dog_id)
+            if dog_data:
+                dog_data["statistics"]["poop_count_today"] = dog_data["statistics"].get("poop_count_today", 0) + 1
+                dog_data["statistics"]["last_poop"] = datetime.now().isoformat()
+                await coordinator.async_request_refresh()
+
+
+class NotifyTestButton(PawControlButtonBase):
+    """Button to test notifications."""
+
+    def __init__(self, hass, dog_id, dog_name):
+        """Initialize the button."""
+        super().__init__(hass, dog_id, dog_name, "notify_test", "Test Notification", "mdi:bell-ring")
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "notify_test",
+            {
+                "dog_id": self._dog_id,
+                "message": f"Test notification for {self._dog_name}",
+            },
+            blocking=False,
+        )
+
+
+class DailyResetButton(ButtonEntity):
+    """Button to trigger daily reset."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Daily Reset"
+    _attr_icon = "mdi:restart"
+
+    def __init__(self, hass: HomeAssistant):
+        """Initialize the button."""
+        self.hass = hass
+        self._attr_unique_id = f"{DOMAIN}.global.button.daily_reset"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "daily_reset",
+            {},
+            blocking=False,
+        )
+
+
+class GenerateReportButton(ButtonEntity):
+    """Button to generate report."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Generate Report"
+    _attr_icon = "mdi:file-document"
+
+    def __init__(self, hass: HomeAssistant):
+        """Initialize the button."""
+        self.hass = hass
+        self._attr_unique_id = f"{DOMAIN}.global.button.generate_report"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "generate_report",
+            {
+                "scope": "daily",
+                "target": "notification",
+                "format": "text",
+            },
+            blocking=False,
+        )
+
+
+class SyncSetupButton(ButtonEntity):
+    """Button to sync setup."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Sync Setup"
+    _attr_icon = "mdi:sync"
+
+    def __init__(self, hass: HomeAssistant):
+        """Initialize the button."""
+        self.hass = hass
+        self._attr_unique_id = f"{DOMAIN}.global.button.sync_setup"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    async def async_press(self) -> None:
+        """Handle button press."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "sync_setup",
+            {},
+            blocking=False,
+        )

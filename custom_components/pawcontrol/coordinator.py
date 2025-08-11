@@ -1,9 +1,9 @@
-"""Data coordinator for PawControl integration."""
+"""Data coordinator for Paw Control integration."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 import logging
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -12,412 +12,576 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    CONF_DOG_NAME,
-    CONF_DOG_BREED,
-    CONF_DOG_AGE,
-    CONF_DOG_WEIGHT,
-    CONF_DOG_SIZE,
-    CONF_MODULES,
-    DEFAULT_UPDATE_INTERVAL,
+    CONF_DOGS,
+    EVENT_WALK_STARTED,
+    EVENT_WALK_ENDED,
+    EVENT_DOG_FED,
+    EVENT_MEDICATION_GIVEN,
+    EVENT_GROOMING_DONE,
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    DEFAULT_WALK_THRESHOLD_HOURS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class PawControlCoordinator(DataUpdateCoordinator):
-    """Coordinate data updates for a specific dog."""
+    """Manage fetching and updating Paw Control data."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        entry: ConfigEntry,
-        dog_config: dict[str, Any],
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
-        self.dog_config = dog_config
-        self.dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
-        self.entry = entry
-        
-        # Initialize data structure
-        self._data: dict[str, Any] = {
-            "profile": {
-                "name": self.dog_name,
-                "breed": dog_config.get(CONF_DOG_BREED, ""),
-                "age": dog_config.get(CONF_DOG_AGE, 0),
-                "weight": dog_config.get(CONF_DOG_WEIGHT, 0),
-                "size": dog_config.get(CONF_DOG_SIZE, "Mittel"),
-                "health_status": dog_config.get("health_status", "Gut"),
-                "mood": dog_config.get("mood", "😊 Fröhlich"),
-                "activity_level": dog_config.get("activity_level", "Normal"),
-            },
-            "status": {
-                "last_feeding": None,
-                "last_walk": None,
-                "last_medication": None,
-                "last_grooming": None,
-                "last_training": None,
-                "last_vet_visit": None,
-                "is_hungry": False,
-                "needs_walk": False,
-                "needs_attention": False,
-                "is_outside": False,
-                "is_sleeping": False,
-                "emergency_mode": False,
-                "visitor_mode": False,
-            },
-            "health": {
-                "temperature": 38.5,
-                "heart_rate": 80,
-                "respiratory_rate": 20,
-                "weight_history": [],
-                "medication_schedule": [],
-                "symptoms": [],
-                "vet_appointments": [],
-            },
-            "activity": {
-                "daily_walks": 0,
-                "daily_meals": 0,
-                "daily_playtime": 0,
-                "daily_training": 0,
-                "walk_distance_today": 0,
-                "calories_burned": 0,
-                "activity_score": 0,
-            },
-            "location": {
-                "current": None,
-                "last_update": None,
-                "is_home": True,
-                "distance_from_home": 0,
-                "gps_signal": 0,
-                "route": [],
-            },
-            "feeding": {
-                "breakfast_time": "07:00",
-                "lunch_time": "12:00",
-                "dinner_time": "18:00",
-                "daily_amount": 500,
-                "food_type": "Trockenfutter",
-                "water_level": 100,
-                "last_fed": None,
-                "meals_today": 0,
-            },
-            "statistics": {
-                "total_walks": 0,
-                "total_meals": 0,
-                "total_distance": 0,
-                "average_walk_duration": 0,
-                "favorite_walk_time": None,
-                "health_score": 100,
-                "happiness_score": 100,
-            },
-            "modules": dog_config.get(CONF_MODULES, {}),
-        }
-        
         super().__init__(
             hass,
             _LOGGER,
-            name=f"PawControl - {self.dog_name}",
-            update_interval=timedelta(seconds=DEFAULT_UPDATE_INTERVAL),
+            name=f"{DOMAIN}_{entry.entry_id}",
+            update_interval=timedelta(minutes=5),
         )
+        self.entry = entry
+        self._dog_data: Dict[str, Dict[str, Any]] = {}
+        self._visitor_mode = False
+        self._emergency_mode = False
+        self._emergency_level = "info"
+        self._initialize_dog_data()
 
-    async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from all sources."""
+    def _initialize_dog_data(self) -> None:
+        """Initialize data structure for each dog."""
+        dogs = self.entry.options.get(CONF_DOGS, [])
+        
+        for dog in dogs:
+            dog_id = dog.get("dog_id")
+            if not dog_id:
+                continue
+                
+            self._dog_data[dog_id] = {
+                "info": {
+                    "name": dog.get("name", dog_id),
+                    "breed": dog.get("breed", "Unknown"),
+                    "age": dog.get("age", 0),
+                    "weight": dog.get("weight", 0),
+                    "size": dog.get("size", "medium"),
+                },
+                "walk": {
+                    "last_walk": None,
+                    "walk_in_progress": False,
+                    "walk_start_time": None,
+                    "walk_duration_min": 0,
+                    "walk_distance_m": 0,
+                    "walks_today": 0,
+                    "total_distance_today": 0,
+                    "needs_walk": False,
+                },
+                "feeding": {
+                    "last_feeding": None,
+                    "last_meal_type": None,
+                    "last_portion_g": 0,
+                    "last_food_type": None,
+                    "feedings_today": {
+                        "breakfast": 0,
+                        "lunch": 0,
+                        "dinner": 0,
+                        "snack": 0,
+                    },
+                    "total_portions_today": 0,
+                    "is_hungry": False,
+                },
+                "health": {
+                    "weight_kg": dog.get("weight", 0),
+                    "weight_trend": [],
+                    "last_medication": None,
+                    "medication_name": None,
+                    "medication_dose": None,
+                    "medications_today": 0,
+                    "next_medication_due": None,
+                    "vaccine_status": {},
+                    "last_vet_visit": None,
+                    "health_notes": [],
+                },
+                "grooming": {
+                    "last_grooming": None,
+                    "grooming_type": None,
+                    "grooming_interval_days": 30,
+                    "needs_grooming": False,
+                    "grooming_history": [],
+                },
+                "training": {
+                    "last_training": None,
+                    "last_topic": None,
+                    "training_duration_min": 0,
+                    "training_sessions_today": 0,
+                    "training_history": [],
+                },
+                "activity": {
+                    "last_play": None,
+                    "play_duration_today_min": 0,
+                    "activity_level": "medium",
+                    "calories_burned_today": 0,
+                },
+                "location": {
+                    "current_location": "home",
+                    "last_gps_update": None,
+                    "is_home": True,
+                    "distance_from_home": 0,
+                },
+                "statistics": {
+                    "poop_count_today": 0,
+                    "last_poop": None,
+                    "last_action": None,
+                    "last_action_type": None,
+                }
+            }
+
+    async def _async_update_data(self) -> Dict[str, Any]:
+        """Fetch data from API or calculate derived values."""
         try:
-            # Update current time
-            now = dt_util.now()
+            # Update calculated fields
+            for dog_id, data in self._dog_data.items():
+                # Check if dog needs walk
+                data["walk"]["needs_walk"] = self._calculate_needs_walk(dog_id)
+                
+                # Check if dog is hungry
+                data["feeding"]["is_hungry"] = self._calculate_is_hungry(dog_id)
+                
+                # Check if grooming is needed
+                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(dog_id)
+                
+                # Calculate activity level
+                data["activity"]["activity_level"] = self._calculate_activity_level(dog_id)
+                
+                # Update medication due times
+                data["health"]["next_medication_due"] = self._calculate_next_medication(dog_id)
+                
+                # Calculate calories burned
+                data["activity"]["calories_burned_today"] = self._calculate_calories(dog_id)
             
-            # Check feeding status
-            await self._update_feeding_status(now)
-            
-            # Check walk status
-            await self._update_walk_status(now)
-            
-            # Check health status
-            await self._update_health_status()
-            
-            # Check activity status
-            await self._update_activity_status()
-            
-            # Check location if GPS enabled
-            if self._data["modules"].get("gps", {}).get("enabled", False):
-                await self._update_location_status()
-            
-            # Calculate scores
-            self._calculate_scores()
-            
-            # Update last update time
-            self._data["last_update"] = now.isoformat()
-            
-            return self._data
+            return self._dog_data
             
         except Exception as err:
-            _LOGGER.error(f"Error updating data for {self.dog_name}: {err}")
-            raise UpdateFailed(f"Error communicating with API: {err}")
+            raise UpdateFailed(f"Error updating data: {err}")
 
-    async def _update_feeding_status(self, now: datetime) -> None:
-        """Update feeding-related status."""
-        feeding_data = self._data["feeding"]
-        status = self._data["status"]
+    def _calculate_needs_walk(self, dog_id: str) -> bool:
+        """Calculate if dog needs a walk."""
+        data = self._dog_data[dog_id]["walk"]
         
-        # Check if it's feeding time
-        current_time = now.strftime("%H:%M")
+        if data["walk_in_progress"]:
+            return False
+            
+        if not data["last_walk"]:
+            return True
+            
+        try:
+            last_walk = datetime.fromisoformat(data["last_walk"])
+            hours_since_walk = (dt_util.now() - last_walk).total_seconds() / 3600
+            return hours_since_walk >= DEFAULT_WALK_THRESHOLD_HOURS
+        except (ValueError, TypeError):
+            return True
+
+    def _calculate_is_hungry(self, dog_id: str) -> bool:
+        """Calculate if dog is hungry based on feeding schedule."""
+        data = self._dog_data[dog_id]["feeding"]
+        current_hour = dt_util.now().hour
         
-        # Check last feeding time
-        if feeding_data["last_fed"]:
-            try:
-                last_fed = datetime.fromisoformat(feeding_data["last_fed"])
-                hours_since = (now - last_fed).total_seconds() / 3600
-                
-                # Dog is likely hungry if more than 6 hours since last feeding
-                status["is_hungry"] = hours_since > 6
-            except (ValueError, TypeError):
-                pass
+        # Basic feeding schedule
+        if 6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0:
+            return True
+        elif 11 <= current_hour < 14 and data["feedings_today"]["lunch"] == 0:
+            return True
+        elif 17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0:
+            return True
+            
+        return False
+
+    def _calculate_needs_grooming(self, dog_id: str) -> bool:
+        """Calculate if dog needs grooming."""
+        data = self._dog_data[dog_id]["grooming"]
+        
+        if not data["last_grooming"]:
+            return True
+            
+        try:
+            last_grooming = datetime.fromisoformat(data["last_grooming"])
+            days_since = (dt_util.now() - last_grooming).days
+            return days_since >= data["grooming_interval_days"]
+        except (ValueError, TypeError):
+            return False
+
+    def _calculate_activity_level(self, dog_id: str) -> str:
+        """Calculate activity level based on today's activities."""
+        walk_data = self._dog_data[dog_id]["walk"]
+        activity_data = self._dog_data[dog_id]["activity"]
+        
+        total_activity_min = walk_data.get("walk_duration_min", 0) + activity_data.get("play_duration_today_min", 0)
+        
+        if total_activity_min < 30:
+            return "low"
+        elif total_activity_min < 90:
+            return "medium"
         else:
-            # No feeding recorded yet
-            status["is_hungry"] = True
+            return "high"
 
-    async def _update_walk_status(self, now: datetime) -> None:
-        """Update walk-related status."""
-        status = self._data["status"]
-        activity = self._data["activity"]
-        
-        # Check last walk time
-        if status["last_walk"]:
-            try:
-                last_walk = datetime.fromisoformat(status["last_walk"])
-                hours_since = (now - last_walk).total_seconds() / 3600
-                
-                # Dog needs walk if more than 8 hours since last walk
-                status["needs_walk"] = hours_since > 8
-                
-                # Reset daily counters if new day
-                if last_walk.date() != now.date():
-                    activity["daily_walks"] = 0
-                    activity["walk_distance_today"] = 0
-            except (ValueError, TypeError):
-                pass
-        else:
-            # No walk recorded yet
-            status["needs_walk"] = True
+    def _calculate_next_medication(self, dog_id: str) -> Optional[datetime]:
+        """Calculate next medication due time."""
+        # This would be implemented based on medication schedules
+        # For now, return None
+        return None
 
-    async def _update_health_status(self) -> None:
-        """Update health-related status."""
-        health = self._data["health"]
-        profile = self._data["profile"]
+    def _calculate_calories(self, dog_id: str) -> float:
+        """Calculate approximate calories burned today."""
+        walk_data = self._dog_data[dog_id]["walk"]
+        activity_data = self._dog_data[dog_id]["activity"]
+        dog_weight = self._dog_data[dog_id]["info"]["weight"]
         
-        # Check if temperature is normal
-        if health["temperature"] < 37.5 or health["temperature"] > 39.5:
-            profile["health_status"] = "Unwohl"
+        if dog_weight <= 0:
+            dog_weight = 20  # Default weight
         
-        # Check heart rate
-        expected_hr = self._get_expected_heart_rate()
-        if abs(health["heart_rate"] - expected_hr) > 20:
-            if profile["health_status"] == "Gut":
-                profile["health_status"] = "Normal"
+        # Simple calculation: ~30 kcal per km for average dog
+        distance_km = walk_data.get("total_distance_today", 0) / 1000
+        walk_calories = distance_km * 30 * (dog_weight / 20)
+        
+        # Play calories: ~5 kcal per minute for average dog
+        play_calories = activity_data.get("play_duration_today_min", 0) * 5 * (dog_weight / 20)
+        
+        return round(walk_calories + play_calories, 1)
 
-    async def _update_activity_status(self) -> None:
-        """Update activity-related status."""
-        activity = self._data["activity"]
-        profile = self._data["profile"]
-        
-        # Calculate activity score based on daily activities
-        walk_score = min(activity["daily_walks"] * 25, 50)  # Max 50 points
-        play_score = min(activity["daily_playtime"] / 30 * 25, 25)  # Max 25 points
-        training_score = min(activity["daily_training"] / 15 * 25, 25)  # Max 25 points
-        
-        activity["activity_score"] = walk_score + play_score + training_score
+    def update_options(self, options: dict) -> None:
+        """Update coordinator options."""
+        self.entry._options = options
+        self._initialize_dog_data()
 
-    async def _update_location_status(self) -> None:
-        """Update GPS location status."""
-        location = self._data["location"]
-        
-        # This would integrate with actual GPS tracking
-        # For now, just maintain the structure
-        if not location["current"]:
-            location["current"] = {"latitude": 0.0, "longitude": 0.0}
-            location["last_update"] = dt_util.now().isoformat()
+    def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
+        """Get data for specific dog."""
+        return self._dog_data.get(dog_id, {})
 
-    def _calculate_scores(self) -> None:
-        """Calculate health and happiness scores."""
-        stats = self._data["statistics"]
-        profile = self._data["profile"]
-        activity = self._data["activity"]
+    async def reset_daily_counters(self) -> None:
+        """Reset all daily counters."""
+        _LOGGER.info("Resetting daily counters for all dogs")
         
-        # Health score calculation
-        health_score = 100
+        for dog_id in self._dog_data:
+            # Reset walk counters
+            self._dog_data[dog_id]["walk"]["walks_today"] = 0
+            self._dog_data[dog_id]["walk"]["total_distance_today"] = 0
+            
+            # Reset feeding counters
+            self._dog_data[dog_id]["feeding"]["feedings_today"] = {
+                "breakfast": 0,
+                "lunch": 0,
+                "dinner": 0,
+                "snack": 0,
+            }
+            self._dog_data[dog_id]["feeding"]["total_portions_today"] = 0
+            
+            # Reset health counters
+            self._dog_data[dog_id]["health"]["medications_today"] = 0
+            
+            # Reset training counters
+            self._dog_data[dog_id]["training"]["training_sessions_today"] = 0
+            
+            # Reset activity counters
+            self._dog_data[dog_id]["activity"]["play_duration_today_min"] = 0
+            self._dog_data[dog_id]["activity"]["calories_burned_today"] = 0
+            
+            # Reset statistics
+            self._dog_data[dog_id]["statistics"]["poop_count_today"] = 0
         
-        # Deduct for health status
-        health_status_scores = {
-            "Ausgezeichnet": 100,
-            "Sehr gut": 95,
-            "Gut": 90,
-            "Normal": 80,
-            "Unwohl": 60,
-            "Krank": 40,
-        }
-        health_score = health_status_scores.get(profile["health_status"], 80)
-        
-        stats["health_score"] = health_score
-        
-        # Happiness score calculation
-        happiness_score = 100
-        
-        # Factor in mood
-        mood_scores = {
-            "😊 Fröhlich": 100,
-            "😐 Neutral": 80,
-            "😟 Traurig": 60,
-            "😠 Ärgerlich": 50,
-            "😰 Ängstlich": 40,
-            "😴 Müde": 70,
-        }
-        mood_score = mood_scores.get(profile["mood"], 80)
-        
-        # Factor in activity
-        activity_factor = activity["activity_score"]
-        
-        happiness_score = (mood_score * 0.6 + activity_factor * 0.4)
-        stats["happiness_score"] = happiness_score
-
-    def _get_expected_heart_rate(self) -> int:
-        """Get expected heart rate based on size."""
-        size = self._data["profile"]["size"]
-        
-        # Heart rate ranges by size
-        hr_by_size = {
-            "Toy": 100,
-            "Klein": 90,
-            "Mittel": 80,
-            "Groß": 70,
-            "Riesig": 60,
-        }
-        
-        return hr_by_size.get(size, 80)
-
-    async def async_update_feeding(self, meal_type: str, amount: float | None = None) -> None:
-        """Update feeding information."""
-        now = dt_util.now()
-        self._data["feeding"]["last_fed"] = now.isoformat()
-        self._data["feeding"]["meals_today"] += 1
-        self._data["status"]["last_feeding"] = now.isoformat()
-        self._data["status"]["is_hungry"] = False
-        self._data["activity"]["daily_meals"] += 1
-        self._data["statistics"]["total_meals"] += 1
-        
-        if amount:
-            self._data["feeding"]["daily_amount"] -= amount
-        
-        # Trigger coordinator update
         await self.async_request_refresh()
 
-    async def async_update_walk(
-        self,
-        duration: int,
-        distance: float | None = None,
-        route: list | None = None,
-    ) -> None:
-        """Update walk information."""
-        now = dt_util.now()
-        self._data["status"]["last_walk"] = now.isoformat()
-        self._data["status"]["needs_walk"] = False
-        self._data["activity"]["daily_walks"] += 1
-        self._data["statistics"]["total_walks"] += 1
+    async def start_walk(self, dog_id: str, source: str = "manual") -> None:
+        """Start a walk for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
         
-        if distance:
-            self._data["activity"]["walk_distance_today"] += distance
-            self._data["statistics"]["total_distance"] += distance
+        walk_data = self._dog_data[dog_id]["walk"]
         
-        if route:
-            self._data["location"]["route"] = route
+        if walk_data["walk_in_progress"]:
+            _LOGGER.warning(f"Walk already in progress for {dog_id}")
+            return
         
-        # Calculate calories burned (rough estimate)
-        weight = self._data["profile"]["weight"]
-        calories = (duration / 60) * weight * 3.5  # Simplified formula
-        self._data["activity"]["calories_burned"] += calories
+        walk_data["walk_in_progress"] = True
+        walk_data["walk_start_time"] = dt_util.now().isoformat()
+        walk_data["walk_duration_min"] = 0
+        walk_data["walk_distance_m"] = 0
         
-        # Update average walk duration
-        total_walks = self._data["statistics"]["total_walks"]
-        avg_duration = self._data["statistics"]["average_walk_duration"]
-        new_avg = ((avg_duration * (total_walks - 1)) + duration) / total_walks
-        self._data["statistics"]["average_walk_duration"] = new_avg
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_started"
         
-        # Trigger coordinator update
+        self.hass.bus.async_fire(
+            EVENT_WALK_STARTED,
+            {ATTR_DOG_ID: dog_id, "source": source}
+        )
+        
         await self.async_request_refresh()
 
-    async def async_update_health(
-        self,
-        temperature: float | None = None,
-        weight: float | None = None,
-        symptoms: list | None = None,
-    ) -> None:
-        """Update health information."""
-        if temperature is not None:
-            self._data["health"]["temperature"] = temperature
+    async def end_walk(self, dog_id: str, reason: str = "manual") -> None:
+        """End a walk for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
         
-        if weight is not None:
-            self._data["profile"]["weight"] = weight
-            # Add to weight history
-            self._data["health"]["weight_history"].append({
+        walk_data = self._dog_data[dog_id]["walk"]
+        
+        if not walk_data["walk_in_progress"]:
+            _LOGGER.warning(f"No walk in progress for {dog_id}")
+            return
+        
+        # Calculate duration
+        if walk_data["walk_start_time"]:
+            try:
+                start_time = datetime.fromisoformat(walk_data["walk_start_time"])
+                duration = (dt_util.now() - start_time).total_seconds() / 60
+                walk_data["walk_duration_min"] = round(duration, 1)
+            except ValueError:
+                walk_data["walk_duration_min"] = 0
+        
+        walk_data["walk_in_progress"] = False
+        walk_data["last_walk"] = dt_util.now().isoformat()
+        walk_data["walks_today"] += 1
+        walk_data["total_distance_today"] += walk_data.get("walk_distance_m", 0)
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_ended"
+        
+        self.hass.bus.async_fire(
+            EVENT_WALK_ENDED,
+            {
+                ATTR_DOG_ID: dog_id,
+                "reason": reason,
+                "duration_min": walk_data["walk_duration_min"],
+                "distance_m": walk_data["walk_distance_m"],
+            }
+        )
+        
+        await self.async_request_refresh()
+
+    async def log_walk(self, dog_id: str, duration_min: int, distance_m: int) -> None:
+        """Log a completed walk."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
+        
+        walk_data = self._dog_data[dog_id]["walk"]
+        
+        walk_data["last_walk"] = dt_util.now().isoformat()
+        walk_data["walk_duration_min"] = duration_min
+        walk_data["walk_distance_m"] = distance_m
+        walk_data["walks_today"] += 1
+        walk_data["total_distance_today"] += distance_m
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_logged"
+        
+        await self.async_request_refresh()
+
+    async def feed_dog(self, dog_id: str, meal_type: str, portion_g: int, food_type: str) -> None:
+        """Record feeding for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
+        
+        feeding_data = self._dog_data[dog_id]["feeding"]
+        
+        feeding_data["last_feeding"] = dt_util.now().isoformat()
+        feeding_data["last_meal_type"] = meal_type
+        feeding_data["last_portion_g"] = portion_g
+        feeding_data["last_food_type"] = food_type
+        
+        if meal_type in feeding_data["feedings_today"]:
+            feeding_data["feedings_today"][meal_type] += 1
+        
+        feeding_data["total_portions_today"] += portion_g
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "fed"
+        
+        self.hass.bus.async_fire(
+            EVENT_DOG_FED,
+            {
+                ATTR_DOG_ID: dog_id,
+                "meal_type": meal_type,
+                "portion_g": portion_g,
+                "food_type": food_type,
+            }
+        )
+        
+        await self.async_request_refresh()
+
+    async def log_health_data(self, dog_id: str, weight_kg: Optional[float], note: str) -> None:
+        """Log health data for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
+        
+        health_data = self._dog_data[dog_id]["health"]
+        
+        if weight_kg is not None:
+            health_data["weight_kg"] = weight_kg
+            # Keep last 30 weight measurements for trend
+            health_data["weight_trend"].append({
                 "date": dt_util.now().isoformat(),
-                "weight": weight,
+                "weight": weight_kg
             })
-            # Keep only last 30 entries
-            self._data["health"]["weight_history"] = self._data["health"]["weight_history"][-30:]
+            if len(health_data["weight_trend"]) > 30:
+                health_data["weight_trend"].pop(0)
         
-        if symptoms:
-            self._data["health"]["symptoms"] = symptoms
+        if note:
+            health_data["health_notes"].append({
+                "date": dt_util.now().isoformat(),
+                "note": note
+            })
+            # Keep last 100 notes
+            if len(health_data["health_notes"]) > 100:
+                health_data["health_notes"].pop(0)
         
-        # Trigger coordinator update
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
+        
         await self.async_request_refresh()
 
-    async def async_update_location(
-        self,
-        latitude: float,
-        longitude: float,
-        accuracy: float | None = None,
-    ) -> None:
-        """Update GPS location."""
-        now = dt_util.now()
-        self._data["location"]["current"] = {
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": accuracy,
-        }
-        self._data["location"]["last_update"] = now.isoformat()
+    async def log_medication(self, dog_id: str, medication_name: str, dose: str) -> None:
+        """Log medication given to a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
         
-        # Calculate distance from home (would need home coordinates)
-        # For now, just set as example
-        self._data["location"]["is_home"] = accuracy and accuracy < 50
+        health_data = self._dog_data[dog_id]["health"]
         
-        # Trigger coordinator update
+        health_data["last_medication"] = dt_util.now().isoformat()
+        health_data["medication_name"] = medication_name
+        health_data["medication_dose"] = dose
+        health_data["medications_today"] += 1
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "medication_given"
+        
+        self.hass.bus.async_fire(
+            EVENT_MEDICATION_GIVEN,
+            {
+                ATTR_DOG_ID: dog_id,
+                "medication": medication_name,
+                "dose": dose,
+            }
+        )
+        
         await self.async_request_refresh()
 
-    async def async_set_emergency(self, active: bool, reason: str | None = None) -> None:
-        """Set emergency mode."""
-        self._data["status"]["emergency_mode"] = active
-        if reason:
-            self._data["status"]["emergency_reason"] = reason
+    async def start_grooming(self, dog_id: str, grooming_type: str, notes: str) -> None:
+        """Log grooming session for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
         
-        # Trigger coordinator update
+        grooming_data = self._dog_data[dog_id]["grooming"]
+        
+        grooming_data["last_grooming"] = dt_util.now().isoformat()
+        grooming_data["grooming_type"] = grooming_type
+        
+        grooming_data["grooming_history"].append({
+            "date": dt_util.now().isoformat(),
+            "type": grooming_type,
+            "notes": notes
+        })
+        
+        # Keep last 50 grooming records
+        if len(grooming_data["grooming_history"]) > 50:
+            grooming_data["grooming_history"].pop(0)
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
+        
+        self.hass.bus.async_fire(
+            EVENT_GROOMING_DONE,
+            {
+                ATTR_DOG_ID: dog_id,
+                "type": grooming_type,
+                "notes": notes,
+            }
+        )
+        
         await self.async_request_refresh()
 
-    async def async_set_visitor_mode(
-        self,
-        active: bool,
-        visitor_name: str | None = None,
-        instructions: str | None = None,
-    ) -> None:
+    async def log_play_session(self, dog_id: str, duration_min: int, intensity: str) -> None:
+        """Log play session for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
+        
+        activity_data = self._dog_data[dog_id]["activity"]
+        
+        activity_data["last_play"] = dt_util.now().isoformat()
+        activity_data["play_duration_today_min"] += duration_min
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "played"
+        
+        await self.async_request_refresh()
+
+    async def log_training(self, dog_id: str, topic: str, duration_min: int, notes: str) -> None:
+        """Log training session for a dog."""
+        if dog_id not in self._dog_data:
+            _LOGGER.error(f"Dog {dog_id} not found")
+            return
+        
+        training_data = self._dog_data[dog_id]["training"]
+        
+        training_data["last_training"] = dt_util.now().isoformat()
+        training_data["last_topic"] = topic
+        training_data["training_duration_min"] = duration_min
+        training_data["training_sessions_today"] += 1
+        
+        training_data["training_history"].append({
+            "date": dt_util.now().isoformat(),
+            "topic": topic,
+            "duration_min": duration_min,
+            "notes": notes
+        })
+        
+        # Keep last 100 training records
+        if len(training_data["training_history"]) > 100:
+            training_data["training_history"].pop(0)
+        
+        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+        self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"
+        
+        await self.async_request_refresh()
+
+    async def set_visitor_mode(self, enabled: bool) -> None:
         """Set visitor mode."""
-        self._data["status"]["visitor_mode"] = active
-        if visitor_name:
-            self._data["status"]["visitor_name"] = visitor_name
-        if instructions:
-            self._data["status"]["visitor_instructions"] = instructions
-        
-        # Trigger coordinator update
+        self._visitor_mode = enabled
+        _LOGGER.info(f"Visitor mode {'enabled' if enabled else 'disabled'}")
         await self.async_request_refresh()
 
-    async def async_shutdown(self) -> None:
-        """Shutdown the coordinator."""
-        # Clean up any resources
-        _LOGGER.info(f"Shutting down coordinator for {self.dog_name}")
+    async def activate_emergency_mode(self, level: str, note: str) -> None:
+        """Activate emergency mode."""
+        self._emergency_mode = True
+        self._emergency_level = level
+        _LOGGER.warning(f"Emergency mode activated: {level} - {note}")
+        await self.async_request_refresh()
+
+    async def generate_report(self, scope: str, target: str, format_type: str) -> None:
+        """Generate activity report."""
+        _LOGGER.info(f"Generating {scope} report in {format_type} format to {target}")
+        # Implementation would generate and send/save report
+        # This is a placeholder for the actual implementation
+        pass
+
+    async def export_health_data(self, dog_id: str, date_from: str, date_to: str, format_type: str) -> None:
+        """Export health data for a dog."""
+        _LOGGER.info(f"Exporting health data for {dog_id} from {date_from} to {date_to} in {format_type} format")
+        # Implementation would export data to file
+        # This is a placeholder for the actual implementation
+        pass
+
+    @property
+    def visitor_mode(self) -> bool:
+        """Return visitor mode status."""
+        return self._visitor_mode
+
+    @property
+    def emergency_mode(self) -> bool:
+        """Return emergency mode status."""
+        return self._emergency_mode
+
+    @property
+    def emergency_level(self) -> str:
+        """Return emergency level."""
+        return self._emergency_level

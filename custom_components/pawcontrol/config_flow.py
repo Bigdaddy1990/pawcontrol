@@ -1,601 +1,532 @@
-"""Extended config flow with options flow for PawControl integration."""
+"""Config flow for Paw Control integration."""
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    TextSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    BooleanSelector,
+    TimeSelector,
+    EntitySelector,
+    EntitySelectorConfig,
+)
 
 from .const import (
     DOMAIN,
+    CONF_DOGS,
+    CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_BREED,
     CONF_DOG_AGE,
     CONF_DOG_WEIGHT,
     CONF_DOG_SIZE,
-    CONF_DOGS,
-    CONF_MODULES,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_AUTOMATION,
-    MODULE_DASHBOARD,
+    CONF_DOG_MODULES,
     MODULE_WALK,
-    MODULE_TRAINING,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_GPS,
+    MODULE_NOTIFICATIONS,
+    MODULE_DASHBOARD,
     MODULE_GROOMING,
-    MODULE_VISITOR,
-    MODULE_NAMES,
-    SIZE_OPTIONS,
-    HEALTH_STATUS_OPTIONS,
-    MOOD_OPTIONS,
-    ACTIVITY_LEVELS,
-    MIN_DOG_NAME_LENGTH,
-    MAX_DOG_NAME_LENGTH,
-    MIN_DOG_AGE,
-    MAX_DOG_AGE,
-    MIN_DOG_WEIGHT,
-    MAX_DOG_WEIGHT,
+    MODULE_MEDICATION,
+    MODULE_TRAINING,
+    CONF_SOURCES,
+    CONF_DOOR_SENSOR,
+    CONF_PERSON_ENTITIES,
+    CONF_DEVICE_TRACKERS,
+    CONF_NOTIFY_FALLBACK,
+    CONF_CALENDAR,
+    CONF_WEATHER,
+    CONF_NOTIFICATIONS,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    CONF_QUIET_END,
+    CONF_REMINDER_REPEAT,
+    CONF_SNOOZE_MIN,
+    CONF_RESET_TIME,
+    CONF_EXPORT_PATH,
+    CONF_EXPORT_FORMAT,
+    CONF_VISITOR_MODE,
+    DEFAULT_RESET_TIME,
+    DEFAULT_REMINDER_REPEAT,
+    DEFAULT_SNOOZE_MIN,
+    DEFAULT_EXPORT_FORMAT,
 )
-from .utils import validate_dog_name
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for PawControl."""
+    """Handle a config flow for Paw Control."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._dogs: list[dict[str, Any]] = []
-        self._current_dog: dict[str, Any] = {}
-        self._current_modules: dict[str, Any] = {}
-        
+        self._dogs: list[dict] = []
+        self._current_dog_index = 0
+        self._sources: dict = {}
+        self._notifications: dict = {}
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        errors: dict[str, str] = {}
-        
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
         if user_input is not None:
-            # Start with first dog configuration
-            return await self.async_step_dog_basic()
-        
+            # Store number of dogs and proceed to dog configuration
+            num_dogs = user_input.get("num_dogs", 1)
+            self._dogs = [{}] * num_dogs
+            self._current_dog_index = 0
+            return await self.async_step_dog_config()
+
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                "info": "Willkommen bei PawControl! Lassen Sie uns Ihren Hund einrichten."
-            },
-        )
-
-    async def async_step_dog_basic(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Configure basic dog information."""
-        errors: dict[str, str] = {}
-        
-        if user_input is not None:
-            # Validate dog name using shared validator
-            dog_name = user_input.get(CONF_DOG_NAME, "").strip()
-            if not validate_dog_name(dog_name):
-                errors[CONF_DOG_NAME] = "invalid_name"
-            elif self._dog_name_exists(dog_name):
-                errors[CONF_DOG_NAME] = "name_exists"
-
-            if not errors:
-                user_input[CONF_DOG_NAME] = dog_name
-                self._current_dog = user_input
-                # Automatically suggest size based on weight if provided
-                if CONF_DOG_WEIGHT in user_input and CONF_DOG_SIZE not in user_input:
-                    weight = user_input[CONF_DOG_WEIGHT]
-                    self._current_dog[CONF_DOG_SIZE] = self._suggest_size_by_weight(weight)
-
-                return await self.async_step_modules()
-        
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_DOG_NAME): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        multiline=False,
-                        type=selector.TextSelectorType.TEXT,
-                    )
-                ),
-                vol.Optional(CONF_DOG_BREED): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        multiline=False,
-                        type=selector.TextSelectorType.TEXT,
-                    )
-                ),
-                vol.Optional(CONF_DOG_AGE, default=2.0): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=MIN_DOG_AGE,
-                        max=MAX_DOG_AGE,
-                        step=0.1,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="Jahre",
-                    )
-                ),
-                vol.Optional(CONF_DOG_WEIGHT, default=15.0): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=MIN_DOG_WEIGHT,
-                        max=MAX_DOG_WEIGHT,
-                        step=0.1,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="kg",
-                    )
-                ),
-                vol.Optional(CONF_DOG_SIZE, default=SIZE_OPTIONS[2]): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=SIZE_OPTIONS,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("health_status", default=HEALTH_STATUS_OPTIONS[2]): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=HEALTH_STATUS_OPTIONS,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("mood", default=MOOD_OPTIONS[0]): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=MOOD_OPTIONS,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("activity_level", default=ACTIVITY_LEVELS[2]): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=ACTIVITY_LEVELS,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }
-        )
-        
-        return self.async_show_form(
-            step_id="dog_basic",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={
-                "title": "Grundlegende Hundedaten",
-                "info": "Bitte geben Sie die Grunddaten Ihres Hundes ein.",
-            },
-        )
-
-    async def async_step_modules(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Select which modules to enable."""
-        errors: dict[str, str] = {}
-        
-        if user_input is not None:
-            # Store selected modules
-            self._current_modules = {}
-            for module_id, enabled in user_input.items():
-                if enabled:
-                    self._current_modules[module_id] = {"enabled": True}
-            
-            # Continue with module-specific configuration
-            return await self.async_step_module_config()
-        
-        # Create schema for module selection
-        schema_dict = {}
-        for module_id in [MODULE_FEEDING, MODULE_WALK, MODULE_HEALTH, MODULE_GPS, 
-                         MODULE_NOTIFICATIONS, MODULE_DASHBOARD]:
-            default = module_id in [MODULE_FEEDING, MODULE_WALK, MODULE_DASHBOARD]
-            schema_dict[vol.Optional(module_id, default=default)] = selector.BooleanSelector()
-        
-        return self.async_show_form(
-            step_id="modules",
-            data_schema=vol.Schema(schema_dict),
-            errors=errors,
-            description_placeholders={
-                "dog_name": self._current_dog.get(CONF_DOG_NAME, "")
-            },
-        )
-
-    async def async_step_module_config(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Configure specific module settings."""
-        # For now, skip detailed module configuration
-        # This can be expanded later for each module
-        
-        # Add dog to list
-        self._current_dog[CONF_MODULES] = self._current_modules
-        self._dogs.append(self._current_dog)
-        
-        return await self.async_step_add_another()
-
-    async def async_step_add_another(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Ask if user wants to add another dog."""
-        if user_input is not None:
-            if user_input.get("add_another"):
-                # Reset current dog and modules
-                self._current_dog = {}
-                self._current_modules = {}
-                return await self.async_step_dog_basic()
-            else:
-                # Finish configuration
-                return self._create_entry()
-        
-        return self.async_show_form(
-            step_id="add_another",
             data_schema=vol.Schema(
                 {
-                    vol.Required("add_another", default=False): selector.BooleanSelector(),
+                    vol.Required("num_dogs", default=1): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1,
+                            max=10,
+                            mode="box",
+                        )
+                    ),
                 }
             ),
             description_placeholders={
-                "dog_name": self._current_dog.get(CONF_DOG_NAME, "")
+                "intro": "Welcome to Paw Control! Let's set up your smart dog management system."
             },
         )
 
-    @callback
-    def _create_entry(self) -> FlowResult:
-        """Create the config entry."""
-        title = "PawControl"
-        if len(self._dogs) == 1:
-            title = f"PawControl - {self._dogs[0].get(CONF_DOG_NAME)}"
-        elif len(self._dogs) > 1:
-            names = [dog.get(CONF_DOG_NAME) for dog in self._dogs]
-            title = f"PawControl - {', '.join(names)}"
-        
-        return self.async_create_entry(
-            title=title,
-            data={
+    async def async_step_dog_config(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure individual dog."""
+        errors = {}
+
+        if user_input is not None:
+            # Validate dog ID uniqueness
+            dog_id = user_input.get(CONF_DOG_ID, "").lower().replace(" ", "_")
+            
+            # Check for duplicate dog IDs
+            existing_ids = [d.get(CONF_DOG_ID) for d in self._dogs[:self._current_dog_index]]
+            if dog_id in existing_ids:
+                errors["base"] = "duplicate_dog_id"
+            
+            if not errors:
+                # Store dog configuration
+                self._dogs[self._current_dog_index] = {
+                    CONF_DOG_ID: dog_id,
+                    CONF_DOG_NAME: user_input.get(CONF_DOG_NAME, dog_id),
+                    CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, "Mixed"),
+                    CONF_DOG_AGE: user_input.get(CONF_DOG_AGE, 1),
+                    CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 20),
+                    CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, "medium"),
+                    CONF_DOG_MODULES: {
+                        MODULE_WALK: user_input.get(f"module_{MODULE_WALK}", True),
+                        MODULE_FEEDING: user_input.get(f"module_{MODULE_FEEDING}", True),
+                        MODULE_HEALTH: user_input.get(f"module_{MODULE_HEALTH}", True),
+                        MODULE_GPS: user_input.get(f"module_{MODULE_GPS}", False),
+                        MODULE_NOTIFICATIONS: user_input.get(f"module_{MODULE_NOTIFICATIONS}", True),
+                        MODULE_DASHBOARD: user_input.get(f"module_{MODULE_DASHBOARD}", True),
+                        MODULE_GROOMING: user_input.get(f"module_{MODULE_GROOMING}", True),
+                        MODULE_MEDICATION: user_input.get(f"module_{MODULE_MEDICATION}", False),
+                        MODULE_TRAINING: user_input.get(f"module_{MODULE_TRAINING}", False),
+                    }
+                }
+
+                self._current_dog_index += 1
+
+                # Check if more dogs to configure
+                if self._current_dog_index < len(self._dogs):
+                    return await self.async_step_dog_config()
+                else:
+                    # All dogs configured, proceed to sources
+                    return await self.async_step_sources()
+
+        # Show dog configuration form
+        dog_num = self._current_dog_index + 1
+        total_dogs = len(self._dogs)
+
+        return self.async_show_form(
+            step_id="dog_config",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_DOG_ID): TextSelector(),
+                    vol.Required(CONF_DOG_NAME): TextSelector(),
+                    vol.Optional(CONF_DOG_BREED, default="Mixed"): TextSelector(),
+                    vol.Optional(CONF_DOG_AGE, default=1): NumberSelector(
+                        NumberSelectorConfig(min=0, max=30, mode="box")
+                    ),
+                    vol.Optional(CONF_DOG_WEIGHT, default=20): NumberSelector(
+                        NumberSelectorConfig(min=1, max=200, step=0.1, mode="box", unit_of_measurement="kg")
+                    ),
+                    vol.Optional(CONF_DOG_SIZE, default="medium"): SelectSelector(
+                        SelectSelectorConfig(
+                            options=["small", "medium", "large", "xlarge"],
+                            translation_key="dog_size",
+                        )
+                    ),
+                    vol.Optional(f"module_{MODULE_WALK}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_FEEDING}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_HEALTH}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_GPS}", default=False): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_NOTIFICATIONS}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_DASHBOARD}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_GROOMING}", default=True): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_MEDICATION}", default=False): BooleanSelector(),
+                    vol.Optional(f"module_{MODULE_TRAINING}", default=False): BooleanSelector(),
+                }
+            ),
+            errors=errors,
+            description_placeholders={
+                "dog_num": str(dog_num),
+                "total_dogs": str(total_dogs),
+            },
+        )
+
+    async def async_step_sources(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure data sources."""
+        if user_input is not None:
+            self._sources = user_input
+            return await self.async_step_notifications()
+
+        # Check which modules need sources
+        needs_door_sensor = any(
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_WALK, False) 
+            for dog in self._dogs
+        )
+        needs_gps = any(
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_GPS, False) 
+            for dog in self._dogs
+        )
+
+        schema_dict = {}
+
+        if needs_door_sensor:
+            schema_dict[vol.Optional(CONF_DOOR_SENSOR)] = EntitySelector(
+                EntitySelectorConfig(domain="binary_sensor")
+            )
+
+        if needs_gps:
+            schema_dict[vol.Optional(CONF_PERSON_ENTITIES, default=[])] = EntitySelector(
+                EntitySelectorConfig(domain="person", multiple=True)
+            )
+            schema_dict[vol.Optional(CONF_DEVICE_TRACKERS, default=[])] = EntitySelector(
+                EntitySelectorConfig(domain="device_tracker", multiple=True)
+            )
+
+        schema_dict[vol.Optional(CONF_CALENDAR)] = EntitySelector(
+            EntitySelectorConfig(domain="calendar")
+        )
+        schema_dict[vol.Optional(CONF_WEATHER)] = EntitySelector(
+            EntitySelectorConfig(domain="weather")
+        )
+
+        if not schema_dict:
+            # No sources needed, skip to notifications
+            return await self.async_step_notifications()
+
+        return self.async_show_form(
+            step_id="sources",
+            data_schema=vol.Schema(schema_dict),
+            description_placeholders={
+                "info": "Configure optional data sources for enhanced functionality."
+            },
+        )
+
+    async def async_step_notifications(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure notification settings."""
+        if user_input is not None:
+            self._notifications = user_input
+            return await self.async_step_system()
+
+        # Check if notifications module is enabled
+        needs_notifications = any(
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_NOTIFICATIONS, False) 
+            for dog in self._dogs
+        )
+
+        if not needs_notifications:
+            # Notifications not needed, skip to system
+            return await self.async_step_system()
+
+        return self.async_show_form(
+            step_id="notifications",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_NOTIFY_FALLBACK): EntitySelector(
+                        EntitySelectorConfig(domain="notify")
+                    ),
+                    vol.Optional(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", default="22:00:00"): TimeSelector(),
+                    vol.Optional(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", default="07:00:00"): TimeSelector(),
+                    vol.Optional(CONF_REMINDER_REPEAT, default=DEFAULT_REMINDER_REPEAT): NumberSelector(
+                        NumberSelectorConfig(min=5, max=120, step=5, mode="slider", unit_of_measurement="min")
+                    ),
+                    vol.Optional(CONF_SNOOZE_MIN, default=DEFAULT_SNOOZE_MIN): NumberSelector(
+                        NumberSelectorConfig(min=5, max=60, step=5, mode="slider", unit_of_measurement="min")
+                    ),
+                }
+            ),
+            description_placeholders={
+                "info": "Configure how and when you want to receive notifications."
+            },
+        )
+
+    async def async_step_system(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure system settings."""
+        if user_input is not None:
+            # Compile all configuration
+            config_data = {
                 CONF_DOGS: self._dogs,
+                CONF_SOURCES: self._sources,
+                CONF_NOTIFICATIONS: {
+                    **self._notifications,
+                    CONF_QUIET_HOURS: {
+                        CONF_QUIET_START: self._notifications.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", "22:00:00"),
+                        CONF_QUIET_END: self._notifications.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", "07:00:00"),
+                    }
+                },
+                CONF_RESET_TIME: user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
+                CONF_EXPORT_PATH: user_input.get(CONF_EXPORT_PATH, ""),
+                CONF_EXPORT_FORMAT: user_input.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT),
+                CONF_VISITOR_MODE: user_input.get(CONF_VISITOR_MODE, False),
+            }
+
+            # Create the config entry
+            return self.async_create_entry(
+                title="Paw Control",
+                data={},
+                options=config_data,
+            )
+
+        return self.async_show_form(
+            step_id="system",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_RESET_TIME, default=DEFAULT_RESET_TIME): TimeSelector(),
+                    vol.Optional(CONF_EXPORT_PATH, default=""): TextSelector(),
+                    vol.Optional(CONF_EXPORT_FORMAT, default=DEFAULT_EXPORT_FORMAT): SelectSelector(
+                        SelectSelectorConfig(
+                            options=["csv", "json", "pdf"],
+                            translation_key="export_format",
+                        )
+                    ),
+                    vol.Optional(CONF_VISITOR_MODE, default=False): BooleanSelector(),
+                }
+            ),
+            description_placeholders={
+                "info": "Configure system-wide settings and maintenance options."
             },
         )
-
-    def _dog_name_exists(self, name: str) -> bool:
-        """Check if a dog name already exists."""
-        for dog in self._dogs:
-            if dog.get(CONF_DOG_NAME) == name:
-                return True
-        return False
-
-    def _suggest_size_by_weight(self, weight: float) -> str:
-        """Suggest size category based on weight."""
-        if weight < 5:
-            return SIZE_OPTIONS[0]  # Toy
-        elif weight < 10:
-            return SIZE_OPTIONS[1]  # Klein
-        elif weight < 25:
-            return SIZE_OPTIONS[2]  # Mittel
-        elif weight < 45:
-            return SIZE_OPTIONS[3]  # Groß
-        else:
-            return SIZE_OPTIONS[4]  # Riesig
 
     @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
+    ) -> PawControlOptionsFlow:
         """Get the options flow for this handler."""
         return PawControlOptionsFlow(config_entry)
 
 
 class PawControlOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for PawControl."""
+    """Handle options flow for Paw Control."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        super().__init__(config_entry)
-        self._dogs = config_entry.data.get(CONF_DOGS, [])
-        self._selected_dog: Dict[str, Any] = {}
-        self._selected_dog_index: int = -1
-        self._action: str = ""
+        self.config_entry = config_entry
+        self._options = dict(config_entry.options)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
-        if user_input is not None:
-            self._action = user_input.get("action", "")
-            
-            if self._action == "edit_dog":
-                return await self.async_step_select_dog()
-            elif self._action == "add_dog":
-                return await self.async_step_add_dog()
-            elif self._action == "remove_dog":
-                return await self.async_step_select_dog_remove()
-            elif self._action == "manage_modules":
-                return await self.async_step_select_dog_modules()
-            else:
-                return self.async_create_entry(title="", data={})
-        
-        return self.async_show_form(
+        return self.async_show_menu(
             step_id="init",
-            data_schema=vol.Schema({
-                vol.Required("action", default="edit_dog"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "edit_dog", "label": "Hund bearbeiten"},
-                            {"value": "add_dog", "label": "Hund hinzufügen"},
-                            {"value": "remove_dog", "label": "Hund entfernen"},
-                            {"value": "manage_modules", "label": "Module verwalten"},
-                        ],
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-            }),
-            description_placeholders={
-                "info": f"Sie haben {len(self._dogs)} Hund(e) konfiguriert. Was möchten Sie tun?",
-            },
+            menu_options=[
+                "dogs",
+                "sources",
+                "notifications",
+                "system",
+            ],
         )
 
-    async def async_step_select_dog(
+    async def async_step_dogs(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Select a dog to edit."""
+        """Manage dogs configuration."""
         if user_input is not None:
-            dog_name = user_input.get("dog_name")
-            for i, dog in enumerate(self._dogs):
-                if dog.get(CONF_DOG_NAME) == dog_name:
-                    self._selected_dog = dog
-                    self._selected_dog_index = i
-                    return await self.async_step_edit_dog()
-        
-        dog_names = [dog.get(CONF_DOG_NAME) for dog in self._dogs]
-        
+            # Update dogs configuration
+            self._options[CONF_DOGS] = user_input.get(CONF_DOGS, self._options.get(CONF_DOGS, []))
+            return self.async_create_entry(title="", data=self._options)
+
+        # For simplicity, we'll just show a message here
+        # In a real implementation, this would allow editing the dogs list
         return self.async_show_form(
-            step_id="select_dog",
-            data_schema=vol.Schema({
-                vol.Required("dog_name"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=dog_names,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
+            step_id="dogs",
+            data_schema=vol.Schema({}),
             description_placeholders={
-                "info": "Wählen Sie den Hund aus, den Sie bearbeiten möchten.",
+                "info": "Dog management requires reconfiguration. Please remove and re-add the integration to change dogs."
             },
         )
 
-    async def async_step_edit_dog(
+    async def async_step_sources(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Edit selected dog."""
+        """Manage data sources."""
         if user_input is not None:
-            # Update dog configuration
-            self._selected_dog.update(user_input)
-            self._dogs[self._selected_dog_index] = self._selected_dog
-            
-            # Update config entry
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data={CONF_DOGS: self._dogs}
-            )
-            
-            return self.async_create_entry(title="", data={})
-        
-        # Pre-fill with current values
-        schema = vol.Schema({
-            vol.Required(CONF_DOG_NAME, default=self._selected_dog.get(CONF_DOG_NAME, "")): str,
-            vol.Optional(CONF_DOG_BREED, default=self._selected_dog.get(CONF_DOG_BREED, "")): str,
-            vol.Optional(CONF_DOG_AGE, default=self._selected_dog.get(CONF_DOG_AGE, 0)): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=MIN_DOG_AGE,
-                    max=MAX_DOG_AGE,
-                    step=0.1,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
+            self._options[CONF_SOURCES] = user_input
+            return self.async_create_entry(title="", data=self._options)
+
+        sources = self._options.get(CONF_SOURCES, {})
+
+        return self.async_show_form(
+            step_id="sources",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_DOOR_SENSOR,
+                        default=sources.get(CONF_DOOR_SENSOR)
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="binary_sensor")
+                    ),
+                    vol.Optional(
+                        CONF_PERSON_ENTITIES,
+                        default=sources.get(CONF_PERSON_ENTITIES, [])
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="person", multiple=True)
+                    ),
+                    vol.Optional(
+                        CONF_DEVICE_TRACKERS,
+                        default=sources.get(CONF_DEVICE_TRACKERS, [])
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="device_tracker", multiple=True)
+                    ),
+                    vol.Optional(
+                        CONF_CALENDAR,
+                        default=sources.get(CONF_CALENDAR)
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="calendar")
+                    ),
+                    vol.Optional(
+                        CONF_WEATHER,
+                        default=sources.get(CONF_WEATHER)
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="weather")
+                    ),
+                }
             ),
-            vol.Optional(CONF_DOG_WEIGHT, default=self._selected_dog.get(CONF_DOG_WEIGHT, 0)): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=MIN_DOG_WEIGHT,
-                    max=MAX_DOG_WEIGHT,
-                    step=0.1,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            vol.Optional(CONF_DOG_SIZE, default=self._selected_dog.get(CONF_DOG_SIZE, SIZE_OPTIONS[2])): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=SIZE_OPTIONS,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-        })
-        
-        return self.async_show_form(
-            step_id="edit_dog",
-            data_schema=schema,
-            description_placeholders={
-                "info": f"Bearbeiten Sie die Daten von {self._selected_dog.get(CONF_DOG_NAME)}",
-            },
         )
 
-    async def async_step_select_dog_remove(
+    async def async_step_notifications(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Select a dog to remove."""
+        """Manage notification settings."""
         if user_input is not None:
-            dog_name = user_input.get("dog_name")
+            quiet_hours = self._options.get(CONF_NOTIFICATIONS, {}).get(CONF_QUIET_HOURS, {})
             
-            # Remove the dog
-            self._dogs = [dog for dog in self._dogs if dog.get(CONF_DOG_NAME) != dog_name]
-            
-            # Update config entry
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data={CONF_DOGS: self._dogs}
-            )
-            
-            # Trigger cleanup in the integration
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            
-            return self.async_create_entry(title="", data={})
-        
-        dog_names = [dog.get(CONF_DOG_NAME) for dog in self._dogs]
-        
-        return self.async_show_form(
-            step_id="select_dog_remove",
-            data_schema=vol.Schema({
-                vol.Required("dog_name"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=dog_names,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
-            description_placeholders={
-                "info": "⚠️ Wählen Sie den Hund aus, den Sie entfernen möchten. Alle Daten werden gelöscht!",
-            },
-        )
-
-    async def async_step_select_dog_modules(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Select a dog to manage modules."""
-        if user_input is not None:
-            dog_name = user_input.get("dog_name")
-            for i, dog in enumerate(self._dogs):
-                if dog.get(CONF_DOG_NAME) == dog_name:
-                    self._selected_dog = dog
-                    self._selected_dog_index = i
-                    return await self.async_step_manage_modules()
-        
-        dog_names = [dog.get(CONF_DOG_NAME) for dog in self._dogs]
-        
-        return self.async_show_form(
-            step_id="select_dog_modules",
-            data_schema=vol.Schema({
-                vol.Required("dog_name"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=dog_names,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
-            description_placeholders={
-                "info": "Wählen Sie den Hund aus, dessen Module Sie verwalten möchten.",
-            },
-        )
-
-    async def async_step_manage_modules(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Manage modules for selected dog."""
-        if user_input is not None:
-            # Update module configuration
-            modules = {}
-            for module_id, enabled in user_input.items():
-                modules[module_id] = {"enabled": enabled}
-            
-            self._selected_dog[CONF_MODULES] = modules
-            self._dogs[self._selected_dog_index] = self._selected_dog
-            
-            # Update config entry
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data={CONF_DOGS: self._dogs}
-            )
-            
-            # Reload to apply changes
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            
-            return self.async_create_entry(title="", data={})
-        
-        # Get current module status
-        current_modules = self._selected_dog.get(CONF_MODULES, {})
-        
-        # Create schema with current values
-        schema_dict = {}
-        for module_id in [
-            MODULE_FEEDING, MODULE_WALK, MODULE_HEALTH, MODULE_GPS,
-            MODULE_TRAINING, MODULE_GROOMING, MODULE_VISITOR,
-            MODULE_NOTIFICATIONS, MODULE_AUTOMATION, MODULE_DASHBOARD
-        ]:
-            current = current_modules.get(module_id, {}).get("enabled", False)
-            schema_dict[vol.Optional(module_id, default=current)] = selector.BooleanSelector()
-        
-        return self.async_show_form(
-            step_id="manage_modules",
-            data_schema=vol.Schema(schema_dict),
-            description_placeholders={
-                "info": f"Module für {self._selected_dog.get(CONF_DOG_NAME)} verwalten",
-                MODULE_FEEDING: MODULE_NAMES[MODULE_FEEDING],
-                MODULE_WALK: MODULE_NAMES[MODULE_WALK],
-                MODULE_HEALTH: MODULE_NAMES[MODULE_HEALTH],
-                MODULE_GPS: MODULE_NAMES[MODULE_GPS],
-                MODULE_TRAINING: MODULE_NAMES[MODULE_TRAINING],
-                MODULE_GROOMING: MODULE_NAMES[MODULE_GROOMING],
-                MODULE_VISITOR: MODULE_NAMES[MODULE_VISITOR],
-                MODULE_NOTIFICATIONS: MODULE_NAMES[MODULE_NOTIFICATIONS],
-                MODULE_AUTOMATION: MODULE_NAMES[MODULE_AUTOMATION],
-                MODULE_DASHBOARD: MODULE_NAMES[MODULE_DASHBOARD],
-            },
-        )
-
-    async def async_step_add_dog(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Add a new dog."""
-        if user_input is not None:
-            # Add new dog to list
-            new_dog = user_input
-            new_dog[CONF_MODULES] = {
-                MODULE_FEEDING: {"enabled": True},
-                MODULE_WALK: {"enabled": True},
-                MODULE_DASHBOARD: {"enabled": True},
+            self._options[CONF_NOTIFICATIONS] = {
+                CONF_NOTIFY_FALLBACK: user_input.get(CONF_NOTIFY_FALLBACK),
+                CONF_QUIET_HOURS: {
+                    CONF_QUIET_START: user_input.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", quiet_hours.get(CONF_QUIET_START, "22:00:00")),
+                    CONF_QUIET_END: user_input.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", quiet_hours.get(CONF_QUIET_END, "07:00:00")),
+                },
+                CONF_REMINDER_REPEAT: user_input.get(CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT),
+                CONF_SNOOZE_MIN: user_input.get(CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN),
             }
-            
-            self._dogs.append(new_dog)
-            
-            # Update config entry
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data={CONF_DOGS: self._dogs}
-            )
-            
-            # Reload to apply changes
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            
-            return self.async_create_entry(title="", data={})
-        
-        schema = vol.Schema({
-            vol.Required(CONF_DOG_NAME): str,
-            vol.Optional(CONF_DOG_BREED): str,
-            vol.Optional(CONF_DOG_AGE, default=2.0): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=MIN_DOG_AGE,
-                    max=MAX_DOG_AGE,
-                    step=0.1,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            vol.Optional(CONF_DOG_WEIGHT, default=15.0): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=MIN_DOG_WEIGHT,
-                    max=MAX_DOG_WEIGHT,
-                    step=0.1,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            vol.Optional(CONF_DOG_SIZE, default=SIZE_OPTIONS[2]): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=SIZE_OPTIONS,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-        })
-        
+            return self.async_create_entry(title="", data=self._options)
+
+        notifications = self._options.get(CONF_NOTIFICATIONS, {})
+        quiet_hours = notifications.get(CONF_QUIET_HOURS, {})
+
         return self.async_show_form(
-            step_id="add_dog",
-            data_schema=schema,
-            description_placeholders={
-                "info": "Fügen Sie einen neuen Hund hinzu",
-            },
+            step_id="notifications",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_NOTIFY_FALLBACK,
+                        default=notifications.get(CONF_NOTIFY_FALLBACK)
+                    ): EntitySelector(
+                        EntitySelectorConfig(domain="notify")
+                    ),
+                    vol.Optional(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
+                        default=quiet_hours.get(CONF_QUIET_START, "22:00:00")
+                    ): TimeSelector(),
+                    vol.Optional(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}",
+                        default=quiet_hours.get(CONF_QUIET_END, "07:00:00")
+                    ): TimeSelector(),
+                    vol.Optional(
+                        CONF_REMINDER_REPEAT,
+                        default=notifications.get(CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT)
+                    ): NumberSelector(
+                        NumberSelectorConfig(min=5, max=120, step=5, mode="slider", unit_of_measurement="min")
+                    ),
+                    vol.Optional(
+                        CONF_SNOOZE_MIN,
+                        default=notifications.get(CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN)
+                    ): NumberSelector(
+                        NumberSelectorConfig(min=5, max=60, step=5, mode="slider", unit_of_measurement="min")
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_system(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage system settings."""
+        if user_input is not None:
+            self._options[CONF_RESET_TIME] = user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
+            self._options[CONF_EXPORT_PATH] = user_input.get(CONF_EXPORT_PATH, "")
+            self._options[CONF_EXPORT_FORMAT] = user_input.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT)
+            self._options[CONF_VISITOR_MODE] = user_input.get(CONF_VISITOR_MODE, False)
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(
+            step_id="system",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_RESET_TIME,
+                        default=self._options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
+                    ): TimeSelector(),
+                    vol.Optional(
+                        CONF_EXPORT_PATH,
+                        default=self._options.get(CONF_EXPORT_PATH, "")
+                    ): TextSelector(),
+                    vol.Optional(
+                        CONF_EXPORT_FORMAT,
+                        default=self._options.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT)
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=["csv", "json", "pdf"],
+                            translation_key="export_format",
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_VISITOR_MODE,
+                        default=self._options.get(CONF_VISITOR_MODE, False)
+                    ): BooleanSelector(),
+                }
+            ),
         )

@@ -1,4 +1,4 @@
-"""PawControl - Comprehensive Dog Management for Home Assistant."""
+"""The Paw Control integration for Home Assistant."""
 from __future__ import annotations
 
 import logging
@@ -6,167 +6,344 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DOMAIN,
-    CONF_DOGS,
-    CONF_DOG_NAME,
-    CONF_MODULES,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_AUTOMATION,
-    MODULE_DASHBOARD,
-    ALL_MODULES,
+    PLATFORMS,
+    EVENT_DAILY_RESET,
+    SERVICE_DAILY_RESET,
+    SERVICE_SYNC_SETUP,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_START_WALK,
+    SERVICE_END_WALK,
+    SERVICE_WALK_DOG,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_START_GROOMING,
+    SERVICE_PLAY_WITH_DOG,
+    SERVICE_START_TRAINING,
+    SERVICE_TOGGLE_VISITOR,
+    SERVICE_EMERGENCY_MODE,
+    SERVICE_GENERATE_REPORT,
+    SERVICE_EXPORT_DATA,
 )
 from .coordinator import PawControlCoordinator
-from .modules import ModuleManager
-from .services import async_register_services, async_unregister_services
-from .setup_manager import PawControlSetupManager
-from .utils import filter_invalid_modules
+from .helpers.scheduler import setup_schedulers, cleanup_schedulers
+from .helpers.setup_sync import SetupSync
+from .helpers.notification_router import NotificationRouter
 
 _LOGGER = logging.getLogger(__name__)
 
-# Platforms that will be set up
-PLATFORMS: list[Platform] = [
-    Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.SWITCH,
-    Platform.TEXT,
-    Platform.DATETIME,
-]
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Paw Control component."""
+    hass.data.setdefault(DOMAIN, {})
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up PawControl from a config entry."""
-    _LOGGER.info("Setting up PawControl integration")
+    """Set up Paw Control from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
     
-    # Store domain data
-    if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = {}
+    # Initialize coordinator
+    coordinator = PawControlCoordinator(hass, entry)
     
-    # Use the new setup manager for complete system setup
-    setup_manager = PawControlSetupManager(hass, entry)
-    success = await setup_manager.async_setup_complete_system()
-    
-    if not success:
-        _LOGGER.error("Failed to complete PawControl setup")
-        return False
-    
-    # Store setup manager for later use
-    if "setup_managers" not in hass.data[DOMAIN]:
-        hass.data[DOMAIN]["setup_managers"] = {}
-    hass.data[DOMAIN]["setup_managers"][entry.entry_id] = setup_manager
-    
-    # Create coordinator for each dog
-    dogs_data = entry.data.get(CONF_DOGS, [])
-    entry_data = {}
-    
-    for dog_config in dogs_data:
-        dog_name = dog_config.get(CONF_DOG_NAME)
-        if not dog_name:
-            continue
-
-        modules = dog_config.get(CONF_MODULES, {})
-        dog_config[CONF_MODULES] = filter_invalid_modules(modules)
-
-        _LOGGER.info(f"Initializing coordinator for dog: {dog_name}")
-
-        # Create coordinator for this dog
-        coordinator = PawControlCoordinator(hass, entry, dog_config)
-        
-        # Store in entry data (module_manager removed to prevent double setup)
-        entry_data[dog_name] = {
-            "coordinator": coordinator,
-            "config": dog_config,
-        }
-        
-        # Perform initial data fetch
+    try:
         await coordinator.async_config_entry_first_refresh()
+    except Exception as err:
+        raise ConfigEntryNotReady from err
     
-    # Store entry data
-    hass.data[DOMAIN][entry.entry_id] = entry_data
+    # Store coordinator
+    hass.data[DOMAIN][entry.entry_id] = {
+        "coordinator": coordinator,
+        "notification_router": NotificationRouter(hass, entry),
+        "setup_sync": SetupSync(hass, entry),
+    }
     
-    # Set up platforms
+    # Register devices for each dog
+    await _register_devices(hass, entry)
+    
+    # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
     # Register services
-    await async_register_services(hass)
+    await _register_services(hass, entry)
     
-    # Listen for config updates
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+    # Setup schedulers (daily reset, reports, reminders)
+    await setup_schedulers(hass, entry)
     
-    _LOGGER.info("PawControl setup completed successfully")
+    # Initial sync of helpers and entities
+    setup_sync = hass.data[DOMAIN][entry.entry_id]["setup_sync"]
+    await setup_sync.sync_all()
+    
+    # Add update listener
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+    
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info("Unloading PawControl integration")
+    # Cleanup schedulers
+    await cleanup_schedulers(hass, entry)
     
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
-        # Get setup manager if exists
-        setup_manager = None
-        if DOMAIN in hass.data and "setup_managers" in hass.data[DOMAIN]:
-            setup_manager = hass.data[DOMAIN]["setup_managers"].get(entry.entry_id)
-        
-        # Cleanup each dog using setup manager
-        if setup_manager:
-            dogs_data = entry.data.get(CONF_DOGS, [])
-            for dog_config in dogs_data:
-                dog_name = dog_config.get(CONF_DOG_NAME)
-                if dog_name:
-                    await setup_manager.async_cleanup_dog(dog_name)
-            
-            # Remove setup manager
-            del hass.data[DOMAIN]["setup_managers"][entry.entry_id]
-        
-        # Get entry data
-        entry_data = hass.data[DOMAIN].pop(entry.entry_id, {})
-        
-        # Clean up each dog's data (fallback if no setup manager)
-        for dog_name, dog_data in entry_data.items():
-            _LOGGER.info(f"Cleaning up data for dog: {dog_name}")
-            
-            # Module cleanup is now handled by setup_manager
-            
-            # Clean up coordinator
-            coordinator = dog_data.get("coordinator")
-            if coordinator and hasattr(coordinator, "async_shutdown"):
-                await coordinator.async_shutdown()
+        # Clean up stored data
+        hass.data[DOMAIN].pop(entry.entry_id)
         
         # Unregister services if no more entries
-        if not hass.data[DOMAIN] or (len(hass.data[DOMAIN]) == 1 and "setup_managers" in hass.data[DOMAIN]):
-            await async_unregister_services(hass)
-            if not hass.data[DOMAIN] or not any(k != "setup_managers" for k in hass.data[DOMAIN]):
-                hass.data.pop(DOMAIN, None)
+        if not hass.data[DOMAIN]:
+            _unregister_services(hass)
     
     return unload_ok
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    _LOGGER.info("Reloading PawControl configuration")
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update options."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    setup_sync = hass.data[DOMAIN][entry.entry_id]["setup_sync"]
+    
+    # Update coordinator with new options
+    coordinator.update_options(entry.options)
+    
+    # Resync helpers and entities
+    await setup_sync.sync_all()
+    
+    # Reschedule tasks with new times
+    await cleanup_schedulers(hass, entry)
+    await setup_schedulers(hass, entry)
+    
+    # Refresh data
+    await coordinator.async_request_refresh()
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Migrate old entry."""
-    _LOGGER.info(f"Migrating PawControl from version {config_entry.version}")
+async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register devices for each dog."""
+    device_registry = dr.async_get(hass)
     
-    if config_entry.version == 1:
-        # Future migration logic here
-        pass
+    dogs = entry.options.get("dogs", [])
+    for dog in dogs:
+        dog_id = dog.get("dog_id")
+        dog_name = dog.get("name", dog_id)
+        
+        device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, dog_id)},
+            name=f"🐕 {dog_name}",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+
+async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register services for the integration."""
     
-    return True
+    async def handle_daily_reset(call: ServiceCall) -> None:
+        """Handle daily reset service."""
+        _LOGGER.info("Executing daily reset")
+        hass.bus.async_fire(EVENT_DAILY_RESET)
+        
+        # Reset all dog counters
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.reset_daily_counters()
+    
+    async def handle_sync_setup(call: ServiceCall) -> None:
+        """Handle setup sync service."""
+        _LOGGER.info("Syncing setup")
+        for entry_id in hass.data[DOMAIN]:
+            setup_sync = hass.data[DOMAIN][entry_id]["setup_sync"]
+            await setup_sync.sync_all()
+    
+    async def handle_notify_test(call: ServiceCall) -> None:
+        """Handle notification test service."""
+        dog_id = call.data.get("dog_id")
+        message = call.data.get("message", f"Test notification for {dog_id}")
+        
+        for entry_id in hass.data[DOMAIN]:
+            router = hass.data[DOMAIN][entry_id]["notification_router"]
+            await router.send_notification(
+                title="Paw Control Test",
+                message=message,
+                dog_id=dog_id,
+            )
+    
+    async def handle_start_walk(call: ServiceCall) -> None:
+        """Handle start walk service."""
+        dog_id = call.data.get("dog_id")
+        source = call.data.get("source", "manual")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.start_walk(dog_id, source)
+    
+    async def handle_end_walk(call: ServiceCall) -> None:
+        """Handle end walk service."""
+        dog_id = call.data.get("dog_id")
+        reason = call.data.get("reason", "manual")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.end_walk(dog_id, reason)
+    
+    async def handle_walk_dog(call: ServiceCall) -> None:
+        """Handle quick walk log service."""
+        dog_id = call.data.get("dog_id")
+        duration = call.data.get("duration_min", 30)
+        distance = call.data.get("distance_m", 1000)
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.log_walk(dog_id, duration, distance)
+    
+    async def handle_feed_dog(call: ServiceCall) -> None:
+        """Handle feed dog service."""
+        dog_id = call.data.get("dog_id")
+        meal_type = call.data.get("meal_type", "snack")
+        portion_g = call.data.get("portion_g", 100)
+        food_type = call.data.get("food_type", "dry")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.feed_dog(dog_id, meal_type, portion_g, food_type)
+    
+    async def handle_log_health(call: ServiceCall) -> None:
+        """Handle health data logging service."""
+        dog_id = call.data.get("dog_id")
+        weight_kg = call.data.get("weight_kg")
+        note = call.data.get("note", "")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.log_health_data(dog_id, weight_kg, note)
+    
+    async def handle_log_medication(call: ServiceCall) -> None:
+        """Handle medication logging service."""
+        dog_id = call.data.get("dog_id")
+        medication_name = call.data.get("medication_name")
+        dose = call.data.get("dose")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.log_medication(dog_id, medication_name, dose)
+    
+    async def handle_start_grooming(call: ServiceCall) -> None:
+        """Handle grooming session service."""
+        dog_id = call.data.get("dog_id")
+        grooming_type = call.data.get("type", "brush")
+        notes = call.data.get("notes", "")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.start_grooming(dog_id, grooming_type, notes)
+    
+    async def handle_play_session(call: ServiceCall) -> None:
+        """Handle play session service."""
+        dog_id = call.data.get("dog_id")
+        duration_min = call.data.get("duration_min", 15)
+        intensity = call.data.get("intensity", "medium")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.log_play_session(dog_id, duration_min, intensity)
+    
+    async def handle_training_session(call: ServiceCall) -> None:
+        """Handle training session service."""
+        dog_id = call.data.get("dog_id")
+        topic = call.data.get("topic")
+        duration_min = call.data.get("duration_min", 15)
+        notes = call.data.get("notes", "")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.log_training(dog_id, topic, duration_min, notes)
+    
+    async def handle_toggle_visitor(call: ServiceCall) -> None:
+        """Handle visitor mode toggle service."""
+        enabled = call.data.get("enabled")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.set_visitor_mode(enabled)
+    
+    async def handle_emergency_mode(call: ServiceCall) -> None:
+        """Handle emergency mode service."""
+        level = call.data.get("level", "info")
+        note = call.data.get("note", "")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.activate_emergency_mode(level, note)
+    
+    async def handle_generate_report(call: ServiceCall) -> None:
+        """Handle report generation service."""
+        scope = call.data.get("scope", "daily")
+        target = call.data.get("target", "notification")
+        format_type = call.data.get("format", "text")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.generate_report(scope, target, format_type)
+    
+    async def handle_export_data(call: ServiceCall) -> None:
+        """Handle data export service."""
+        dog_id = call.data.get("dog_id")
+        date_from = call.data.get("from")
+        date_to = call.data.get("to")
+        format_type = call.data.get("format", "csv")
+        
+        for entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+            await coordinator.export_health_data(dog_id, date_from, date_to, format_type)
+    
+    # Register all services
+    hass.services.async_register(DOMAIN, SERVICE_DAILY_RESET, handle_daily_reset)
+    hass.services.async_register(DOMAIN, SERVICE_SYNC_SETUP, handle_sync_setup)
+    hass.services.async_register(DOMAIN, SERVICE_NOTIFY_TEST, handle_notify_test)
+    hass.services.async_register(DOMAIN, SERVICE_START_WALK, handle_start_walk)
+    hass.services.async_register(DOMAIN, SERVICE_END_WALK, handle_end_walk)
+    hass.services.async_register(DOMAIN, SERVICE_WALK_DOG, handle_walk_dog)
+    hass.services.async_register(DOMAIN, SERVICE_FEED_DOG, handle_feed_dog)
+    hass.services.async_register(DOMAIN, SERVICE_LOG_HEALTH, handle_log_health)
+    hass.services.async_register(DOMAIN, SERVICE_LOG_MEDICATION, handle_log_medication)
+    hass.services.async_register(DOMAIN, SERVICE_START_GROOMING, handle_start_grooming)
+    hass.services.async_register(DOMAIN, SERVICE_PLAY_WITH_DOG, handle_play_session)
+    hass.services.async_register(DOMAIN, SERVICE_START_TRAINING, handle_training_session)
+    hass.services.async_register(DOMAIN, SERVICE_TOGGLE_VISITOR, handle_toggle_visitor)
+    hass.services.async_register(DOMAIN, SERVICE_EMERGENCY_MODE, handle_emergency_mode)
+    hass.services.async_register(DOMAIN, SERVICE_GENERATE_REPORT, handle_generate_report)
+    hass.services.async_register(DOMAIN, SERVICE_EXPORT_DATA, handle_export_data)
+
+
+def _unregister_services(hass: HomeAssistant) -> None:
+    """Unregister all services."""
+    services = [
+        SERVICE_DAILY_RESET,
+        SERVICE_SYNC_SETUP,
+        SERVICE_NOTIFY_TEST,
+        SERVICE_START_WALK,
+        SERVICE_END_WALK,
+        SERVICE_WALK_DOG,
+        SERVICE_FEED_DOG,
+        SERVICE_LOG_HEALTH,
+        SERVICE_LOG_MEDICATION,
+        SERVICE_START_GROOMING,
+        SERVICE_PLAY_WITH_DOG,
+        SERVICE_START_TRAINING,
+        SERVICE_TOGGLE_VISITOR,
+        SERVICE_EMERGENCY_MODE,
+        SERVICE_GENERATE_REPORT,
+        SERVICE_EXPORT_DATA,
+    ]
+    
+    for service in services:
+        hass.services.async_remove(DOMAIN, service)

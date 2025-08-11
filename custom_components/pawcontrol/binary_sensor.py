@@ -1,4 +1,4 @@
-"""Binary sensor platform for PawControl integration."""
+"""Binary sensor platform for Paw Control integration."""
 from __future__ import annotations
 
 import logging
@@ -9,17 +9,22 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
+    CONF_DOGS,
+    CONF_DOG_ID,
     CONF_DOG_NAME,
-    ICON_DOG,
-    ICON_FOOD,
-    ICON_WALK,
-    ICON_EMERGENCY,
+    CONF_DOG_MODULES,
+    MODULE_WALK,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_GROOMING,
+    MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
 
@@ -31,334 +36,277 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PawControl binary sensor entities."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
+    """Set up Paw Control binary sensor entities."""
+    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     entities = []
-    for dog_name, dog_data in entry_data.items():
-        coordinator = dog_data["coordinator"]
-        config = dog_data["config"]
-        
-        # Always create basic binary sensors
-        entities.extend([
-            PawControlIsHungryBinarySensor(coordinator, config),
-            PawControlNeedsWalkBinarySensor(coordinator, config),
-            PawControlNeedsAttentionBinarySensor(coordinator, config),
-            PawControlIsOutsideBinarySensor(coordinator, config),
-            PawControlEmergencyModeBinarySensor(coordinator, config),
-            PawControlVisitorModeBinarySensor(coordinator, config),
-        ])
-        
-        # Add module-specific binary sensors
-        modules = config.get("modules", {})
-        
-        if modules.get("gps", {}).get("enabled", False):
-            entities.append(PawControlGPSTrackingBinarySensor(coordinator, config))
-        
-        if modules.get("health", {}).get("enabled", False):
-            entities.append(PawControlHealthAlertBinarySensor(coordinator, config))
+    dogs = entry.options.get(CONF_DOGS, [])
     
-    async_add_entities(entities)
+    for dog in dogs:
+        dog_id = dog.get(CONF_DOG_ID)
+        if not dog_id:
+            continue
+        
+        dog_name = dog.get(CONF_DOG_NAME, dog_id)
+        modules = dog.get(CONF_DOG_MODULES, {})
+        
+        # Walk module binary sensors
+        if modules.get(MODULE_WALK):
+            entities.extend([
+                NeedsWalkBinarySensor(coordinator, dog_id, dog_name),
+                WalkInProgressBinarySensor(coordinator, dog_id, dog_name),
+            ])
+        
+        # Feeding module binary sensors
+        if modules.get(MODULE_FEEDING):
+            entities.append(
+                IsHungryBinarySensor(coordinator, dog_id, dog_name)
+            )
+        
+        # Grooming module binary sensors
+        if modules.get(MODULE_GROOMING):
+            entities.append(
+                NeedsGroomingBinarySensor(coordinator, dog_id, dog_name)
+            )
+        
+        # GPS module binary sensors
+        if modules.get(MODULE_GPS):
+            entities.append(
+                IsHomeBinarySensor(coordinator, dog_id, dog_name)
+            )
+    
+    # Global binary sensors
+    entities.extend([
+        VisitorModeBinarySensor(coordinator),
+        EmergencyModeBinarySensor(coordinator),
+    ])
+    
+    async_add_entities(entities, True)
 
 
 class PawControlBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
-    """Base class for PawControl binary sensors."""
+    """Base class for Paw Control binary sensors."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator: PawControlCoordinator,
-        config: dict[str, Any],
+        dog_id: str,
+        dog_name: str,
+        sensor_type: str,
     ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator)
-        self._config = config
-        self._dog_name = config.get(CONF_DOG_NAME, "Unknown")
-        self._dog_id = self._dog_name.lower().replace(" ", "_")
+        self._dog_id = dog_id
+        self._dog_name = dog_name
+        self._sensor_type = sensor_type
+        
+        self._attr_unique_id = f"{DOMAIN}.{dog_id}.binary_sensor.{sensor_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, dog_id)},
+            name=f"🐕 {dog_name}",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
 
     @property
-    def device_info(self):
-        """Return device info."""
+    def dog_data(self) -> dict:
+        """Get dog data from coordinator."""
+        return self.coordinator.get_dog_data(self._dog_id)
+
+
+class NeedsWalkBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor for whether dog needs a walk."""
+
+    def __init__(self, coordinator, dog_id, dog_name):
+        """Initialize the sensor."""
+        super().__init__(coordinator, dog_id, dog_name, "needs_walk")
+        self._attr_name = "Needs Walk"
+        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        self._attr_icon = "mdi:dog-side"
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if dog needs a walk."""
+        return self.dog_data.get("walk", {}).get("needs_walk", False)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        walk_data = self.dog_data.get("walk", {})
         return {
-            "identifiers": {(DOMAIN, self._dog_id)},
-            "name": f"PawControl - {self._dog_name}",
-            "manufacturer": "PawControl",
-            "model": "Dog Management System",
-            "sw_version": "1.0.0",
+            "last_walk": walk_data.get("last_walk"),
+            "walks_today": walk_data.get("walks_today", 0),
         }
 
 
-class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for hunger status."""
+class WalkInProgressBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor for whether walk is in progress."""
+
+    def __init__(self, coordinator, dog_id, dog_name):
+        """Initialize the sensor."""
+        super().__init__(coordinator, dog_id, dog_name, "walk_in_progress")
+        self._attr_name = "Walk In Progress"
+        self._attr_device_class = BinarySensorDeviceClass.RUNNING
+        self._attr_icon = "mdi:walk"
 
     @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_is_hungry"
+    def is_on(self) -> bool:
+        """Return True if walk is in progress."""
+        return self.dog_data.get("walk", {}).get("walk_in_progress", False)
 
     @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Ist hungrig"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_FOOD
-
-    @property
-    def is_on(self):
-        """Return true if hungry."""
-        return self.coordinator.data.get("status", {}).get("is_hungry", False)
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.PROBLEM
-
-
-class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for walk requirement."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_needs_walk"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Braucht Spaziergang"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_WALK
-
-    @property
-    def is_on(self):
-        """Return true if needs walk."""
-        return self.coordinator.data.get("status", {}).get("needs_walk", False)
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.PROBLEM
-
-
-class PawControlNeedsAttentionBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for attention requirement."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_needs_attention"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Braucht Aufmerksamkeit"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:heart"
-
-    @property
-    def is_on(self):
-        """Return true if needs attention."""
-        return self.coordinator.data.get("status", {}).get("needs_attention", False)
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.PROBLEM
-
-
-class PawControlIsOutsideBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for outside status."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_is_outside"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Ist draußen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:tree"
-
-    @property
-    def is_on(self):
-        """Return true if outside."""
-        return self.coordinator.data.get("status", {}).get("is_outside", False)
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.PRESENCE
-
-
-class PawControlEmergencyModeBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for emergency mode."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_emergency_mode"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Notfallmodus"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return ICON_EMERGENCY
-
-    @property
-    def is_on(self):
-        """Return true if emergency mode is active."""
-        return self.coordinator.data.get("status", {}).get("emergency_mode", False)
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.SAFETY
-
-    @property
-    def extra_state_attributes(self):
-        """Return extra attributes."""
-        status = self.coordinator.data.get("status", {})
-        attrs = {}
-        if status.get("emergency_reason"):
-            attrs["reason"] = status["emergency_reason"]
-        return attrs
-
-
-class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for visitor mode."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_visitor_mode"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Besuchermodus"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:account-group"
-
-    @property
-    def is_on(self):
-        """Return true if visitor mode is active."""
-        return self.coordinator.data.get("status", {}).get("visitor_mode", False)
-
-    @property
-    def extra_state_attributes(self):
-        """Return extra attributes."""
-        status = self.coordinator.data.get("status", {})
-        attrs = {}
-        if status.get("visitor_name"):
-            attrs["visitor"] = status["visitor_name"]
-        if status.get("visitor_instructions"):
-            attrs["instructions"] = status["visitor_instructions"]
-        return attrs
-
-
-class PawControlGPSTrackingBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for GPS tracking status."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_gps_tracking"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} GPS-Tracking"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:crosshairs-gps"
-
-    @property
-    def is_on(self):
-        """Return true if GPS tracking is active."""
-        location = self.coordinator.data.get("location", {})
-        return location.get("last_update") is not None
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.CONNECTIVITY
-
-
-class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor for health alerts."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_health_alert"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Gesundheitsalarm"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:medical-bag"
-
-    @property
-    def is_on(self):
-        """Return true if there's a health alert."""
-        health = self.coordinator.data.get("health", {})
-        profile = self.coordinator.data.get("profile", {})
-        
-        # Check for abnormal temperature
-        temp = health.get("temperature", 38.5)
-        if temp < 37.5 or temp > 39.5:
-            return True
-        
-        # Check for poor health status
-        health_status = profile.get("health_status", "Gut")
-        if health_status in ["Unwohl", "Krank"]:
-            return True
-        
-        # Check for symptoms
-        if health.get("symptoms"):
-            return True
-        
-        return False
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.PROBLEM
-
-    @property
-    def extra_state_attributes(self):
-        """Return extra attributes."""
-        health = self.coordinator.data.get("health", {})
-        profile = self.coordinator.data.get("profile", {})
-        
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        walk_data = self.dog_data.get("walk", {})
         return {
-            "temperature": health.get("temperature"),
-            "health_status": profile.get("health_status"),
-            "symptoms": health.get("symptoms", []),
+            "start_time": walk_data.get("walk_start_time"),
+            "current_duration_min": walk_data.get("walk_duration_min", 0),
+            "current_distance_m": walk_data.get("walk_distance_m", 0),
         }
+
+
+class IsHungryBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor for whether dog is hungry."""
+
+    def __init__(self, coordinator, dog_id, dog_name):
+        """Initialize the sensor."""
+        super().__init__(coordinator, dog_id, dog_name, "is_hungry")
+        self._attr_name = "Is Hungry"
+        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        self._attr_icon = "mdi:food-drumstick-off"
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if dog is hungry."""
+        return self.dog_data.get("feeding", {}).get("is_hungry", False)
+
+    @property
+    def icon(self) -> str:
+        """Return icon based on state."""
+        return "mdi:food-drumstick-off" if self.is_on else "mdi:food-drumstick"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        feeding_data = self.dog_data.get("feeding", {})
+        return {
+            "last_feeding": feeding_data.get("last_feeding"),
+            "last_meal_type": feeding_data.get("last_meal_type"),
+            "feedings_today": feeding_data.get("feedings_today", {}),
+        }
+
+
+class NeedsGroomingBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor for whether dog needs grooming."""
+
+    def __init__(self, coordinator, dog_id, dog_name):
+        """Initialize the sensor."""
+        super().__init__(coordinator, dog_id, dog_name, "needs_grooming")
+        self._attr_name = "Needs Grooming"
+        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        self._attr_icon = "mdi:content-cut"
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if dog needs grooming."""
+        return self.dog_data.get("grooming", {}).get("needs_grooming", False)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        grooming_data = self.dog_data.get("grooming", {})
+        return {
+            "last_grooming": grooming_data.get("last_grooming"),
+            "grooming_type": grooming_data.get("grooming_type"),
+            "interval_days": grooming_data.get("grooming_interval_days", 30),
+        }
+
+
+class IsHomeBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor for whether dog is at home."""
+
+    def __init__(self, coordinator, dog_id, dog_name):
+        """Initialize the sensor."""
+        super().__init__(coordinator, dog_id, dog_name, "is_home")
+        self._attr_name = "Is Home"
+        self._attr_device_class = BinarySensorDeviceClass.PRESENCE
+        self._attr_icon = "mdi:home"
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if dog is at home."""
+        return self.dog_data.get("location", {}).get("is_home", True)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        location_data = self.dog_data.get("location", {})
+        return {
+            "current_location": location_data.get("current_location", "home"),
+            "distance_from_home": location_data.get("distance_from_home", 0),
+            "last_gps_update": location_data.get("last_gps_update"),
+        }
+
+
+class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor for visitor mode status."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Visitor Mode"
+    _attr_device_class = BinarySensorDeviceClass.PRESENCE
+    _attr_icon = "mdi:account-group"
+
+    def __init__(self, coordinator: PawControlCoordinator):
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.visitor_mode"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if visitor mode is active."""
+        return self.coordinator.visitor_mode
+
+
+class EmergencyModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor for emergency mode status."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Emergency Mode"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_icon = "mdi:alert-circle"
+
+    def __init__(self, coordinator: PawControlCoordinator):
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.emergency_mode"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if emergency mode is active."""
+        return self.coordinator.emergency_mode
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        if self.coordinator.emergency_mode:
+            return {
+                "level": self.coordinator.emergency_level,
+            }
+        return {}

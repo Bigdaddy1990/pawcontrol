@@ -1,91 +1,193 @@
-# 🐾 Paw Control
+# 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![hacs-badge](https://img.shields.io/badge/HACS-Custom-blue.svg?style=flat-square)](https://hacs.xyz/)
-[![version](https://img.shields.io/github/v/tag/Bigdaddy1990/paw_control?label=version&style=flat-square)](https://github.com/Bigdaddy1990/paw_control/releases)
-[![license](https://img.shields.io/github/license/Bigdaddy1990/paw_control?style=flat-square)](LICENSE)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/yourusername/pawcontrol)
 
-**Paw Control** ist eine vollständig modulare Home Assistant-Integration zur Verwaltung von Hundeverhalten, Gesundheit, Spaziergängen und Benachrichtigungen.
+## 🎯 Features
 
----
+Paw Control is a comprehensive Home Assistant integration for managing your dogs' daily activities, health, and well-being.
 
-## 🚀 Features
+### Core Features
 
-- 🛰️ GPS-Tracking & Bewegungslog
-- 🐾 Gassi-Statistiken, Trigger, Türsensor-Erkennung
-- 🧠 Gesundheitsdaten: Gewicht, Medikamente, Impfungen
-- 🔔 Push & Actionable Notifications
-- 📊 Mushroom-kompatibles Dashboard
-- 🛠️ Automatische Einrichtung (Installer-basiert)
-- 🧩 Modular: leicht erweiterbar, stabile Struktur
+- 🚶 **Walk Tracking** - Automatic detection via door sensors/GPS, duration & distance tracking
+- 🍽️ **Feeding Management** - Meal scheduling, portion control, overfeeding protection  
+- 🏥 **Health Monitoring** - Weight tracking, medication reminders, vet appointments
+- ✂️ **Grooming Schedule** - Track grooming sessions, set intervals
+- 🎓 **Training Sessions** - Log training progress and topics
+- 📍 **GPS Tracking** - Real-time location, geofencing, auto walk detection
+- 🔔 **Smart Notifications** - Presence-based routing, quiet hours, actionable alerts
+- 📊 **Reports & Statistics** - Daily/weekly summaries, health trends
+- 🐕‍🦺 **Multi-Dog Support** - Manage unlimited dogs independently
+- 👥 **Visitor Mode** - Special mode for dog-sitting scenarios
 
----
+### Smart Automation
 
-## 📸 Screenshots
+- Automatic walk detection via door sensors
+- GPS-based walk start/end
+- Presence-aware notifications
+- Daily counter resets
+- Scheduled reminders
+- Activity-based calorie calculation
 
-> *(Screenshots folgen in Release v1.1)*
+## 📦 Installation
 
----
+### HACS Installation (Recommended)
 
-## 📦 Quickstart
+1. Open HACS in your Home Assistant instance
+2. Click on "Integrations"
+3. Click the three dots menu and select "Custom repositories"
+4. Add this repository URL: `https://github.com/yourusername/pawcontrol`
+5. Select "Integration" as the category
+6. Click "Add"
+7. Search for "Paw Control" and install it
+8. Restart Home Assistant
 
-### Installation über HACS (empfohlen)
+### Manual Installation
+
+1. Download the latest release from GitHub
+2. Extract the `custom_components/pawcontrol` folder
+3. Copy it to your Home Assistant's `config/custom_components/` directory
+4. Restart Home Assistant
+
+## ⚙️ Configuration
+
+### Initial Setup
+
+1. Go to **Settings** → **Devices & Services**
+2. Click **+ Add Integration**
+3. Search for **Paw Control**
+4. Follow the configuration wizard:
+   - Enter number of dogs
+   - Configure each dog (name, breed, age, weight)
+   - Select modules to enable
+   - Configure data sources (optional)
+   - Set up notifications
+   - Configure system settings
+
+### Configuration Options
+
+#### Dog Configuration
+- **Name**: Your dog's name
+- **Breed**: Dog breed (optional)
+- **Age**: Age in years
+- **Weight**: Weight in kg
+- **Size**: Small/Medium/Large/XLarge
+
+#### Modules (per dog)
+- Walk Tracking
+- Feeding Management
+- Health Tracking
+- GPS Tracking
+- Notifications
+- Dashboard
+- Grooming
+- Medication
+- Training
+
+#### Data Sources (optional)
+- **Door Sensor**: For automatic walk detection
+- **Person Entities**: For presence-based notifications
+- **Device Trackers**: For GPS tracking
+- **Calendar**: For appointments and events
+- **Weather**: For weather-aware features
+
+## 📱 Dashboard
+
+Paw Control provides ready-to-use dashboard cards compatible with Mushroom cards.
+
+### Example Dashboard Configuration
 
 ```yaml
-repository: https://github.com/Bigdaddy1990/paw_control
-category: integration
+type: vertical-stack
+cards:
+  - type: custom:mushroom-template-card
+    primary: "🐕 {{ states('sensor.pawcontrol_rex_last_walk') }}"
+    secondary: Last Walk
+    icon: mdi:dog-side
+    
+  - type: custom:mushroom-template-card
+    primary: "{{ states('sensor.pawcontrol_rex_feeding_dinner') }} meals"
+    secondary: Dinner Today
+    icon: mdi:food
+    
+  - type: button
+    entity: button.pawcontrol_rex_start_walk
+    name: Start Walk
+    icon: mdi:walk
 ```
 
-1. Repository zu HACS hinzufügen
-2. Paw Control über HACS installieren
-3. Home Assistant neu starten
-4. Setup-Assistenten folgen
+## 🔧 Services
 
-### Manuelle Installation
+Paw Control provides extensive services for automation:
 
-```bash
-# Entpacke den Inhalt nach:
-<config>/custom_components/pawcontrol/
-# Dann Home Assistant neu starten
-```
+### Walk Management
+- `pawcontrol.start_walk` - Start tracking a walk
+- `pawcontrol.end_walk` - End walk tracking
+- `pawcontrol.walk_dog` - Quick walk log
+
+### Feeding
+- `pawcontrol.feed_dog` - Record feeding
+
+### Health
+- `pawcontrol.log_health_data` - Log health information
+- `pawcontrol.log_medication` - Record medication
+- `pawcontrol.start_grooming_session` - Log grooming
+
+### Activities
+- `pawcontrol.play_with_dog` - Log play session
+- `pawcontrol.start_training_session` - Log training
+
+### System
+- `pawcontrol.daily_reset` - Reset daily counters
+- `pawcontrol.generate_report` - Generate activity report
+- `pawcontrol.export_health_data` - Export health data
+
+## 📊 Entities
+
+Each dog gets a comprehensive set of entities:
+
+### Sensors
+- Last walk/feeding/grooming timestamps
+- Walk duration & distance
+- Feeding counters per meal
+- Weight & weight trend
+- Activity level & calories burned
+- Days since grooming
+
+### Binary Sensors
+- Needs walk
+- Is hungry
+- Needs grooming
+- Walk in progress
+- Is home (GPS)
+
+### Controls
+- Number inputs for portions, intervals
+- Select inputs for food type, grooming type
+- Text inputs for notes
+- Switches for module enable/disable
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Home Assistant Community
+- HACS Team
+- All contributors and testers
+
+## 📞 Support
+
+- [Issue Tracker](https://github.com/yourusername/pawcontrol/issues)
+- [Discussions](https://github.com/yourusername/pawcontrol/discussions)
+- [Home Assistant Community Forum](https://community.home-assistant.io/)
 
 ---
 
-## 📁 Verzeichnisstruktur
-
-```text
-custom_components/pawcontrol/
-├── modules/          # Hauptfunktionseinheiten (gps, health, walk…)
-├── entities/         # HA-Entities: sensor, binary_sensor etc.
-├── helpers/          # Gemeinsame Hilfsfunktionen
-├── ui/               # Dashboard, Übersetzungen, Bilder
-├── system/           # Konstanten, Exceptions, Koordinator
-├── base/             # Basisklassen für Module/Entities
-├── services/         # Service Handler & YAMLs
-└── .github/          # Actions, Templates, Funding
-```
-
----
-
-## 🧪 Entwicklung
-
-- [CHANGELOG.md](CHANGELOG.md)
-- [ROADMAP.md](ROADMAP.md)
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [LICENSE](LICENSE)
-
----
-
-## ☕ Unterstützung
-
-Du kannst mich hier unterstützen:
-
-- GitHub Sponsors
-- [Ko-Fi](https://ko-fi.com/bigdaddy1990)
-- [BuyMeACoffee](https://www.buymeacoffee.com/bigdaddy1990)
-
----
-
-## 🐛 Fehler melden oder Feature vorschlagen
-
-Nutze die [Issues](https://github.com/Bigdaddy1990/paw_control/issues) oder öffne ein Feature-Request via [GitHub Template](.github/ISSUE_TEMPLATE/)
-
+Made with ❤️ for dog lovers using Home Assistant

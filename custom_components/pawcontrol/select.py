@@ -1,4 +1,4 @@
-"""Select platform for PawControl integration."""
+"""Select platform for Paw Control integration."""
 from __future__ import annotations
 
 import logging
@@ -7,21 +7,34 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
+    CONF_DOGS,
+    CONF_DOG_ID,
     CONF_DOG_NAME,
-    HEALTH_STATUS_OPTIONS,
-    MOOD_OPTIONS,
-    ACTIVITY_LEVELS,
-    SIZE_OPTIONS,
-    FOOD_TYPES,
-    WALK_TYPES,
-    SERVICE_SET_MOOD,
+    CONF_DOG_MODULES,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_GROOMING,
+    MODULE_TRAINING,
+    FOOD_DRY,
+    FOOD_WET,
+    FOOD_BARF,
+    FOOD_TREAT,
+    GROOMING_BATH,
+    GROOMING_BRUSH,
+    GROOMING_TRIM,
+    GROOMING_NAILS,
+    GROOMING_EARS,
+    GROOMING_TEETH,
+    GROOMING_EYES,
+    INTENSITY_LOW,
+    INTENSITY_MEDIUM,
+    INTENSITY_HIGH,
 )
-from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,268 +44,284 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PawControl select entities."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
+    """Set up Paw Control select entities."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     entities = []
-    for dog_name, dog_data in entry_data.items():
-        coordinator = dog_data["coordinator"]
-        config = dog_data["config"]
-        
-        # Always add basic selects
-        entities.extend([
-            PawControlHealthStatusSelect(hass, coordinator, config),
-            PawControlMoodSelect(hass, coordinator, config),
-            PawControlActivityLevelSelect(hass, coordinator, config),
-            PawControlSizeCategorySelect(hass, coordinator, config),
-        ])
-        
-        # Add module-specific selects
-        modules = config.get("modules", {})
-        
-        if modules.get("feeding", {}).get("enabled", False):
-            entities.append(PawControlFoodTypeSelect(hass, coordinator, config))
-        
-        if modules.get("walk", {}).get("enabled", False):
-            entities.append(PawControlPreferredWalkTypeSelect(hass, coordinator, config))
+    dogs = entry.options.get(CONF_DOGS, [])
     
-    async_add_entities(entities)
+    for dog in dogs:
+        dog_id = dog.get(CONF_DOG_ID)
+        if not dog_id:
+            continue
+        
+        dog_name = dog.get(CONF_DOG_NAME, dog_id)
+        modules = dog.get(CONF_DOG_MODULES, {})
+        
+        # Feeding module selects
+        if modules.get(MODULE_FEEDING):
+            entities.extend([
+                DefaultFoodTypeSelect(hass, coordinator, dog_id, dog_name),
+                PreferredMealTimeSelect(hass, coordinator, dog_id, dog_name),
+            ])
+        
+        # Grooming module selects
+        if modules.get(MODULE_GROOMING):
+            entities.append(
+                DefaultGroomingTypeSelect(hass, coordinator, dog_id, dog_name)
+            )
+        
+        # Training module selects
+        if modules.get(MODULE_TRAINING):
+            entities.extend([
+                TrainingTopicSelect(hass, coordinator, dog_id, dog_name),
+                TrainingIntensitySelect(hass, coordinator, dog_id, dog_name),
+            ])
+        
+        # Activity level select (always available)
+        entities.append(
+            ActivityLevelSelect(hass, coordinator, dog_id, dog_name)
+        )
+    
+    # Global selects
+    entities.append(
+        ExportFormatSelect(hass, coordinator, entry)
+    )
+    
+    async_add_entities(entities, True)
 
 
-class PawControlSelectBase(CoordinatorEntity, SelectEntity):
-    """Base class for PawControl select entities."""
+class PawControlSelectBase(SelectEntity):
+    """Base class for Paw Control select entities."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
         hass: HomeAssistant,
-        coordinator: PawControlCoordinator,
-        config: dict[str, Any],
+        coordinator: Any,
+        dog_id: str,
+        dog_name: str,
+        select_type: str,
+        name: str,
+        icon: str,
+        options: list[str],
     ) -> None:
         """Initialize the select entity."""
-        super().__init__(coordinator)
         self.hass = hass
-        self._config = config
-        self._dog_name = config.get(CONF_DOG_NAME, "Unknown")
-        self._dog_id = self._dog_name.lower().replace(" ", "_")
-
-    @property
-    def device_info(self):
-        """Return device info."""
-        return {
-            "identifiers": {(DOMAIN, self._dog_id)},
-            "name": f"PawControl - {self._dog_name}",
-            "manufacturer": "PawControl",
-            "model": "Dog Management System",
-            "sw_version": "1.0.0",
-        }
-
-
-class PawControlHealthStatusSelect(PawControlSelectBase):
-    """Select entity for health status."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_health_status_select"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Gesundheitsstatus"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:medical-bag"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return HEALTH_STATUS_OPTIONS
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("profile", {}).get("health_status", HEALTH_STATUS_OPTIONS[2])
-
-    async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        self.coordinator._data["profile"]["health_status"] = option
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlMoodSelect(PawControlSelectBase):
-    """Select entity for mood."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_mood_select"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Stimmung"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:emoticon"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return MOOD_OPTIONS
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("profile", {}).get("mood", MOOD_OPTIONS[0])
-
-    async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        await self.hass.services.async_call(
-            DOMAIN,
-            SERVICE_SET_MOOD,
-            {
-                "dog_name": self._dog_name,
-                "mood": option,
-            },
-            blocking=False,
+        self.coordinator = coordinator
+        self._dog_id = dog_id
+        self._dog_name = dog_name
+        self._select_type = select_type
+        
+        self._attr_name = name
+        self._attr_icon = icon
+        self._attr_options = options
+        self._attr_unique_id = f"{DOMAIN}.{dog_id}.select.{select_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, dog_id)},
+            name=f"🐕 {dog_name}",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
         )
 
+    @property
+    def dog_data(self) -> dict:
+        """Get dog data from coordinator."""
+        return self.coordinator.get_dog_data(self._dog_id)
 
-class PawControlActivityLevelSelect(PawControlSelectBase):
+
+class DefaultFoodTypeSelect(PawControlSelectBase):
+    """Select entity for default food type."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "default_food_type",
+            "Default Food Type",
+            "mdi:food",
+            [FOOD_DRY, FOOD_WET, FOOD_BARF, FOOD_TREAT],
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return FOOD_DRY
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option."""
+        _LOGGER.info(f"Default food type for {self._dog_name} set to {option}")
+
+
+class PreferredMealTimeSelect(PawControlSelectBase):
+    """Select entity for preferred meal schedule."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "meal_schedule",
+            "Meal Schedule",
+            "mdi:clock-outline",
+            ["2 meals", "3 meals", "Free feeding"],
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return "3 meals"
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option."""
+        _LOGGER.info(f"Meal schedule for {self._dog_name} set to {option}")
+
+
+class DefaultGroomingTypeSelect(PawControlSelectBase):
+    """Select entity for default grooming type."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "default_grooming_type",
+            "Default Grooming Type",
+            "mdi:content-cut",
+            [GROOMING_BATH, GROOMING_BRUSH, GROOMING_TRIM, GROOMING_NAILS, 
+             GROOMING_EARS, GROOMING_TEETH, GROOMING_EYES],
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.dog_data.get("grooming", {}).get("grooming_type", GROOMING_BRUSH)
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option."""
+        _LOGGER.info(f"Default grooming type for {self._dog_name} set to {option}")
+        self.dog_data["grooming"]["grooming_type"] = option
+        await self.coordinator.async_request_refresh()
+
+
+class TrainingTopicSelect(PawControlSelectBase):
+    """Select entity for training topic."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "training_topic",
+            "Training Topic",
+            "mdi:school",
+            ["Basic Commands", "Leash Training", "Tricks", "Agility", 
+             "Socialization", "House Training", "Behavior Correction"],
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.dog_data.get("training", {}).get("last_topic", "Basic Commands")
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option."""
+        _LOGGER.info(f"Training topic for {self._dog_name} set to {option}")
+
+
+class TrainingIntensitySelect(PawControlSelectBase):
+    """Select entity for training intensity."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "training_intensity",
+            "Training Intensity",
+            "mdi:speedometer",
+            [INTENSITY_LOW, INTENSITY_MEDIUM, INTENSITY_HIGH],
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return INTENSITY_MEDIUM
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option."""
+        _LOGGER.info(f"Training intensity for {self._dog_name} set to {option}")
+
+
+class ActivityLevelSelect(PawControlSelectBase):
     """Select entity for activity level."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_activity_level_select"
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the select entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "activity_level_setting",
+            "Activity Level Setting",
+            "mdi:run",
+            [INTENSITY_LOW, INTENSITY_MEDIUM, INTENSITY_HIGH],
+        )
 
     @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Aktivitätslevel"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:run"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return ACTIVITY_LEVELS
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("profile", {}).get("activity_level", ACTIVITY_LEVELS[2])
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.dog_data.get("activity", {}).get("activity_level", INTENSITY_MEDIUM)
 
     async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        self.coordinator._data["profile"]["activity_level"] = option
+        """Update the selected option."""
+        _LOGGER.info(f"Activity level for {self._dog_name} set to {option}")
+        self.dog_data["activity"]["activity_level"] = option
         await self.coordinator.async_request_refresh()
 
 
-class PawControlSizeCategorySelect(PawControlSelectBase):
-    """Select entity for size category."""
+class ExportFormatSelect(SelectEntity):
+    """Select entity for export format."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Export Format"
+    _attr_icon = "mdi:file-export"
+    _attr_options = ["csv", "json", "pdf"]
+
+    def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
+        """Initialize the select entity."""
+        self.hass = hass
+        self.coordinator = coordinator
+        self.entry = entry
+        
+        self._attr_unique_id = f"{DOMAIN}.global.select.export_format"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
 
     @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_size_category_select"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Größenkategorie"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:arrow-expand-vertical"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return SIZE_OPTIONS
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("profile", {}).get("size", SIZE_OPTIONS[2])
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self.entry.options.get("export_format", "csv")
 
     async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        self.coordinator._data["profile"]["size"] = option
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlFoodTypeSelect(PawControlSelectBase):
-    """Select entity for food type."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_food_type_select"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Futterart"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:food-drumstick"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return FOOD_TYPES
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("feeding", {}).get("food_type", FOOD_TYPES[0])
-
-    async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        self.coordinator._data["feeding"]["food_type"] = option
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlPreferredWalkTypeSelect(PawControlSelectBase):
-    """Select entity for preferred walk type."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_preferred_walk_type_select"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Bevorzugter Spaziergang"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:dog-service"
-
-    @property
-    def options(self):
-        """Return the list of options."""
-        return WALK_TYPES
-
-    @property
-    def current_option(self):
-        """Return the current option."""
-        return self.coordinator.data.get("settings", {}).get("preferred_walk_type", WALK_TYPES[1])
-
-    async def async_select_option(self, option: str) -> None:
-        """Select an option."""
-        self.coordinator._data.setdefault("settings", {})["preferred_walk_type"] = option
-        await self.coordinator.async_request_refresh()
+        """Update the selected option."""
+        _LOGGER.info(f"Export format set to {option}")

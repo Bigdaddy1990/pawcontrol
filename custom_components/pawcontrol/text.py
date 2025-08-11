@@ -1,4 +1,4 @@
-"""Text platform for PawControl integration."""
+"""Text platform for Paw Control integration."""
 from __future__ import annotations
 
 import logging
@@ -7,14 +7,18 @@ from typing import Any
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
+    CONF_DOGS,
+    CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOG_MODULES,
+    MODULE_HEALTH,
+    MODULE_TRAINING,
 )
-from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,493 +28,248 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PawControl text entities."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
+    """Set up Paw Control text entities."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     entities = []
-    for dog_name, dog_data in entry_data.items():
-        coordinator = dog_data["coordinator"]
-        config = dog_data["config"]
-        
-        # Always add basic text entities
-        entities.extend([
-            PawControlBreedText(coordinator, config),
-            PawControlNotesText(coordinator, config),
-            PawControlDailyNotesText(coordinator, config),
-        ])
-        
-        # Add module-specific text entities
-        modules = config.get("modules", {})
-        
-        if modules.get("health", {}).get("enabled", False):
-            entities.extend([
-                PawControlHealthNotesText(coordinator, config),
-                PawControlMedicationNotesText(coordinator, config),
-                PawControlVetContactText(coordinator, config),
-                PawControlSymptomsText(coordinator, config),
-            ])
-        
-        if modules.get("gps", {}).get("enabled", False):
-            entities.extend([
-                PawControlCurrentLocationText(coordinator, config),
-                PawControlHomeCoordinatesText(coordinator, config),
-            ])
-        
-        if modules.get("walk", {}).get("enabled", False):
-            entities.extend([
-                PawControlWalkNotesText(coordinator, config),
-                PawControlFavoriteRoutesText(coordinator, config),
-            ])
-        
-        if modules.get("visitor", {}).get("enabled", False):
-            entities.extend([
-                PawControlVisitorNameText(coordinator, config),
-                PawControlVisitorInstructionsText(coordinator, config),
-            ])
+    dogs = entry.options.get(CONF_DOGS, [])
     
-    async_add_entities(entities)
+    for dog in dogs:
+        dog_id = dog.get(CONF_DOG_ID)
+        if not dog_id:
+            continue
+        
+        dog_name = dog.get(CONF_DOG_NAME, dog_id)
+        modules = dog.get(CONF_DOG_MODULES, {})
+        
+        # Health module text entities
+        if modules.get(MODULE_HEALTH):
+            entities.extend([
+                HealthNotesText(hass, coordinator, dog_id, dog_name),
+                MedicationNotesText(hass, coordinator, dog_id, dog_name),
+                VetNotesText(hass, coordinator, dog_id, dog_name),
+            ])
+        
+        # Training module text entities
+        if modules.get(MODULE_TRAINING):
+            entities.append(
+                TrainingNotesText(hass, coordinator, dog_id, dog_name)
+            )
+        
+        # Always add general notes
+        entities.append(
+            GeneralNotesText(hass, coordinator, dog_id, dog_name)
+        )
+    
+    # Global text entities
+    entities.append(
+        ExportPathText(hass, coordinator, entry)
+    )
+    
+    async_add_entities(entities, True)
 
 
-class PawControlTextBase(CoordinatorEntity, TextEntity):
-    """Base class for PawControl text entities."""
+class PawControlTextBase(TextEntity):
+    """Base class for Paw Control text entities."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: PawControlCoordinator,
-        config: dict[str, Any],
+        hass: HomeAssistant,
+        coordinator: Any,
+        dog_id: str,
+        dog_name: str,
+        text_type: str,
+        name: str,
+        icon: str,
         max_length: int = 255,
     ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator)
-        self._config = config
-        self._dog_name = config.get(CONF_DOG_NAME, "Unknown")
-        self._dog_id = self._dog_name.lower().replace(" ", "_")
+        self.hass = hass
+        self.coordinator = coordinator
+        self._dog_id = dog_id
+        self._dog_name = dog_name
+        self._text_type = text_type
+        self._stored_value = ""
+        
+        self._attr_name = name
+        self._attr_icon = icon
         self._attr_native_max = max_length
+        self._attr_unique_id = f"{DOMAIN}.{dog_id}.text.{text_type}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, dog_id)},
+            name=f"🐕 {dog_name}",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
 
     @property
-    def device_info(self):
-        """Return device info."""
-        return {
-            "identifiers": {(DOMAIN, self._dog_id)},
-            "name": f"PawControl - {self._dog_name}",
-            "manufacturer": "PawControl",
-            "model": "Dog Management System",
-            "sw_version": "1.0.0",
-        }
-
-
-class PawControlBreedText(PawControlTextBase):
-    """Text entity for dog breed."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the breed text entity."""
-        super().__init__(coordinator, config, max_length=100)
+    def dog_data(self) -> dict:
+        """Get dog data from coordinator."""
+        return self.coordinator.get_dog_data(self._dog_id)
 
     @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_breed"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Rasse"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:dog"
-
-    @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the current value."""
-        return self.coordinator.data.get("profile", {}).get("breed", "")
+        return self._stored_value
 
     async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["profile"]["breed"] = value
-        await self.coordinator.async_request_refresh()
+        """Set the text value."""
+        self._stored_value = value
+        _LOGGER.info(f"{self._attr_name} for {self._dog_name} updated")
 
 
-class PawControlNotesText(PawControlTextBase):
-    """Text entity for general notes."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_notes"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Notizen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:note-text"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("notes", {}).get("general", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data.setdefault("notes", {})["general"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlDailyNotesText(PawControlTextBase):
-    """Text entity for daily notes."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the daily notes text entity."""
-        super().__init__(coordinator, config, max_length=500)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_daily_notes"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Tägliche Notizen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:calendar-text"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("notes", {}).get("daily", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data.setdefault("notes", {})["daily"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlHealthNotesText(PawControlTextBase):
+class HealthNotesText(PawControlTextBase):
     """Text entity for health notes."""
 
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_health_notes"
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the text entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_notes",
+            "Health Notes",
+            "mdi:note-medical",
+            1000,
+        )
 
     @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Gesundheitsnotizen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:medical-bag"
-
-    @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the current value."""
-        return self.coordinator.data.get("health", {}).get("notes", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["health"]["notes"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlMedicationNotesText(PawControlTextBase):
-    """Text entity for medication notes."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_medication_notes"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Medikationsnotizen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:pill"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("health", {}).get("medication_notes", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["health"]["medication_notes"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlVetContactText(PawControlTextBase):
-    """Text entity for vet contact."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_vet_contact"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Tierarztkontakt"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:hospital-box"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("health", {}).get("vet_contact", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["health"]["vet_contact"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlSymptomsText(PawControlTextBase):
-    """Text entity for symptoms."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_symptoms"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Symptome"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:thermometer-alert"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        symptoms = self.coordinator.data.get("health", {}).get("symptoms", [])
-        return ", ".join(symptoms) if symptoms else ""
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        symptoms = [s.strip() for s in value.split(",") if s.strip()] if value else []
-        await self.coordinator.async_update_health(symptoms=symptoms)
-
-
-class PawControlCurrentLocationText(PawControlTextBase):
-    """Text entity for current location."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the location text entity."""
-        super().__init__(coordinator, config, max_length=100)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_current_location"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Aktueller Standort"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:map-marker"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        location = self.coordinator.data.get("location", {}).get("current")
-        if location:
-            lat = location.get("latitude", 0)
-            lon = location.get("longitude", 0)
-            return f"{lat:.5f}, {lon:.5f}"
+        notes = self.dog_data.get("health", {}).get("health_notes", [])
+        if notes:
+            # Return the most recent note
+            return notes[-1].get("note", "")
         return ""
 
     async def async_set_value(self, value: str) -> None:
-        """Set the value (parse coordinates)."""
-        try:
-            parts = value.split(",")
-            if len(parts) == 2:
-                lat = float(parts[0].strip())
-                lon = float(parts[1].strip())
-                await self.coordinator.async_update_location(lat, lon)
-        except (ValueError, IndexError):
-            _LOGGER.error(f"Invalid coordinates format: {value}")
+        """Set the text value."""
+        await self.hass.services.async_call(
+            DOMAIN,
+            "log_health_data",
+            {
+                "dog_id": self._dog_id,
+                "note": value,
+            },
+            blocking=False,
+        )
 
 
-class PawControlHomeCoordinatesText(PawControlTextBase):
-    """Text entity for home coordinates."""
+class MedicationNotesText(PawControlTextBase):
+    """Text entity for medication notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the home coordinates text entity."""
-        super().__init__(coordinator, config, max_length=50)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_home_coordinates"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Heimkoordinaten"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:home-map-marker"
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the text entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "medication_notes",
+            "Medication Notes",
+            "mdi:pill",
+            500,
+        )
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the current value."""
-        return self.coordinator.data.get("location", {}).get("home", "")
+        return f"{self.dog_data.get('health', {}).get('medication_name', '')} - {self.dog_data.get('health', {}).get('medication_dose', '')}"
+
+
+class VetNotesText(PawControlTextBase):
+    """Text entity for vet notes."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the text entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "vet_notes",
+            "Vet Notes",
+            "mdi:hospital-box",
+            1000,
+        )
+
+
+class TrainingNotesText(PawControlTextBase):
+    """Text entity for training notes."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the text entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "training_notes",
+            "Training Notes",
+            "mdi:school",
+            500,
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current value."""
+        history = self.dog_data.get("training", {}).get("training_history", [])
+        if history:
+            # Return the most recent training note
+            return history[-1].get("notes", "")
+        return ""
+
+
+class GeneralNotesText(PawControlTextBase):
+    """Text entity for general notes."""
+
+    def __init__(self, hass, coordinator, dog_id, dog_name):
+        """Initialize the text entity."""
+        super().__init__(
+            hass,
+            coordinator,
+            dog_id,
+            dog_name,
+            "general_notes",
+            "General Notes",
+            "mdi:note-text",
+            1000,
+        )
+
+
+class ExportPathText(TextEntity):
+    """Text entity for export path."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Export Path"
+    _attr_icon = "mdi:folder-export"
+    _attr_native_max = 255
+
+    def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
+        """Initialize the text entity."""
+        self.hass = hass
+        self.coordinator = coordinator
+        self.entry = entry
+        
+        self._attr_unique_id = f"{DOMAIN}.global.text.export_path"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, "global")},
+            name="Paw Control System",
+            manufacturer="Paw Control",
+            model="Smart Dog Manager",
+            sw_version="1.0.0",
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current value."""
+        return self.entry.options.get("export_path", "")
 
     async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["location"]["home"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlWalkNotesText(PawControlTextBase):
-    """Text entity for walk notes."""
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_walk_notes"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Spaziergang-Notizen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:dog-service"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("notes", {}).get("walk", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data.setdefault("notes", {})["walk"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlFavoriteRoutesText(PawControlTextBase):
-    """Text entity for favorite routes."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the favorite routes text entity."""
-        super().__init__(coordinator, config, max_length=1000)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_favorite_routes"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Lieblingsrouten"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:map-marker-path"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("walk", {}).get("favorite_routes", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data.setdefault("walk", {})["favorite_routes"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlVisitorNameText(PawControlTextBase):
-    """Text entity for visitor name."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the visitor name text entity."""
-        super().__init__(coordinator, config, max_length=100)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_visitor_name"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Besuchername"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:account"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("status", {}).get("visitor_name", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["status"]["visitor_name"] = value
-        await self.coordinator.async_request_refresh()
-
-
-class PawControlVisitorInstructionsText(PawControlTextBase):
-    """Text entity for visitor instructions."""
-
-    def __init__(self, coordinator: PawControlCoordinator, config: dict[str, Any]):
-        """Initialize the visitor instructions text entity."""
-        super().__init__(coordinator, config, max_length=500)
-
-    @property
-    def unique_id(self):
-        """Return unique ID."""
-        return f"pawcontrol_{self._dog_id}_visitor_instructions"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return f"{self._dog_name} Besucheranweisungen"
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return "mdi:clipboard-text"
-
-    @property
-    def native_value(self):
-        """Return the current value."""
-        return self.coordinator.data.get("status", {}).get("visitor_instructions", "")
-
-    async def async_set_value(self, value: str) -> None:
-        """Set the value."""
-        self.coordinator._data["status"]["visitor_instructions"] = value
-        await self.coordinator.async_request_refresh()
+        """Set the text value."""
+        _LOGGER.info(f"Export path set to {value}")
+        # Would update the config entry options
