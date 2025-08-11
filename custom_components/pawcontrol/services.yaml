@@ -338,7 +338,7 @@ activate_emergency_mode:
 daily_reset:
   name: Daily Reset
   description: Reset all daily counters
-  fields:
+  fields: {}
 
 generate_report:
   name: Generate Report
@@ -419,7 +419,7 @@ export_health_data:
 sync_setup:
   name: Sync Setup
   description: Synchronize helpers and entities with current configuration
-  fields:
+  fields: {}
 
 notify_test:
   name: Test Notification
