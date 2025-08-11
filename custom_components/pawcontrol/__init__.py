@@ -15,6 +15,9 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     EVENT_DAILY_RESET,
+    CONF_DOGS,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
     SERVICE_DAILY_RESET,
     SERVICE_SYNC_SETUP,
     SERVICE_NOTIFY_TEST,
@@ -131,10 +134,10 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register devices for each dog."""
     device_registry = dr.async_get(hass)
     
-    dogs = entry.options.get("dogs", [])
+    dogs = entry.options.get(CONF_DOGS, [])
     for dog in dogs:
-        dog_id = dog.get("dog_id")
-        dog_name = dog.get("name", dog_id)
+        dog_id = dog.get(CONF_DOG_ID)
+        dog_name = dog.get(CONF_DOG_NAME, dog_id)
         
         device_registry.async_get_or_create(
             config_entry_id=entry.entry_id,
