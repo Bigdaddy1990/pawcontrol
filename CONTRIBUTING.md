@@ -87,8 +87,13 @@ Run all checks:
 black custom_components/pawcontrol
 isort custom_components/pawcontrol
 flake8 custom_components/pawcontrol
-mypy custom_components/pawcontrol
+mypy
 ```
+
+> **Note:** `mypy` is configured in `pyproject.toml` with a `files` setting that scopes
+> type checking to `custom_components/pawcontrol`. Running `mypy` without arguments
+> only validates this integration package. If you add typed code elsewhere in the
+> repository, update that setting to extend coverage.
 
 ### Commit Messages
 
