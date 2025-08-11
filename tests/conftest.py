@@ -1,20 +1,22 @@
 """Fixtures for Paw Control tests."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import patch
+
 import pytest
-from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
-from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol.const import DOMAIN
 
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
+def auto_enable_custom_integrations(_enable_custom_integrations):
     """Enable custom integrations for all tests."""
-    yield
+    return
 
 
 @pytest.fixture
