@@ -192,13 +192,22 @@ class NotificationRouter:
             state = self.hass.states.get(person_entity)
             if state and state.state == "home":
                 # Person is home, find their notify service
-                person_name = person_entity.split(".")[1]
+                # Entity IDs occasionally include additional dots beyond the
+                # ``domain.object_id`` separator (e.g. ``person.john.doe``). A
+                # naive ``split('.')`` would return only ``john`` and we'd build
+                # the service name ``mobile_app_john`` which doesn't exist. By
+                # splitting just once we keep the full identifier (``john.doe``)
+                # and then normalize any remaining dots to underscores so
+                # ``notify.mobile_app_john_doe`` remains intact.
+                person_name = person_entity.split(".", 1)[-1].replace(".", "_")
                 notify_service = f"mobile_app_{person_name}"
-                
+
                 # Check if service exists
                 if self.hass.services.has_service(NOTIFY_DOMAIN, notify_service):
                     targets.append(notify_service)
-                    _LOGGER.debug(f"Added notification target for {person_name} (home)")
+                    _LOGGER.debug(
+                        f"Added notification target for {person_name} (home)"
+                    )
         
         # If no one home or no person entities, use fallback
         if not targets:
@@ -214,7 +223,7 @@ class NotificationRouter:
                 # and produce an invalid service name. Using ``split('.', 1)``
                 # and taking the last element preserves the entire service
                 # identifier while also handling values without a domain
-                # prefix.
+                # prefix, ensuring we don't misroute the notification.
                 service = fallback.split(".", 1)[-1]
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
