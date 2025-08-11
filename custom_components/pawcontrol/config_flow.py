@@ -273,9 +273,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="notifications",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_NOTIFY_FALLBACK): EntitySelector(
-                        EntitySelectorConfig(domain="notify")
-                    ),
+                    vol.Optional(CONF_NOTIFY_FALLBACK): TextSelector(),
                     vol.Optional(
                         f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", default="22:00:00"
                     ): TimeSelector(),
@@ -486,7 +484,7 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_NOTIFY_FALLBACK,
                         default=notifications.get(CONF_NOTIFY_FALLBACK),
-                    ): EntitySelector(EntitySelectorConfig(domain="notify")),
+                    ): TextSelector(),
                     vol.Optional(
                         f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
                         default=quiet_hours.get(CONF_QUIET_START, "22:00:00"),
