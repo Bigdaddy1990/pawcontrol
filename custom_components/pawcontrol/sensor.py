@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+
+# The typing imports were previously unused, causing lint failures during
+# integration tests. They have been removed to keep the module clean and to
+# ensure style checks pass.
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
