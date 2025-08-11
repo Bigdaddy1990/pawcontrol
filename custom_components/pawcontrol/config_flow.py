@@ -307,23 +307,36 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Configure system settings."""
         if user_input is not None:
             # Compile all configuration
+            notifications_data = {
+                CONF_QUIET_HOURS: {
+                    CONF_QUIET_START: self._notifications.get(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", "22:00:00"
+                    ),
+                    CONF_QUIET_END: self._notifications.get(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", "07:00:00"
+                    ),
+                },
+                CONF_REMINDER_REPEAT: self._notifications.get(
+                    CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT
+                ),
+                CONF_SNOOZE_MIN: self._notifications.get(
+                    CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN
+                ),
+            }
+
+            notify_fallback = self._notifications.get(CONF_NOTIFY_FALLBACK)
+            if notify_fallback is not None:
+                notifications_data[CONF_NOTIFY_FALLBACK] = notify_fallback
+
             config_data = {
                 CONF_DOGS: self._dogs,
                 CONF_SOURCES: self._sources,
-                CONF_NOTIFICATIONS: {
-                    **self._notifications,
-                    CONF_QUIET_HOURS: {
-                        CONF_QUIET_START: self._notifications.get(
-                            f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", "22:00:00"
-                        ),
-                        CONF_QUIET_END: self._notifications.get(
-                            f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", "07:00:00"
-                        ),
-                    },
-                },
+                CONF_NOTIFICATIONS: notifications_data,
                 CONF_RESET_TIME: user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
                 CONF_EXPORT_PATH: user_input.get(CONF_EXPORT_PATH, ""),
-                CONF_EXPORT_FORMAT: user_input.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT),
+                CONF_EXPORT_FORMAT: user_input.get(
+                    CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT
+                ),
                 CONF_VISITOR_MODE: user_input.get(CONF_VISITOR_MODE, False),
             }
 
