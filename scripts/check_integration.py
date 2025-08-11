@@ -99,28 +99,44 @@ class IntegrationChecker:
         if not services_path.exists():
             self.errors.append("✗ Missing services.yaml")
             return
-        
-        import yaml
         try:
+            service_names = []
             with open(services_path) as f:
-                services = yaml.safe_load(f)
-            
+                for line in f:
+                    stripped = line.strip()
+                    if (
+                        stripped
+                        and not stripped.startswith("#")
+                        and not line.startswith(" ")
+                        and stripped.endswith(":")
+                    ):
+                        service_names.append(stripped[:-1])
+
             expected_services = [
-                "daily_reset", "sync_setup", "notify_test",
-                "start_walk", "end_walk", "walk_dog",
-                "feed_dog", "log_health_data", "log_medication",
-                "start_grooming_session", "play_with_dog",
-                "start_training_session", "toggle_visitor_mode",
-                "activate_emergency_mode", "generate_report",
-                "export_health_data"
+                "daily_reset",
+                "sync_setup",
+                "notify_test",
+                "start_walk",
+                "end_walk",
+                "walk_dog",
+                "feed_dog",
+                "log_health_data",
+                "log_medication",
+                "start_grooming_session",
+                "play_with_dog",
+                "start_training_session",
+                "toggle_visitor_mode",
+                "activate_emergency_mode",
+                "generate_report",
+                "export_health_data",
             ]
-            
+
             for service in expected_services:
-                if service in services:
+                if service in service_names:
                     self.successes.append(f"✓ Service defined: {service}")
                 else:
                     self.warnings.append(f"⚠ Missing service: {service}")
-                    
+
         except Exception as e:
             self.errors.append(f"✗ Error reading services.yaml: {e}")
     
