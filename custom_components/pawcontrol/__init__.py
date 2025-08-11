@@ -2,49 +2,47 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    DOMAIN,
-    PLATFORMS,
-    EVENT_DAILY_RESET,
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    DOMAIN,
+    EVENT_DAILY_RESET,
+    PLATFORMS,
     SERVICE_DAILY_RESET,
-    SERVICE_SYNC_SETUP,
-    SERVICE_NOTIFY_TEST,
-    SERVICE_START_WALK,
+    SERVICE_EMERGENCY_MODE,
     SERVICE_END_WALK,
-    SERVICE_WALK_DOG,
+    SERVICE_EXPORT_DATA,
     SERVICE_FEED_DOG,
+    SERVICE_GENERATE_REPORT,
     SERVICE_LOG_HEALTH,
     SERVICE_LOG_MEDICATION,
-    SERVICE_START_GROOMING,
+    SERVICE_NOTIFY_TEST,
     SERVICE_PLAY_WITH_DOG,
+    SERVICE_START_GROOMING,
     SERVICE_START_TRAINING,
+    SERVICE_START_WALK,
+    SERVICE_SYNC_SETUP,
     SERVICE_TOGGLE_VISITOR,
-    SERVICE_EMERGENCY_MODE,
-    SERVICE_GENERATE_REPORT,
-    SERVICE_EXPORT_DATA,
+    SERVICE_WALK_DOG,
 )
 from .coordinator import PawControlCoordinator
-from .report_generator import ReportGenerator
-from .helpers.scheduler import setup_schedulers, cleanup_schedulers
 from .helpers.notification_router import NotificationRouter
+from .helpers.scheduler import cleanup_schedulers, setup_schedulers
 from .helpers.setup_sync import SetupSync
+from .report_generator import ReportGenerator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
     """Set up the Paw Control component."""
     hass.data.setdefault(DOMAIN, {})
     return True
