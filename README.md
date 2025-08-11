@@ -141,7 +141,7 @@ Paw Control provides extensive services for automation:
 ### System
 - `pawcontrol.daily_reset` - Reset daily counters
 - `pawcontrol.generate_report` - Generate activity report
-- `pawcontrol.export_health_data` - Export health data
+- `pawcontrol.export_health_data` - Export health data in a chosen format (immutable options: csv, json, pdf)
 
 ## 📊 Entities
 

@@ -295,19 +295,23 @@ class ActivityLevelSelect(PawControlSelectBase):
 
 
 class ExportFormatSelect(SelectEntity):
-    """Select entity for export format."""
+    """Select entity for export format.
+
+    The available formats are defined as an immutable tuple to prevent
+    accidental modification.
+    """
 
     _attr_has_entity_name = True
     _attr_name = "Export Format"
     _attr_icon = "mdi:file-export"
-    _attr_options = ["csv", "json", "pdf"]
+    _attr_options = ("csv", "json", "pdf")
 
     def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
         """Initialize the select entity."""
         self.hass = hass
         self.coordinator = coordinator
         self.entry = entry
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.select.export_format"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
@@ -324,4 +328,4 @@ class ExportFormatSelect(SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
-        _LOGGER.info(f"Export format set to {option}")
+        _LOGGER.info("Export format set to %s", option)
