@@ -33,7 +33,7 @@ jobs:
           
           # Create ZIP archive
           cd release_tmp
-          zip -r ../paw_control-${VERSION}.zip ./*
+          zip -r ../pawcontrol-${VERSION}.zip ./*
           cd ..
           
           # Cleanup
@@ -46,7 +46,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            paw_control-${{ env.VERSION }}.zip
+            pawcontrol-${{ env.VERSION }}.zip
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -58,14 +58,14 @@ jobs:
             2. Go to "Integrations"
             3. Click the three dots (⋮) in the top right
             4. Select "Custom repositories"
-            5. Add URL: `https://github.com/Bigdaddy1990/paw_control`
+            5. Add URL: `https://github.com/Bigdaddy1990/pawcontrol`
             6. Category: "Integration"
             7. Click "Add"
             8. Search for "Paw Control" and install
             9. Restart Home Assistant
             
             ### Manual Installation
-            1. Download the `paw_control-*.zip` file
+            1. Download the `pawcontrol-*.zip` file
             2. Extract to your Home Assistant `custom_components/` directory
             3. Restart Home Assistant
             4. Add the integration via Settings → Devices & Services
@@ -74,7 +74,7 @@ jobs:
             See the commit history for detailed changes in this release.
             
             ### Support
-            - 🐛 Bug Reports: [GitHub Issues](https://github.com/Bigdaddy1990/paw_control/issues)
-            - 💡 Feature Requests: [GitHub Discussions](https://github.com/Bigdaddy1990/paw_control/discussions)
+            - 🐛 Bug Reports: [GitHub Issues](https://github.com/Bigdaddy1990/pawcontrol/issues)
+            - 💡 Feature Requests: [GitHub Discussions](https://github.com/Bigdaddy1990/pawcontrol/discussions)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
