@@ -2,9 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol)
-[![GitHub Release](https://img.shields.io/github/release/BigDaddy1990/pawcontrol.svg?style=for-the-badge)](https://github.com/BigDaddy1990/pawcontrol/releases)
-[![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg?style=for-the-badge)](https://github.com/BigDaddy1990/pawcontrol/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/yourusername/pawcontrol)
 
 ## 🎯 Features
 
@@ -178,22 +176,18 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🙏 Acknowledgments
+
+- Home Assistant Community
+- HACS Team
+- All contributors and testers
 
 ## 📞 Support
 
-- [Issue Tracker](https://github.com/BigDaddy1990/pawcontrol/issues)
-- [Discussions](https://github.com/BigDadddy1990/pawcontrol/discussions)
+- [Issue Tracker](https://github.com/yourusername/pawcontrol/issues)
+- [Discussions](https://github.com/yourusername/pawcontrol/discussions)
+- [Home Assistant Community Forum](https://community.home-assistant.io/)
 
 ---
 
-<div align="center">
-
-## 🐶 **Made with ❤️ for Dog Lovers using Home Assistant**
-
-**Paw Control** - *Weil jeder Hund das Beste verdient hat!*
-
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bigdaddy1990)
-
-*🦴 Spenden Sie Hundekekse für die Entwicklung! 🦴*
-
----
+Made with ❤️ for dog lovers using Home Assistant

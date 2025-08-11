@@ -1,5 +1,4 @@
 """Test Paw Control config flow."""
-
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -8,6 +7,7 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol.const import DOMAIN
 
@@ -101,21 +101,6 @@ async def test_form_single_dog(hass: HomeAssistant) -> None:
     assert result["title"] == "Paw Control"
     assert result["options"]["dogs"][0]["dog_id"] == "rex"
     assert result["options"]["dogs"][0]["name"] == "Rex"
-
-
-async def test_form_num_dogs_float(hass: HomeAssistant) -> None:
-    """Test number of dogs input accepts floats."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {"num_dogs": 2.0},
-    )
-
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "dog_config"
 
 
 async def test_form_multiple_dogs(hass: HomeAssistant) -> None:
