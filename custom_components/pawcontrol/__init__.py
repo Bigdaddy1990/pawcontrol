@@ -36,10 +36,10 @@ from .const import (
     SERVICE_TOGGLE_VISITOR,
     SERVICE_WALK_DOG,
 )
-from .coordinator import PawControlCoordinator
-from .helpers.notification_router import NotificationRouter
-from .helpers.scheduler import cleanup_schedulers, setup_schedulers
-from .helpers.setup_sync import SetupSync
+from . import coordinator as coordinator_mod
+from .helpers import notification_router as notification_router_mod
+from .helpers import scheduler as scheduler_mod
+from .helpers import setup_sync as setup_sync_mod
 from .report_generator import ReportGenerator
 from .schemas import (
     SERVICE_EMERGENCY_MODE_SCHEMA,
@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     # Initialize coordinator
-    coordinator = PawControlCoordinator(hass, entry)
+    coordinator = coordinator_mod.PawControlCoordinator(hass, entry)
 
     try:
         refresh = coordinator.async_config_entry_first_refresh()
@@ -84,8 +84,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store coordinator and helpers
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
-        "notification_router": NotificationRouter(hass, entry),
-        "setup_sync": SetupSync(hass, entry),
+        "notification_router": notification_router_mod.NotificationRouter(hass, entry),
+        "setup_sync": setup_sync_mod.SetupSync(hass, entry),
     }
 
     # Report generator depends on the coordinator being stored above, so
@@ -102,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _register_services(hass, entry)
 
     # Setup schedulers (daily reset, reports, reminders)
-    await setup_schedulers(hass, entry)
+    await scheduler_mod.setup_schedulers(hass, entry)
 
     # Initial sync of helpers and entities
     setup_sync_helper = hass.data[DOMAIN][entry.entry_id]["setup_sync"]
@@ -117,7 +117,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     # Cleanup schedulers
-    await cleanup_schedulers(hass, entry)
+    await scheduler_mod.cleanup_schedulers(hass, entry)
 
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -145,8 +145,8 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await setup_sync_helper.sync_all()
 
     # Reschedule tasks with new times
-    await cleanup_schedulers(hass, entry)
-    await setup_schedulers(hass, entry)
+    await scheduler_mod.cleanup_schedulers(hass, entry)
+    await scheduler_mod.setup_schedulers(hass, entry)
 
     # Refresh data
     await coordinator.async_request_refresh()
