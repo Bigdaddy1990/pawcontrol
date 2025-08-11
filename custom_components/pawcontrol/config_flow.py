@@ -1,67 +1,37 @@
 """Config flow for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, Optional
-import voluptuous as vol
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
-from homeassistant.helpers.selector import (
-    SelectSelector,
-    SelectSelectorConfig,
-    TextSelector,
-    NumberSelector,
-    NumberSelectorConfig,
-    BooleanSelector,
-    TimeSelector,
-    EntitySelector,
-    EntitySelectorConfig,
-)
+from homeassistant.helpers.selector import (BooleanSelector, EntitySelector,
+                                            EntitySelectorConfig,
+                                            NumberSelector,
+                                            NumberSelectorConfig,
+                                            SelectSelector,
+                                            SelectSelectorConfig, TextSelector,
+                                            TimeSelector)
 
-from .const import (
-    DOMAIN,
-    CONF_DOGS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_BREED,
-    CONF_DOG_AGE,
-    CONF_DOG_WEIGHT,
-    CONF_DOG_SIZE,
-    CONF_DOG_MODULES,
-    MODULE_WALK,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_GPS,
-    MODULE_NOTIFICATIONS,
-    MODULE_DASHBOARD,
-    MODULE_GROOMING,
-    MODULE_MEDICATION,
-    MODULE_TRAINING,
-    CONF_SOURCES,
-    CONF_DOOR_SENSOR,
-    CONF_PERSON_ENTITIES,
-    CONF_DEVICE_TRACKERS,
-    CONF_NOTIFY_FALLBACK,
-    CONF_CALENDAR,
-    CONF_WEATHER,
-    CONF_NOTIFICATIONS,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
-    CONF_QUIET_END,
-    CONF_REMINDER_REPEAT,
-    CONF_SNOOZE_MIN,
-    CONF_RESET_TIME,
-    CONF_EXPORT_PATH,
-    CONF_EXPORT_FORMAT,
-    CONF_VISITOR_MODE,
-    DEFAULT_RESET_TIME,
-    DEFAULT_REMINDER_REPEAT,
-    DEFAULT_SNOOZE_MIN,
-    DEFAULT_EXPORT_FORMAT,
-)
+from .const import (CONF_CALENDAR, CONF_DEVICE_TRACKERS, CONF_DOG_AGE,
+                    CONF_DOG_BREED, CONF_DOG_ID, CONF_DOG_MODULES,
+                    CONF_DOG_NAME, CONF_DOG_SIZE, CONF_DOG_WEIGHT, CONF_DOGS,
+                    CONF_DOOR_SENSOR, CONF_EXPORT_FORMAT, CONF_EXPORT_PATH,
+                    CONF_NOTIFICATIONS, CONF_NOTIFY_FALLBACK,
+                    CONF_PERSON_ENTITIES, CONF_QUIET_END, CONF_QUIET_HOURS,
+                    CONF_QUIET_START, CONF_REMINDER_REPEAT, CONF_RESET_TIME,
+                    CONF_SNOOZE_MIN, CONF_SOURCES, CONF_VISITOR_MODE,
+                    CONF_WEATHER, DEFAULT_EXPORT_FORMAT,
+                    DEFAULT_REMINDER_REPEAT, DEFAULT_RESET_TIME,
+                    DEFAULT_SNOOZE_MIN, DOMAIN, MODULE_DASHBOARD,
+                    MODULE_FEEDING, MODULE_GPS, MODULE_GROOMING, MODULE_HEALTH,
+                    MODULE_MEDICATION, MODULE_NOTIFICATIONS, MODULE_TRAINING,
+                    MODULE_WALK)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,8 +57,8 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             # Store number of dogs and proceed to dog configuration
-            num_dogs = user_input.get("num_dogs", 1)
-            self._dogs = [{}] * num_dogs
+            num_dogs = int(user_input.get("num_dogs", 1))
+            self._dogs = [{} for _ in range(num_dogs)]
             self._current_dog_index = 0
             return await self.async_step_dog_config()
 
@@ -119,12 +89,14 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Validate dog ID uniqueness
             dog_id = user_input.get(CONF_DOG_ID, "").lower().replace(" ", "_")
-            
+
             # Check for duplicate dog IDs
-            existing_ids = [d.get(CONF_DOG_ID) for d in self._dogs[:self._current_dog_index]]
+            existing_ids = [
+                d.get(CONF_DOG_ID) for d in self._dogs[: self._current_dog_index]
+            ]
             if dog_id in existing_ids:
                 errors["base"] = "duplicate_dog_id"
-            
+
             if not errors:
                 # Store dog configuration
                 self._dogs[self._current_dog_index] = {
@@ -136,15 +108,27 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, "medium"),
                     CONF_DOG_MODULES: {
                         MODULE_WALK: user_input.get(f"module_{MODULE_WALK}", True),
-                        MODULE_FEEDING: user_input.get(f"module_{MODULE_FEEDING}", True),
+                        MODULE_FEEDING: user_input.get(
+                            f"module_{MODULE_FEEDING}", True
+                        ),
                         MODULE_HEALTH: user_input.get(f"module_{MODULE_HEALTH}", True),
                         MODULE_GPS: user_input.get(f"module_{MODULE_GPS}", False),
-                        MODULE_NOTIFICATIONS: user_input.get(f"module_{MODULE_NOTIFICATIONS}", True),
-                        MODULE_DASHBOARD: user_input.get(f"module_{MODULE_DASHBOARD}", True),
-                        MODULE_GROOMING: user_input.get(f"module_{MODULE_GROOMING}", True),
-                        MODULE_MEDICATION: user_input.get(f"module_{MODULE_MEDICATION}", False),
-                        MODULE_TRAINING: user_input.get(f"module_{MODULE_TRAINING}", False),
-                    }
+                        MODULE_NOTIFICATIONS: user_input.get(
+                            f"module_{MODULE_NOTIFICATIONS}", True
+                        ),
+                        MODULE_DASHBOARD: user_input.get(
+                            f"module_{MODULE_DASHBOARD}", True
+                        ),
+                        MODULE_GROOMING: user_input.get(
+                            f"module_{MODULE_GROOMING}", True
+                        ),
+                        MODULE_MEDICATION: user_input.get(
+                            f"module_{MODULE_MEDICATION}", False
+                        ),
+                        MODULE_TRAINING: user_input.get(
+                            f"module_{MODULE_TRAINING}", False
+                        ),
+                    },
                 }
 
                 self._current_dog_index += 1
@@ -171,7 +155,13 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         NumberSelectorConfig(min=0, max=30, mode="box")
                     ),
                     vol.Optional(CONF_DOG_WEIGHT, default=20): NumberSelector(
-                        NumberSelectorConfig(min=1, max=200, step=0.1, mode="box", unit_of_measurement="kg")
+                        NumberSelectorConfig(
+                            min=1,
+                            max=200,
+                            step=0.1,
+                            mode="box",
+                            unit_of_measurement="kg",
+                        )
                     ),
                     vol.Optional(CONF_DOG_SIZE, default="medium"): SelectSelector(
                         SelectSelectorConfig(
@@ -179,15 +169,33 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             translation_key="dog_size",
                         )
                     ),
-                    vol.Optional(f"module_{MODULE_WALK}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_FEEDING}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_HEALTH}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_GPS}", default=False): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_NOTIFICATIONS}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_DASHBOARD}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_GROOMING}", default=True): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_MEDICATION}", default=False): BooleanSelector(),
-                    vol.Optional(f"module_{MODULE_TRAINING}", default=False): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_WALK}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_FEEDING}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_HEALTH}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_GPS}", default=False
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_NOTIFICATIONS}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_DASHBOARD}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_GROOMING}", default=True
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_MEDICATION}", default=False
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        f"module_{MODULE_TRAINING}", default=False
+                    ): BooleanSelector(),
                 }
             ),
             errors=errors,
@@ -207,12 +215,10 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check which modules need sources
         needs_door_sensor = any(
-            dog.get(CONF_DOG_MODULES, {}).get(MODULE_WALK, False) 
-            for dog in self._dogs
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_WALK, False) for dog in self._dogs
         )
         needs_gps = any(
-            dog.get(CONF_DOG_MODULES, {}).get(MODULE_GPS, False) 
-            for dog in self._dogs
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_GPS, False) for dog in self._dogs
         )
 
         schema_dict = {}
@@ -223,11 +229,13 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         if needs_gps:
-            schema_dict[vol.Optional(CONF_PERSON_ENTITIES, default=[])] = EntitySelector(
-                EntitySelectorConfig(domain="person", multiple=True)
+            schema_dict[vol.Optional(CONF_PERSON_ENTITIES, default=[])] = (
+                EntitySelector(EntitySelectorConfig(domain="person", multiple=True))
             )
-            schema_dict[vol.Optional(CONF_DEVICE_TRACKERS, default=[])] = EntitySelector(
-                EntitySelectorConfig(domain="device_tracker", multiple=True)
+            schema_dict[vol.Optional(CONF_DEVICE_TRACKERS, default=[])] = (
+                EntitySelector(
+                    EntitySelectorConfig(domain="device_tracker", multiple=True)
+                )
             )
 
         schema_dict[vol.Optional(CONF_CALENDAR)] = EntitySelector(
@@ -259,7 +267,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if notifications module is enabled
         needs_notifications = any(
-            dog.get(CONF_DOG_MODULES, {}).get(MODULE_NOTIFICATIONS, False) 
+            dog.get(CONF_DOG_MODULES, {}).get(MODULE_NOTIFICATIONS, False)
             for dog in self._dogs
         )
 
@@ -274,13 +282,33 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_NOTIFY_FALLBACK): EntitySelector(
                         EntitySelectorConfig(domain="notify")
                     ),
-                    vol.Optional(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", default="22:00:00"): TimeSelector(),
-                    vol.Optional(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", default="07:00:00"): TimeSelector(),
-                    vol.Optional(CONF_REMINDER_REPEAT, default=DEFAULT_REMINDER_REPEAT): NumberSelector(
-                        NumberSelectorConfig(min=5, max=120, step=5, mode="slider", unit_of_measurement="min")
+                    vol.Optional(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", default="22:00:00"
+                    ): TimeSelector(),
+                    vol.Optional(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", default="07:00:00"
+                    ): TimeSelector(),
+                    vol.Optional(
+                        CONF_REMINDER_REPEAT, default=DEFAULT_REMINDER_REPEAT
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=5,
+                            max=120,
+                            step=5,
+                            mode="slider",
+                            unit_of_measurement="min",
+                        )
                     ),
-                    vol.Optional(CONF_SNOOZE_MIN, default=DEFAULT_SNOOZE_MIN): NumberSelector(
-                        NumberSelectorConfig(min=5, max=60, step=5, mode="slider", unit_of_measurement="min")
+                    vol.Optional(
+                        CONF_SNOOZE_MIN, default=DEFAULT_SNOOZE_MIN
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=5,
+                            max=60,
+                            step=5,
+                            mode="slider",
+                            unit_of_measurement="min",
+                        )
                     ),
                 }
             ),
@@ -301,13 +329,19 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_NOTIFICATIONS: {
                     **self._notifications,
                     CONF_QUIET_HOURS: {
-                        CONF_QUIET_START: self._notifications.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", "22:00:00"),
-                        CONF_QUIET_END: self._notifications.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", "07:00:00"),
-                    }
+                        CONF_QUIET_START: self._notifications.get(
+                            f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", "22:00:00"
+                        ),
+                        CONF_QUIET_END: self._notifications.get(
+                            f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", "07:00:00"
+                        ),
+                    },
                 },
                 CONF_RESET_TIME: user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
                 CONF_EXPORT_PATH: user_input.get(CONF_EXPORT_PATH, ""),
-                CONF_EXPORT_FORMAT: user_input.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT),
+                CONF_EXPORT_FORMAT: user_input.get(
+                    CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT
+                ),
                 CONF_VISITOR_MODE: user_input.get(CONF_VISITOR_MODE, False),
             }
 
@@ -322,9 +356,13 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="system",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_RESET_TIME, default=DEFAULT_RESET_TIME): TimeSelector(),
+                    vol.Optional(
+                        CONF_RESET_TIME, default=DEFAULT_RESET_TIME
+                    ): TimeSelector(),
                     vol.Optional(CONF_EXPORT_PATH, default=""): TextSelector(),
-                    vol.Optional(CONF_EXPORT_FORMAT, default=DEFAULT_EXPORT_FORMAT): SelectSelector(
+                    vol.Optional(
+                        CONF_EXPORT_FORMAT, default=DEFAULT_EXPORT_FORMAT
+                    ): SelectSelector(
                         SelectSelectorConfig(
                             options=["csv", "json", "pdf"],
                             translation_key="export_format",
@@ -375,7 +413,9 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
         """Manage dogs configuration."""
         if user_input is not None:
             # Update dogs configuration
-            self._options[CONF_DOGS] = user_input.get(CONF_DOGS, self._options.get(CONF_DOGS, []))
+            self._options[CONF_DOGS] = user_input.get(
+                CONF_DOGS, self._options.get(CONF_DOGS, [])
+            )
             return self.async_create_entry(title="", data=self._options)
 
         # For simplicity, we'll just show a message here
@@ -403,35 +443,26 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema(
                 {
                     vol.Optional(
-                        CONF_DOOR_SENSOR,
-                        default=sources.get(CONF_DOOR_SENSOR)
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="binary_sensor")
-                    ),
+                        CONF_DOOR_SENSOR, default=sources.get(CONF_DOOR_SENSOR)
+                    ): EntitySelector(EntitySelectorConfig(domain="binary_sensor")),
                     vol.Optional(
                         CONF_PERSON_ENTITIES,
-                        default=sources.get(CONF_PERSON_ENTITIES, [])
+                        default=sources.get(CONF_PERSON_ENTITIES, []),
                     ): EntitySelector(
                         EntitySelectorConfig(domain="person", multiple=True)
                     ),
                     vol.Optional(
                         CONF_DEVICE_TRACKERS,
-                        default=sources.get(CONF_DEVICE_TRACKERS, [])
+                        default=sources.get(CONF_DEVICE_TRACKERS, []),
                     ): EntitySelector(
                         EntitySelectorConfig(domain="device_tracker", multiple=True)
                     ),
                     vol.Optional(
-                        CONF_CALENDAR,
-                        default=sources.get(CONF_CALENDAR)
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="calendar")
-                    ),
+                        CONF_CALENDAR, default=sources.get(CONF_CALENDAR)
+                    ): EntitySelector(EntitySelectorConfig(domain="calendar")),
                     vol.Optional(
-                        CONF_WEATHER,
-                        default=sources.get(CONF_WEATHER)
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="weather")
-                    ),
+                        CONF_WEATHER, default=sources.get(CONF_WEATHER)
+                    ): EntitySelector(EntitySelectorConfig(domain="weather")),
                 }
             ),
         )
@@ -441,15 +472,25 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage notification settings."""
         if user_input is not None:
-            quiet_hours = self._options.get(CONF_NOTIFICATIONS, {}).get(CONF_QUIET_HOURS, {})
-            
+            quiet_hours = self._options.get(CONF_NOTIFICATIONS, {}).get(
+                CONF_QUIET_HOURS, {}
+            )
+
             self._options[CONF_NOTIFICATIONS] = {
                 CONF_NOTIFY_FALLBACK: user_input.get(CONF_NOTIFY_FALLBACK),
                 CONF_QUIET_HOURS: {
-                    CONF_QUIET_START: user_input.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}", quiet_hours.get(CONF_QUIET_START, "22:00:00")),
-                    CONF_QUIET_END: user_input.get(f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}", quiet_hours.get(CONF_QUIET_END, "07:00:00")),
+                    CONF_QUIET_START: user_input.get(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
+                        quiet_hours.get(CONF_QUIET_START, "22:00:00"),
+                    ),
+                    CONF_QUIET_END: user_input.get(
+                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}",
+                        quiet_hours.get(CONF_QUIET_END, "07:00:00"),
+                    ),
                 },
-                CONF_REMINDER_REPEAT: user_input.get(CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT),
+                CONF_REMINDER_REPEAT: user_input.get(
+                    CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT
+                ),
                 CONF_SNOOZE_MIN: user_input.get(CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN),
             }
             return self.async_create_entry(title="", data=self._options)
@@ -463,29 +504,41 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_NOTIFY_FALLBACK,
-                        default=notifications.get(CONF_NOTIFY_FALLBACK)
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="notify")
-                    ),
+                        default=notifications.get(CONF_NOTIFY_FALLBACK),
+                    ): EntitySelector(EntitySelectorConfig(domain="notify")),
                     vol.Optional(
                         f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
-                        default=quiet_hours.get(CONF_QUIET_START, "22:00:00")
+                        default=quiet_hours.get(CONF_QUIET_START, "22:00:00"),
                     ): TimeSelector(),
                     vol.Optional(
                         f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}",
-                        default=quiet_hours.get(CONF_QUIET_END, "07:00:00")
+                        default=quiet_hours.get(CONF_QUIET_END, "07:00:00"),
                     ): TimeSelector(),
                     vol.Optional(
                         CONF_REMINDER_REPEAT,
-                        default=notifications.get(CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT)
+                        default=notifications.get(
+                            CONF_REMINDER_REPEAT, DEFAULT_REMINDER_REPEAT
+                        ),
                     ): NumberSelector(
-                        NumberSelectorConfig(min=5, max=120, step=5, mode="slider", unit_of_measurement="min")
+                        NumberSelectorConfig(
+                            min=5,
+                            max=120,
+                            step=5,
+                            mode="slider",
+                            unit_of_measurement="min",
+                        )
                     ),
                     vol.Optional(
                         CONF_SNOOZE_MIN,
-                        default=notifications.get(CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN)
+                        default=notifications.get(CONF_SNOOZE_MIN, DEFAULT_SNOOZE_MIN),
                     ): NumberSelector(
-                        NumberSelectorConfig(min=5, max=60, step=5, mode="slider", unit_of_measurement="min")
+                        NumberSelectorConfig(
+                            min=5,
+                            max=60,
+                            step=5,
+                            mode="slider",
+                            unit_of_measurement="min",
+                        )
                     ),
                 }
             ),
@@ -496,9 +549,13 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage system settings."""
         if user_input is not None:
-            self._options[CONF_RESET_TIME] = user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
+            self._options[CONF_RESET_TIME] = user_input.get(
+                CONF_RESET_TIME, DEFAULT_RESET_TIME
+            )
             self._options[CONF_EXPORT_PATH] = user_input.get(CONF_EXPORT_PATH, "")
-            self._options[CONF_EXPORT_FORMAT] = user_input.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT)
+            self._options[CONF_EXPORT_FORMAT] = user_input.get(
+                CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT
+            )
             self._options[CONF_VISITOR_MODE] = user_input.get(CONF_VISITOR_MODE, False)
             return self.async_create_entry(title="", data=self._options)
 
@@ -508,15 +565,17 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_RESET_TIME,
-                        default=self._options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
+                        default=self._options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
                     ): TimeSelector(),
                     vol.Optional(
                         CONF_EXPORT_PATH,
-                        default=self._options.get(CONF_EXPORT_PATH, "")
+                        default=self._options.get(CONF_EXPORT_PATH, ""),
                     ): TextSelector(),
                     vol.Optional(
                         CONF_EXPORT_FORMAT,
-                        default=self._options.get(CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT)
+                        default=self._options.get(
+                            CONF_EXPORT_FORMAT, DEFAULT_EXPORT_FORMAT
+                        ),
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=["csv", "json", "pdf"],
@@ -525,7 +584,7 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                     ),
                     vol.Optional(
                         CONF_VISITOR_MODE,
-                        default=self._options.get(CONF_VISITOR_MODE, False)
+                        default=self._options.get(CONF_VISITOR_MODE, False),
                     ): BooleanSelector(),
                 }
             ),
