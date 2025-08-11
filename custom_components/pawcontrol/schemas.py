@@ -1,4 +1,5 @@
 """Service schemas for Paw Control integration."""
+
 from __future__ import annotations
 
 import voluptuous as vol

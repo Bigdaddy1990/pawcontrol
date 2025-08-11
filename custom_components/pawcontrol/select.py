@@ -1,4 +1,5 @@
 """Select platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -46,48 +47,48 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control select entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Feeding module selects
         if modules.get(MODULE_FEEDING):
-            entities.extend([
-                DefaultFoodTypeSelect(hass, coordinator, dog_id, dog_name),
-                PreferredMealTimeSelect(hass, coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    DefaultFoodTypeSelect(hass, coordinator, dog_id, dog_name),
+                    PreferredMealTimeSelect(hass, coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Grooming module selects
         if modules.get(MODULE_GROOMING):
             entities.append(
                 DefaultGroomingTypeSelect(hass, coordinator, dog_id, dog_name)
             )
-        
+
         # Training module selects
         if modules.get(MODULE_TRAINING):
-            entities.extend([
-                TrainingTopicSelect(hass, coordinator, dog_id, dog_name),
-                TrainingIntensitySelect(hass, coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    TrainingTopicSelect(hass, coordinator, dog_id, dog_name),
+                    TrainingIntensitySelect(hass, coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Activity level select (always available)
-        entities.append(
-            ActivityLevelSelect(hass, coordinator, dog_id, dog_name)
-        )
-    
+        entities.append(ActivityLevelSelect(hass, coordinator, dog_id, dog_name))
+
     # Global selects
-    entities.append(
-        ExportFormatSelect(hass, coordinator, entry)
-    )
-    
+    entities.append(ExportFormatSelect(hass, coordinator, entry))
+
     async_add_entities(entities, True)
 
 
@@ -113,7 +114,7 @@ class PawControlSelectBase(SelectEntity):
         self._dog_id = dog_id
         self._dog_name = dog_name
         self._select_type = select_type
-        
+
         self._attr_name = name
         self._attr_icon = icon
         self._attr_options = options
@@ -197,8 +198,15 @@ class DefaultGroomingTypeSelect(PawControlSelectBase):
             "default_grooming_type",
             "Default Grooming Type",
             "mdi:content-cut",
-            [GROOMING_BATH, GROOMING_BRUSH, GROOMING_TRIM, GROOMING_NAILS, 
-             GROOMING_EARS, GROOMING_TEETH, GROOMING_EYES],
+            [
+                GROOMING_BATH,
+                GROOMING_BRUSH,
+                GROOMING_TRIM,
+                GROOMING_NAILS,
+                GROOMING_EARS,
+                GROOMING_TEETH,
+                GROOMING_EYES,
+            ],
         )
 
     @property
@@ -226,8 +234,15 @@ class TrainingTopicSelect(PawControlSelectBase):
             "training_topic",
             "Training Topic",
             "mdi:school",
-            ["Basic Commands", "Leash Training", "Tricks", "Agility", 
-             "Socialization", "House Training", "Behavior Correction"],
+            [
+                "Basic Commands",
+                "Leash Training",
+                "Tricks",
+                "Agility",
+                "Socialization",
+                "House Training",
+                "Behavior Correction",
+            ],
         )
 
     @property

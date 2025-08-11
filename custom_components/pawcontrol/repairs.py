@@ -1,4 +1,5 @@
 """Repairs support for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -26,7 +27,7 @@ class PawControlRepairFlow(RepairsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> data_entry_flow.FlowResult:
         """Handle the first step of a fix flow."""
-        
+
         # Parse issue ID to determine type
         if "missing_door_sensor" in self.issue_id:
             return await self.async_step_missing_door_sensor(user_input)
@@ -51,8 +52,8 @@ class PawControlRepairFlow(RepairsFlow):
             step_id="missing_door_sensor",
             description_placeholders={
                 "description": "The configured door sensor is not available. "
-                               "Walk detection may not work correctly. "
-                               "Please check your door sensor configuration."
+                "Walk detection may not work correctly. "
+                "Please check your door sensor configuration."
             },
         )
 
@@ -68,8 +69,8 @@ class PawControlRepairFlow(RepairsFlow):
             step_id="invalid_export_path",
             description_placeholders={
                 "description": "The export path is invalid or not accessible. "
-                               "Reports cannot be saved to file. "
-                               "Please update the export path in the integration options."
+                "Reports cannot be saved to file. "
+                "Please update the export path in the integration options."
             },
         )
 
@@ -85,8 +86,8 @@ class PawControlRepairFlow(RepairsFlow):
             step_id="missing_notification_service",
             description_placeholders={
                 "description": "The configured notification service is not available. "
-                               "You will not receive reminders and alerts. "
-                               "Please check your notification configuration."
+                "You will not receive reminders and alerts. "
+                "Please check your notification configuration."
             },
         )
 
@@ -102,8 +103,8 @@ class PawControlRepairFlow(RepairsFlow):
             step_id="dog_config_error",
             description_placeholders={
                 "description": "There is an issue with your dog configuration. "
-                               "Some features may not work correctly. "
-                               "Please reconfigure the integration."
+                "Some features may not work correctly. "
+                "Please reconfigure the integration."
             },
         )
 
@@ -119,7 +120,7 @@ class PawControlRepairFlow(RepairsFlow):
             step_id="generic_fix",
             description_placeholders={
                 "description": "An issue was detected with Paw Control. "
-                               "Please check your configuration and logs for more details."
+                "Please check your configuration and logs for more details."
             },
         )
 

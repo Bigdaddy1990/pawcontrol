@@ -1,4 +1,5 @@
 """Device actions for Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -60,19 +61,19 @@ async def async_get_actions(
     domain_in_identifiers = any(
         identifier[0] == DOMAIN for identifier in device.identifiers
     )
-    
+
     if not domain_in_identifiers:
         return []
 
     actions = []
-    
+
     # Get dog_id from device identifiers
     dog_id = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
             break
-    
+
     if not dog_id or dog_id == "global":
         return []
 
@@ -98,23 +99,23 @@ async def async_call_action_from_config(
     """Execute a device action."""
     action_type = config[CONF_TYPE]
     device_id = config[CONF_DEVICE_ID]
-    
+
     # Get dog_id from device
     registry = dr.async_get(hass)
     device = registry.async_get(device_id)
-    
+
     if not device:
         raise ValueError(f"Device {device_id} not found")
-    
+
     dog_id = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
             break
-    
+
     if not dog_id:
         raise ValueError(f"Dog ID not found for device {device_id}")
-    
+
     # Map action types to service calls
     if action_type == "start_walk":
         await hass.services.async_call(

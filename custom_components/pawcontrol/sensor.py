@@ -1,4 +1,5 @@
 """Sensor platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -52,69 +53,81 @@ async def async_setup_entry(
     coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
         "coordinator"
     ]
-    
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Always add basic sensors
-        entities.extend([
-            LastActionSensor(coordinator, dog_id, dog_name),
-            LastWalkSensor(coordinator, dog_id, dog_name),
-            LastFeedingSensor(coordinator, dog_id, dog_name),
-            FeedingCountSensor(coordinator, dog_id, dog_name, "breakfast"),
-            FeedingCountSensor(coordinator, dog_id, dog_name, "lunch"),
-            FeedingCountSensor(coordinator, dog_id, dog_name, "dinner"),
-            FeedingCountSensor(coordinator, dog_id, dog_name, "snack"),
-            PoopCountSensor(coordinator, dog_id, dog_name),
-        ])
-        
+        entities.extend(
+            [
+                LastActionSensor(coordinator, dog_id, dog_name),
+                LastWalkSensor(coordinator, dog_id, dog_name),
+                LastFeedingSensor(coordinator, dog_id, dog_name),
+                FeedingCountSensor(coordinator, dog_id, dog_name, "breakfast"),
+                FeedingCountSensor(coordinator, dog_id, dog_name, "lunch"),
+                FeedingCountSensor(coordinator, dog_id, dog_name, "dinner"),
+                FeedingCountSensor(coordinator, dog_id, dog_name, "snack"),
+                PoopCountSensor(coordinator, dog_id, dog_name),
+            ]
+        )
+
         # Walk module sensors
         if modules.get(MODULE_WALK):
-            entities.extend([
-                WalkDurationSensor(coordinator, dog_id, dog_name),
-                WalkDistanceSensor(coordinator, dog_id, dog_name),
-                WalkCountSensor(coordinator, dog_id, dog_name),
-                TotalDistanceTodaySensor(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    WalkDurationSensor(coordinator, dog_id, dog_name),
+                    WalkDistanceSensor(coordinator, dog_id, dog_name),
+                    WalkCountSensor(coordinator, dog_id, dog_name),
+                    TotalDistanceTodaySensor(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Health module sensors
         if modules.get(MODULE_HEALTH):
-            entities.extend([
-                WeightSensor(coordinator, dog_id, dog_name),
-                WeightTrendSensor(coordinator, dog_id, dog_name),
-                LastMedicationSensor(coordinator, dog_id, dog_name),
-                MedicationCountSensor(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    WeightSensor(coordinator, dog_id, dog_name),
+                    WeightTrendSensor(coordinator, dog_id, dog_name),
+                    LastMedicationSensor(coordinator, dog_id, dog_name),
+                    MedicationCountSensor(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Grooming module sensors
         if modules.get(MODULE_GROOMING):
-            entities.extend([
-                LastGroomingSensor(coordinator, dog_id, dog_name),
-                DaysSinceGroomingSensor(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    LastGroomingSensor(coordinator, dog_id, dog_name),
+                    DaysSinceGroomingSensor(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Training module sensors
         if modules.get(MODULE_TRAINING):
-            entities.extend([
-                LastTrainingSensor(coordinator, dog_id, dog_name),
-                TrainingDurationSensor(coordinator, dog_id, dog_name),
-                TrainingCountSensor(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    LastTrainingSensor(coordinator, dog_id, dog_name),
+                    TrainingDurationSensor(coordinator, dog_id, dog_name),
+                    TrainingCountSensor(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Activity sensors
-        entities.extend([
-            PlayTimeTodaySensor(coordinator, dog_id, dog_name),
-            ActivityLevelSensor(coordinator, dog_id, dog_name),
-            CaloriesBurnedSensor(coordinator, dog_id, dog_name),
-        ])
+        entities.extend(
+            [
+                PlayTimeTodaySensor(coordinator, dog_id, dog_name),
+                ActivityLevelSensor(coordinator, dog_id, dog_name),
+                CaloriesBurnedSensor(coordinator, dog_id, dog_name),
+            ]
+        )
 
     # Use keyword argument for clarity instead of a positional boolean,
     # following best practices for readability.
@@ -138,7 +151,7 @@ class PawControlSensorBase(CoordinatorEntity, SensorEntity):
         self._dog_id = dog_id
         self._dog_name = dog_name
         self._sensor_type = sensor_type
-        
+
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.sensor.{sensor_type}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)},
@@ -353,11 +366,11 @@ class WeightTrendSensor(PawControlSensorBase):
         weight_trend = self.dog_data.get("health", {}).get("weight_trend", [])
         if len(weight_trend) < 2:
             return 0
-        
+
         # Calculate trend from last two measurements
         current = weight_trend[-1].get("weight", 0)
         previous = weight_trend[-2].get("weight", 0)
-        
+
         if previous > 0:
             return round(((current - previous) / previous) * 100, 2)
         return 0
@@ -458,7 +471,7 @@ class DaysSinceGroomingSensor(PawControlSensorBase):
         last_grooming = self.dog_data.get("grooming", {}).get("last_grooming")
         if not last_grooming:
             return None
-        
+
         try:
             last_date = datetime.fromisoformat(last_grooming)
             return (datetime.now() - last_date).days
@@ -568,12 +581,11 @@ class ActivityLevelSensor(PawControlSensorBase):
         """Return additional attributes."""
         activity_data = self.dog_data.get("activity", {})
         walk_data = self.dog_data.get("walk", {})
-        
-        total_activity_min = (
-            walk_data.get("walk_duration_min", 0) +
-            activity_data.get("play_duration_today_min", 0)
+
+        total_activity_min = walk_data.get("walk_duration_min", 0) + activity_data.get(
+            "play_duration_today_min", 0
         )
-        
+
         return {
             "total_activity_min": total_activity_min,
             "walks_today": walk_data.get("walks_today", 0),

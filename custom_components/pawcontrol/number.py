@@ -1,4 +1,5 @@
 """Number platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -35,52 +36,50 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control number entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Walk module numbers
         if modules.get(MODULE_WALK):
-            entities.extend([
-                WalkThresholdNumber(hass, coordinator, dog_id, dog_name),
-                MinWalkDurationNumber(hass, coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    WalkThresholdNumber(hass, coordinator, dog_id, dog_name),
+                    MinWalkDurationNumber(hass, coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Feeding module numbers
         if modules.get(MODULE_FEEDING):
-            entities.extend([
-                BreakfastPortionNumber(hass, coordinator, dog_id, dog_name),
-                LunchPortionNumber(hass, coordinator, dog_id, dog_name),
-                DinnerPortionNumber(hass, coordinator, dog_id, dog_name),
-                SnackPortionNumber(hass, coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    BreakfastPortionNumber(hass, coordinator, dog_id, dog_name),
+                    LunchPortionNumber(hass, coordinator, dog_id, dog_name),
+                    DinnerPortionNumber(hass, coordinator, dog_id, dog_name),
+                    SnackPortionNumber(hass, coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Health module numbers
         if modules.get(MODULE_HEALTH):
-            entities.append(
-                TargetWeightNumber(hass, coordinator, dog_id, dog_name)
-            )
-        
+            entities.append(TargetWeightNumber(hass, coordinator, dog_id, dog_name))
+
         # Grooming module numbers
         if modules.get(MODULE_GROOMING):
-            entities.append(
-                GroomingIntervalNumber(hass, coordinator, dog_id, dog_name)
-            )
-        
+            entities.append(GroomingIntervalNumber(hass, coordinator, dog_id, dog_name))
+
         # Training module numbers
         if modules.get(MODULE_TRAINING):
-            entities.append(
-                TrainingDurationNumber(hass, coordinator, dog_id, dog_name)
-            )
-    
+            entities.append(TrainingDurationNumber(hass, coordinator, dog_id, dog_name))
+
     async_add_entities(entities, True)
 
 
@@ -110,7 +109,7 @@ class PawControlNumberBase(NumberEntity):
         self._dog_id = dog_id
         self._dog_name = dog_name
         self._number_type = number_type
-        
+
         self._attr_name = name
         self._attr_icon = icon
         self._attr_native_min_value = min_value
@@ -361,7 +360,9 @@ class GroomingIntervalNumber(PawControlNumberBase):
     @property
     def native_value(self) -> float:
         """Return the current value."""
-        return self.dog_data.get("grooming", {}).get("grooming_interval_days", DEFAULT_GROOMING_INTERVAL_DAYS)
+        return self.dog_data.get("grooming", {}).get(
+            "grooming_interval_days", DEFAULT_GROOMING_INTERVAL_DAYS
+        )
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the value."""
