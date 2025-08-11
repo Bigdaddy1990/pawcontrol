@@ -1,5 +1,7 @@
 """Constants for the Paw Control integration."""
 
+from typing import Final
+
 from homeassistant.const import Platform
 
 DOMAIN = "pawcontrol"
@@ -8,7 +10,7 @@ DOMAIN = "pawcontrol"
 # values are instances of the ``Platform`` enum; using raw strings would cause
 # setup and unload to fail.  Typing the list helps static checkers catch any
 # accidental regression back to string values.
-PLATFORMS: list[Platform] = [
+PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
