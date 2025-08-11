@@ -50,9 +50,9 @@ lint: ## Run all linters
 	@echo "Running linters..."
 	@. $(VENV)/bin/activate && black --check $(CUSTOM_COMPONENTS)
 	@. $(VENV)/bin/activate && isort --check-only $(CUSTOM_COMPONENTS)
-	@. $(VENV)/bin/activate && flake8 $(CUSTOM_COMPONENTS)
-	@. $(VENV)/bin/activate && mypy $(CUSTOM_COMPONENTS)
-	@. $(VENV)/bin/activate && yamllint -c .yamllint $(CUSTOM_COMPONENTS)
+@. $(VENV)/bin/activate && flake8 $(CUSTOM_COMPONENTS)
+@. $(VENV)/bin/activate && mypy
+@. $(VENV)/bin/activate && yamllint -c .yamllint $(CUSTOM_COMPONENTS)
 
 format: ## Format code with black and isort
 	@echo "Formatting code..."

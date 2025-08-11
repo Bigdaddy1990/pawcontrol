@@ -246,6 +246,7 @@ directory = "htmlcov"
 
 [tool.mypy]
 python_version = "3.11"
+files = ["custom_components/pawcontrol"]
 show_error_codes = true
 follow_imports = "silent"
 ignore_missing_imports = true
