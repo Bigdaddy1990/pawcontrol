@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import timedelta
 from typing import Any, Dict, Optional, Tuple
 
@@ -16,7 +15,7 @@ from homeassistant.const import (
     STATE_HOME,
     STATE_NOT_HOME,
 )
-from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
@@ -45,7 +44,7 @@ class GPSLogic:
         self._tracked_entities: Dict[str, Any] = {}
         self._walk_sessions: Dict[str, Dict[str, Any]] = {}
         self._door_sensor: Optional[str] = None
-        self._unsubscribe_callbacks = []
+        self._unsubscribe_callbacks: list[CALLBACK_TYPE] = []
 
     async def setup(self) -> None:
         """Set up GPS tracking."""
