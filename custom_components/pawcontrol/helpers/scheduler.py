@@ -133,12 +133,12 @@ class PawControlScheduler:
         
         # Schedule report 5 minutes before daily reset
         reset_time_str = self.entry.options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
-        
+
         try:
             reset_time = time.fromisoformat(reset_time_str)
-            report_time = (
-                datetime.combine(datetime.today(), reset_time) - timedelta(minutes=5)
-            ).time()
+            # Use Home Assistant's timezone-aware time for scheduling
+            now = dt_util.now()
+            report_time = (datetime.combine(now.date(), reset_time) - timedelta(minutes=5)).time()
             
             @callback
             def daily_report_callback(now):
