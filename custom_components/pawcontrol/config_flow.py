@@ -136,9 +136,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         MODULE_FEEDING: user_input.get(f"module_{MODULE_FEEDING}", True),
                         MODULE_HEALTH: user_input.get(f"module_{MODULE_HEALTH}", True),
                         MODULE_GPS: user_input.get(f"module_{MODULE_GPS}", False),
-                        MODULE_NOTIFICATIONS: user_input.get(
-                            f"module_{MODULE_NOTIFICATIONS}", True
-                        ),
+                        MODULE_NOTIFICATIONS: user_input.get(f"module_{MODULE_NOTIFICATIONS}", True),
                         MODULE_DASHBOARD: user_input.get(f"module_{MODULE_DASHBOARD}", True),
                         MODULE_GROOMING: user_input.get(f"module_{MODULE_GROOMING}", True),
                         MODULE_MEDICATION: user_input.get(f"module_{MODULE_MEDICATION}", False),

@@ -32,11 +32,11 @@ from .const import (
     SERVICE_GENERATE_REPORT,
     SERVICE_EXPORT_DATA,
 )
+from .coordinator import PawControlCoordinator
+from .report_generator import ReportGenerator
 from .helpers.scheduler import setup_schedulers, cleanup_schedulers
-
-# Import modules instead of classes to allow patching in tests
-from . import coordinator, report_generator
-from .helpers import notification_router, setup_sync
+from .helpers.notification_router import NotificationRouter
+from .helpers.setup_sync import SetupSync
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,19 +52,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     
     # Initialize coordinator
-    pc_coordinator = coordinator.PawControlCoordinator(hass, entry)
+    coordinator = PawControlCoordinator(hass, entry)
 
     try:
-        await pc_coordinator.async_config_entry_first_refresh()
+        await coordinator.async_config_entry_first_refresh()
     except Exception as err:
         raise ConfigEntryNotReady from err
 
     # Store coordinator and helpers
     hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": pc_coordinator,
-        "notification_router": notification_router.NotificationRouter(hass, entry),
-        "setup_sync": setup_sync.SetupSync(hass, entry),
-        "report_generator": report_generator.ReportGenerator(hass, entry),
+        "coordinator": coordinator,
+        "notification_router": NotificationRouter(hass, entry),
+        "setup_sync": SetupSync(hass, entry),
+        "report_generator": ReportGenerator(hass, entry),
     }
     
     # Register devices for each dog
@@ -110,11 +110,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options."""
-    pc_coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     setup_sync_helper = hass.data[DOMAIN][entry.entry_id]["setup_sync"]
 
     # Update coordinator with new options
-    pc_coordinator.update_options(entry.options)
+    coordinator.update_options(entry.options)
 
     # Resync helpers and entities
     await setup_sync_helper.sync_all()
@@ -124,7 +124,7 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await setup_schedulers(hass, entry)
 
     # Refresh data
-    await pc_coordinator.async_request_refresh()
+    await coordinator.async_request_refresh()
 
 
 async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
