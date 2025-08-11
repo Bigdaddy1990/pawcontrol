@@ -5,34 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pawcontrol"
 version = "1.0.0"
-description = "Smart Dog Management Integration for Home Assistant"
+description = "Smart Dog Management Integration for Home Assistant- Eine umfassende Home Assistant Integration zur Verwaltung und Überwachung Ihres Hundes mit GPS-Tracking und intelligenten Automatisierungen"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Paw Control Contributors"}
 ]
-keywords = [
-    "home-assistant",
-    "hacs",
-    "integration",
-    "dog",
-    "pet",
-    "tracking",
-    "smart-home",
-    "automation"
-]
+keywords = ["home-assistant", "hacs", "dog", "pet", "gps", "tracking", "automation", "paw-control"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Home Automation",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Environment :: Plugins",
 ]
+requires-python = ">=3.11"
 dependencies = [
     "homeassistant>=2024.1.0",
+    "voluptuous>=0.13.1",
+    "aiohttp>=3.8.0",
 ]
 
 [project.optional-dependencies]
@@ -41,27 +38,42 @@ dev = [
     "isort>=5.12.0",
     "flake8>=6.0.0",
     "mypy>=1.0.0",
-    "pytest>=7.2.0",
-    "pytest-asyncio>=0.21.0",
+    "pre-commit>=3.0.0",
+    "pytest>=7.0.0",
     "pytest-homeassistant-custom-component>=0.13.0",
     "pytest-cov>=4.0.0",
-    "pre-commit>=3.0.0",
+    "pytest-asyncio>=0.21.0",
+    "types-requests",
+    "types-PyYAML",
+    "ruff>=0.1.0",
+    "pylint>=3.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-homeassistant-custom-component>=0.13.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/bigdaddy1990/pawcontrol"
-Documentation = "https://github.com/bigdaddy1990/pawcontrol/wiki"
+Documentation = "https://github.com/BigDaddy1990/paw_control/blob/main/README.md"
 Repository = "https://github.com/bigdaddy1990/pawcontrol"
 Issues = "https://github.com/bigdaddy1990/pawcontrol/issues"
 Changelog = "https://github.com/bigdaddy1990/pawcontrol/blob/main/CHANGELOG.md"
+"Funding" = "https://ko-fi.com/bigdaddy1990"
+"Release Notes" = "https://github.com/BigDaddy1990/paw_control/releases"
 
 [tool.setuptools]
+package-dir = {"" = "."}
 platforms = ["any"]
 zip-safe = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["custom_components*"]
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
 "*" = [
@@ -73,20 +85,21 @@ include = ["custom_components*"]
     "helpers/*",
 ]
 
+# ==== CODE QUALITY TOOLS ====
+
 [tool.black]
-line-length = 100
-target-version = ["py311", "py312"]
+target-version = ["py311"]
+line-length = 88
 include = '\.pyi?$'
-exclude = '''
+extend-exclude = '''
 /(
-    \.eggs
+  # directories
+  \.eggs
   | \.git
   | \.hg
   | \.mypy_cache
   | \.tox
   | \.venv
-  | _build
-  | buck-out
   | build
   | dist
 )/
@@ -94,53 +107,271 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 100
+line_length = 88
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+src_paths = ["custom_components", "tests"]
 
-[tool.mypy]
-python_version = "3.11"
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_calls = true
-disallow_untyped_decorators = false
-disallow_untyped_defs = true
-follow_imports = "normal"
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
-warn_return_any = false
-warn_unreachable = true
-warn_unused_configs = true
-warn_unused_ignores = true
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = [
+    "B",    # flake8-bugbear
+    "C",    # mccabe
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "S",    # bandit security
+    "BLE",  # flake8-blind-except
+    "FBT",  # flake8-boolean-trap
+    "A",    # flake8-builtins
+    "COM",  # flake8-commas
+    "C4",   # flake8-comprehensions
+    "DTZ",  # flake8-datetimez
+    "EM",   # flake8-errmsg
+    "FA",   # flake8-future-annotations
+    "ISC",  # flake8-implicit-str-concat
+    "ICN",  # flake8-import-conventions
+    "G",    # flake8-logging-format
+    "INP",  # flake8-no-pep420
+    "PIE",  # flake8-pie
+    "T20",  # flake8-print
+    "PT",   # flake8-pytest-style
+    "Q",    # flake8-quotes
+    "RSE",  # flake8-raise
+    "RET",  # flake8-return
+    "SLF",  # flake8-self
+    "SIM",  # flake8-simplify
+    "TID",  # flake8-tidy-imports
+    "TCH",  # flake8-type-checking
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # eradicate
+    "PD",   # pandas-vet
+    "PGH",  # pygrep-hooks
+    "PL",   # pylint
+    "TRY",  # tryceratops
+    "NPY",  # numpy-specific
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "S101",   # assert usage (needed for tests)
+    "S104",   # hardcoded-bind-all-interfaces
+    "S301",   # suspicious-pickle-usage
+    "S311",   # suspicious-non-cryptographic-random-usage
+    "S324",   # hashlib-insecure-hash-function
+    "S603",   # subprocess-without-shell-equals-true
+    "S607",   # start-process-with-partial-path
+    "S608",   # hardcoded-sql-expression
+    "COM812", # missing-trailing-comma (conflicts with black)
+    "ISC001", # single-line-implicit-string-concatenation (conflicts with black)
+    "PLR0913", # too-many-arguments
+    "PLR0915", # too-many-statements
+    "PLR2004", # magic-value-comparison
+]
+
+[tool.ruff.mccabe]
+max-complexity = 12
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S101", "PLR2004", "S106"]
+"custom_components/pawcontrol/__init__.py" = ["F401"]
+
+# ==== TESTING ====
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-asyncio_mode = "auto"
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "asyncio: marks tests as async tests",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+norecursedirs = [
+    ".git",
+    ".tox",
+    "dist",
+    "build",
+    "south_migrations",
 ]
 
 [tool.coverage.run]
 source = ["custom_components/pawcontrol"]
 omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
+    "tests/*",
+    "custom_components/pawcontrol/__pycache__/*",
+    "*/.venv/*",
+    "*/venv/*",
 ]
+branch = true
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
     "raise AssertionError",
     "raise NotImplementedError",
+    "if 0:",
     "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+    "except ImportError:",
+    "except ModuleNotFoundError:",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# ==== MYPY ====
+
+[tool.mypy]
+python_version = "3.11"
+show_error_codes = true
+follow_imports = "silent"
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+warn_unused_configs = true
+check_untyped_defs = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+# ==== HOME ASSISTANT SPECIFIC ====
+
+[tool.pylint.MASTER]
+py-version = "3.11"
+ignore = [
+    "tests",
+]
+load-plugins = [
+    "pylint.extensions.code_style",
+    "pylint.extensions.typing",
+]
+
+[tool.pylint.BASIC]
+good-names = [
+    "_",
+    "ev",
+    "ex",
+    "fp",
+    "i",
+    "id",
+    "j",
+    "k",
+    "Run",
+    "T",
+    "hass",
+]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+    "too-few-public-methods",
+    "too-many-public-methods",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-statements",
+    "duplicate-code",
+    "cyclic-import",
+    "unused-argument",
+    "wrong-import-order",
+    "consider-using-f-string",
+    "consider-using-assignment-expr",
+]
+
+[tool.pylint.REPORTS]
+score = false
+
+[tool.pylint.TYPECHECK]
+ignored-modules = [
+    "distutils",
+]
+ignored-classes = [
+    "optparse.Values",
+    "thread._local",
+    "_thread._local",
+]
+
+[tool.pylint.FORMAT]
+expected-line-ending-format = "LF"
+
+[tool.pylint.EXCEPTIONS]
+overgeneral-exceptions = [
+    "builtins.BaseException",
+    "builtins.Exception",
+]
+
+# ==== PRE-COMMIT CONFIGURATION ====
+[tool.pre-commit]
+
+[[tool.pre-commit.repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v4.6.0"
+hooks = [
+    {id = "trailing-whitespace"},
+    {id = "end-of-file-fixer"},
+    {id = "check-yaml"},
+    {id = "check-added-large-files"},
+    {id = "check-case-conflict"},
+    {id = "check-merge-conflict"},
+    {id = "debug-statements"},
+    {id = "check-json", exclude = ".vscode/.*"},
+]
+
+[[tool.pre-commit.repos]]
+repo = "https://github.com/psf/black"
+rev = "24.4.2"
+hooks = [
+    {id = "black", language_version = "python3"},
+]
+
+[[tool.pre-commit.repos]]
+repo = "https://github.com/pycqa/isort"
+rev = "5.13.2"
+hooks = [
+    {id = "isort"},
+]
+
+[[tool.pre-commit.repos]]
+repo = "https://github.com/charliermarsh/ruff-pre-commit"
+rev = "v0.1.15"
+hooks = [
+    {id = "ruff", args = ["--fix"]},
+]
+
+[[tool.pre-commit.repos]]
+repo = "https://github.com/pre-commit/mirrors-mypy"
+rev = "v1.10.0"
+hooks = [
+    {id = "mypy", additional_dependencies = ["types-requests", "types-PyYAML"], exclude = "tests/"},
 ]
