@@ -223,8 +223,10 @@ class NotificationRouter:
                 # and produce an invalid service name. Using ``split('.', 1)``
                 # and taking the last element preserves the entire service
                 # identifier while also handling values without a domain
-                # prefix, ensuring we don't misroute the notification.
-                service = fallback.split(".", 1)[-1]
+                # prefix, ensuring we don't misroute the notification. Any
+                # remaining periods must be converted to underscores to match
+                # how Home Assistant names services.
+                service = fallback.split(".", 1)[-1].replace(".", "_")
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
