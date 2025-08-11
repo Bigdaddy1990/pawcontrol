@@ -203,7 +203,8 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_sources(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure data sources."""
         if user_input is not None:
-            self._sources = user_input
+            # Store provided sources, dropping any values left unset
+            self._sources = {k: v for k, v in user_input.items() if v is not None}
             return await self.async_step_notifications()
 
         # Check which modules need sources
@@ -227,22 +228,23 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 EntitySelectorConfig(domain="device_tracker", multiple=True)
             )
 
-        schema_dict[vol.Optional(CONF_CALENDAR)] = EntitySelector(
-            EntitySelectorConfig(domain="calendar")
+        schema_dict[vol.Optional(CONF_CALENDAR, default=None)] = vol.Any(
+            None,
+            EntitySelector(EntitySelectorConfig(domain="calendar")),
         )
-        schema_dict[vol.Optional(CONF_WEATHER)] = EntitySelector(
-            EntitySelectorConfig(domain="weather")
+        schema_dict[vol.Optional(CONF_WEATHER, default=None)] = vol.Any(
+            None,
+            EntitySelector(EntitySelectorConfig(domain="weather")),
         )
 
         if not schema_dict:
             # No sources needed, skip to notifications
             return await self.async_step_notifications()
-
         return self.async_show_form(
             step_id="sources",
-            data_schema=vol.Schema(schema_dict),
+            data_schema=vol.Schema(schema_dict, extra=vol.ALLOW_EXTRA),
             description_placeholders={
-                "info": "Configure optional data sources for enhanced functionality."
+                "info": "Configure optional data sources for enhanced functionality.",
             },
         )
 
