@@ -172,6 +172,11 @@ Each dog gets a comprehensive set of entities:
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
+Type checking is handled by `mypy` and is scoped via the `files` setting in
+`pyproject.toml` to `custom_components/pawcontrol`. Running `mypy` without
+arguments only validates this package. Extend the setting if you want to apply
+type checking to other parts of the repository.
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
