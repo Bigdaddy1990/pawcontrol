@@ -1,4 +1,5 @@
 """Fixtures for Paw Control tests."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -167,9 +168,7 @@ def mock_notification_router():
 @pytest.fixture
 def mock_setup_sync():
     """Mock the SetupSync."""
-    with patch(
-        "custom_components.pawcontrol.helpers.setup_sync.SetupSync"
-    ) as mock:
+    with patch("custom_components.pawcontrol.helpers.setup_sync.SetupSync") as mock:
         instance = mock.return_value
         instance.sync_all.return_value = None
         instance.cleanup_all.return_value = None

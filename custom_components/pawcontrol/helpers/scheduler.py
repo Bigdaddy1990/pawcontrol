@@ -1,4 +1,5 @@
 """Scheduler for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -47,58 +48,58 @@ class PawControlScheduler:
     async def setup(self) -> None:
         """Set up all scheduled tasks."""
         _LOGGER.info("Setting up scheduled tasks")
-        
+
         # Setup daily reset
         await self._setup_daily_reset()
-        
+
         # Setup daily report (if configured)
         await self._setup_daily_report()
-        
+
         # Setup feeding reminders
         await self._setup_feeding_reminders()
-        
+
         # Setup walk reminders
         await self._setup_walk_reminders()
-        
+
         # Setup medication reminders
         await self._setup_medication_reminders()
-        
+
         # Setup grooming reminders
         await self._setup_grooming_reminders()
 
     async def cleanup(self) -> None:
         """Clean up all scheduled tasks."""
         _LOGGER.info("Cleaning up scheduled tasks")
-        
+
         # Cancel all scheduled tasks
         for task_id, cancel_callback in self._scheduled_tasks.items():
             if cancel_callback:
                 cancel_callback()
                 _LOGGER.debug(f"Cancelled scheduled task: {task_id}")
-        
+
         self._scheduled_tasks.clear()
-        
+
         # Cancel all reminder tasks
         for task_id, cancel_callback in self._reminder_tasks.items():
             if cancel_callback:
                 cancel_callback()
                 _LOGGER.debug(f"Cancelled reminder task: {task_id}")
-        
+
         self._reminder_tasks.clear()
 
     async def _setup_daily_reset(self) -> None:
         """Set up daily reset task."""
         reset_time_str = self.entry.options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
-        
+
         try:
             reset_time = time.fromisoformat(reset_time_str)
-            
+
             @callback
             def daily_reset_callback(now):
                 """Execute daily reset."""
                 _LOGGER.info("Executing daily reset")
                 self.hass.bus.async_fire(EVENT_DAILY_RESET)
-                
+
                 # Call the service
                 self.hass.async_create_task(
                     self.hass.services.async_call(
@@ -108,7 +109,7 @@ class PawControlScheduler:
                         blocking=False,
                     )
                 )
-            
+
             # Schedule daily reset
             cancel = async_track_time_change(
                 self.hass,
@@ -117,10 +118,10 @@ class PawControlScheduler:
                 minute=reset_time.minute,
                 second=reset_time.second,
             )
-            
+
             self._scheduled_tasks["daily_reset"] = cancel
             _LOGGER.info(f"Daily reset scheduled for {reset_time_str}")
-            
+
         except ValueError as err:
             _LOGGER.error(f"Invalid reset time configuration: {err}")
 
@@ -130,7 +131,7 @@ class PawControlScheduler:
         export_path = self.entry.options.get("export_path")
         if not export_path:
             return
-        
+
         # Schedule report 5 minutes before daily reset
         reset_time_str = self.entry.options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
 
@@ -138,13 +139,15 @@ class PawControlScheduler:
             reset_time = time.fromisoformat(reset_time_str)
             # Use Home Assistant's timezone-aware time for scheduling
             now = dt_util.now()
-            report_time = (datetime.combine(now.date(), reset_time) - timedelta(minutes=5)).time()
-            
+            report_time = (
+                datetime.combine(now.date(), reset_time) - timedelta(minutes=5)
+            ).time()
+
             @callback
             def daily_report_callback(now):
                 """Generate daily report."""
                 _LOGGER.info("Generating daily report")
-                
+
                 self.hass.async_create_task(
                     self.hass.services.async_call(
                         DOMAIN,
@@ -157,7 +160,7 @@ class PawControlScheduler:
                         blocking=False,
                     )
                 )
-            
+
             # Schedule daily report
             cancel = async_track_time_change(
                 self.hass,
@@ -166,57 +169,59 @@ class PawControlScheduler:
                 minute=report_time.minute,
                 second=0,
             )
-            
+
             self._scheduled_tasks["daily_report"] = cancel
             _LOGGER.info(f"Daily report scheduled for {report_time.strftime('%H:%M')}")
-            
+
         except ValueError as err:
             _LOGGER.error(f"Invalid report time configuration: {err}")
 
     async def _setup_feeding_reminders(self) -> None:
         """Set up feeding reminder schedules."""
         dogs = self.entry.options.get(CONF_DOGS, [])
-        
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
-            
+
             modules = dog.get(CONF_DOG_MODULES, {})
             if not modules.get(MODULE_FEEDING, False):
                 continue
-            
+
             # Default feeding times
             feeding_schedule = {
                 "breakfast": "07:00:00",
                 "lunch": "12:00:00",
                 "dinner": "18:00:00",
             }
-            
+
             for meal_type, meal_time_str in feeding_schedule.items():
                 try:
                     meal_time = time.fromisoformat(meal_time_str)
-                    
+
                     @callback
                     def feeding_reminder_callback(now, dog_id=dog_id, meal=meal_type):
                         """Send feeding reminder."""
                         _LOGGER.info(f"Feeding reminder for {dog_id} - {meal}")
-                        
+
                         # Get notification router
-                        router = self.hass.data[DOMAIN].get(
-                            self.entry.entry_id, {}
-                        ).get("notification_router")
-                        
+                        router = (
+                            self.hass.data[DOMAIN]
+                            .get(self.entry.entry_id, {})
+                            .get("notification_router")
+                        )
+
                         if router:
                             self.hass.async_create_task(
                                 router.send_reminder(
                                     "feeding",
                                     dog_id,
                                     dog.get("name", dog_id),
-                                    {"meal_type": meal}
+                                    {"meal_type": meal},
                                 )
                             )
-                    
+
                     # Schedule feeding reminder
                     cancel = async_track_time_change(
                         self.hass,
@@ -225,46 +230,54 @@ class PawControlScheduler:
                         minute=meal_time.minute,
                         second=0,
                     )
-                    
+
                     task_id = f"feeding_{dog_id}_{meal_type}"
                     self._reminder_tasks[task_id] = cancel
-                    _LOGGER.debug(f"Feeding reminder scheduled: {task_id} at {meal_time_str}")
-                    
+                    _LOGGER.debug(
+                        f"Feeding reminder scheduled: {task_id} at {meal_time_str}"
+                    )
+
                 except ValueError as err:
                     _LOGGER.error(f"Invalid feeding time for {meal_type}: {err}")
 
     async def _setup_walk_reminders(self) -> None:
         """Set up walk reminder checks."""
         dogs = self.entry.options.get(CONF_DOGS, [])
-        
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
-            
+
             modules = dog.get(CONF_DOG_MODULES, {})
             if not modules.get(MODULE_WALK, False):
                 continue
-            
+
             @callback
-            def walk_check_callback(now, dog_id=dog_id, dog_name=dog.get("name", dog_id)):
+            def walk_check_callback(
+                now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
+            ):
                 """Check if dog needs walk reminder."""
-                coordinator = self.hass.data[DOMAIN].get(
-                    self.entry.entry_id, {}
-                ).get("coordinator")
-                
+                coordinator = (
+                    self.hass.data[DOMAIN]
+                    .get(self.entry.entry_id, {})
+                    .get("coordinator")
+                )
+
                 if not coordinator:
                     return
-                
+
                 dog_data = coordinator.get_dog_data(dog_id)
                 if dog_data.get("walk", {}).get("needs_walk", False):
                     _LOGGER.info(f"Walk needed for {dog_id}")
-                    
+
                     # Send reminder
-                    router = self.hass.data[DOMAIN].get(
-                        self.entry.entry_id, {}
-                    ).get("notification_router")
-                    
+                    router = (
+                        self.hass.data[DOMAIN]
+                        .get(self.entry.entry_id, {})
+                        .get("notification_router")
+                    )
+
                     if router:
                         self.hass.async_create_task(
                             router.send_reminder(
@@ -273,14 +286,14 @@ class PawControlScheduler:
                                 dog_name,
                             )
                         )
-            
+
             # Check every hour
             cancel = async_track_time_interval(
                 self.hass,
                 walk_check_callback,
                 timedelta(hours=1),
             )
-            
+
             task_id = f"walk_check_{dog_id}"
             self._reminder_tasks[task_id] = cancel
             _LOGGER.debug(f"Walk check scheduled: {task_id}")
@@ -288,43 +301,47 @@ class PawControlScheduler:
     async def _setup_medication_reminders(self) -> None:
         """Set up medication reminder schedules."""
         dogs = self.entry.options.get(CONF_DOGS, [])
-        
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
-            
+
             modules = dog.get(CONF_DOG_MODULES, {})
             if not modules.get(MODULE_MEDICATION, False):
                 continue
-            
+
             # Get medication schedule from config (if available)
             # For now, use default times
             medication_times = ["08:00:00", "20:00:00"]
-            
+
             for med_time_str in medication_times:
                 try:
                     med_time = time.fromisoformat(med_time_str)
-                    
+
                     @callback
-                    def medication_reminder_callback(now, dog_id=dog_id, dog_name=dog.get("name", dog_id)):
+                    def medication_reminder_callback(
+                        now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
+                    ):
                         """Send medication reminder."""
                         _LOGGER.info(f"Medication reminder for {dog_id}")
-                        
-                        router = self.hass.data[DOMAIN].get(
-                            self.entry.entry_id, {}
-                        ).get("notification_router")
-                        
+
+                        router = (
+                            self.hass.data[DOMAIN]
+                            .get(self.entry.entry_id, {})
+                            .get("notification_router")
+                        )
+
                         if router:
                             self.hass.async_create_task(
                                 router.send_reminder(
                                     "medication",
                                     dog_id,
                                     dog_name,
-                                    {"medication": "scheduled medication"}
+                                    {"medication": "scheduled medication"},
                                 )
                             )
-                    
+
                     # Schedule medication reminder
                     cancel = async_track_time_change(
                         self.hass,
@@ -333,46 +350,54 @@ class PawControlScheduler:
                         minute=med_time.minute,
                         second=0,
                     )
-                    
+
                     task_id = f"medication_{dog_id}_{med_time_str.replace(':', '')}"
                     self._reminder_tasks[task_id] = cancel
-                    _LOGGER.debug(f"Medication reminder scheduled: {task_id} at {med_time_str}")
-                    
+                    _LOGGER.debug(
+                        f"Medication reminder scheduled: {task_id} at {med_time_str}"
+                    )
+
                 except ValueError as err:
                     _LOGGER.error(f"Invalid medication time: {err}")
 
     async def _setup_grooming_reminders(self) -> None:
         """Set up grooming reminder checks."""
         dogs = self.entry.options.get(CONF_DOGS, [])
-        
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
-            
+
             modules = dog.get(CONF_DOG_MODULES, {})
             if not modules.get(MODULE_GROOMING, False):
                 continue
-            
+
             @callback
-            def grooming_check_callback(now, dog_id=dog_id, dog_name=dog.get("name", dog_id)):
+            def grooming_check_callback(
+                now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
+            ):
                 """Check if dog needs grooming reminder."""
-                coordinator = self.hass.data[DOMAIN].get(
-                    self.entry.entry_id, {}
-                ).get("coordinator")
-                
+                coordinator = (
+                    self.hass.data[DOMAIN]
+                    .get(self.entry.entry_id, {})
+                    .get("coordinator")
+                )
+
                 if not coordinator:
                     return
-                
+
                 dog_data = coordinator.get_dog_data(dog_id)
                 if dog_data.get("grooming", {}).get("needs_grooming", False):
                     _LOGGER.info(f"Grooming needed for {dog_id}")
-                    
+
                     # Send reminder
-                    router = self.hass.data[DOMAIN].get(
-                        self.entry.entry_id, {}
-                    ).get("notification_router")
-                    
+                    router = (
+                        self.hass.data[DOMAIN]
+                        .get(self.entry.entry_id, {})
+                        .get("notification_router")
+                    )
+
                     if router:
                         self.hass.async_create_task(
                             router.send_reminder(
@@ -381,7 +406,7 @@ class PawControlScheduler:
                                 dog_name,
                             )
                         )
-            
+
             # Check daily at 09:00
             cancel = async_track_time_change(
                 self.hass,
@@ -390,7 +415,7 @@ class PawControlScheduler:
                 minute=0,
                 second=0,
             )
-            
+
             task_id = f"grooming_check_{dog_id}"
             self._reminder_tasks[task_id] = cancel
             _LOGGER.debug(f"Grooming check scheduled: {task_id}")
@@ -402,29 +427,29 @@ class PawControlScheduler:
         task_id: Optional[str] = None,
     ) -> None:
         """Schedule a delayed task."""
-        
+
         @callback
         def delayed_callback(now):
             """Execute delayed task."""
             callback()
-            
+
             # Remove from tracked tasks
             if task_id and task_id in self._scheduled_tasks:
                 del self._scheduled_tasks[task_id]
-        
+
         cancel = async_call_later(
             self.hass,
             delay_seconds,
             delayed_callback,
         )
-        
+
         if task_id:
             # Cancel existing task if present
             if task_id in self._scheduled_tasks:
                 old_cancel = self._scheduled_tasks[task_id]
                 if old_cancel:
                     old_cancel()
-            
+
             self._scheduled_tasks[task_id] = cancel
 
 
@@ -432,7 +457,7 @@ async def setup_schedulers(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up all schedulers for the integration."""
     scheduler = PawControlScheduler(hass, entry)
     await scheduler.setup()
-    
+
     # Store scheduler instance
     if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
         hass.data[DOMAIN][entry.entry_id]["scheduler"] = scheduler

@@ -1,4 +1,5 @@
 """Device triggers and actions for Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -58,19 +59,19 @@ async def async_get_triggers(
     domain_in_identifiers = any(
         identifier[0] == DOMAIN for identifier in device.identifiers
     )
-    
+
     if not domain_in_identifiers:
         return []
 
     triggers = []
-    
+
     # Get dog_id from device identifiers
     dog_id = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
             break
-    
+
     if not dog_id or dog_id == "global":
         return []
 
@@ -98,23 +99,23 @@ async def async_attach_trigger(
     """Attach a trigger."""
     trigger_type = config[CONF_TYPE]
     device_id = config[CONF_DEVICE_ID]
-    
+
     # Get dog_id from device
     registry = dr.async_get(hass)
     device = registry.async_get(device_id)
-    
+
     if not device:
         raise ValueError(f"Device {device_id} not found")
-    
+
     dog_id = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
             break
-    
+
     if not dog_id:
         raise ValueError(f"Dog ID not found for device {device_id}")
-    
+
     # Map trigger types to events
     event_map = {
         "walk_started": EVENT_WALK_STARTED,
@@ -123,7 +124,7 @@ async def async_attach_trigger(
         "medication_given": EVENT_MEDICATION_GIVEN,
         "grooming_done": EVENT_GROOMING_DONE,
     }
-    
+
     if trigger_type in event_map:
         # Event-based trigger
         event_config = {
@@ -138,7 +139,7 @@ async def async_attach_trigger(
         return await event_trigger.async_attach_trigger(
             hass, event_config, action, trigger_info, platform_type="device"
         )
-    
+
     # State-based triggers
     if trigger_type == "needs_walk":
         state_config = {
@@ -160,10 +161,10 @@ async def async_attach_trigger(
         }
     else:
         raise ValueError(f"Unknown trigger type: {trigger_type}")
-    
+
     # Import state trigger
     from homeassistant.components.homeassistant.triggers import state as state_trigger
-    
+
     state_config = state_trigger.TRIGGER_SCHEMA(state_config)
     return await state_trigger.async_attach_trigger(
         hass, state_config, action, trigger_info, platform_type="device"

@@ -1,4 +1,5 @@
 """Notification router for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -48,7 +49,7 @@ class NotificationRouter:
         tag: Optional[str] = None,
     ) -> bool:
         """Send notification with intelligent routing."""
-        
+
         # Check quiet hours
         if not self._should_send_now(priority):
             _LOGGER.debug(f"Notification delayed due to quiet hours: {title}")
@@ -57,25 +58,25 @@ class NotificationRouter:
                 title, message, dog_id, category, actions, priority, tag
             )
             return False
-        
+
         # Check if snoozed
         if tag and tag in self._snoozed_notifications:
             if dt_util.now() < self._snoozed_notifications[tag]:
                 _LOGGER.debug(f"Notification snoozed: {tag}")
                 return False
-        
+
         # Get target devices
         targets = await self._get_notification_targets()
-        
+
         if not targets:
             _LOGGER.warning("No notification targets available")
             return False
-        
+
         # Build notification data
         notification_data = self._build_notification_data(
             title, message, dog_id, category, actions, tag
         )
-        
+
         # Send to all targets
         success = False
         for target in targets:
@@ -90,7 +91,7 @@ class NotificationRouter:
                 _LOGGER.debug(f"Notification sent to {target}")
             except Exception as err:
                 _LOGGER.error(f"Failed to send notification to {target}: {err}")
-        
+
         # Track active notification
         if tag and success:
             self._active_notifications[tag] = {
@@ -100,7 +101,7 @@ class NotificationRouter:
                 "dog_id": dog_id,
                 "category": category,
             }
-        
+
         return success
 
     async def handle_notification_action(
@@ -111,7 +112,7 @@ class NotificationRouter:
     ) -> None:
         """Handle notification action response."""
         _LOGGER.info(f"Handling notification action: {action} for tag: {tag}")
-        
+
         if action == "SNOOZE":
             # Snooze notification
             snooze_min = self.entry.options.get(CONF_NOTIFICATIONS, {}).get(
@@ -121,53 +122,52 @@ class NotificationRouter:
                 minutes=snooze_min
             )
             _LOGGER.info(f"Notification {tag} snoozed for {snooze_min} minutes")
-            
+
             # Clear notification on all devices
             await self._clear_notification(tag)
-            
+
         elif action == "DISMISS":
             # Remove from active and snoozed
             self._active_notifications.pop(tag, None)
             self._snoozed_notifications.pop(tag, None)
-            
+
             # Clear notification on all devices
             await self._clear_notification(tag)
-            
+
         elif action == "CONFIRM":
             # Mark as confirmed and clear
             self._active_notifications.pop(tag, None)
             await self._clear_notification(tag)
-            
+
             # Fire event for other components to handle
             self.hass.bus.async_fire(
-                f"{DOMAIN}_notification_confirmed",
-                {"tag": tag, "data": data}
+                f"{DOMAIN}_notification_confirmed", {"tag": tag, "data": data}
             )
 
     def _should_send_now(self, priority: str) -> bool:
         """Check if notification should be sent now based on quiet hours."""
         if priority == "emergency":
             return True
-        
+
         quiet_hours = self.entry.options.get(CONF_NOTIFICATIONS, {}).get(
             CONF_QUIET_HOURS, {}
         )
-        
+
         if not quiet_hours:
             return True
-        
+
         quiet_start = quiet_hours.get(CONF_QUIET_START)
         quiet_end = quiet_hours.get(CONF_QUIET_END)
-        
+
         if not quiet_start or not quiet_end:
             return True
-        
+
         try:
             # Parse time strings
             start_time = time.fromisoformat(quiet_start)
             end_time = time.fromisoformat(quiet_end)
             current_time = dt_util.now().time()
-            
+
             # Check if currently in quiet hours
             if start_time <= end_time:
                 # Quiet hours don't cross midnight
@@ -175,7 +175,7 @@ class NotificationRouter:
             else:
                 # Quiet hours cross midnight
                 return not (current_time >= start_time or current_time <= end_time)
-                
+
         except ValueError as err:
             _LOGGER.error(f"Invalid quiet hours configuration: {err}")
             return True
@@ -183,12 +183,12 @@ class NotificationRouter:
     async def _get_notification_targets(self) -> List[str]:
         """Get list of notification targets based on presence and configuration."""
         targets = []
-        
+
         # Check for person-based notifications
         person_entities = self.entry.options.get(CONF_SOURCES, {}).get(
             CONF_PERSON_ENTITIES, []
         )
-        
+
         for person_entity in person_entities:
             state = self.hass.states.get(person_entity)
             if state and state.state == "home":
@@ -206,16 +206,14 @@ class NotificationRouter:
                 # Check if service exists
                 if self.hass.services.has_service(NOTIFY_DOMAIN, notify_service):
                     targets.append(notify_service)
-                    _LOGGER.debug(
-                        f"Added notification target for {person_name} (home)"
-                    )
-        
+                    _LOGGER.debug(f"Added notification target for {person_name} (home)")
+
         # If no one home or no person entities, use fallback
         if not targets:
             fallback = self.entry.options.get(CONF_NOTIFICATIONS, {}).get(
                 CONF_NOTIFY_FALLBACK
             )
-            
+
             if fallback:
                 # Extract the service name from the entity ID. ``notify``
                 # services may contain additional dots after the domain portion
@@ -231,10 +229,8 @@ class NotificationRouter:
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
-                    _LOGGER.debug(
-                        f"Using fallback notification target: {service}"
-                    )
-        
+                    _LOGGER.debug(f"Using fallback notification target: {service}")
+
         # If still no targets, try to find any mobile_app service
         if not targets:
             services = self.hass.services.async_services().get(NOTIFY_DOMAIN, {})
@@ -243,7 +239,7 @@ class NotificationRouter:
                     targets.append(service_name)
                     _LOGGER.debug(f"Found mobile app service: {service_name}")
                     break
-        
+
         return targets
 
     def _build_notification_data(
@@ -272,20 +268,20 @@ class NotificationRouter:
                 "importance": "default",
                 "channel": DOMAIN,
                 "clickAction": f"/{DOMAIN}",
-            }
+            },
         }
-        
+
         # Add actions if provided
         if actions:
             data["data"]["actions"] = actions
-        
+
         # Add dog identifier if specified
         if dog_id:
             data["data"]["dog_id"] = dog_id
-        
+
         # Add icon
         data["data"]["icon"] = "mdi:dog"
-        
+
         # Add color based on category
         color_map = {
             "feeding": "#4CAF50",
@@ -297,20 +293,20 @@ class NotificationRouter:
             "general": "#607D8B",
         }
         data["data"]["color"] = color_map.get(category, "#607D8B")
-        
+
         return data
 
     async def _clear_notification(self, tag: str) -> None:
         """Clear notification on all devices."""
         targets = await self._get_notification_targets()
-        
+
         clear_data = {
             "message": "clear_notification",
             "data": {
                 "tag": tag,
-            }
+            },
         }
-        
+
         for target in targets:
             try:
                 await self.hass.services.async_call(
@@ -347,10 +343,12 @@ class NotificationRouter:
         additional_info: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Send a reminder notification for a specific type."""
-        
+
         # Build reminder message based on type
         if reminder_type == "feeding":
-            meal_type = additional_info.get("meal_type", "meal") if additional_info else "meal"
+            meal_type = (
+                additional_info.get("meal_type", "meal") if additional_info else "meal"
+            )
             title = f"🍽️ {dog_name} - Feeding Time"
             message = f"Time for {dog_name}'s {meal_type}!"
             actions = [
@@ -364,7 +362,7 @@ class NotificationRouter:
                 },
             ]
             category = "feeding"
-            
+
         elif reminder_type == "walk":
             title = f"🚶 {dog_name} - Walk Time"
             message = f"{dog_name} needs a walk!"
@@ -379,9 +377,13 @@ class NotificationRouter:
                 },
             ]
             category = "walk"
-            
+
         elif reminder_type == "medication":
-            med_name = additional_info.get("medication", "medication") if additional_info else "medication"
+            med_name = (
+                additional_info.get("medication", "medication")
+                if additional_info
+                else "medication"
+            )
             title = f"💊 {dog_name} - Medication"
             message = f"Time to give {dog_name} their {med_name}"
             actions = [
@@ -395,7 +397,7 @@ class NotificationRouter:
                 },
             ]
             category = "health"
-            
+
         elif reminder_type == "grooming":
             title = f"✂️ {dog_name} - Grooming Due"
             message = f"{dog_name} needs grooming!"
@@ -410,15 +412,15 @@ class NotificationRouter:
                 },
             ]
             category = "grooming"
-            
+
         else:
             title = f"🐕 {dog_name} - Reminder"
             message = f"Reminder for {dog_name}"
             actions = None
             category = "general"
-        
+
         tag = f"{DOMAIN}_{reminder_type}_{dog_id}"
-        
+
         return await self.send_notification(
             title=title,
             message=message,

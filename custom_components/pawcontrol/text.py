@@ -1,4 +1,5 @@
 """Text platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -31,41 +32,37 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control text entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Health module text entities
         if modules.get(MODULE_HEALTH):
-            entities.extend([
-                HealthNotesText(hass, coordinator, dog_id, dog_name),
-                MedicationNotesText(hass, coordinator, dog_id, dog_name),
-                VetNotesText(hass, coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    HealthNotesText(hass, coordinator, dog_id, dog_name),
+                    MedicationNotesText(hass, coordinator, dog_id, dog_name),
+                    VetNotesText(hass, coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Training module text entities
         if modules.get(MODULE_TRAINING):
-            entities.append(
-                TrainingNotesText(hass, coordinator, dog_id, dog_name)
-            )
-        
+            entities.append(TrainingNotesText(hass, coordinator, dog_id, dog_name))
+
         # Always add general notes
-        entities.append(
-            GeneralNotesText(hass, coordinator, dog_id, dog_name)
-        )
-    
+        entities.append(GeneralNotesText(hass, coordinator, dog_id, dog_name))
+
     # Global text entities
-    entities.append(
-        ExportPathText(hass, coordinator, entry)
-    )
+    entities.append(ExportPathText(hass, coordinator, entry))
 
     # Use keyword argument for readability and to avoid ambiguous positional booleans.
     async_add_entities(entities, update_before_add=True)
@@ -94,7 +91,7 @@ class PawControlTextBase(TextEntity):
         self._dog_name = dog_name
         self._text_type = text_type
         self._stored_value = ""
-        
+
         self._attr_name = name
         self._attr_icon = icon
         self._attr_native_max = max_length
@@ -262,7 +259,7 @@ class ExportPathText(TextEntity):
         self.hass = hass
         self.coordinator = coordinator
         self.entry = entry
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.text.export_path"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},

@@ -1,4 +1,5 @@
 """Diagnostics support for Paw Control."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,7 +15,7 @@ TO_REDACT = {
     CONF_PASSWORD,
     CONF_USERNAME,
     "lat",
-    "latitude", 
+    "latitude",
     "lon",
     "longitude",
     "gps",
@@ -29,31 +30,37 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+
     # Get all dog data but redact sensitive information
     dogs_data = {}
     for dog_id in coordinator._dog_data:
         dog_data = coordinator.get_dog_data(dog_id).copy()
-        
+
         # Remove location data
         if "location" in dog_data:
             dog_data["location"] = {
                 "is_home": dog_data["location"].get("is_home", True),
                 "current_location": "REDACTED",
             }
-        
+
         # Remove any notes that might contain personal info
         if "health" in dog_data and "health_notes" in dog_data["health"]:
-            dog_data["health"]["health_notes"] = f"[{len(dog_data['health']['health_notes'])} notes]"
-        
+            dog_data["health"][
+                "health_notes"
+            ] = f"[{len(dog_data['health']['health_notes'])} notes]"
+
         if "training" in dog_data and "training_history" in dog_data["training"]:
-            dog_data["training"]["training_history"] = f"[{len(dog_data['training']['training_history'])} sessions]"
-            
+            dog_data["training"][
+                "training_history"
+            ] = f"[{len(dog_data['training']['training_history'])} sessions]"
+
         if "grooming" in dog_data and "grooming_history" in dog_data["grooming"]:
-            dog_data["grooming"]["grooming_history"] = f"[{len(dog_data['grooming']['grooming_history'])} sessions]"
-        
+            dog_data["grooming"][
+                "grooming_history"
+            ] = f"[{len(dog_data['grooming']['grooming_history'])} sessions]"
+
         dogs_data[dog_id] = dog_data
-    
+
     return async_redact_data(
         {
             "entry": {

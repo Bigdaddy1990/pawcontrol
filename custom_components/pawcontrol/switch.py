@@ -1,4 +1,5 @@
 """Switch platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -35,116 +36,120 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control switch entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Module enable/disable switches
-        entities.extend([
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_WALK,
-                "Walk Module",
-                "mdi:dog-side",
-                modules.get(MODULE_WALK, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_FEEDING,
-                "Feeding Module",
-                "mdi:food",
-                modules.get(MODULE_FEEDING, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_HEALTH,
-                "Health Module",
-                "mdi:heart",
-                modules.get(MODULE_HEALTH, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_GROOMING,
-                "Grooming Module",
-                "mdi:content-cut",
-                modules.get(MODULE_GROOMING, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_TRAINING,
-                "Training Module",
-                "mdi:school",
-                modules.get(MODULE_TRAINING, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_NOTIFICATIONS,
-                "Notifications",
-                "mdi:bell",
-                modules.get(MODULE_NOTIFICATIONS, False),
-            ),
-            ModuleSwitch(
-                hass,
-                coordinator,
-                dog_id,
-                dog_name,
-                MODULE_GPS,
-                "GPS Tracking",
-                "mdi:map-marker",
-                modules.get(MODULE_GPS, False),
-            ),
-        ])
-        
+        entities.extend(
+            [
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_WALK,
+                    "Walk Module",
+                    "mdi:dog-side",
+                    modules.get(MODULE_WALK, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_FEEDING,
+                    "Feeding Module",
+                    "mdi:food",
+                    modules.get(MODULE_FEEDING, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_HEALTH,
+                    "Health Module",
+                    "mdi:heart",
+                    modules.get(MODULE_HEALTH, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_GROOMING,
+                    "Grooming Module",
+                    "mdi:content-cut",
+                    modules.get(MODULE_GROOMING, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_TRAINING,
+                    "Training Module",
+                    "mdi:school",
+                    modules.get(MODULE_TRAINING, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_NOTIFICATIONS,
+                    "Notifications",
+                    "mdi:bell",
+                    modules.get(MODULE_NOTIFICATIONS, False),
+                ),
+                ModuleSwitch(
+                    hass,
+                    coordinator,
+                    dog_id,
+                    dog_name,
+                    MODULE_GPS,
+                    "GPS Tracking",
+                    "mdi:map-marker",
+                    modules.get(MODULE_GPS, False),
+                ),
+            ]
+        )
+
         # Feature switches
         if modules.get(MODULE_WALK):
             entities.append(
                 AutoWalkDetectionSwitch(hass, coordinator, dog_id, dog_name)
             )
-        
+
         if modules.get(MODULE_FEEDING):
             entities.append(
                 OverfeedingProtectionSwitch(hass, coordinator, dog_id, dog_name)
             )
-        
+
         if modules.get(MODULE_NOTIFICATIONS):
             entities.append(
                 NotificationEnabledSwitch(hass, coordinator, dog_id, dog_name)
             )
-    
+
     # Global switches
-    entities.extend([
-        VisitorModeSwitch(hass, coordinator),
-        EmergencyModeSwitch(hass, coordinator),
-        QuietHoursSwitch(hass, coordinator, entry),
-        DailyReportSwitch(hass, coordinator, entry),
-    ])
-    
+    entities.extend(
+        [
+            VisitorModeSwitch(hass, coordinator),
+            EmergencyModeSwitch(hass, coordinator),
+            QuietHoursSwitch(hass, coordinator, entry),
+            DailyReportSwitch(hass, coordinator, entry),
+        ]
+    )
+
     async_add_entities(entities, True)
 
 
@@ -170,7 +175,7 @@ class PawControlSwitchBase(SwitchEntity):
         self._dog_name = dog_name
         self._switch_type = switch_type
         self._is_on = False
-        
+
         self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.switch.{switch_type}"
@@ -358,7 +363,7 @@ class VisitorModeSwitch(SwitchEntity):
         """Initialize the switch."""
         self.hass = hass
         self.coordinator = coordinator
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.switch.visitor_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
@@ -403,7 +408,7 @@ class EmergencyModeSwitch(SwitchEntity):
         """Initialize the switch."""
         self.hass = hass
         self.coordinator = coordinator
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.switch.emergency_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
@@ -447,7 +452,7 @@ class QuietHoursSwitch(SwitchEntity):
         self.coordinator = coordinator
         self.entry = entry
         self._is_on = True
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.switch.quiet_hours"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
@@ -488,7 +493,7 @@ class DailyReportSwitch(SwitchEntity):
         self.coordinator = coordinator
         self.entry = entry
         self._is_on = bool(entry.options.get("export_path"))
-        
+
         self._attr_unique_id = f"{DOMAIN}.global.switch.daily_report"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},

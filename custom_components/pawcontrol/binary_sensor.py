@@ -1,4 +1,5 @@
 """Binary sensor platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -37,50 +38,50 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control binary sensor entities."""
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    
+    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "coordinator"
+    ]
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Walk module binary sensors
         if modules.get(MODULE_WALK):
-            entities.extend([
-                NeedsWalkBinarySensor(coordinator, dog_id, dog_name),
-                WalkInProgressBinarySensor(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    NeedsWalkBinarySensor(coordinator, dog_id, dog_name),
+                    WalkInProgressBinarySensor(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Feeding module binary sensors
         if modules.get(MODULE_FEEDING):
-            entities.append(
-                IsHungryBinarySensor(coordinator, dog_id, dog_name)
-            )
-        
+            entities.append(IsHungryBinarySensor(coordinator, dog_id, dog_name))
+
         # Grooming module binary sensors
         if modules.get(MODULE_GROOMING):
-            entities.append(
-                NeedsGroomingBinarySensor(coordinator, dog_id, dog_name)
-            )
-        
+            entities.append(NeedsGroomingBinarySensor(coordinator, dog_id, dog_name))
+
         # GPS module binary sensors
         if modules.get(MODULE_GPS):
-            entities.append(
-                IsHomeBinarySensor(coordinator, dog_id, dog_name)
-            )
-    
+            entities.append(IsHomeBinarySensor(coordinator, dog_id, dog_name))
+
     # Global binary sensors
-    entities.extend([
-        VisitorModeBinarySensor(coordinator),
-        EmergencyModeBinarySensor(coordinator),
-    ])
-    
+    entities.extend(
+        [
+            VisitorModeBinarySensor(coordinator),
+            EmergencyModeBinarySensor(coordinator),
+        ]
+    )
+
     async_add_entities(entities, True)
 
 
@@ -101,7 +102,7 @@ class PawControlBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
         self._dog_id = dog_id
         self._dog_name = dog_name
         self._sensor_type = sensor_type
-        
+
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.binary_sensor.{sensor_type}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)},

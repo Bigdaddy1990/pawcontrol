@@ -1,4 +1,5 @@
 """Test Paw Control setup."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -23,15 +24,19 @@ async def test_setup_entry(
     """Test setting up the integration."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.coordinator.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.helpers.notification_router.NotificationRouter",
-        return_value=mock_notification_router,
-    ), patch(
-        "custom_components.pawcontrol.helpers.setup_sync.SetupSync",
-        return_value=mock_setup_sync,
+    with (
+        patch(
+            "custom_components.pawcontrol.coordinator.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.helpers.notification_router.NotificationRouter",
+            return_value=mock_notification_router,
+        ),
+        patch(
+            "custom_components.pawcontrol.helpers.setup_sync.SetupSync",
+            return_value=mock_setup_sync,
+        ),
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()

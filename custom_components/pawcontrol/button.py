@@ -1,4 +1,5 @@
 """Button platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -36,72 +37,80 @@ async def async_setup_entry(
     """Set up Paw Control button entities."""
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
-    
+
     for dog in dogs:
         dog_id = dog.get(CONF_DOG_ID)
         if not dog_id:
             continue
-        
+
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
-        
+
         # Walk module buttons
         if modules.get(MODULE_WALK):
-            entities.extend([
-                StartWalkButton(hass, dog_id, dog_name),
-                EndWalkButton(hass, dog_id, dog_name),
-                QuickWalkButton(hass, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    StartWalkButton(hass, dog_id, dog_name),
+                    EndWalkButton(hass, dog_id, dog_name),
+                    QuickWalkButton(hass, dog_id, dog_name),
+                ]
+            )
+
         # Feeding module buttons
         if modules.get(MODULE_FEEDING):
-            entities.extend([
-                FeedBreakfastButton(hass, dog_id, dog_name),
-                FeedLunchButton(hass, dog_id, dog_name),
-                FeedDinnerButton(hass, dog_id, dog_name),
-                FeedSnackButton(hass, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    FeedBreakfastButton(hass, dog_id, dog_name),
+                    FeedLunchButton(hass, dog_id, dog_name),
+                    FeedDinnerButton(hass, dog_id, dog_name),
+                    FeedSnackButton(hass, dog_id, dog_name),
+                ]
+            )
+
         # Health module buttons
         if modules.get(MODULE_HEALTH):
-            entities.extend([
-                LogWeightButton(hass, dog_id, dog_name),
-                GiveMedicationButton(hass, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    LogWeightButton(hass, dog_id, dog_name),
+                    GiveMedicationButton(hass, dog_id, dog_name),
+                ]
+            )
+
         # Grooming module buttons
         if modules.get(MODULE_GROOMING):
-            entities.extend([
-                GroomBathButton(hass, dog_id, dog_name),
-                GroomBrushButton(hass, dog_id, dog_name),
-                GroomNailsButton(hass, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    GroomBathButton(hass, dog_id, dog_name),
+                    GroomBrushButton(hass, dog_id, dog_name),
+                    GroomNailsButton(hass, dog_id, dog_name),
+                ]
+            )
+
         # Training module buttons
         if modules.get(MODULE_TRAINING):
-            entities.extend([
-                StartTrainingButton(hass, dog_id, dog_name),
-                LogPlaySessionButton(hass, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    StartTrainingButton(hass, dog_id, dog_name),
+                    LogPlaySessionButton(hass, dog_id, dog_name),
+                ]
+            )
+
         # Notification test button
         if modules.get(MODULE_NOTIFICATIONS):
-            entities.append(
-                NotifyTestButton(hass, dog_id, dog_name)
-            )
-        
+            entities.append(NotifyTestButton(hass, dog_id, dog_name))
+
         # Always add poop tracking button
-        entities.append(
-            LogPoopButton(hass, dog_id, dog_name)
-        )
-    
+        entities.append(LogPoopButton(hass, dog_id, dog_name))
+
     # Global buttons
-    entities.extend([
-        DailyResetButton(hass),
-        GenerateReportButton(hass),
-        SyncSetupButton(hass),
-    ])
-    
+    entities.extend(
+        [
+            DailyResetButton(hass),
+            GenerateReportButton(hass),
+            SyncSetupButton(hass),
+        ]
+    )
+
     async_add_entities(entities, True)
 
 
@@ -124,7 +133,7 @@ class PawControlButtonBase(ButtonEntity):
         self._dog_id = dog_id
         self._dog_name = dog_name
         self._button_type = button_type
-        
+
         self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.button.{button_type}"
@@ -142,7 +151,9 @@ class StartWalkButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "start_walk", "Start Walk", "mdi:dog-side")
+        super().__init__(
+            hass, dog_id, dog_name, "start_walk", "Start Walk", "mdi:dog-side"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -176,7 +187,9 @@ class QuickWalkButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "quick_walk", "Quick Walk (30min)", "mdi:walk")
+        super().__init__(
+            hass, dog_id, dog_name, "quick_walk", "Quick Walk (30min)", "mdi:walk"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -197,7 +210,9 @@ class FeedBreakfastButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "feed_breakfast", "Feed Breakfast", "mdi:food-apple")
+        super().__init__(
+            hass, dog_id, dog_name, "feed_breakfast", "Feed Breakfast", "mdi:food-apple"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -241,7 +256,9 @@ class FeedDinnerButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "feed_dinner", "Feed Dinner", "mdi:food-variant")
+        super().__init__(
+            hass, dog_id, dog_name, "feed_dinner", "Feed Dinner", "mdi:food-variant"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -263,7 +280,9 @@ class FeedSnackButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "feed_snack", "Give Snack", "mdi:cookie")
+        super().__init__(
+            hass, dog_id, dog_name, "feed_snack", "Give Snack", "mdi:cookie"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -285,7 +304,9 @@ class LogWeightButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "log_weight", "Log Weight", "mdi:weight")
+        super().__init__(
+            hass, dog_id, dog_name, "log_weight", "Log Weight", "mdi:weight"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -298,7 +319,9 @@ class GiveMedicationButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "give_medication", "Give Medication", "mdi:pill")
+        super().__init__(
+            hass, dog_id, dog_name, "give_medication", "Give Medication", "mdi:pill"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -319,7 +342,9 @@ class GroomBathButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "groom_bath", "Give Bath", "mdi:shower")
+        super().__init__(
+            hass, dog_id, dog_name, "groom_bath", "Give Bath", "mdi:shower"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -340,7 +365,9 @@ class GroomBrushButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "groom_brush", "Brush Fur", "mdi:brush")
+        super().__init__(
+            hass, dog_id, dog_name, "groom_brush", "Brush Fur", "mdi:brush"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -361,7 +388,9 @@ class GroomNailsButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "groom_nails", "Trim Nails", "mdi:content-cut")
+        super().__init__(
+            hass, dog_id, dog_name, "groom_nails", "Trim Nails", "mdi:content-cut"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -382,7 +411,9 @@ class StartTrainingButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "start_training", "Start Training", "mdi:school")
+        super().__init__(
+            hass, dog_id, dog_name, "start_training", "Start Training", "mdi:school"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -404,7 +435,9 @@ class LogPlaySessionButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "log_play", "Log Play Session", "mdi:tennis-ball")
+        super().__init__(
+            hass, dog_id, dog_name, "log_play", "Log Play Session", "mdi:tennis-ball"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
@@ -425,16 +458,24 @@ class LogPoopButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "log_poop", "Log Poop", "mdi:emoticon-poop")
+        super().__init__(
+            hass, dog_id, dog_name, "log_poop", "Log Poop", "mdi:emoticon-poop"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
         # Update coordinator data
-        coordinator = self.hass.data[DOMAIN].get(list(self.hass.data[DOMAIN].keys())[0], {}).get("coordinator")
+        coordinator = (
+            self.hass.data[DOMAIN]
+            .get(list(self.hass.data[DOMAIN].keys())[0], {})
+            .get("coordinator")
+        )
         if coordinator:
             dog_data = coordinator.get_dog_data(self._dog_id)
             if dog_data:
-                dog_data["statistics"]["poop_count_today"] = dog_data["statistics"].get("poop_count_today", 0) + 1
+                dog_data["statistics"]["poop_count_today"] = (
+                    dog_data["statistics"].get("poop_count_today", 0) + 1
+                )
                 dog_data["statistics"]["last_poop"] = datetime.now().isoformat()
                 await coordinator.async_request_refresh()
 
@@ -444,7 +485,9 @@ class NotifyTestButton(PawControlButtonBase):
 
     def __init__(self, hass, dog_id, dog_name):
         """Initialize the button."""
-        super().__init__(hass, dog_id, dog_name, "notify_test", "Test Notification", "mdi:bell-ring")
+        super().__init__(
+            hass, dog_id, dog_name, "notify_test", "Test Notification", "mdi:bell-ring"
+        )
 
     async def async_press(self) -> None:
         """Handle button press."""
