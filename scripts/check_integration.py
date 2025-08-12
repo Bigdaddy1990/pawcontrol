@@ -113,22 +113,27 @@ class IntegrationChecker:
                         service_names.append(stripped[:-1])
 
             expected_services = [
-                "daily_reset",
-                "sync_setup",
+                # GPS related services
+                "gps_start_walk",
+                "gps_end_walk",
+                "gps_export_last_route",
+                "gps_generate_diagnostics",
+                "gps_reset_stats",
+                "gps_pause_tracking",
+                "gps_resume_tracking",
+                "gps_post_location",
+                "gps_list_webhooks",
+                "gps_regenerate_webhooks",
+                # General utility services
+                "toggle_geofence_alerts",
+                "export_options",
+                "import_options",
                 "notify_test",
-                "start_walk",
-                "end_walk",
-                "walk_dog",
-                "feed_dog",
-                "log_health_data",
-                "log_medication",
-                "start_grooming_session",
-                "play_with_dog",
-                "start_training_session",
-                "toggle_visitor_mode",
-                "activate_emergency_mode",
-                "generate_report",
-                "export_health_data",
+                "purge_all_storage",
+                "send_medication_reminder",
+                "route_history_list",
+                "route_history_purge",
+                "route_history_export_range",
             ]
 
             for service in expected_services:
