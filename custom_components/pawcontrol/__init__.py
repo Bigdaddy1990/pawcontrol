@@ -443,9 +443,15 @@ async def _gps_service_wrapper(
 
     try:
         method = getattr(gps_handler, method_name)
-        if method_name in ["async_start_walk", "async_end_walk"]:
+        if method_name == "async_start_walk":
             await method(
                 call.data.get("walk_type"),
+                call.data.get("dog_id"),
+            )
+        elif method_name == "async_end_walk":
+            await method(
+                call.data.get("rating"),
+                call.data.get("notes"),
                 call.data.get("dog_id"),
             )
         elif method_name == "async_export_last_route":
