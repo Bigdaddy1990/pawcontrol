@@ -265,17 +265,14 @@ class IntegrationValidator:
             return False
 
     def _check_type_hints(self, tree: ast.AST) -> bool:
-        """Check if AST has type hints."""
+        """Return True if functions have type hints or none exist."""
+        has_function = False
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # Check return type
-                if node.returns:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                has_function = True
+                if node.returns or any(arg.annotation for arg in node.args.args):
                     return True
-                # Check parameter types
-                for arg in node.args.args:
-                    if arg.annotation:
-                        return True
-        return False
+        return not has_function
 
     def print_results(self) -> None:
         """Print validation results."""
