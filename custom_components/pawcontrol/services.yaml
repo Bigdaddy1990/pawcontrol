@@ -94,6 +94,7 @@ toggle_geofence_alerts:
 export_options:
   name: Optionen exportieren
   description: Schreibt die aktuellen Options (Config-Entry) als JSON nach /config/pawcontrol_options_export.json
+  fields: {}
 
 import_options:
   name: Optionen importieren
@@ -136,17 +137,17 @@ route_history_export_range:
 purge_all_storage:
   name: Alle gespeicherten Daten löschen
   description: Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).
-
+  fields: {}
 
 gps_list_webhooks:
   name: Webhooks auflisten
   description: Schreibt eine Datei mit allen Webhook-URLs in /config/pawcontrol_diagnostics/webhooks.json
-
+  fields: {}
 
 gps_regenerate_webhooks:
   name: Webhooks erneuern
   description: Erzeugt neue Webhook-IDs pro Hund und registriert sie.
-
+  fields: {}
 
 gps_post_location:
   name: GPS-Position posten (manuell)
@@ -161,3 +162,4 @@ gps_post_location:
 notify_test:
   name: Test-Benachrichtigung senden
   description: Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback persistent_notification).
+  fields: {}
