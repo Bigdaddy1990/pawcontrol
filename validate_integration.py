@@ -265,16 +265,30 @@ class IntegrationValidator:
             return False
 
     def _check_type_hints(self, tree: ast.AST) -> bool:
-        """Check if AST has type hints."""
+        """Return True if the AST contains any type hints.
+
+        The validator walks every node and considers a file typed when it
+        encounters either of the following:
+
+        - Function or coroutine definitions (``def`` / ``async def``) with
+          parameter annotations or a return annotation.
+        - Annotated assignments, which provide variable-level type hints.
+
+        This helper is used internally by :meth:`check_python_syntax` to flag
+        files that are missing comprehensive type hints.
+        """
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # Check return type
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                # A function or coroutine with a return annotation counts as typed
                 if node.returns:
                     return True
-                # Check parameter types
+                # Likewise, any annotated parameter marks the file as typed
                 for arg in node.args.args:
                     if arg.annotation:
                         return True
+            elif isinstance(node, ast.AnnAssign):
+                # Variable annotation such as ``foo: int = 1``
+                return True
         return False
 
     def print_results(self) -> None:
