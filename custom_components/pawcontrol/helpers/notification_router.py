@@ -50,8 +50,8 @@ class NotificationRouter:
             )
 
             await pn(self.hass, message, title=title)
-        except Exception as exc:
-            _LOGGER.error("Failed to send persistent notification: %s", exc)
+        except Exception:
+            _LOGGER.exception("Failed to send persistent notification")
     
     async def send_feeding_reminder(self, dog_id: str, meal_type: str) -> None:
         """Send feeding reminder."""

@@ -44,8 +44,8 @@ async def async_setup_entry(
             _LOGGER.warning("Coordinator not available for switch platform")
             return
             
-    except Exception as exc:
-        _LOGGER.error("Failed to get coordinator for switch platform: %s", exc)
+    except Exception:
+        _LOGGER.exception("Failed to get coordinator for switch platform")
         return
 
     entities = []

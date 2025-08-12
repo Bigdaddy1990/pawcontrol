@@ -117,8 +117,8 @@ class PawControlGPSHandler:
                 await self._settings_store.async_save(self._settings)
                 
             _LOGGER.debug("GPS handler setup completed")
-        except Exception as exc:
-            _LOGGER.error("GPS handler setup failed: %s", exc)
+        except Exception:
+            _LOGGER.exception("GPS handler setup failed")
             # Continue with empty settings
             self._settings = {}
 
@@ -218,8 +218,8 @@ class PawControlGPSHandler:
                 
                 _LOGGER.info("Started walk for dog %s (type: %s)", dog, walk_type or "normal")
                 
-            except Exception as exc:
-                _LOGGER.error("Failed to start walk for dog %s: %s", dog_id, exc)
+            except Exception:
+                _LOGGER.exception("Failed to start walk for dog %s", dog_id)
 
     async def async_end_walk(self, rating: int | None = None, notes: str | None = None, dog_id: str | None = None) -> None:
         """End a walk for a dog."""
@@ -273,8 +273,8 @@ class PawControlGPSHandler:
                 
                 _LOGGER.info("Ended walk for dog %s: %.1fm in %.0fs", dog, dist_m, duration_s)
                 
-            except Exception as exc:
-                _LOGGER.error("Failed to end walk for dog %s: %s", dog_id, exc)
+            except Exception:
+                _LOGGER.exception("Failed to end walk for dog %s", dog_id)
 
     def _safe_state_update(self, entity_id: str, value: Any, attributes: dict | None = None) -> None:
         """Safely update entity state with validation."""
@@ -424,8 +424,8 @@ class PawControlGPSHandler:
                 # Safe zone evaluation
                 await self._evaluate_safe_zone(dog, lat, lon)
                 
-            except Exception as exc:
-                _LOGGER.error("Failed to update location for dog %s: %s", dog_id, exc)
+            except Exception:
+                _LOGGER.exception("Failed to update location for dog %s", dog_id)
 
     async def _update_duration_tracking(self, dog: str, points: List, route_data: Dict[str, Any]) -> None:
         """Update duration tracking for active walks."""
@@ -563,8 +563,8 @@ class PawControlGPSHandler:
             
             self._safe_state_update(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", True)
             _LOGGER.info("GPS tracking paused for dog %s", dog)
-        except Exception as exc:
-            _LOGGER.error("Failed to pause tracking for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to pause tracking for dog %s", dog_id)
 
     async def async_resume_tracking(self, dog_id: str | None = None) -> None:
         """Resume GPS tracking for a dog."""
@@ -575,8 +575,8 @@ class PawControlGPSHandler:
             
             self._safe_state_update(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", False)
             _LOGGER.info("GPS tracking resumed for dog %s", dog)
-        except Exception as exc:
-            _LOGGER.error("Failed to resume tracking for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to resume tracking for dog %s", dog_id)
 
     async def async_export_last_route(self, dog_id: str | None = None, fmt: str = "geojson", to_media: bool = False) -> str | None:
         """Export the last route for a dog with multiple format support."""
@@ -609,9 +609,56 @@ class PawControlGPSHandler:
                 _LOGGER.error("Unsupported export format: %s", fmt)
                 return None
                 
-        except Exception as exc:
-            _LOGGER.error("Failed to export route for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to export route for dog %s", dog_id)
             return None
+
+    def _write_geojson(self, file_path: str, data: Dict[str, Any]) -> None:
+        """Write GeoJSON data to a file."""
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def _write_gpx(self, file_path: str, points: List, dog: str, timestamp: str) -> None:
+        """Write GPX data to a file."""
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+            f.write('<gpx version="1.1" creator="PawControl">\n')
+            f.write(f'  <trk>\n    <name>{dog} Route {timestamp}</name>\n    <trkseg>\n')
+            for point in points:
+                if isinstance(point, tuple) and len(point) >= 2:
+                    lat, lon = float(point[0]), float(point[1])
+                    time_str = point[2] if len(point) > 2 else ""
+                    f.write(f'      <trkpt lat="{lat}" lon="{lon}">')
+                    if time_str:
+                        f.write(f'<time>{time_str}</time>')
+                    f.write('</trkpt>\n')
+            f.write('    </trkseg>\n  </trk>\n</gpx>')
+
+    def _write_kml(self, file_path: str, points: List, dog: str, timestamp: str) -> None:
+        """Write KML data to a file."""
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+            f.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
+            f.write('  <Document>\n')
+            f.write(f'    <name>{dog} Route {timestamp}</name>\n')
+            f.write('    <Placemark>\n')
+            f.write(f'      <name>{dog} Walk</name>\n')
+            f.write('      <LineString>\n')
+            f.write('        <coordinates>')
+            for point in points:
+                if isinstance(point, tuple) and len(point) >= 2:
+                    lat, lon = float(point[0]), float(point[1])
+                    f.write(f'{lon},{lat},0 ')
+            f.write('</coordinates>\n')
+            f.write('      </LineString>\n')
+            f.write('    </Placemark>\n')
+            f.write('  </Document>\n')
+            f.write('</kml>')
+
+    def _write_diagnostics(self, file_path: str, diagnostics_data: Dict[str, Any]) -> None:
+        """Write diagnostics data to a file."""
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(diagnostics_data, f, ensure_ascii=False, indent=2, default=str)
 
     async def _export_geojson(self, dog: str, points: List, base_path: str, timestamp: str) -> str:
         """Export route as GeoJSON."""
@@ -640,72 +687,36 @@ class PawControlGPSHandler:
                 "type": "FeatureCollection",
                 "features": [feature]
             }
-            
+
             file_path = os.path.join(base_path, f"{dog}_route_{timestamp}.geojson")
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            
-            return file_path
-        except Exception as exc:
-            _LOGGER.error("GeoJSON export failed: %s", exc)
+            await asyncio.to_thread(self._write_geojson, file_path, data)
+        except Exception:
+            _LOGGER.exception("GeoJSON export failed")
             raise
+        else:
+            return file_path
 
     async def _export_gpx(self, dog: str, points: List, base_path: str, timestamp: str) -> str:
         """Export route as GPX."""
         try:
             file_path = os.path.join(base_path, f"{dog}_route_{timestamp}.gpx")
-            
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-                f.write('<gpx version="1.1" creator="PawControl">\n')
-                f.write(f'  <trk>\n    <name>{dog} Route {timestamp}</name>\n    <trkseg>\n')
-                
-                for point in points:
-                    if isinstance(point, tuple) and len(point) >= 2:
-                        lat, lon = float(point[0]), float(point[1])
-                        time_str = point[2] if len(point) > 2 else ""
-                        f.write(f'      <trkpt lat="{lat}" lon="{lon}">')
-                        if time_str:
-                            f.write(f'<time>{time_str}</time>')
-                        f.write('</trkpt>\n')
-                
-                f.write('    </trkseg>\n  </trk>\n</gpx>')
-            
-            return file_path
-        except Exception as exc:
-            _LOGGER.error("GPX export failed: %s", exc)
+            await asyncio.to_thread(self._write_gpx, file_path, points, dog, timestamp)
+        except Exception:
+            _LOGGER.exception("GPX export failed")
             raise
+        else:
+            return file_path
 
     async def _export_kml(self, dog: str, points: List, base_path: str, timestamp: str) -> str:
         """Export route as KML."""
         try:
             file_path = os.path.join(base_path, f"{dog}_route_{timestamp}.kml")
-            
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-                f.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
-                f.write('  <Document>\n')
-                f.write(f'    <name>{dog} Route {timestamp}</name>\n')
-                f.write('    <Placemark>\n')
-                f.write(f'      <name>{dog} Walk</name>\n')
-                f.write('      <LineString>\n')
-                f.write('        <coordinates>')
-                
-                for point in points:
-                    if isinstance(point, tuple) and len(point) >= 2:
-                        lat, lon = float(point[0]), float(point[1])
-                        f.write(f'{lon},{lat},0 ')
-                
-                f.write('</coordinates>\n')
-                f.write('      </LineString>\n')
-                f.write('    </Placemark>\n')
-                f.write('  </Document>\n')
-                f.write('</kml>')
-            
-            return file_path
-        except Exception as exc:
-            _LOGGER.error("KML export failed: %s", exc)
+            await asyncio.to_thread(self._write_kml, file_path, points, dog, timestamp)
+        except Exception:
+            _LOGGER.exception("KML export failed")
             raise
+        else:
+            return file_path
 
     async def async_generate_diagnostics(self, dog_id: str | None = None) -> str | None:
         """Generate comprehensive diagnostics file for a dog."""
@@ -741,15 +752,13 @@ class PawControlGPSHandler:
             }
             
             file_path = os.path.join(base_path, f"{dog}_diagnostics.json")
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(diagnostics_data, f, ensure_ascii=False, indent=2, default=str)
-            
+            await asyncio.to_thread(self._write_diagnostics, file_path, diagnostics_data)
             _LOGGER.info("Generated diagnostics for dog %s: %s", dog, file_path)
-            return file_path
-            
-        except Exception as exc:
-            _LOGGER.error("Failed to generate diagnostics for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to generate diagnostics for dog %s", dog_id)
             return None
+        else:
+            return file_path
 
     async def async_reset_gps_stats(self, dog_id: str | None = None) -> None:
         """Reset GPS statistics for a dog."""
@@ -771,8 +780,8 @@ class PawControlGPSHandler:
             
             _LOGGER.info("GPS statistics reset for dog %s", dog)
             
-        except Exception as exc:
-            _LOGGER.error("Failed to reset GPS stats for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to reset GPS stats for dog %s", dog_id)
 
     def get_route_summary(self, dog_id: str | None = None) -> Dict[str, Any]:
         """Get current route summary for a dog."""
@@ -791,6 +800,6 @@ class PawControlGPSHandler:
                 "last_update": route_data.get("last_update"),
                 "metrics": metrics,
             }
-        except Exception as exc:
-            _LOGGER.error("Failed to get route summary for dog %s: %s", dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to get route summary for dog %s", dog_id)
             return {}
