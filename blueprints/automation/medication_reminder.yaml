@@ -9,7 +9,7 @@ blueprint:
       description: The ID of your dog in Paw Control
       selector:
         text:
-    dog_name:
+    name:
       name: Dog Name
       description: Display name of your dog
       default: "your dog"
@@ -106,7 +106,7 @@ action:
                 {% else %}
                 💊 Medication Time: {{ !input medication_name }}
                 {% endif %}
-              message: "Time to give {{ !input dog_name }} {{ !input medication_dose }} of {{ !input medication_name }}"
+              message: "Time to give {{ !input name }} {{ !input medication_dose }} of {{ !input medication_name }}"
               data:
                 tag: "pawcontrol_medication_{{ !input dog_id }}_{{ !input medication_name | lower | replace(' ', '_') }}"
                 persistent: !input reminder_persistent
@@ -133,7 +133,7 @@ action:
                       💊 Reminder: {{ !input medication_name }}
                       {% endif %}
                     message: >
-                      {{ !input dog_name }} still needs {{ !input medication_dose }} of {{ !input medication_name }}!
+                      {{ !input name }} still needs {{ !input medication_dose }} of {{ !input medication_name }}!
                       {% if repeat.index == max_remind %}
                       This is the final reminder!
                       {% endif %}
@@ -167,7 +167,7 @@ action:
           - service: !input notify_service
             data:
               title: "✅ Medication Logged"
-              message: "{{ !input medication_name }} given to {{ !input dog_name }}"
+              message: "{{ !input medication_name }} given to {{ !input name }}"
               data:
                 tag: "pawcontrol_medication_confirm_{{ !input dog_id }}"
                 timeout: 10
@@ -187,7 +187,7 @@ action:
           - service: !input notify_service
             data:
               title: "💊 Medication Reminder (Snoozed)"
-              message: "Time to give {{ !input dog_name }} {{ !input medication_dose }} of {{ !input medication_name }}"
+              message: "Time to give {{ !input name }} {{ !input medication_dose }} of {{ !input medication_name }}"
               data:
                 tag: "pawcontrol_medication_{{ !input dog_id }}_{{ !input medication_name | lower | replace(' ', '_') }}"
                 persistent: true

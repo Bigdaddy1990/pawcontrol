@@ -9,7 +9,7 @@ blueprint:
       description: The ID of your dog in Paw Control
       selector:
         text:
-    dog_name:
+    name:
       name: Dog Name
       description: Display name of your dog
       default: "your dog"
@@ -107,7 +107,7 @@ action:
           - service: !input notify_service
             data:
               title: "🚶 Walk Started"
-              message: "{{ !input dog_name | title }}'s walk has started automatically"
+              message: "{{ !input name | title }}'s walk has started automatically"
               data:
                 tag: "pawcontrol_walk_{{ !input dog_id }}"
       
@@ -128,7 +128,7 @@ action:
           - service: !input notify_service
             data:
               title: "🚶 Walk Started"
-              message: "{{ !input dog_name | title }}'s walk tracked via GPS"
+              message: "{{ !input name | title }}'s walk tracked via GPS"
               data:
                 tag: "pawcontrol_walk_{{ !input dog_id }}"
       
@@ -150,7 +150,7 @@ action:
             data:
               title: "🏠 Walk Ended"
               message: |
-                {{ !input dog_name | title }}'s walk completed!
+                {{ !input name | title }}'s walk completed!
                 Duration: {{ states('sensor.pawcontrol_' ~ !input dog_id ~ '_walk_duration') }} min
                 Distance: {{ states('sensor.pawcontrol_' ~ !input dog_id ~ '_walk_distance') }} m
               data:

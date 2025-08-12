@@ -11,7 +11,7 @@ blueprint:
         entity:
           domain: sensor
           integration: pawcontrol
-    dog_name:
+    name:
       name: Dog Name
       description: Name of your dog for the notification
       default: "your dog"
@@ -100,8 +100,8 @@ action:
             before: !input quiet_hours_end
           - service: !input notify_service
             data:
-              title: "🍽️ {{ !input dog_name | title }} - {{ !input meal_type | title }} Reminder"
-              message: "Time to feed {{ !input dog_name }}!"
+              title: "🍽️ {{ !input name | title }} - {{ !input meal_type | title }} Reminder"
+              message: "Time to feed {{ !input name }}!"
               data:
                 tag: "pawcontrol_feeding_{{ !input meal_type }}"
                 persistent: true
@@ -116,8 +116,8 @@ action:
         sequence:
           - service: !input notify_service
             data:
-              title: "🍽️ {{ !input dog_name | title }} - {{ !input meal_type | title }} Time"
-              message: "Time for {{ !input dog_name }}'s {{ !input meal_type }}!"
+              title: "🍽️ {{ !input name | title }} - {{ !input meal_type | title }} Time"
+              message: "Time for {{ !input name }}'s {{ !input meal_type }}!"
               data:
                 tag: "pawcontrol_feeding_{{ !input meal_type }}"
                 persistent: true
@@ -137,8 +137,8 @@ action:
                   before: !input quiet_hours_end
                 - service: !input notify_service
                   data:
-                    title: "🍽️ Reminder: {{ !input dog_name | title }} {{ !input meal_type | title }}"
-                    message: "{{ !input dog_name }} still needs {{ !input meal_type }}!"
+                    title: "🍽️ Reminder: {{ !input name | title }} {{ !input meal_type | title }}"
+                    message: "{{ !input name }} still needs {{ !input meal_type }}!"
                     data:
                       tag: "pawcontrol_feeding_{{ !input meal_type }}"
                       persistent: true

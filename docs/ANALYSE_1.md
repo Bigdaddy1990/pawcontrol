@@ -3,10 +3,11 @@
 ## 1. Grundlegende Konfiguration
 
 ### Konfigurationsparameter (const.py)
-- **CONF_DOG_NAME**: Name des Hundes (2-30 Zeichen)
-- **CONF_DOG_BREED**: Hunderasse  
-- **CONF_DOG_AGE**: Alter des Hundes (0-25 Jahre)
-- **CONF_DOG_WEIGHT**: Gewicht des Hundes (0.5-100 kg)
+- **CONF_DOG_NAME** (`name`): Name des Hundes (2-30 Zeichen)
+- **CONF_DOG_BREED** (`breed`): Hunderasse  
+- **CONF_DOG_AGE** (`age`): Alter des Hundes (0-25 Jahre)
+- **CONF_DOG_WEIGHT** (`weight`): Gewicht des Hundes (0.5-100 kg)
+- **CONF_DOG_SIZE** (`size`): Größe des Hundes
 - **CONF_FEEDING_TIMES**: Fütterungszeiten
 - **CONF_WALK_DURATION**: Spaziergang-Dauer
 - **CONF_VET_CONTACT**: Tierarzt-Kontakt
@@ -337,7 +338,7 @@
 ## 9. Utility-Funktionen (utils.py)
 
 ### Validierungsfunktionen
-- **validate_dog_name**: Überprüft Namen-Format und -Länge
+- **validate_name**: Überprüft Namen-Format und -Länge
 - **validate_weight**: Überprüft positiven, endlichen Gewichtswert  
 - **validate_age**: Überprüft Altersbereich 0-25 Jahre
 - **validate_coordinates**: Überprüft GPS-Koordinaten-Bereiche
@@ -347,7 +348,7 @@
 - **calculate_distance**: Haversine-Formel für GPS-Distanzen
 - **calculate_dog_calories_per_day**: Täglicher Kalorienbedarf basierend auf Gewicht und Aktivitätslevel
 - **calculate_ideal_walk_duration**: Ideale Spaziergang-Dauer basierend auf Gewicht, Alter und Aktivitätslevel
-- **calculate_dog_age_in_human_years**: Umrechnung in Menschenjahre je nach Größe
+- **calculate_age_in_human_years**: Umrechnung in Menschenjahre je nach Größe
 - **estimate_calories_burned**: Kalorienverbrauch bei Aktivitäten
 
 ### Formatierungsfunktionen
@@ -618,7 +619,7 @@ Das Script-System bietet 12 vollautomatisierte Services für komplexe Hundebetre
 - **estimate_calories_burned()**: Kalorienverbrauch bei Aktivitäten
 
 ### Hunde-spezifische Berechnungen
-- **calculate_dog_age_in_human_years()**: Umrechnung in Menschenjahre
+- **calculate_age_in_human_years()**: Umrechnung in Menschenjahre
   - Größen-abhängige Multiplikatoren (Toy: 4, Klein: 4.5, Mittel: 5, Groß: 5.5, Riesig: 6)
 - **is_healthy_weight_for_breed()**: Gewichts-Validierung nach Rassegröße
 - **calculate_feeding_amount_by_weight()**: Tägliche Futtermenge (2.5% Körpergewicht)
@@ -637,8 +638,8 @@ Das Script-System bietet 12 vollautomatisierte Services für komplexe Hundebetre
 
 ### Backup- und Wartungsfunktionen
 - **create_backup_filename()**: Timestamped Backup-Namen
-- **normalize_dog_name()**: Namens-Normalisierung
-- **extract_dog_name_from_entity_id()**: Entity-ID-Parsing
+- **normalize_name()**: Namens-Normalisierung
+- **extract_name_from_entity_id()**: Entity-ID-Parsing
 - **create_notification_id()**: Unique Notification-IDs
 
 ## 20. Walk-Management-System (walk.py, walk_system.py)
