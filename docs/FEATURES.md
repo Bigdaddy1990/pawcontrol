@@ -836,7 +836,7 @@ log_poop:
 
 ## 9) GitHub Actions & HACS
 
-**`.github/workflows/validate.yml`**: hassfest, ruff/flake8, pytest  
+**`.github/workflows/validate.yml`**: hassfest, ruff, pytest
 **`.github/workflows/release.yml`**: Tag → Release (Zip)  
 **`hacs.json`** (Repo-Wurzel):
 ```json

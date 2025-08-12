@@ -118,6 +118,8 @@ src_paths = ["custom_components", "tests"]
 [tool.ruff]
 target-version = "py311"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "B",    # flake8-bugbear
     "C",    # mccabe
@@ -175,10 +177,10 @@ ignore = [
     "PLR2004", # magic-value-comparison
 ]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 12
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "PLR2004", "S106"]
 "custom_components/pawcontrol/__init__.py" = ["F401"]
 
