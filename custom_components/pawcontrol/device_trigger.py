@@ -1,9 +1,9 @@
 
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Callable, Mapping
 import voluptuous as vol
 
-from homeassistant.core import HomeAssistant, CALLBACK_TYPE, callback
+from homeassistant.core import Event, HomeAssistant, CALLBACK_TYPE, callback
 from homeassistant.const import CONF_DEVICE_ID, CONF_TYPE
 from homeassistant.components.device_automation import TRIGGER_BASE_SCHEMA
 from homeassistant.helpers.typing import ConfigType
@@ -24,9 +24,9 @@ TRIGGER_SCHEMA = TRIGGER_BASE_SCHEMA.extend(
     }
 )
 
-async def async_get_triggers(hass: HomeAssistant, device_id: str) -> List[Dict[str, Any]]:
+async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict[str, str]]:
     """Return a list of triggers for a device (per dog)."""
-    triggers: list[dict] = []
+    triggers: list[dict[str, str]] = []
     devreg = dr.async_get(hass)
     device = devreg.async_get(device_id)
     if not device:
@@ -44,7 +44,10 @@ async def async_get_triggers(hass: HomeAssistant, device_id: str) -> List[Dict[s
     return triggers
 
 async def async_attach_trigger(
-    hass: HomeAssistant, config: ConfigType, action, trigger_info
+    hass: HomeAssistant,
+    config: ConfigType,
+    action: Callable[[Mapping[str, Mapping[str, object]]], object],
+    trigger_info: Mapping[str, object] | None,
 ) -> CALLBACK_TYPE:
     """Attach a trigger for the given device event."""
     devreg = dr.async_get(hass)
@@ -58,10 +61,19 @@ async def async_attach_trigger(
     event_type = EVENT_MAP[config[CONF_TYPE]]
 
     @callback
-    def _handle_event(ev):
+    def _handle_event(ev: Event) -> None:
         if dog_id and ev.data.get("dog_id") != dog_id:
             return
-        hass.async_run_job(action, {"trigger": {"platform": "device", "type": config[CONF_TYPE], "event": ev.as_dict()}})
+        hass.async_run_job(
+            action,
+            {
+                "trigger": {
+                    "platform": "device",
+                    "type": config[CONF_TYPE],
+                    "event": ev.as_dict(),
+                }
+            },
+        )
 
     remove = hass.bus.async_listen(event_type, _handle_event)
     return remove

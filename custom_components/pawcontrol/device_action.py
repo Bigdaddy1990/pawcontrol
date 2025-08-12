@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 import voluptuous as vol
 
@@ -40,7 +39,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 
 async def async_get_actions(
     hass: HomeAssistant, device_id: str
-) -> list[dict[str, Any]]:
+) -> list[dict[str, str]]:
     """List device actions for Paw Control devices."""
     registry = dr.async_get(hass)
     device = registry.async_get(device_id)
@@ -56,10 +55,10 @@ async def async_get_actions(
     if not domain_in_identifiers:
         return []
 
-    actions = []
+    actions: list[dict[str, str]] = []
 
     # Get dog_id from device identifiers
-    dog_id = None
+    dog_id: str | None = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
