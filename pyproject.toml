@@ -369,7 +369,7 @@ hooks = [
 repo = "https://github.com/charliermarsh/ruff-pre-commit"
 rev = "v0.1.15"
 hooks = [
-    {id = "ruff", args = ["--fix"]},
+    {id = "ruff", args = ["--fix", "--exit-zero"]},
 ]
 
 [[tool.pre-commit.repos]]

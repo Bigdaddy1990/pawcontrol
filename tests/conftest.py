@@ -6,7 +6,19 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+try:
+    from homeassistant.core import HomeAssistant
+except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
+    pytest.skip("homeassistant is required for tests", allow_module_level=True)
+
+try:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
+    pytest.skip(
+        "pytest-homeassistant-custom-component is required for tests",
+        allow_module_level=True,
+    )
 
 from custom_components.pawcontrol.const import DOMAIN
 
