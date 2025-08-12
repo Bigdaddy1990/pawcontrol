@@ -5,9 +5,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResultType
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+import pytest
+
+try:
+    from homeassistant import config_entries
+    from homeassistant.data_entry_flow import FlowResultType
+except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
+    pytest.skip("homeassistant is required for tests", allow_module_level=True)
+
+try:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
+    pytest.skip(
+        "pytest-homeassistant-custom-component is required for tests",
+        allow_module_level=True,
+    )
 
 from custom_components.pawcontrol.const import DOMAIN
 

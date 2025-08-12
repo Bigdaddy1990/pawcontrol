@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
-from homeassistant.config_entries import ConfigEntryState
+import pytest
+
+try:
+    from homeassistant.config_entries import ConfigEntryState
+except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
+    pytest.skip("homeassistant is required for tests", allow_module_level=True)
 
 from custom_components.pawcontrol.const import DOMAIN
 
@@ -17,10 +22,10 @@ if TYPE_CHECKING:
 async def test_setup_entry(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
-    mock_coordinator,
-    mock_notification_router,
-    mock_setup_sync,
-):
+    mock_coordinator: Any,
+    mock_notification_router: Any,
+    mock_setup_sync: Any,
+) -> None:
     """Test setting up the integration."""
     mock_config_entry.add_to_hass(hass)
 
@@ -49,7 +54,7 @@ async def test_setup_entry(
 async def test_unload_entry(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
-):
+) -> None:
     """Test unloading the integration."""
     assert init_integration.state == ConfigEntryState.LOADED
 
@@ -63,7 +68,7 @@ async def test_unload_entry(
 async def test_setup_entry_fails_on_exception(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
-):
+) -> None:
     """Test setup fails when coordinator raises exception."""
     mock_config_entry.add_to_hass(hass)
 
