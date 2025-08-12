@@ -512,15 +512,13 @@ class DashboardGenerator:
 
             # This would require accessing the Lovelace storage
             # For now, we'll just log the intent
-            _LOGGER.info(f"Generated dashboard configuration for Paw Control")
+            _LOGGER.info("Generated dashboard configuration for Paw Control")
 
             # Store dashboard config for manual application
-            self.hass.data[DOMAIN][self.entry.entry_id][
-                "dashboard_config"
-            ] = dashboard_config
+            self.hass.data[DOMAIN][self.entry.entry_id]["dashboard_config"] = dashboard_config
 
-            return True
-
-        except Exception as err:
-            _LOGGER.error(f"Failed to generate dashboard: {err}")
+        except Exception:
+            _LOGGER.exception("Failed to generate dashboard")
             return False
+        else:
+            return True

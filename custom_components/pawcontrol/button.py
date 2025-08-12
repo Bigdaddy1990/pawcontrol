@@ -49,8 +49,8 @@ async def async_setup_entry(
             _LOGGER.warning("Coordinator not available for button platform")
             return
             
-    except Exception as exc:
-        _LOGGER.error("Failed to get coordinator for button platform: %s", exc)
+    except Exception:
+        _LOGGER.exception("Failed to get coordinator for button platform")
         return
 
     entities = []
@@ -185,8 +185,8 @@ class StartWalkButton(PawControlButtonBase):
                     {"dog_id": self._dog_id, "walk_type": "manual"},
                     blocking=False,
                 )
-        except Exception as exc:
-            _LOGGER.error("Failed to start walk for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to start walk for %s", self._dog_id)
 
 
 class EndWalkButton(PawControlButtonBase):
@@ -210,8 +210,8 @@ class EndWalkButton(PawControlButtonBase):
                     {"dog_id": self._dog_id, "notes": "Beendet über Button"},
                     blocking=False,
                 )
-        except Exception as exc:
-            _LOGGER.error("Failed to end walk for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to end walk for %s", self._dog_id)
 
 
 # Feeding-related buttons
@@ -229,8 +229,8 @@ class MarkFedButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.feed_dog(self._dog_id, "generic", 0, "unknown")
-        except Exception as exc:
-            _LOGGER.error("Failed to mark fed for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to mark fed for %s", self._dog_id)
 
 
 class FeedBreakfastButton(PawControlButtonBase):
@@ -247,8 +247,8 @@ class FeedBreakfastButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.feed_dog(self._dog_id, "breakfast", 150, "dry")
-        except Exception as exc:
-            _LOGGER.error("Failed to feed breakfast for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to feed breakfast for %s", self._dog_id)
 
 
 class FeedLunchButton(PawControlButtonBase):
@@ -265,8 +265,8 @@ class FeedLunchButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.feed_dog(self._dog_id, "lunch", 100, "dry")
-        except Exception as exc:
-            _LOGGER.error("Failed to feed lunch for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to feed lunch for %s", self._dog_id)
 
 
 class FeedDinnerButton(PawControlButtonBase):
@@ -283,8 +283,8 @@ class FeedDinnerButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.feed_dog(self._dog_id, "dinner", 150, "dry")
-        except Exception as exc:
-            _LOGGER.error("Failed to feed dinner for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to feed dinner for %s", self._dog_id)
 
 
 class FeedSnackButton(PawControlButtonBase):
@@ -301,8 +301,8 @@ class FeedSnackButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.feed_dog(self._dog_id, "snack", 25, "treat")
-        except Exception as exc:
-            _LOGGER.error("Failed to feed snack for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to feed snack for %s", self._dog_id)
 
 
 # Health-related buttons
@@ -327,8 +327,8 @@ class MarkMedicationButton(PawControlButtonBase):
                     {"dog_id": self._dog_id, "notes": "Markiert als gegeben"},
                     blocking=False,
                 )
-        except Exception as exc:
-            _LOGGER.error("Failed to mark medication for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to mark medication for %s", self._dog_id)
 
 
 class LogHealthDataButton(PawControlButtonBase):
@@ -345,8 +345,8 @@ class LogHealthDataButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.log_health_data(self._dog_id, None, "Routine check")
-        except Exception as exc:
-            _LOGGER.error("Failed to log health data for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to log health data for %s", self._dog_id)
 
 
 class VetVisitButton(PawControlButtonBase):
@@ -363,8 +363,8 @@ class VetVisitButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.log_health_data(self._dog_id, None, "Veterinary visit")
-        except Exception as exc:
-            _LOGGER.error("Failed to log vet visit for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to log vet visit for %s", self._dog_id)
 
 
 # Grooming-related buttons
@@ -382,8 +382,8 @@ class StartGroomingButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.start_grooming(self._dog_id, "general", "Started via button")
-        except Exception as exc:
-            _LOGGER.error("Failed to start grooming for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to start grooming for %s", self._dog_id)
 
 
 # Training-related buttons
@@ -401,8 +401,8 @@ class StartTrainingButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.log_training(self._dog_id, "general", 15, "Started via button")
-        except Exception as exc:
-            _LOGGER.error("Failed to start training for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to start training for %s", self._dog_id)
 
 
 # Activity buttons
@@ -420,8 +420,8 @@ class LogPoopButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.log_poop(self._dog_id)
-        except Exception as exc:
-            _LOGGER.error("Failed to log poop for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to log poop for %s", self._dog_id)
 
 
 class StartPlayButton(PawControlButtonBase):
@@ -438,8 +438,8 @@ class StartPlayButton(PawControlButtonBase):
         try:
             if self.coordinator:
                 await self.coordinator.log_play_session(self._dog_id, 10, "medium")
-        except Exception as exc:
-            _LOGGER.error("Failed to start play for %s: %s", self._dog_id, exc)
+        except Exception:
+            _LOGGER.exception("Failed to start play for %s", self._dog_id)
 
 
 # Notification button
@@ -461,8 +461,8 @@ class NotifyTestButton(PawControlButtonBase):
                 {},
                 blocking=False,
             )
-        except Exception as exc:
-            _LOGGER.error("Failed to test notification: %s", exc)
+        except Exception:
+            _LOGGER.exception("Failed to test notification")
 
 
 # Global system buttons
@@ -504,8 +504,8 @@ class DailyResetButton(GlobalButtonBase):
                 _LOGGER.info("Daily reset completed via button")
             else:
                 _LOGGER.warning("Coordinator not available for daily reset")
-        except Exception as exc:
-            _LOGGER.error("Failed to perform daily reset: %s", exc)
+        except Exception:
+            _LOGGER.exception("Failed to perform daily reset")
 
 
 class SystemHealthCheckButton(GlobalButtonBase):
@@ -528,8 +528,8 @@ class SystemHealthCheckButton(GlobalButtonBase):
             else:
                 _LOGGER.warning("Coordinator not available for health check")
                 
-        except Exception as exc:
-            _LOGGER.error("Failed to perform system health check: %s", exc)
+        except Exception:
+            _LOGGER.exception("Failed to perform system health check")
 
 
 class GenerateReportButton(GlobalButtonBase):
@@ -559,5 +559,5 @@ class GenerateReportButton(GlobalButtonBase):
             else:
                 _LOGGER.warning("Coordinator not available for report generation")
                 
-        except Exception as exc:
-            _LOGGER.error("Failed to generate report: %s", exc)
+        except Exception:
+            _LOGGER.exception("Failed to generate report")
