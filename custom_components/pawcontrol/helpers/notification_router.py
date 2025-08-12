@@ -225,7 +225,14 @@ class NotificationRouter:
                 # prefix, ensuring we don't misroute the notification. Any
                 # remaining periods must be converted to underscores to match
                 # how Home Assistant names services.
-                service = fallback.split(".", 1)[-1].replace(".", "_")
+                # Normalize the service name to ensure matching works even if
+                # the user provided mixed-case values or accidentally included
+                # leading/trailing whitespace.  Home Assistant service names are
+                # always lowercase with underscores instead of dots after the
+                # domain portion.
+                service = (
+                    fallback.strip().split(".", 1)[-1].replace(".", "_").lower()
+                )
 
                 if self.hass.services.has_service(NOTIFY_DOMAIN, service):
                     targets.append(service)
