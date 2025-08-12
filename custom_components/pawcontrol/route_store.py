@@ -1,8 +1,7 @@
 """Route storage for Paw Control integration."""
 from __future__ import annotations
-import json
 from typing import Any, Dict, List
-from datetime import datetime, timedelta
+from datetime import timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util

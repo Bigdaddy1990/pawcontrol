@@ -1,7 +1,7 @@
 """Notification router for Paw Control integration."""
 from __future__ import annotations
 import logging
-from typing import Any, List
+from typing import List
 from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)

@@ -5,10 +5,8 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import os
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,7 +18,6 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_EXPORT_PATH,
-    CONF_EXPORT_FORMAT,
 )
 
 _LOGGER = logging.getLogger(__name__)

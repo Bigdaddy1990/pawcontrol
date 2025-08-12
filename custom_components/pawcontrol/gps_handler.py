@@ -4,17 +4,16 @@ from __future__ import annotations
 import os
 import json
 import asyncio
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple
 from math import radians, sin, cos, sqrt, atan2
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
-from homeassistant.helpers import config_validation as cv
 
 from .gps_settings import GPSSettingsStore
-from .const import DOMAIN, GPS_MIN_ACCURACY, GPS_MAX_POINTS_PER_ROUTE, GPS_POINT_FILTER_DISTANCE
+from .const import DOMAIN, GPS_MAX_POINTS_PER_ROUTE, GPS_POINT_FILTER_DISTANCE
 
 import logging
 _LOGGER = logging.getLogger(__name__)

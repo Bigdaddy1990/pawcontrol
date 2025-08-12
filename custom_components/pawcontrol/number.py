@@ -1,7 +1,6 @@
 
 """Number entities for Paw Control (weight & medication doses)."""
 from __future__ import annotations
-from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback

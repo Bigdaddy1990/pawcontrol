@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_change
-from typing import Optional
 
 _LOGGER = logging.getLogger(__name__)
 

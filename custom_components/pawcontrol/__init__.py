@@ -637,11 +637,55 @@ async def _route_history_export_range(call: ServiceCall, entry: ConfigEntry) -> 
 
         dog_id = call.data.get("dog_id") or _get_default_dog_id(entry)
         export_format = call.data.get("format", "geojson")
-        start_date = dt_util.parse_datetime(call.data.get("start")) if call.data.get("start") else None
-        end_date = dt_util.parse_datetime(call.data.get("end")) if call.data.get("end") else None
-        
+        start_date = (
+            dt_util.parse_datetime(call.data.get("start"))
+            if call.data.get("start")
+            else None
+        )
+        end_date = (
+            dt_util.parse_datetime(call.data.get("end"))
+            if call.data.get("end")
+            else None
+        )
+
         store = RouteHistoryStore(entry.hass, entry.entry_id, DOMAIN)
         items = await store.async_list(dog_id)
+
+        if start_date or end_date:
+            filtered_items = []
+            for item in items:
+                raw_start = item.get("start")
+                raw_end = item.get("end")
+                if raw_start is None or raw_end is None:
+                    _LOGGER.debug(
+                        "Skipping route history item with missing start or end: %s",
+                        item,
+                    )
+                    continue
+                try:
+                    item_start = dt_util.parse_datetime(raw_start)
+                except (ValueError, TypeError) as err:
+                    _LOGGER.debug(
+                        "Skipping route history item with invalid start %r: %s",
+                        raw_start,
+                        err,
+                    )
+                    continue
+                try:
+                    item_end = dt_util.parse_datetime(raw_end)
+                except (ValueError, TypeError) as err:
+                    _LOGGER.debug(
+                        "Skipping route history item with invalid end %r: %s",
+                        raw_end,
+                        err,
+                    )
+                    continue
+                if start_date and item_end and item_end < start_date:
+                    continue
+                if end_date and item_start and item_start > end_date:
+                    continue
+                filtered_items.append(item)
+            items = filtered_items
 
         base_dir = entry.hass.config.path("media/pawcontrol_routes")
         os.makedirs(base_dir, exist_ok=True)

@@ -3,15 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from homeassistant.components import (
-    input_boolean,
-    input_datetime,
-    input_number,
-    input_select,
-    input_text,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -23,12 +16,9 @@ from ..const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
     MODULE_WALK,
-    MODULE_FEEDING,
     MODULE_HEALTH,
     MODULE_GROOMING,
-    MODULE_MEDICATION,
     MODULE_TRAINING,
-    MODULE_GPS,
     CONF_VISITOR_MODE,
     CONF_EXPORT_PATH,
     CONF_EXPORT_FORMAT,
@@ -318,8 +308,10 @@ class SetupSync:
                 return
 
             # Note: In a real implementation, we would use the actual helper creation services
-            # For now, we'll log the intent
-            _LOGGER.info(f"Would create helper: {full_entity_id} with config: {config}")
+            # For now, we'll log the intent including service data
+            _LOGGER.info(
+                "Would create helper: %s with data: %s", full_entity_id, service_data
+            )
 
             # In production, you would call:
             # await self.hass.services.async_call(

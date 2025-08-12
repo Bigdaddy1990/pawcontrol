@@ -1,6 +1,6 @@
 """Sensor factory to eliminate code duplication."""
 from __future__ import annotations
-from typing import Any, Dict, Type, Optional, Union
+from typing import Any, Dict, Optional
 from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant

@@ -1,6 +1,5 @@
 
 from __future__ import annotations
-from typing import Any
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.components.device_tracker.const import SourceType
 from homeassistant.core import HomeAssistant

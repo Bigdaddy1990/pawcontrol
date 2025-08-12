@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Mapping, Union
+from typing import Any, Dict, List, Optional, Mapping
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,7 +20,6 @@ from .const import (
     EVENT_MEDICATION_GIVEN,
     EVENT_GROOMING_DONE,
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DEFAULT_WALK_THRESHOLD_HOURS,
 )
 

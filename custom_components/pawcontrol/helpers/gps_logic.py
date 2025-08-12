@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from homeassistant.components.device_tracker import DOMAIN as TRACKER_DOMAIN
-from homeassistant.components.person import DOMAIN as PERSON_DOMAIN
-from homeassistant.components.zone import DOMAIN as ZONE_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_LATITUDE,
@@ -28,8 +25,6 @@ from ..const import (
     CONF_PERSON_ENTITIES,
     CONF_DOOR_SENSOR,
     CONF_DOGS,
-    DEFAULT_MIN_WALK_DISTANCE_M,
-    DEFAULT_MIN_WALK_DURATION_MIN,
     DEFAULT_IDLE_TIMEOUT_MIN,
 )
 
@@ -343,6 +338,7 @@ class GPSLogic:
         start_time = session.get("start_time")
         if start_time:
             duration_min = (dt_util.now() - start_time).total_seconds() / 60
+            _LOGGER.debug("Walk duration %.1f minutes for %s", duration_min, dog_id)
         else:
             duration_min = 0
 
