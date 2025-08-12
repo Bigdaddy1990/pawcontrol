@@ -1,0 +1,399 @@
+#################################################
+# Paw Control - GPS Automation Examples
+# Vollständige Automatisierungs-Beispiele für GPS-Tracking
+#################################################
+
+###################################
+# 1. GRUNDLEGENDE GPS-EINRICHTUNG
+###################################
+
+# Ein-Klick GPS-Setup für automatisches Tracking
+automation:
+  - alias: "Paw Control: GPS Auto-Setup für Buddy"
+    description: "Automatische Konfiguration des GPS-Trackings beim Start"
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - service: paw_control.setup_automatic_gps
+        data:
+          entity_id: sensor.buddy_status
+          gps_source: "device_tracker"
+          gps_entity: device_tracker.buddy_phone  # Smartphone GPS
+          auto_start_walk: true
+          auto_end_walk: true
+          safe_zone_radius: 100
+          movement_threshold: 50
+          track_route: true
+          calculate_stats: true
+          enable_notifications: true
+
+###################################
+# 2. SPAZIERGANG-TRACKING AUTOMATISIERUNGEN
+###################################
+
+# Spaziergang automatisch gestartet - Benachrichtigung
+automation:
+  - alias: "GPS: Spaziergang automatisch gestartet"
+    description: "Benachrichtigung wenn automatische Spaziergang-Erkennung aktiviert"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_on_walk
+        to: 'on'
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🚶 Spaziergang gestartet!"
+          message: >
+            Buddy ist {{ states('sensor.buddy_distance_from_home') }}m von Zuhause entfernt.
+            GPS-Tracking läuft automatisch!
+          data:
+            actions:
+              - action: "VIEW_LIVE_GPS"
+                title: "Live-GPS"
+              - action: "STOP_TRACKING"
+                title: "Stoppen"
+
+# Spaziergang beendet - Detaillierte Statistiken
+automation:
+  - alias: "GPS: Spaziergang beendet mit Statistiken"
+    description: "Vollständige Spaziergang-Statistiken nach automatischem Ende"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_on_walk
+        to: 'off'
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.buddy_walk_duration_last
+        above: 5  # Mindestens 5 Minuten
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🏠 Spaziergang beendet!"
+          message: |
+            Buddy ist wieder da! 📍
+            
+            📏 Distanz: {{ states('sensor.buddy_walk_distance_last') }}km
+            ⏱️ Dauer: {{ states('sensor.buddy_walk_duration_last') }} Min
+            🏃 Ø-Speed: {{ states('sensor.buddy_walk_avg_speed_last') }} km/h
+            🔥 Kalorien: {{ states('sensor.buddy_walk_calories_last') }}
+            👣 Schritte: {{ states('sensor.buddy_walk_steps_estimated') }}
+          data:
+            actions:
+              - action: "VIEW_ROUTE_MAP"
+                title: "Route ansehen"
+              - action: "RATE_WALK"
+                title: "Bewerten"
+
+###################################
+# 3. SICHERHEITS-AUTOMATISIERUNGEN
+###################################
+
+# Notfall: Hund verlässt alle Sicherheitszonen
+automation:
+  - alias: "GPS: NOTFALL - Außerhalb aller Sicherheitszonen"
+    description: "Kritischer Alarm wenn Hund alle bekannten Bereiche verlässt"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_in_any_safe_zone
+        to: 'off'
+        for: "00:05:00"  # 5 Minuten außerhalb
+    action:
+      # Sofortige Notfall-Ortung
+      - service: paw_control.emergency_locate
+        data:
+          entity_id: sensor.buddy_status
+          priority: "critical"
+          create_map_link: true
+          notify_emergency_contacts: true
+      
+      # Kritische Benachrichtigung
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🚨 NOTFALL: Buddy verloren!"
+          message: |
+            ⚠️ ACHTUNG: Buddy ist seit 5 Minuten außerhalb aller Sicherheitszonen!
+            
+            📍 Letzte Position: {{ states('sensor.buddy_gps_location') }}
+            🗺️ Adresse: {{ states('sensor.buddy_current_address') }}
+            ⏰ Letztes Update: {{ states('sensor.buddy_gps_last_update') }}
+          data:
+            priority: "high"
+            persistent: true
+            actions:
+              - action: "EMERGENCY_LOCATE"
+                title: "Sofort orten"
+              - action: "CALL_HELP"
+                title: "Hilfe rufen"
+
+# GPS-Tracker Akku-Monitoring
+automation:
+  - alias: "GPS: Tracker Akku-Warnung"
+    description: "Warnung bei niedrigem GPS-Tracker Akku"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.buddy_gps_battery_level
+        below: 20  # Unter 20%
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🔋 GPS-Tracker Akku schwach!"
+          message: |
+            Buddy's GPS-Tracker hat nur noch {{ states('sensor.buddy_gps_battery_level') }}% Akku!
+            
+            ⏱️ Geschätzte Restlaufzeit: {{ states('sensor.buddy_gps_battery_time_left') }}
+            🔌 Bitte bald aufladen!
+          data:
+            actions:
+              - action: "CHARGE_REMINDER"
+                title: "Lade-Erinnerung setzen"
+              - action: "POWER_SAVE_MODE"
+                title: "Stromsparmodus"
+
+###################################
+# 4. AKTIVITÄTS-BASIERTE AUTOMATISIERUNGEN
+###################################
+
+# Belohnung nach besonders langem Spaziergang
+automation:
+  - alias: "GPS: Belohnung nach langem Spaziergang"
+    description: "Extra-Leckerli nach außergewöhnlich langen Spaziergängen"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.buddy_walk_distance_last
+        above: 4  # Mehr als 4km
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🏆 Buddy verdient eine Belohnung!"
+          message: |
+            Wow! {{ states('sensor.buddy_walk_distance_last') }}km gelaufen!
+            Das sind {{ states('sensor.buddy_walk_calories_last') }} Kalorien.
+            Zeit für Extra-Leckerli! 🦴
+          data:
+            actions:
+              - action: "GIVE_TREAT"
+                title: "Leckerli gegeben"
+              - action: "LOG_ACHIEVEMENT"
+                title: "Erfolg protokollieren"
+
+# Warnung bei zu wenig Bewegung
+automation:
+  - alias: "GPS: Zu wenig Bewegung heute"
+    description: "Erinnerung wenn Tagesaktivität zu niedrig ist"
+    trigger:
+      - platform: time
+        at: "17:00:00"  # 17:00 Uhr Check
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.buddy_walk_distance_today
+        below: 1.5  # Weniger als 1.5km heute
+      - condition: state
+        entity_id: binary_sensor.buddy_on_walk
+        state: 'off'  # Gerade nicht spazieren
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "⚠️ Buddy braucht mehr Bewegung!"
+          message: |
+            Nur {{ states('sensor.buddy_walk_distance_today') }}km heute gelaufen 📉
+            
+            🎯 Empfohlen: 2-4km täglich
+            ⏰ Zeit für einen Abendspaziergang!
+          data:
+            actions:
+              - action: "PLAN_EVENING_WALK"
+                title: "Abendspaziergang"
+              - action: "CHECK_WEATHER"
+                title: "Wetter prüfen"
+
+###################################
+# 5. WETTER-INTEGRIERTE AUTOMATISIERUNGEN
+###################################
+
+# Optimale Spaziergang-Zeit basierend auf Wetter
+automation:
+  - alias: "GPS: Wetter-optimierte Spaziergang-Empfehlung"
+    description: "Empfehlung bei perfektem Spaziergang-Wetter"
+    trigger:
+      - platform: state
+        entity_id: weather.home
+        attribute: temperature
+    condition:
+      - condition: numeric_state
+        entity_id: weather.home
+        attribute: temperature
+        above: 12  # Mindestens 12°C
+        below: 28  # Höchstens 28°C
+      - condition: state
+        entity_id: weather.home
+        state: 'sunny'
+      - condition: numeric_state
+        entity_id: sensor.buddy_walk_distance_today
+        below: 3  # Noch nicht genug gelaufen heute
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "☀️ Perfektes Spaziergang-Wetter!"
+          message: |
+            🌡️ {{ states.weather.home.attributes.temperature }}°C und {{ states('weather.home') }}
+            
+            💡 Optimaler Zeitpunkt für Spaziergang!
+            GPS-Tracking startet automatisch wenn Sie losgehen.
+          data:
+            actions:
+              - action: "USE_RECOMMENDATION"
+                title: "Route nutzen"
+              - action: "ALTERNATIVE_ROUTES"
+                title: "Alternativen"
+
+###################################
+# 6. ROUTE-ANALYSE & LIEBLINGS-SPAZIERGÄNGE
+###################################
+
+# Neue Lieblings-Route entdeckt
+automation:
+  - alias: "GPS: Neue Lieblings-Route entdeckt"
+    description: "Benachrichtigung bei neuen häufig genutzten Routen"
+    trigger:
+      - platform: event
+        event_type: paw_control_new_favorite_route
+    action:
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "⭐ Neue Lieblings-Route entdeckt!"
+          message: |
+            Buddy liebt seine neue Route! 🗺️
+            
+            📍 Route: "{{ trigger.event.data.route_name }}"
+            📏 Distanz: {{ trigger.event.data.distance }}km
+            ⏱️ Ø-Dauer: {{ trigger.event.data.avg_duration }} Min
+            📊 Bewertung: {{ trigger.event.data.rating }}/5 ⭐
+            🔄 Bereits {{ trigger.event.data.walk_count }}x gelaufen
+          data:
+            actions:
+              - action: "NAME_ROUTE"
+                title: "Route benennen"
+              - action: "SHARE_ROUTE"
+                title: "Route teilen"
+
+# Intelligente Route-Empfehlung
+automation:
+  - alias: "GPS: Intelligente Route-Empfehlung"
+    description: "KI-basierte Route-Vorschläge basierend auf Mustern"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_needs_walk
+        to: 'on'
+    condition:
+      - condition: time
+        after: "06:00:00"
+        before: "20:00:00"
+    action:
+      - service: paw_control.recommend_optimal_route
+        data:
+          entity_id: sensor.buddy_status
+          consider_weather: true
+          consider_time_of_day: true
+          consider_last_walks: true
+          exclude_overused_routes: true
+          buddy_energy_level: "{{ states('sensor.buddy_energy_level') }}"
+      
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "🎯 Optimale Route für jetzt:"
+          message: |
+            Basierend auf Wetter, Zeit und Buddy's Präferenzen:
+            
+            📍 Empfohlen: {{ states('sensor.buddy_recommended_route') }}
+            📏 {{ states('sensor.buddy_recommended_route_distance') }}km
+            ⏱️ ~{{ states('sensor.buddy_recommended_route_duration') }} Min
+            🌟 Grund: {{ states('sensor.buddy_route_recommendation_reason') }}
+          data:
+            actions:
+              - action: "USE_RECOMMENDATION"
+                title: "Route nutzen"
+              - action: "SEE_ALTERNATIVES"
+                title: "Alternativen"
+
+###################################
+# 7. ERWEITERTE GPS-AUTOMATISIERUNGEN
+###################################
+
+# Wöchentlicher Aktivitätsbericht
+automation:
+  - alias: "GPS: Wöchentlicher Aktivitätsbericht"
+    description: "Detaillierter Wochenbericht jeden Sonntag"
+    trigger:
+      - platform: time
+        at: "19:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - sun  # Sonntags
+    action:
+      - service: paw_control.generate_weekly_report
+        data:
+          entity_id: sensor.buddy_status
+          include_route_analysis: true
+          include_health_correlation: true
+          include_weather_correlation: true
+      
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "📊 Buddy's Wochenbericht KW{{ now().strftime('%V') }}"
+          message: |
+            🗓️ Aktivitätsbericht KW{{ now().strftime('%V') }}/2025:
+            
+            🚶 {{ states('sensor.buddy_walks_count_weekly') }} Spaziergänge
+            📏 {{ states('sensor.buddy_walk_distance_weekly') }}km Gesamtdistanz
+            ⏱️ {{ states('sensor.buddy_active_time_weekly') }} aktive Zeit
+            🔥 {{ states('sensor.buddy_calories_weekly') }} Kalorien verbrannt
+            
+            📈 Trend: {{ states('sensor.buddy_activity_trend') }}
+            ⭐ Top-Route: {{ states('sensor.buddy_top_route_weekly') }}
+          data:
+            actions:
+              - action: "DETAILED_REPORT"
+                title: "Detailbericht"
+              - action: "SHARE_PROGRESS"
+                title: "Fortschritt teilen"
+
+# Automatische GPS-Performance Überwachung
+automation:
+  - alias: "GPS: Performance Monitoring"
+    description: "Überwachung der GPS-Tracking Qualität"
+    trigger:
+      - platform: time_pattern
+        minutes: "/30"  # Alle 30 Minuten
+    action:
+      - service: paw_control.monitor_gps_performance
+        data:
+          entity_id: sensor.buddy_status
+          track_update_frequency: true
+          track_accuracy_trends: true
+          track_battery_impact: true
+          generate_performance_score: true
+
+      # Performance-Alert bei Problemen
+      - condition: numeric_state
+        entity_id: sensor.buddy_gps_performance_score
+        below: 70  # Performance unter 70%
+      
+      - service: notify.mobile_app_owner_phone
+        data:
+          title: "⚠️ GPS-Performance Problem"
+          message: |
+            GPS-Tracking Performance ist auf {{ states('sensor.buddy_gps_performance_score') }}% gefallen
+            
+            🔍 Hauptprobleme:
+            {{ states('sensor.buddy_gps_performance_issues') }}
+            
+            💡 Empfohlene Lösungen:
+            {{ states('sensor.buddy_gps_optimization_suggestions') }}
+          data:
+            actions:
+              - action: "AUTO_OPTIMIZE"
+                title: "Auto-Optimierung"
+              - action: "DETAILED_DIAGNOSTICS"
+                title: "Detaildiagnose"

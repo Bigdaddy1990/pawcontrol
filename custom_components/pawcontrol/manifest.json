@@ -1,19 +1,30 @@
 {
   "domain": "pawcontrol",
   "name": "Paw Control",
-  "version": "1.0.0",
+  "version": "1.0.15",
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
   "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
-  "codeowners": ["@BigDaddy1990"],
+  "codeowners": [
+    "@BigDaddy1990"
+  ],
   "config_flow": true,
   "iot_class": "local_polling",
   "requirements": [],
   "dependencies": [],
-  "after_dependencies": ["mobile_app", "person", "zone", "calendar"],
+  "after_dependencies": [
+    "mobile_app",
+    "person",
+    "zone",
+    "calendar"
+  ],
   "integration_type": "hub",
   "quality_scale": "silver",
   "homekit": {
-    "models": ["Smart Dog Manager"]
+    "models": [
+      "Smart Dog Manager"
+    ]
   },
-  "loggers": ["pawcontrol"]
+  "loggers": [
+    "pawcontrol"
+  ]
 }

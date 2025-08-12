@@ -1,0 +1,32 @@
+
+blueprint:
+  name: PawControl – Medikament alle X Stunden erinnern
+  domain: automation
+  input:
+    dog_id:
+      name: Hund-ID
+      selector: { text: {} }
+    hours:
+      name: Intervall (Stunden)
+      default: 8
+      selector: { number: { min: 1, max: 48, step: 1, mode: box } }
+    slot:
+      name: Medikamenten-Slot (1–3, optional)
+      default: 1
+      selector: { number: { min: 1, max: 3, step: 1, mode: box } }
+    notify_target:
+      name: Notification Service (z. B. notify.mobile_app_*)
+      selector: { text: {} }
+trigger:
+  - platform: time_pattern
+    hours: "/{{ iif((hours|int) > 0, hours|int, 8) }}"
+action:
+  - service: pawcontrol.send_medication_reminder
+    data:
+      dog_id: !input dog_id
+      slot: !input slot
+  - service: !input notify_target
+    data:
+      title: "Paw Control – Medikament"
+      message: "{{ !input.dog_id }} – Erinnerung (Slot {{ !input.slot }})"
+mode: single

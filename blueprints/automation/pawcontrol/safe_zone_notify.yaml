@@ -1,0 +1,31 @@
+
+blueprint:
+  name: PawControl – Sicherheitszone Benachrichtigung
+  domain: automation
+  input:
+    dog_id:
+      name: Hund-ID
+      selector: { text: {} }
+    notify_target:
+      name: Notification Service (z. B. notify.mobile_app_*)
+      selector: { text: {} }
+trigger:
+  - platform: event
+    event_type: pawcontrol_safe_zone_entered
+    event_data:
+      dog_id: !input dog_id
+  - platform: event
+    event_type: pawcontrol_safe_zone_left
+    event_data:
+      dog_id: !input dog_id
+action:
+  - variables:
+      title: >-
+        {% if trigger.event.event_type == 'pawcontrol_safe_zone_left' %}Paw Control – Zone verlassen{% else %}Paw Control – Zone betreten{% endif %}
+      msg: >-
+        {{ trigger.event.data.dog_id }} – {{ 'verlassen' if trigger.event.event_type == 'pawcontrol_safe_zone_left' else 'betreten' }}
+  - service: !input notify_target
+    data:
+      message: "{{ msg }}"
+      title: "{{ title }}"
+mode: restart

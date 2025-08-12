@@ -1,15 +1,11 @@
 """Constants for the Paw Control integration."""
 
 from typing import Final
-
 from homeassistant.const import Platform
 
-DOMAIN = "pawcontrol"
+DOMAIN: Final[str] = "pawcontrol"
 
-# Platforms the integration implements. Home Assistant now validates that these
-# values are instances of the ``Platform`` enum; using raw strings would cause
-# setup and unload to fail.  Typing the list helps static checkers catch any
-# accidental regression back to string values.
+# Platforms supported by the integration
 PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
@@ -17,136 +13,183 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.NUMBER,
     Platform.SELECT,
     Platform.TEXT,
+    Platform.DATETIME,
     Platform.SWITCH,
+    Platform.DEVICE_TRACKER,
 ]
 
-# Configuration
+# Event types for Home Assistant bus
+EVENT_WALK_STARTED: Final[str] = "pawcontrol_walk_started"
+EVENT_WALK_ENDED: Final[str] = "pawcontrol_walk_ended"
+EVENT_DOG_FED: Final[str] = "pawcontrol_dog_fed"
+EVENT_MEDICATION_GIVEN: Final[str] = "pawcontrol_medication_given"
+EVENT_GROOMING_DONE: Final[str] = "pawcontrol_grooming_done"
+EVENT_TRAINING_SESSION: Final[str] = "pawcontrol_training_session"
+EVENT_SAFE_ZONE_ENTERED: Final[str] = "pawcontrol_safe_zone_entered"
+EVENT_SAFE_ZONE_LEFT: Final[str] = "pawcontrol_safe_zone_left"
+
+# Event attributes
+ATTR_DOG_ID: Final[str] = "dog_id"
+ATTR_DOG_NAME: Final[str] = "dog_name"
+ATTR_DURATION: Final[str] = "duration"
+ATTR_DISTANCE: Final[str] = "distance"
+ATTR_MEAL_TYPE: Final[str] = "meal_type"
+ATTR_MEDICATION: Final[str] = "medication"
+
+# Module keys used in options['modules']
+MODULE_FEEDING: Final[str] = "feeding"
+MODULE_GPS: Final[str] = "gps"
+MODULE_HEALTH: Final[str] = "health"
+MODULE_WALK: Final[str] = "walk"
+MODULE_GROOMING: Final[str] = "grooming"
+MODULE_TRAINING: Final[str] = "training"
+MODULE_NOTIFICATIONS: Final[str] = "notifications"
+MODULE_DASHBOARD: Final[str] = "dashboard"
+MODULE_MEDICATION: Final[str] = "medication"
+
+# Common config keys referenced across modules/options
 CONF_DOGS = "dogs"
-CONF_DOG_ID = "dog_id"
-CONF_DOG_NAME = "name"
-CONF_DOG_BREED = "breed"
-CONF_DOG_AGE = "age"
-CONF_DOG_WEIGHT = "weight"
-CONF_DOG_SIZE = "size"
-CONF_DOG_MODULES = "modules"
-
-# Modules
-MODULE_WALK = "walk"
-MODULE_FEEDING = "feeding"
-MODULE_HEALTH = "health"
-MODULE_GPS = "gps"
-MODULE_NOTIFICATIONS = "notifications"
-MODULE_DASHBOARD = "dashboard"
-MODULE_GROOMING = "grooming"
-MODULE_MEDICATION = "medication"
-MODULE_TRAINING = "training"
-
-# Sources
-CONF_SOURCES = "sources"
-CONF_DOOR_SENSOR = "door_sensor"
-CONF_PERSON_ENTITIES = "person_entities"
-CONF_DEVICE_TRACKERS = "device_trackers"
-CONF_NOTIFY_FALLBACK = "notify_fallback"
-CONF_CALENDAR = "calendar"
-CONF_WEATHER = "weather"
-
-# Notifications
-CONF_NOTIFICATIONS = "notifications"
-CONF_QUIET_HOURS = "quiet_hours"
-CONF_QUIET_START = "start"
-CONF_QUIET_END = "end"
-CONF_REMINDER_REPEAT = "reminder_repeat_min"
-CONF_SNOOZE_MIN = "snooze_min"
-
-# System
 CONF_RESET_TIME = "reset_time"
-CONF_EXPORT_PATH = "export_path"
+CONF_DASHBOARD = "dashboard"
+CONF_DEVICE_TRACKERS = "device_trackers"
 CONF_EXPORT_FORMAT = "export_format"
+CONF_EXPORT_PATH = "export_path"
+CONF_REMINDER_REPEAT = "reminder_repeat"
+CONF_SNOOZE_MIN = "snooze_min"
+CONF_QUIET_START = "quiet_hours_start"
+CONF_QUIET_END = "quiet_hours_end"
+CONF_QUIET_HOURS = "quiet_hours"
+CONF_NOTIFY_BACKENDS = "notify_backends"
+CONF_NOTIFY_FALLBACK = "notify_fallback"
+CONF_NOTIFICATIONS = "notifications"
+CONF_SOURCES = "sources"
+CONF_TYPE = "type"
+CONF_DEVICE_ID = "device_id"
+CONF_PLATFORM = "platform"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"
 CONF_VISITOR_MODE = "visitor_mode"
-CONF_EMERGENCY_MODE = "emergency_mode"
+CONF_WEATHER = "weather"
+CONF_CALENDAR = "calendar"
+CONF_PERSON_ENTITIES = "person_entities"
+CONF_EVENT_TYPE = "event_type"
+CONF_EVENT_DATA = "event_data"
+CONF_DOG_ID = "dog_id"
+CONF_DOG_NAME = "dog_name"
+CONF_DOG_WEIGHT = "dog_weight"
+CONF_DOG_SIZE = "dog_size"
+CONF_DOG_BREED = "dog_breed"
+CONF_DOG_AGE = "dog_age"
+CONF_DOG_MODULES = "dog_modules"
+CONF_DOMAIN = "domain"
+CONF_DOOR_SENSOR = "door_sensor"
 
 # Defaults
-DEFAULT_RESET_TIME = "23:59:00"
-DEFAULT_REPORT_TIME = "23:55:00"
-DEFAULT_REMINDER_REPEAT = 30
-DEFAULT_SNOOZE_MIN = 15
-DEFAULT_EXPORT_FORMAT = "csv"
-DEFAULT_WALK_THRESHOLD_HOURS = 8
-DEFAULT_GROOMING_INTERVAL_DAYS = 30
-DEFAULT_MIN_WALK_DISTANCE_M = 10
-DEFAULT_MIN_WALK_DURATION_MIN = 5
-DEFAULT_IDLE_TIMEOUT_MIN = 30
+DEFAULT_RESET_TIME: Final[str] = "23:59:00"
+DEFAULT_REMINDER_REPEAT: Final[int] = 30
+DEFAULT_SNOOZE_MIN: Final[int] = 15
+DEFAULT_EXPORT_FORMAT: Final[str] = "csv"
+DEFAULT_WALK_THRESHOLD_HOURS: Final[float] = 8.0
 
-# Attributes
-ATTR_DOG_ID = "dog_id"
-ATTR_DOG_NAME = "dog_name"
-ATTR_LAST_WALK = "last_walk"
-ATTR_LAST_FEEDING = "last_feeding"
-ATTR_LAST_GROOMING = "last_grooming"
-ATTR_LAST_MEDICATION = "last_medication"
-ATTR_WALK_DURATION = "walk_duration_min"
-ATTR_WALK_DISTANCE = "walk_distance_m"
-ATTR_MEAL_TYPE = "meal_type"
-ATTR_FOOD_TYPE = "food_type"
-ATTR_PORTION_G = "portion_g"
-ATTR_MEDICATION_NAME = "medication_name"
-ATTR_GROOMING_TYPE = "grooming_type"
-ATTR_NOTES = "notes"
+# Icons and labels (minimal safe defaults; extended sets may be merged elsewhere)
+ICONS: Final[dict[str, str]] = {
+    "feeding": "mdi:food-drumstick",
+    "gps": "mdi:map-marker",
+    "health": "mdi:medical-bag",
+    "walk": "mdi:walk",
+    "grooming": "mdi:shower",
+    "training": "mdi:school",
+    "medication": "mdi:pill",
+    "dashboard": "mdi:view-dashboard",
+    "notifications": "mdi:bell",
+}
 
-# Events
-EVENT_DAILY_RESET = f"{DOMAIN}_daily_reset"
-EVENT_WALK_STARTED = f"{DOMAIN}_walk_started"
-EVENT_WALK_ENDED = f"{DOMAIN}_walk_ended"
-EVENT_DOG_FED = f"{DOMAIN}_dog_fed"
-EVENT_MEDICATION_GIVEN = f"{DOMAIN}_medication_given"
-EVENT_GROOMING_DONE = f"{DOMAIN}_grooming_done"
+# Meal types mapping (used in UI/logic)
+MEAL_TYPES: Final[dict[str, str]] = {
+    "breakfast": "Frühstück",
+    "lunch": "Mittag",
+    "dinner": "Abend",
+}
 
-# Services
-SERVICE_START_WALK = "start_walk"
-SERVICE_END_WALK = "end_walk"
-SERVICE_WALK_DOG = "walk_dog"
-SERVICE_FEED_DOG = "feed_dog"
-SERVICE_LOG_HEALTH = "log_health_data"
-SERVICE_LOG_MEDICATION = "log_medication"
-SERVICE_START_GROOMING = "start_grooming_session"
-SERVICE_PLAY_WITH_DOG = "play_with_dog"
-SERVICE_START_TRAINING = "start_training_session"
-SERVICE_TOGGLE_VISITOR = "toggle_visitor_mode"
-SERVICE_EMERGENCY_MODE = "activate_emergency_mode"
-SERVICE_DAILY_RESET = "daily_reset"
-SERVICE_GENERATE_REPORT = "generate_report"
-SERVICE_EXPORT_DATA = "export_health_data"
-SERVICE_SYNC_SETUP = "sync_setup"
+# Feeding types
+FEEDING_TYPES: Final[dict[str, str]] = {
+    "dry": "Trockenfutter",
+    "wet": "Nassfutter",
+    "barf": "BARF",
+    "snack": "Snack",
+}
+
+# Health thresholds (example defaults)
+HEALTH_THRESHOLDS: Final[dict[str, float]] = {
+    "temperature_high": 39.2,
+    "temperature_low": 37.2,
+    "heart_rate_high": 140.0,
+}
+
+# Vaccination names & intervals (months)
+VACCINATION_NAMES: Final[dict[str, str]] = {
+    "rabies": "Tollwut",
+    "distemper": "Staupe",
+    "hepatitis": "Hepatitis",
+    "parvovirus": "Parvovirose",
+    "parainfluenza": "Parainfluenza",
+    "leptospirosis": "Leptospirose",
+    "bordetella": "Zwingerhusten",
+}
+
+VACCINATION_INTERVALS: Final[dict[str, int]] = {
+    "rabies": 36,
+    "distemper": 36,
+    "hepatitis": 36,
+    "parvovirus": 36,
+    "parainfluenza": 12,
+    "leptospirosis": 12,
+    "bordetella": 12,
+}
+
+# Service names
+SERVICE_GPS_START_WALK = "gps_start_walk"
+SERVICE_GPS_END_WALK = "gps_end_walk"
+SERVICE_GPS_GENERATE_DIAGNOSTICS = "gps_generate_diagnostics"
+SERVICE_GPS_RESET_STATS = "gps_reset_stats"
+SERVICE_GPS_EXPORT_LAST_ROUTE = "gps_export_last_route"
+SERVICE_GPS_PAUSE_TRACKING = "gps_pause_tracking"
+SERVICE_GPS_RESUME_TRACKING = "gps_resume_tracking"
+SERVICE_GPS_POST_LOCATION = "gps_post_location"
+SERVICE_GPS_LIST_WEBHOOKS = "gps_list_webhooks"
+SERVICE_GPS_REGENERATE_WEBHOOKS = "gps_regenerate_webhooks"
+SERVICE_TOGGLE_GEOFENCE_ALERTS = "toggle_geofence_alerts"
+SERVICE_EXPORT_OPTIONS = "export_options"
+SERVICE_IMPORT_OPTIONS = "import_options"
 SERVICE_NOTIFY_TEST = "notify_test"
+SERVICE_PURGE_ALL_STORAGE = "purge_all_storage"
+SERVICE_ROUTE_HISTORY_LIST = "route_history_list"
+SERVICE_ROUTE_HISTORY_PURGE = "route_history_purge"
+SERVICE_ROUTE_HISTORY_EXPORT_RANGE = "route_history_export_range"
+SERVICE_SEND_MEDICATION_REMINDER = "send_medication_reminder"
 
-# Meal types
-MEAL_BREAKFAST = "breakfast"
-MEAL_LUNCH = "lunch"
-MEAL_DINNER = "dinner"
-MEAL_SNACK = "snack"
+# Storage keys
+STORAGE_KEY_GPS_SETTINGS = "gps_settings"
+STORAGE_KEY_ROUTE_HISTORY = "route_history"
+STORAGE_KEY_USER_SETTINGS = "user_settings"
 
-# Food types
-FOOD_DRY = "dry"
-FOOD_WET = "wet"
-FOOD_BARF = "barf"
-FOOD_TREAT = "treat"
+# GPS and tracking constants
+GPS_MIN_ACCURACY = 100  # meters
+GPS_MAX_POINTS_PER_ROUTE = 10000
+GPS_POINT_FILTER_DISTANCE = 5  # meters minimum between points
 
-# Grooming types
-GROOMING_BATH = "bath"
-GROOMING_BRUSH = "brush"
-GROOMING_TRIM = "trim"
-GROOMING_NAILS = "nails"
-GROOMING_EARS = "ears"
-GROOMING_TEETH = "teeth"
-GROOMING_EYES = "eyes"
+# Walk detection defaults
+DEFAULT_MIN_WALK_DISTANCE_M = 100  # meters
+DEFAULT_MIN_WALK_DURATION_MIN = 5  # minutes
+DEFAULT_IDLE_TIMEOUT_MIN = 30  # minutes
 
-# Activity intensity
-INTENSITY_LOW = "low"
-INTENSITY_MEDIUM = "medium"
-INTENSITY_HIGH = "high"
+# Safe zone defaults
+DEFAULT_SAFE_ZONE_RADIUS = 50  # meters
+MAX_SAFE_ZONE_RADIUS = 2000  # meters
+MIN_SAFE_ZONE_RADIUS = 5  # meters
 
-# Dog sizes
-SIZE_SMALL = "small"
-SIZE_MEDIUM = "medium"
-SIZE_LARGE = "large"
-SIZE_XLARGE = "xlarge"
+# Grooming defaults
+DEFAULT_GROOMING_INTERVAL_DAYS = 30
+
+# Notification defaults
+DEFAULT_NOTIFICATION_SERVICE = "notify.notify"

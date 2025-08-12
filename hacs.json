@@ -1,11 +1,7 @@
 {
-  "name": "Paw Control - Smart Dog Management",
+  "name": "Paw Control",
   "render_readme": true,
-  "content_in_root": false,
-  "filename": "pawcontrol.zip",
-  "homeassistant": "2024.1.0",
-  "domains": ["sensor", "binary_sensor", "button", "number", "select", "text", "switch"],
-  "country": ["DE", "US", "GB", "FR", "ES", "IT", "NL", "BE", "AT", "CH"],
-  "zip_release": true,
-  "persistent_directory": "pawcontrol_data"
+  "homeassistant": "2024.6.0",
+  "zip_release": false,
+  "country": "DE"
 }

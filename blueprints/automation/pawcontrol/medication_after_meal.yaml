@@ -1,0 +1,23 @@
+
+blueprint:
+  name: PawControl – Medikations-Reminder nach Mahlzeit
+  domain: automation
+  input:
+    dog_id:
+      name: Hund-ID
+      selector: { text: {} }
+    meal:
+      name: Mahlzeit
+      selector: { select: { options: [breakfast, lunch, dinner] } }
+trigger:
+  - platform: event
+    event_type: pawcontrol_feeding_reminder
+    event_data:
+      dog_id: !input dog_id
+      meal: !input meal
+action:
+  - service: pawcontrol.send_medication_reminder
+    data:
+      dog_id: !input dog_id
+      meal: !input meal
+mode: single

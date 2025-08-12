@@ -1,442 +1,163 @@
-# Paw Control Services
 
-start_walk:
-  name: Start Walk
-  description: Start tracking a walk for a dog
+# Paw Control – Services
+
+gps_start_walk:
+  name: GPS-Tracking starten
+  description: Startet einen Spaziergang für einen Hund.
   fields:
     dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    source:
-      name: Source
-      description: How the walk was initiated
+      description: Hund-ID (optional; wenn leer, wird der erste Hund genutzt)
+      example: rex
       required: false
-      default: "manual"
-      example: "manual"
-      selector:
-        select:
-          options:
-            - "manual"
-            - "gps"
-            - "door"
+      selector: { text: {} }
+    walk_type:
+      description: Typ des Spaziergangs (z. B. normal, auto_detected)
+      required: false
+      default: normal
+      selector: { text: {} }
 
-end_walk:
-  name: End Walk
-  description: End tracking a walk for a dog
+gps_end_walk:
+  name: GPS-Tracking beenden
+  description: Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.
   fields:
     dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    reason:
-      name: Reason
-      description: Why the walk ended
       required: false
-      default: "manual"
-      example: "manual"
-      selector:
-        select:
-          options:
-            - "manual"
-            - "home"
-            - "idle"
-
-walk_dog:
-  name: Quick Walk Log
-  description: Log a completed walk with duration and distance
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    duration_min:
-      name: Duration
-      description: Walk duration in minutes
-      required: true
-      default: 30
-      example: 30
-      selector:
-        number:
-          min: 1
-          max: 600
-          step: 1
-          unit_of_measurement: "min"
-    distance_m:
-      name: Distance
-      description: Walk distance in meters
+      selector: { text: {} }
+    rating:
+      description: Bewertung 1–5 (optional)
       required: false
-      default: 1000
-      example: 1000
-      selector:
-        number:
-          min: 1
-          max: 100000
-          step: 10
-          unit_of_measurement: "m"
-
-feed_dog:
-  name: Feed Dog
-  description: Record feeding for a dog
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    meal_type:
-      name: Meal Type
-      description: Type of meal
-      required: true
-      default: "dinner"
-      example: "dinner"
-      selector:
-        select:
-          options:
-            - "breakfast"
-            - "lunch"
-            - "dinner"
-            - "snack"
-    portion_g:
-      name: Portion Size
-      description: Portion size in grams
-      required: false
-      default: 200
-      example: 200
-      selector:
-        number:
-          min: 10
-          max: 1500
-          step: 10
-          unit_of_measurement: "g"
-    food_type:
-      name: Food Type
-      description: Type of food
-      required: false
-      default: "dry"
-      example: "dry"
-      selector:
-        select:
-          options:
-            - "dry"
-            - "wet"
-            - "barf"
-            - "treat"
-
-log_health_data:
-  name: Log Health Data
-  description: Record health data for a dog
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    weight_kg:
-      name: Weight
-      description: Dog weight in kilograms
-      required: false
-      example: 25.5
-      selector:
-        number:
-          min: 0.5
-          max: 100
-          step: 0.1
-          unit_of_measurement: "kg"
-    note:
-      name: Note
-      description: Health note or observation
-      required: false
-      example: "Good appetite, active"
-      selector:
-        text:
-
-log_medication:
-  name: Log Medication
-  description: Record medication given to a dog
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    medication_name:
-      name: Medication Name
-      description: Name of the medication
-      required: true
-      example: "Heartguard"
-      selector:
-        text:
-    dose:
-      name: Dose
-      description: Medication dose
-      required: true
-      example: "1 tablet"
-      selector:
-        text:
-
-start_grooming_session:
-  name: Start Grooming Session
-  description: Log a grooming session for a dog
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    type:
-      name: Grooming Type
-      description: Type of grooming
-      required: true
-      default: "brush"
-      example: "brush"
-      selector:
-        select:
-          options:
-            - "bath"
-            - "brush"
-            - "trim"
-            - "nails"
-            - "ears"
-            - "teeth"
-            - "eyes"
+      selector: { number: { min: 1, max: 5, step: 1 } }
     notes:
-      name: Notes
-      description: Grooming notes
+      description: Notizen
       required: false
-      example: "Full bath with shampoo"
-      selector:
-        text:
+      selector: { text: {} }
 
-play_with_dog:
-  name: Play Session
-  description: Log a play session with a dog
+gps_export_last_route:
+  name: Letzte Route exportieren
+  description: Exportiert die letzte Route als GeoJSON oder GPX.
   fields:
     dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    duration_min:
-      name: Duration
-      description: Play duration in minutes
-      required: true
-      default: 15
-      example: 15
-      selector:
-        number:
-          min: 1
-          max: 240
-          step: 1
-          unit_of_measurement: "min"
-    intensity:
-      name: Intensity
-      description: Play intensity level
       required: false
-      default: "medium"
-      example: "medium"
-      selector:
-        select:
-          options:
-            - "low"
-            - "medium"
-            - "high"
-
-start_training_session:
-  name: Start Training Session
-  description: Log a training session with a dog
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    topic:
-      name: Training Topic
-      description: What was trained
-      required: true
-      example: "Basic Commands"
-      selector:
-        text:
-    duration_min:
-      name: Duration
-      description: Training duration in minutes
-      required: false
-      default: 15
-      example: 15
-      selector:
-        number:
-          min: 1
-          max: 240
-          step: 1
-          unit_of_measurement: "min"
-    notes:
-      name: Notes
-      description: Training notes
-      required: false
-      example: "Good progress on sit and stay"
-      selector:
-        text:
-
-toggle_visitor_mode:
-  name: Toggle Visitor Mode
-  description: Enable or disable visitor mode
-  fields:
-    enabled:
-      name: Enabled
-      description: Whether visitor mode should be enabled
-      required: true
-      example: true
-      selector:
-        boolean:
-
-activate_emergency_mode:
-  name: Activate Emergency Mode
-  description: Activate emergency mode with specified level
-  fields:
-    level:
-      name: Level
-      description: Emergency level
-      required: false
-      default: "info"
-      example: "critical"
-      selector:
-        select:
-          options:
-            - "info"
-            - "warn"
-            - "critical"
-    note:
-      name: Note
-      description: Emergency note
-      required: false
-      example: "Dog escaped"
-      selector:
-        text:
-
-daily_reset:
-  name: Daily Reset
-  description: Reset all daily counters
-  fields: {}
-
-generate_report:
-  name: Generate Report
-  description: Generate activity report
-  fields:
-    scope:
-      name: Scope
-      description: Report scope
-      required: false
-      default: "daily"
-      example: "daily"
-      selector:
-        select:
-          options:
-            - "daily"
-            - "weekly"
-            - "custom"
-    target:
-      name: Target
-      description: Where to send the report
-      required: false
-      default: "notification"
-      example: "notification"
-      selector:
-        select:
-          options:
-            - "file"
-            - "notification"
+      selector: { text: {} }
     format:
-      name: Format
-      description: Report format
       required: false
-      default: "text"
-      example: "text"
-      selector:
-        select:
-          options:
-            - "text"
-            - "csv"
-            - "json"
-            - "pdf"
+      default: geojson
+      selector: { select: { options: [geojson, gpx] } }
+    to_media:
+      required: false
+      default: false
+      selector: { boolean: {} }
 
-export_health_data:
-  name: Export Health Data
-  description: Export health data for a dog
+gps_generate_diagnostics:
+  name: GPS-Diagnose erstellen
+  description: Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/
   fields:
     dog_id:
-      name: Dog ID
-      description: Identifier of the dog
-      required: true
-      example: "rex"
-      selector:
-        text:
-    from:
-      name: From Date
-      description: Start date for export
       required: false
-      selector:
-        date:
-    to:
-      name: To Date
-      description: End date for export
-      required: false
-      selector:
-        date:
-    format:
-      name: Format
-      description: Export format
-      required: false
-      default: "csv"
-      example: "csv"
-      selector:
-        select:
-          options:
-            - "csv"
-            - "json"
+      selector: { text: {} }
 
-sync_setup:
-  name: Sync Setup
-  description: Synchronize helpers and entities with current configuration
-  fields: {}
+gps_reset_stats:
+  name: GPS-Statistiken zurücksetzen
+  description: Setzt diagnostische GPS-Zähler zurück.
+  fields:
+    dog_id:
+      required: false
+      selector: { text: {} }
+
+gps_pause_tracking:
+  name: GPS-Tracking pausieren
+  description: Pausiert das Tracking (sofern Handler aktiv).
+  fields:
+    dog_id:
+      required: false
+      selector: { text: {} }
+
+gps_resume_tracking:
+  name: GPS-Tracking fortsetzen
+  description: Setzt das Tracking fort (sofern Handler aktiv).
+  fields:
+    dog_id:
+      required: false
+      selector: { text: {} }
+
+toggle_geofence_alerts:
+  name: Geofence-Alerts umschalten
+  description: Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der Zone.
+  fields:
+    dog_id:
+      required: false
+      selector: { text: {} }
+    enable:
+      required: true
+      selector: { boolean: {} }
+
+export_options:
+  name: Optionen exportieren
+  description: Schreibt die aktuellen Options (Config-Entry) als JSON nach /config/pawcontrol_options_export.json
+
+import_options:
+  name: Optionen importieren
+  description: Lädt JSON-Optionen von Pfad (Standard /config/pawcontrol_options_export.json) in die Config-Entry
+  fields:
+    path:
+      required: false
+      selector: { text: {} }
+
+send_medication_reminder:
+  name: Medikationserinnerung senden
+  description: Versendet pro Slot eine Erinnerung (oder auf Basis der Zuordnung je Mahlzeit).
+  fields:
+    dog_id: { required: true, selector: { text: {} } }
+    meal: { required: false, selector: { select: { options: [breakfast, lunch, dinner] } } }
+    slot: { required: false, selector: { number: { min: 1, max: 3, step: 1 } } }
+    notes: { required: false, selector: { text: {} } }
+
+route_history_list:
+  name: Routenindex erzeugen
+  description: Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/
+  fields:
+    dog_id: { required: false, selector: { text: {} } }
+
+route_history_purge:
+  name: Routenverlauf bereinigen
+  description: Löscht Routen, die älter sind als X Tage (wenn gesetzt).
+  fields:
+    older_than_days: { required: false, selector: { number: { min: 1, max: 3650, step: 1 } } }
+
+route_history_export_range:
+  name: Routenbereich exportieren
+  description: Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis.
+  fields:
+    dog_id: { required: false, selector: { text: {} } }
+    start: { required: false, selector: { text: {} } }
+    end: { required: false, selector: { text: {} } }
+    format: { required: false, default: geojson, selector: { select: { options: [geojson, gpx] } } }
+
+purge_all_storage:
+  name: Alle gespeicherten Daten löschen
+  description: Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).
+
+
+gps_list_webhooks:
+  name: Webhooks auflisten
+  description: Schreibt eine Datei mit allen Webhook-URLs in /config/pawcontrol_diagnostics/webhooks.json
+
+
+gps_regenerate_webhooks:
+  name: Webhooks erneuern
+  description: Erzeugt neue Webhook-IDs pro Hund und registriert sie.
+
+
+gps_post_location:
+  name: GPS-Position posten (manuell)
+  description: Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt wird).
+  fields:
+    dog_id: { required: false, selector: { text: {} } }
+    latitude: { required: true, selector: { number: { min: -90, max: 90, step: 0.000001 } } }
+    longitude: { required: true, selector: { number: { min: -180, max: 180, step: 0.000001 } } }
+    accuracy: { required: false, selector: { number: { min: 0, max: 1000, step: 0.1 } } }
+
 
 notify_test:
-  name: Test Notification
-  description: Send a test notification
-  fields:
-    dog_id:
-      name: Dog ID
-      description: Identifier of the dog (optional)
-      required: false
-      example: "rex"
-      selector:
-        text:
-    message:
-      name: Message
-      description: Test message to send
-      required: false
-      default: "Paw Control test notification"
-      example: "Test notification for Rex"
-      selector:
-        text:
+  name: Test-Benachrichtigung senden
+  description: Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback persistent_notification).
