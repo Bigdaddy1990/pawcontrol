@@ -81,6 +81,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("Coordinator initialized successfully")
     except Exception as exc:
         _LOGGER.warning("Coordinator setup failed: %s", exc)
+        # Clean up the partially created data entry and signal Home Assistant
+        # that the setup should be retried. Without raising
+        # ConfigEntryNotReady here, Home Assistant would mark the integration
+        # as loaded even though the coordinator is unavailable.
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        raise ConfigEntryNotReady from exc
 
     # Ensure per-dog webhooks are generated & registered
     await _ensure_webhooks(hass, entry, data)
