@@ -48,7 +48,7 @@
           "notify_fallback": "Fallback Notification Service",
           "quiet_hours_start": "Quiet Hours Start",
           "quiet_hours_end": "Quiet Hours End",
-          "reminder_repeat": "Reminder Repeat Interval (minutes)",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
           "snooze_min": "Snooze Duration (minutes)"
         }
       },
@@ -69,8 +69,7 @@
       "invalid_time": "Invalid time format"
     },
     "abort": {
-      "single_instance_allowed": "Only one instance of Paw Control is allowed.",
-      "no_dogs": "No dogs configured"
+      "single_instance_allowed": "Only one instance of Paw Control is allowed."
     }
   },
   "options": {
@@ -82,14 +81,7 @@
           "dogs": "Manage Dogs",
           "sources": "Data Sources",
           "notifications": "Notifications",
-          "system": "System Settings",
-          "medications": "Medication Settings",
-          "medication_mapping": "Medication Schedule",
-          "reminders": "Reminder Settings",
-          "safe_zones": "Safe Zones",
-          "advanced": "Advanced Settings",
-          "schedule": "Schedule Settings",
-          "modules": "Module Settings"
+          "system": "System Settings"
         }
       },
       "dogs": {
@@ -113,9 +105,9 @@
         "description": "Adjust notification settings.",
         "data": {
           "notify_fallback": "Fallback Notification Service",
-          "quiet_start": "Quiet Hours Start",
-          "quiet_end": "Quiet Hours End",
-          "reminder_repeat": "Reminder Repeat Interval (minutes)",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
           "snooze_min": "Snooze Duration (minutes)"
         }
       },
@@ -128,80 +120,11 @@
           "export_format": "Export Format",
           "visitor_mode": "Visitor Mode"
         }
-      },
-      "medications": {
-        "title": "Select Dog for Medication Settings",
-        "description": "Choose which dog to configure medication settings for.",
-        "data": {
-          "dog_id": "Select Dog"
-        }
-      },
-      "medications_configure": {
-        "title": "Configure Medication Schedule",
-        "description": "Select which meals each medication slot should be associated with.",
-        "data": {
-          "slot1": "Medication Slot 1 (meals)",
-          "slot2": "Medication Slot 2 (meals)",
-          "slot3": "Medication Slot 3 (meals)"
-        }
-      },
-      "medication_mapping": {
-        "title": "Medication Mapping",
-        "description": "Configure medication schedules for each dog.",
-        "data": {}
-      },
-      "reminders": {
-        "title": "Reminder Settings",
-        "description": "Configure reminder notifications.",
-        "data": {
-          "notify_target": "Notification Service",
-          "interval_minutes": "Reminder Interval (minutes)",
-          "snooze_minutes": "Snooze Duration (minutes)",
-          "enable_auto": "Enable Automatic Reminders"
-        }
-      },
-      "safe_zones": {
-        "title": "Safe Zones Configuration",
-        "description": "Configure safe zones for GPS tracking.",
-        "data": {}
-      },
-      "advanced": {
-        "title": "Advanced Settings",
-        "description": "Configure advanced options.",
-        "data": {
-          "route_history_limit": "Route History Limit",
-          "enable_pawtracker_alias": "Enable PawTracker Alias",
-          "diagnostic_sensors": "Enable Diagnostic Sensors"
-        }
-      },
-      "schedule": {
-        "title": "Schedule Settings",
-        "description": "Configure timing and schedule options.",
-        "data": {
-          "reset_time": "Daily Reset Time",
-          "quiet_start": "Quiet Hours Start",
-          "quiet_end": "Quiet Hours End",
-          "reminder_repeat": "Reminder Repeat (minutes)",
-          "snooze_min": "Snooze Duration (minutes)"
-        }
-      },
-      "modules": {
-        "title": "Module Settings",
-        "description": "Enable or disable integration modules.",
-        "data": {
-          "gps": "GPS Tracking",
-          "feeding": "Feeding Management",
-          "health": "Health Tracking",
-          "walk": "Walk Tracking",
-          "grooming": "Grooming Tracking",
-          "training": "Training Tracking",
-          "notifications": "Notifications"
-        }
       }
     }
   },
   "selector": {
-    "size": {
+    "dog_size": {
       "options": {
         "small": "Small (< 10kg)",
         "medium": "Medium (10-25kg)",
@@ -217,65 +140,54 @@
       }
     }
   },
-  "issues": {
-    "no_dogs_configured": {
-      "title": "No dogs configured",
-      "description": "Please configure at least one dog in the integration options."
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Config entry not found"
+    },
+    "entry_not_loaded": {
+      "message": "Config entry not loaded"
+    },
+    "no_entries": {
+      "message": "No configuration entries found"
     }
   },
-  "services": {
-    "gps_start_walk": {
-      "name": "Start GPS Walk",
-      "description": "Start tracking a walk for a dog",
-      "fields": {
-        "dog_id": {
-          "name": "Dog ID",
-          "description": "The dog to start walk for (optional, uses first dog if empty)"
-        },
-        "walk_type": {
-          "name": "Walk Type",
-          "description": "Type of walk (e.g., normal, auto_detected)"
-        }
-      }
-    },
-    "gps_end_walk": {
-      "name": "End GPS Walk",
-      "description": "End the current walk and calculate statistics",
-      "fields": {
-        "dog_id": {
-          "name": "Dog ID",
-          "description": "The dog to end walk for"
-        },
-        "rating": {
-          "name": "Rating",
-          "description": "Walk rating from 1-5"
-        },
-        "notes": {
-          "name": "Notes",
-          "description": "Optional notes about the walk"
-        }
-      }
-    },
-    "send_medication_reminder": {
-      "name": "Send Medication Reminder",
-      "description": "Send a medication reminder for a specific dog",
-      "fields": {
-        "dog_id": {
-          "name": "Dog ID",
-          "description": "The dog requiring medication"
-        },
-        "meal": {
-          "name": "Meal",
-          "description": "Associated meal (breakfast, lunch, dinner)"
-        },
-        "slot": {
-          "name": "Slot",
-          "description": "Medication slot number (1-3)"
-        },
-        "notes": {
-          "name": "Notes",
-          "description": "Additional notes"
-        }
+  "entity": {
+    "sensor": {
+      "walk_distance_current": {
+        "name": "Walk Distance Current"
+      },
+      "walk_distance_last": {
+        "name": "Walk Distance Last"
+      },
+      "walk_duration_last": {
+        "name": "Walk Duration Last"
+      },
+      "walk_distance_today": {
+        "name": "Walk Distance Today"
+      },
+      "last_action": {
+        "name": "Last Action"
+      },
+      "last_feeding": {
+        "name": "Last Feeding"
+      },
+      "poop_count_today": {
+        "name": "Poop Count Today"
+      },
+      "weight": {
+        "name": "Weight"
+      },
+      "activity_level": {
+        "name": "Activity Level"
+      },
+      "calories_burned_today": {
+        "name": "Calories Burned Today"
+      },
+      "gps_points_total": {
+        "name": "Gps Points Total"
+      },
+      "gps_accuracy_avg": {
+        "name": "Gps Accuracy Avg"
       }
     }
   }

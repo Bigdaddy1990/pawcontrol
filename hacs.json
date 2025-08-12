@@ -1,7 +1,11 @@
 {
   "name": "Paw Control",
   "render_readme": true,
-  "homeassistant": "2024.6.0",
-  "zip_release": false,
-  "country": "DE"
+  "zip_release": true,
+  "filename": "pawcontrol.zip",
+  "homeassistant": "2025.8.0",
+  "domains": [
+    "integration"
+  ],
+  "hide_default_branch": true
 }

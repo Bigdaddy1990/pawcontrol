@@ -1,62 +1,87 @@
-"""Diagnostics helpers for Paw Control."""
+"""Diagnostics support for Paw Control."""
 
 from __future__ import annotations
 
-import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .gps_settings import GPSSettingsStore
-from .route_store import RouteHistoryStore
 
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
-    from homeassistant.core import HomeAssistant
-    from homeassistant.helpers.device_registry import DeviceEntry
-
-
-_LOGGER = logging.getLogger(__name__)
+TO_REDACT = {
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    "lat",
+    "latitude",
+    "lon",
+    "longitude",
+    "gps",
+    "location",
+    "email",
+    "phone",
+}
 
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    """Collect diagnostics for a config entry."""
-    data: dict[str, Any] = {
-        "options": entry.options or {},
-        "version": hass.data.get(DOMAIN, {}).get("version"),
-    }
-    # Include GPS settings and a short route index for the first dog
-    try:
-        store1 = GPSSettingsStore(hass, entry.entry_id, DOMAIN)
-        store2 = RouteHistoryStore(hass, entry.entry_id, DOMAIN)
-        data["gps_settings"] = await store1.async_load()
-        dogs = (entry.options or {}).get("dogs") or []
-        dog = (dogs[0].get("dog_id") or dogs[0].get("name")) if dogs else "dog"
-        data["route_history_index"] = await store2.async_list(dog)
-        # Truncate list length for diagnostics
-        if (
-            isinstance(data["route_history_index"], list)
-            and len(data["route_history_index"]) > 50
-        ):
-            data["route_history_index"] = data["route_history_index"][-50:]
-    except (HomeAssistantError, OSError, ValueError) as exc:
-        _LOGGER.warning("Failed to collect diagnostics data: %s", exc)
-    return data
+    """Return diagnostics for a config entry."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
+    # Get all dog data but redact sensitive information
+    dogs_data = {}
+    for dog_id in coordinator._dog_data:
+        dog_data = coordinator.get_dog_data(dog_id).copy()
 
-async def async_get_device_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry
-) -> dict[str, Any]:
-    """Collect diagnostics for a specific device."""
-    # Try to extract dog_id from device identifiers
-    dog_id = None
-    for domain, ident in device.identifiers:
-        if domain == DOMAIN:
-            dog_id = ident
-            break
-    base = await async_get_config_entry_diagnostics(hass, entry)
-    base["device"] = {"name": device.name, "id": device.id, "dog_id": dog_id}
-    return base
+        # Remove location data
+        if "location" in dog_data:
+            dog_data["location"] = {
+                "is_home": dog_data["location"].get("is_home", True),
+                "current_location": "REDACTED",
+            }
+
+        # Remove any notes that might contain personal info
+        if "health" in dog_data and "health_notes" in dog_data["health"]:
+            dog_data["health"][
+                "health_notes"
+            ] = f"[{len(dog_data['health']['health_notes'])} notes]"
+
+        if "training" in dog_data and "training_history" in dog_data["training"]:
+            dog_data["training"][
+                "training_history"
+            ] = f"[{len(dog_data['training']['training_history'])} sessions]"
+
+        if "grooming" in dog_data and "grooming_history" in dog_data["grooming"]:
+            dog_data["grooming"][
+                "grooming_history"
+            ] = f"[{len(dog_data['grooming']['grooming_history'])} sessions]"
+
+        dogs_data[dog_id] = dog_data
+
+    return async_redact_data(
+        {
+            "entry": {
+                "entry_id": entry.entry_id,
+                "version": entry.version,
+                "domain": entry.domain,
+                "title": entry.title,
+                "options": entry.options,
+                "pref_disable_new_entities": entry.pref_disable_new_entities,
+                "pref_disable_polling": entry.pref_disable_polling,
+                "source": entry.source,
+                "unique_id": entry.unique_id,
+                "disabled_by": entry.disabled_by,
+            },
+            "coordinator_data": {
+                "visitor_mode": coordinator.visitor_mode,
+                "emergency_mode": coordinator.emergency_mode,
+                "emergency_level": coordinator.emergency_level,
+                "dogs": dogs_data,
+            },
+            "integration_manifest": hass.data[DOMAIN].get("manifest", {}),
+        },
+        TO_REDACT,
+    )

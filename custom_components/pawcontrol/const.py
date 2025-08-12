@@ -75,11 +75,11 @@ CONF_PERSON_ENTITIES = "person_entities"
 CONF_EVENT_TYPE = "event_type"
 CONF_EVENT_DATA = "event_data"
 CONF_DOG_ID = "dog_id"
-CONF_DOG_NAME = "name"
-CONF_DOG_WEIGHT = "weight"
-CONF_DOG_SIZE = "size"
-CONF_DOG_BREED = "breed"
-CONF_DOG_AGE = "age"
+CONF_DOG_NAME = "dog_name"
+CONF_DOG_WEIGHT = "dog_weight"
+CONF_DOG_SIZE = "dog_size"
+CONF_DOG_BREED = "dog_breed"
+CONF_DOG_AGE = "dog_age"
 CONF_DOG_MODULES = "dog_modules"
 CONF_DOMAIN = "domain"
 CONF_DOOR_SENSOR = "door_sensor"
@@ -193,3 +193,29 @@ DEFAULT_GROOMING_INTERVAL_DAYS = 30
 
 # Notification defaults
 DEFAULT_NOTIFICATION_SERVICE = "notify.notify"
+
+# Added to align with __init__.py service registrations
+SERVICE_DAILY_RESET: Final[str] = "daily_reset"
+SERVICE_SYNC_SETUP: Final[str] = "sync_setup"
+SERVICE_START_WALK: Final[str] = "start_walk"
+SERVICE_END_WALK: Final[str] = "end_walk"
+SERVICE_WALK_DOG: Final[str] = "walk_dog"
+SERVICE_FEED_DOG: Final[str] = "feed_dog"
+SERVICE_LOG_HEALTH: Final[str] = "log_health"
+SERVICE_LOG_MEDICATION: Final[str] = "log_medication"
+SERVICE_START_GROOMING: Final[str] = "start_grooming"
+SERVICE_PLAY_SESSION: Final[str] = "play_session"
+SERVICE_TRAINING_SESSION: Final[str] = "training_session"
+SERVICE_TOGGLE_VISITOR: Final[str] = "toggle_visitor"
+SERVICE_EMERGENCY_MODE: Final[str] = "emergency_mode"
+SERVICE_GENERATE_REPORT: Final[str] = "generate_report"
+SERVICE_EXPORT_DATA: Final[str] = "export_data"
+
+# Added event and alias for consistency
+EVENT_DAILY_RESET: Final[str] = "pawcontrol_daily_reset"
+SERVICE_PLAY_WITH_DOG: Final[str] = "play_session"  # alias to match schema
+
+# Added additional service name aliases
+SERVICE_START_TRAINING: Final[str] = "training_session"
+SERVICE_TRAINING_SESSION: Final[str] = "training_session"
+SERVICE_START_GROOMING: Final[str] = "start_grooming"

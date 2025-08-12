@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 
 import voluptuous as vol
 
@@ -17,17 +18,26 @@ from homeassistant.helpers.typing import ConfigType, TemplateVarsType
 
 from .const import (
     DOMAIN,
-    SERVICE_GPS_START_WALK,
-    SERVICE_GPS_END_WALK,
-    SERVICE_SEND_MEDICATION_REMINDER,
-    SERVICE_NOTIFY_TEST,
+    SERVICE_START_WALK,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_START_GROOMING,
+    SERVICE_PLAY_WITH_DOG,
+    SERVICE_START_TRAINING,
 )
 
 ACTION_TYPES = {
     "start_walk",
     "end_walk",
+    "feed_breakfast",
+    "feed_lunch",
+    "feed_dinner",
+    "feed_snack",
     "give_medication",
-    "test_notification",
+    "start_grooming",
+    "start_training",
+    "play_session",
 }
 
 ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
@@ -39,7 +49,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 
 async def async_get_actions(
     hass: HomeAssistant, device_id: str
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """List device actions for Paw Control devices."""
     registry = dr.async_get(hass)
     device = registry.async_get(device_id)
@@ -55,10 +65,10 @@ async def async_get_actions(
     if not domain_in_identifiers:
         return []
 
-    actions: list[dict[str, str]] = []
+    actions = []
 
     # Get dog_id from device identifiers
-    dog_id: str | None = None
+    dog_id = None
     for identifier in device.identifiers:
         if identifier[0] == DOMAIN:
             dog_id = identifier[1]
@@ -106,39 +116,121 @@ async def async_call_action_from_config(
     if not dog_id:
         raise ValueError(f"Dog ID not found for device {device_id}")
 
-    # Map action types to service calls using existing services
+    # Map action types to service calls
     if action_type == "start_walk":
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_GPS_START_WALK,
-            {"dog_id": dog_id, "walk_type": "automation"},
+            SERVICE_START_WALK,
+            {"dog_id": dog_id, "source": "automation"},
             blocking=True,
             context=context,
         )
     elif action_type == "end_walk":
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_GPS_END_WALK,
-            {"dog_id": dog_id, "notes": "Beendet durch Automation"},
+            SERVICE_END_WALK,
+            {"dog_id": dog_id, "reason": "automation"},
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "feed_breakfast":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": dog_id,
+                "meal_type": "breakfast",
+                "portion_g": 200,
+                "food_type": "dry",
+            },
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "feed_lunch":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": dog_id,
+                "meal_type": "lunch",
+                "portion_g": 150,
+                "food_type": "wet",
+            },
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "feed_dinner":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": dog_id,
+                "meal_type": "dinner",
+                "portion_g": 200,
+                "food_type": "dry",
+            },
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "feed_snack":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": dog_id,
+                "meal_type": "snack",
+                "portion_g": 50,
+                "food_type": "treat",
+            },
             blocking=True,
             context=context,
         )
     elif action_type == "give_medication":
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_SEND_MEDICATION_REMINDER,
+            SERVICE_LOG_MEDICATION,
             {
                 "dog_id": dog_id,
-                "notes": "Erinnerung durch Automation"
+                "medication_name": "Scheduled Medication",
+                "dose": "As prescribed",
             },
             blocking=True,
             context=context,
         )
-    elif action_type == "test_notification":
+    elif action_type == "start_grooming":
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_NOTIFY_TEST,
-            {},
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": dog_id,
+                "type": "brush",
+                "notes": "Regular grooming",
+            },
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "start_training":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_START_TRAINING,
+            {
+                "dog_id": dog_id,
+                "topic": "Training Session",
+                "duration_min": 15,
+                "notes": "Automated training session",
+            },
+            blocking=True,
+            context=context,
+        )
+    elif action_type == "play_session":
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_PLAY_WITH_DOG,
+            {
+                "dog_id": dog_id,
+                "duration_min": 15,
+                "intensity": "medium",
+            },
             blocking=True,
             context=context,
         )

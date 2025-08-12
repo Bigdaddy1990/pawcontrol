@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import csv
 import json
 import logging
@@ -53,11 +52,12 @@ class ReportGenerator:
             elif target == "file":
                 # Save to file
                 await self._save_file_report(report_data, scope, format_type)
-        except Exception:
-            _LOGGER.exception("Failed to generate report")
-            return False
-        else:
+
             return True
+
+        except Exception as err:
+            _LOGGER.error(f"Failed to generate report: {err}")
+            return False
 
     async def _gather_report_data(self, scope: str) -> Dict[str, Any]:
         """Gather data for report generation."""
@@ -197,35 +197,24 @@ class ReportGenerator:
 
             _LOGGER.info(f"Report saved to {filepath}")
 
-        except Exception:
-            _LOGGER.exception("Failed to save report")
+        except Exception as err:
+            _LOGGER.error(f"Failed to save report: {err}")
 
     async def _save_json_report(
         self, filepath: Path, report_data: Dict[str, Any]
     ) -> None:
         """Save report as JSON."""
-        await asyncio.to_thread(self._write_json, filepath, report_data)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False, default=str)
 
     async def _save_csv_report(
         self, filepath: Path, report_data: Dict[str, Any]
     ) -> None:
         """Save report as CSV."""
-        await asyncio.to_thread(self._write_report_csv, filepath, report_data)
-
-    async def _save_text_report(
-        self, filepath: Path, report_data: Dict[str, Any]
-    ) -> None:
-        """Save report as text."""
-        await asyncio.to_thread(self._write_text, filepath, report_data)
-
-    def _write_json(self, filepath: Path, data: Dict[str, Any]) -> None:
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False, default=str)
-
-    def _write_report_csv(self, filepath: Path, report_data: Dict[str, Any]) -> None:
         with open(filepath, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
 
+            # Write header
             writer.writerow(
                 [
                     "Dog Name",
@@ -244,6 +233,7 @@ class ReportGenerator:
                 ]
             )
 
+            # Write data for each dog
             for dog_id, dog_data in report_data["dogs"].items():
                 writer.writerow(
                     [
@@ -263,34 +253,12 @@ class ReportGenerator:
                     ]
                 )
 
-    def _write_text(self, filepath: Path, report_data: Dict[str, Any]) -> None:
+    async def _save_text_report(
+        self, filepath: Path, report_data: Dict[str, Any]
+    ) -> None:
+        """Save report as text."""
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(self._format_text_report(report_data))
-
-    def _write_health_csv(self, filepath: Path, health_export: Dict[str, Any]) -> None:
-        with open(filepath, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Date", "Type", "Value", "Notes"])
-
-            for weight_entry in health_export["health_data"]["weight_trend"]:
-                writer.writerow(
-                    [
-                        weight_entry.get("date", ""),
-                        "Weight",
-                        weight_entry.get("weight", ""),
-                        "",
-                    ]
-                )
-
-            for note in health_export["health_data"]["health_notes"]:
-                writer.writerow(
-                    [
-                        note.get("date", ""),
-                        "Health Note",
-                        "",
-                        note.get("note", ""),
-                    ]
-                )
 
     def _format_text_report(self, report_data: Dict[str, Any]) -> str:
         """Format report data as text."""
@@ -387,13 +355,41 @@ class ReportGenerator:
             }
 
             if format_type == "json":
-                await asyncio.to_thread(self._write_json, filepath, health_export)
+                with open(filepath, "w", encoding="utf-8") as f:
+                    json.dump(
+                        health_export, f, indent=2, ensure_ascii=False, default=str
+                    )
             elif format_type == "csv":
-                await asyncio.to_thread(self._write_health_csv, filepath, health_export)
+                # For CSV, create a simpler format
+                with open(filepath, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["Date", "Type", "Value", "Notes"])
+
+                    # Write weight trends
+                    for weight_entry in health_export["health_data"]["weight_trend"]:
+                        writer.writerow(
+                            [
+                                weight_entry.get("date", ""),
+                                "Weight",
+                                weight_entry.get("weight", ""),
+                                "",
+                            ]
+                        )
+
+                    # Write health notes
+                    for note in health_export["health_data"]["health_notes"]:
+                        writer.writerow(
+                            [
+                                note.get("date", ""),
+                                "Health Note",
+                                "",
+                                note.get("note", ""),
+                            ]
+                        )
 
             _LOGGER.info(f"Health data exported to {filepath}")
-        except Exception:
-            _LOGGER.exception("Failed to export health data")
-            return False
-        else:
             return True
+
+        except Exception as err:
+            _LOGGER.error(f"Failed to export health data: {err}")
+            return False

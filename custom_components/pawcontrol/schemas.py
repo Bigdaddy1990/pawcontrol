@@ -167,3 +167,42 @@ SERVICE_NOTIFY_TEST_SCHEMA = vol.Schema(
         vol.Optional("message"): cv.string,
     }
 )
+
+
+SERVICE_GPS_START_WALK_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str, vol.Optional('label'): str })
+
+
+SERVICE_GPS_END_WALK_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_POST_LOCATION_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Required('latitude'): vol.Coerce(float), vol.Required('longitude'): vol.Coerce(float), vol.Optional('accuracy_m', default=0): vol.Coerce(float), vol.Optional('speed_m_s'): vol.Coerce(float), vol.Optional('timestamp'): str, vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_PAUSE_TRACKING_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_RESUME_TRACKING_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_EXPORT_LAST_ROUTE_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_GENERATE_DIAGNOSTICS_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_GPS_RESET_STATS_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_ROUTE_HISTORY_LIST_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_ROUTE_HISTORY_PURGE_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str })
+
+
+SERVICE_ROUTE_HISTORY_EXPORT_RANGE_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('dog_id'): str, vol.Optional('date_from'): str, vol.Optional('date_to'): str })
+
+
+SERVICE_TOGGLE_GEOFENCE_ALERTS_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  vol.Optional('enabled', default=True): bool })
+
+
+SERVICE_PURGE_ALL_STORAGE_SCHEMA = vol.Schema({ vol.Optional('config_entry_id'): str,  })

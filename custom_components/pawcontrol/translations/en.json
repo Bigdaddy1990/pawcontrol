@@ -3,69 +3,398 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Paw Control",
-        "description": "Configure basics"
+        "title": "Welcome to Paw Control",
+        "description": "Let's set up your smart dog management system. How many dogs do you have?",
+        "data": {
+          "num_dogs": "Number of dogs"
+        }
       },
-      "init": {
-        "title": "Options",
-        "description": "Modules & settings"
+      "dog_config": {
+        "title": "Configure Dog {dog_num} of {total_dogs}",
+        "description": "Enter the details for your dog and select which modules to enable.",
+        "data": {
+          "dog_id": "Dog ID (unique identifier)",
+          "name": "Dog Name",
+          "breed": "Breed",
+          "age": "Age (years)",
+          "weight": "Weight (kg)",
+          "size": "Size",
+          "module_walk": "Enable Walk Tracking",
+          "module_feeding": "Enable Feeding Management",
+          "module_health": "Enable Health Tracking",
+          "module_gps": "Enable GPS Tracking",
+          "module_notifications": "Enable Notifications",
+          "module_dashboard": "Enable Dashboard",
+          "module_grooming": "Enable Grooming Tracking",
+          "module_medication": "Enable Medication Reminders",
+          "module_training": "Enable Training Tracking"
+        }
       },
-      "medication_mapping": {
-        "title": "Medication Mapping",
-        "description": "Assign per dog the slots (1–3) to meals (multi-select)."
+      "sources": {
+        "title": "Configure Data Sources",
+        "description": "Select optional data sources for enhanced functionality. Leave empty to skip.",
+        "data": {
+          "door_sensor": "Door Sensor (for walk detection)",
+          "person_entities": "Person Entities (for presence)",
+          "device_trackers": "Device Trackers (for GPS)",
+          "calendar": "Calendar (for events)",
+          "weather": "Weather Provider"
+        }
       },
-      "dogs": {
-        "title": "Manage dogs",
-        "description": "One line per dog using id:name (name optional)."
+      "notifications": {
+        "title": "Configure Notifications",
+        "description": "Set up how and when you want to receive notifications.",
+        "data": {
+          "notify_fallback": "Fallback Notification Service",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+          "snooze_min": "Snooze Duration (minutes)"
+        }
       },
-      "modules": {
-        "title": "Enable modules",
-        "description": "Choose active modules (multi-select)."
-      },
-      "schedule": {
-        "title": "Schedule & Quiet Hours",
-        "description": "Daily reset, quiet hours, reminder intervals"
-      },
-      "advanced": {
-        "title": "Advanced",
-        "description": "Limits/Diagnostics/Aliases"
-      },
-      "safe_zones": {
-        "title": "Safe Zones",
-        "description": "Lat/Lon/Radius & alerts per dog"
-      },
-      "reminders": {
-        "title": "Reminders & Notifications",
-        "description": "Notify target, intervals & snooze."
-      },
-      "medications": {
-        "title": "Medications – per-slot mapping",
-        "description": "Choose meals per slot (1–3) for reminders."
-      },
-      "medications_configure": {
-        "title": "Medications – slots for selected dog",
-        "description": "Multi-select per slot. Leave empty = no reminder."
+      "system": {
+        "title": "System Settings",
+        "description": "Configure system-wide settings and maintenance options.",
+        "data": {
+          "reset_time": "Daily Reset Time",
+          "export_path": "Export Path (optional)",
+          "export_format": "Export Format",
+          "visitor_mode": "Enable Visitor Mode"
+        }
       }
     },
+    "error": {
+      "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
+      "invalid_path": "Invalid export path",
+      "invalid_time": "Invalid time format"
+    },
     "abort": {
-      "single_instance_allowed": "The integration is already configured.",
-      "no_dogs": "No dogs configured. Please add one under 'Manage dogs' first."
+      "single_instance_allowed": "Only one instance of Paw Control is allowed."
     }
   },
-  "entity": {
-    "sensor": {
-      "walk_distance_current": {
-        "name": "Current Distance"
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paw Control Options",
+        "description": "Choose what you'd like to configure.",
+        "menu_options": {
+          "dogs": "Manage Dogs",
+          "sources": "Data Sources",
+          "notifications": "Notifications",
+          "system": "System Settings"
+        }
       },
-      "walk_distance_today": {
-        "name": "Distance Today"
+      "dogs": {
+        "title": "Manage Dogs",
+        "description": "To add or remove dogs, please reconfigure the integration.",
+        "data": {}
+      },
+      "sources": {
+        "title": "Configure Data Sources",
+        "description": "Update your data source connections.",
+        "data": {
+          "door_sensor": "Door Sensor",
+          "person_entities": "Person Entities",
+          "device_trackers": "Device Trackers",
+          "calendar": "Calendar",
+          "weather": "Weather Provider"
+        }
+      },
+      "notifications": {
+        "title": "Configure Notifications",
+        "description": "Adjust notification settings.",
+        "data": {
+          "notify_fallback": "Fallback Notification Service",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+          "snooze_min": "Snooze Duration (minutes)"
+        }
+      },
+      "system": {
+        "title": "System Settings",
+        "description": "Configure system settings.",
+        "data": {
+          "reset_time": "Daily Reset Time",
+          "export_path": "Export Path",
+          "export_format": "Export Format",
+          "visitor_mode": "Visitor Mode"
+        }
       }
     }
   },
-  "issues": {
-    "no_dogs_configured": {
-      "title": "Paw Control – no dogs configured",
-      "description": "Open the integration’s options and add at least one dog in “Manage dogs”."
+  "selector": {
+    "dog_size": {
+      "options": {
+        "small": "Small (< 10kg)",
+        "medium": "Medium (10-25kg)",
+        "large": "Large (25-45kg)",
+        "xlarge": "Extra Large (> 45kg)"
+      }
+    },
+    "export_format": {
+      "options": {
+        "csv": "CSV",
+        "json": "JSON",
+        "pdf": "PDF"
+      }
+    }
+  },
+  "services": {
+    "gps_start_walk": {
+      "name": "Start Walk",
+      "description": "Start GPS-tracked walk for a dog.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "label": {
+          "name": "Label",
+          "description": "Optional label for this walk.",
+          "example": "Evening Walk"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_end_walk": {
+      "name": "End Walk",
+      "description": "End the current GPS-tracked walk.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_post_location": {
+      "name": "Post Location",
+      "description": "Post a GPS location update.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "latitude": {
+          "name": "Latitude",
+          "description": "Latitude in decimal degrees.",
+          "example": "52.52"
+        },
+        "longitude": {
+          "name": "Longitude",
+          "description": "Longitude in decimal degrees.",
+          "example": "13.405"
+        },
+        "accuracy_m": {
+          "name": "Accuracy (m)",
+          "description": "Horizontal accuracy in meters.",
+          "example": "5"
+        },
+        "speed_m_s": {
+          "name": "Speed (m/s)",
+          "description": "Speed in meters per second.",
+          "example": "1.2"
+        },
+        "timestamp": {
+          "name": "Timestamp",
+          "description": "ISO8601 timestamp if provided.",
+          "example": "2025-08-12T15:04:05Z"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_pause_tracking": {
+      "name": "Pause Tracking",
+      "description": "Pause GPS tracking.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_resume_tracking": {
+      "name": "Resume Tracking",
+      "description": "Resume GPS tracking.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_export_last_route": {
+      "name": "Export Last Route",
+      "description": "Export the last recorded route to storage.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_generate_diagnostics": {
+      "name": "Generate Diagnostics",
+      "description": "Generate GPS diagnostics snapshot.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "gps_reset_stats": {
+      "name": "Reset GPS Stats",
+      "description": "Reset GPS statistics.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "route_history_list": {
+      "name": "List Route History",
+      "description": "List stored routes and fire an event with results.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "route_history_purge": {
+      "name": "Purge Route History",
+      "description": "Purge stored route history.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "route_history_export_range": {
+      "name": "Export Route Range",
+      "description": "Export routes within a date range to storage.",
+      "fields": {
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Optional ID of the dog.",
+          "example": "buddy"
+        },
+        "date_from": {
+          "name": "Date From",
+          "description": "Start date (YYYY-MM-DD).",
+          "example": "2025-08-01"
+        },
+        "date_to": {
+          "name": "Date To",
+          "description": "End date (YYYY-MM-DD).",
+          "example": "2025-08-12"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "toggle_geofence_alerts": {
+      "name": "Toggle Geofence Alerts",
+      "description": "Enable or disable geofence alerts.",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True to enable geofence alerts, false to disable.",
+          "example": "true"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "purge_all_storage": {
+      "name": "Purge All Storage",
+      "description": "Purge all Paw Control storage (route history, GPS settings).",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
+    },
+    "notify_test": {
+      "name": "Notify Test",
+      "description": "Send a test notification through Paw Control routing.",
+      "fields": {
+        "title": {
+          "name": "Title",
+          "description": "Notification title.",
+          "example": "Test"
+        },
+        "message": {
+          "name": "Message",
+          "description": "Notification message body.",
+          "example": "Hello from Paw Control"
+        },
+        "target": {
+          "name": "Target",
+          "description": "Optional notify target/device.",
+          "example": "mobile_app_pixel"
+        },
+        "config_entry_id": {
+          "name": "Config entry ID",
+          "description": "Target a specific configuration entry (optional)."
+        }
+      }
     }
   }
 }

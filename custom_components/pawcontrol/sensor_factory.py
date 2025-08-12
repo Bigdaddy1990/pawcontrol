@@ -1,6 +1,6 @@
 """Sensor factory to eliminate code duplication."""
 from __future__ import annotations
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Type, Optional, Union
 from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant
@@ -22,13 +22,14 @@ class SensorConfig:
     options: Optional[list[str]] = None
     entity_category: Optional[str] = None
     default_value: Any = None
-    transform_func: Optional[Callable[[Any], Any]] = None
+    transform_func: Optional[callable] = None
 
 
 class ConfigurableDogSensor(SensorEntity):
     """Base sensor with configurable behavior."""
     
     _attr_has_entity_name = True
+    _attr_translation_key: str | None = None
     
     def __init__(self, hass: HomeAssistant, dog_id: str, title: str, config: SensorConfig):
         self.hass = hass
@@ -36,6 +37,7 @@ class ConfigurableDogSensor(SensorEntity):
         self._name = title
         self._config = config
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.sensor.{config.key}"
+        self._attr_translation_key = config.key
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)}, 
             name=f"Hund {title}", 
@@ -57,29 +59,22 @@ class ConfigurableDogSensor(SensorEntity):
 
     def _get_coordinator_data(self, path: str, default: Any = None) -> Any:
         """Get data from coordinator safely."""
-        try:
-            domain_data = self.hass.data.get(DOMAIN, {})
-            for entry_data in domain_data.values():
-                if isinstance(entry_data, dict) and "coordinator" in entry_data:
-                    coordinator = entry_data["coordinator"]
-                    if coordinator and hasattr(coordinator, 'get_dog_data'):
-                        dog_data = coordinator.get_dog_data(self._dog)
-                        if dog_data:
-                            keys = path.split(".")
-                            data = dog_data
+        domain_data = self.hass.data.get(DOMAIN, {})
+        for entry_data in domain_data.values():
+            if isinstance(entry_data, dict) and "coordinator" in entry_data:
+                coordinator = entry_data["coordinator"]
+                if coordinator and hasattr(coordinator, 'get_dog_data'):
+                    dog_data = coordinator.get_dog_data(self._dog)
+                    if dog_data:
+                        keys = path.split(".")
+                        data = dog_data
+                        try:
                             for key in keys:
-                                if isinstance(data, dict):
-                                    data = data.get(key)
-                                    if data is None:
-                                        return default
-                                else:
-                                    return data
-                            return data if data is not None else default
-        except (AttributeError, TypeError, KeyError) as exc:
-            # Log at debug level to avoid spam
-            import logging
-            _LOGGER = logging.getLogger(__name__)
-            _LOGGER.debug("Error getting coordinator data for path %s: %s", path, exc)
+                                data = data.get(key, {})
+                                if not isinstance(data, dict):
+                                    return data if data is not None else default
+                        except (AttributeError, TypeError):
+                            return default
         return default
 
     @property
@@ -108,7 +103,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="m",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1) if x is not None else 0.0
+            transform_func=lambda x: round(float(x), 1)
         ),
         "walk_distance_last": SensorConfig(
             key="walk_distance_last",
@@ -127,7 +122,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="min",
             default_value=0,
-            transform_func=lambda x: int(float(x)) if x is not None else 0
+            transform_func=lambda x: int(float(x))
         ),
         "walk_distance_today": SensorConfig(
             key="walk_distance_today",

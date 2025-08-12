@@ -64,9 +64,8 @@ class SetupSync:
             _LOGGER.info("Synchronization completed successfully")
 
         except Exception as err:
-            _LOGGER.exception("Error during synchronization")
-            msg = "Failed to sync setup"
-            raise HomeAssistantError(msg) from err
+            _LOGGER.error(f"Error during synchronization: {err}")
+            raise HomeAssistantError(f"Failed to sync setup: {err}")
 
     async def _sync_global_helpers(self) -> None:
         """Synchronize global helpers."""
@@ -331,7 +330,7 @@ class SetupSync:
             # )
 
         except Exception as err:
-            _LOGGER.exception("Failed to create helper %s", full_entity_id)
+            _LOGGER.error(f"Failed to create helper {full_entity_id}: {err}")
 
     async def _cleanup_orphaned_helpers(self) -> None:
         """Remove helpers for dogs that no longer exist."""

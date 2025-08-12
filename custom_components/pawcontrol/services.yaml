@@ -1,165 +1,332 @@
-
-# Paw Control – Services
-
+SERVICE_DAILY_RESET:
+  description: Service 'SERVICE_DAILY_RESET' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Daily Reset
+SERVICE_EMERGENCY_MODE:
+  description: Service 'SERVICE_EMERGENCY_MODE' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Emergency Mode
+SERVICE_END_WALK:
+  description: Service 'SERVICE_END_WALK' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service End Walk
+SERVICE_EXPORT_DATA:
+  description: Service 'SERVICE_EXPORT_DATA' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Export Data
+SERVICE_FEED_DOG:
+  description: Service 'SERVICE_FEED_DOG' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Feed Dog
+SERVICE_GENERATE_REPORT:
+  description: Service 'SERVICE_GENERATE_REPORT' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Generate Report
+SERVICE_LOG_HEALTH:
+  description: Service 'SERVICE_LOG_HEALTH' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Log Health
+SERVICE_LOG_MEDICATION:
+  description: Service 'SERVICE_LOG_MEDICATION' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Log Medication
+SERVICE_PLAY_WITH_DOG:
+  description: Service 'SERVICE_PLAY_WITH_DOG' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Play With Dog
+SERVICE_START_GROOMING:
+  description: Service 'SERVICE_START_GROOMING' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Start Grooming
+SERVICE_START_TRAINING:
+  description: Service 'SERVICE_START_TRAINING' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Start Training
+SERVICE_START_WALK:
+  description: Service 'SERVICE_START_WALK' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Start Walk
+SERVICE_SYNC_SETUP:
+  description: Service 'SERVICE_SYNC_SETUP' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Sync Setup
+SERVICE_TOGGLE_VISITOR:
+  description: Service 'SERVICE_TOGGLE_VISITOR' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Toggle Visitor
+SERVICE_WALK_DOG:
+  description: Service 'SERVICE_WALK_DOG' for Paw Control.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Service Walk Dog
+gps_end_walk:
+  description: Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+    notes:
+      description: Notizen
+      required: false
+      selector:
+        text: {}
+    rating:
+      description: Bewertung 1–5 (optional)
+      required: false
+      selector:
+        number:
+          max: 5
+          min: 1
+          step: 1
+  name: GPS-Tracking beenden
+gps_export_last_route:
+  description: Exportiert die letzte Route als GeoJSON oder GPX.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+    format:
+      default: geojson
+      required: false
+      selector:
+        select:
+          options:
+          - geojson
+          - gpx
+    to_media:
+      default: false
+      required: false
+      selector:
+        boolean: {}
+  name: Letzte Route exportieren
+gps_generate_diagnostics:
+  description: Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+  name: GPS-Diagnose erstellen
+gps_pause_tracking:
+  description: Pausiert das Tracking (sofern Handler aktiv).
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+  name: GPS-Tracking pausieren
+gps_post_location:
+  description: Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt
+    wird).
+  fields:
+    accuracy:
+      required: false
+      selector:
+        number:
+          max: 1000
+          min: 0
+          step: 0.1
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+    latitude:
+      required: true
+      selector:
+        number:
+          max: 90
+          min: -90
+          step: 1.0e-06
+    longitude:
+      required: true
+      selector:
+        number:
+          max: 180
+          min: -180
+          step: 1.0e-06
+  name: GPS-Position posten (manuell)
+gps_reset_stats:
+  description: Setzt diagnostische GPS-Zähler zurück.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+  name: GPS-Statistiken zurücksetzen
+gps_resume_tracking:
+  description: Setzt das Tracking fort (sofern Handler aktiv).
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+  name: GPS-Tracking fortsetzen
 gps_start_walk:
-  name: GPS-Tracking starten
   description: Startet einen Spaziergang für einen Hund.
   fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
     dog_id:
       description: Hund-ID (optional; wenn leer, wird der erste Hund genutzt)
       example: rex
       required: false
-      selector: { text: {} }
+      selector:
+        text: {}
     walk_type:
+      default: normal
       description: Typ des Spaziergangs (z. B. normal, auto_detected)
       required: false
-      default: normal
-      selector: { text: {} }
-
-gps_end_walk:
-  name: GPS-Tracking beenden
-  description: Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.
+      selector:
+        text: {}
+  name: GPS-Tracking starten
+notify_test:
+  description: Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback
+    persistent_notification).
   fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-    rating:
-      description: Bewertung 1–5 (optional)
-      required: false
-      selector: { number: { min: 1, max: 5, step: 1 } }
-    notes:
-      description: Notizen
-      required: false
-      selector: { text: {} }
-
-gps_export_last_route:
-  name: Letzte Route exportieren
-  description: Exportiert die letzte Route als GeoJSON oder GPX.
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Test-Benachrichtigung senden
+purge_all_storage:
+  description: Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).
   fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-    format:
-      required: false
-      default: geojson
-      selector: { select: { options: [geojson, gpx] } }
-    to_media:
-      required: false
-      default: false
-      selector: { boolean: {} }
-
-gps_generate_diagnostics:
-  name: GPS-Diagnose erstellen
-  description: Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/
-  fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-
-gps_reset_stats:
-  name: GPS-Statistiken zurücksetzen
-  description: Setzt diagnostische GPS-Zähler zurück.
-  fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-
-gps_pause_tracking:
-  name: GPS-Tracking pausieren
-  description: Pausiert das Tracking (sofern Handler aktiv).
-  fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-
-gps_resume_tracking:
-  name: GPS-Tracking fortsetzen
-  description: Setzt das Tracking fort (sofern Handler aktiv).
-  fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-
-toggle_geofence_alerts:
-  name: Geofence-Alerts umschalten
-  description: Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der Zone.
-  fields:
-    dog_id:
-      required: false
-      selector: { text: {} }
-    enable:
-      required: true
-      selector: { boolean: {} }
-
-export_options:
-  name: Optionen exportieren
-  description: Schreibt die aktuellen Options (Config-Entry) als JSON nach /config/pawcontrol_options_export.json
-  fields: {}
-
-import_options:
-  name: Optionen importieren
-  description: Lädt JSON-Optionen von Pfad (Standard /config/pawcontrol_options_export.json) in die Config-Entry
-  fields:
-    path:
-      required: false
-      selector: { text: {} }
-
-send_medication_reminder:
-  name: Medikationserinnerung senden
-  description: Versendet pro Slot eine Erinnerung (oder auf Basis der Zuordnung je Mahlzeit).
-  fields:
-    dog_id: { required: true, selector: { text: {} } }
-    meal: { required: false, selector: { select: { options: [breakfast, lunch, dinner] } } }
-    slot: { required: false, selector: { number: { min: 1, max: 3, step: 1 } } }
-    notes: { required: false, selector: { text: {} } }
-
-route_history_list:
-  name: Routenindex erzeugen
-  description: Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/
-  fields:
-    dog_id: { required: false, selector: { text: {} } }
-
-route_history_purge:
-  name: Routenverlauf bereinigen
-  description: Löscht Routen, die älter sind als X Tage (wenn gesetzt).
-  fields:
-    older_than_days: { required: false, selector: { number: { min: 1, max: 3650, step: 1 } } }
-
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+  name: Alle gespeicherten Daten löschen
 route_history_export_range:
-  name: Routenbereich exportieren
   description: Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis.
   fields:
-    dog_id: { required: false, selector: { text: {} } }
-    start: { required: false, selector: { text: {} } }
-    end: { required: false, selector: { text: {} } }
-    format: { required: false, default: geojson, selector: { select: { options: [geojson, gpx] } } }
-
-purge_all_storage:
-  name: Alle gespeicherten Daten löschen
-  description: Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).
-  fields: {}
-
-gps_list_webhooks:
-  name: Webhooks auflisten
-  description: Schreibt eine Datei mit allen Webhook-URLs in /config/pawcontrol_diagnostics/webhooks.json
-  fields: {}
-
-gps_regenerate_webhooks:
-  name: Webhooks erneuern
-  description: Erzeugt neue Webhook-IDs pro Hund und registriert sie.
-  fields: {}
-
-gps_post_location:
-  name: GPS-Position posten (manuell)
-  description: Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt wird).
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+    end:
+      required: false
+      selector:
+        text: {}
+    format:
+      default: geojson
+      required: false
+      selector:
+        select:
+          options:
+          - geojson
+          - gpx
+    start:
+      required: false
+      selector:
+        text: {}
+  name: Routenbereich exportieren
+route_history_list:
+  description: Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/
   fields:
-    dog_id: { required: false, selector: { text: {} } }
-    latitude: { required: true, selector: { number: { min: -90, max: 90, step: 0.000001 } } }
-    longitude: { required: true, selector: { number: { min: -180, max: 180, step: 0.000001 } } }
-    accuracy: { required: false, selector: { number: { min: 0, max: 1000, step: 0.1 } } }
-
-
-notify_test:
-  name: Test-Benachrichtigung senden
-  description: Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback persistent_notification).
-  fields: {}
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+  name: Routenindex erzeugen
+route_history_purge:
+  description: Löscht Routen, die älter sind als X Tage (wenn gesetzt).
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    older_than_days:
+      required: false
+      selector:
+        number:
+          max: 3650
+          min: 1
+          step: 1
+  name: Routenverlauf bereinigen
+toggle_geofence_alerts:
+  description: Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der
+    Zone.
+  fields:
+    config_entry_id:
+      description: Optional config entry ID to target a specific instance.
+      example: abcd1234efgh5678
+    dog_id:
+      required: false
+      selector:
+        text: {}
+    enable:
+      required: true
+      selector:
+        boolean: {}
+  name: Geofence-Alerts umschalten
