@@ -103,5 +103,31 @@
       "emergency_mode": "mdi:alert",
       "debug_mode": "mdi:bug"
     }
+  },
+  "entity": {
+    "sensor": {
+      "battery_level": {
+        "default": "mdi:battery",
+        "state": {
+          "low": "mdi:battery-low",
+          "critical": "mdi:battery-alert"
+        }
+      },
+      "status": {
+        "default": "mdi:dog",
+        "state": {
+          "on_walk": "mdi:walk",
+          "at_home": "mdi:home",
+          "away": "mdi:map-marker"
+        }
+      },
+      "geofence": {
+        "default": "mdi:map-marker-radius",
+        "state": {
+          "entered": "mdi:map-marker-check",
+          "exited": "mdi:map-marker-remove"
+        }
+      }
+    }
   }
 }

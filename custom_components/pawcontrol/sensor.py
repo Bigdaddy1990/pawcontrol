@@ -5,7 +5,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from .const import DOMAIN, MODULE_GPS
 PARALLEL_UPDATES = 0
@@ -39,7 +39,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if entities:
         async_add_entities(entities)
 
+
 class BaseDogSensor(SensorEntity):
+    @property
+    def available(self) -> bool:
+        try:
+            data = self.hass.data.get(DOMAIN) or {}
+            for entry_id, st in data.items():
+                coord = st.get('coordinator')
+                if coord and getattr(coord, '_dog_data', {}).get(self._dog) is not None:
+                    return bool(getattr(coord, 'last_update_success', True))
+        except Exception:
+            pass
+        return True
+    try:
+        data = self.hass.data.get(DOMAIN) or {}
+        for entry_id, st in data.items():
+            coord = st.get('coordinator')
+            if coord and getattr(coord, '_dog_data', {}).get(self._dog) is not None:
+                return bool(getattr(coord, 'last_update_success', True))
+    except Exception:
+        pass
+    return True
+
     _attr_has_entity_name = True
     def __init__(self, hass: HomeAssistant, dog_id: str, title: str, key: str):
         self.hass = hass
@@ -120,6 +142,7 @@ class WalkTimeTodaySensor(BaseDogSensor):
         except Exception: return 0
 
 class GPSPointsTotalSensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "gps_points_total")
     _attr_entity_category = "diagnostic"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -130,6 +153,7 @@ class GPSPointsTotalSensor(BaseDogSensor):
         except Exception: return 0
 
 class GPSPointsDroppedSensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "gps_points_dropped")
     _attr_entity_category = "diagnostic"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -140,6 +164,7 @@ class GPSPointsDroppedSensor(BaseDogSensor):
         except Exception: return 0
 
 class GPSAccuracyAvgSensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "gps_accuracy_avg")
     _attr_entity_category = "diagnostic"
     _attr_device_class = SensorDeviceClass.DISTANCE
@@ -154,6 +179,7 @@ class GPSAccuracyAvgSensor(BaseDogSensor):
 
 
 class TimeInSafeZoneTodaySensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "time_in_safe_zone_today")
     _attr_entity_category = "diagnostic"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -166,6 +192,7 @@ class TimeInSafeZoneTodaySensor(BaseDogSensor):
         except Exception: return 0
 
 class SafeZoneEntersTodaySensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "safe_zone_enters_today")
     _attr_entity_category = "diagnostic"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -176,6 +203,7 @@ class SafeZoneEntersTodaySensor(BaseDogSensor):
         except Exception: return 0
 
 class SafeZoneLeavesTodaySensor(BaseDogSensor):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(self, hass, dog_id, title): super().__init__(hass, dog_id, title, "safe_zone_leaves_today")
     _attr_entity_category = "diagnostic"
     _attr_state_class = SensorStateClass.MEASUREMENT

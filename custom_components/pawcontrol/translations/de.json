@@ -396,5 +396,66 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "battery_level": {
+        "name": "Batteriestand"
+      },
+      "distance_m": {
+        "name": "Distanz (m)"
+      },
+      "distance_km": {
+        "name": "Distanz (km)"
+      },
+      "speed_m_s": {
+        "name": "Geschwindigkeit (m/s)"
+      },
+      "speed_km_h": {
+        "name": "Geschwindigkeit (km/h)"
+      },
+      "duration_s": {
+        "name": "Dauer (s)"
+      },
+      "duration_min": {
+        "name": "Dauer (min)"
+      },
+      "steps": {
+        "name": "Schritte"
+      },
+      "calories": {
+        "name": "Kalorien"
+      },
+      "temperature_c": {
+        "name": "Temperatur"
+      }
+    }
+  },
+  "device_automation": {
+    "condition_type": {
+      "is_home": "Hund ist zu Hause",
+      "in_geofence": "Hund ist innerhalb des Geofence"
+    },
+    "trigger_type": {
+      "geofence_alert": "Geofence-Alarm",
+      "gps_location_posted": "GPS-Position übermittelt",
+      "walk_started": "Spaziergang gestartet",
+      "walk_ended": "Spaziergang beendet"
+    },
+    "action_type": {
+      "start_walk": "Spaziergang starten",
+      "end_walk": "Spaziergang beenden",
+      "toggle_geofence_alerts": "Geofence-Alarm ein/aus"
+    }
+  },
+  "issues": {
+    "stale_devices": {
+      "title": "Veraltete Geräte gefunden",
+      "description": "Es wurden {count} Geräte von Paw Control gefunden, die im Backend nicht mehr existieren. Verwende den Service 'Prune stale devices' oder entferne die Geräte aus der Geräteverwaltung."
+    },
+    "invalid_geofence": {
+      "title": "Ungültige Geofence-Einstellungen",
+      "description": "Die konfigurierten Geofence-Werte sind ungültig. Nutze den Fix-Flow, um Latitude/Longitude und Radius zu aktualisieren."
+    }
   }
 }

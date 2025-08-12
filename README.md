@@ -78,3 +78,53 @@ black .
 4. Integration in **Einstellungen → Geräte & Dienste → Integration hinzufügen → Paw Control** konfigurieren.
 
 > Alternativ direkt über My Home Assistant: [https://my.home-assistant.io/redirect/hacs_repository/?category=integration&owner=Bigdaddy1990&repository=pawcontrol](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&owner=Bigdaddy1990&repository=pawcontrol)
+
+
+## Device Automations
+Diese Integration stellt **Geräte-Trigger** bereit (Einstellungen → Automationen → Gerät auswählen):
+- `gps_location_posted`
+- `walk_started`
+- `walk_ended`
+- `geofence_alert`
+Die Trigger werden über interne Events (`pawcontrol_<type>`) ausgelöst und enthalten `device_id`/`dog_id` im `event_data`.
+
+
+## Geofence-Events & Device-Automations
+
+Diese Integration feuert bei Geofence-Übergängen **Events** mit `device_id`:
+- `pawcontrol_geofence_alert` mit `action` = `entered` | `exited`, `zone`, `distance_m`, `radius_m`
+- Zusätzlich: `pawcontrol_safe_zone_entered` / `pawcontrol_safe_zone_left` (abwärtskompatibel)
+
+In der Automations-UI stehen als **Geräte-Trigger** zur Verfügung:
+- `geofence_alert`, `gps_location_posted`, `walk_started`, `walk_ended`
+
+**Geräte-Conditions**:
+- `is_home` – Hund ist laut Integration „zu Hause“
+- `in_geofence` – Hund ist innerhalb des definierten Safe-Zone-Grenzbereichs (alias von `is_home`)
+
+> Hinweis: Geofence-Alerts lassen sich per Service `pawcontrol.toggle_geofence_alerts` je Hund aktivieren/deaktivieren.
+
+
+## Branding
+
+Siehe [`docs/BRANDING.md`](docs/BRANDING.md) für die Schritte zum Einreichen der Logos/Icons im zentralen Brands-Repo.
+
+
+## Repairs & Wartung
+
+Diese Integration meldet Probleme im **Reparaturen**-Dashboard (Einstellungen → System → Reparaturen) und bietet **Fix-Flows** an:
+
+- **`invalid_geofence`** – Geofence-Einstellungen sind ungültig. Der Fix-Flow fragt **Latitude**, **Longitude** und **Radius (m)** ab und aktualisiert die Optionen.
+- **`stale_devices`** – Veraltete Geräte erkannt. Der Fix-Flow entfernt die verwaisten Geräte automatisch. Alternativ steht der Service `pawcontrol.prune_stale_devices` zur Verfügung (mit Option `auto: false` nur Hinweis ohne Löschen).
+
+> Hintergrund: Repair-Issues/Fix-Flows folgen den offiziellen HA-Vorgaben. Issues werden automatisch entfernt, sobald der Fix-Flow erfolgreich war.
+
+
+**Hinweis:** Der Fix-Flow für `invalid_geofence` **öffnet jetzt direkt den Options-Dialog** der Integration.
+Dort kannst du `home_lat`, `home_lon` und `geofence_radius_m` setzen. Nach dem Speichern verschwindet der Hinweis automatisch.
+
+
+### Options-Flow (mit Auto-Reload)
+
+Der Options-Dialog nutzt **OptionsFlowWithReload**: Änderungen werden nach dem Speichern **automatisch neu geladen** – kein manueller Reload nötig.
+Es gibt einen dedizierten **„Geofence“**-Step (Latitude/Longitude/Radius + Auto-Prune-Schalter).

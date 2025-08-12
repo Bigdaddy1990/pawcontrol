@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, RestoreSensor, SensorDeviceClass, SensorStateClass
 
 from .const import DOMAIN
 
@@ -25,11 +25,8 @@ class SensorConfig:
     transform_func: Optional[callable] = None
 
 
-class ConfigurableDogSensor(SensorEntity):
-    """Base sensor with configurable behavior."""
-    
-    _attr_has_entity_name = True
-    _attr_translation_key: str | None = None
+class ConfigurableDogSensor(SensorEntity, RestoreSensor):
+
     
     def __init__(self, hass: HomeAssistant, dog_id: str, title: str, config: SensorConfig):
         self.hass = hass
@@ -38,6 +35,8 @@ class ConfigurableDogSensor(SensorEntity):
         self._config = config
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.sensor.{config.key}"
         self._attr_translation_key = config.key
+        self._apply_class_map(config.key)
+        self._apply_classes_from_key(config.key)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)}, 
             name=f"Hund {title}", 
@@ -211,3 +210,44 @@ def create_dog_sensors(hass: HomeAssistant, dog_id: str, title: str) -> list[Con
         ConfigurableDogSensor(hass, dog_id, title, config)
         for config in configs.values()
     ]
+
+
+    def _apply_classes_from_key(self, key: str):
+        if "battery" in key:
+            self._attr_device_class = "battery"
+            self._attr_state_class = "measurement"
+            self._attr_native_unit_of_measurement = "%"
+        elif any(k in key for k in ["distance","meters","km"]):
+            self._attr_device_class = "distance"
+            self._attr_state_class = "measurement"
+        elif any(k in key for k in ["duration","time","seconds","minutes","hours"]):
+            self._attr_device_class = None
+            self._attr_state_class = "measurement"
+        elif any(k in key for k in ["speed","pace"]):
+            self._attr_device_class = "speed"
+            self._attr_state_class = "measurement"
+
+    
+
+CLASS_MAP = {
+    "battery_level": {"device_class": "battery", "state_class": "measurement", "unit": "%"},
+    "distance_m": {"device_class": "distance", "state_class": "measurement", "unit": "m"},
+    "distance_km": {"device_class": "distance", "state_class": "measurement", "unit": "km"},
+    "speed_m_s": {"device_class": "speed", "state_class": "measurement", "unit": "m/s"},
+    "speed_km_h": {"device_class": "speed", "state_class": "measurement", "unit": "km/h"},
+    "duration_s": {"device_class": None, "state_class": "measurement", "unit": "s"},
+    "duration_min": {"device_class": None, "state_class": "measurement", "unit": "min"},
+    "steps": {"device_class": None, "state_class": "total_increasing", "unit": None},
+    "calories": {"device_class": None, "state_class": "measurement", "unit": "kcal"},
+    "temperature_c": {"device_class": "temperature", "state_class": "measurement", "unit": "°C"},
+}
+
+def _apply_class_map(self, key: str):
+    meta = CLASS_MAP.get(key)
+    if not meta:
+        return
+    self._attr_device_class = meta.get("device_class")
+    self._attr_state_class = meta.get("state_class")
+    unit = meta.get("unit")
+    if unit is not None:
+        self._attr_native_unit_of_measurement = unit

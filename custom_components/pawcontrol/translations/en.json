@@ -396,5 +396,66 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "battery_level": {
+        "name": "Battery level"
+      },
+      "distance_m": {
+        "name": "Distance (m)"
+      },
+      "distance_km": {
+        "name": "Distance (km)"
+      },
+      "speed_m_s": {
+        "name": "Speed (m/s)"
+      },
+      "speed_km_h": {
+        "name": "Speed (km/h)"
+      },
+      "duration_s": {
+        "name": "Duration (s)"
+      },
+      "duration_min": {
+        "name": "Duration (min)"
+      },
+      "steps": {
+        "name": "Steps"
+      },
+      "calories": {
+        "name": "Calories"
+      },
+      "temperature_c": {
+        "name": "Temperature"
+      }
+    }
+  },
+  "device_automation": {
+    "condition_type": {
+      "is_home": "Dog is at home",
+      "in_geofence": "Dog is inside geofence"
+    },
+    "trigger_type": {
+      "geofence_alert": "Geofence alert",
+      "gps_location_posted": "GPS location posted",
+      "walk_started": "Walk started",
+      "walk_ended": "Walk ended"
+    },
+    "action_type": {
+      "start_walk": "Start walk",
+      "end_walk": "End walk",
+      "toggle_geofence_alerts": "Toggle geofence alerts"
+    }
+  },
+  "issues": {
+    "stale_devices": {
+      "title": "Stale devices detected",
+      "description": "There are {count} devices from Paw Control that are no longer present in the backend. Use the 'Prune stale devices' service or remove them from the device registry."
+    },
+    "invalid_geofence": {
+      "title": "Invalid geofence settings",
+      "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
+    }
   }
 }

@@ -1,3 +1,4 @@
+from homeassistant.config_entries import async_update_reload_and_abort, FlowResult
 """Config flow for Paw Control integration."""
 
 from __future__ import annotations
@@ -7,6 +8,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import OptionsFlowWithReload
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
@@ -931,3 +933,75 @@ async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None)
         new_opts.update(user_input)
         self.hass.config_entries.async_update_entry(entry, options=new_opts)
     return self.async_create_entry(title='Reconfigure', data={})
+
+
+
+
+async def async_step_reauth(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    """Handle reauthentication flow (update credentials and reload)."""
+    errors: dict[str, str] = {}
+    schema = vol.Schema({vol.Required("api_key"): str})
+    if user_input is None:
+        return self.async_show_form(step_id="reauth", data_schema=schema, errors=errors)
+    api_key = user_input["api_key"]
+    if not api_key or len(api_key) < 6:
+        errors["base"] = "invalid_auth"
+        return self.async_show_form(step_id="reauth", data_schema=schema, errors=errors)
+    entry = None
+    if hasattr(self, "context") and self.context.get("entry_id"):
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+    if entry:
+        new_data = dict(entry.data)
+        new_data["api_key"] = api_key
+        return self.async_update_reload_and_abort(entry, data=new_data, reason="reauth_successful")
+    return self.async_abort(reason="reauth_successful")
+
+
+
+class OptionsFlowHandler(OptionsFlowWithReload):
+    """Options flow with automatic reload after save."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict | None = None):
+        return await self.async_step_geofence()
+
+    async def async_step_geofence(self, user_input: dict | None = None):
+        import voluptuous as vol
+        errors: dict[str, str] = {}
+        opts = dict(self.config_entry.options)
+
+        def _def(k, default=None):
+            return opts.get(k, default)
+
+        schema = vol.Schema({
+            vol.Optional("home_lat", default=_def("home_lat", "")): str,
+            vol.Optional("home_lon", default=_def("home_lon", "")): str,
+            vol.Optional("geofence_radius_m", default=_def("geofence_radius_m", 100.0)): float,
+            vol.Optional("auto_prune_devices", default=_def("auto_prune_devices", False)): bool,
+        })
+
+        if user_input is None:
+            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+
+        # validate
+        try:
+            lat = float(user_input.get("home_lat")) if user_input.get("home_lat") not in (None, "") else None
+            lon = float(user_input.get("home_lon")) if user_input.get("home_lon") not in (None, "") else None
+            radius = float(user_input.get("geofence_radius_m")) if user_input.get("geofence_radius_m") is not None else None
+        except Exception:
+            errors["base"] = "invalid_geofence"
+            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+
+        if radius is not None and radius <= 0:
+            errors["base"] = "invalid_geofence"
+        if (lat is None) != (lon is None):
+            errors["base"] = "invalid_geofence"
+
+        if errors:
+            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+
+        new_opts = dict(opts)
+        new_opts.update(user_input)
+        return self.async_create_entry(title="", data=new_opts)

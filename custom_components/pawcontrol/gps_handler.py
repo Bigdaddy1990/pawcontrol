@@ -10,6 +10,17 @@ from homeassistant.util import dt as dt_util
 
 from .gps_settings import GPSSettingsStore
 from .const import DOMAIN
+from homeassistant.helpers import device_registry as dr
+
+def _device_id_from_dog(hass: HomeAssistant, dog_id: str | None) -> str | None:
+    if not dog_id:
+        return None
+    dev_reg = dr.async_get(hass)
+    # identifiers contain tuples like (DOMAIN, dog_id)
+    for dev in dev_reg.devices.values():
+        if dev.identifiers and any(idt[0] == DOMAIN and idt[1] == dog_id for idt in dev.identifiers):
+            return dev.id
+    return None
 
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371000.0
@@ -202,6 +213,10 @@ class PawControlGPSHandler:
                 if prev_inside is not None and inside != prev_inside and enable_alerts:
                     evt = "pawcontrol_safe_zone_entered" if inside else "pawcontrol_safe_zone_left"
                     self.hass.bus.async_fire(evt, {"dog_id": dog, "distance_m": dist, "radius_m": radius})
+                    device_id = _device_id_from_dog(self.hass, dog)
+                    action = "entered" if inside else "exited"
+                    zone_name = str(z.get("name") or "safe_zone")
+                    self.hass.bus.async_fire("pawcontrol_geofence_alert", {"device_id": device_id, "dog_id": dog, "action": action, "zone": zone_name, "distance_m": dist, "radius_m": radius})
         except Exception:
             pass
 
@@ -261,3 +276,12 @@ async def async_resume_tracking(self, dog_id: str | None = None) -> None:
             self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_accuracy_avg", None)
         except Exception:
             pass
+
+
+# Hook: after each location post, fire device-scoped event
+async def _hook_post_location(hass, dog_id: str):
+    try:
+        from . import _fire_device_event
+        _fire_device_event(hass, 'gps_location_posted', dog_id)
+    except Exception:
+        pass

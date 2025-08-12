@@ -330,3 +330,19 @@ toggle_geofence_alerts:
       selector:
         boolean: {}
   name: Geofence-Alerts umschalten
+
+
+prune_stale_devices:
+  name: Prune stale devices
+  description: Remove devices that are no longer present in the backend account.
+  target:
+    device:
+      integration: pawcontrol
+  fields:
+    auto:
+      name: Auto remove
+      description: If true, remove immediately; otherwise only create a Repairs issue.
+      required: false
+      default: true
+      selector:
+        boolean:

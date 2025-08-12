@@ -265,6 +265,7 @@ class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.visitor_mode"
+        self._attr_entity_category = "config"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
@@ -291,6 +292,7 @@ class EmergencyModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.emergency_mode"
+        self._attr_entity_category = "diagnostic"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",

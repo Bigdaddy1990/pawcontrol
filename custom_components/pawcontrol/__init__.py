@@ -1,10 +1,11 @@
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError, HomeAssistantError
 """The Paw Control integration for Home Assistant."""
 
 from __future__ import annotations
 
 import logging
+from homeassistant.helpers import issue_registry as ir
 from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -12,8 +13,9 @@ from homeassistant.helpers import device_registry as dr
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.core import HomeAssistant, ServiceCall
-    from homeassistant.helpers.typing import ConfigType
+    from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.typing import ConfigType
 
 from . import coordinator as coordinator_mod
 from .const import (
@@ -75,6 +77,50 @@ from .schemas import (
 )
 
 from . import gps_handler as gps
+
+
+
+from homeassistant.helpers import device_registry as dr
+
+def _device_id_from_dog(hass, dog_id: str | None) -> str | None:
+    if not dog_id:
+        return None
+    dev_reg = dr.async_get(hass)
+    # Search devices by identifiers (DOMAIN, dog_id)
+    for dev in dev_reg.devices.values():
+        if dev.identifiers and any(idt[0] == DOMAIN and idt[1] == dog_id for idt in dev.identifiers):
+            return dev.id
+    return None
+
+
+
+def _dog_id_from_device_id(hass, device_id: str | None) -> str | None:
+    if not device_id:
+        return None
+    dev_reg = dr.async_get(hass)
+    dev = dev_reg.async_get(device_id)
+    if not dev or not dev.identifiers:
+        return None
+    for idt in dev.identifiers:
+        if idt[0] == DOMAIN:
+            return idt[1]
+    return None
+
+
+def _get_known_dog_ids(hass: 'HomeAssistant', entry: 'ConfigEntry') -> set[str]:
+    store = (hass.data.get(DOMAIN) or {}).get(entry.entry_id, {})
+    coord = store.get("coordinator")
+    dog_ids: set[str] = set()
+    if coord and hasattr(coord, "_dog_data"):
+        try:
+            dog_ids = set(coord._dog_data.keys())
+        except Exception:  # noqa: BLE001
+            dog_ids = set()
+    return dog_ids
+def _fire_device_event(hass, event: str, dog_id: str | None, **data):
+    device_id = _device_id_from_dog(hass, dog_id)
+    hass.bus.async_fire(f"{DOMAIN}_{event}", {"device_id": device_id, "dog_id": dog_id, **data})
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -132,7 +178,12 @@ async def async_setup_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool
     # Add update listener
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    return True
+    
+    # Auto-prune stale devices (report or remove based on option)
+    auto = bool(entry.options.get('auto_prune_devices', False))
+    await _auto_prune_devices(hass, entry, auto=auto)
+    _check_geofence_options(hass, entry)
+return True
 
 
 async def async_unload_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool:
@@ -448,10 +499,42 @@ async def _register_services(  # noqa: C901
 
 
 
-    # GPS services
-    hass.services.async_register(DOMAIN, SERVICE_GPS_START_WALK, gps.async_start_walk)
-    hass.services.async_register(DOMAIN, SERVICE_GPS_END_WALK, gps.async_end_walk)
-    hass.services.async_register(DOMAIN, SERVICE_GPS_POST_LOCATION, gps.async_update_location)
+    
+
+async def handle_gps_start_walk(call: 'ServiceCall') -> None:
+    dog_id = call.data.get("dog_id")
+    await gps.async_start_walk(call)
+    _fire_device_event(hass, "walk_started", dog_id)
+
+async def handle_gps_end_walk(call: 'ServiceCall') -> None:
+    dog_id = call.data.get("dog_id")
+    await gps.async_end_walk(call)
+    _fire_device_event(hass, "walk_ended", dog_id)
+
+async def handle_gps_post_location(call: 'ServiceCall') -> None:
+    dog_id = call.data.get("dog_id")
+    await gps.async_update_location(call)
+    _fire_device_event(hass, "gps_location_posted", dog_id)
+
+
+
+async def handle_prune_stale_devices(call: 'ServiceCall') -> None:
+    """Prune stale devices, optionally auto=True."""
+    _entry = _get_valid_entry_from_call(hass, call)
+    if _entry is None:
+        raise HomeAssistantError("No loaded config entry found")
+    auto = bool(call.data.get("auto", True))
+    await _auto_prune_devices(hass, _entry, auto=auto)
+# GPS services
+    hass.services.async_register(DOMAIN, SERVICE_GPS_START_WALK, handle_gps_start_walk)
+    store['unsub'].append(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK))
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK))
+    hass.services.async_register(DOMAIN, SERVICE_GPS_END_WALK, handle_gps_end_walk)
+    store['unsub'].append(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK))
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK))
+    hass.services.async_register(DOMAIN, SERVICE_GPS_POST_LOCATION, handle_gps_post_location)
+    store['unsub'].append(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION))
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION))
     hass.services.async_register(DOMAIN, SERVICE_GPS_PAUSE_TRACKING, gps.async_pause_tracking)
     hass.services.async_register(DOMAIN, SERVICE_GPS_RESUME_TRACKING, gps.async_resume_tracking)
     hass.services.async_register(DOMAIN, SERVICE_GPS_EXPORT_LAST_ROUTE, gps.async_export_last_route)
@@ -464,9 +547,11 @@ async def _register_services(  # noqa: C901
     hass.services.async_register(DOMAIN, SERVICE_ROUTE_HISTORY_PURGE, handle_route_history_purge)
     hass.services.async_register(DOMAIN, SERVICE_ROUTE_HISTORY_EXPORT_RANGE, handle_route_history_export_range)
 
-hass.services.async_register(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, handle_toggle_geofence_alerts)
+    hass.services.async_register(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, handle_toggle_geofence_alerts)
+    store['unsub'].append(lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS))
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS))
 
-hass.services.async_register(DOMAIN, SERVICE_PURGE_ALL_STORAGE, handle_purge_all_storage)
+    hass.services.async_register(DOMAIN, SERVICE_PURGE_ALL_STORAGE, handle_purge_all_storage)
 
 
 
@@ -536,7 +621,7 @@ async def handle_route_history_list(hass: 'HomeAssistant', call: 'ServiceCall') 
     from .route_store import RouteHistoryStore
     entry_id = next(iter(hass.data.get(DOMAIN, {})), None)
     if entry_id is None:
-        return
+        raise HomeAssistantError('No Paw Control entry found for service call')
     dog_id = call.data.get("dog_id")
     store = RouteHistoryStore(hass, entry_id, DOMAIN)
     data = await store.async_list(dog_id=dog_id)
@@ -548,7 +633,7 @@ async def handle_route_history_purge(hass: 'HomeAssistant', call: 'ServiceCall')
     from .route_store import RouteHistoryStore
     entry_id = next(iter(hass.data.get(DOMAIN, {})), None)
     if entry_id is None:
-        return
+        raise HomeAssistantError('No Paw Control entry found for service call')
     dog_id = call.data.get("dog_id")
     store = RouteHistoryStore(hass, entry_id, DOMAIN)
     await store.async_purge(dog_id=dog_id)
@@ -560,7 +645,7 @@ async def handle_route_history_export_range(hass: 'HomeAssistant', call: 'Servic
     from homeassistant.util import dt as dt_util
     entry_id = next(iter(hass.data.get(DOMAIN, {})), None)
     if entry_id is None:
-        return
+        raise HomeAssistantError('No Paw Control entry found for service call')
     dog_id = call.data.get("dog_id")
     date_from = call.data.get("date_from")
     date_to = call.data.get("date_to")
@@ -598,7 +683,7 @@ async def handle_toggle_geofence_alerts(hass: 'HomeAssistant', call: 'ServiceCal
     from .gps_settings import GPSSettingsStore
     entry_id = next(iter(hass.data.get(DOMAIN, {})), None)
     if entry_id is None:
-        return
+        raise HomeAssistantError('No Paw Control entry found for service call')
     enabled = bool(call.data.get("enabled", True))
     store = GPSSettingsStore(hass, entry_id, DOMAIN)
     data = await store.async_load()
@@ -613,10 +698,127 @@ async def handle_purge_all_storage(hass: 'HomeAssistant', call: 'ServiceCall') -
     from .gps_settings import GPSSettingsStore
     entry_id = next(iter(hass.data.get(DOMAIN, {})), None)
     if entry_id is None:
-        return
+        raise HomeAssistantError('No Paw Control entry found for service call')
     # Route history -> purge all
     store = RouteHistoryStore(hass, entry_id, DOMAIN)
     await store.async_purge(dog_id=None)
     # GPS settings -> clear
     gstore = GPSSettingsStore(hass, entry_id, DOMAIN)
     await gstore.async_save({})
+
+
+async def async_remove_config_entry_device(hass: 'HomeAssistant', entry: 'ConfigEntry', device: 'dr.DeviceEntry') -> bool:
+    """Allow removing a device from the device registry.
+    We allow removal if the device belongs to this config entry / domain.
+    Perform any internal cleanup for the dog_id if present.
+    """
+    try:
+        from homeassistant.helpers import device_registry as dr
+    except Exception:
+        return False
+    # Only allow removal for devices with our DOMAIN identifier
+    dog_id = None
+    if device.identifiers:
+        for idt in device.identifiers:
+            if idt[0] == DOMAIN:
+                dog_id = idt[1]
+                break
+    if not dog_id:
+        # Not our device
+        return False
+    # Cleanup internal caches/state if present
+    store = (hass.data.get(DOMAIN) or {}).get(entry.entry_id, {})
+    coord = store.get("coordinator")
+    if coord and hasattr(coord, "_dog_data"):
+        coord._dog_data.pop(dog_id, None)
+    # If we maintain any listeners per dog, remove them here too
+    listeners = store.get("listeners") or {}
+    lst = listeners.pop(dog_id, None)
+    try:
+        if lst:
+            for unsub in lst:
+                unsub()
+    except Exception:
+        pass
+    # Allow the registry to delete the device
+    return True
+
+async def _auto_prune_devices(hass: 'HomeAssistant', entry: 'ConfigEntry', *, auto: bool) -> int:
+    """Remove or report stale devices that are no longer known by the coordinator.
+    Returns number of stale devices found (and removed if auto=True).
+    """
+    dev_reg = dr.async_get(hass)
+    known = _get_known_dog_ids(hass, entry)
+    stale_devices: list[dr.DeviceEntry] = []
+    for dev in list(dev_reg.devices.values()):
+        if entry.entry_id not in dev.config_entries:
+            continue
+        dog_id = None
+        if dev.identifiers:
+            for idt in dev.identifiers:
+                if idt[0] == DOMAIN:
+                    dog_id = idt[1]
+                    break
+        if not dog_id:
+            continue
+        if dog_id not in known:
+            stale_devices.append(dev)
+
+    if not stale_devices:
+        ir.async_delete_issue(hass, DOMAIN, "stale_devices")
+        return 0
+
+    if auto:
+        removed = 0
+        for dev in stale_devices:
+            if dev.config_entries == {entry.entry_id}:
+                dev_reg.async_remove_device(dev.id)
+                removed += 1
+        ir.async_delete_issue(hass, DOMAIN, "stale_devices")
+        return removed
+
+    try:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "stale_devices",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="stale_devices",
+            translation_placeholders={
+                "count": str(len(stale_devices))
+            },
+            learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/stale-devices/",
+        )
+    except Exception:  # noqa: BLE001
+        pass
+    return len(stale_devices)
+
+
+def _check_geofence_options(hass: 'HomeAssistant', entry: 'ConfigEntry') -> None:
+    """Create a Repairs issue if geofence settings look invalid."""
+    opts = entry.options or {}
+    radius = opts.get('geofence_radius_m')
+    lat = opts.get('home_lat')
+    lon = opts.get('home_lon')
+    invalid = False
+    if radius is not None and (not isinstance(radius, (int, float)) or radius <= 0):
+        invalid = True
+    if (lat is None) != (lon is None):
+        invalid = True
+    if invalid:
+        try:
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                "invalid_geofence",
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="invalid_geofence",
+                translation_placeholders={},
+                learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/repair-issues/",
+            )
+        except Exception:
+            pass
+    else:
+        ir.async_delete_issue(hass, DOMAIN, "invalid_geofence")
