@@ -1,32 +1,57 @@
+"""Diagnostics helpers for Paw Control."""
 
 from __future__ import annotations
-from typing import Any
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.device_registry import DeviceEntry
-from .const import DOMAIN
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
-    data: dict[str, Any] = {"options": entry.options or {}, "version": hass.data.get(DOMAIN, {}).get("version")}
-    # include GPS settings and a short route index per first dog
+import logging
+from typing import TYPE_CHECKING, Any
+
+from homeassistant.exceptions import HomeAssistantError
+
+from .const import DOMAIN
+from .gps_settings import GPSSettingsStore
+from .route_store import RouteHistoryStore
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceEntry
+
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_get_config_entry_diagnostics(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict[str, Any]:
+    """Collect diagnostics for a config entry."""
+    data: dict[str, Any] = {
+        "options": entry.options or {},
+        "version": hass.data.get(DOMAIN, {}).get("version"),
+    }
+    # Include GPS settings and a short route index for the first dog
     try:
-        from .gps_settings import GPSSettingsStore
-        from .route_store import RouteHistoryStore
         store1 = GPSSettingsStore(hass, entry.entry_id, DOMAIN)
         store2 = RouteHistoryStore(hass, entry.entry_id, DOMAIN)
         data["gps_settings"] = await store1.async_load()
         dogs = (entry.options or {}).get("dogs") or []
         dog = (dogs[0].get("dog_id") or dogs[0].get("name")) if dogs else "dog"
         data["route_history_index"] = await store2.async_list(dog)
-        # truncate list length for diagnostics
-        if isinstance(data["route_history_index"], list) and len(data["route_history_index"]) > 50:
+        # Truncate list length for diagnostics
+        if (
+            isinstance(data["route_history_index"], list)
+            and len(data["route_history_index"]) > 50
+        ):
             data["route_history_index"] = data["route_history_index"][-50:]
-    except Exception:
-        pass
+    except (HomeAssistantError, OSError, ValueError) as exc:
+        _LOGGER.warning("Failed to collect diagnostics data: %s", exc)
     return data
 
-async def async_get_device_diagnostics(hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry) -> dict[str, Any]:
-    # try to extract dog_id from device identifiers
+
+async def async_get_device_diagnostics(
+    hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry
+) -> dict[str, Any]:
+    """Collect diagnostics for a specific device."""
+    # Try to extract dog_id from device identifiers
     dog_id = None
     for domain, ident in device.identifiers:
         if domain == DOMAIN:
