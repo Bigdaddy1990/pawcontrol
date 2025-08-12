@@ -226,10 +226,10 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if 6 <= current_hour < 9 and feedings_today.get("breakfast", 0) == 0:
                 return True
             # Lunch hunger (11 AM - 2 PM)
-            elif 11 <= current_hour < 14 and feedings_today.get("lunch", 0) == 0:
+            if 11 <= current_hour < 14 and feedings_today.get("lunch", 0) == 0:
                 return True
             # Dinner hunger (5-8 PM)
-            elif 17 <= current_hour < 20 and feedings_today.get("dinner", 0) == 0:
+            if 17 <= current_hour < 20 and feedings_today.get("dinner", 0) == 0:
                 return True
 
             return False
@@ -498,20 +498,20 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if weight_kg is not None and weight_kg > 0:
                 health_data["weight_kg"] = float(weight_kg)
                 # Keep last 30 weight measurements for trend
+                # Enforce strict limit BEFORE appending to prevent memory leaks
+                while len(health_data["weight_trend"]) >= 30:
+                    health_data["weight_trend"].pop(0)
                 health_data["weight_trend"].append(
                     {"date": dt_util.now().isoformat(), "weight": float(weight_kg)}
                 )
-                # Enforce strict limit to prevent memory leaks
-                while len(health_data["weight_trend"]) > 30:
-                    health_data["weight_trend"].pop(0)
 
             if note and note.strip():
-                health_data["health_notes"].append(
-                    {"date": dt_util.now().isoformat(), "note": str(note.strip())}
-                )
-                # Keep last 100 notes - enforce strict limit
-                while len(health_data["health_notes"]) > 100:
+                # Keep last 100 notes - enforce strict limit BEFORE appending
+                while len(health_data["health_notes"]) >= 100:
                     health_data["health_notes"].pop(0)
+                health_data["health_notes"].append(
+                    {"date": dt_util.now().isoformat(), "note": str(note.strip())[:500]}  # Limit note length
+                )
 
             self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
@@ -560,17 +560,17 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             grooming_data["last_grooming"] = dt_util.now().isoformat()
             grooming_data["grooming_type"] = str(grooming_type)
 
+            # Keep last 50 grooming records - enforce strict limit BEFORE appending
+            while len(grooming_data["grooming_history"]) >= 50:
+                grooming_data["grooming_history"].pop(0)
+            
             grooming_data["grooming_history"].append(
                 {
                     "date": dt_util.now().isoformat(), 
-                    "type": str(grooming_type), 
-                    "notes": str(notes)
+                    "type": str(grooming_type)[:50],  # Limit type length
+                    "notes": str(notes)[:500]  # Limit notes length
                 }
             )
-
-            # Keep last 50 grooming records - enforce strict limit
-            while len(grooming_data["grooming_history"]) > 50:
-                grooming_data["grooming_history"].pop(0)
 
             self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
@@ -625,18 +625,18 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 training_data.get("training_sessions_today", 0) + 1
             )
 
+            # Keep last 100 training records - enforce strict limit BEFORE appending
+            while len(training_data["training_history"]) >= 100:
+                training_data["training_history"].pop(0)
+            
             training_data["training_history"].append(
                 {
                     "date": dt_util.now().isoformat(),
-                    "topic": str(topic),
-                    "duration_min": max(0, int(duration_min)),
-                    "notes": str(notes),
+                    "topic": str(topic)[:100],  # Limit topic length
+                    "duration_min": max(0, min(1440, int(duration_min))),  # Limit to max 24 hours
+                    "notes": str(notes)[:500],  # Limit notes length
                 }
             )
-
-            # Keep last 100 training records - enforce strict limit
-            while len(training_data["training_history"]) > 100:
-                training_data["training_history"].pop(0)
 
             self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"

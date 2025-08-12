@@ -59,7 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Store version info
     if "version" not in hass.data[DOMAIN]:
-        hass.data[DOMAIN]["version"] = "1.0.15"
+        hass.data[DOMAIN]["version"] = "1.0.16"
 
     # Initialize GPS handler (best-effort)
     gps_handler = None
@@ -470,20 +470,36 @@ async def _gps_post_location(
     call: ServiceCall, entry: ConfigEntry, data: dict[str, Any]
 ) -> None:
     """Handle GPS location posting."""
-    dog_id = call.data.get("dog_id") or _get_default_dog_id(entry)
-    latitude = call.data.get("latitude")
-    longitude = call.data.get("longitude")
-    accuracy = call.data.get("accuracy")
-
-    gps_handler = data.get("gps_handler")
-    if gps_handler and latitude is not None and longitude is not None:
-        await gps_handler.async_update_location(
-            float(latitude),
-            float(longitude),
-            float(accuracy) if accuracy is not None else None,
-            source="service",
-            dog_id=dog_id,
-        )
+    from .helpers.validation import (
+        validate_dog_id,
+        validate_gps_coordinates,
+        validate_gps_accuracy,
+        ValidationError,
+    )
+    
+    try:
+        dog_id = call.data.get("dog_id") or _get_default_dog_id(entry)
+        if dog_id:
+            dog_id = validate_dog_id(dog_id)
+        
+        latitude = call.data.get("latitude")
+        longitude = call.data.get("longitude")
+        accuracy = call.data.get("accuracy")
+        
+        lat_val, lon_val = validate_gps_coordinates(latitude, longitude)
+        acc_val = validate_gps_accuracy(accuracy)
+        
+        gps_handler = data.get("gps_handler")
+        if gps_handler:
+            await gps_handler.async_update_location(
+                lat_val,
+                lon_val,
+                acc_val,
+                source="service",
+                dog_id=dog_id,
+            )
+    except ValidationError as exc:
+        _LOGGER.error("Invalid GPS location data: %s", exc)
 
 
 async def _toggle_geofence(call: ServiceCall, entry: ConfigEntry) -> None:

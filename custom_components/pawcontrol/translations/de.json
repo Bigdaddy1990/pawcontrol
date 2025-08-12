@@ -3,53 +3,451 @@
   "config": {
     "step": {
       "user": {
-        "title": "Paw Control einrichten",
-        "description": "Basisdaten konfigurieren"
+        "title": "Willkommen bei Paw Control",
+        "description": "Lass uns dein intelligentes Hundemanagement-System einrichten. Wie viele Hunde hast du?",
+        "data": {
+          "num_dogs": "Anzahl der Hunde"
+        }
       },
+      "dog_config": {
+        "title": "Hund {dog_num} von {total_dogs} konfigurieren",
+        "description": "Gib die Details für deinen Hund ein und wähle die Module aus.",
+        "data": {
+          "dog_id": "Hunde-ID (eindeutige Kennung)",
+          "name": "Name des Hundes",
+          "breed": "Rasse",
+          "age": "Alter (Jahre)",
+          "weight": "Gewicht (kg)",
+          "size": "Größe",
+          "module_walk": "Spaziergang-Tracking aktivieren",
+          "module_feeding": "Fütterungsverwaltung aktivieren",
+          "module_health": "Gesundheitsverfolgung aktivieren",
+          "module_gps": "GPS-Tracking aktivieren",
+          "module_notifications": "Benachrichtigungen aktivieren",
+          "module_dashboard": "Dashboard aktivieren",
+          "module_grooming": "Pflegeverfolgung aktivieren",
+          "module_medication": "Medikamentenerinnerungen aktivieren",
+          "module_training": "Trainingsverfolgung aktivieren"
+        }
+      },
+      "sources": {
+        "title": "Datenquellen konfigurieren",
+        "description": "Wähle optionale Datenquellen für erweiterte Funktionen. Leer lassen zum Überspringen.",
+        "data": {
+          "door_sensor": "Türsensor (für Spaziergangserkennung)",
+          "person_entities": "Personen-Entitäten (für Anwesenheit)",
+          "device_trackers": "Geräte-Tracker (für GPS)",
+          "calendar": "Kalender (für Ereignisse)",
+          "weather": "Wetteranbieter"
+        }
+      },
+      "notifications": {
+        "title": "Benachrichtigungen konfigurieren",
+        "description": "Einstellungen für Benachrichtigungen festlegen.",
+        "data": {
+          "notify_fallback": "Fallback-Benachrichtigungsdienst",
+          "quiet_hours_start": "Ruhezeiten-Beginn",
+          "quiet_hours_end": "Ruhezeiten-Ende",
+          "reminder_repeat": "Erinnerungsintervall (Minuten)",
+          "snooze_min": "Schlummerdauer (Minuten)"
+        }
+      },
+      "system": {
+        "title": "Systemeinstellungen",
+        "description": "Systemweite Einstellungen und Wartungsoptionen konfigurieren.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "export_path": "Export-Pfad (optional)",
+          "export_format": "Export-Format",
+          "visitor_mode": "Besuchermodus aktivieren"
+        }
+      }
+    },
+    "error": {
+      "duplicate_dog_id": "Diese Hunde-ID existiert bereits. Bitte wähle eine eindeutige Kennung.",
+      "invalid_path": "Ungültiger Export-Pfad",
+      "invalid_time": "Ungültiges Zeitformat"
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine Instanz von Paw Control ist erlaubt.",
+      "no_dogs": "Keine Hunde konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
       "init": {
-        "title": "Optionen",
-        "description": "Module & Einstellungen"
-      },
-      "medication_mapping": {
-        "title": "Medikations-Zuordnung",
-        "description": "Ordne je Hund die Slots (1–3) zu Mahlzeiten zu (Multi-Select)."
+        "title": "Paw Control Optionen",
+        "description": "Wähle was du konfigurieren möchtest.",
+        "menu_options": {
+          "dogs": "Hunde verwalten",
+          "sources": "Datenquellen",
+          "notifications": "Benachrichtigungen",
+          "system": "Systemeinstellungen",
+          "medications": "Medikamenteneinstellungen",
+          "medication_mapping": "Medikamentenplan",
+          "reminders": "Erinnerungseinstellungen",
+          "safe_zones": "Sicherheitszonen",
+          "advanced": "Erweiterte Einstellungen",
+          "schedule": "Zeitplaneinstellungen",
+          "modules": "Moduleinstellungen"
+        }
       },
       "dogs": {
         "title": "Hunde verwalten",
-        "description": "Eine Zeile je Hund im Format id:name (Name optional)."
+        "description": "Um Hunde hinzuzufügen oder zu entfernen, konfiguriere die Integration neu.",
+        "data": {}
       },
-      "modules": {
-        "title": "Module aktivieren",
-        "description": "Wähle die aktiven Module (Mehrfachauswahl)."
+      "sources": {
+        "title": "Datenquellen konfigurieren",
+        "description": "Aktualisiere deine Datenquellenverbindungen.",
+        "data": {
+          "door_sensor": "Türsensor",
+          "person_entities": "Personen-Entitäten",
+          "device_trackers": "Geräte-Tracker",
+          "calendar": "Kalender",
+          "weather": "Wetteranbieter"
+        }
       },
-      "schedule": {
-        "title": "Zeitplan & Ruhezeiten",
-        "description": "Tägliches Reset, Ruhezeiten, Reminder-Intervalle"
+      "notifications": {
+        "title": "Benachrichtigungen konfigurieren",
+        "description": "Benachrichtigungseinstellungen anpassen.",
+        "data": {
+          "notify_fallback": "Fallback-Benachrichtigungsdienst",
+          "quiet_start": "Ruhezeiten-Beginn",
+          "quiet_end": "Ruhezeiten-Ende",
+          "reminder_repeat": "Erinnerungsintervall (Minuten)",
+          "snooze_min": "Schlummerdauer (Minuten)"
+        }
       },
-      "advanced": {
-        "title": "Erweitert",
-        "description": "Grenzen/Diagnose/Alias"
-      },
-      "safe_zones": {
-        "title": "Sicherheitszonen",
-        "description": "Lat/Lon/Radius & Alarm je Hund"
-      },
-      "reminders": {
-        "title": "Erinnerungen & Benachrichtigungen",
-        "description": "Notify-Ziel, Intervalle & Snooze."
+      "system": {
+        "title": "Systemeinstellungen",
+        "description": "Systemeinstellungen konfigurieren.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "export_path": "Export-Pfad",
+          "export_format": "Export-Format",
+          "visitor_mode": "Besuchermodus"
+        }
       },
       "medications": {
-        "title": "Medikamente – Zuordnung je Slot",
-        "description": "Wähle pro Slot (1–3) die Mahlzeiten für Erinnerungen."
+        "title": "Hund für Medikamenteneinstellungen auswählen",
+        "description": "Wähle für welchen Hund die Medikamenteneinstellungen konfiguriert werden sollen.",
+        "data": {
+          "dog_id": "Hund auswählen"
+        }
       },
       "medications_configure": {
-        "title": "Medikamente – Slots für ausgewählten Hund",
-        "description": "Mehrfachauswahl pro Slot. Leerlassen = keine Erinnerung."
+        "title": "Medikamentenplan konfigurieren",
+        "description": "Wähle welche Mahlzeiten mit jedem Medikamenten-Slot verbunden sein sollen.",
+        "data": {
+          "slot1": "Medikamenten-Slot 1 (Mahlzeiten)",
+          "slot2": "Medikamenten-Slot 2 (Mahlzeiten)",
+          "slot3": "Medikamenten-Slot 3 (Mahlzeiten)"
+        }
+      },
+      "medication_mapping": {
+        "title": "Medikamentenzuordnung",
+        "description": "Medikamentenpläne für jeden Hund konfigurieren.",
+        "data": {}
+      },
+      "reminders": {
+        "title": "Erinnerungseinstellungen",
+        "description": "Erinnerungsbenachrichtigungen konfigurieren.",
+        "data": {
+          "notify_target": "Benachrichtigungsdienst",
+          "interval_minutes": "Erinnerungsintervall (Minuten)",
+          "snooze_minutes": "Schlummerdauer (Minuten)",
+          "enable_auto": "Automatische Erinnerungen aktivieren"
+        }
+      },
+      "safe_zones": {
+        "title": "Sicherheitszonen-Konfiguration",
+        "description": "Sicherheitszonen für GPS-Tracking konfigurieren.",
+        "data": {}
+      },
+      "advanced": {
+        "title": "Erweiterte Einstellungen",
+        "description": "Erweiterte Optionen konfigurieren.",
+        "data": {
+          "route_history_limit": "Routenverlauf-Limit",
+          "enable_pawtracker_alias": "PawTracker-Alias aktivieren",
+          "diagnostic_sensors": "Diagnosesensoren aktivieren"
+        }
+      },
+      "schedule": {
+        "title": "Zeitplaneinstellungen",
+        "description": "Zeit- und Planungsoptionen konfigurieren.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "quiet_start": "Ruhezeiten-Beginn",
+          "quiet_end": "Ruhezeiten-Ende",
+          "reminder_repeat": "Erinnerungswiederholung (Minuten)",
+          "snooze_min": "Schlummerdauer (Minuten)"
+        }
+      },
+      "modules": {
+        "title": "Moduleinstellungen",
+        "description": "Integrationsmodule aktivieren oder deaktivieren.",
+        "data": {
+          "gps": "GPS-Tracking",
+          "feeding": "Fütterungsverwaltung",
+          "health": "Gesundheitsverfolgung",
+          "walk": "Spaziergang-Tracking",
+          "grooming": "Pflegeverfolgung",
+          "training": "Trainingsverfolgung",
+          "notifications": "Benachrichtigungen"
+        }
+      }
+    }
+  },
+  "selector": {
+    "size": {
+      "options": {
+        "small": "Klein (< 10kg)",
+        "medium": "Mittel (10-25kg)",
+        "large": "Groß (25-45kg)",
+        "xlarge": "Sehr groß (> 45kg)"
       }
     },
-    "abort": {
-      "single_instance_allowed": "Die Integration ist bereits eingerichtet.",
-      "no_dogs": "Keine Hunde konfiguriert. Bitte zuerst unter 'Hunde verwalten' anlegen."
+    "export_format": {
+      "options": {
+        "csv": "CSV",
+        "json": "JSON",
+        "pdf": "PDF"
+      }
+    }
+  },
+  "issues": {
+    "no_dogs_configured": {
+      "title": "Keine Hunde konfiguriert",
+      "description": "Bitte konfiguriere mindestens einen Hund in den Integrationsoptionen."
+    }
+  },
+  "services": {
+    "gps_start_walk": {
+      "name": "GPS-Spaziergang starten",
+      "description": "Startet die Verfolgung eines Spaziergangs für einen Hund",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Der Hund für den der Spaziergang gestartet wird (optional, nutzt ersten Hund wenn leer)"
+        },
+        "walk_type": {
+          "name": "Spaziergangstyp",
+          "description": "Art des Spaziergangs (z.B. normal, auto_detected)"
+        }
+      }
+    },
+    "gps_end_walk": {
+      "name": "GPS-Spaziergang beenden",
+      "description": "Beendet den aktuellen Spaziergang und berechnet Statistiken",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Der Hund für den der Spaziergang beendet wird"
+        },
+        "rating": {
+          "name": "Bewertung",
+          "description": "Spaziergangsbewertung von 1-5"
+        },
+        "notes": {
+          "name": "Notizen",
+          "description": "Optionale Notizen zum Spaziergang"
+        }
+      }
+    },
+    "send_medication_reminder": {
+      "name": "Medikamentenerinnerung senden",
+      "description": "Sendet eine Medikamentenerinnerung für einen bestimmten Hund",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Der Hund der Medikamente benötigt"
+        },
+        "meal": {
+          "name": "Mahlzeit",
+          "description": "Zugehörige Mahlzeit (Frühstück, Mittag, Abendessen)"
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "Medikamenten-Slot-Nummer (1-3)"
+        },
+        "notes": {
+          "name": "Notizen",
+          "description": "Zusätzliche Notizen"
+        }
+      }
+    },
+    "gps_export_last_route": {
+      "name": "Letzte Route exportieren",
+      "description": "Exportiert die letzte Route als GeoJSON oder GPX",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den die Route exportiert wird"
+        },
+        "format": {
+          "name": "Format",
+          "description": "Export-Format (geojson oder gpx)"
+        },
+        "to_media": {
+          "name": "In Medienordner",
+          "description": "In den Medienordner exportieren"
+        }
+      }
+    },
+    "gps_generate_diagnostics": {
+      "name": "GPS-Diagnose erstellen",
+      "description": "Erstellt GPS-Diagnosedaten",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für die Diagnose"
+        }
+      }
+    },
+    "gps_reset_stats": {
+      "name": "GPS-Statistiken zurücksetzen",
+      "description": "Setzt die GPS-Statistiken zurück",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den die Statistiken zurückgesetzt werden"
+        }
+      }
+    },
+    "gps_pause_tracking": {
+      "name": "GPS-Tracking pausieren",
+      "description": "Pausiert die GPS-Verfolgung",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den das Tracking pausiert wird"
+        }
+      }
+    },
+    "gps_resume_tracking": {
+      "name": "GPS-Tracking fortsetzen",
+      "description": "Setzt die GPS-Verfolgung fort",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den das Tracking fortgesetzt wird"
+        }
+      }
+    },
+    "toggle_geofence_alerts": {
+      "name": "Geofence-Alarme umschalten",
+      "description": "Aktiviert oder deaktiviert Geofence-Benachrichtigungen",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für Geofence-Einstellungen"
+        },
+        "enable": {
+          "name": "Aktivieren",
+          "description": "Alarme aktivieren oder deaktivieren"
+        }
+      }
+    },
+    "export_options": {
+      "name": "Optionen exportieren",
+      "description": "Exportiert die aktuellen Integrationsoptionen",
+      "fields": {}
+    },
+    "import_options": {
+      "name": "Optionen importieren",
+      "description": "Importiert Integrationsoptionen aus einer Datei",
+      "fields": {
+        "path": {
+          "name": "Pfad",
+          "description": "Pfad zur Import-Datei"
+        }
+      }
+    },
+    "route_history_list": {
+      "name": "Routenverlauf anzeigen",
+      "description": "Zeigt den Routenverlauf für einen Hund",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den Routenverlauf"
+        }
+      }
+    },
+    "route_history_purge": {
+      "name": "Routenverlauf bereinigen",
+      "description": "Löscht alte Routen aus dem Verlauf",
+      "fields": {
+        "older_than_days": {
+          "name": "Älter als Tage",
+          "description": "Routen älter als X Tage löschen"
+        }
+      }
+    },
+    "route_history_export_range": {
+      "name": "Routenbereich exportieren",
+      "description": "Exportiert Routen für einen Zeitbereich",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für den Export"
+        },
+        "start": {
+          "name": "Startdatum",
+          "description": "Startdatum für Export"
+        },
+        "end": {
+          "name": "Enddatum",
+          "description": "Enddatum für Export"
+        },
+        "format": {
+          "name": "Format",
+          "description": "Export-Format"
+        }
+      }
+    },
+    "purge_all_storage": {
+      "name": "Alle Daten löschen",
+      "description": "Löscht alle gespeicherten Daten",
+      "fields": {}
+    },
+    "gps_list_webhooks": {
+      "name": "Webhooks auflisten",
+      "description": "Listet alle konfigurierten Webhooks auf",
+      "fields": {}
+    },
+    "gps_regenerate_webhooks": {
+      "name": "Webhooks neu generieren",
+      "description": "Generiert neue Webhook-IDs",
+      "fields": {}
+    },
+    "gps_post_location": {
+      "name": "GPS-Position manuell setzen",
+      "description": "Setzt eine GPS-Position manuell",
+      "fields": {
+        "dog_id": {
+          "name": "Hunde-ID",
+          "description": "Hund für die Position"
+        },
+        "latitude": {
+          "name": "Breitengrad",
+          "description": "GPS-Breitengrad"
+        },
+        "longitude": {
+          "name": "Längengrad",
+          "description": "GPS-Längengrad"
+        },
+        "accuracy": {
+          "name": "Genauigkeit",
+          "description": "GPS-Genauigkeit in Metern"
+        }
+      }
+    },
+    "notify_test": {
+      "name": "Test-Benachrichtigung",
+      "description": "Sendet eine Test-Benachrichtigung",
+      "fields": {}
     }
   },
   "entity": {
@@ -59,13 +457,80 @@
       },
       "walk_distance_today": {
         "name": "Strecke heute"
+      },
+      "walks_today": {
+        "name": "Spaziergänge heute"
+      },
+      "last_walk": {
+        "name": "Letzter Spaziergang"
+      },
+      "feeding_count_today": {
+        "name": "Fütterungen heute"
+      },
+      "last_feeding": {
+        "name": "Letzte Fütterung"
+      },
+      "health_weight": {
+        "name": "Gewicht"
+      },
+      "medications_today": {
+        "name": "Medikamente heute"
+      },
+      "last_grooming": {
+        "name": "Letzte Pflege"
+      },
+      "training_sessions_today": {
+        "name": "Trainingseinheiten heute"
+      },
+      "activity_level": {
+        "name": "Aktivitätslevel"
+      },
+      "calories_burned_today": {
+        "name": "Verbrannte Kalorien heute"
       }
-    }
-  },
-  "issues": {
-    "no_dogs_configured": {
-      "title": "Paw Control – keine Hunde konfiguriert",
-      "description": "Öffne die Optionen der Integration und füge mindestens einen Hund in „Hunde verwalten“ hinzu."
+    },
+    "binary_sensor": {
+      "needs_walk": {
+        "name": "Spaziergang benötigt"
+      },
+      "walk_in_progress": {
+        "name": "Spaziergang läuft"
+      },
+      "is_hungry": {
+        "name": "Ist hungrig"
+      },
+      "needs_grooming": {
+        "name": "Pflege benötigt"
+      },
+      "is_home": {
+        "name": "Ist zuhause"
+      }
+    },
+    "button": {
+      "start_walk": {
+        "name": "Spaziergang starten"
+      },
+      "end_walk": {
+        "name": "Spaziergang beenden"
+      },
+      "feed_breakfast": {
+        "name": "Frühstück füttern"
+      },
+      "feed_lunch": {
+        "name": "Mittagessen füttern"
+      },
+      "feed_dinner": {
+        "name": "Abendessen füttern"
+      },
+      "log_medication": {
+        "name": "Medikament protokollieren"
+      },
+      "log_grooming": {
+        "name": "Pflege protokollieren"
+      },
+      "log_training": {
+        "name": "Training protokollieren"
+      }
     }
   }
 }
