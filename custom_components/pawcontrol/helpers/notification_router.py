@@ -45,8 +45,11 @@ class NotificationRouter:
     async def _send_persistent_notification(self, title: str, message: str) -> None:
         """Send a persistent notification as fallback."""
         try:
-            from homeassistant.components.persistent_notification import create as pn
-            pn(self.hass, message, title=title)
+            from homeassistant.components.persistent_notification import (
+                async_create as pn,
+            )
+
+            await pn(self.hass, message, title=title)
         except Exception as exc:
             _LOGGER.error("Failed to send persistent notification: %s", exc)
     
