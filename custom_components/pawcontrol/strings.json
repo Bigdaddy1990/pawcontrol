@@ -124,7 +124,7 @@
     }
   },
   "selector": {
-    "dog_size": {
+    "size": {
       "options": {
         "small": "Small (< 10kg)",
         "medium": "Medium (10-25kg)",

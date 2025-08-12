@@ -196,7 +196,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_DOG_SIZE, default="medium"): SelectSelector(
                         SelectSelectorConfig(
                             options=["small", "medium", "large", "xlarge"],
-                            translation_key="dog_size",
+                            translation_key="size",
                         )
                     ),
                     vol.Optional(
