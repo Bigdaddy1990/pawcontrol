@@ -1,41 +1,42 @@
 """Paw Control integration entry setup."""
+
 from __future__ import annotations
 
+import inspect
+import json
 import logging
 import os
-import json
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.issue_registry import async_create_issue
 
 from .const import (
+    CONF_DOGS,
     DOMAIN,
     PLATFORMS,
-    CONF_DOGS,
-    SERVICE_GPS_START_WALK,
-    SERVICE_GPS_END_WALK,
-    SERVICE_GPS_GENERATE_DIAGNOSTICS,
-    SERVICE_GPS_RESET_STATS,
-    SERVICE_GPS_EXPORT_LAST_ROUTE,
-    SERVICE_GPS_PAUSE_TRACKING,
-    SERVICE_GPS_RESUME_TRACKING,
-    SERVICE_GPS_POST_LOCATION,
-    SERVICE_GPS_LIST_WEBHOOKS,
-    SERVICE_GPS_REGENERATE_WEBHOOKS,
-    SERVICE_TOGGLE_GEOFENCE_ALERTS,
     SERVICE_EXPORT_OPTIONS,
+    SERVICE_GPS_END_WALK,
+    SERVICE_GPS_EXPORT_LAST_ROUTE,
+    SERVICE_GPS_GENERATE_DIAGNOSTICS,
+    SERVICE_GPS_LIST_WEBHOOKS,
+    SERVICE_GPS_PAUSE_TRACKING,
+    SERVICE_GPS_POST_LOCATION,
+    SERVICE_GPS_REGENERATE_WEBHOOKS,
+    SERVICE_GPS_RESET_STATS,
+    SERVICE_GPS_RESUME_TRACKING,
+    SERVICE_GPS_START_WALK,
     SERVICE_IMPORT_OPTIONS,
     SERVICE_NOTIFY_TEST,
     SERVICE_PURGE_ALL_STORAGE,
+    SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
     SERVICE_ROUTE_HISTORY_LIST,
     SERVICE_ROUTE_HISTORY_PURGE,
-    SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
     SERVICE_SEND_MEDICATION_REMINDER,
+    SERVICE_TOGGLE_GEOFENCE_ALERTS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Paw Control from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-    
+
     # Initialize data structure for this entry
     data: dict[str, Any] = {
         "entry_id": entry.entry_id,
@@ -53,9 +54,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": None,
         "_services": [],
     }
-    
+
     hass.data[DOMAIN][entry.entry_id] = data
-    
+
     # Store version info
     if "version" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["version"] = "1.0.15"
@@ -64,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     gps_handler = None
     try:
         from .gps_handler import PawControlGPSHandler
+
         gps_handler = PawControlGPSHandler(hass, entry.options or {})
         gps_handler.entry_id = entry.entry_id
         await gps_handler.async_setup()
@@ -75,8 +77,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize coordinator
     try:
         from .coordinator import PawControlCoordinator
+
         coordinator = PawControlCoordinator(hass, entry)
-        await coordinator.async_config_entry_first_refresh()
+
+        refresh = coordinator.async_config_entry_first_refresh()
+        if inspect.isawaitable(refresh):
+            await refresh
+
         data["coordinator"] = coordinator
         _LOGGER.debug("Coordinator initialized successfully")
     except Exception as exc:
@@ -100,6 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register logbook descriptions (best-effort)
     try:
         from . import logbook as logbook_support
+
         logbook_support.async_describe_events(hass)
     except Exception as exc:
         _LOGGER.debug("Logbook registration failed: %s", exc)
@@ -113,13 +121,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[str, Any]) -> None:
+async def _ensure_webhooks(
+    hass: HomeAssistant, entry: ConfigEntry, data: dict[str, Any]
+) -> None:
     """Ensure per-dog webhooks are generated & registered."""
     try:
         from homeassistant.components.webhook import (
             async_generate_id,
-            async_register as webhook_register,
         )
+        from homeassistant.components.webhook import async_register as webhook_register
+
         from .gps_settings import GPSSettingsStore
 
         store = GPSSettingsStore(hass, entry.entry_id, DOMAIN)
@@ -135,7 +146,7 @@ async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[s
 
             dog_hooks = hooks.setdefault(dog_id, {})
             webhook_id = dog_hooks.get("location_update")
-            
+
             if not webhook_id:
                 webhook_id = async_generate_id()
                 dog_hooks["location_update"] = webhook_id
@@ -145,25 +156,32 @@ async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[s
                 """Handle incoming webhook for GPS location update."""
                 try:
                     # Validate Content-Type
-                    if request.content_type != 'application/json':
-                        _LOGGER.warning("Invalid content type: %s", request.content_type)
+                    if request.content_type != "application/json":
+                        _LOGGER.warning(
+                            "Invalid content type: %s", request.content_type
+                        )
                         from aiohttp import web
-                        return web.Response(status=400, text="Content-Type must be application/json")
-                    
+
+                        return web.Response(
+                            status=400, text="Content-Type must be application/json"
+                        )
+
                     # Limit request size
-                    content_length = request.headers.get('Content-Length')
+                    content_length = request.headers.get("Content-Length")
                     if content_length and int(content_length) > 10240:  # 10KB limit
                         _LOGGER.warning("Request too large: %s bytes", content_length)
                         from aiohttp import web
+
                         return web.Response(status=413, text="Request too large")
-                    
+
                     json_data = await request.json()
                     if not isinstance(json_data, dict):
                         raise ValueError("Invalid JSON structure")
-                        
+
                 except Exception as exc:
                     _LOGGER.warning("Invalid webhook request: %s", exc)
                     from aiohttp import web
+
                     return web.Response(status=400, text="Invalid request")
 
                 # Validate and sanitize input
@@ -171,26 +189,26 @@ async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[s
                     lat = json_data.get("lat") or json_data.get("latitude")
                     lon = json_data.get("lon") or json_data.get("longitude")
                     acc = json_data.get("acc") or json_data.get("accuracy")
-                    
+
                     # Strict validation
                     if lat is None or lon is None:
                         raise ValueError("Missing latitude or longitude")
-                    
+
                     lat_val = float(lat)
                     lon_val = float(lon)
-                    
+
                     # Validate coordinate ranges
                     if not (-90 <= lat_val <= 90):
                         raise ValueError(f"Invalid latitude: {lat_val}")
                     if not (-180 <= lon_val <= 180):
                         raise ValueError(f"Invalid longitude: {lon_val}")
-                    
+
                     acc_val = None
                     if acc is not None:
                         acc_val = float(acc)
                         if acc_val < 0 or acc_val > 10000:  # reasonable accuracy range
                             raise ValueError(f"Invalid accuracy: {acc_val}")
-                    
+
                     # Update location if handler available
                     if data.get("gps_handler"):
                         await data["gps_handler"].async_update_location(
@@ -200,17 +218,22 @@ async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[s
                             source="webhook",
                             dog_id=_dog,
                         )
-                    
+
                 except (ValueError, TypeError) as exc:
                     _LOGGER.warning("Invalid webhook data for dog %s: %s", _dog, exc)
                     from aiohttp import web
+
                     return web.Response(status=400, text=f"Invalid data: {exc}")
                 except Exception as exc:
-                    _LOGGER.error("Webhook location update failed for dog %s: %s", _dog, exc)
+                    _LOGGER.error(
+                        "Webhook location update failed for dog %s: %s", _dog, exc
+                    )
                     from aiohttp import web
+
                     return web.Response(status=500, text="Internal error")
 
                 from aiohttp import web
+
                 return web.Response(text="OK")
 
             try:
@@ -231,7 +254,9 @@ async def _ensure_webhooks(hass: HomeAssistant, entry: ConfigEntry, data: dict[s
         _LOGGER.warning("Webhook setup failed: %s", exc)
 
 
-async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict[str, Any]) -> None:
+async def _register_services(
+    hass: HomeAssistant, entry: ConfigEntry, data: dict[str, Any]
+) -> None:
     """Register all services for the integration."""
     tracked_services = []
 
@@ -245,21 +270,25 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict
         DOMAIN,
         SERVICE_GPS_START_WALK,
         lambda call: _gps_service_wrapper(call, "async_start_walk", data),
-        schema=vol.Schema({
-            vol.Optional("dog_id"): str,
-            vol.Optional("walk_type", default="normal"): str,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Optional("dog_id"): str,
+                vol.Optional("walk_type", default="normal"): str,
+            }
+        ),
     )
 
     _register_service(
         DOMAIN,
         SERVICE_GPS_END_WALK,
         lambda call: _gps_service_wrapper(call, "async_end_walk", data),
-        schema=vol.Schema({
-            vol.Optional("dog_id"): str,
-            vol.Optional("rating"): int,
-            vol.Optional("notes"): str,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Optional("dog_id"): str,
+                vol.Optional("rating"): int,
+                vol.Optional("notes"): str,
+            }
+        ),
     )
 
     _register_service(
@@ -280,11 +309,13 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict
         DOMAIN,
         SERVICE_GPS_EXPORT_LAST_ROUTE,
         lambda call: _gps_service_wrapper(call, "async_export_last_route", data),
-        schema=vol.Schema({
-            vol.Optional("dog_id"): str,
-            vol.Optional("format", default="geojson"): str,
-            vol.Optional("to_media", default=False): bool,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Optional("dog_id"): str,
+                vol.Optional("format", default="geojson"): str,
+                vol.Optional("to_media", default=False): bool,
+            }
+        ),
     )
 
     _register_service(
@@ -305,12 +336,14 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict
         DOMAIN,
         SERVICE_GPS_POST_LOCATION,
         lambda call: hass.async_create_task(_gps_post_location(call, entry, data)),
-        schema=vol.Schema({
-            vol.Optional("dog_id"): str,
-            vol.Required("latitude"): float,
-            vol.Required("longitude"): float,
-            vol.Optional("accuracy"): float,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Optional("dog_id"): str,
+                vol.Required("latitude"): float,
+                vol.Required("longitude"): float,
+                vol.Optional("accuracy"): float,
+            }
+        ),
     )
 
     # Utility Services
@@ -318,30 +351,61 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict
         DOMAIN,
         SERVICE_TOGGLE_GEOFENCE_ALERTS,
         lambda call: hass.async_create_task(_toggle_geofence(call, entry)),
-        schema=vol.Schema({
-            vol.Optional("dog_id"): str,
-            vol.Required("enable"): bool,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Optional("dog_id"): str,
+                vol.Required("enable"): bool,
+            }
+        ),
     )
 
-    _register_service(DOMAIN, SERVICE_EXPORT_OPTIONS, lambda call: hass.async_create_task(_export_options(call, entry)))
-    _register_service(DOMAIN, SERVICE_IMPORT_OPTIONS, lambda call: hass.async_create_task(_import_options(call, entry)), schema=vol.Schema({vol.Optional("path"): str}))
-    _register_service(DOMAIN, SERVICE_NOTIFY_TEST, lambda call: hass.async_create_task(_notify_test(call, entry)))
-    _register_service(DOMAIN, SERVICE_PURGE_ALL_STORAGE, lambda call: hass.async_create_task(_purge_all_storage(call, entry)))
-    _register_service(DOMAIN, SERVICE_GPS_LIST_WEBHOOKS, lambda call: hass.async_create_task(_gps_list_webhooks(call, entry)))
-    _register_service(DOMAIN, SERVICE_GPS_REGENERATE_WEBHOOKS, lambda call: hass.async_create_task(_gps_regenerate_webhooks(call, entry, data)))
+    _register_service(
+        DOMAIN,
+        SERVICE_EXPORT_OPTIONS,
+        lambda call: hass.async_create_task(_export_options(call, entry)),
+    )
+    _register_service(
+        DOMAIN,
+        SERVICE_IMPORT_OPTIONS,
+        lambda call: hass.async_create_task(_import_options(call, entry)),
+        schema=vol.Schema({vol.Optional("path"): str}),
+    )
+    _register_service(
+        DOMAIN,
+        SERVICE_NOTIFY_TEST,
+        lambda call: hass.async_create_task(_notify_test(call, entry)),
+    )
+    _register_service(
+        DOMAIN,
+        SERVICE_PURGE_ALL_STORAGE,
+        lambda call: hass.async_create_task(_purge_all_storage(call, entry)),
+    )
+    _register_service(
+        DOMAIN,
+        SERVICE_GPS_LIST_WEBHOOKS,
+        lambda call: hass.async_create_task(_gps_list_webhooks(call, entry)),
+    )
+    _register_service(
+        DOMAIN,
+        SERVICE_GPS_REGENERATE_WEBHOOKS,
+        lambda call: hass.async_create_task(
+            _gps_regenerate_webhooks(call, entry, data)
+        ),
+    )
 
     # Medication services
     _register_service(
         DOMAIN,
         SERVICE_SEND_MEDICATION_REMINDER,
         lambda call: hass.async_create_task(_send_medication_reminder(call, entry)),
-        schema=vol.Schema({
-            vol.Required("dog_id"): str,
-            vol.Optional("meal"): vol.In(["breakfast", "lunch", "dinner"]),
-            vol.Optional("slot"): vol.All(int, vol.Range(min=1, max=3)),
-            vol.Optional("notes"): str,
-        }),
+        schema=vol.Schema(
+            {
+                vol.Required("dog_id"): str,
+                vol.Optional("meal"): vol.In(["breakfast", "lunch", "dinner"]),
+                vol.Optional("slot"): vol.All(int, vol.Range(min=1, max=3)),
+                vol.Optional("notes"): str,
+            }
+        ),
     )
 
     # Route history services
@@ -368,7 +432,9 @@ async def _register_services(hass: HomeAssistant, entry: ConfigEntry, data: dict
     data["_services"] = tracked_services
 
 
-async def _gps_service_wrapper(call: ServiceCall, method_name: str, data: dict[str, Any]) -> None:
+async def _gps_service_wrapper(
+    call: ServiceCall, method_name: str, data: dict[str, Any]
+) -> None:
     """Wrapper for GPS handler service calls."""
     gps_handler = data.get("gps_handler")
     if not gps_handler:
@@ -394,7 +460,9 @@ async def _gps_service_wrapper(call: ServiceCall, method_name: str, data: dict[s
         _LOGGER.error("GPS service %s failed: %s", method_name, exc)
 
 
-async def _gps_post_location(call: ServiceCall, entry: ConfigEntry, data: dict[str, Any]) -> None:
+async def _gps_post_location(
+    call: ServiceCall, entry: ConfigEntry, data: dict[str, Any]
+) -> None:
     """Handle GPS location posting."""
     dog_id = call.data.get("dog_id") or _get_default_dog_id(entry)
     latitude = call.data.get("latitude")
@@ -435,6 +503,7 @@ async def _export_options(call: ServiceCall, entry: ConfigEntry) -> None:
 
     try:
         from homeassistant.components.persistent_notification import create as pn
+
         pn(entry.hass, f"Optionen exportiert: {path}", title="Paw Control – Export")
     except Exception:
         pass
@@ -442,17 +511,24 @@ async def _export_options(call: ServiceCall, entry: ConfigEntry) -> None:
 
 async def _import_options(call: ServiceCall, entry: ConfigEntry) -> None:
     """Import integration options from file."""
-    path = call.data.get("path") or entry.hass.config.path("pawcontrol_options_export.json")
-    
+    path = call.data.get("path") or entry.hass.config.path(
+        "pawcontrol_options_export.json"
+    )
+
     try:
         with open(path, "r", encoding="utf-8") as file_handle:
             options = json.load(file_handle)
-        
+
         entry.hass.config_entries.async_update_entry(entry, options=options)
-        
+
         try:
             from homeassistant.components.persistent_notification import create as pn
-            pn(entry.hass, f"Optionen importiert aus: {path}", title="Paw Control – Import")
+
+            pn(
+                entry.hass,
+                f"Optionen importiert aus: {path}",
+                title="Paw Control – Import",
+            )
         except Exception:
             pass
     except Exception as exc:
@@ -463,7 +539,7 @@ async def _notify_test(call: ServiceCall, entry: ConfigEntry) -> None:
     """Send test notification."""
     try:
         from .helpers.notification_router import NotificationRouter
-        
+
         notify_target = (entry.options or {}).get("reminders", {}).get("notify_target")
         router = NotificationRouter(entry.hass, notify_target)
         await router.send_generic(
@@ -475,7 +551,12 @@ async def _notify_test(call: ServiceCall, entry: ConfigEntry) -> None:
     except Exception:
         try:
             from homeassistant.components.persistent_notification import create as pn
-            pn(entry.hass, "Benachrichtigungen funktionieren (Fallback).", title="Paw Control – Test")
+
+            pn(
+                entry.hass,
+                "Benachrichtigungen funktionieren (Fallback).",
+                title="Paw Control – Test",
+            )
         except Exception:
             pass
 
@@ -487,13 +568,18 @@ async def _purge_all_storage(call: ServiceCall, entry: ConfigEntry) -> None:
 
     settings_store = GPSSettingsStore(entry.hass, entry.entry_id, DOMAIN)
     route_store = RouteHistoryStore(entry.hass, entry.entry_id, DOMAIN)
-    
+
     await settings_store.async_save({})
     await route_store.async_save({"dogs": {}})
-    
+
     try:
         from homeassistant.components.persistent_notification import create as pn
-        pn(entry.hass, "Alle gespeicherten Einstellungen/Verläufe gelöscht.", title="Paw Control – Bereinigung")
+
+        pn(
+            entry.hass,
+            "Alle gespeicherten Einstellungen/Verläufe gelöscht.",
+            title="Paw Control – Bereinigung",
+        )
     except Exception:
         pass
 
@@ -502,12 +588,13 @@ async def _gps_list_webhooks(call: ServiceCall, entry: ConfigEntry) -> None:
     """List all configured webhooks."""
     try:
         from homeassistant.components.webhook import async_generate_url
+
         from .gps_settings import GPSSettingsStore
 
         store = GPSSettingsStore(entry.hass, entry.entry_id, DOMAIN)
         settings = await store.async_load()
         hooks = settings.get("webhooks") or {}
-        
+
         webhook_urls = {}
         for dog_id, dog_hooks in hooks.items():
             webhook_id = dog_hooks.get("location_update")
@@ -518,27 +605,35 @@ async def _gps_list_webhooks(call: ServiceCall, entry: ConfigEntry) -> None:
 
         base_path = entry.hass.config.path("pawcontrol_diagnostics")
         os.makedirs(base_path, exist_ok=True)
-        
+
         file_path = os.path.join(base_path, "webhooks.json")
         with open(file_path, "w", encoding="utf-8") as file_handle:
             json.dump(webhook_urls, file_handle, ensure_ascii=False, indent=2)
 
         try:
             from homeassistant.components.persistent_notification import create as pn
-            pn(entry.hass, f"Webhook-Übersicht geschrieben: {file_path}", title="Paw Control – Webhooks")
+
+            pn(
+                entry.hass,
+                f"Webhook-Übersicht geschrieben: {file_path}",
+                title="Paw Control – Webhooks",
+            )
         except Exception:
             pass
     except Exception as exc:
         _LOGGER.error("Failed to list webhooks: %s", exc)
 
 
-async def _gps_regenerate_webhooks(call: ServiceCall, entry: ConfigEntry, data: dict[str, Any]) -> None:
+async def _gps_regenerate_webhooks(
+    call: ServiceCall, entry: ConfigEntry, data: dict[str, Any]
+) -> None:
     """Regenerate all webhooks."""
     try:
         await _ensure_webhooks(entry.hass, entry, data)
-        
+
         try:
             from homeassistant.components.persistent_notification import create as pn
+
             pn(entry.hass, "Webhooks regeneriert.", title="Paw Control – Webhooks")
         except Exception:
             pass
@@ -560,10 +655,10 @@ async def _send_medication_reminder(call: ServiceCall, entry: ConfigEntry) -> No
 
         medication_mapping = (entry.options or {}).get("medication_mapping", {})
         dog_mapping = medication_mapping.get(dog_id, {})
-        
+
         valid_meals = {"breakfast", "lunch", "dinner"}
         slots = []
-        
+
         if isinstance(slot, int) and 1 <= slot <= 3:
             slots = [slot]
         elif meal in valid_meals:
@@ -576,7 +671,10 @@ async def _send_medication_reminder(call: ServiceCall, entry: ConfigEntry) -> No
 
         try:
             from .helpers.notification_router import NotificationRouter
-            notify_target = (entry.options or {}).get("reminders", {}).get("notify_target")
+
+            notify_target = (
+                (entry.options or {}).get("reminders", {}).get("notify_target")
+            )
             router = NotificationRouter(entry.hass, notify_target)
         except Exception:
             router = None
@@ -584,17 +682,22 @@ async def _send_medication_reminder(call: ServiceCall, entry: ConfigEntry) -> No
         for slot_num in slots:
             title = f"Medikation – {dog_id} (Slot {slot_num})"
             message = f"{dog_id}: jetzt Medikament (Slot {slot_num}) einnehmen."
-            
+
             if meal in valid_meals:
                 message += f" (zu: {meal})"
             if notes:
                 message += f" – {notes}"
 
             if router:
-                await router.send_generic(title, message, dog_id=dog_id, kind="medication")
+                await router.send_generic(
+                    title, message, dog_id=dog_id, kind="medication"
+                )
             else:
                 try:
-                    from homeassistant.components.persistent_notification import create as pn
+                    from homeassistant.components.persistent_notification import (
+                        create as pn,
+                    )
+
                     pn(entry.hass, message, title=f"Paw Control – {title}")
                 except Exception:
                     pass
@@ -613,11 +716,11 @@ async def _route_history_list(call: ServiceCall, entry: ConfigEntry) -> None:
 
         base_path = entry.hass.config.path("pawcontrol_diagnostics")
         os.makedirs(base_path, exist_ok=True)
-        
+
         file_path = os.path.join(base_path, f"{dog_id}_route_index.json")
         with open(file_path, "w", encoding="utf-8") as file_handle:
             json.dump(items[-200:], file_handle, indent=2, ensure_ascii=False)
-            
+
     except Exception as exc:
         _LOGGER.error("Failed to list route history: %s", exc)
 
@@ -637,23 +740,33 @@ async def _route_history_purge(call: ServiceCall, entry: ConfigEntry) -> None:
 async def _route_history_export_range(call: ServiceCall, entry: ConfigEntry) -> None:
     """Export route history for a date range."""
     try:
-        from .route_store import RouteHistoryStore
-        from homeassistant.util import dt as dt_util
         import zipfile
+
+        from homeassistant.util import dt as dt_util
+
+        from .route_store import RouteHistoryStore
 
         dog_id = call.data.get("dog_id") or _get_default_dog_id(entry)
         export_format = call.data.get("format", "geojson")
-        start_date = dt_util.parse_datetime(call.data.get("start")) if call.data.get("start") else None
-        end_date = dt_util.parse_datetime(call.data.get("end")) if call.data.get("end") else None
-        
+        start_date = (
+            dt_util.parse_datetime(call.data.get("start"))
+            if call.data.get("start")
+            else None
+        )
+        end_date = (
+            dt_util.parse_datetime(call.data.get("end"))
+            if call.data.get("end")
+            else None
+        )
+
         store = RouteHistoryStore(entry.hass, entry.entry_id, DOMAIN)
         items = await store.async_list(dog_id)
 
         base_dir = entry.hass.config.path("media/pawcontrol_routes")
         os.makedirs(base_dir, exist_ok=True)
-        
+
         zip_path = os.path.join(base_dir, f"{dog_id}_routes_export.zip")
-        
+
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for i, item in enumerate(items):
                 if export_format == "geojson":
@@ -722,13 +835,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         store = GPSSettingsStore(hass, entry.entry_id, DOMAIN)
         settings = await store.async_load()
-        
+
         for dog_id, hooks in (settings.get("webhooks") or {}).items():
             for hook_name, webhook_id in (hooks or {}).items():
                 try:
                     webhook_unregister(hass, webhook_id)
                 except Exception as exc:
-                    _LOGGER.debug("Failed to unregister webhook %s: %s", webhook_id, exc)
+                    _LOGGER.debug(
+                        "Failed to unregister webhook %s: %s", webhook_id, exc
+                    )
     except Exception as exc:
         _LOGGER.debug("Failed to unregister webhooks: %s", exc)
 
@@ -739,7 +854,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             try:
                 hass.services.async_remove(domain, service_name)
             except Exception as exc:
-                _LOGGER.debug("Failed to remove service %s.%s: %s", domain, service_name, exc)
+                _LOGGER.debug(
+                    "Failed to remove service %s.%s: %s", domain, service_name, exc
+                )
     except Exception as exc:
         _LOGGER.debug("Failed to remove services: %s", exc)
 
