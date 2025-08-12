@@ -32,12 +32,17 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
 
 def validate_coordinates(lat: float, lon: float) -> bool:
     """Validate latitude and longitude values."""
-    return (
-        isinstance(lat, int | float)
-        and isinstance(lon, int | float)
-        and -90.0 <= lat <= 90.0
-        and -180.0 <= lon <= 180.0
-    )
+    # bool is a subclass of int and should be rejected explicitly
+    if isinstance(lat, bool) or isinstance(lon, bool):
+        return False
+
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+    except (TypeError, ValueError):
+        return False
+
+    return -90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0
 
 
 def format_coordinates(lat: float, lon: float) -> str:
