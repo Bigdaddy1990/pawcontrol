@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Mapping, Union
+import asyncio
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -43,7 +44,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._visitor_mode: bool = False
         self._emergency_mode: bool = False
         self._emergency_level: str = "info"
-        self._lock = hass.helpers.asyncio.async_get_lock(f"{DOMAIN}_{entry.entry_id}")
+        self._lock = asyncio.Lock()
         self._initialize_dog_data()
 
     def _initialize_dog_data(self) -> None:

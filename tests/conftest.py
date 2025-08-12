@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytest_plugins = "pytest_homeassistant_custom_component"
+
 try:
     from homeassistant.core import HomeAssistant
 except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
@@ -26,10 +28,10 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(_enable_custom_integrations):
-    """Enable custom integrations for all tests."""
-    return
+# Note: enable_custom_integrations fixture is provided by the HA test plugin.
+#       It enables loading custom components in Home Assistant tests. We don't
+#       need additional handling beyond requesting the fixture when needed.
+
 
 
 @pytest.fixture
