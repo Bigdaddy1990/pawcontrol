@@ -108,6 +108,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "intro": "Welcome to Paw Control! Let's set up your smart dog management system."
             },
+            errors={},
         )
 
     async def async_step_dog_config(
@@ -531,11 +532,11 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                 CONF_NOTIFY_FALLBACK: user_input.get(CONF_NOTIFY_FALLBACK),
                 CONF_QUIET_HOURS: {
                     CONF_QUIET_START: user_input.get(
-                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
+                        CONF_QUIET_START,
                         quiet_hours.get(CONF_QUIET_START, "22:00:00"),
                     ),
                     CONF_QUIET_END: user_input.get(
-                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}",
+                        CONF_QUIET_END,
                         quiet_hours.get(CONF_QUIET_END, "07:00:00"),
                     ),
                 },
@@ -558,13 +559,13 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
                         default=notifications.get(CONF_NOTIFY_FALLBACK),
                     ): TextSelector(),
                     vol.Optional(
-                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_START}",
+                        CONF_QUIET_START,
                         default=quiet_hours.get(CONF_QUIET_START, "22:00:00"),
-                    ): TimeSelector(),
+                    ): TextSelector(),
                     vol.Optional(
-                        f"{CONF_QUIET_HOURS}_{CONF_QUIET_END}",
+                        CONF_QUIET_END,
                         default=quiet_hours.get(CONF_QUIET_END, "07:00:00"),
-                    ): TimeSelector(),
+                    ): TextSelector(),
                     vol.Optional(
                         CONF_REMINDER_REPEAT,
                         default=notifications.get(
