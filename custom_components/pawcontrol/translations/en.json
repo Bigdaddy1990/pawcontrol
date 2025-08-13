@@ -159,11 +159,11 @@
   "services": {
     "gps_start_walk": {
       "name": "Gps Start Walk",
-      "description": "Start GPS-tracked walk for a dog.",
+      "description": "Startet einen Spaziergang für einen Hund.",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
-          "description": "Optional ID of the dog.",
+          "description": "Hund-ID (optional; wenn leer, wird der erste Hund genutzt)",
           "example": "buddy"
         },
         "label": {
@@ -173,19 +173,20 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
         },
         "walk_type": {
-          "name": "Walk Type"
+          "name": "Walk Type",
+          "description": "Typ des Spaziergangs (z. B. normal, auto_detected)"
         }
       }
     },
     "gps_end_walk": {
       "name": "Gps End Walk",
-      "description": "End the current GPS-tracked walk.",
+      "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -194,16 +195,18 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
         },
         "notes": {
-          "name": "Notes"
+          "name": "Notes",
+          "description": "Notizen"
         },
         "rating": {
-          "name": "Rating"
+          "name": "Rating",
+          "description": "Bewertung 1–5 (optional)"
         },
         "number": {
           "name": "Number"
@@ -212,7 +215,7 @@
     },
     "gps_post_location": {
       "name": "Gps Post Location",
-      "description": "Post a GPS location update.",
+      "description": "Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -246,7 +249,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "accuracy": {
           "name": "Accuracy"
@@ -261,7 +264,7 @@
     },
     "gps_pause_tracking": {
       "name": "Gps Pause Tracking",
-      "description": "Pause GPS tracking.",
+      "description": "Pausiert das Tracking (sofern Handler aktiv).",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -270,7 +273,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -279,7 +282,7 @@
     },
     "gps_resume_tracking": {
       "name": "Gps Resume Tracking",
-      "description": "Resume GPS tracking.",
+      "description": "Setzt das Tracking fort (sofern Handler aktiv).",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -288,7 +291,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -297,7 +300,7 @@
     },
     "gps_export_last_route": {
       "name": "Gps Export Last Route",
-      "description": "Export the last recorded route to storage.",
+      "description": "Exportiert die letzte Route als GeoJSON oder GPX.",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -306,7 +309,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -327,7 +330,7 @@
     },
     "gps_generate_diagnostics": {
       "name": "Gps Generate Diagnostics",
-      "description": "Generate GPS diagnostics snapshot.",
+      "description": "Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -336,7 +339,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -345,7 +348,7 @@
     },
     "gps_reset_stats": {
       "name": "Gps Reset Stats",
-      "description": "Reset GPS statistics.",
+      "description": "Setzt diagnostische GPS-Zähler zurück.",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -354,7 +357,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -363,7 +366,7 @@
     },
     "route_history_list": {
       "name": "Route History List",
-      "description": "List stored routes and fire an event with results.",
+      "description": "Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -372,7 +375,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -381,7 +384,7 @@
     },
     "route_history_purge": {
       "name": "Route History Purge",
-      "description": "Purge stored route history.",
+      "description": "Löscht Routen, die älter sind als X Tage (wenn gesetzt).",
       "fields": {
         "dog_id": {
           "name": "Dog ID",
@@ -390,7 +393,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "older_than_days": {
           "name": "Older Than Days"
@@ -405,7 +408,7 @@
     },
     "route_history_export_range": {
       "name": "Route History Export Range",
-      "description": "Export routes within a date range to storage.",
+      "description": "Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis.",
       "fields": {
         "dog_id": {
           "name": "Dog Id",
@@ -424,7 +427,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "selector": {
           "name": "Selector"
@@ -448,7 +451,7 @@
     },
     "toggle_geofence_alerts": {
       "name": "Toggle Geofence Alerts",
-      "description": "Enable or disable geofence alerts.",
+      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der",
       "fields": {
         "enabled": {
           "name": "Enabled",
@@ -457,7 +460,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         },
         "dog_id": {
           "name": "Dog Id"
@@ -472,17 +475,17 @@
     },
     "purge_all_storage": {
       "name": "Purge All Storage",
-      "description": "Purge all Paw Control storage (route history, GPS settings).",
+      "description": "Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).",
       "fields": {
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         }
       }
     },
     "notify_test": {
       "name": "Notify Test",
-      "description": "Send a test notification through Paw Control routing.",
+      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
       "fields": {
         "title": {
           "name": "Title",
@@ -501,7 +504,7 @@
         },
         "config_entry_id": {
           "name": "Config Entry Id",
-          "description": "Target a specific configuration entry (optional)."
+          "description": "Optional config entry ID to target a specific instance."
         }
       }
     },
@@ -509,127 +512,158 @@
       "name": "Daily reset",
       "fields": {
         "config_entry_id": {
-          "name": "Config entry"
+          "name": "Config entry",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_DAILY_RESET' for Paw Control."
     },
     "emergency_mode": {
       "name": "Emergency Mode",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_EMERGENCY_MODE' for Paw Control."
     },
     "end_walk": {
       "name": "End Walk",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_END_WALK' for Paw Control."
     },
     "export_data": {
       "name": "Export Data",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_EXPORT_DATA' for Paw Control."
     },
     "feed_dog": {
       "name": "Feed Dog",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_FEED_DOG' for Paw Control."
     },
     "generate_report": {
       "name": "Generate Report",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_GENERATE_REPORT' for Paw Control."
     },
     "log_health": {
       "name": "Log Health",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_LOG_HEALTH' for Paw Control."
     },
     "log_medication": {
       "name": "Log Medication",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_LOG_MEDICATION' for Paw Control."
     },
     "play_with_dog": {
       "name": "Play With Dog",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_PLAY_WITH_DOG' for Paw Control."
     },
     "start_grooming": {
       "name": "Start Grooming",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_START_GROOMING' for Paw Control."
     },
     "start_training": {
       "name": "Start Training",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_START_TRAINING' for Paw Control."
     },
     "start_walk": {
       "name": "Start Walk",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_START_WALK' for Paw Control."
     },
     "sync_setup": {
       "name": "Sync Setup",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_SYNC_SETUP' for Paw Control."
     },
     "toggle_visitor": {
       "name": "Toggle Visitor",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_TOGGLE_VISITOR' for Paw Control."
     },
     "walk_dog": {
       "name": "Walk Dog",
       "fields": {
         "config_entry_id": {
-          "name": "Config Entry Id"
+          "name": "Config Entry Id",
+          "description": "Optional config entry ID to target a specific instance."
         }
-      }
+      },
+      "description": "Service 'SERVICE_WALK_DOG' for Paw Control."
     },
     "prune_stale_devices": {
-      "name": "Prune Stale Devices",
+      "name": "Prune stale devices",
       "fields": {
         "auto": {
-          "name": "Auto"
+          "name": "Auto remove",
+          "description": "If true, remove immediately; otherwise only create a Repairs issue."
         },
         "selector": {
           "name": "Selector"
@@ -637,7 +671,8 @@
         "boolean": {
           "name": "Boolean"
         }
-      }
+      },
+      "description": "Remove devices that are no longer present in the backend account."
     }
   },
   "entity": {
@@ -742,8 +777,25 @@
       "description": "There are {count} devices from Paw Control that are no longer present in the backend. Use the 'Prune stale devices' service or remove them from the device registry."
     },
     "invalid_geofence": {
-      "title": "Invalid geofence settings",
-      "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
+      "title": "Invalid geofence configuration",
+      "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius.",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Fix geofence settings",
+            "description": "Choose how to resolve the invalid geofence settings.",
+            "data": {
+              "action": "Action"
+            },
+            "data_description": {
+              "action": {
+                "reset": "Reset to defaults (clear home, set 150 m radius, enable alerts)",
+                "disable_alerts": "Disable geofence alerts (keep current center)"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "exceptions": {
