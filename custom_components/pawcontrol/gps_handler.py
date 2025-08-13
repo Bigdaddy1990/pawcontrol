@@ -23,11 +23,11 @@ def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
     raise ServiceValidationError("No loaded Paw Control entries")
 
 
-def _dog_id(entry, call: ServiceCall) -> str:
+def _dog_id(entry: ConfigEntry, call: ServiceCall) -> str:
     dog_id = call.data.get("dog_id")
     if dog_id:
         return dog_id
-    dogs = (entry.options or {}).get("dogs") or []
+    dogs = entry.options.get("dogs", [])
     if dogs and isinstance(dogs, list):
         return dogs[0].get("dog_id") or dogs[0].get("name") or "dog"
     return "dog"
@@ -50,15 +50,9 @@ async def async_update_location(hass: HomeAssistant, call: ServiceCall) -> None:
     coordinator.process_location(dog, lat, lon, acc)
 
     # Mark last action
-    try:
-        coordinator._dog_data[dog]["statistics"]["last_action"] = (
-            dt_util.now().isoformat()
-        )
-        coordinator._dog_data[dog]["statistics"]["last_action_type"] = (
-            "gps_location_posted"
-        )
-    except Exception:
-        pass
+    stats = coordinator._dog_data.setdefault(dog, {}).setdefault("statistics", {})
+    stats["last_action"] = dt_util.now().isoformat()
+    stats["last_action_type"] = "gps_location_posted"
 
 
 async def async_start_walk(hass: HomeAssistant, call: ServiceCall) -> None:
