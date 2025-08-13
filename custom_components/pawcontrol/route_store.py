@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any, Dict, List
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RouteHistoryStore:
@@ -23,7 +27,8 @@ class RouteHistoryStore:
         """Load route history from storage."""
         try:
             self._data = await self._store.async_load() or {"dogs": {}}
-        except Exception:
+        except (HomeAssistantError, OSError) as err:
+            _LOGGER.warning("Failed to load route history: %s", err)
             self._data = {"dogs": {}}
         return self._data
 
@@ -92,7 +97,7 @@ class RouteHistoryStore:
                         )
                         if route_time and route_time > cutoff:
                             filtered_routes.append(route)
-                    except Exception:
+                    except (TypeError, ValueError):
                         # Keep if we can't parse the date
                         filtered_routes.append(route)
 
