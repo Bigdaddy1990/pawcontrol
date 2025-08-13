@@ -16,7 +16,6 @@ from homeassistant.const import (
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.util import dt as dt_util
-from homeassistant.util.location import distance
 
 from ..const import (
     CONF_DEVICE_TRACKERS,
@@ -27,6 +26,7 @@ from ..const import (
     DEFAULT_IDLE_TIMEOUT_MIN,
     DOMAIN,
 )
+from ..utils import calculate_distance
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -192,8 +192,11 @@ class GPSLogic:
 
         # Calculate distance from last location
         if tracking_data["last_location"]:
-            dist = self._calculate_distance(
-                tracking_data["last_location"], new_location
+            dist = calculate_distance(
+                tracking_data["last_location"][0],
+                tracking_data["last_location"][1],
+                new_location[0],
+                new_location[1],
             )
 
             # Only update if movement is significant (> 5 meters)
@@ -207,12 +210,6 @@ class GPSLogic:
         else:
             tracking_data["last_location"] = new_location
             tracking_data["last_update"] = dt_util.now()
-
-    def _calculate_distance(
-        self, loc1: tuple[float, float], loc2: tuple[float, float]
-    ) -> float:
-        """Calculate distance between two GPS coordinates in meters."""
-        return distance(loc1[0], loc1[1], loc2[0], loc2[1]) * 1000
 
     def _handle_door_opened(self) -> None:
         """Handle door opened event."""
@@ -407,4 +404,9 @@ class GPSLogic:
         if home_lat is None or home_lon is None:
             return None
 
-        return self._calculate_distance((home_lat, home_lon), current_location)
+        return calculate_distance(
+            home_lat,
+            home_lon,
+            current_location[0],
+            current_location[1],
+        )
