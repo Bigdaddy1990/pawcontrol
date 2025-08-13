@@ -4,7 +4,8 @@ from datetime import datetime
 from math import atan2, cos, radians, sin, sqrt
 from typing import Any, Dict
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
@@ -407,20 +408,18 @@ class PawControlGPSHandler:
         except Exception:
             pass
 
+    async def async_pause_tracking(self, dog_id: str | None = None) -> None:
+        dog = self._dog_id(dog_id)
+        st = self._get(dog)
+        st["paused"] = True
+        # expose state for UI/debug
+        self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", True)
 
-async def async_pause_tracking(self, dog_id: str | None = None) -> None:
-    dog = self._dog_id(dog_id)
-    st = self._get(dog)
-    st["paused"] = True
-    # expose state for UI/debug
-    self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", True)
-
-
-async def async_resume_tracking(self, dog_id: str | None = None) -> None:
-    dog = self._dog_id(dog_id)
-    st = self._get(dog)
-    st["paused"] = False
-    self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", False)
+    async def async_resume_tracking(self, dog_id: str | None = None) -> None:
+        dog = self._dog_id(dog_id)
+        st = self._get(dog)
+        st["paused"] = False
+        self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_tracking_paused", False)
 
     async def async_export_last_route(
         self, dog_id: str | None = None, fmt: str = "geojson", to_media: bool = False
@@ -486,6 +485,70 @@ async def async_resume_tracking(self, dog_id: str | None = None) -> None:
             self.hass.states.async_set(f"sensor.{DOMAIN}_{dog}_gps_accuracy_avg", None)
         except Exception:
             pass
+
+
+def _get_handler_from_call(call: ServiceCall) -> PawControlGPSHandler:
+    """Return the GPS handler for a service call."""
+    hass: HomeAssistant = call.hass
+    entry_id = call.data.get("config_entry_id")
+    if entry_id and entry_id in hass.data.get(DOMAIN, {}):
+        handler = hass.data[DOMAIN][entry_id].get("gps_handler")
+        if handler:
+            return handler
+        raise ServiceValidationError("Config entry has no GPS handler")
+    data = hass.data.get(DOMAIN, {})
+    if len(data) == 1:
+        handler = next(iter(data.values())).get("gps_handler")
+        if handler:
+            return handler
+    raise ServiceValidationError("config_entry_id required")
+
+
+async def async_start_walk(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_start_walk(
+        walk_type=call.data.get("label"), dog_id=call.data.get("dog_id")
+    )
+
+
+async def async_end_walk(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_end_walk(dog_id=call.data.get("dog_id"))
+
+
+async def async_update_location(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_update_location(
+        latitude=call.data["latitude"],
+        longitude=call.data["longitude"],
+        accuracy=call.data.get("accuracy_m"),
+        dog_id=call.data.get("dog_id"),
+    )
+
+
+async def async_pause_tracking(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_pause_tracking(call.data.get("dog_id"))
+
+
+async def async_resume_tracking(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_resume_tracking(call.data.get("dog_id"))
+
+
+async def async_export_last_route(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_export_last_route(call.data.get("dog_id"))
+
+
+async def async_generate_diagnostics(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_generate_diagnostics(call.data.get("dog_id"))
+
+
+async def async_reset_gps_stats(call: ServiceCall) -> None:
+    handler = _get_handler_from_call(call)
+    await handler.async_reset_gps_stats(call.data.get("dog_id"))
 
 
 # Hook: after each location post, fire device-scoped event

@@ -2,6 +2,6 @@ import pytest
 from homeassistant.core import HomeAssistant
 
 
-@pytest.fixture
-def anyio_backend():
+@pytest.fixture(scope="session")
+def anyio_backend() -> str:
     return "asyncio"

@@ -1,9 +1,9 @@
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-
 """The Paw Control integration for Home Assistant."""
 
-from __future__ import annotations  # noqa: F404
+from __future__ import annotations
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 import logging
 from typing import TYPE_CHECKING
@@ -157,6 +157,11 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
         "notification_router": notification_router_mod.NotificationRouter(hass, entry),
         "setup_sync": setup_sync_mod.SetupSync(hass, entry),
     }
+
+    gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
+    gps_handler_obj.entry_id = entry.entry_id
+    await gps_handler_obj.async_setup()
+    hass.data[DOMAIN][entry.entry_id]["gps_handler"] = gps_handler_obj
 
     # Report generator depends on the coordinator being stored above, so
     # instantiate it only after the shared data structure has been created.
