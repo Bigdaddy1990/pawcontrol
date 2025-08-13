@@ -44,11 +44,18 @@ def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | 
 
 
 def _get_coordinator(hass: HomeAssistant, dog_id: str | None):
-    data = hass.data.get(DOMAIN) or {}
-    for entry_id, st in data.items():
-        coord = st.get("coordinator")
-        if coord and getattr(coord, "_dog_data", {}).get(dog_id) is not None:
-            return coord
+    if not dog_id:
+        return None
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        runtime = getattr(entry, "runtime_data", None)
+        coordinator = getattr(runtime, "coordinator", None)
+        if (
+            coordinator
+            and getattr(coordinator, "_dog_data", {}).get(dog_id) is not None
+        ):
+            return coordinator
+
     return None
 
 

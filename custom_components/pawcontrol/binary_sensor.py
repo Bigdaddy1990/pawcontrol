@@ -44,6 +44,11 @@ async def async_setup_entry(
     if not coordinator.last_update_success:
         raise PlatformNotReady
 
+    if not coordinator.last_update_success:
+        await coordinator.async_refresh()
+        if not coordinator.last_update_success:
+            raise PlatformNotReady
+
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
 
