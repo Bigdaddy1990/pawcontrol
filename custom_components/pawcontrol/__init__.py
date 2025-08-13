@@ -247,9 +247,7 @@ async def _register_devices(hass: "HomeAssistant", entry: "ConfigEntry") -> None
         )
 
 
-async def _register_services(
-    hass: "HomeAssistant", _entry: "ConfigEntry"
-) -> None:
+async def _register_services(hass: "HomeAssistant", _entry: "ConfigEntry") -> None:
     """Register services for the integration."""
 
     async def handle_daily_reset(_call: "ServiceCall") -> None:
@@ -542,7 +540,9 @@ async def handle_prune_stale_devices(call: "ServiceCall") -> None:
         lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK)  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_POST_LOCATION, handle_gps_post_location  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_POST_LOCATION,
+        handle_gps_post_location,  # noqa: F821
     )
     store["unsub"].append(  # noqa: F821
         lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)  # noqa: F821
@@ -551,33 +551,51 @@ async def handle_prune_stale_devices(call: "ServiceCall") -> None:
         lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_PAUSE_TRACKING, gps.async_pause_tracking  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_PAUSE_TRACKING,
+        gps.async_pause_tracking,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_RESUME_TRACKING, gps.async_resume_tracking  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_RESUME_TRACKING,
+        gps.async_resume_tracking,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_EXPORT_LAST_ROUTE, gps.async_export_last_route  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_EXPORT_LAST_ROUTE,
+        gps.async_export_last_route,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_GENERATE_DIAGNOSTICS, gps.async_generate_diagnostics  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_GENERATE_DIAGNOSTICS,
+        gps.async_generate_diagnostics,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_GPS_RESET_STATS, gps.async_reset_gps_stats  # noqa: F821
+        DOMAIN,
+        SERVICE_GPS_RESET_STATS,
+        gps.async_reset_gps_stats,  # noqa: F821
     )
 
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_ROUTE_HISTORY_LIST, handle_route_history_list  # noqa: F821
+        DOMAIN,
+        SERVICE_ROUTE_HISTORY_LIST,
+        handle_route_history_list,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_ROUTE_HISTORY_PURGE, handle_route_history_purge  # noqa: F821
+        DOMAIN,
+        SERVICE_ROUTE_HISTORY_PURGE,
+        handle_route_history_purge,  # noqa: F821
     )
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_ROUTE_HISTORY_EXPORT_RANGE, handle_route_history_export_range  # noqa: F821
+        DOMAIN,
+        SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
+        handle_route_history_export_range,  # noqa: F821
     )
 
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, handle_toggle_geofence_alerts  # noqa: F821
+        DOMAIN,
+        SERVICE_TOGGLE_GEOFENCE_ALERTS,
+        handle_toggle_geofence_alerts,  # noqa: F821
     )
     store["unsub"].append(  # noqa: F821
         lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS)  # noqa: F821
@@ -587,7 +605,9 @@ async def handle_prune_stale_devices(call: "ServiceCall") -> None:
     )
 
     hass.services.async_register(  # noqa: F821
-        DOMAIN, SERVICE_PURGE_ALL_STORAGE, handle_purge_all_storage  # noqa: F821
+        DOMAIN,
+        SERVICE_PURGE_ALL_STORAGE,
+        handle_purge_all_storage,  # noqa: F821
     )
 
 
