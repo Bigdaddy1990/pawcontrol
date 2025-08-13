@@ -20,9 +20,7 @@ jobs:
       - name: Ruff lint (fix)
         run: |
          pip install ruff
-         # optional: Imports sortieren (I) und fixen
          ruff check . --select I --fix
-         # reguläre Fixes
          ruff check . --fix
       - name: Ruff format
         run: ruff format .
