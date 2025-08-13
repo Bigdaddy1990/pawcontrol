@@ -12,9 +12,10 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.config_validation import DEVICE_ACTION_BASE_SCHEMA
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
-from .schemas import (
+from .const import (
+    DOMAIN,
     SERVICE_GPS_END_WALK,
+    SERVICE_GPS_POST_LOCATION,
     SERVICE_GPS_START_WALK,
     SERVICE_TOGGLE_GEOFENCE_ALERTS,
 )
@@ -30,6 +31,11 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
     {
         vol.Required(CONF_TYPE): vol.In(ACTION_TYPES),
         vol.Optional("enabled"): bool,
+        vol.Optional("latitude"): vol.Coerce(float),
+        vol.Optional("longitude"): vol.Coerce(float),
+        vol.Optional("accuracy_m"): vol.Coerce(float),
+        vol.Optional("speed_m_s"): vol.Coerce(float),
+        vol.Optional("timestamp"): str,
     }
 )
 
@@ -92,6 +98,29 @@ async def async_call_action_from_config(
             DOMAIN,
             SERVICE_TOGGLE_GEOFENCE_ALERTS,
             {"dog_id": dog_id, "enabled": enabled},
+            blocking=True,
+            context=context,
+        )
+        return
+
+    if action_type == "post_location":
+        if "latitude" not in config or "longitude" not in config:
+            raise InvalidDeviceAutomationConfig("Missing required coordinates")
+        data: dict[str, Any] = {
+            "dog_id": dog_id,
+            "latitude": config["latitude"],
+            "longitude": config["longitude"],
+        }
+        if "accuracy_m" in config:
+            data["accuracy_m"] = config["accuracy_m"]
+        if "speed_m_s" in config:
+            data["speed_m_s"] = config["speed_m_s"]
+        if "timestamp" in config:
+            data["timestamp"] = config["timestamp"]
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GPS_POST_LOCATION,
+            data,
             blocking=True,
             context=context,
         )
