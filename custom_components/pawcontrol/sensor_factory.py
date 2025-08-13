@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -24,13 +25,13 @@ class SensorConfig:
     key: str
     name: str
     data_path: str
-    device_class: Optional[SensorDeviceClass] = None
-    state_class: Optional[SensorStateClass] = None
-    unit: Optional[str] = None
-    options: Optional[list[str]] = None
-    entity_category: Optional[EntityCategory] = None
+    device_class: SensorDeviceClass | None = None
+    state_class: SensorStateClass | None = None
+    unit: str | None = None
+    options: list[str] | None = None
+    entity_category: EntityCategory | None = None
     default_value: Any = None
-    transform_func: Optional[callable] = None
+    transform_func: Callable[[Any], Any] | None = None
 
 
 class ConfigurableDogSensor(SensorEntity, RestoreSensor):
@@ -100,7 +101,7 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
         return value
 
 
-def create_sensor_configs() -> Dict[str, SensorConfig]:
+def create_sensor_configs() -> dict[str, SensorConfig]:
     """Create all sensor configurations."""
     return {
         # Walk sensors
