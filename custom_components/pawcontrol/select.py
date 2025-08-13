@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -97,6 +97,7 @@ class PawControlSelectBase(SelectEntity):
     """Base class for Paw Control select entities."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
@@ -329,6 +330,7 @@ class ExportFormatSelect(SelectEntity):
     _attr_name = "Export Format"
     _attr_icon = "mdi:file-export"
     _attr_options = ("csv", "json", "pdf")
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
         """Initialize the select entity."""
