@@ -77,8 +77,8 @@ rules:
 
   # Handles expiration of auth credentials
   reauthentication:
-    status: partial
-    comment: Reauth flow exists but needs real implementation
+    status: done
+    comment: Reauth flow fully implemented in config_flow.py
 
   # ConfigEntryNotReady if setup fails
   config_entry_not_ready:
@@ -113,8 +113,8 @@ rules:
   # ============= GOLD REQUIREMENTS =============
   # Discoverable via at least one method
   config_flow_discovery:
-    status: todo
-    comment: No discovery implemented yet
+    status: done
+    comment: USB, mDNS and DHCP discovery implemented and registered
 
   # Set an appropriate PARALLEL_UPDATES constant
   parallel_updates:
@@ -134,7 +134,7 @@ rules:
   # Integration supports reconfiguration
   reconfiguration:
     status: done
-    comment: Config flow uses unique ID for full reconfiguration
+    comment: async_step_reconfigure fully implemented
 
   # Integration has test coverage of 95% or more
   test_coverage:
@@ -199,8 +199,8 @@ rules:
 
   # Use ConfigEntry.runtime_data
   runtime_data:
-    status: partial
-    comment: Scheduler migrated to ConfigEntry.runtime_data; gps_handler and other helpers still use hass.data
+    status: done
+    comment: Fully migrated to ConfigEntry.runtime_data, hass.data removed
 
   # Entities have suggested_device_class
   entity_suggested_device_class:
@@ -215,7 +215,7 @@ rules:
 # Summary
 current_tier: silver
 target_tier: gold
-completion_percentage: 70
+completion_percentage: 80
 
 next_steps:
   - Add complete type hints throughout codebase
