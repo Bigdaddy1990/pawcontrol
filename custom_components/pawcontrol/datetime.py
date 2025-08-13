@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .compat import DeviceInfo
 from .const import DOMAIN
 
 PARALLEL_UPDATES = 0

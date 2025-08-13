@@ -17,10 +17,10 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .compat import DeviceInfo, EntityCategory
 from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, DOMAIN
 from .coordinator import PawControlCoordinator
 

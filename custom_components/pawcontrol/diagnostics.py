@@ -6,8 +6,13 @@ from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+
+try:  # pragma: no cover - Home Assistant provides these in runtime
+    from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+except Exception:  # pragma: no cover - tests without full Home Assistant
+    CONF_PASSWORD = "password"
+    CONF_USERNAME = "username"
 
 from .const import DOMAIN
 
@@ -29,7 +34,11 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator = entry.runtime_data.coordinator
+    coordinator = getattr(
+        getattr(entry, "runtime_data", None),
+        "coordinator",
+        hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator"),
+    )
 
     # Get all dog data but redact sensitive information
     dogs_data = {}
