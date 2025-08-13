@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from math import atan2, cos, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any
 
@@ -58,8 +59,5 @@ async def safe_service_call(
     data: Mapping[str, Any] | None = None,
 ) -> None:
     """Call a Home Assistant service safely."""
-    try:
+    with suppress(HomeAssistantError, ValueError):
         await hass.services.async_call(domain, service, data or {}, blocking=False)
-    except (HomeAssistantError, ValueError):
-        # Swallow errors to avoid cascading failures from optional notifications.
-        return
