@@ -7,6 +7,7 @@ from typing import Any
 
 from .coordinator import PawControlCoordinator
 from .gps_handler import PawControlGPSHandler
+from .helpers.scheduler import PawControlScheduler
 from .helpers.setup_sync import SetupSync
 from .report_generator import ReportGenerator
 from .services import ServiceManager
@@ -22,3 +23,4 @@ class PawRuntimeData:
     report_generator: ReportGenerator
     services: ServiceManager
     notification_router: Any  # Type imported dynamically to avoid circular imports
+    scheduler: PawControlScheduler | None = None

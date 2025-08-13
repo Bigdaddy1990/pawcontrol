@@ -39,6 +39,7 @@ class PawControlScheduler:
         """Initialize scheduler."""
         self.hass = hass
         self.entry = entry
+        self.runtime_data = entry.runtime_data
         self._scheduled_tasks: Dict[str, CALLBACK_TYPE] = {}
         self._reminder_tasks: Dict[str, CALLBACK_TYPE] = {}
 
@@ -203,11 +204,7 @@ class PawControlScheduler:
                         _LOGGER.info(f"Feeding reminder for {dog_id} - {meal}")
 
                         # Get notification router
-                        router = (
-                            self.hass.data[DOMAIN]
-                            .get(self.entry.entry_id, {})
-                            .get("notification_router")
-                        )
+                        router = self.runtime_data.notification_router
 
                         if router:
                             self.hass.async_create_task(
@@ -255,25 +252,14 @@ class PawControlScheduler:
                 now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
             ):
                 """Check if dog needs walk reminder."""
-                coordinator = (
-                    self.hass.data[DOMAIN]
-                    .get(self.entry.entry_id, {})
-                    .get("coordinator")
-                )
-
-                if not coordinator:
-                    return
+                coordinator = self.runtime_data.coordinator
 
                 dog_data = coordinator.get_dog_data(dog_id)
                 if dog_data.get("walk", {}).get("needs_walk", False):
                     _LOGGER.info(f"Walk needed for {dog_id}")
 
                     # Send reminder
-                    router = (
-                        self.hass.data[DOMAIN]
-                        .get(self.entry.entry_id, {})
-                        .get("notification_router")
-                    )
+                    router = self.runtime_data.notification_router
 
                     if router:
                         self.hass.async_create_task(
@@ -323,11 +309,7 @@ class PawControlScheduler:
                         """Send medication reminder."""
                         _LOGGER.info(f"Medication reminder for {dog_id}")
 
-                        router = (
-                            self.hass.data[DOMAIN]
-                            .get(self.entry.entry_id, {})
-                            .get("notification_router")
-                        )
+                        router = self.runtime_data.notification_router
 
                         if router:
                             self.hass.async_create_task(
@@ -375,25 +357,14 @@ class PawControlScheduler:
                 now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
             ):
                 """Check if dog needs grooming reminder."""
-                coordinator = (
-                    self.hass.data[DOMAIN]
-                    .get(self.entry.entry_id, {})
-                    .get("coordinator")
-                )
-
-                if not coordinator:
-                    return
+                coordinator = self.runtime_data.coordinator
 
                 dog_data = coordinator.get_dog_data(dog_id)
                 if dog_data.get("grooming", {}).get("needs_grooming", False):
                     _LOGGER.info(f"Grooming needed for {dog_id}")
 
                     # Send reminder
-                    router = (
-                        self.hass.data[DOMAIN]
-                        .get(self.entry.entry_id, {})
-                        .get("notification_router")
-                    )
+                    router = self.runtime_data.notification_router
 
                     if router:
                         self.hass.async_create_task(
@@ -455,14 +426,13 @@ async def setup_schedulers(hass: HomeAssistant, entry: ConfigEntry) -> None:
     scheduler = PawControlScheduler(hass, entry)
     await scheduler.setup()
 
-    # Store scheduler instance
-    if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
-        hass.data[DOMAIN][entry.entry_id]["scheduler"] = scheduler
+    # Store scheduler instance on runtime data
+    entry.runtime_data.scheduler = scheduler
 
 
 async def cleanup_schedulers(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Clean up all schedulers for the integration."""
-    if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
-        scheduler = hass.data[DOMAIN][entry.entry_id].get("scheduler")
-        if scheduler:
-            await scheduler.cleanup()
+    scheduler = entry.runtime_data.scheduler
+    if scheduler:
+        await scheduler.cleanup()
+        entry.runtime_data.scheduler = None
