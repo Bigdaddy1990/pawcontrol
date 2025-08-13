@@ -1,8 +1,8 @@
+from __future__ import annotations
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import ServiceValidationError, HomeAssistantError
 """The Paw Control integration for Home Assistant."""
 
-from __future__ import annotations
 
 import logging
 from homeassistant.helpers import issue_registry as ir
@@ -183,7 +183,7 @@ async def async_setup_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool
     auto = bool(entry.options.get('auto_prune_devices', False))
     await _auto_prune_devices(hass, entry, auto=auto)
     _check_geofence_options(hass, entry)
-return True
+# FIXED stray returnreturn True
 
 
 async def async_unload_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool:

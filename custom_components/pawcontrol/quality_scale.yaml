@@ -1,0 +1,227 @@
+# PawControl Integration Quality Scale Tracking
+# Last updated: 2025-01-15
+# Target: Gold Standard
+
+rules:
+  # ============= BRONZE REQUIREMENTS =============
+  # User can set up the integration via the UI
+  config_flow:
+    status: done
+    comment: Full UI configuration with multi-step flow
+
+  # The integration has automated tests that guard the config flow
+  config_flow_test_coverage:
+    status: done
+    comment: Tests in test_config_flow.py
+
+  # The integration is formatted and linted
+  code_quality:
+    status: done
+    comment: Using ruff and pre-commit hooks
+
+  # Documentation for what the integration does
+  docs_high_level_description:
+    status: done
+    comment: README.md with full description
+
+  # Documentation on how to configure the integration
+  docs_configuration:
+    status: done
+    comment: README.md includes installation and configuration steps
+
+  # Set an appropriate SCAN_INTERVAL
+  appropriate_polling_interval:
+    status: done
+    comment: 5-minute update interval in coordinator
+
+  # Entities have unique IDs
+  unique_config_entry:
+    status: done
+    comment: All entities have unique_id based on dog_id
+
+  # Entities have device_class set
+  entity_device_class:
+    status: partial
+    comment: Most sensors have device_class, some custom ones don't need it
+
+  # Entities have has_entity_name set to True
+  entity_has_entity_name:
+    status: partial
+    comment: Needs implementation in all entity platforms
+
+  # ============= SILVER REQUIREMENTS =============
+  # Integration has at least one code owner
+  has_code_owner:
+    status: done
+    comment: "@BigDaddy1990 listed in manifest.json"
+
+  # Brands repository pull request
+  brands:
+    status: todo
+    comment: Need to submit PR to brands repository
+
+  # Set appropriate IoT class
+  iot_class:
+    status: done
+    comment: Set to local_polling
+
+  # Entities have translations
+  entity_translations:
+    status: done
+    comment: strings.json and translations/en.json, de.json
+
+  # Raise PlatformNotReady if unable to connect
+  platform_not_ready:
+    status: partial
+    comment: ConfigEntryNotReady used, but needs improvement
+
+  # Handles expiration of auth credentials
+  reauthentication:
+    status: partial
+    comment: Reauth flow exists but needs real implementation
+
+  # ConfigEntryNotReady if setup fails
+  config_entry_not_ready:
+    status: done
+    comment: Implemented in async_setup_entry
+
+  # Does not print exceptions or fill logs
+  log_when_unavailable:
+    status: partial
+    comment: Some error handling needs improvement
+
+  # Has tests for the setup flow
+  test_setup:
+    status: done
+    comment: test_init.py covers setup
+
+  # Has tests for unloading
+  test_unload:
+    status: done
+    comment: test_init.py covers unload
+
+  # Entities have correct state class
+  entity_state_class:
+    status: partial
+    comment: Needs review for all sensors
+
+  # Entities have correct unit of measurement
+  entity_unit_of_measurement:
+    status: partial
+    comment: Most have units, needs complete review
+
+  # ============= GOLD REQUIREMENTS =============
+  # Discoverable via at least one method
+  config_flow_discovery:
+    status: todo
+    comment: No discovery implemented yet
+
+  # Set an appropriate PARALLEL_UPDATES constant
+  parallel_updates:
+    status: todo
+    comment: Not set, using default
+
+  # Entities have entity category set
+  entity_category:
+    status: partial
+    comment: Diagnostic entities need category set
+
+  # Has a repair flow
+  repair_flow:
+    status: partial
+    comment: Basic repair flows exist, needs expansion
+
+  # Integration supports reconfiguration
+  reconfiguration:
+    status: partial
+    comment: Options flow exists, reconfigure needs work
+
+  # Integration has test coverage of 95% or more
+  test_coverage:
+    status: todo
+    comment: Current coverage ~60%, target 95%
+
+  # Has test for reauthentication flow
+  test_reauthentication:
+    status: todo
+    comment: test_config_flow_reauth.py exists but incomplete
+
+  # Has test for configuration flow options
+  test_config_flow_options:
+    status: partial
+    comment: Basic tests exist, needs expansion
+
+  # Has a diagnostics platform
+  diagnostics:
+    status: done
+    comment: Fully implemented with redaction
+
+  # Has logo and icon assets
+  icon:
+    status: done
+    comment: Icon and logo files present
+
+  # Integration supports translations
+  translated:
+    status: done
+    comment: DE and EN translations
+
+  # Device actions are working
+  device_action:
+    status: done
+    comment: device_action.py implemented
+
+  # Device conditions are working
+  device_condition:
+    status: done
+    comment: device_condition.py implemented
+
+  # Device triggers are working
+  device_trigger:
+    status: done
+    comment: device_trigger.py implemented
+
+  # ============= PLATINUM REQUIREMENTS =============
+  # All code is fully typed
+  typed:
+    status: partial
+    comment: Many functions need type hints
+
+  # All code is asynchronous
+  async:
+    status: partial
+    comment: Most code is async, some sync remains
+
+  # Test coverage of all platforms
+  test_all_platforms:
+    status: todo
+    comment: Need tests for all entity platforms
+
+  # Use ConfigEntry.runtime_data
+  runtime_data:
+    status: todo
+    comment: Still using hass.data directly
+
+  # Entities have suggested_device_class
+  entity_suggested_device_class:
+    status: todo
+    comment: Not implemented
+
+  # Integration responds to backend library updates
+  responsive_integration:
+    status: done
+    comment: Coordinator pattern with proper refresh
+
+# Summary
+current_tier: bronze
+target_tier: gold
+completion_percentage: 65
+
+next_steps:
+  - Add complete type hints throughout codebase
+  - Increase test coverage to 95%
+  - Implement device discovery (USB, mDNS, or DHCP)
+  - Complete reconfiguration support
+  - Submit brand assets to core brands repository
+  - Refactor to use ConfigEntry.runtime_data
+  - Add comprehensive repair flows

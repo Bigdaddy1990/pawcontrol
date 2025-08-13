@@ -1,3 +1,4 @@
+from .const import DOMAIN
 from homeassistant.config_entries import async_update_reload_and_abort, FlowResult
 """Config flow for Paw Control integration."""
 
