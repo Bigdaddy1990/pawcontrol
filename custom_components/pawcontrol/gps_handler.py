@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
@@ -7,19 +8,18 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 
 
-def _get_entry(hass: HomeAssistant, call: ServiceCall):
+def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
     entry_id = call.data.get("config_entry_id")
     if entry_id:
         entry = hass.config_entries.async_get_entry(entry_id)
-        if not entry:
+        if entry is None:
             raise ServiceValidationError("Config entry not found")
         return entry
-    # Fallback: first loaded entry
-    domain = hass.data.get(DOMAIN, {})
-    for eid in domain.keys():
-        entry = hass.config_entries.async_get_entry(eid)
-        if entry:
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.state is ConfigEntryState.LOADED:
             return entry
+
     raise ServiceValidationError("No loaded Paw Control entries")
 
 
@@ -35,14 +35,9 @@ def _dog_id(entry, call: ServiceCall) -> str:
 
 async def async_update_location(hass: HomeAssistant, call: ServiceCall) -> None:
     entry = _get_entry(hass, call)
-    coord = getattr(entry, "runtime_data", None)
-    coordinator = getattr(coord, "coordinator", None) if coord else None
-    if not coordinator:
-        # legacy fallback
-        coordinator = (
-            hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator")
-        )
-    if not coordinator:
+    runtime = getattr(entry, "runtime_data", None)
+    coordinator = getattr(runtime, "coordinator", None) if runtime else None
+    if coordinator is None:
         raise ServiceValidationError("Coordinator not available")
 
     dog = _dog_id(entry, call)
@@ -68,13 +63,9 @@ async def async_update_location(hass: HomeAssistant, call: ServiceCall) -> None:
 
 async def async_start_walk(hass: HomeAssistant, call: ServiceCall) -> None:
     entry = _get_entry(hass, call)
-    coord = getattr(entry, "runtime_data", None)
-    coordinator = getattr(coord, "coordinator", None) if coord else None
-    if not coordinator:
-        coordinator = (
-            hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator")
-        )
-    if not coordinator:
+    runtime = getattr(entry, "runtime_data", None)
+    coordinator = getattr(runtime, "coordinator", None) if runtime else None
+    if coordinator is None:
         raise ServiceValidationError("Coordinator not available")
     dog = _dog_id(entry, call)
     src = call.data.get("source") or "manual"
@@ -83,13 +74,9 @@ async def async_start_walk(hass: HomeAssistant, call: ServiceCall) -> None:
 
 async def async_end_walk(hass: HomeAssistant, call: ServiceCall) -> None:
     entry = _get_entry(hass, call)
-    coord = getattr(entry, "runtime_data", None)
-    coordinator = getattr(coord, "coordinator", None) if coord else None
-    if not coordinator:
-        coordinator = (
-            hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator")
-        )
-    if not coordinator:
+    runtime = getattr(entry, "runtime_data", None)
+    coordinator = getattr(runtime, "coordinator", None) if runtime else None
+    if coordinator is None:
         raise ServiceValidationError("Coordinator not available")
     dog = _dog_id(entry, call)
     reason = call.data.get("reason") or "manual"

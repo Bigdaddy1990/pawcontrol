@@ -66,22 +66,22 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
 
     def _get_coordinator_data(self, path: str, default: Any = None) -> Any:
         """Get data from coordinator safely."""
-        domain_data = self.hass.data.get(DOMAIN, {})
-        for entry_data in domain_data.values():
-            if isinstance(entry_data, dict) and "coordinator" in entry_data:
-                coordinator = entry_data["coordinator"]
-                if coordinator and hasattr(coordinator, "get_dog_data"):
-                    dog_data = coordinator.get_dog_data(self._dog)
-                    if dog_data:
-                        keys = path.split(".")
-                        data = dog_data
-                        try:
-                            for key in keys:
-                                data = data.get(key, {})
-                                if not isinstance(data, dict):
-                                    return data if data is not None else default
-                        except (AttributeError, TypeError):
-                            return default
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            coordinator = getattr(
+                getattr(entry, "runtime_data", None), "coordinator", None
+            )
+            if coordinator and hasattr(coordinator, "get_dog_data"):
+                dog_data = coordinator.get_dog_data(self._dog)
+                if dog_data:
+                    keys = path.split(".")
+                    data = dog_data
+                    try:
+                        for key in keys:
+                            data = data.get(key, {})
+                            if not isinstance(data, dict):
+                                return data if data is not None else default
+                    except (AttributeError, TypeError):
+                        return default
         return default
 
     @property
