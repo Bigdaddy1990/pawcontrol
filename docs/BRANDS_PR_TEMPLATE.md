@@ -8,7 +8,7 @@ Repository: https://github.com/home-assistant/brands
 
 ## Checklist
 - [x] Vector SVGs provided (icon, logo)
-- [x] Icon monocrome / adheres to style guide
+- [x] Icon monochrome / adheres to style guide
 - [x] Logo legible on dark/light background
 - [x] Filenames & paths correct
 - [x] Tested locally in HA frontend (cache cleared)

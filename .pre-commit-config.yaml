@@ -34,7 +34,7 @@ repos:
     hooks:
       - id: codespell
         args:
-          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha
+          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme
           - --skip=./.*,*.csv,*.json,*.min.js,*.map
           - --quiet-level=2
         exclude: |
