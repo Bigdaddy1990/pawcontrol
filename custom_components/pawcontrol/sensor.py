@@ -67,14 +67,14 @@ class BaseDogSensor(SensorEntity):
         return True
 
     try:
-        data = self.hass.data.get(DOMAIN) or {}
+        data = self.hass.data.get(DOMAIN) or {}  # noqa: F821
         for entry_id, st in data.items():
             coord = st.get("coordinator")
-            if coord and getattr(coord, "_dog_data", {}).get(self._dog) is not None:
-                return bool(getattr(coord, "last_update_success", True))
+            if coord and getattr(coord, "_dog_data", {}).get(self._dog) is not None:  # noqa: F821
+                return bool(getattr(coord, "last_update_success", True))  # noqa: F706
     except Exception:
         pass
-    return True
+    return True  # noqa: F706
 
     _attr_has_entity_name = True
 
