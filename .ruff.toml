@@ -1,22 +1,21 @@
-# Incremental adoption: keep rules tight to avoid massive initial failures.
+# .ruff.toml (Repo-Root)
 target-version = "py313"
 line-length = 88
 src = ["custom_components"]
 
-[lint]
-# Start with core correctness + imports
-select = ["E4", "E7", "E9", "F", "I"]
-# Ignore long lines initially; ruff format will wrap many cases
-ignore = ["E501"]
-# Allow ruff to auto-fix everything it knows how to
-fixable = ["ALL"]
+# <<< MUSS Top-Level sein, NICHT unter [lint] >>>
 unsafe-fixes = true
 
+[lint]
+# klein anfangen: Korrektheit + Imports
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E501"]
+fixable = ["ALL"]
+
 [lint.per-file-ignores]
-# Common package patterns
 "__init__.py" = ["F401", "F403", "E402"]
-"tests/**" = ["E402", "F401"]
-"scripts/**" = ["E402", "F401"]
+"tests/**"    = ["E402", "F401"]
+"scripts/**"  = ["E402", "F401"]
 
 [format]
 quote-style = "double"
