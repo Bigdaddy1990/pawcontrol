@@ -41,8 +41,8 @@ rules:
 
   # Entities have device_class set
   entity_device_class:
-    status: partial
-    comment: Most sensors have device_class, some custom ones don't need it
+    status: done
+    comment: All sensors now define device_class where applicable
 
   # Entities have has_entity_name set to True
   entity_has_entity_name:

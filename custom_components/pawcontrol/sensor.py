@@ -36,9 +36,7 @@ async def async_setup_entry(
     coordinator = runtime_data.coordinator
 
     if not coordinator.last_update_success:
-        await coordinator.async_refresh()
-        if not coordinator.last_update_success:
-            raise PlatformNotReady
+        raise PlatformNotReady
 
     dogs = entry.options.get(CONF_DOGS, [])
     entities: list[PawControlSensor] = []
@@ -391,6 +389,8 @@ class MedicationsTodaySensor(PawControlSensor):
 class ActivityLevelSensor(PawControlSensor):
     """Activity level sensor."""
 
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["low", "medium", "high"]
     _attr_icon = "mdi:run"
 
     def __init__(

@@ -38,6 +38,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control text entities."""
     coordinator = entry.runtime_data.coordinator
+    if not coordinator.last_update_success:
+        raise PlatformNotReady
 
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
