@@ -6,13 +6,12 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.8
     hooks:
-      # Format first (fast fail avoided; formatting will modify files)
-      - id: ruff-format
-        types_or: [python, pyi]
-      # Then lint + fix. We purposely do NOT use --exit-non-zero-on-fix
-      # so CI only fails if violations remain after fixes.
+      # 1) Lint mit Fixes (inkl. unsafe)
       - id: ruff-check
         args: [--fix, --unsafe-fixes]
+        types_or: [python, pyi]
+      # 2) Danach formatieren
+      - id: ruff-format
         types_or: [python, pyi]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
