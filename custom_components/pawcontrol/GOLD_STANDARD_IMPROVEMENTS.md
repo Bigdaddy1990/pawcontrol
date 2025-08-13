@@ -35,7 +35,7 @@ Benötigte Tests:
 ```python
 # test_sensor.py - Vollständige Tests für alle Sensor-Typen
 - Test für WalkDistanceCurrentSensor
-- Test für LastFeedingTimeSensor  
+- Test für LastFeedingTimeSensor
 - Test für WeightSensor
 - Test für ActivityLevelSensor
 - Edge Cases und Fehlerbehandlung
