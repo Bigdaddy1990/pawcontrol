@@ -1,17 +1,21 @@
-
 from __future__ import annotations
-from typing import Any
+
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.components.device_tracker.const import SourceType
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from .const import DOMAIN
+
 PARALLEL_UPDATES = 0
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+):
     dogs = (entry.options or {}).get("dogs", [])
     entities: list[PawDeviceTracker] = []
     for d in dogs:
@@ -23,6 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if entities:
         async_add_entities(entities, update_before_add=False)
 
+
 class PawDeviceTracker(TrackerEntity):
     _attr_has_entity_name = True
 
@@ -32,7 +37,12 @@ class PawDeviceTracker(TrackerEntity):
         self._title = title
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.tracker"
         self._attr_name = f"{title} Tracker"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, dog_id)}, name=f"Hund {title}", manufacturer="Paw Control", model="Tracker")
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, dog_id)},
+            name=f"Hund {title}",
+            manufacturer="Paw Control",
+            model="Tracker",
+        )
         self._lat: float | None = None
         self._lon: float | None = None
         self._acc: float | None = None

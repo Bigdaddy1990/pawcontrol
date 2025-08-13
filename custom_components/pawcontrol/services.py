@@ -7,19 +7,12 @@ from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
-    ATTR_DOG_ID,
-    CONF_DOG_ID,
     DOMAIN,
     EVENT_DAILY_RESET,
-    EVENT_DOG_FED,
-    EVENT_GROOMING_DONE,
-    EVENT_MEDICATION_GIVEN,
-    EVENT_WALK_ENDED,
-    EVENT_WALK_STARTED,
     SERVICE_DAILY_RESET,
     SERVICE_EMERGENCY_MODE,
     SERVICE_END_WALK,
@@ -83,7 +76,6 @@ from .schemas import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from . import gps_handler
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -331,9 +323,7 @@ class ServiceManager:
         dose = call.data.get("dose")
 
         await coordinator.log_medication(dog_id, medication_name, dose)
-        self._fire_device_event(
-            "medication_given", dog_id, medication=medication_name
-        )
+        self._fire_device_event("medication_given", dog_id, medication=medication_name)
 
     async def _handle_start_grooming(self, call: ServiceCall) -> None:
         """Handle grooming session service."""
@@ -561,9 +551,7 @@ class ServiceManager:
         await gstore.async_save({})
 
     @callback
-    def _fire_device_event(
-        self, event: str, dog_id: str | None, **data: Any
-    ) -> None:
+    def _fire_device_event(self, event: str, dog_id: str | None, **data: Any) -> None:
         """Fire a device event."""
         device_id = self._device_id_from_dog(dog_id)
         self.hass.bus.async_fire(

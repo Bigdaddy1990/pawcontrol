@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Mapping
+from typing import Any, Dict, Mapping, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -12,16 +12,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
-    EVENT_WALK_STARTED,
-    EVENT_WALK_ENDED,
-    EVENT_DOG_FED,
-    EVENT_MEDICATION_GIVEN,
-    EVENT_GROOMING_DONE,
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
+    CONF_DOGS,
     DEFAULT_WALK_THRESHOLD_HOURS,
+    DOMAIN,
+    EVENT_DOG_FED,
+    EVENT_GROOMING_DONE,
+    EVENT_MEDICATION_GIVEN,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
 )
 
 _LOGGER = logging.getLogger(__name__)

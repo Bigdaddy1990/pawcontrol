@@ -78,10 +78,7 @@ class PawControlEntity(CoordinatorEntity[PawControlCoordinator]):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return (
-            super().available
-            and self.dog_id in self.coordinator._dog_data
-        )
+        return super().available and self.dog_id in self.coordinator._dog_data
 
 
 class PawControlSensorEntity(PawControlEntity):

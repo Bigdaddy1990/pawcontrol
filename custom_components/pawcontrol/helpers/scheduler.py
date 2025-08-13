@@ -4,32 +4,29 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_time_change,
     async_track_time_interval,
-    async_call_later,
 )
 from homeassistant.util import dt as dt_util
 
 from ..const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    MODULE_FEEDING,
-    MODULE_WALK,
-    MODULE_MEDICATION,
-    MODULE_GROOMING,
+    CONF_DOGS,
     CONF_RESET_TIME,
-    CONF_NOTIFICATIONS,
-    CONF_REMINDER_REPEAT,
     DEFAULT_RESET_TIME,
-    DEFAULT_REMINDER_REPEAT,
+    DOMAIN,
     EVENT_DAILY_RESET,
+    MODULE_FEEDING,
+    MODULE_GROOMING,
+    MODULE_MEDICATION,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)

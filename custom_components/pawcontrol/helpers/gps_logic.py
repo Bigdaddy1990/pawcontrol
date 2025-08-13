@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from homeassistant.components.device_tracker import DOMAIN as TRACKER_DOMAIN
-from homeassistant.components.person import DOMAIN as PERSON_DOMAIN
-from homeassistant.components.zone import DOMAIN as ZONE_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_LATITUDE,
@@ -22,15 +19,13 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
 
 from ..const import (
-    DOMAIN,
-    CONF_SOURCES,
     CONF_DEVICE_TRACKERS,
-    CONF_PERSON_ENTITIES,
-    CONF_DOOR_SENSOR,
     CONF_DOGS,
-    DEFAULT_MIN_WALK_DISTANCE_M,
-    DEFAULT_MIN_WALK_DURATION_MIN,
+    CONF_DOOR_SENSOR,
+    CONF_PERSON_ENTITIES,
+    CONF_SOURCES,
     DEFAULT_IDLE_TIMEOUT_MIN,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -342,9 +337,9 @@ class GPSLogic:
         # Calculate walk duration
         start_time = session.get("start_time")
         if start_time:
-            duration_min = (dt_util.now() - start_time).total_seconds() / 60
+            (dt_util.now() - start_time).total_seconds() / 60
         else:
-            duration_min = 0
+            pass
 
         # Call service to end walk
         self.hass.async_create_task(

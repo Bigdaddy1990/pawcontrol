@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import logging
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.config_entries import ConfigEntry
+
 from homeassistant.components.persistent_notification import create as pn_create
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import issue_registry as ir
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,6 +19,7 @@ INSTALL_TEXT = (
     "Mehr Infos im README der Integration."
 )
 
+
 def create_install_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
     ir.async_create_issue(
         hass,
@@ -28,12 +31,15 @@ def create_install_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
         learn_more_url="https://github.com/Bigdaddy1990/paw_control#readme",
     )
 
+
 async def show_install_help(hass: HomeAssistant, entry: ConfigEntry) -> None:
     pn_create(hass, INSTALL_TEXT, title="Paw Control – Installationshilfe")
+
 
 def register_install_service(hass: HomeAssistant, entry: ConfigEntry) -> None:
     async def _svc(call: ServiceCall):
         await show_install_help(hass, entry)
+
     # idempotent register
     try:
         hass.services.async_remove("pawcontrol", "show_install_help")

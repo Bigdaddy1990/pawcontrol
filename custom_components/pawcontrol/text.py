@@ -186,8 +186,7 @@ class MedicationNotesText(PawControlTextBase):
         """Return the current value."""
         health = self.dog_data.get("health", {})
         return (
-            f"{health.get('medication_name', '')} - "
-            f"{health.get('medication_dose', '')}"
+            f"{health.get('medication_name', '')} - {health.get('medication_dose', '')}"
         )
 
 

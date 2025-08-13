@@ -1,11 +1,18 @@
 """Sensor factory to eliminate code duplication."""
-from __future__ import annotations
-from typing import Any, Dict, Type, Optional, Union
-from dataclasses import dataclass
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
+from homeassistant.components.sensor import (
+    RestoreSensor,
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.components.sensor import SensorEntity, RestoreSensor, SensorDeviceClass, SensorStateClass
 
 from .const import DOMAIN
 
@@ -13,6 +20,7 @@ from .const import DOMAIN
 @dataclass
 class SensorConfig:
     """Configuration for a sensor."""
+
     key: str
     name: str
     data_path: str
@@ -26,9 +34,9 @@ class SensorConfig:
 
 
 class ConfigurableDogSensor(SensorEntity, RestoreSensor):
-
-
-    def __init__(self, hass: HomeAssistant, dog_id: str, title: str, config: SensorConfig):
+    def __init__(
+        self, hass: HomeAssistant, dog_id: str, title: str, config: SensorConfig
+    ):
         self.hass = hass
         self._dog = dog_id
         self._name = title
@@ -41,7 +49,7 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
             identifiers={(DOMAIN, dog_id)},
             name=f"Hund {title}",
             manufacturer="Paw Control",
-            model="PawControl Sensors"
+            model="PawControl Sensors",
         )
 
         # Apply configuration
@@ -62,7 +70,7 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
         for entry_data in domain_data.values():
             if isinstance(entry_data, dict) and "coordinator" in entry_data:
                 coordinator = entry_data["coordinator"]
-                if coordinator and hasattr(coordinator, 'get_dog_data'):
+                if coordinator and hasattr(coordinator, "get_dog_data"):
                     dog_data = coordinator.get_dog_data(self._dog)
                     if dog_data:
                         keys = path.split(".")
@@ -79,7 +87,9 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        value = self._get_coordinator_data(self._config.data_path, self._config.default_value)
+        value = self._get_coordinator_data(
+            self._config.data_path, self._config.default_value
+        )
 
         if self._config.transform_func and value is not None:
             try:
@@ -102,7 +112,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="m",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1)
+            transform_func=lambda x: round(float(x), 1),
         ),
         "walk_distance_last": SensorConfig(
             key="walk_distance_last",
@@ -112,7 +122,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="m",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1)
+            transform_func=lambda x: round(float(x), 1),
         ),
         "walk_duration_last": SensorConfig(
             key="walk_duration_last",
@@ -121,7 +131,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="min",
             default_value=0,
-            transform_func=lambda x: int(float(x))
+            transform_func=lambda x: int(float(x)),
         ),
         "walk_distance_today": SensorConfig(
             key="walk_distance_today",
@@ -131,7 +141,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.TOTAL,
             unit="m",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1)
+            transform_func=lambda x: round(float(x), 1),
         ),
         # Health sensors
         "last_action": SensorConfig(
@@ -152,7 +162,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             data_path="statistics.poop_count_today",
             state_class=SensorStateClass.TOTAL,
             default_value=0,
-            transform_func=lambda x: int(float(x))
+            transform_func=lambda x: int(float(x)),
         ),
         "weight": SensorConfig(
             key="weight",
@@ -162,14 +172,14 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="kg",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1)
+            transform_func=lambda x: round(float(x), 1),
         ),
         "activity_level": SensorConfig(
             key="activity_level",
             name="Activity Level",
             data_path="activity.activity_level",
             options=["low", "medium", "high"],
-            default_value="medium"
+            default_value="medium",
         ),
         "calories_burned_today": SensorConfig(
             key="calories_burned_today",
@@ -178,7 +188,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             state_class=SensorStateClass.TOTAL,
             unit="kcal",
             default_value=0.0,
-            transform_func=lambda x: round(float(x), 1)
+            transform_func=lambda x: round(float(x), 1),
         ),
         # GPS Diagnostic sensors
         "gps_points_total": SensorConfig(
@@ -188,7 +198,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             entity_category="diagnostic",
             state_class=SensorStateClass.TOTAL,
             default_value=0,
-            transform_func=lambda x: int(float(x))
+            transform_func=lambda x: int(float(x)),
         ),
         "gps_accuracy_avg": SensorConfig(
             key="gps_accuracy_avg",
@@ -198,12 +208,14 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
             unit="m",
-            transform_func=lambda x: round(float(x), 1) if x is not None else None
+            transform_func=lambda x: round(float(x), 1) if x is not None else None,
         ),
     }
 
 
-def create_dog_sensors(hass: HomeAssistant, dog_id: str, title: str) -> list[ConfigurableDogSensor]:
+def create_dog_sensors(
+    hass: HomeAssistant, dog_id: str, title: str
+) -> list[ConfigurableDogSensor]:
     """Create all sensors for a dog using factory pattern."""
     configs = create_sensor_configs()
     return [
@@ -211,36 +223,55 @@ def create_dog_sensors(hass: HomeAssistant, dog_id: str, title: str) -> list[Con
         for config in configs.values()
     ]
 
-
     def _apply_classes_from_key(self, key: str):
         if "battery" in key:
             self._attr_device_class = "battery"
             self._attr_state_class = "measurement"
             self._attr_native_unit_of_measurement = "%"
-        elif any(k in key for k in ["distance","meters","km"]):
+        elif any(k in key for k in ["distance", "meters", "km"]):
             self._attr_device_class = "distance"
             self._attr_state_class = "measurement"
-        elif any(k in key for k in ["duration","time","seconds","minutes","hours"]):
+        elif any(k in key for k in ["duration", "time", "seconds", "minutes", "hours"]):
             self._attr_device_class = None
             self._attr_state_class = "measurement"
-        elif any(k in key for k in ["speed","pace"]):
+        elif any(k in key for k in ["speed", "pace"]):
             self._attr_device_class = "speed"
             self._attr_state_class = "measurement"
 
 
-
 CLASS_MAP = {
-    "battery_level": {"device_class": "battery", "state_class": "measurement", "unit": "%"},
-    "distance_m": {"device_class": "distance", "state_class": "measurement", "unit": "m"},
-    "distance_km": {"device_class": "distance", "state_class": "measurement", "unit": "km"},
+    "battery_level": {
+        "device_class": "battery",
+        "state_class": "measurement",
+        "unit": "%",
+    },
+    "distance_m": {
+        "device_class": "distance",
+        "state_class": "measurement",
+        "unit": "m",
+    },
+    "distance_km": {
+        "device_class": "distance",
+        "state_class": "measurement",
+        "unit": "km",
+    },
     "speed_m_s": {"device_class": "speed", "state_class": "measurement", "unit": "m/s"},
-    "speed_km_h": {"device_class": "speed", "state_class": "measurement", "unit": "km/h"},
+    "speed_km_h": {
+        "device_class": "speed",
+        "state_class": "measurement",
+        "unit": "km/h",
+    },
     "duration_s": {"device_class": None, "state_class": "measurement", "unit": "s"},
     "duration_min": {"device_class": None, "state_class": "measurement", "unit": "min"},
     "steps": {"device_class": None, "state_class": "total_increasing", "unit": None},
     "calories": {"device_class": None, "state_class": "measurement", "unit": "kcal"},
-    "temperature_c": {"device_class": "temperature", "state_class": "measurement", "unit": "°C"},
+    "temperature_c": {
+        "device_class": "temperature",
+        "state_class": "measurement",
+        "unit": "°C",
+    },
 }
+
 
 def _apply_class_map(self, key: str):
     meta = CLASS_MAP.get(key)

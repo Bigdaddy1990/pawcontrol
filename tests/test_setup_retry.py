@@ -1,8 +1,8 @@
 import pytest
-
 from homeassistant.exceptions import ConfigEntryNotReady
 
 pytestmark = pytest.mark.asyncio
+
 
 async def test_setup_retry_on_initial_refresh(hass, monkeypatch):
     """If the coordinator initial refresh fails, integration should raise ConfigEntryNotReady."""
@@ -21,7 +21,6 @@ async def test_setup_retry_on_initial_refresh(hass, monkeypatch):
     )
 
     # Spy to capture created coordinator and make its first refresh fail
-    created = {}
 
     real_setup_entry = comp.async_setup_entry
 
@@ -31,9 +30,13 @@ async def test_setup_retry_on_initial_refresh(hass, monkeypatch):
         # Patch the coordinator method afterwards to simulate failure on first refresh
         coord = hass.data[comp.DOMAIN][entry.entry_id].get("coordinator")
         assert coord is not None
+
         async def boom():
             raise RuntimeError("temporary backend offline")
-        monkeypatch.setattr(coord, "async_config_entry_first_refresh", boom, raising=True)
+
+        monkeypatch.setattr(
+            coord, "async_config_entry_first_refresh", boom, raising=True
+        )
         # Now call setup again and expect retry
         with pytest.raises(ConfigEntryNotReady):
             await real_setup_entry(hass, entry)

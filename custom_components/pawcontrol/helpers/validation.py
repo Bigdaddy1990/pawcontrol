@@ -10,6 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 class ValidationError(HomeAssistantError):
     """Validation error exception."""
+
     pass
 
 
@@ -32,7 +33,7 @@ def validate_dog_id(dog_id: str) -> str:
     sanitized = dog_id.lower().strip().replace(" ", "_")
 
     # Allow only alphanumeric characters and underscores
-    if not re.match(r'^[a-z0-9_]+$', sanitized):
+    if not re.match(r"^[a-z0-9_]+$", sanitized):
         raise ValidationError(
             "Dog ID can only contain letters, numbers, and underscores"
         )
@@ -300,7 +301,7 @@ def sanitize_text_input(text: str, max_length: int = 500) -> str:
     sanitized = str(text).strip()
 
     # Remove control characters
-    sanitized = ''.join(char for char in sanitized if ord(char) >= 32 or char == '\n')
+    sanitized = "".join(char for char in sanitized if ord(char) >= 32 or char == "\n")
 
     # Limit length
     return sanitized[:max_length]
@@ -318,7 +319,7 @@ def validate_time_string(time_str: str) -> str:
     Raises:
         ValidationError: If time string is invalid
     """
-    if not re.match(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$', time_str):
+    if not re.match(r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$", time_str):
         raise ValidationError(f"Invalid time format: {time_str}. Use HH:MM:SS")
 
     return time_str
@@ -364,7 +365,7 @@ def validate_webhook_id(webhook_id: str) -> str:
         raise ValidationError("Webhook ID cannot be empty")
 
     # Basic validation for webhook ID format
-    if not re.match(r'^[a-zA-Z0-9_\-]+$', webhook_id):
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", webhook_id):
         raise ValidationError("Invalid webhook ID format")
 
     if len(webhook_id) < 10 or len(webhook_id) > 200:

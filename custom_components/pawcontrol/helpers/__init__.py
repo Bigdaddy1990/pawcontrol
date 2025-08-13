@@ -2,7 +2,7 @@
 
 from .gps_logic import GPSLogic
 from .notification_router import NotificationRouter
-from .scheduler import PawControlScheduler, setup_schedulers, cleanup_schedulers
+from .scheduler import PawControlScheduler, cleanup_schedulers, setup_schedulers
 from .setup_sync import SetupSync
 
 __all__ = [

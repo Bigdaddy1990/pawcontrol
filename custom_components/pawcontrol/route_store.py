@@ -1,11 +1,14 @@
 """Route storage for Paw Control integration."""
+
 from __future__ import annotations
-import json
+
+from datetime import timedelta
 from typing import Any, Dict, List
-from datetime import datetime, timedelta
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+
 
 class RouteHistoryStore:
     """Manage route history storage."""
@@ -29,9 +32,19 @@ class RouteHistoryStore:
         self._data = data
         await self._store.async_save(data)
 
-    async def async_add_walk(self, hass: HomeAssistant, entry_id: str, domain: str, dog_id: str,
-                           start_time: str | None, end_time: str, distance_m: float,
-                           duration_s: float, points_count: int, limit: int = 500) -> None:
+    async def async_add_walk(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        domain: str,
+        dog_id: str,
+        start_time: str | None,
+        end_time: str,
+        distance_m: float,
+        duration_s: float,
+        points_count: int,
+        limit: int = 500,
+    ) -> None:
         """Add a walk to the route history."""
         await self.async_load()
 
@@ -74,7 +87,9 @@ class RouteHistoryStore:
                 filtered_routes = []
                 for route in routes:
                     try:
-                        route_time = dt_util.parse_datetime(route.get("created") or route.get("end"))
+                        route_time = dt_util.parse_datetime(
+                            route.get("created") or route.get("end")
+                        )
                         if route_time and route_time > cutoff:
                             filtered_routes.append(route)
                     except Exception:

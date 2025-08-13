@@ -1,9 +1,12 @@
 """GPS settings storage for Paw Control integration."""
+
 from __future__ import annotations
-import json
+
 from typing import Any, Dict
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+
 
 class GPSSettingsStore:
     """Manage GPS settings storage."""

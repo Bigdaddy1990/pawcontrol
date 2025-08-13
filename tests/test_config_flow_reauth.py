@@ -1,5 +1,6 @@
 import pytest
 
+
 async def test_reauth_updates_entry(hass):
     import custom_components.pawcontrol.config_flow as cf
     from homeassistant.config_entries import ConfigEntry
@@ -21,4 +22,7 @@ async def test_reauth_updates_entry(hass):
     assert result["type"] == "form"
     result2 = await flow.async_step_reauth({"api_key": "newkey123"})
     assert result2["type"] == "abort"
-    assert hass.config_entries.async_get_entry(entry.entry_id).data["api_key"] == "newkey123"
+    assert (
+        hass.config_entries.async_get_entry(entry.entry_id).data["api_key"]
+        == "newkey123"
+    )

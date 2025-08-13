@@ -1,9 +1,10 @@
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
 DOMAIN = "pawcontrol"
+
 
 @pytest.mark.anyio
 async def test_domain_setup_registers_services(hass: HomeAssistant):
