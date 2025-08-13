@@ -304,7 +304,9 @@ class SetupSync:
 
             # Note: In a real implementation, we would use the actual helper creation services
             # For now, we'll log the intent
-            _LOGGER.info(f"Would synchronize integration entities: {full_entity_id} with config: {config}")
+            _LOGGER.info(
+                f"Would synchronize integration entities: {full_entity_id} with config: {config}"
+            )
 
             # In production, you would call:
             # await self.hass.services.async_call(
@@ -315,7 +317,9 @@ class SetupSync:
             # )
 
         except Exception as err:
-            _LOGGER.error(f"Failed to synchronize integration entities {full_entity_id}: {err}")
+            _LOGGER.error(
+                f"Failed to synchronize integration entities {full_entity_id}: {err}"
+            )
 
     async def _cleanup_orphaned_helpers(self) -> None:
         """Remove helpers for dogs that no longer exist."""

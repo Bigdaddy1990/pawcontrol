@@ -1118,8 +1118,8 @@ class OptionsFlowHandler(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict | None = None):
         return await self.async_step_geofence()
 
-    
-    
+
+
     async def async_step_geofence(self, user_input: dict | None = None):
         import voluptuous as vol
 

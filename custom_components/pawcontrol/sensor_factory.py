@@ -310,7 +310,7 @@ CLASS_MAP = {
             default_value=0.0,
             transform_func=lambda s: round(float(s)/60.0, 1) if s is not None else None,
         )
-    
+
         ,
         "geofence_enters_today": SensorConfig(
             key="geofence_enters_today",
