@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from homeassistant.components.notify import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.config_entries import ConfigEntry
@@ -40,11 +40,11 @@ class NotificationRouter:
         self,
         title: str,
         message: str,
-        dog_id: Optional[str] = None,
+        dog_id: str | None = None,
         category: str = "general",
-        actions: Optional[List[Dict[str, str]]] = None,
+        actions: List[Dict[str, str]] | None = None,
         priority: str = "normal",
-        tag: Optional[str] = None,
+        tag: str | None = None,
     ) -> bool:
         """Send notification with intelligent routing."""
 
@@ -106,7 +106,7 @@ class NotificationRouter:
         self,
         action: str,
         tag: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: Dict[str, Any] | None = None,
     ) -> None:
         """Handle notification action response."""
         _LOGGER.info(f"Handling notification action: {action} for tag: {tag}")
@@ -244,10 +244,10 @@ class NotificationRouter:
         self,
         title: str,
         message: str,
-        dog_id: Optional[str],
+        dog_id: str | None,
         category: str,
-        actions: Optional[List[Dict[str, str]]],
-        tag: Optional[str],
+        actions: List[Dict[str, str]] | None,
+        tag: str | None,
     ) -> Dict[str, Any]:
         """Build notification data payload."""
         data = {
@@ -320,11 +320,11 @@ class NotificationRouter:
         self,
         title: str,
         message: str,
-        dog_id: Optional[str],
+        dog_id: str | None,
         category: str,
-        actions: Optional[List[Dict[str, str]]],
+        actions: List[Dict[str, str]] | None,
         priority: str,
-        tag: Optional[str],
+        tag: str | None,
     ) -> None:
         """Schedule notification for later delivery."""
         # This would typically use async_track_time_change or similar
@@ -338,7 +338,7 @@ class NotificationRouter:
         reminder_type: str,
         dog_id: str,
         dog_name: str,
-        additional_info: Optional[Dict[str, Any]] = None,
+        additional_info: Dict[str, Any] | None = None,
     ) -> bool:
         """Send a reminder notification for a specific type."""
 
