@@ -9,8 +9,15 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 
+DEFAULT_DOG_ID = "dog"
+
 
 def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
+    """Return a matching loaded entry for the GPS service call.
+
+    The call may target a specific config entry via ``config_entry_id``. If not
+    provided, the first loaded Paw Control entry is returned.
+    """
     entry_id = call.data.get("config_entry_id")
     if entry_id:
         entry = hass.config_entries.async_get_entry(entry_id)
@@ -18,21 +25,28 @@ def _get_entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry:
             raise ServiceValidationError("Config entry not found")
         return entry
 
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if entry.state is ConfigEntryState.LOADED:
-            return entry
-
-    raise ServiceValidationError("No loaded Paw Control entries")
+    try:
+        return next(
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if entry.state is ConfigEntryState.LOADED
+        )
+    except StopIteration as err:
+        raise ServiceValidationError("No loaded Paw Control entries") from err
 
 
 def _get_dog_id(entry: ConfigEntry, call: ServiceCall) -> str:
+    """Return target dog identifier for a service call."""
     dog_id = call.data.get("dog_id")
     if dog_id:
         return dog_id
-    dogs = entry.options.get("dogs", [])
-    if dogs and isinstance(dogs, list):
-        return dogs[0].get("dog_id") or dogs[0].get("name") or "dog"
-    return "dog"
+
+    dogs = entry.options.get("dogs")
+    if isinstance(dogs, list) and dogs:
+        first = dogs[0]
+        return first.get("dog_id") or first.get("name") or DEFAULT_DOG_ID
+
+    return DEFAULT_DOG_ID
 
 
 def _get_entry_and_coordinator(
