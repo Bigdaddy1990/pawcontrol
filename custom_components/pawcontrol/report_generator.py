@@ -200,62 +200,83 @@ class ReportGenerator:
     async def _save_json_report(
         self, filepath: Path, report_data: Dict[str, Any]
     ) -> None:
-        """Save report as JSON."""
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(report_data, f, indent=2, ensure_ascii=False, default=str)
+        """Save report as JSON.
+
+        File I/O is executed in the executor to avoid blocking the event loop.
+        """
+
+        def _write_json() -> None:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(report_data, f, indent=2, ensure_ascii=False, default=str)
+
+        await self.hass.async_add_executor_job(_write_json)
 
     async def _save_csv_report(
         self, filepath: Path, report_data: Dict[str, Any]
     ) -> None:
-        """Save report as CSV."""
-        with open(filepath, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
+        """Save report as CSV.
 
-            # Write header
-            writer.writerow(
-                [
-                    "Dog Name",
-                    "Walks Today",
-                    "Distance (m)",
-                    "Breakfast",
-                    "Lunch",
-                    "Dinner",
-                    "Snacks",
-                    "Medications",
-                    "Play Time (min)",
-                    "Training Sessions",
-                    "Activity Level",
-                    "Calories Burned",
-                    "Poop Count",
-                ]
-            )
+        File I/O is executed in the executor to avoid blocking the event loop.
+        """
 
-            # Write data for each dog
-            for dog_id, dog_data in report_data["dogs"].items():
+        def _write_csv() -> None:
+            with open(filepath, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+
+                # Write header
                 writer.writerow(
                     [
-                        dog_data["name"],
-                        dog_data["walk"]["walks_today"],
-                        dog_data["walk"]["total_distance"],
-                        dog_data["feeding"]["breakfast"],
-                        dog_data["feeding"]["lunch"],
-                        dog_data["feeding"]["dinner"],
-                        dog_data["feeding"]["snacks"],
-                        dog_data["health"]["medications_given"],
-                        dog_data["activity"]["play_time"],
-                        dog_data["activity"]["training_sessions"],
-                        dog_data["activity"]["activity_level"],
-                        dog_data["activity"]["calories_burned"],
-                        dog_data["statistics"]["poop_count"],
+                        "Dog Name",
+                        "Walks Today",
+                        "Distance (m)",
+                        "Breakfast",
+                        "Lunch",
+                        "Dinner",
+                        "Snacks",
+                        "Medications",
+                        "Play Time (min)",
+                        "Training Sessions",
+                        "Activity Level",
+                        "Calories Burned",
+                        "Poop Count",
                     ]
                 )
+
+                # Write data for each dog
+                for dog_id, dog_data in report_data["dogs"].items():
+                    writer.writerow(
+                        [
+                            dog_data["name"],
+                            dog_data["walk"]["walks_today"],
+                            dog_data["walk"]["total_distance"],
+                            dog_data["feeding"]["breakfast"],
+                            dog_data["feeding"]["lunch"],
+                            dog_data["feeding"]["dinner"],
+                            dog_data["feeding"]["snacks"],
+                            dog_data["health"]["medications_given"],
+                            dog_data["activity"]["play_time"],
+                            dog_data["activity"]["training_sessions"],
+                            dog_data["activity"]["activity_level"],
+                            dog_data["activity"]["calories_burned"],
+                            dog_data["statistics"]["poop_count"],
+                        ]
+                    )
+
+        await self.hass.async_add_executor_job(_write_csv)
 
     async def _save_text_report(
         self, filepath: Path, report_data: Dict[str, Any]
     ) -> None:
-        """Save report as text."""
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(self._format_text_report(report_data))
+        """Save report as text.
+
+        File I/O is executed in the executor to avoid blocking the event loop.
+        """
+
+        def _write_text() -> None:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(self._format_text_report(report_data))
+
+        await self.hass.async_add_executor_job(_write_text)
 
     def _format_text_report(self, report_data: Dict[str, Any]) -> str:
         """Format report data as text."""
@@ -352,37 +373,46 @@ class ReportGenerator:
             }
 
             if format_type == "json":
-                with open(filepath, "w", encoding="utf-8") as f:
-                    json.dump(
-                        health_export, f, indent=2, ensure_ascii=False, default=str
-                    )
+
+                def _write_json() -> None:
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        json.dump(
+                            health_export, f, indent=2, ensure_ascii=False, default=str
+                        )
+
+                await self.hass.async_add_executor_job(_write_json)
             elif format_type == "csv":
                 # For CSV, create a simpler format
-                with open(filepath, "w", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["Date", "Type", "Value", "Notes"])
+                def _write_csv() -> None:
+                    with open(filepath, "w", newline="", encoding="utf-8") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["Date", "Type", "Value", "Notes"])
 
-                    # Write weight trends
-                    for weight_entry in health_export["health_data"]["weight_trend"]:
-                        writer.writerow(
-                            [
-                                weight_entry.get("date", ""),
-                                "Weight",
-                                weight_entry.get("weight", ""),
-                                "",
-                            ]
-                        )
+                        # Write weight trends
+                        for weight_entry in health_export["health_data"][
+                            "weight_trend"
+                        ]:
+                            writer.writerow(
+                                [
+                                    weight_entry.get("date", ""),
+                                    "Weight",
+                                    weight_entry.get("weight", ""),
+                                    "",
+                                ]
+                            )
 
-                    # Write health notes
-                    for note in health_export["health_data"]["health_notes"]:
-                        writer.writerow(
-                            [
-                                note.get("date", ""),
-                                "Health Note",
-                                "",
-                                note.get("note", ""),
-                            ]
-                        )
+                        # Write health notes
+                        for note in health_export["health_data"]["health_notes"]:
+                            writer.writerow(
+                                [
+                                    note.get("date", ""),
+                                    "Health Note",
+                                    "",
+                                    note.get("note", ""),
+                                ]
+                            )
+
+                await self.hass.async_add_executor_job(_write_csv)
 
             _LOGGER.info(f"Health data exported to {filepath}")
             return True
