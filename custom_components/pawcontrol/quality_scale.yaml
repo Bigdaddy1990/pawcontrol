@@ -72,8 +72,8 @@ rules:
 
   # Raise PlatformNotReady if unable to connect
   platform_not_ready:
-    status: partial
-    comment: ConfigEntryNotReady used, but needs improvement
+    status: done
+    comment: Platform setup raises PlatformNotReady when coordinator is unavailable
 
   # Handles expiration of auth credentials
   reauthentication:
