@@ -39,9 +39,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control binary sensor entities."""
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
-        "coordinator"
-    ]
+    coordinator: PawControlCoordinator = entry.runtime_data.coordinator
 
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])

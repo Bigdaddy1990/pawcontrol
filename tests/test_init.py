@@ -54,6 +54,7 @@ async def test_setup_entry(
     assert mock_config_entry.state == ConfigEntryState.LOADED
     assert DOMAIN in hass.data
     assert mock_config_entry.entry_id in hass.data[DOMAIN]
+    assert mock_config_entry.runtime_data is not None
 
 
 async def test_unload_entry(

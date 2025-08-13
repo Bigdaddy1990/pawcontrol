@@ -359,14 +359,11 @@ class GPSLogic:
 
     def _update_walk_distance(self, dog_id: str, distance_m: float) -> None:
         """Update walk distance in coordinator."""
-        coordinator = (
-            self.hass.data[DOMAIN].get(self.entry.entry_id, {}).get("coordinator")
-        )
+        coordinator = self.entry.runtime_data.coordinator
 
-        if coordinator:
-            dog_data = coordinator.get_dog_data(dog_id)
-            if dog_data and "walk" in dog_data:
-                dog_data["walk"]["walk_distance_m"] = round(distance_m, 1)
+        dog_data = coordinator.get_dog_data(dog_id)
+        if dog_data and "walk" in dog_data:
+            dog_data["walk"]["walk_distance_m"] = round(distance_m, 1)
 
     def _get_dogs_for_entity(self, entity_id: str) -> list[str]:
         """Get list of dogs associated with a tracked entity."""

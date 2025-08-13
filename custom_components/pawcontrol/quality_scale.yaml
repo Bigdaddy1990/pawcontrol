@@ -1,5 +1,5 @@
 # PawControl Integration Quality Scale Tracking
-# Last updated: 2025-01-15
+# Last updated: 2025-02-14
 # Target: Gold Standard
 
 rules:
@@ -199,8 +199,8 @@ rules:
 
   # Use ConfigEntry.runtime_data
   runtime_data:
-    status: todo
-    comment: Still using hass.data directly
+    status: partial
+    comment: Most platforms use ConfigEntry.runtime_data; some helpers still rely on hass.data
 
   # Entities have suggested_device_class
   entity_suggested_device_class:
@@ -213,9 +213,9 @@ rules:
     comment: Coordinator pattern with proper refresh
 
 # Summary
-current_tier: bronze
+current_tier: silver
 target_tier: gold
-completion_percentage: 69
+completion_percentage: 70
 
 next_steps:
   - Add complete type hints throughout codebase
