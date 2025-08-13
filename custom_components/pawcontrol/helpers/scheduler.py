@@ -201,7 +201,6 @@ class PawControlScheduler:
     async def _setup_feeding_reminders(self) -> None:
         """Set up feeding reminder schedules."""
         for dog_id, dog_name in self._iter_dogs_with_module(MODULE_FEEDING):
-
             # Default feeding times
             feeding_schedule = {
                 "breakfast": "07:00:00",
