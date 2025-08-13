@@ -1,7 +1,6 @@
 """Tests for PawControlOptionsFlow."""
 
 import pytest
-
 from custom_components.pawcontrol import config_flow, const
 from homeassistant.config_entries import ConfigEntry
 
@@ -78,4 +77,3 @@ async def test_options_flow_sources_updates_options(hass):
 
     assert result["type"] == "create_entry"
     assert flow._options[const.CONF_SOURCES] == user_input
-

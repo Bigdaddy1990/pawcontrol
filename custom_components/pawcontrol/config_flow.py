@@ -431,7 +431,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class PawControlOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Paw Control."""
-    
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry

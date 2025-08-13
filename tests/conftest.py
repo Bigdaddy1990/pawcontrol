@@ -1,7 +1,8 @@
+import asyncio
+from collections.abc import Generator
+
 import pytest
 from homeassistant.core import HomeAssistant
-from collections.abc import Generator
-import asyncio
 
 
 @pytest.fixture(scope="session")
