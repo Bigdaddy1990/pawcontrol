@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional
 
@@ -24,6 +25,25 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate the Haversine distance between two points in meters."""
+    R = 6371000  # Earth's radius in meters
+    
+    # Convert to radians
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    # Haversine formula
+    a = (math.sin(delta_lat / 2) ** 2 + 
+         math.cos(lat1_rad) * math.cos(lat2_rad) * 
+         math.sin(delta_lon / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
 
 
 class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
@@ -78,7 +98,6 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     "leaves": 0,
                     "time_today_s": 0.0
                 },
-
                 "feeding": {
                     "last_feeding": None,
                     "last_meal_type": None,
@@ -158,24 +177,16 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 data["feeding"]["is_hungry"] = self._calculate_is_hungry(dog_id)
 
                 # Check if grooming is needed
-                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(
-                    dog_id
-                )
+                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(dog_id)
 
                 # Calculate activity level
-                data["activity"]["activity_level"] = self._calculate_activity_level(
-                    dog_id
-                )
+                data["activity"]["activity_level"] = self._calculate_activity_level(dog_id)
 
                 # Update medication due times
-                data["health"]["next_medication_due"] = self._calculate_next_medication(
-                    dog_id
-                )
+                data["health"]["next_medication_due"] = self._calculate_next_medication(dog_id)
 
                 # Calculate calories burned
-                data["activity"]["calories_burned_today"] = self._calculate_calories(
-                    dog_id
-                )
+                data["activity"]["calories_burned_today"] = self._calculate_calories(dog_id)
 
             return self._dog_data
 
@@ -288,8 +299,13 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self.entry._options = dict(options)
         self._initialize_dog_data()
 
-
-    def update_gps(self, dog_id: str, latitude: float, longitude: float, accuracy: float | None = None) -> None:
+    def update_gps(
+        self, 
+        dog_id: str, 
+        latitude: float, 
+        longitude: float, 
+        accuracy: float | None = None
+    ) -> None:
         """Update GPS-derived fields: last update, distance, and geofence enter/leave/time."""
         data = self._dog_data.get(dog_id)
         if not data:
@@ -325,7 +341,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if dist is not None and radius_m and radius_m > 0:
             inside = dist <= float(radius_m)
 
-        # initialize counters
+        # Initialize counters
         if "enters_today" not in loc:
             loc["enters_today"] = 0
         if "leaves_today" not in loc:
@@ -337,21 +353,24 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         prev_inside = loc.get("is_home")
         last_ts = loc.get("last_ts")
         now = dt_util.utcnow()
+        
         if last_ts:
             try:
                 elapsed = (now - self._parse_datetime(last_ts)).total_seconds() / 60.0
                 # Accumulate time when previously inside=True
                 if prev_inside is True and elapsed > 0:
-                    loc["time_inside_today_min"] = round(float(loc.get("time_inside_today_min") or 0.0) + float(elapsed), 1)
+                    loc["time_inside_today_min"] = round(
+                        float(loc.get("time_inside_today_min", 0.0)) + float(elapsed), 1
+                    )
             except Exception:
                 pass
 
         # Count transitions
         if inside is not None and prev_inside is not None and inside != prev_inside:
             if inside:
-                loc["enters_today"] = int(loc.get("enters_today") or 0) + 1
+                loc["enters_today"] = int(loc.get("enters_today", 0)) + 1
             else:
-                loc["leaves_today"] = int(loc.get("leaves_today") or 0) + 1
+                loc["leaves_today"] = int(loc.get("leaves_today", 0)) + 1
 
         # Update location fields
         if dist is not None:
@@ -363,7 +382,8 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         # Notify listeners for immediate UI update
         self.async_update_listeners()
-def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
+
+    def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
         """Get data for specific dog."""
         return self._dog_data.get(dog_id, {})
 
@@ -395,30 +415,38 @@ def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
             self._dog_data[dog_id]["activity"]["play_duration_today_min"] = 0
             self._dog_data[dog_id]["activity"]["calories_burned_today"] = 0
 
+            # Reset location counters
+            self._dog_data[dog_id]["location"]["enters_today"] = 0
+            self._dog_data[dog_id]["location"]["leaves_today"] = 0
+            self._dog_data[dog_id]["location"]["time_inside_today_min"] = 0.0
+
             # Reset statistics
             self._dog_data[dog_id]["statistics"]["poop_count_today"] = 0
 
         await self.async_request_refresh()
 
-    async
     def increment_walk_distance(self, dog_id: str, inc_m: float) -> None:
         """Increment live walk distance for a dog and notify listeners."""
         if dog_id not in self._dog_data:
             _LOGGER.error("Dog %s not found", dog_id)
             return
+        
         walk = self._dog_data[dog_id]["walk"]
-        current = float(walk.get("walk_distance_m") or 0.0)
+        current = float(walk.get("walk_distance_m", 0.0))
         walk["walk_distance_m"] = round(current + float(inc_m), 1)
+        
         # Mark last action for stats
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_progress"
+        
         # Notify entities immediately
         self.async_update_listeners()
 
     def notify_updates(self) -> None:
         """Notify all entities listening to this coordinator."""
         self.async_update_listeners()
-def start_walk(self, dog_id: str, source: str = "manual") -> None:
+
+    async def start_walk(self, dog_id: str, source: str = "manual") -> None:
         """Start a walk for a dog."""
         if dog_id not in self._dog_data:
             _LOGGER.error(f"Dog {dog_id} not found")
@@ -549,19 +577,17 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
         if weight_kg is not None:
             health_data["weight_kg"] = weight_kg
             # Keep last 30 weight measurements for trend
-            health_data["weight_trend"].append(
-                {"date": dt_util.now().isoformat(), "weight": weight_kg}
-            )
-            if len(health_data["weight_trend"]) > 30:
-                health_data["weight_trend"].pop(0)
+            health_data["weight_trend"].append({
+                "date": dt_util.now().isoformat(),
+                "weight": weight_kg
+            })
+            health_data["weight_trend"] = health_data["weight_trend"][-30:]
 
         if note:
-            health_data["health_notes"].append(
-                {"date": dt_util.now().isoformat(), "note": note}
-            )
-            # Keep last 100 notes
-            if len(health_data["health_notes"]) > 100:
-                health_data["health_notes"].pop(0)
+            health_data["health_notes"].append({
+                "date": dt_util.now().isoformat(),
+                "note": note
+            })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
@@ -571,7 +597,7 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
     async def log_medication(
         self, dog_id: str, medication_name: str, dose: str
     ) -> None:
-        """Log medication given to a dog."""
+        """Log medication for a dog."""
         if dog_id not in self._dog_data:
             _LOGGER.error(f"Dog {dog_id} not found")
             return
@@ -597,8 +623,10 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
 
         await self.async_request_refresh()
 
-    async def start_grooming(self, dog_id: str, grooming_type: str, notes: str) -> None:
-        """Log grooming session for a dog."""
+    async def start_grooming(
+        self, dog_id: str, grooming_type: str, notes: str
+    ) -> None:
+        """Start grooming session for a dog."""
         if dog_id not in self._dog_data:
             _LOGGER.error(f"Dog {dog_id} not found")
             return
@@ -607,14 +635,11 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
 
         grooming_data["last_grooming"] = dt_util.now().isoformat()
         grooming_data["grooming_type"] = grooming_type
-
-        grooming_data["grooming_history"].append(
-            {"date": dt_util.now().isoformat(), "type": grooming_type, "notes": notes}
-        )
-
-        # Keep last 50 grooming records
-        if len(grooming_data["grooming_history"]) > 50:
-            grooming_data["grooming_history"].pop(0)
+        grooming_data["grooming_history"].append({
+            "date": dt_util.now().isoformat(),
+            "type": grooming_type,
+            "notes": notes
+        })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
@@ -624,7 +649,6 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
             {
                 ATTR_DOG_ID: dog_id,
                 "type": grooming_type,
-                "notes": notes,
             },
         )
 
@@ -662,19 +686,12 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
         training_data["last_topic"] = topic
         training_data["training_duration_min"] = duration_min
         training_data["training_sessions_today"] += 1
-
-        training_data["training_history"].append(
-            {
-                "date": dt_util.now().isoformat(),
-                "topic": topic,
-                "duration_min": duration_min,
-                "notes": notes,
-            }
-        )
-
-        # Keep last 100 training records
-        if len(training_data["training_history"]) > 100:
-            training_data["training_history"].pop(0)
+        training_data["training_history"].append({
+            "date": dt_util.now().isoformat(),
+            "topic": topic,
+            "duration": duration_min,
+            "notes": notes
+        })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"
@@ -684,7 +701,6 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
     async def set_visitor_mode(self, enabled: bool) -> None:
         """Set visitor mode."""
         self._visitor_mode = enabled
-        _LOGGER.info(f"Visitor mode {'enabled' if enabled else 'disabled'}")
         await self.async_request_refresh()
 
     async def activate_emergency_mode(self, level: str, note: str) -> None:
@@ -693,92 +709,3 @@ def start_walk(self, dog_id: str, source: str = "manual") -> None:
         self._emergency_level = level
         _LOGGER.warning(f"Emergency mode activated: {level} - {note}")
         await self.async_request_refresh()
-
-    @property
-    def visitor_mode(self) -> bool:
-        """Return visitor mode status."""
-        return self._visitor_mode
-
-    @property
-    def emergency_mode(self) -> bool:
-        """Return emergency mode status."""
-        return self._emergency_mode
-
-    @property
-    def emergency_level(self) -> str:
-        """Return emergency level."""
-        return self._emergency_level
-
-    async def _async_setup(self) -> None:
-        """One-time async setup for the coordinator."""
-        return None
-
-    @staticmethod
-    def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Distance in meters between two lat/lon points."""
-        from math import atan2, cos, radians, sin, sqrt
-        R = 6371000.0
-        phi1, phi2 = radians(lat1), radians(lat2)
-        dphi = radians(lat2 - lat1)
-        dlambda = radians(lon2 - lon1)
-        a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return R * c
-
-    def _home_center(self) -> tuple[float, float, float]:
-        """Return (lat, lon, radius_m) for home zone; fallback to config & default."""
-        zone = self.hass.states.get("zone.home")
-        lat = getattr(self.hass.config, "latitude", None)
-        lon = getattr(self.hass.config, "longitude", None)
-        radius = int(self.entry.options.get("geofence_radius_m", 0) or 0)
-        if zone and hasattr(zone, "attributes"):
-            lat = zone.attributes.get("latitude", lat)
-            lon = zone.attributes.get("longitude", lon)
-            radius = radius or int(zone.attributes.get("radius", 0) or 0)
-        if not radius:
-            from .const import DEFAULT_SAFE_ZONE_RADIUS
-            radius = int(DEFAULT_SAFE_ZONE_RADIUS)
-        return float(lat or 0.0), float(lon or 0.0), float(radius)
-
-    def process_location(self, dog_id: str, latitude: float, longitude: float, accuracy: float | None = None) -> None:
-        """Update safe-zone status & walk distance based on a new location sample."""
-        if dog_id not in self._dog_data:
-            _LOGGER.error("Dog %s not found", dog_id)
-            return
-        # Safe-zone update
-        lat0, lon0, radius_m = self._home_center()
-        dist = self._haversine_m(lat0, lon0, latitude, longitude)
-        inside = dist <= radius_m
-        z = self._dog_data[dog_id]["safe_zone"]
-        # Accumulate time inside when previously inside True
-        prev_inside = z.get("inside")
-        last_ts = z.get("last_ts")
-        try:
-            last_dt = datetime.fromisoformat(last_ts) if last_ts else None
-        except Exception:
-            last_dt = None
-        now = dt_util.now()
-        if prev_inside is True and last_dt:
-            delta = (now - last_dt).total_seconds()
-            if delta > 0:
-                z["time_today_s"] = float(z.get("time_today_s", 0.0)) + float(delta)
-        # Transitions
-        if prev_inside is not None and inside != prev_inside:
-            if inside:
-                z["enters"] = int(z.get("enters", 0)) + 1
-                try:
-                    from .const import EVENT_SAFE_ZONE_ENTERED, ATTR_DOG_ID
-                    self.hass.bus.async_fire(EVENT_SAFE_ZONE_ENTERED, {ATTR_DOG_ID: dog_id})
-                except Exception:
-                    pass
-            else:
-                z["leaves"] = int(z.get("leaves", 0)) + 1
-                try:
-                    from .const import EVENT_SAFE_ZONE_LEFT, ATTR_DOG_ID
-                    self.hass.bus.async_fire(EVENT_SAFE_ZONE_LEFT, {ATTR_DOG_ID: dog_id})
-                except Exception:
-                    pass
-        z["inside"] = inside
-        z["last_ts"] = now.isoformat()
-        # Notify entities
-        self.async_update_listeners()
