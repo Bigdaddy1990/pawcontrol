@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, ATTR_DOG_ID
+from .const import DOMAIN
+
 
 def _get_entry(hass: HomeAssistant, call: ServiceCall):
     entry_id = call.data.get("config_entry_id")
