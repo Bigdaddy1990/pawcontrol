@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -38,9 +38,9 @@ class GPSLogic:
         """Initialize GPS logic."""
         self.hass = hass
         self.entry = entry
-        self._tracked_entities: Dict[str, Any] = {}
-        self._walk_sessions: Dict[str, Dict[str, Any]] = {}
-        self._door_sensor: Optional[str] = None
+        self._tracked_entities: dict[str, Any] = {}
+        self._walk_sessions: dict[str, dict[str, Any]] = {}
+        self._door_sensor: str | None = None
         self._unsubscribe_callbacks: list[CALLBACK_TYPE] = []
 
     async def setup(self) -> None:
@@ -209,7 +209,7 @@ class GPSLogic:
             tracking_data["last_update"] = dt_util.now()
 
     def _calculate_distance(
-        self, loc1: Tuple[float, float], loc2: Tuple[float, float]
+        self, loc1: tuple[float, float], loc2: tuple[float, float]
     ) -> float:
         """Calculate distance between two GPS coordinates in meters."""
         return distance(loc1[0], loc1[1], loc2[0], loc2[1]) * 1000
@@ -296,19 +296,15 @@ class GPSLogic:
         """Confirm walk has started."""
         _LOGGER.info(f"Walk started for {dog_id} via {source}")
 
-        # Initialize or update walk session
-        if dog_id not in self._walk_sessions:
-            self._walk_sessions[dog_id] = {}
-
-        self._walk_sessions[dog_id].update(
-            {
-                "confirmed": True,
-                "start_time": dt_util.now(),
-                "source": source,
-                "total_distance": 0,
-                "last_movement": dt_util.now(),
-            }
-        )
+        # Initialize walk session with consistent timestamps
+        now = dt_util.now()
+        self._walk_sessions[dog_id] = {
+            "confirmed": True,
+            "start_time": now,
+            "source": source,
+            "total_distance": 0,
+            "last_movement": now,
+        }
 
         # Call service to start walk
         self.hass.async_create_task(
@@ -332,14 +328,18 @@ class GPSLogic:
         if not session.get("confirmed"):
             return
 
-        _LOGGER.info(f"Walk ended for {dog_id} - reason: {reason}")
-
-        # Calculate walk duration
+        # Calculate walk duration and log
         start_time = session.get("start_time")
         if start_time:
-            (dt_util.now() - start_time).total_seconds() / 60
+            duration_min = (dt_util.now() - start_time).total_seconds() / 60
+            _LOGGER.info(
+                "Walk ended for %s after %.1f minutes - reason: %s",
+                dog_id,
+                duration_min,
+                reason,
+            )
         else:
-            pass
+            _LOGGER.info("Walk ended for %s - reason: %s", dog_id, reason)
 
         # Call service to end walk
         self.hass.async_create_task(
@@ -387,13 +387,13 @@ class GPSLogic:
                     _LOGGER.info(f"Walk idle timeout for {dog_id}")
                     self._confirm_walk_end(dog_id, "idle")
 
-    def get_current_location(self, entity_id: str) -> Optional[Tuple[float, float]]:
+    def get_current_location(self, entity_id: str) -> tuple[float, float] | None:
         """Get current location for tracked entity."""
         if entity_id in self._tracked_entities:
             return self._tracked_entities[entity_id].get("last_location")
         return None
 
-    def get_distance_from_home(self, entity_id: str) -> Optional[float]:
+    def get_distance_from_home(self, entity_id: str) -> float | None:
         """Get distance from home for tracked entity."""
         current_location = self.get_current_location(entity_id)
         if not current_location:
