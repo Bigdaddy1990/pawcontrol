@@ -19,6 +19,34 @@
   ],
   "integration_type": "hub",
   "quality_scale": "silver",
+  "usb": [
+    {
+      "vid": "10C4",
+      "pid": "EA60",
+      "description": "*pawtracker*",
+      "manufacturer": "*PawControl*"
+    },
+    {
+      "vid": "0403",
+      "pid": "6001",
+      "description": "*dog*tracker*",
+      "manufacturer": "*Smart*Pet*"
+    }
+  ],
+  "zeroconf": [
+    "_pawcontrol._tcp.local."
+  ],
+  "dhcp": [
+    {
+      "hostname": "pawtracker-*"
+    },
+    {
+      "domain": "pawcontrol.local"
+    },
+    {
+      "macaddress": "DC:A6:32*"
+    }
+  ],
   "homekit": {
     "models": [
       "Smart Dog Manager"

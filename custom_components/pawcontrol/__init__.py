@@ -81,16 +81,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set runtime data on entry
     entry.runtime_data = runtime_data
 
-    # Store in hass.data for backward compatibility (will be removed later)
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "notification_router": notification_router,
-        "setup_sync": setup_sync,
-        "gps_handler": gps_handler_obj,
-        "report_generator": report_generator,
-        "services": services,
-    }
-
     # Register devices for each dog
     await _register_devices(hass, entry)
 
