@@ -33,13 +33,13 @@ def validate_dog_id(dog_id: str) -> str:
     sanitized = dog_id.lower().strip().replace(" ", "_")
 
     # Allow only alphanumeric characters and underscores
-    if not re.match(r"^[a-z0-9_]+$", sanitized):
+    if not re.fullmatch(r"[a-z0-9_]+", sanitized):
         raise ValidationError(
             "Dog ID can only contain letters, numbers, and underscores"
         )
 
     # Ensure reasonable length
-    if len(sanitized) < 1 or len(sanitized) > 50:
+    if not 1 <= len(sanitized) <= 50:
         raise ValidationError("Dog ID must be between 1 and 50 characters")
 
     return sanitized
@@ -319,7 +319,7 @@ def validate_time_string(time_str: str) -> str:
     Raises:
         ValidationError: If time string is invalid
     """
-    if not re.match(r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$", time_str):
+    if not re.fullmatch(r"([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]", time_str):
         raise ValidationError(f"Invalid time format: {time_str}. Use HH:MM:SS")
 
     return time_str
@@ -365,7 +365,7 @@ def validate_webhook_id(webhook_id: str) -> str:
         raise ValidationError("Webhook ID cannot be empty")
 
     # Basic validation for webhook ID format
-    if not re.match(r"^[a-zA-Z0-9_\-]+$", webhook_id):
+    if not re.fullmatch(r"[a-zA-Z0-9_\-]+", webhook_id):
         raise ValidationError("Invalid webhook ID format")
 
     if len(webhook_id) < 10 or len(webhook_id) > 200:
