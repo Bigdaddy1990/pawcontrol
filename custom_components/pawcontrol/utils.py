@@ -29,7 +29,8 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
     """Return speed in km/h given distance in meters and duration in seconds."""
     if duration_s <= 0:
         return 0.0
-    return (distance_m / 1000.0) / (duration_s / 3600.0)
+    # Use direct conversion from m/s to km/h for clarity
+    return (distance_m / duration_s) * 3.6
 
 
 def validate_coordinates(lat: float, lon: float) -> bool:
