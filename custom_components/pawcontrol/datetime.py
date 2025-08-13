@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Final
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .compat import DeviceInfo
 from .const import DOMAIN
 
-PARALLEL_UPDATES = 0
+PARALLEL_UPDATES: Final = 0
 
 
 async def async_setup_entry(
@@ -19,7 +20,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up datetime entities from a config entry."""
-    dogs = (entry.options or {}).get("dogs", [])
+    dogs = entry.options.get("dogs", [])
     entities = [
         NextMedicationDateTime(
             hass,
