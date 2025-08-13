@@ -4,7 +4,7 @@ import types
 from collections.abc import Generator
 
 import pytest
-import sitecustomize  # noqa: F401  # Ensure HA compatibility shims
+import sitecustomize  # Ensure HA compatibility shims
 
 try:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.core import HomeAssistant

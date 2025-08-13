@@ -7,7 +7,6 @@ from typing import Any
 from homeassistant import config_entries
 from homeassistant.components import dhcp, usb, zeroconf
 from homeassistant.const import CONF_HOST, CONF_NAME
-from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
