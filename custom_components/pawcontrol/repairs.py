@@ -64,3 +64,15 @@ async def async_create_fix_flow(
         return InvalidGeofenceRepairFlow(hass, data["entry_id"])
     # fallback dummy (shouldn't happen)
     return InvalidGeofenceRepairFlow(hass, "")
+
+
+def create_repair_issue(hass: HomeAssistant, issue_id: str, entry: Any) -> None:
+    """Register a repair issue for a config entry."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=True,
+        translation_key=issue_id,
+        data={"entry_id": getattr(entry, "entry_id", None)},
+    )

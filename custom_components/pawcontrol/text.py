@@ -23,6 +23,9 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+# This platform relies entirely on the coordinator for I/O
+PARALLEL_UPDATES = 0
+
 # Initialize module logger
 _LOGGER = logging.getLogger(__name__)
 

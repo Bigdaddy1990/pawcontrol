@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
 
 
-class PawControlEntity(CoordinatorEntity[PawControlCoordinator]):
+class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
     """Base entity class for PawControl integration."""
 
     _attr_has_entity_name = True
