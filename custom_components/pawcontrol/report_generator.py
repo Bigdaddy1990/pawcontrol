@@ -6,7 +6,7 @@ import csv
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,6 +20,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+type ReportData = dict[str, Any]
 
 
 class ReportGenerator:
@@ -55,7 +57,7 @@ class ReportGenerator:
             _LOGGER.error(f"Failed to generate report: {err}")
             return False
 
-    async def _gather_report_data(self, scope: str) -> Dict[str, Any]:
+    async def _gather_report_data(self, scope: str) -> ReportData:
         """Gather data for report generation."""
         dogs = self.entry.options.get(CONF_DOGS, [])
         report_data = {
@@ -143,7 +145,7 @@ class ReportGenerator:
         return report_data
 
     async def _send_notification_report(
-        self, report_data: Dict[str, Any], scope: str
+        self, report_data: ReportData, scope: str
     ) -> None:
         """Send report as notification."""
         router = self.entry.runtime_data.notification_router
@@ -161,7 +163,7 @@ class ReportGenerator:
         )
 
     async def _save_file_report(
-        self, report_data: Dict[str, Any], scope: str, format_type: str
+        self, report_data: ReportData, scope: str, format_type: str
     ) -> None:
         """Save report to file."""
         export_path = self.entry.options.get(CONF_EXPORT_PATH)
@@ -196,9 +198,7 @@ class ReportGenerator:
         except Exception as err:
             _LOGGER.error(f"Failed to save report: {err}")
 
-    async def _save_json_report(
-        self, filepath: Path, report_data: Dict[str, Any]
-    ) -> None:
+    async def _save_json_report(self, filepath: Path, report_data: ReportData) -> None:
         """Save report as JSON.
 
         File I/O is executed in the executor to avoid blocking the event loop.
@@ -210,9 +210,7 @@ class ReportGenerator:
 
         await self.hass.async_add_executor_job(_write_json)
 
-    async def _save_csv_report(
-        self, filepath: Path, report_data: Dict[str, Any]
-    ) -> None:
+    async def _save_csv_report(self, filepath: Path, report_data: ReportData) -> None:
         """Save report as CSV.
 
         File I/O is executed in the executor to avoid blocking the event loop.
@@ -263,9 +261,7 @@ class ReportGenerator:
 
         await self.hass.async_add_executor_job(_write_csv)
 
-    async def _save_text_report(
-        self, filepath: Path, report_data: Dict[str, Any]
-    ) -> None:
+    async def _save_text_report(self, filepath: Path, report_data: ReportData) -> None:
         """Save report as text.
 
         File I/O is executed in the executor to avoid blocking the event loop.
@@ -277,7 +273,7 @@ class ReportGenerator:
 
         await self.hass.async_add_executor_job(_write_text)
 
-    def _format_text_report(self, report_data: Dict[str, Any]) -> str:
+    def _format_text_report(self, report_data: ReportData) -> str:
         """Format report data as text."""
         lines = []
         lines.append(f"Report Generated: {report_data['generated_at']}")
