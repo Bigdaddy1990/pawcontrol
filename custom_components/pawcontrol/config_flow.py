@@ -1,18 +1,16 @@
-from homeassistant.config_entries import FlowResult
-
 """Config flow for Paw Control integration."""
 
-from __future__ import annotations  # noqa: E402, F404
+from __future__ import annotations
 
-import logging  # noqa: E402
-from typing import Any  # noqa: E402
+import logging
+from typing import Any
 
-import voluptuous as vol  # noqa: E402
-from homeassistant import config_entries  # noqa: E402
-from homeassistant.config_entries import OptionsFlowWithReload  # noqa: E402
-from homeassistant.core import callback  # noqa: E402
-from homeassistant.data_entry_flow import FlowResult  # noqa: E402, F811
-from homeassistant.helpers.selector import (  # noqa: E402
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.config_entries import OptionsFlowWithReload
+from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
     BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
@@ -431,20 +429,8 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PawControlOptionsFlow(config_entry)
 
 
-class PawControlOptionsFlow(
-    PawControlOptionsFlowMedicationMixin,  # noqa: F821
-    PawControlOptionsFlowRemindersMixin,  # noqa: F821
-    PawControlOptionsFlowSafeZonesMixin,  # noqa: F821
-    PawControlOptionsFlowAdvancedMixin,  # noqa: F821
-    PawControlOptionsFlowScheduleMixin,  # noqa: F821
-    PawControlOptionsFlowModulesMixin,  # noqa: F821
-    PawControlOptionsFlowMedMixin,  # noqa: F821
-    config_entries.OptionsFlow,
-):
+class PawControlOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Paw Control."""
-
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
@@ -497,7 +483,8 @@ class PawControlOptionsFlow(
     ) -> FlowResult:
         """Manage data sources."""
         if user_input is not None:
-            self._options[CONF_SOURCES] = user_input
+            # Store provided source configuration and finish options flow
+            self._options[CONF_SOURCES] = dict(user_input)
             return self.async_create_entry(title="", data=self._options)
 
         sources = self._options.get(CONF_SOURCES, {})
