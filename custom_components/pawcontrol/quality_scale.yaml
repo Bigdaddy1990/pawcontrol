@@ -200,7 +200,7 @@ rules:
   # Use ConfigEntry.runtime_data
   runtime_data:
     status: partial
-    comment: Most platforms use ConfigEntry.runtime_data; some helpers still rely on hass.data
+    comment: Scheduler migrated to ConfigEntry.runtime_data; gps_handler and other helpers still use hass.data
 
   # Entities have suggested_device_class
   entity_suggested_device_class:
