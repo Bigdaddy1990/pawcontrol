@@ -12,8 +12,8 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
+from .compat import DeviceInfo, EntityCategory
 from .const import DOMAIN
 
 

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+from custom_components.pawcontrol.compat import EntityCategory
 from custom_components.pawcontrol.const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN
 from custom_components.pawcontrol.entity import (
     PawControlBinarySensorEntity,
@@ -13,7 +14,6 @@ from custom_components.pawcontrol.entity import (
     PawControlSensorEntity,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
 
 if TYPE_CHECKING:
     from pytest_homeassistant_custom_component.common import MockConfigEntry

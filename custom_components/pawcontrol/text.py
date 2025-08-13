@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.text import TextEntity
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
+from .compat import DeviceInfo, EntityCategory
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
