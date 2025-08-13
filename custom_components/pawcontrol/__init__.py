@@ -157,8 +157,8 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle removal of a config entry."""
     try:
         await async_unload_entry(hass, entry)
-    except Exception:
-        pass
+    except HomeAssistantError as err:
+        _LOGGER.warning("Failed to unload config entry %s: %s", entry.entry_id, err)
 
     # Remove entry data
     domain_data = hass.data.get(DOMAIN, {})
@@ -261,8 +261,8 @@ async def _auto_prune_devices(
             translation_placeholders={"count": str(len(stale_devices))},
             learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/stale-devices/",
         )
-    except Exception:
-        pass
+    except HomeAssistantError as err:
+        _LOGGER.warning("Failed to create stale_devices issue: %s", err)
 
     return len(stale_devices)
 
@@ -270,11 +270,9 @@ async def _auto_prune_devices(
 def _get_known_dog_ids(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
     """Get known dog IDs from coordinator."""
     runtime_data = entry.runtime_data
-    if runtime_data and hasattr(runtime_data.coordinator, "_dog_data"):
-        try:
-            return set(runtime_data.coordinator._dog_data.keys())
-        except Exception:
-            pass
+    dog_data = getattr(getattr(runtime_data, "coordinator", None), "_dog_data", {})
+    if isinstance(dog_data, dict):
+        return set(dog_data)
     return set()
 
 
@@ -304,7 +302,7 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 translation_key="invalid_geofence",
                 learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/",
             )
-        except Exception:
-            pass
+        except HomeAssistantError as err:
+            _LOGGER.warning("Failed to create invalid_geofence issue: %s", err)
     else:
         ir.async_delete_issue(hass, DOMAIN, "invalid_geofence")
