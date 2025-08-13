@@ -22,7 +22,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 
 ### **🏆 GPS-Features:**
 - 🛰️ **GPS-Tracking** mit automatischer Spaziergang-Erkennung
-- 📏 **Live-Distanz & Geschwindigkeit** während Spaziergängen  
+- 📏 **Live-Distanz & Geschwindigkeit** während Spaziergängen
 - 🎯 **Geofencing** mit Sicherheitszonen
 - 📱 **Alle GPS-Tracker** unterstützt (Fressnapf, Tractive, Smartphone)
 - 🤖 **Intelligente Automatisierungen** basierend auf GPS-Daten
@@ -179,7 +179,7 @@ pawcontrol ist kostenlos und Open Source. Unterstützen Sie die Entwicklung:
 
 1. **HACS** → **Custom Repository** → `github.com/bigdaddy1990/pawcontrol`
 2. **"Paw Control"** installieren
-3. **GPS-Tracker** verbinden  
+3. **GPS-Tracker** verbinden
 4. **Automatisches Tracking** genießen! 🎉
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bigdaddy1990)

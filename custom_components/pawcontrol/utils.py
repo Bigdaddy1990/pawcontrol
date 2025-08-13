@@ -62,4 +62,3 @@ async def safe_service_call(
     except (HomeAssistantError, ValueError):
         # Swallow errors to avoid cascading failures from optional notifications.
         return
-
