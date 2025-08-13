@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterable
 from datetime import datetime, time, timedelta
-from typing import Optional
+from typing import Any, Dict, Iterator, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -95,6 +95,19 @@ class PawControlScheduler:
                 _LOGGER.debug(f"Cancelled reminder task: {task_id}")
 
         self._reminder_tasks.clear()
+
+    def _iter_dogs_with_module(
+        self, module: str
+    ) -> Iterator[tuple[str, Dict[str, Any]]]:
+        """Yield dogs that have a specific module enabled."""
+        dogs = self.entry.options.get(CONF_DOGS, [])
+        for dog in dogs:
+            dog_id = dog.get(CONF_DOG_ID)
+            if not dog_id:
+                continue
+            modules = dog.get(CONF_DOG_MODULES, {})
+            if modules.get(module, False):
+                yield dog_id, dog
 
     async def _setup_daily_reset(self) -> None:
         """Set up daily reset task."""
