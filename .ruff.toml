@@ -1,0 +1,15 @@
+# Ruff config for this Home Assistant custom integration
+target-version = "py312"
+line-length = 88
+src = ["custom_components"]
+
+[lint]
+# Base: pycodestyle (E), pyflakes (F)
+# Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
+select = ["E", "F", "I", "UP", "B", "SIM"]
+fixable = ["ALL"]
+
+[format]
+# Keep defaults close to HA style
+quote-style = "double"
+docstring-code-format = true

@@ -1,0 +1,29 @@
+name: Release (tag)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build integration zip (HACS-compatible)
+        run: |
+          mkdir -p dist
+          zip -r dist/pawcontrol.zip custom_components/pawcontrol
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/pawcontrol.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

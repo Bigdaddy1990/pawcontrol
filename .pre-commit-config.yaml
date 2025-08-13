@@ -1,0 +1,57 @@
+ci:
+  autoupdate_schedule: monthly
+  autofix_prs: true
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Keep in sync with latest stable Ruff (Aug 2025)
+    rev: v0.12.8
+    hooks:
+      # Lint (with auto-fix) first
+      - id: ruff-check
+        args: [--fix]
+        types_or: [python, pyi]
+      # Then format
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: no-commit-to-branch
+        args: [--branch=main, --branch=master]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+      - id: codespell
+        args:
+          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha
+          - --skip=./.*,*.csv,*.json,*.min.js,*.map
+          - --quiet-level=2
+        exclude: |
+          (?x)^(
+            tests/fixtures/|
+            .*/snapshots/|
+            .*/translations/|
+            .*/.git/|
+            .*/.tox/|
+            .*/.venv/|
+            dist/|
+            build/|
+            .*/node_modules/
+          )
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        files: "\.(yaml|yml)$"

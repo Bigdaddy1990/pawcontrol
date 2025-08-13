@@ -1,17 +1,18 @@
 ## Summary
 
+<!-- Describe the changes -->
 
-
-## Testing
-
-<!-- Describe how you tested your changes. -->
-- [ ] Tests were added or updated
-- [ ] `pytest` executed successfully
+## Type of change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Docs/CI only
 
 ## Checklist
+- [ ] Tests added/updated
+- [ ] Docs updated (README/QUALITY_CHECKLIST)
+- [ ] CI green
+- [ ] Linked issue
 
-- [ ] Code follows the project style
-- [ ] Documentation updated if needed
-- [ ] All tests passing
-
-- Provide a brief summary of your changes
+## Related
+Repo: https://github.com/Bigdaddy1990/pawcontrol

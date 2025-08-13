@@ -1,38 +1,35 @@
-name: Bug report
-description: Report a problem with the Paw Control integration
+name: Bug Report
+description: Report a problem with Paw Control
+title: "[Bug]: "
 labels: [bug]
+assignees: []
 body:
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: A clear description of the issue.
+      label: Description
+      description: What happened? What did you expect?
+      placeholder: Tell us what you see.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
       label: Steps to reproduce
-      description: How can we reproduce the issue?
+      description: How can we reproduce this issue?
+      placeholder: 1. ...
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2025.8.x"
     validations:
       required: true
   - type: textarea
     id: logs
     attributes:
-      label: Relevant log output
-      description: Paste logs here.
+      label: Logs
+      description: Paste relevant logs (redact sensitive info).
       render: shell
-  - type: input
-    id: version
-    attributes:
-      label: Integration version
-      description: What version of Paw Control are you using?
-  - type: input
-    id: homeassistant_version
-    attributes:
-      label: Home Assistant version
-  - type: textarea
-    id: additional
-    attributes:
-      label: Additional context
-      description: Add any other context about the problem here.

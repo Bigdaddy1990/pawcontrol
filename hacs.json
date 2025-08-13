@@ -4,5 +4,8 @@
   "zip_release": true,
   "filename": "pawcontrol.zip",
   "homeassistant": "2025.8.0",
+  "domains": [
+    "integration"
+  ],
   "hide_default_branch": true
 }

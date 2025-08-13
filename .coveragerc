@@ -1,0 +1,11 @@
+[run]
+branch = True
+source = custom_components/pawcontrol
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    pass
+show_missing = True
