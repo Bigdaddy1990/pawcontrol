@@ -71,8 +71,9 @@ def create_repair_issue(hass: HomeAssistant, issue_id: str, entry: Any) -> None:
     ir.async_create_issue(
         hass,
         DOMAIN,
-        issue_id,
+        issue_id=issue_id,
         is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
         translation_key=issue_id,
         data={"entry_id": getattr(entry, "entry_id", None)},
     )

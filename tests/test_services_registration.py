@@ -1,13 +1,16 @@
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 DOMAIN = "pawcontrol"
 
 
 @pytest.mark.anyio
 async def test_services_registered(hass: HomeAssistant):
-    assert await async_setup_component(hass, DOMAIN, {DOMAIN: {}}) or True
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
     for svc in [
         "notify_test",
         "gps_start_walk",

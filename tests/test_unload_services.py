@@ -1,22 +1,15 @@
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_unload_removes_services_when_last_entry(hass):
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
 
     # Setup one entry → services registered
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="e1",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="e1")
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     for svc in (

@@ -1,5 +1,6 @@
 import pytest
 from homeassistant.exceptions import ConfigEntryNotReady
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
@@ -8,17 +9,9 @@ async def test_setup_retry_on_initial_refresh(hass, monkeypatch):
     """If the coordinator initial refresh fails, integration should raise ConfigEntryNotReady."""
     # Arrange: minimal environment
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
 
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="test123",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="test123")
+    entry.add_to_hass(hass)
 
     # Spy to capture created coordinator and make its first refresh fail
 

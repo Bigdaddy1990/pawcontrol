@@ -1,4 +1,5 @@
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
@@ -15,18 +16,15 @@ async def _make_device(hass, entry, dog_id):
 
 async def test_stale_devices_issue_when_auto_false(hass, monkeypatch):
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers import issue_registry as ir
 
-    entry = ConfigEntry(
-        version=1,
+    entry = MockConfigEntry(
         domain=comp.DOMAIN,
-        title="Paw",
         data={},
-        source="user",
-        entry_id="e1",
         options={"auto_prune_devices": False},
+        entry_id="e1",
     )
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     # Create a stale device (dog-x not in coordinator data)
@@ -47,18 +45,15 @@ async def test_stale_devices_issue_when_auto_false(hass, monkeypatch):
 
 async def test_stale_devices_auto_prunes(hass, monkeypatch):
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers import device_registry as dr
 
-    entry = ConfigEntry(
-        version=1,
+    entry = MockConfigEntry(
         domain=comp.DOMAIN,
-        title="Paw",
         data={},
-        source="user",
-        entry_id="e2",
         options={"auto_prune_devices": True},
+        entry_id="e2",
     )
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     dev = await _make_device(hass, entry, "dog-y")
@@ -75,18 +70,10 @@ async def test_stale_devices_auto_prunes(hass, monkeypatch):
 
 async def test_prune_service_removes(hass):
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers import device_registry as dr
 
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="e3",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="e3")
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     dev_reg = dr.async_get(hass)
