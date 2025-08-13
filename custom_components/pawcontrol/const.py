@@ -48,6 +48,26 @@ MODULE_NOTIFICATIONS: Final[str] = "notifications"
 MODULE_DASHBOARD: Final[str] = "dashboard"
 MODULE_MEDICATION: Final[str] = "medication"
 
+# Food type constants
+FOOD_DRY: Final[str] = "dry"
+FOOD_WET: Final[str] = "wet"
+FOOD_BARF: Final[str] = "barf"
+FOOD_TREAT: Final[str] = "treat"
+
+# Grooming task constants
+GROOMING_BATH: Final[str] = "bath"
+GROOMING_BRUSH: Final[str] = "brush"
+GROOMING_EARS: Final[str] = "ears"
+GROOMING_EYES: Final[str] = "eyes"
+GROOMING_NAILS: Final[str] = "nails"
+GROOMING_TEETH: Final[str] = "teeth"
+GROOMING_TRIM: Final[str] = "trim"
+
+# Training intensity constants
+INTENSITY_LOW: Final[str] = "low"
+INTENSITY_MEDIUM: Final[str] = "medium"
+INTENSITY_HIGH: Final[str] = "high"
+
 # Common config keys referenced across modules/options
 CONF_DOGS = "dogs"
 CONF_RESET_TIME = "reset_time"
@@ -119,6 +139,12 @@ FEEDING_TYPES: Final[dict[str, str]] = {
     "barf": "BARF",
     "snack": "Snack",
 }
+
+# Meal constants
+MEAL_BREAKFAST: Final[str] = "breakfast"
+MEAL_LUNCH: Final[str] = "lunch"
+MEAL_DINNER: Final[str] = "dinner"
+MEAL_SNACK: Final[str] = "snack"
 
 # Health thresholds (example defaults)
 HEALTH_THRESHOLDS: Final[dict[str, float]] = {

@@ -104,3 +104,28 @@ async def async_pause_tracking(hass: HomeAssistant, call: ServiceCall) -> None:
 async def async_resume_tracking(hass: HomeAssistant, call: ServiceCall) -> None:
     # Placeholder for resume state.
     return
+
+
+class PawControlGPSHandler:
+    """Helper class to expose GPS service methods."""
+
+    async def async_update_location(
+        self, hass: HomeAssistant, call: ServiceCall
+    ) -> None:
+        await async_update_location(hass, call)
+
+    async def async_start_walk(self, hass: HomeAssistant, call: ServiceCall) -> None:
+        await async_start_walk(hass, call)
+
+    async def async_end_walk(self, hass: HomeAssistant, call: ServiceCall) -> None:
+        await async_end_walk(hass, call)
+
+    async def async_pause_tracking(
+        self, hass: HomeAssistant, call: ServiceCall
+    ) -> None:
+        await async_pause_tracking(hass, call)
+
+    async def async_resume_tracking(
+        self, hass: HomeAssistant, call: ServiceCall
+    ) -> None:
+        await async_resume_tracking(hass, call)

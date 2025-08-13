@@ -46,8 +46,8 @@ rules:
 
   # Entities have has_entity_name set to True
   entity_has_entity_name:
-    status: partial
-    comment: Needs implementation in all entity platforms
+    status: done
+    comment: All entity platforms define _attr_has_entity_name
 
   # ============= SILVER REQUIREMENTS =============
   # Integration has at least one code owner
@@ -118,8 +118,8 @@ rules:
 
   # Set an appropriate PARALLEL_UPDATES constant
   parallel_updates:
-    status: todo
-    comment: Not set, using default
+    status: done
+    comment: PARALLEL_UPDATES defined for all platforms
 
   # Entities have entity category set
   entity_category:
@@ -215,7 +215,7 @@ rules:
 # Summary
 current_tier: bronze
 target_tier: gold
-completion_percentage: 65
+completion_percentage: 68
 
 next_steps:
   - Add complete type hints throughout codebase
