@@ -16,6 +16,7 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -33,6 +34,11 @@ async def async_setup_entry(
     """Set up Paw Control sensors."""
     runtime_data = entry.runtime_data
     coordinator = runtime_data.coordinator
+
+    if not coordinator.last_update_success:
+        await coordinator.async_refresh()
+        if not coordinator.last_update_success:
+            raise PlatformNotReady
 
     dogs = entry.options.get(CONF_DOGS, [])
     entities: list[PawControlSensor] = []

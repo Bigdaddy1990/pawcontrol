@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.text import TextEntity
+from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import (
@@ -37,6 +38,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control text entities."""
     coordinator = entry.runtime_data.coordinator
+
+    if not coordinator.last_update_success:
+        await coordinator.async_refresh()
+        if not coordinator.last_update_success:
+            raise PlatformNotReady
 
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
