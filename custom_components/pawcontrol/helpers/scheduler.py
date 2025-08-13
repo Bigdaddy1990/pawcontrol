@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterator, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -84,6 +84,19 @@ class PawControlScheduler:
                 _LOGGER.debug(f"Cancelled reminder task: {task_id}")
 
         self._reminder_tasks.clear()
+
+    def _iter_dogs_with_module(
+        self, module: str
+    ) -> Iterator[tuple[str, Dict[str, Any]]]:
+        """Yield dogs that have a specific module enabled."""
+        dogs = self.entry.options.get(CONF_DOGS, [])
+        for dog in dogs:
+            dog_id = dog.get(CONF_DOG_ID)
+            if not dog_id:
+                continue
+            modules = dog.get(CONF_DOG_MODULES, {})
+            if modules.get(module, False):
+                yield dog_id, dog
 
     async def _setup_daily_reset(self) -> None:
         """Set up daily reset task."""
@@ -176,17 +189,7 @@ class PawControlScheduler:
 
     async def _setup_feeding_reminders(self) -> None:
         """Set up feeding reminder schedules."""
-        dogs = self.entry.options.get(CONF_DOGS, [])
-
-        for dog in dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            if not dog_id:
-                continue
-
-            modules = dog.get(CONF_DOG_MODULES, {})
-            if not modules.get(MODULE_FEEDING, False):
-                continue
-
+        for dog_id, dog in self._iter_dogs_with_module(MODULE_FEEDING):
             # Default feeding times
             feeding_schedule = {
                 "breakfast": "07:00:00",
@@ -236,16 +239,7 @@ class PawControlScheduler:
 
     async def _setup_walk_reminders(self) -> None:
         """Set up walk reminder checks."""
-        dogs = self.entry.options.get(CONF_DOGS, [])
-
-        for dog in dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            if not dog_id:
-                continue
-
-            modules = dog.get(CONF_DOG_MODULES, {})
-            if not modules.get(MODULE_WALK, False):
-                continue
+        for dog_id, dog in self._iter_dogs_with_module(MODULE_WALK):
 
             @callback
             def walk_check_callback(
@@ -283,17 +277,7 @@ class PawControlScheduler:
 
     async def _setup_medication_reminders(self) -> None:
         """Set up medication reminder schedules."""
-        dogs = self.entry.options.get(CONF_DOGS, [])
-
-        for dog in dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            if not dog_id:
-                continue
-
-            modules = dog.get(CONF_DOG_MODULES, {})
-            if not modules.get(MODULE_MEDICATION, False):
-                continue
-
+        for dog_id, dog in self._iter_dogs_with_module(MODULE_MEDICATION):
             # Get medication schedule from config (if available)
             # For now, use default times
             medication_times = ["08:00:00", "20:00:00"]
@@ -341,16 +325,7 @@ class PawControlScheduler:
 
     async def _setup_grooming_reminders(self) -> None:
         """Set up grooming reminder checks."""
-        dogs = self.entry.options.get(CONF_DOGS, [])
-
-        for dog in dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            if not dog_id:
-                continue
-
-            modules = dog.get(CONF_DOG_MODULES, {})
-            if not modules.get(MODULE_GROOMING, False):
-                continue
+        for dog_id, dog in self._iter_dogs_with_module(MODULE_GROOMING):
 
             @callback
             def grooming_check_callback(
