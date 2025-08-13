@@ -30,20 +30,19 @@ _LOGGER = logging.getLogger(__name__)
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate the Haversine distance between two points in meters."""
     R = 6371000  # Earth's radius in meters
-
+    
     # Convert to radians
     lat1_rad = math.radians(lat1)
     lat2_rad = math.radians(lat2)
     delta_lat = math.radians(lat2 - lat1)
     delta_lon = math.radians(lon2 - lon1)
-
+    
     # Haversine formula
-    a = (
-        math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
-    )
+    a = (math.sin(delta_lat / 2) ** 2 + 
+         math.cos(lat1_rad) * math.cos(lat2_rad) * 
+         math.sin(delta_lon / 2) ** 2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
+    
     return R * c
 
 
@@ -97,7 +96,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     "last_ts": dt_util.now().isoformat(),
                     "enters": 0,
                     "leaves": 0,
-                    "time_today_s": 0.0,
+                    "time_today_s": 0.0
                 },
                 "feeding": {
                     "last_feeding": None,
@@ -178,24 +177,16 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 data["feeding"]["is_hungry"] = self._calculate_is_hungry(dog_id)
 
                 # Check if grooming is needed
-                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(
-                    dog_id
-                )
+                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(dog_id)
 
                 # Calculate activity level
-                data["activity"]["activity_level"] = self._calculate_activity_level(
-                    dog_id
-                )
+                data["activity"]["activity_level"] = self._calculate_activity_level(dog_id)
 
                 # Update medication due times
-                data["health"]["next_medication_due"] = self._calculate_next_medication(
-                    dog_id
-                )
+                data["health"]["next_medication_due"] = self._calculate_next_medication(dog_id)
 
                 # Calculate calories burned
-                data["activity"]["calories_burned_today"] = self._calculate_calories(
-                    dog_id
-                )
+                data["activity"]["calories_burned_today"] = self._calculate_calories(dog_id)
 
             return self._dog_data
 
@@ -309,11 +300,11 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._initialize_dog_data()
 
     def update_gps(
-        self,
-        dog_id: str,
-        latitude: float,
-        longitude: float,
-        accuracy: float | None = None,
+        self, 
+        dog_id: str, 
+        latitude: float, 
+        longitude: float, 
+        accuracy: float | None = None
     ) -> None:
         """Update GPS-derived fields: last update, distance, and geofence enter/leave/time."""
         data = self._dog_data.get(dog_id)
@@ -331,11 +322,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         try:
             opts = dict(getattr(self.entry, "_options", {}) or {})
-            geo = (
-                (opts.get("geofence") or {})
-                if isinstance(opts.get("geofence"), dict)
-                else {}
-            )
+            geo = (opts.get("geofence") or {}) if isinstance(opts.get("geofence"), dict) else {}
             home_lat = home_lat if home_lat is not None else geo.get("lat")
             home_lon = home_lon if home_lon is not None else geo.get("lon")
             radius_m = radius_m or int(geo.get("radius_m") or 0)
@@ -347,15 +334,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         inside = None
         if isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float)):
             try:
-                dist = round(
-                    _haversine_m(
-                        float(home_lat),
-                        float(home_lon),
-                        float(latitude),
-                        float(longitude),
-                    ),
-                    1,
-                )
+                dist = round(_haversine_m(float(home_lat), float(home_lon), float(latitude), float(longitude)), 1)
             except Exception:
                 dist = None
 
@@ -374,7 +353,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         prev_inside = loc.get("is_home")
         last_ts = loc.get("last_ts")
         now = dt_util.utcnow()
-
+        
         if last_ts:
             try:
                 elapsed = (now - self._parse_datetime(last_ts)).total_seconds() / 60.0
@@ -451,15 +430,15 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if dog_id not in self._dog_data:
             _LOGGER.error("Dog %s not found", dog_id)
             return
-
+        
         walk = self._dog_data[dog_id]["walk"]
         current = float(walk.get("walk_distance_m", 0.0))
         walk["walk_distance_m"] = round(current + float(inc_m), 1)
-
+        
         # Mark last action for stats
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_progress"
-
+        
         # Notify entities immediately
         self.async_update_listeners()
 
@@ -598,15 +577,17 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if weight_kg is not None:
             health_data["weight_kg"] = weight_kg
             # Keep last 30 weight measurements for trend
-            health_data["weight_trend"].append(
-                {"date": dt_util.now().isoformat(), "weight": weight_kg}
-            )
+            health_data["weight_trend"].append({
+                "date": dt_util.now().isoformat(),
+                "weight": weight_kg
+            })
             health_data["weight_trend"] = health_data["weight_trend"][-30:]
 
         if note:
-            health_data["health_notes"].append(
-                {"date": dt_util.now().isoformat(), "note": note}
-            )
+            health_data["health_notes"].append({
+                "date": dt_util.now().isoformat(),
+                "note": note
+            })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
@@ -642,7 +623,9 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         await self.async_request_refresh()
 
-    async def start_grooming(self, dog_id: str, grooming_type: str, notes: str) -> None:
+    async def start_grooming(
+        self, dog_id: str, grooming_type: str, notes: str
+    ) -> None:
         """Start grooming session for a dog."""
         if dog_id not in self._dog_data:
             _LOGGER.error(f"Dog {dog_id} not found")
@@ -652,9 +635,11 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         grooming_data["last_grooming"] = dt_util.now().isoformat()
         grooming_data["grooming_type"] = grooming_type
-        grooming_data["grooming_history"].append(
-            {"date": dt_util.now().isoformat(), "type": grooming_type, "notes": notes}
-        )
+        grooming_data["grooming_history"].append({
+            "date": dt_util.now().isoformat(),
+            "type": grooming_type,
+            "notes": notes
+        })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
@@ -701,14 +686,12 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         training_data["last_topic"] = topic
         training_data["training_duration_min"] = duration_min
         training_data["training_sessions_today"] += 1
-        training_data["training_history"].append(
-            {
-                "date": dt_util.now().isoformat(),
-                "topic": topic,
-                "duration": duration_min,
-                "notes": notes,
-            }
-        )
+        training_data["training_history"].append({
+            "date": dt_util.now().isoformat(),
+            "topic": topic,
+            "duration": duration_min,
+            "notes": notes
+        })
 
         self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
         self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"
