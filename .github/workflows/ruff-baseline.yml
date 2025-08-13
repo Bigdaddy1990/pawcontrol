@@ -12,7 +12,6 @@ jobs:
         with: { python-version: "3.13" }
       - run: python -m pip install --upgrade pip ruff
       - run: |
-          ruff format .
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
