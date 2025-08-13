@@ -210,13 +210,12 @@ class ServiceManager:
 
     def _should_register_services(self) -> bool:
         """Check if services should be registered."""
-        # Only register for the first loaded entry
-        loaded_entries = [
-            entry_id
-            for entry_id in self.hass.data.get(DOMAIN, {})
-            if entry_id != self.entry.entry_id
-        ]
-        return len(loaded_entries) == 0
+        # Only register if this is the first loaded entry
+        return not any(
+            entry.entry_id != self.entry.entry_id
+            and entry.state is ConfigEntryState.LOADED
+            for entry in self.hass.config_entries.async_entries(DOMAIN)
+        )
 
     def _get_entry_from_call(self, call: ServiceCall) -> ConfigEntry:
         """Get the config entry from a service call."""
@@ -241,7 +240,7 @@ class ServiceManager:
     def _get_coordinator(self, call: ServiceCall):
         """Get coordinator from service call."""
         entry = self._get_entry_from_call(call)
-        return self.hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        return entry.runtime_data.coordinator
 
     async def _handle_daily_reset(self, call: ServiceCall) -> None:
         """Handle daily reset service."""
@@ -253,7 +252,7 @@ class ServiceManager:
     async def _handle_sync_setup(self, call: ServiceCall) -> None:
         """Handle setup sync service."""
         entry = self._get_entry_from_call(call)
-        setup_sync = self.hass.data[DOMAIN][entry.entry_id]["setup_sync"]
+        setup_sync = entry.runtime_data.setup_sync
         _LOGGER.info("Syncing setup")
         await setup_sync.sync_all()
 
@@ -263,7 +262,7 @@ class ServiceManager:
         dog_id = call.data.get("dog_id")
         message = call.data.get("message", f"Test notification for {dog_id}")
 
-        router = self.hass.data[DOMAIN][entry.entry_id]["notification_router"]
+        router = entry.runtime_data.notification_router
         await router.send_notification(
             title="Paw Control Test", message=message, dog_id=dog_id
         )
@@ -372,7 +371,7 @@ class ServiceManager:
     async def _handle_generate_report(self, call: ServiceCall) -> None:
         """Handle report generation service."""
         entry = self._get_entry_from_call(call)
-        report_generator = self.hass.data[DOMAIN][entry.entry_id]["report_generator"]
+        report_generator = entry.runtime_data.report_generator
         scope = call.data.get("scope", "daily")
         target = call.data.get("target", "notification")
         format_type = call.data.get("format", "text")
@@ -382,7 +381,7 @@ class ServiceManager:
     async def _handle_export_data(self, call: ServiceCall) -> None:
         """Handle data export service."""
         entry = self._get_entry_from_call(call)
-        report_generator = self.hass.data[DOMAIN][entry.entry_id]["report_generator"]
+        report_generator = entry.runtime_data.report_generator
         dog_id = call.data.get("dog_id")
         date_from = call.data.get("from")
         date_to = call.data.get("to")

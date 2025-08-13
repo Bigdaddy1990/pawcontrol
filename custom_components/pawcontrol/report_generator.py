@@ -17,7 +17,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOGS,
     CONF_EXPORT_PATH,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ class ReportGenerator:
         """Initialize report generator."""
         self.hass = hass
         self.entry = entry
-        self.coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        self.coordinator = entry.runtime_data.coordinator
 
     async def generate_report(
         self,
@@ -147,7 +146,7 @@ class ReportGenerator:
         self, report_data: Dict[str, Any], scope: str
     ) -> None:
         """Send report as notification."""
-        router = self.hass.data[DOMAIN][self.entry.entry_id]["notification_router"]
+        router = self.entry.runtime_data.notification_router
 
         # Format report as text
         title = f"🐾 Paw Control {scope.capitalize()} Report"
