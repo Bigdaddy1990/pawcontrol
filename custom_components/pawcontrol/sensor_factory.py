@@ -43,8 +43,8 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
         self._config = config
         self._attr_unique_id = f"{DOMAIN}.{dog_id}.sensor.{config.key}"
         self._attr_translation_key = config.key
-        self._apply_class_map(config.key)
-        self._apply_classes_from_key(config.key)
+        _apply_class_map(self, config.key)
+        _apply_classes_from_key(self, config.key)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)},
             name=f"Hund {title}",
@@ -210,68 +210,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             unit="m",
             transform_func=lambda x: round(float(x), 1) if x is not None else None,
         ),
-    }
-
-
-def create_dog_sensors(
-    hass: HomeAssistant, dog_id: str, title: str
-) -> list[ConfigurableDogSensor]:
-    """Create all sensors for a dog using factory pattern."""
-    configs = create_sensor_configs()
-    return [
-        ConfigurableDogSensor(hass, dog_id, title, config)
-        for config in configs.values()
-    ]
-
-    def _apply_classes_from_key(self, key: str):
-        if "battery" in key:
-            self._attr_device_class = "battery"
-            self._attr_state_class = "measurement"
-            self._attr_native_unit_of_measurement = "%"
-        elif any(k in key for k in ["distance", "meters", "km"]):
-            self._attr_device_class = "distance"
-            self._attr_state_class = "measurement"
-        elif any(k in key for k in ["duration", "time", "seconds", "minutes", "hours"]):
-            self._attr_device_class = None
-            self._attr_state_class = "measurement"
-        elif any(k in key for k in ["speed", "pace"]):
-            self._attr_device_class = "speed"
-            self._attr_state_class = "measurement"
-
-
-CLASS_MAP = {
-    "battery_level": {
-        "device_class": "battery",
-        "state_class": "measurement",
-        "unit": "%",
-    },
-    "distance_m": {
-        "device_class": "distance",
-        "state_class": "measurement",
-        "unit": "m",
-    },
-    "distance_km": {
-        "device_class": "distance",
-        "state_class": "measurement",
-        "unit": "km",
-    },
-    "speed_m_s": {"device_class": "speed", "state_class": "measurement", "unit": "m/s"},
-    "speed_km_h": {
-        "device_class": "speed",
-        "state_class": "measurement",
-        "unit": "km/h",
-    },
-    "duration_s": {"device_class": None, "state_class": "measurement", "unit": "s"},
-    "duration_min": {"device_class": None, "state_class": "measurement", "unit": "min"},
-    "steps": {"device_class": None, "state_class": "total_increasing", "unit": None},
-    "calories": {"device_class": None, "state_class": "measurement", "unit": "kcal"},
-    "temperature_c": {
-        "device_class": "temperature",
-        "state_class": "measurement",
-        "unit": "°C",
-    },
-
-        ,
+        # Safe zone sensors
         "safe_inside": SensorConfig(
             key="safe_inside",
             name="Safe Zone Inside",
@@ -308,10 +247,11 @@ CLASS_MAP = {
             state_class=SensorStateClass.MEASUREMENT,
             unit="min",
             default_value=0.0,
-            transform_func=lambda s: round(float(s)/60.0, 1) if s is not None else None,
-        )
-
-        ,
+            transform_func=lambda s: round(float(s) / 60.0, 1)
+            if s is not None
+            else None,
+        ),
+        # Geofence sensors
         "geofence_enters_today": SensorConfig(
             key="geofence_enters_today",
             name="Geofence Enters Today",
@@ -341,8 +281,53 @@ CLASS_MAP = {
             unit="min",
             default_value=0.0,
             transform_func=lambda x: round(float(x), 1) if x is not None else 0.0,
-        )
-        }
+        ),
+    }
+
+
+def create_dog_sensors(
+    hass: HomeAssistant, dog_id: str, title: str
+) -> list[ConfigurableDogSensor]:
+    """Create all sensors for a dog using factory pattern."""
+    configs = create_sensor_configs()
+    return [
+        ConfigurableDogSensor(hass, dog_id, title, config)
+        for config in configs.values()
+    ]
+
+
+CLASS_MAP = {
+    "battery_level": {
+        "device_class": "battery",
+        "state_class": "measurement",
+        "unit": "%",
+    },
+    "distance_m": {
+        "device_class": "distance",
+        "state_class": "measurement",
+        "unit": "m",
+    },
+    "distance_km": {
+        "device_class": "distance",
+        "state_class": "measurement",
+        "unit": "km",
+    },
+    "speed_m_s": {"device_class": "speed", "state_class": "measurement", "unit": "m/s"},
+    "speed_km_h": {
+        "device_class": "speed",
+        "state_class": "measurement",
+        "unit": "km/h",
+    },
+    "duration_s": {"device_class": None, "state_class": "measurement", "unit": "s"},
+    "duration_min": {"device_class": None, "state_class": "measurement", "unit": "min"},
+    "steps": {"device_class": None, "state_class": "total_increasing", "unit": None},
+    "calories": {"device_class": None, "state_class": "measurement", "unit": "kcal"},
+    "temperature_c": {
+        "device_class": "temperature",
+        "state_class": "measurement",
+        "unit": "°C",
+    },
+}
 
 
 def _apply_class_map(self, key: str):
@@ -354,3 +339,19 @@ def _apply_class_map(self, key: str):
     unit = meta.get("unit")
     if unit is not None:
         self._attr_native_unit_of_measurement = unit
+
+
+def _apply_classes_from_key(self, key: str):
+    if "battery" in key:
+        self._attr_device_class = "battery"
+        self._attr_state_class = "measurement"
+        self._attr_native_unit_of_measurement = "%"
+    elif any(k in key for k in ["distance", "meters", "km"]):
+        self._attr_device_class = "distance"
+        self._attr_state_class = "measurement"
+    elif any(k in key for k in ["duration", "time", "seconds", "minutes", "hours"]):
+        self._attr_device_class = None
+        self._attr_state_class = "measurement"
+    elif any(k in key for k in ["speed", "pace"]):
+        self._attr_device_class = "speed"
+        self._attr_state_class = "measurement"
