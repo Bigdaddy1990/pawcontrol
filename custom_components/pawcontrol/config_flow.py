@@ -1,18 +1,16 @@
-from homeassistant.config_entries import FlowResult
-
 """Config flow for Paw Control integration."""
 
-from __future__ import annotations  # noqa: E402, F404
+from __future__ import annotations
 
-import logging  # noqa: E402
-from typing import Any  # noqa: E402
+import logging
+from typing import Any
 
-import voluptuous as vol  # noqa: E402
-from homeassistant import config_entries  # noqa: E402
-from homeassistant.config_entries import OptionsFlowWithReload  # noqa: E402
-from homeassistant.core import callback  # noqa: E402
-from homeassistant.data_entry_flow import FlowResult  # noqa: E402, F811
-from homeassistant.helpers.selector import (  # noqa: E402
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.config_entries import OptionsFlowWithReload
+from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
     BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
@@ -85,8 +83,8 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
 
         if user_input is not None:
             # Store number of dogs and proceed to dog configuration
@@ -443,8 +441,6 @@ class PawControlOptionsFlow(
 ):
     """Handle options flow for Paw Control."""
 
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
@@ -1118,13 +1114,15 @@ class OptionsFlowHandler(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict | None = None):
         return await self.async_step_geofence()
 
-
-
     async def async_step_geofence(self, user_input: dict | None = None):
         import voluptuous as vol
 
         errors: dict[str, str] = {}
-        opts = dict(self._options or {}) if hasattr(self, "_options") else dict(self.config_entry.options or {})
+        opts = (
+            dict(self._options or {})
+            if hasattr(self, "_options")
+            else dict(self.config_entry.options or {})
+        )
         geo = dict(opts.get("geofence") or {})
 
         default_lat = geo.get("lat", None)
@@ -1136,9 +1134,13 @@ class OptionsFlowHandler(OptionsFlowWithReload):
             {
                 vol.Optional("lat", default=default_lat): vol.Any(float, int, None),
                 vol.Optional("lon", default=default_lon): vol.Any(float, int, None),
-                vol.Optional("radius_m", default=default_radius): vol.All(int, vol.Range(min=10, max=5000)),
+                vol.Optional("radius_m", default=default_radius): vol.All(
+                    int, vol.Range(min=10, max=5000)
+                ),
                 vol.Optional("enable_alerts", default=default_alerts): bool,
-                vol.Optional("home_from_entity"): EntitySelector(EntitySelectorConfig(domain=["device_tracker","person"])),
+                vol.Optional("home_from_entity"): EntitySelector(
+                    EntitySelectorConfig(domain=["device_tracker", "person"])
+                ),
                 vol.Optional("use_current_state", default=False): BooleanSelector(),
             }
         )
@@ -1176,4 +1178,6 @@ class OptionsFlowHandler(OptionsFlowWithReload):
                 }
                 return self.async_create_entry(title="", data=new_opts)
 
-        return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="geofence", data_schema=schema, errors=errors
+        )

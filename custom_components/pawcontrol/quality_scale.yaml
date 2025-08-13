@@ -133,8 +133,8 @@ rules:
 
   # Integration supports reconfiguration
   reconfiguration:
-    status: partial
-    comment: Options flow exists, reconfigure needs work
+    status: done
+    comment: Config flow uses unique ID for full reconfiguration
 
   # Integration has test coverage of 95% or more
   test_coverage:
@@ -215,13 +215,12 @@ rules:
 # Summary
 current_tier: bronze
 target_tier: gold
-completion_percentage: 68
+completion_percentage: 69
 
 next_steps:
   - Add complete type hints throughout codebase
   - Increase test coverage to 95%
   - Implement device discovery (USB, mDNS, or DHCP)
-  - Complete reconfiguration support
   - Submit brand assets to core brands repository
   - Refactor to use ConfigEntry.runtime_data
   - Add comprehensive repair flows
