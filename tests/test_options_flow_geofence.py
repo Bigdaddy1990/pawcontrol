@@ -1,4 +1,5 @@
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
@@ -6,17 +7,9 @@ pytestmark = pytest.mark.asyncio
 async def test_options_flow_geofence_triggers_reload(hass, monkeypatch):
     import custom_components.pawcontrol as comp
     from custom_components.pawcontrol import config_flow as cf
-    from homeassistant.config_entries import ConfigEntry
 
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="opt1",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="opt1")
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     reloaded = {"count": 0}

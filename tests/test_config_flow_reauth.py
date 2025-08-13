@@ -1,20 +1,17 @@
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 async def test_reauth_updates_entry(hass):
     import custom_components.pawcontrol.config_flow as cf
-    from homeassistant.config_entries import ConfigEntry
 
-    entry = ConfigEntry(
-        version=1,
+    entry = MockConfigEntry(
         domain="pawcontrol",
-        title="Paw",
         data={"api_key": "oldkey"},
-        source="user",
-        entry_id="test123",
         options={},
+        entry_id="test123",
     )
-    hass.config_entries._entries.append(entry)
+    entry.add_to_hass(hass)
     flow = cf.ConfigFlow()
     flow.hass = hass
     flow.context = {"entry_id": entry.entry_id}

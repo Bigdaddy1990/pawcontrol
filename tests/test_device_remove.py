@@ -1,22 +1,15 @@
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_async_remove_config_entry_device_allows_removal(hass):
     import custom_components.pawcontrol as comp
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers import device_registry as dr
 
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="e1",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="e1")
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     dev_reg = dr.async_get(hass)

@@ -1,5 +1,6 @@
 import pytest
 from homeassistant.exceptions import HomeAssistantError
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.asyncio
 
@@ -8,18 +9,10 @@ async def test_service_wrapper_requires_target(hass):
     import custom_components.pawcontrol as comp
 
     # Register services via setup so wrappers exist
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import ServiceCall
 
-    entry = ConfigEntry(
-        version=1,
-        domain=comp.DOMAIN,
-        title="Paw",
-        data={},
-        source="user",
-        entry_id="e1",
-        options={},
-    )
+    entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="e1")
+    entry.add_to_hass(hass)
     await comp.async_setup_entry(hass, entry)
 
     # Wrapper resolve path should raise if no device/dog_id

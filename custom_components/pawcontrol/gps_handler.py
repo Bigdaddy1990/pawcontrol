@@ -109,10 +109,19 @@ async def async_resume_tracking(hass: HomeAssistant, call: ServiceCall) -> None:
 class PawControlGPSHandler:
     """Helper class to expose GPS service methods."""
 
+    def __init__(self, hass: HomeAssistant, options: dict | None) -> None:
+        """Store reference to Home Assistant and configuration options."""
+        self.hass = hass
+        self.options = options or {}
+
     async def async_update_location(
         self, hass: HomeAssistant, call: ServiceCall
     ) -> None:
         await async_update_location(hass, call)
+
+    async def async_setup(self) -> None:
+        """Set up GPS handler (placeholder for future enhancements)."""
+        return
 
     async def async_start_walk(self, hass: HomeAssistant, call: ServiceCall) -> None:
         await async_start_walk(hass, call)
