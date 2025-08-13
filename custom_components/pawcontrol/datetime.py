@@ -3,15 +3,22 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from homeassistant.components.datetime import DateTimeEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 
 PARALLEL_UPDATES = 0
 
 
-async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up datetime entities from a config entry."""
     dogs = (entry.options or {}).get("dogs", [])
     entities = [
         NextMedicationDateTime(
@@ -42,11 +49,12 @@ class NextMedicationDateTime(DateTimeEntity):
                 if st and st.state and st.state not in ("unknown", "unavailable")
                 else None
             )
-        except Exception:
+        except (AttributeError, TypeError, ValueError):
+            # Invalid or unexpected state format
             self._dt = None
 
     @property
-    def native_value(self):
+    def native_value(self) -> datetime | None:
         return self._dt
 
     async def async_set_value(self, value: datetime) -> None:

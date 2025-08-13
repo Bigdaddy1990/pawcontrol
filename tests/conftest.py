@@ -1,8 +1,25 @@
 import asyncio
+import sys
+import types
 from collections.abc import Generator
 
 import pytest
-from homeassistant.core import HomeAssistant
+
+try:  # pragma: no cover - fallback when Home Assistant isn't installed
+    from homeassistant.core import HomeAssistant
+except ModuleNotFoundError:  # pragma: no cover
+    ha_core = types.ModuleType("homeassistant.core")
+
+    class HomeAssistant:  # minimal stub for tests
+        pass
+
+    class ServiceCall:  # minimal stub for tests
+        pass
+
+    ha_core.HomeAssistant = HomeAssistant
+    ha_core.ServiceCall = ServiceCall
+    sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
+    sys.modules["homeassistant.core"] = ha_core
 
 
 @pytest.fixture(scope="session")
