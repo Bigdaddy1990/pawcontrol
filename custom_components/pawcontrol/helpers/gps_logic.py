@@ -97,7 +97,7 @@ class GPSLogic:
         )
         self._unsubscribe_callbacks.append(unsubscribe)
 
-        _LOGGER.info(f"Door sensor tracking setup for {self._door_sensor}")
+        _LOGGER.info("Door sensor tracking setup for %s", self._door_sensor)
 
     async def _setup_device_tracker(self, tracker_entity: str) -> None:
         """Set up tracking for a device tracker entity."""
@@ -135,7 +135,7 @@ class GPSLogic:
             "total_distance": 0,
         }
 
-        _LOGGER.info(f"Device tracker setup for {tracker_entity}")
+        _LOGGER.info("Device tracker setup for %s", tracker_entity)
 
     async def _setup_person_tracking(self, person_entity: str) -> None:
         """Set up tracking for a person entity."""
@@ -178,7 +178,7 @@ class GPSLogic:
             "total_distance": 0,
         }
 
-        _LOGGER.info(f"Person tracking setup for {person_entity}")
+        _LOGGER.info("Person tracking setup for %s", person_entity)
 
     def _update_location(
         self, entity_id: str, latitude: float, longitude: float
@@ -247,7 +247,7 @@ class GPSLogic:
 
     def _handle_zone_change(self, entity_id: str, old_zone: str, new_zone: str) -> None:
         """Handle zone change for tracked entity."""
-        _LOGGER.debug(f"{entity_id} moved from {old_zone} to {new_zone}")
+        _LOGGER.debug("%s moved from %s to %s", entity_id, old_zone, new_zone)
 
         # Check if left home
         if old_zone == STATE_HOME and new_zone != STATE_HOME:
@@ -258,7 +258,7 @@ class GPSLogic:
 
     def _handle_left_home(self, entity_id: str) -> None:
         """Handle entity leaving home."""
-        _LOGGER.info(f"{entity_id} left home")
+        _LOGGER.info("%s left home", entity_id)
 
         # Start walk for associated dogs
         dogs = self._get_dogs_for_entity(entity_id)
@@ -267,7 +267,7 @@ class GPSLogic:
 
     def _handle_arrived_home(self, entity_id: str) -> None:
         """Handle entity arriving home."""
-        _LOGGER.info(f"{entity_id} arrived home")
+        _LOGGER.info("%s arrived home", entity_id)
 
         # End walk for associated dogs
         dogs = self._get_dogs_for_entity(entity_id)
@@ -294,7 +294,7 @@ class GPSLogic:
 
     def _confirm_walk_start(self, dog_id: str, source: str) -> None:
         """Confirm walk has started."""
-        _LOGGER.info(f"Walk started for {dog_id} via {source}")
+        _LOGGER.info("Walk started for %s via %s", dog_id, source)
 
         # Initialize walk session with consistent timestamps
         now = dt_util.now()
@@ -381,7 +381,7 @@ class GPSLogic:
             if session.get("confirmed"):
                 last_movement = session.get("last_movement")
                 if last_movement and (current_time - last_movement) > idle_timeout:
-                    _LOGGER.info(f"Walk idle timeout for {dog_id}")
+                    _LOGGER.info("Walk idle timeout for %s", dog_id)
                     self._confirm_walk_end(dog_id, "idle")
 
     def get_current_location(self, entity_id: str) -> tuple[float, float] | None:
