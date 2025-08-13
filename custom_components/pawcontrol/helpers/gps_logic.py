@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -31,6 +32,16 @@ from ..utils import calculate_distance
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class TrackedEntity:
+    """Data for a tracked entity."""
+
+    type: str
+    last_location: tuple[float, float] | None = None
+    last_update: datetime | None = None
+    total_distance: float = 0.0
+
+
 class GPSLogic:
     """Handle GPS tracking and walk detection logic."""
 
@@ -38,7 +49,7 @@ class GPSLogic:
         """Initialize GPS logic."""
         self.hass = hass
         self.entry = entry
-        self._tracked_entities: dict[str, Any] = {}
+        self._tracked_entities: dict[str, TrackedEntity] = {}
         self._walk_sessions: dict[str, dict[str, Any]] = {}
         self._door_sensor: str | None = None
         self._unsubscribe_callbacks: list[CALLBACK_TYPE] = []
@@ -128,12 +139,7 @@ class GPSLogic:
         self._unsubscribe_callbacks.append(unsubscribe)
 
         # Initialize tracking data
-        self._tracked_entities[tracker_entity] = {
-            "type": "device_tracker",
-            "last_location": None,
-            "last_update": None,
-            "total_distance": 0,
-        }
+        self._tracked_entities[tracker_entity] = TrackedEntity(type="device_tracker")
 
         _LOGGER.info("Device tracker setup for %s", tracker_entity)
 
@@ -171,12 +177,7 @@ class GPSLogic:
         self._unsubscribe_callbacks.append(unsubscribe)
 
         # Initialize tracking data
-        self._tracked_entities[person_entity] = {
-            "type": "person",
-            "last_location": None,
-            "last_update": None,
-            "total_distance": 0,
-        }
+        self._tracked_entities[person_entity] = TrackedEntity(type="person")
 
         _LOGGER.info("Person tracking setup for %s", person_entity)
 
@@ -191,25 +192,25 @@ class GPSLogic:
         new_location = (latitude, longitude)
 
         # Calculate distance from last location
-        if tracking_data["last_location"]:
+        if tracking_data.last_location:
             dist = calculate_distance(
-                tracking_data["last_location"][0],
-                tracking_data["last_location"][1],
+                tracking_data.last_location[0],
+                tracking_data.last_location[1],
                 new_location[0],
                 new_location[1],
             )
 
             # Only update if movement is significant (> 5 meters)
             if dist > 5:
-                tracking_data["total_distance"] += dist
-                tracking_data["last_location"] = new_location
-                tracking_data["last_update"] = dt_util.now()
+                tracking_data.total_distance += dist
+                tracking_data.last_location = new_location
+                tracking_data.last_update = dt_util.now()
 
                 # Check if this could be a walk
                 self._check_walk_activity(entity_id, dist)
         else:
-            tracking_data["last_location"] = new_location
-            tracking_data["last_update"] = dt_util.now()
+            tracking_data.last_location = new_location
+            tracking_data.last_update = dt_util.now()
 
     def _handle_door_opened(self) -> None:
         """Handle door opened event."""
@@ -384,7 +385,7 @@ class GPSLogic:
     def get_current_location(self, entity_id: str) -> tuple[float, float] | None:
         """Get current location for tracked entity."""
         if entity_id in self._tracked_entities:
-            return self._tracked_entities[entity_id].get("last_location")
+            return self._tracked_entities[entity_id].last_location
         return None
 
     def get_distance_from_home(self, entity_id: str) -> float | None:
