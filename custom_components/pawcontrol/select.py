@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -48,6 +49,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control select entities."""
     coordinator = entry.runtime_data.coordinator
+    if not coordinator.last_update_success:
+        raise PlatformNotReady
 
     entities = []
     dogs = entry.options.get(CONF_DOGS, [])
