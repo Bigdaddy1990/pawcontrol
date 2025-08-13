@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant
+from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN
 
@@ -13,9 +14,10 @@ async def async_register(
 
 
 async def async_system_health_info(hass: HomeAssistant):
-    data = hass.data.get(DOMAIN) or {}
-    version = data.get("version") if isinstance(data, dict) else None
+    integration = await async_get_integration(hass, DOMAIN)
+    entries = hass.config_entries.async_entries(DOMAIN)
+
     return {
-        "version": version or "unknown",
-        "entries": len((data or {}).keys()) if isinstance(data, dict) else 0,
+        "version": integration.version or "unknown",
+        "entries": len(entries),
     }
