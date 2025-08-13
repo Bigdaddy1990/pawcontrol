@@ -20,10 +20,14 @@ from .const import (
     SERVICE_TOGGLE_GEOFENCE_ALERTS,
 )
 
+SIMPLE_ACTION_SERVICES = {
+    "start_walk": SERVICE_GPS_START_WALK,
+    "end_walk": SERVICE_GPS_END_WALK,
+}
+
 ACTION_TYPES = {
     "post_location",
-    "start_walk",
-    "end_walk",
+    *SIMPLE_ACTION_SERVICES,
     "toggle_geofence_alerts",
 }
 
@@ -52,13 +56,11 @@ async def async_get_actions(
 def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | None:
     if not device_id:
         return None
-    dev_reg = dr.async_get(hass)
-    dev = dev_reg.async_get(device_id)
-    if not dev or not dev.identifiers:
-        return None
-    for idt in dev.identifiers:
-        if idt[0] == DOMAIN:
-            return idt[1]
+    if dev := dr.async_get(hass).async_get(device_id):
+        return next(
+            (identifier for domain, identifier in dev.identifiers if domain == DOMAIN),
+            None,
+        )
     return None
 
 
@@ -74,19 +76,10 @@ async def async_call_action_from_config(
     if not dog_id:
         raise InvalidDeviceAutomationConfig("Device has no Paw Control dog identifier")
 
-    if action_type == "start_walk":
+    if action_type in SIMPLE_ACTION_SERVICES:
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_GPS_START_WALK,
-            {"dog_id": dog_id},
-            blocking=True,
-            context=context,
-        )
-        return
-    if action_type == "end_walk":
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_GPS_END_WALK,
+            SIMPLE_ACTION_SERVICES[action_type],
             {"dog_id": dog_id},
             blocking=True,
             context=context,
