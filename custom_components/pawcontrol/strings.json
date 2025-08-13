@@ -84,7 +84,8 @@
           "dogs": "Manage Dogs",
           "sources": "Data Sources",
           "notifications": "Notifications",
-          "system": "System Settings"
+          "system": "System Settings",
+          "geofence": "Geofence"
         }
       },
       "dogs": {
@@ -122,6 +123,18 @@
           "export_path": "Export Path",
           "export_format": "Export Format",
           "visitor_mode": "Visitor Mode"
+        }
+      },
+      "geofence": {
+        "title": "Geofence",
+        "description": "Configure home center and radius for presence detection.",
+        "data": {
+          "lat": "Home latitude",
+          "lon": "Home longitude",
+          "radius_m": "Home radius (m)",
+          "enable_alerts": "Enable geofence alerts",
+          "home_from_entity": "Set home from entity",
+          "use_current_state": "Use current entity location"
         }
       }
     }
@@ -221,6 +234,15 @@
       },
       "temperature_c": {
         "name": "Temperature"
+      },
+      "geofence_enters_today": {
+        "name": "Geofence Enters Today"
+      },
+      "geofence_leaves_today": {
+        "name": "Geofence Leaves Today"
+      },
+      "geofence_time_inside_today_min": {
+        "name": "Geofence Time Inside Today"
       }
     }
   },
@@ -249,6 +271,383 @@
     "invalid_geofence": {
       "title": "Invalid geofence settings",
       "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
+    }
+  },
+  "services": {
+    "daily_reset": {
+      "name": "Daily reset",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry"
+        }
+      }
+    },
+    "emergency_mode": {
+      "name": "Emergency Mode",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "end_walk": {
+      "name": "End Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "export_data": {
+      "name": "Export Data",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "feed_dog": {
+      "name": "Feed Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "generate_report": {
+      "name": "Generate Report",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "log_health": {
+      "name": "Log Health",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "log_medication": {
+      "name": "Log Medication",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "play_with_dog": {
+      "name": "Play With Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_grooming": {
+      "name": "Start Grooming",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_training": {
+      "name": "Start Training",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_walk": {
+      "name": "Start Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "sync_setup": {
+      "name": "Sync Setup",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "toggle_visitor": {
+      "name": "Toggle Visitor",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "walk_dog": {
+      "name": "Walk Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "gps_end_walk": {
+      "name": "Gps End Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "notes": {
+          "name": "Notes"
+        },
+        "rating": {
+          "name": "Rating"
+        },
+        "number": {
+          "name": "Number"
+        }
+      }
+    },
+    "gps_export_last_route": {
+      "name": "Gps Export Last Route",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "format": {
+          "name": "Format"
+        },
+        "select": {
+          "name": "Select"
+        },
+        "options": {
+          "name": "Options"
+        },
+        "to_media": {
+          "name": "To Media"
+        }
+      }
+    },
+    "gps_generate_diagnostics": {
+      "name": "Gps Generate Diagnostics",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        }
+      }
+    },
+    "gps_pause_tracking": {
+      "name": "Gps Pause Tracking",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        }
+      }
+    },
+    "gps_post_location": {
+      "name": "Gps Post Location",
+      "fields": {
+        "accuracy": {
+          "name": "Accuracy"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "number": {
+          "name": "Number"
+        },
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "latitude": {
+          "name": "Latitude"
+        },
+        "longitude": {
+          "name": "Longitude"
+        }
+      }
+    },
+    "gps_reset_stats": {
+      "name": "Gps Reset Stats",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        }
+      }
+    },
+    "gps_resume_tracking": {
+      "name": "Gps Resume Tracking",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        }
+      }
+    },
+    "gps_start_walk": {
+      "name": "Gps Start Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "walk_type": {
+          "name": "Walk Type"
+        }
+      }
+    },
+    "notify_test": {
+      "name": "Notify Test",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "purge_all_storage": {
+      "name": "Purge All Storage",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "route_history_export_range": {
+      "name": "Route History Export Range",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "end": {
+          "name": "End"
+        },
+        "format": {
+          "name": "Format"
+        },
+        "select": {
+          "name": "Select"
+        },
+        "options": {
+          "name": "Options"
+        },
+        "start": {
+          "name": "Start"
+        }
+      }
+    },
+    "route_history_list": {
+      "name": "Route History List",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        }
+      }
+    },
+    "route_history_purge": {
+      "name": "Route History Purge",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "older_than_days": {
+          "name": "Older Than Days"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "number": {
+          "name": "Number"
+        }
+      }
+    },
+    "toggle_geofence_alerts": {
+      "name": "Toggle Geofence Alerts",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "enable": {
+          "name": "Enable"
+        }
+      }
+    },
+    "prune_stale_devices": {
+      "name": "Prune Stale Devices",
+      "fields": {
+        "auto": {
+          "name": "Auto"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "boolean": {
+          "name": "Boolean"
+        }
+      }
     }
   }
 }

@@ -12,6 +12,8 @@ from homeassistant.exceptions import (
     ServiceValidationError,
 )
 from homeassistant.helpers import device_registry as dr
+from .services import ServiceManager
+from .types import PawRuntimeData
 from homeassistant.helpers import issue_registry as ir
 
 if TYPE_CHECKING:
@@ -135,11 +137,6 @@ async def async_setup(hass: "HomeAssistant", _config: "ConfigType") -> bool:
     return True
 
 
-async def async_setup(hass: "HomeAssistant", config: "ConfigType") -> bool:  # noqa: F811
-    """Set up the PawControl integration domain and register services."""
-    _register_services(hass)
-    return True
-
 
 async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     """Set up Paw Control from a config entry."""
@@ -169,14 +166,28 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     # instantiate it only after the shared data structure has been created.
     hass.data[DOMAIN][entry.entry_id]["report_generator"] = ReportGenerator(hass, entry)
 
+    # Register services via ServiceManager (single source of truth)
+    services = ServiceManager(hass, entry)
+    await services.async_register_services()
+    hass.data[DOMAIN][entry.entry_id]["services"] = services
+
     # Register devices for each dog
     await _register_devices(hass, entry)
 
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Expose typed runtime data on the entry
+    entry.runtime_data = PawRuntimeData(
+        coordinator=hass.data[DOMAIN][entry.entry_id]["coordinator"],
+        gps_handler=hass.data[DOMAIN][entry.entry_id]["gps_handler"],
+        setup_sync=hass.data[DOMAIN][entry.entry_id]["setup_sync"],
+        report_generator=hass.data[DOMAIN][entry.entry_id]["report_generator"],
+        services=hass.data[DOMAIN][entry.entry_id]["services"],
+    )
+
     # Register services
-    await _register_services(hass, entry)
+      # services are registered via ServiceManager
 
     # Setup schedulers (daily reset, reports, reminders)
     await scheduler_mod.setup_schedulers(hass, entry)
@@ -211,7 +222,7 @@ async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> boo
 
         # Unregister services if no more entries
         if not hass.data[DOMAIN]:
-            _unregister_services(hass)
+            await entry.runtime_data.services.async_unregister_services()
 
     return unload_ok
 
@@ -685,7 +696,7 @@ async def async_remove_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> Non
         domain_data.pop(entry.entry_id, None)
     # If domain empty, unregister services
     if not domain_data:
-        _unregister_services(hass)
+        await entry.runtime_data.services.async_unregister_services()
 
 
 async def handle_route_history_list(hass: "HomeAssistant", call: "ServiceCall") -> None:
@@ -817,6 +828,8 @@ async def async_remove_config_entry_device(
     """
     try:
         from homeassistant.helpers import device_registry as dr
+from .services import ServiceManager
+from .types import PawRuntimeData
     except Exception:
         return False
     # Only allow removal for devices with our DOMAIN identifier

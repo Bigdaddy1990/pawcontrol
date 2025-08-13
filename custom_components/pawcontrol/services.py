@@ -397,7 +397,7 @@ class ServiceManager:
         from . import gps_handler
 
         dog_id = call.data.get("dog_id")
-        await gps_handler.async_start_walk(call)
+        await gps_handler.async_start_walk(self.hass, call)
         self._fire_device_event("walk_started", dog_id)
 
     async def _handle_gps_end_walk(self, call: ServiceCall) -> None:
@@ -405,7 +405,7 @@ class ServiceManager:
         from . import gps_handler
 
         dog_id = call.data.get("dog_id")
-        await gps_handler.async_end_walk(call)
+        await gps_handler.async_end_walk(self.hass, call)
         self._fire_device_event("walk_ended", dog_id)
 
     async def _handle_gps_post_location(self, call: ServiceCall) -> None:
@@ -413,20 +413,20 @@ class ServiceManager:
         from . import gps_handler
 
         dog_id = call.data.get("dog_id")
-        await gps_handler.async_update_location(call)
+        await gps_handler.async_update_location(self.hass, call)
         self._fire_device_event("gps_location_posted", dog_id)
 
     async def _handle_gps_pause_tracking(self, call: ServiceCall) -> None:
         """Handle GPS pause tracking service."""
         from . import gps_handler
 
-        await gps_handler.async_pause_tracking(call)
+        await gps_handler.async_pause_tracking(self.hass, call)
 
     async def _handle_gps_resume_tracking(self, call: ServiceCall) -> None:
         """Handle GPS resume tracking service."""
         from . import gps_handler
 
-        await gps_handler.async_resume_tracking(call)
+        await gps_handler.async_resume_tracking(self.hass, call)
 
     async def _handle_gps_export_last_route(self, call: ServiceCall) -> None:
         """Handle GPS export last route service."""

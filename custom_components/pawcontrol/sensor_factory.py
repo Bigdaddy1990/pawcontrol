@@ -270,7 +270,79 @@ CLASS_MAP = {
         "state_class": "measurement",
         "unit": "°C",
     },
-}
+
+        ,
+        "safe_inside": SensorConfig(
+            key="safe_inside",
+            name="Safe Zone Inside",
+            data_path="safe_zone.inside",
+            device_class=None,
+            state_class=SensorStateClass.MEASUREMENT,
+            unit=None,
+            default_value=0,
+            transform_func=lambda x: 1 if x is True else 0 if x is False else None,
+        ),
+        "safe_enters": SensorConfig(
+            key="safe_enters",
+            name="Safe Zone Enters Today",
+            data_path="safe_zone.enters",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit=None,
+            default_value=0,
+        ),
+        "safe_leaves": SensorConfig(
+            key="safe_leaves",
+            name="Safe Zone Leaves Today",
+            data_path="safe_zone.leaves",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit=None,
+            default_value=0,
+        ),
+        "safe_time_today_min": SensorConfig(
+            key="safe_time_today_min",
+            name="Safe Zone Time Today",
+            data_path="safe_zone.time_today_s",
+            device_class=None,
+            state_class=SensorStateClass.MEASUREMENT,
+            unit="min",
+            default_value=0.0,
+            transform_func=lambda s: round(float(s)/60.0, 1) if s is not None else None,
+        )
+    
+        ,
+        "geofence_enters_today": SensorConfig(
+            key="geofence_enters_today",
+            name="Geofence Enters Today",
+            data_path="location.enters_today",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit=None,
+            default_value=0,
+            transform_func=lambda x: int(x) if x is not None else 0,
+        ),
+        "geofence_leaves_today": SensorConfig(
+            key="geofence_leaves_today",
+            name="Geofence Leaves Today",
+            data_path="location.leaves_today",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit=None,
+            default_value=0,
+            transform_func=lambda x: int(x) if x is not None else 0,
+        ),
+        "geofence_time_inside_today_min": SensorConfig(
+            key="geofence_time_inside_today_min",
+            name="Geofence Time Inside Today",
+            data_path="location.time_inside_today_min",
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit="min",
+            default_value=0.0,
+            transform_func=lambda x: round(float(x), 1) if x is not None else 0.0,
+        )
+        }
 
 
 def _apply_class_map(self, key: str):

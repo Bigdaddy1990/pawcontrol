@@ -1,102 +1,102 @@
-SERVICE_DAILY_RESET:
+daily_reset:
   description: Service 'SERVICE_DAILY_RESET' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Daily Reset
-SERVICE_EMERGENCY_MODE:
+emergency_mode:
   description: Service 'SERVICE_EMERGENCY_MODE' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Emergency Mode
-SERVICE_END_WALK:
+end_walk:
   description: Service 'SERVICE_END_WALK' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service End Walk
-SERVICE_EXPORT_DATA:
+export_data:
   description: Service 'SERVICE_EXPORT_DATA' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Export Data
-SERVICE_FEED_DOG:
+feed_dog:
   description: Service 'SERVICE_FEED_DOG' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Feed Dog
-SERVICE_GENERATE_REPORT:
+generate_report:
   description: Service 'SERVICE_GENERATE_REPORT' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Generate Report
-SERVICE_LOG_HEALTH:
+log_health:
   description: Service 'SERVICE_LOG_HEALTH' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Log Health
-SERVICE_LOG_MEDICATION:
+log_medication:
   description: Service 'SERVICE_LOG_MEDICATION' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Log Medication
-SERVICE_PLAY_WITH_DOG:
+play_with_dog:
   description: Service 'SERVICE_PLAY_WITH_DOG' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Play With Dog
-SERVICE_START_GROOMING:
+start_grooming:
   description: Service 'SERVICE_START_GROOMING' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Start Grooming
-SERVICE_START_TRAINING:
+start_training:
   description: Service 'SERVICE_START_TRAINING' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Start Training
-SERVICE_START_WALK:
+start_walk:
   description: Service 'SERVICE_START_WALK' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Start Walk
-SERVICE_SYNC_SETUP:
+sync_setup:
   description: Service 'SERVICE_SYNC_SETUP' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Sync Setup
-SERVICE_TOGGLE_VISITOR:
+toggle_visitor:
   description: Service 'SERVICE_TOGGLE_VISITOR' for Paw Control.
   fields:
     config_entry_id:
       description: Optional config entry ID to target a specific instance.
       example: abcd1234efgh5678
   name: Service Toggle Visitor
-SERVICE_WALK_DOG:
+walk_dog:
   description: Service 'SERVICE_WALK_DOG' for Paw Control.
   fields:
     config_entry_id:

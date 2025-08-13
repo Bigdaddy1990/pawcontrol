@@ -3,122 +3,138 @@
   "config": {
     "step": {
       "user": {
-        "title": "Willkommen bei Paw Control",
-        "description": "Lass uns dein intelligentes Hundemanagementsystem einrichten. Wie viele Hunde hast du?",
+        "title": "Welcome to Paw Control",
+        "description": "Let's set up your smart dog management system. How many dogs do you have?",
         "data": {
-          "num_dogs": "Anzahl der Hunde"
+          "num_dogs": "Number of dogs"
         }
       },
       "dog_config": {
-        "title": "Hund {dog_num} von {total_dogs} konfigurieren",
-        "description": "Gib die Details für deinen Hund ein und wähle die zu aktivierenden Module.",
+        "title": "Configure Dog {dog_num} of {total_dogs}",
+        "description": "Enter the details for your dog and select which modules to enable.",
         "data": {
-          "dog_id": "Hunde-ID (eindeutige Kennung)",
-          "name": "Name des Hundes",
-          "breed": "Rasse",
-          "age": "Alter (Jahre)",
-          "weight": "Gewicht (kg)",
-          "size": "Größe",
-          "module_walk": "Gassi-Tracking aktivieren",
-          "module_feeding": "Fütterungsverwaltung aktivieren",
-          "module_health": "Gesundheitstracking aktivieren",
-          "module_gps": "GPS-Tracking aktivieren",
-          "module_notifications": "Benachrichtigungen aktivieren",
-          "module_dashboard": "Dashboard aktivieren",
-          "module_grooming": "Pflege-Tracking aktivieren",
-          "module_medication": "Medikamenten-Erinnerungen aktivieren",
-          "module_training": "Training-Tracking aktivieren"
+          "dog_id": "Dog ID (unique identifier)",
+          "name": "Dog Name",
+          "breed": "Breed",
+          "age": "Age (years)",
+          "weight": "Weight (kg)",
+          "size": "Size",
+          "module_walk": "Enable Walk Tracking",
+          "module_feeding": "Enable Feeding Management",
+          "module_health": "Enable Health Tracking",
+          "module_gps": "Enable GPS Tracking",
+          "module_notifications": "Enable Notifications",
+          "module_dashboard": "Enable Dashboard",
+          "module_grooming": "Enable Grooming Tracking",
+          "module_medication": "Enable Medication Reminders",
+          "module_training": "Enable Training Tracking"
         }
       },
       "sources": {
-        "title": "Datenquellen konfigurieren",
-        "description": "Wähle optionale Datenquellen für erweiterte Funktionen. Leer lassen zum Überspringen.",
+        "title": "Configure Data Sources",
+        "description": "Select optional data sources for enhanced functionality. Leave empty to skip.",
         "data": {
-          "door_sensor": "Türsensor (für Gassi-Erkennung)",
-          "person_entities": "Personen-Entitäten (für Anwesenheit)",
-          "device_trackers": "Geräte-Tracker (für GPS)",
-          "calendar": "Kalender (für Termine)",
-          "weather": "Wetter-Anbieter"
+          "door_sensor": "Door Sensor (for walk detection)",
+          "person_entities": "Person Entities (for presence)",
+          "device_trackers": "Device Trackers (for GPS)",
+          "calendar": "Calendar (for events)",
+          "weather": "Weather Provider"
         }
       },
       "notifications": {
-        "title": "Benachrichtigungen konfigurieren",
-        "description": "Stelle ein, wie und wann du Benachrichtigungen erhalten möchtest.",
+        "title": "Configure Notifications",
+        "description": "Set up how and when you want to receive notifications.",
         "data": {
-          "notify_fallback": "Fallback-Benachrichtigungsdienst",
-          "quiet_hours_start": "Ruhezeit Beginn",
-          "quiet_hours_end": "Ruhezeit Ende",
-          "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
-          "snooze_min": "Schlummerdauer (Minuten)"
+          "notify_fallback": "Fallback Notification Service",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+          "snooze_min": "Snooze Duration (minutes)"
         }
       },
       "system": {
-        "title": "Systemeinstellungen",
-        "description": "Konfiguriere systemweite Einstellungen und Wartungsoptionen.",
+        "title": "System Settings",
+        "description": "Configure system-wide settings and maintenance options.",
         "data": {
-          "reset_time": "Tägliche Reset-Zeit",
-          "export_path": "Export-Pfad (optional)",
-          "export_format": "Export-Format",
-          "visitor_mode": "Besuchermodus aktivieren"
+          "reset_time": "Daily Reset Time",
+          "export_path": "Export Path (optional)",
+          "export_format": "Export Format",
+          "visitor_mode": "Enable Visitor Mode"
         }
       }
     },
     "error": {
-      "duplicate_dog_id": "Diese Hunde-ID existiert bereits. Bitte wähle eine eindeutige Kennung.",
-      "invalid_path": "Ungültiger Export-Pfad",
-      "invalid_time": "Ungültiges Zeitformat"
+      "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
+      "invalid_path": "Invalid export path",
+      "invalid_time": "Invalid time format",
+      "invalid_auth": "Ungültige Anmeldedaten",
+      "invalid_geofence": "Invalid geofence settings"
     },
     "abort": {
-      "single_instance_allowed": "Es ist nur eine Instanz von Paw Control erlaubt."
+      "single_instance_allowed": "Only one instance of Paw Control is allowed.",
+      "reauth_successful": "Anmeldedaten aktualisiert"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Paw Control Optionen",
-        "description": "Wähle, was du konfigurieren möchtest.",
+        "title": "Paw Control Options",
+        "description": "Choose what you'd like to configure.",
         "menu_options": {
-          "dogs": "Hunde verwalten",
-          "sources": "Datenquellen",
-          "notifications": "Benachrichtigungen",
-          "system": "Systemeinstellungen"
+          "dogs": "Manage Dogs",
+          "sources": "Data Sources",
+          "notifications": "Notifications",
+          "system": "System Settings",
+          "geofence": "Geofence"
         }
       },
       "dogs": {
-        "title": "Hunde verwalten",
-        "description": "Um Hunde hinzuzufügen oder zu entfernen, konfiguriere die Integration bitte neu.",
+        "title": "Manage Dogs",
+        "description": "To add or remove dogs, please reconfigure the integration.",
         "data": {}
       },
       "sources": {
-        "title": "Datenquellen konfigurieren",
-        "description": "Aktualisiere deine Datenquellenverbindungen.",
+        "title": "Configure Data Sources",
+        "description": "Update your data source connections.",
         "data": {
-          "door_sensor": "Türsensor",
-          "person_entities": "Personen-Entitäten",
-          "device_trackers": "Geräte-Tracker",
-          "calendar": "Kalender",
-          "weather": "Wetter-Anbieter"
+          "door_sensor": "Door Sensor",
+          "person_entities": "Person Entities",
+          "device_trackers": "Device Trackers",
+          "calendar": "Calendar",
+          "weather": "Weather Provider"
         }
       },
       "notifications": {
-        "title": "Benachrichtigungen konfigurieren",
-        "description": "Benachrichtigungseinstellungen anpassen.",
+        "title": "Configure Notifications",
+        "description": "Adjust notification settings.",
         "data": {
-          "notify_fallback": "Fallback-Benachrichtigungsdienst",
-          "quiet_hours_start": "Ruhezeit Beginn",
-          "quiet_hours_end": "Ruhezeit Ende",
-          "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
-          "snooze_min": "Schlummerdauer (Minuten)"
+          "notify_fallback": "Fallback Notification Service",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+          "snooze_min": "Snooze Duration (minutes)"
         }
       },
       "system": {
-        "title": "Systemeinstellungen",
-        "description": "Systemeinstellungen konfigurieren.",
+        "title": "System Settings",
+        "description": "Configure system settings.",
         "data": {
-          "reset_time": "Tägliche Reset-Zeit",
-          "export_path": "Export-Pfad",
-          "export_format": "Export-Format",
-          "visitor_mode": "Besuchermodus"
+          "reset_time": "Daily Reset Time",
+          "export_path": "Export Path",
+          "export_format": "Export Format",
+          "visitor_mode": "Visitor Mode"
+        }
+      },
+      "geofence": {
+        "title": "Geofence",
+        "description": "Configure home center and radius for presence detection.",
+        "data": {
+          "lat": "Home latitude",
+          "lon": "Home longitude",
+          "radius_m": "Home radius (m)",
+          "enable_alerts": "Enable geofence alerts",
+          "home_from_entity": "Set home from entity",
+          "use_current_state": "Use current entity location"
         }
       }
     }
@@ -126,10 +142,10 @@
   "selector": {
     "dog_size": {
       "options": {
-        "small": "Klein (< 10kg)",
-        "medium": "Mittel (10-25kg)",
-        "large": "Groß (25-45kg)",
-        "xlarge": "Sehr groß (> 45kg)"
+        "small": "Small (< 10kg)",
+        "medium": "Medium (10-25kg)",
+        "large": "Large (25-45kg)",
+        "xlarge": "Extra Large (> 45kg)"
       }
     },
     "export_format": {
@@ -142,11 +158,11 @@
   },
   "services": {
     "gps_start_walk": {
-      "name": "Spaziergang starten",
+      "name": "Gps Start Walk",
       "description": "Startet einen GPS-getrackten Spaziergang für einen Hund.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
@@ -156,42 +172,60 @@
           "example": "Abendrunde"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "walk_type": {
+          "name": "Walk Type"
         }
       }
     },
     "gps_end_walk": {
-      "name": "Spaziergang beenden",
+      "name": "Gps End Walk",
       "description": "Beendet den aktuellen GPS-getrackten Spaziergang.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "notes": {
+          "name": "Notes"
+        },
+        "rating": {
+          "name": "Rating"
+        },
+        "number": {
+          "name": "Number"
         }
       }
     },
     "gps_post_location": {
-      "name": "Position senden",
+      "name": "Gps Post Location",
       "description": "Sendet ein GPS-Positionsupdate.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "latitude": {
-          "name": "Breite",
+          "name": "Latitude",
           "description": "Breitengrad in Dezimalgrad.",
           "example": "52.52"
         },
         "longitude": {
-          "name": "Länge",
+          "name": "Longitude",
           "description": "Längengrad in Dezimalgrad.",
           "example": "13.405"
         },
@@ -211,103 +245,142 @@
           "example": "2025-08-12T15:04:05Z"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "accuracy": {
+          "name": "Accuracy"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "number": {
+          "name": "Number"
         }
       }
     },
     "gps_pause_tracking": {
-      "name": "Tracking pausieren",
+      "name": "Gps Pause Tracking",
       "description": "Pausiert das GPS-Tracking.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
         }
       }
     },
     "gps_resume_tracking": {
-      "name": "Tracking fortsetzen",
+      "name": "Gps Resume Tracking",
       "description": "Setzt das GPS-Tracking fort.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
         }
       }
     },
     "gps_export_last_route": {
-      "name": "Letzte Route exportieren",
+      "name": "Gps Export Last Route",
       "description": "Exportiert die letzte aufgezeichnete Route in den Speicher.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "format": {
+          "name": "Format"
+        },
+        "select": {
+          "name": "Select"
+        },
+        "options": {
+          "name": "Options"
+        },
+        "to_media": {
+          "name": "To Media"
         }
       }
     },
     "gps_generate_diagnostics": {
-      "name": "Diagnose erstellen",
+      "name": "Gps Generate Diagnostics",
       "description": "Erstellt einen GPS-Diagnose-Snapshot.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
         }
       }
     },
     "gps_reset_stats": {
-      "name": "GPS-Statistiken zurücksetzen",
+      "name": "Gps Reset Stats",
       "description": "Setzt die GPS-Statistiken zurück.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
         }
       }
     },
     "route_history_list": {
-      "name": "Routenverlauf auflisten",
+      "name": "Route History List",
       "description": "Listet gespeicherte Routen und sendet ein Event mit dem Ergebnis.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
         }
       }
     },
     "route_history_purge": {
-      "name": "Routenverlauf löschen",
+      "name": "Route History Purge",
       "description": "Löscht gespeicherten Routenverlauf.",
       "fields": {
         "dog_id": {
@@ -316,17 +389,26 @@
           "example": "buddy"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "older_than_days": {
+          "name": "Older Than Days"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "number": {
+          "name": "Number"
         }
       }
     },
     "route_history_export_range": {
-      "name": "Routenbereich exportieren",
+      "name": "Route History Export Range",
       "description": "Exportiert Routen in einem Datumsbereich in den Speicher.",
       "fields": {
         "dog_id": {
-          "name": "Hund-ID",
+          "name": "Dog Id",
           "description": "Optionale ID des Hundes.",
           "example": "buddy"
         },
@@ -341,13 +423,31 @@
           "example": "2025-08-12"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "end": {
+          "name": "End"
+        },
+        "format": {
+          "name": "Format"
+        },
+        "select": {
+          "name": "Select"
+        },
+        "options": {
+          "name": "Options"
+        },
+        "start": {
+          "name": "Start"
         }
       }
     },
     "toggle_geofence_alerts": {
-      "name": "Geofence-Alerts umschalten",
+      "name": "Toggle Geofence Alerts",
       "description": "Aktiviert oder deaktiviert Geofence-Benachrichtigungen.",
       "fields": {
         "enabled": {
@@ -356,23 +456,32 @@
           "example": "true"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        },
+        "dog_id": {
+          "name": "Dog Id"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "enable": {
+          "name": "Enable"
         }
       }
     },
     "purge_all_storage": {
-      "name": "Gesamten Speicher leeren",
+      "name": "Purge All Storage",
       "description": "Leert alle Paw Control Speicher (Routenverlauf, GPS-Einstellungen).",
       "fields": {
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
         }
       }
     },
     "notify_test": {
-      "name": "Testbenachrichtigung",
+      "name": "Notify Test",
       "description": "Sendet eine Testbenachrichtigung über Paw Control Routing.",
       "fields": {
         "title": {
@@ -391,8 +500,142 @@
           "example": "mobile_app_pixel"
         },
         "config_entry_id": {
-          "name": "Config-Entry-ID",
+          "name": "Config Entry Id",
           "description": "Eine bestimmte Konfigurationinstanz angeben (optional)."
+        }
+      }
+    },
+    "daily_reset": {
+      "name": "Daily reset",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry"
+        }
+      }
+    },
+    "emergency_mode": {
+      "name": "Emergency Mode",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "end_walk": {
+      "name": "End Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "export_data": {
+      "name": "Export Data",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "feed_dog": {
+      "name": "Feed Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "generate_report": {
+      "name": "Generate Report",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "log_health": {
+      "name": "Log Health",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "log_medication": {
+      "name": "Log Medication",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "play_with_dog": {
+      "name": "Play With Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_grooming": {
+      "name": "Start Grooming",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_training": {
+      "name": "Start Training",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "start_walk": {
+      "name": "Start Walk",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "sync_setup": {
+      "name": "Sync Setup",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "toggle_visitor": {
+      "name": "Toggle Visitor",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "walk_dog": {
+      "name": "Walk Dog",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config Entry Id"
+        }
+      }
+    },
+    "prune_stale_devices": {
+      "name": "Prune Stale Devices",
+      "fields": {
+        "auto": {
+          "name": "Auto"
+        },
+        "selector": {
+          "name": "Selector"
+        },
+        "boolean": {
+          "name": "Boolean"
         }
       }
     }
@@ -400,62 +643,118 @@
   "entity": {
     "sensor": {
       "battery_level": {
-        "name": "Batteriestand"
+        "name": "Battery level"
       },
       "distance_m": {
-        "name": "Distanz (m)"
+        "name": "Distance (m)"
       },
       "distance_km": {
-        "name": "Distanz (km)"
+        "name": "Distance (km)"
       },
       "speed_m_s": {
-        "name": "Geschwindigkeit (m/s)"
+        "name": "Speed (m/s)"
       },
       "speed_km_h": {
-        "name": "Geschwindigkeit (km/h)"
+        "name": "Speed (km/h)"
       },
       "duration_s": {
-        "name": "Dauer (s)"
+        "name": "Duration (s)"
       },
       "duration_min": {
-        "name": "Dauer (min)"
+        "name": "Duration (min)"
       },
       "steps": {
-        "name": "Schritte"
+        "name": "Steps"
       },
       "calories": {
-        "name": "Kalorien"
+        "name": "Calories"
       },
       "temperature_c": {
-        "name": "Temperatur"
+        "name": "Temperature"
+      },
+      "walk_distance_current": {
+        "name": "Walk Distance Current"
+      },
+      "walk_distance_last": {
+        "name": "Walk Distance Last"
+      },
+      "walk_duration_last": {
+        "name": "Walk Duration Last"
+      },
+      "walk_distance_today": {
+        "name": "Walk Distance Today"
+      },
+      "last_action": {
+        "name": "Last Action"
+      },
+      "last_feeding": {
+        "name": "Last Feeding"
+      },
+      "poop_count_today": {
+        "name": "Poop Count Today"
+      },
+      "weight": {
+        "name": "Weight"
+      },
+      "activity_level": {
+        "name": "Activity Level"
+      },
+      "calories_burned_today": {
+        "name": "Calories Burned Today"
+      },
+      "gps_points_total": {
+        "name": "Gps Points Total"
+      },
+      "gps_accuracy_avg": {
+        "name": "Gps Accuracy Avg"
+      },
+      "geofence_enters_today": {
+        "name": "Geofence Enters Today"
+      },
+      "geofence_leaves_today": {
+        "name": "Geofence Leaves Today"
+      },
+      "geofence_time_inside_today_min": {
+        "name": "Geofence Time Inside Today"
       }
     }
   },
   "device_automation": {
     "condition_type": {
-      "is_home": "Hund ist zu Hause",
-      "in_geofence": "Hund ist innerhalb des Geofence"
+      "is_home": "Dog is at home",
+      "in_geofence": "Dog is inside geofence"
     },
     "trigger_type": {
-      "geofence_alert": "Geofence-Alarm",
-      "gps_location_posted": "GPS-Position übermittelt",
-      "walk_started": "Spaziergang gestartet",
-      "walk_ended": "Spaziergang beendet"
+      "geofence_alert": "Geofence alert",
+      "gps_location_posted": "GPS location posted",
+      "walk_started": "Walk started",
+      "walk_ended": "Walk ended"
     },
     "action_type": {
-      "start_walk": "Spaziergang starten",
-      "end_walk": "Spaziergang beenden",
-      "toggle_geofence_alerts": "Geofence-Alarm ein/aus"
+      "start_walk": "Start walk",
+      "end_walk": "End walk",
+      "toggle_geofence_alerts": "Toggle geofence alerts"
     }
   },
   "issues": {
     "stale_devices": {
-      "title": "Veraltete Geräte gefunden",
-      "description": "Es wurden {count} Geräte von Paw Control gefunden, die im Backend nicht mehr existieren. Verwende den Service 'Prune stale devices' oder entferne die Geräte aus der Geräteverwaltung."
+      "title": "Stale devices detected",
+      "description": "There are {count} devices from Paw Control that are no longer present in the backend. Use the 'Prune stale devices' service or remove them from the device registry."
     },
     "invalid_geofence": {
-      "title": "Ungültige Geofence-Einstellungen",
-      "description": "Die konfigurierten Geofence-Werte sind ungültig. Nutze den Fix-Flow, um Latitude/Longitude und Radius zu aktualisieren."
+      "title": "Invalid geofence settings",
+      "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Config entry not found"
+    },
+    "entry_not_loaded": {
+      "message": "Config entry not loaded"
+    },
+    "no_entries": {
+      "message": "No configuration entries found"
     }
   }
 }

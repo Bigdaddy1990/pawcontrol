@@ -443,6 +443,8 @@ class PawControlOptionsFlow(
 ):
     """Handle options flow for Paw Control."""
 
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
@@ -1116,66 +1118,62 @@ class OptionsFlowHandler(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict | None = None):
         return await self.async_step_geofence()
 
+    
+    
     async def async_step_geofence(self, user_input: dict | None = None):
         import voluptuous as vol
 
         errors: dict[str, str] = {}
-        opts = dict(self.config_entry.options)
+        opts = dict(self._options or {}) if hasattr(self, "_options") else dict(self.config_entry.options or {})
+        geo = dict(opts.get("geofence") or {})
 
-        def _def(k, default=None):
-            return opts.get(k, default)
+        default_lat = geo.get("lat", None)
+        default_lon = geo.get("lon", None)
+        default_radius = geo.get("radius_m", 150)
+        default_alerts = bool(geo.get("enable_alerts", True))
 
         schema = vol.Schema(
             {
-                vol.Optional("home_lat", default=_def("home_lat", "")): str,
-                vol.Optional("home_lon", default=_def("home_lon", "")): str,
-                vol.Optional(
-                    "geofence_radius_m", default=_def("geofence_radius_m", 100.0)
-                ): float,
-                vol.Optional(
-                    "auto_prune_devices", default=_def("auto_prune_devices", False)
-                ): bool,
+                vol.Optional("lat", default=default_lat): vol.Any(float, int, None),
+                vol.Optional("lon", default=default_lon): vol.Any(float, int, None),
+                vol.Optional("radius_m", default=default_radius): vol.All(int, vol.Range(min=10, max=5000)),
+                vol.Optional("enable_alerts", default=default_alerts): bool,
+                vol.Optional("home_from_entity"): EntitySelector(EntitySelectorConfig(domain=["device_tracker","person"])),
+                vol.Optional("use_current_state", default=False): BooleanSelector(),
             }
         )
 
-        if user_input is None:
-            return self.async_show_form(
-                step_id="geofence", data_schema=schema, errors=errors
-            )
+        if user_input is not None:
+            lat = user_input.get("lat")
+            lon = user_input.get("lon")
+            radius = user_input.get("radius_m")
+            use_state = bool(user_input.get("use_current_state"))
+            entity_id = user_input.get("home_from_entity")
 
-        # validate
-        try:
-            lat = (
-                float(user_input.get("home_lat"))
-                if user_input.get("home_lat") not in (None, "")
-                else None
-            )
-            lon = (
-                float(user_input.get("home_lon"))
-                if user_input.get("home_lon") not in (None, "")
-                else None
-            )
-            radius = (
-                float(user_input.get("geofence_radius_m"))
-                if user_input.get("geofence_radius_m") is not None
-                else None
-            )
-        except Exception:
-            errors["base"] = "invalid_geofence"
-            return self.async_show_form(
-                step_id="geofence", data_schema=schema, errors=errors
-            )
+            # If user provided entity & wants current state -> resolve coordinates
+            if entity_id and use_state:
+                st = self.hass.states.get(entity_id)
+                la = st and st.attributes.get("latitude")
+                lo = st and st.attributes.get("longitude")
+                if isinstance(la, (float, int)) and isinstance(lo, (float, int)):
+                    lat, lon = float(la), float(lo)
+                else:
+                    errors["base"] = "invalid_geofence"
 
-        if radius is not None and radius <= 0:
-            errors["base"] = "invalid_geofence"
-        if (lat is None) != (lon is None):
-            errors["base"] = "invalid_geofence"
+            # basic validation
+            if (lat is None) ^ (lon is None):
+                errors["base"] = "invalid_geofence"
+            if radius is not None and radius <= 0:
+                errors["base"] = "invalid_geofence"
 
-        if errors:
-            return self.async_show_form(
-                step_id="geofence", data_schema=schema, errors=errors
-            )
+            if not errors:
+                new_opts = dict(opts)
+                new_opts["geofence"] = {
+                    "lat": None if lat is None else float(lat),
+                    "lon": None if lon is None else float(lon),
+                    "radius_m": int(radius) if radius is not None else 150,
+                    "enable_alerts": bool(user_input.get("enable_alerts", True)),
+                }
+                return self.async_create_entry(title="", data=new_opts)
 
-        new_opts = dict(opts)
-        new_opts.update(user_input)
-        return self.async_create_entry(title="", data=new_opts)
+        return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)

@@ -250,6 +250,9 @@ class IsHomeBinarySensor(PawControlBinarySensorBase):
             "current_location": location_data.get("current_location", "home"),
             "distance_from_home": location_data.get("distance_from_home", 0),
             "last_gps_update": location_data.get("last_gps_update"),
+            "enters_today": location_data.get("enters_today", 0),
+            "leaves_today": location_data.get("leaves_today", 0),
+            "time_inside_today_min": location_data.get("time_inside_today_min", 0.0),
         }
 
 
