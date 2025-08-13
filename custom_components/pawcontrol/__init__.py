@@ -3,7 +3,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 """The Paw Control integration for Home Assistant."""
 
-from __future__ import annotations
+from __future__ import annotations  # noqa: F404
 
 import logging
 from typing import TYPE_CHECKING
@@ -112,7 +112,7 @@ def _get_known_dog_ids(hass: "HomeAssistant", entry: "ConfigEntry") -> set[str]:
     if coord and hasattr(coord, "_dog_data"):
         try:
             dog_ids = set(coord._dog_data.keys())
-        except Exception:  # noqa: BLE001
+        except Exception:
             dog_ids = set()
     return dog_ids
 
@@ -133,7 +133,7 @@ async def async_setup(hass: "HomeAssistant", _config: "ConfigType") -> bool:
     return True
 
 
-async def async_setup(hass: "HomeAssistant", config: "ConfigType") -> bool:
+async def async_setup(hass: "HomeAssistant", config: "ConfigType") -> bool:  # noqa: F811
     """Set up the PawControl integration domain and register services."""
     _register_services(hass)
     return True
@@ -187,7 +187,7 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     _check_geofence_options(hass, entry)
 
 
-return True
+return True  # noqa: F706
 
 
 async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
@@ -247,7 +247,7 @@ async def _register_devices(hass: "HomeAssistant", entry: "ConfigEntry") -> None
         )
 
 
-async def _register_services(  # noqa: C901
+async def _register_services(
     hass: "HomeAssistant", _entry: "ConfigEntry"
 ) -> None:
     """Register services for the integration."""
@@ -504,90 +504,90 @@ async def _register_services(  # noqa: C901
 async def handle_gps_start_walk(call: "ServiceCall") -> None:
     dog_id = call.data.get("dog_id")
     await gps.async_start_walk(call)
-    _fire_device_event(hass, "walk_started", dog_id)
+    _fire_device_event(hass, "walk_started", dog_id)  # noqa: F821
 
 
 async def handle_gps_end_walk(call: "ServiceCall") -> None:
     dog_id = call.data.get("dog_id")
     await gps.async_end_walk(call)
-    _fire_device_event(hass, "walk_ended", dog_id)
+    _fire_device_event(hass, "walk_ended", dog_id)  # noqa: F821
 
 
 async def handle_gps_post_location(call: "ServiceCall") -> None:
     dog_id = call.data.get("dog_id")
     await gps.async_update_location(call)
-    _fire_device_event(hass, "gps_location_posted", dog_id)
+    _fire_device_event(hass, "gps_location_posted", dog_id)  # noqa: F821
 
 
 async def handle_prune_stale_devices(call: "ServiceCall") -> None:
     """Prune stale devices, optionally auto=True."""
-    _entry = _get_valid_entry_from_call(hass, call)
+    _entry = _get_valid_entry_from_call(hass, call)  # noqa: F821
     if _entry is None:
         raise HomeAssistantError("No loaded config entry found")
     auto = bool(call.data.get("auto", True))
-    await _auto_prune_devices(hass, _entry, auto=auto)
+    await _auto_prune_devices(hass, _entry, auto=auto)  # noqa: F821
     # GPS services
-    hass.services.async_register(DOMAIN, SERVICE_GPS_START_WALK, handle_gps_start_walk)
-    store["unsub"].append(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK)
+    hass.services.async_register(DOMAIN, SERVICE_GPS_START_WALK, handle_gps_start_walk)  # noqa: F821
+    store["unsub"].append(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK)  # noqa: F821
     )
-    entry.async_on_unload(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK)
+    entry.async_on_unload(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_START_WALK)  # noqa: F821
     )
-    hass.services.async_register(DOMAIN, SERVICE_GPS_END_WALK, handle_gps_end_walk)
-    store["unsub"].append(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK)
+    hass.services.async_register(DOMAIN, SERVICE_GPS_END_WALK, handle_gps_end_walk)  # noqa: F821
+    store["unsub"].append(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK)  # noqa: F821
     )
-    entry.async_on_unload(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK)
+    entry.async_on_unload(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_END_WALK)  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_POST_LOCATION, handle_gps_post_location
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_POST_LOCATION, handle_gps_post_location  # noqa: F821
     )
-    store["unsub"].append(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)
+    store["unsub"].append(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)  # noqa: F821
     )
-    entry.async_on_unload(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)
+    entry.async_on_unload(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_GPS_POST_LOCATION)  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_PAUSE_TRACKING, gps.async_pause_tracking
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_PAUSE_TRACKING, gps.async_pause_tracking  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_RESUME_TRACKING, gps.async_resume_tracking
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_RESUME_TRACKING, gps.async_resume_tracking  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_EXPORT_LAST_ROUTE, gps.async_export_last_route
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_EXPORT_LAST_ROUTE, gps.async_export_last_route  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_GENERATE_DIAGNOSTICS, gps.async_generate_diagnostics
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_GENERATE_DIAGNOSTICS, gps.async_generate_diagnostics  # noqa: F821
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GPS_RESET_STATS, gps.async_reset_gps_stats
-    )
-
-    hass.services.async_register(
-        DOMAIN, SERVICE_ROUTE_HISTORY_LIST, handle_route_history_list
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_ROUTE_HISTORY_PURGE, handle_route_history_purge
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_ROUTE_HISTORY_EXPORT_RANGE, handle_route_history_export_range
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_GPS_RESET_STATS, gps.async_reset_gps_stats  # noqa: F821
     )
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, handle_toggle_geofence_alerts
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_ROUTE_HISTORY_LIST, handle_route_history_list  # noqa: F821
     )
-    store["unsub"].append(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS)
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_ROUTE_HISTORY_PURGE, handle_route_history_purge  # noqa: F821
     )
-    entry.async_on_unload(
-        lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS)
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_ROUTE_HISTORY_EXPORT_RANGE, handle_route_history_export_range  # noqa: F821
     )
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_PURGE_ALL_STORAGE, handle_purge_all_storage
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, handle_toggle_geofence_alerts  # noqa: F821
+    )
+    store["unsub"].append(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS)  # noqa: F821
+    )
+    entry.async_on_unload(  # noqa: F821
+        lambda: hass.services.async_remove(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS)  # noqa: F821
+    )
+
+    hass.services.async_register(  # noqa: F821
+        DOMAIN, SERVICE_PURGE_ALL_STORAGE, handle_purge_all_storage  # noqa: F821
     )
 
 
@@ -867,7 +867,7 @@ async def _auto_prune_devices(
             translation_placeholders={"count": str(len(stale_devices))},
             learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/stale-devices/",
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return len(stale_devices)
 

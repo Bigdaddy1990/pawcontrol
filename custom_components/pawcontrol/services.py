@@ -204,7 +204,7 @@ class ServiceManager:
         for unsub in self._unsubscribers:
             try:
                 unsub()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("Error unregistering service")
         self._unsubscribers.clear()
 
@@ -487,7 +487,7 @@ class ServiceManager:
                 else date_from
             )
             dt = dt_util.parse_date(date_to) if isinstance(date_to, str) else date_to
-        except Exception:  # noqa: BLE001
+        except Exception:
             df = dt = None
 
         store = RouteHistoryStore(self.hass, entry.entry_id, DOMAIN)
@@ -498,7 +498,7 @@ class ServiceManager:
             ts = item.get("start_time") or item.get("timestamp")
             try:
                 t = dt_util.parse_datetime(ts)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 return False
             if df and t.date() < df:
                 return False

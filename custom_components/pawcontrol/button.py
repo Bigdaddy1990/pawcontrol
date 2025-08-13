@@ -592,7 +592,7 @@ class SyncSetupButton(ButtonEntity):
         )
 
 
-class MarkMedicationButton(BaseDogButton):
+class MarkMedicationButton(BaseDogButton):  # noqa: F821
     def __init__(self, hass, dog_id):
         super().__init__(hass, dog_id, "mark_medication", "Medikament gegeben")
 
