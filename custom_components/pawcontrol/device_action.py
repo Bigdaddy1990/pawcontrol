@@ -105,9 +105,7 @@ async def async_call_action_from_config(
 
     if action_type == "post_location":
         if "latitude" not in config or "longitude" not in config:
-            raise InvalidDeviceAutomationConfig(
-                "Missing required coordinates"
-            )
+            raise InvalidDeviceAutomationConfig("Missing required coordinates")
         data: dict[str, Any] = {
             "dog_id": dog_id,
             "latitude": config["latitude"],
