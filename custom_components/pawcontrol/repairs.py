@@ -1,66 +1,61 @@
 from __future__ import annotations
 
+from typing import Any
+
 import voluptuous as vol
 
 from homeassistant import data_entry_flow
-from homeassistant.components.repairs import ConfirmRepairFlow, RepairsFlow
+from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN
-
-# We reuse helpers defined in __init__.py via module import
-# - _get_valid_entry_from_call (pattern), but here we need the loaded entry per DOMAIN
-# - _auto_prune_devices, _check_geofence_options if available
-
-async def _get_loaded_entry(hass: HomeAssistant):
-    """Pick a loaded entry for our domain (best-effort)."""
-    from homeassistant.config_entries import ConfigEntryState
-    for e in hass.config_entries.async_entries(DOMAIN):
-        if e.state is ConfigEntryState.LOADED:
-            return e
-    return None
+try:
+    # Falls vorhanden, Konsistenz mit deiner Domain
+    from .const import DOMAIN  # type: ignore[import-not-found]
+except Exception:  # pragma: no cover
+    DOMAIN = "pawcontrol"
 
 
+class OutdatedConfigRepairFlow(RepairsFlow):
+    """Example repair flow with a simple confirm step."""
 
-class InvalidGeofenceRepairFlow(RepairsFlow):
-    """Fix flow that delegates to the Options Flow."""
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> data_entry_flow.FlowResult:
+        """Entry step."""
+        return await self.async_step_confirm()
 
-    async def async_step_init(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
-        # Single confirm step that launches the options flow for the loaded entry
+    async def async_step_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> data_entry_flow.FlowResult:
+        """Confirm and finish."""
         if user_input is not None:
-            entry = await _get_loaded_entry(self.hass)
-            if entry:
-                await self.hass.config_entries.options.async_init(entry.entry_id, context={"source": "repair"})
-            return self.async_create_entry(title="", data={})
-        return self.async_show_form(step_id="init", data_schema=None, description_placeholders={})
-class StaleDevicesRepairFlow(ConfirmRepairFlow):
-(ConfirmRepairFlow):
-    """Confirm flow that prunes stale devices."""
-
-    def __init__(self) -> None:
-        super().__init__(DOMAIN)
-
-    async def async_step_confirm(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
-        if user_input is not None:
-            entry = await _get_loaded_entry(self.hass)
-            if entry:
-                try:
-                    from . import _auto_prune_devices  # type: ignore[attr-defined]
-                    await _auto_prune_devices(self.hass, entry, auto=True)
-                except Exception:
-                    pass
+            # Done; entry created -> issue will be removed
             return self.async_create_entry(title="", data={})
 
-        return await super().async_step_confirm(user_input)
+        return self.async_show_form(step_id="confirm", data_schema=vol.Schema({}))
 
 
 async def async_create_fix_flow(
-    hass: HomeAssistant, issue_id: str, data: dict[str, str | int | float | None] | None
+    hass: HomeAssistant,
+    issue_id: str,
+    data: dict[str, str | int | float | None] | None,
 ) -> RepairsFlow:
-    """Create fix flow for pawcontrol issues."""
-    if issue_id == "invalid_geofence":
-        return InvalidGeofenceRepairFlow()
-    if issue_id == "stale_devices":
-        return StaleDevicesRepairFlow()
-    # Fallback: confirm-only
-    return ConfirmRepairFlow(DOMAIN)
+    """Return the appropriate repair flow for an issue."""
+    if issue_id == "outdated_config":
+        return OutdatedConfigRepairFlow()
+    # Fallback: simple confirm flow for any other known/legacy issue IDs
+    return OutdatedConfigRepairFlow()
+
+
+def raise_outdated_config_issue(hass: HomeAssistant) -> None:
+    """Create a fixable issue that offers the above repair flow."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        "outdated_config",
+        is_fixable=True,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="outdated_config",
+    )
