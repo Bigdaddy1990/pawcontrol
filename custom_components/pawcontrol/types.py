@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from .coordinator import PawControlCoordinator
 from .gps_handler import PawControlGPSHandler
@@ -20,3 +21,4 @@ class PawRuntimeData:
     setup_sync: SetupSync
     report_generator: ReportGenerator
     services: ServiceManager
+    notification_router: Any  # Type imported dynamically to avoid circular imports
