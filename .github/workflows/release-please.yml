@@ -1,19 +1,29 @@
 name: release-please
-
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  release-please:
+  release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
-      - name: Run release-please
-        uses: googleapis/release-please-action@v4
+      - uses: actions/checkout@v4
+
+      - uses: googleapis/release-please-action@v4
+        id: release
         with:
-          release-type: simple
-          package-name: pawcontrol
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: simple            # oder: python, node, go, rust, etc.
+          package-name: pawcontrol        # optional; sinnvoll bei libs
+          config-file: release-please-config.json              # falls vorhanden
+          manifest-file: .release-please-manifest.json         # falls vorhanden
+
+      # Optional: weitere Schritte nur ausführen, wenn tatsächlich ein Release erzeugt wurde
+      - name: Print created tag
+        if: steps.release.outputs.release_created == 'true'
+        run: echo "Released ${{ steps.release.outputs.tag_name }}"
