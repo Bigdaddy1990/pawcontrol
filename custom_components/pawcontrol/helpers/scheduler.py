@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Iterable
 from datetime import datetime, time, timedelta
 from typing import Any, Callable, Dict, Iterator, Optional
 
@@ -40,8 +41,18 @@ class PawControlScheduler:
         self.hass = hass
         self.entry = entry
         self.runtime_data = entry.runtime_data
-        self._scheduled_tasks: Dict[str, CALLBACK_TYPE] = {}
-        self._reminder_tasks: Dict[str, CALLBACK_TYPE] = {}
+        self._scheduled_tasks: dict[str, CALLBACK_TYPE] = {}
+        self._reminder_tasks: dict[str, CALLBACK_TYPE] = {}
+
+    def _iter_dogs_with_module(self, module: str) -> Iterable[tuple[str, str]]:
+        """Yield dog ID and name for dogs with the given module enabled."""
+        for dog in self.entry.options.get(CONF_DOGS, []):
+            dog_id = dog.get(CONF_DOG_ID)
+            if not dog_id:
+                continue
+            modules = dog.get(CONF_DOG_MODULES, {})
+            if modules.get(module, False):
+                yield dog_id, dog.get("name", dog_id)
 
     async def setup(self) -> None:
         """Set up all scheduled tasks."""
@@ -189,7 +200,8 @@ class PawControlScheduler:
 
     async def _setup_feeding_reminders(self) -> None:
         """Set up feeding reminder schedules."""
-        for dog_id, dog in self._iter_dogs_with_module(MODULE_FEEDING):
+        for dog_id, dog_name in self._iter_dogs_with_module(MODULE_FEEDING):
+
             # Default feeding times
             feeding_schedule = {
                 "breakfast": "07:00:00",
@@ -202,7 +214,9 @@ class PawControlScheduler:
                     meal_time = time.fromisoformat(meal_time_str)
 
                     @callback
-                    def feeding_reminder_callback(now, dog_id=dog_id, meal=meal_type):
+                    def feeding_reminder_callback(
+                        now, dog_id=dog_id, dog_name=dog_name, meal=meal_type
+                    ):
                         """Send feeding reminder."""
                         _LOGGER.info(f"Feeding reminder for {dog_id} - {meal}")
 
@@ -212,10 +226,7 @@ class PawControlScheduler:
                         if router:
                             self.hass.async_create_task(
                                 router.send_reminder(
-                                    "feeding",
-                                    dog_id,
-                                    dog.get("name", dog_id),
-                                    {"meal_type": meal},
+                                    "feeding", dog_id, dog_name, {"meal_type": meal}
                                 )
                             )
 
@@ -239,12 +250,10 @@ class PawControlScheduler:
 
     async def _setup_walk_reminders(self) -> None:
         """Set up walk reminder checks."""
-        for dog_id, dog in self._iter_dogs_with_module(MODULE_WALK):
+        for dog_id, dog_name in self._iter_dogs_with_module(MODULE_WALK):
 
             @callback
-            def walk_check_callback(
-                now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
-            ):
+            def walk_check_callback(now, dog_id=dog_id, dog_name=dog_name):
                 """Check if dog needs walk reminder."""
                 coordinator = self.runtime_data.coordinator
 
@@ -257,11 +266,7 @@ class PawControlScheduler:
 
                     if router:
                         self.hass.async_create_task(
-                            router.send_reminder(
-                                "walk",
-                                dog_id,
-                                dog_name,
-                            )
+                            router.send_reminder("walk", dog_id, dog_name)
                         )
 
             # Check every hour
@@ -277,7 +282,7 @@ class PawControlScheduler:
 
     async def _setup_medication_reminders(self) -> None:
         """Set up medication reminder schedules."""
-        for dog_id, dog in self._iter_dogs_with_module(MODULE_MEDICATION):
+        for dog_id, dog_name in self._iter_dogs_with_module(MODULE_MEDICATION):
             # Get medication schedule from config (if available)
             # For now, use default times
             medication_times = ["08:00:00", "20:00:00"]
@@ -288,7 +293,7 @@ class PawControlScheduler:
 
                     @callback
                     def medication_reminder_callback(
-                        now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
+                        now, dog_id=dog_id, dog_name=dog_name
                     ):
                         """Send medication reminder."""
                         _LOGGER.info(f"Medication reminder for {dog_id}")
@@ -325,12 +330,10 @@ class PawControlScheduler:
 
     async def _setup_grooming_reminders(self) -> None:
         """Set up grooming reminder checks."""
-        for dog_id, dog in self._iter_dogs_with_module(MODULE_GROOMING):
+        for dog_id, dog_name in self._iter_dogs_with_module(MODULE_GROOMING):
 
             @callback
-            def grooming_check_callback(
-                now, dog_id=dog_id, dog_name=dog.get("name", dog_id)
-            ):
+            def grooming_check_callback(now, dog_id=dog_id, dog_name=dog_name):
                 """Check if dog needs grooming reminder."""
                 coordinator = self.runtime_data.coordinator
 
@@ -343,11 +346,7 @@ class PawControlScheduler:
 
                     if router:
                         self.hass.async_create_task(
-                            router.send_reminder(
-                                "grooming",
-                                dog_id,
-                                dog_name,
-                            )
+                            router.send_reminder("grooming", dog_id, dog_name)
                         )
 
             # Check daily at 09:00
