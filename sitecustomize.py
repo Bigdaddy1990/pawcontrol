@@ -24,6 +24,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     sys.modules["homeassistant.helpers.device_registry"] = device_registry
 
 if not hasattr(entity, "EntityCategory"):
+
     class EntityCategory(StrEnum):
         CONFIG = "config"
         DIAGNOSTIC = "diagnostic"
@@ -31,9 +32,9 @@ if not hasattr(entity, "EntityCategory"):
     entity.EntityCategory = EntityCategory  # type: ignore[attr-defined]
 
 if not hasattr(device_registry, "DeviceInfo"):
+
     class DeviceInfo(dict):
         __getattr__ = dict.__getitem__
         __setattr__ = dict.__setitem__
 
     device_registry.DeviceInfo = DeviceInfo  # type: ignore[attr-defined]
-
