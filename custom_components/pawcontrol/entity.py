@@ -34,20 +34,20 @@ class PawControlEntity(CoordinatorEntity[PawControlCoordinator]):
         self.entry = entry
         self.dog_id = dog_id
         self.entity_key = entity_key
-        
+
         # Set unique ID
         self._attr_unique_id = f"{entry.entry_id}_{dog_id}_{entity_key}"
-        
+
         # Set translation key if provided
         if translation_key:
             self._attr_translation_key = translation_key
         else:
             # Use entity_key as translation_key by default
             self._attr_translation_key = entity_key
-        
+
         # Get dog info
         self._dog_config = self._get_dog_config()
-        
+
         # Set device info
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, dog_id)},
@@ -101,7 +101,7 @@ class PawControlSensorEntity(PawControlEntity):
     ) -> None:
         """Initialize sensor entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set sensor-specific attributes
         if device_class:
             self._attr_device_class = device_class
@@ -128,7 +128,7 @@ class PawControlBinarySensorEntity(PawControlEntity):
     ) -> None:
         """Initialize binary sensor entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set binary sensor-specific attributes
         if device_class:
             self._attr_device_class = device_class
@@ -151,7 +151,7 @@ class PawControlButtonEntity(PawControlEntity):
     ) -> None:
         """Initialize button entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set button-specific attributes
         if device_class:
             self._attr_device_class = device_class
@@ -178,7 +178,7 @@ class PawControlNumberEntity(PawControlEntity):
     ) -> None:
         """Initialize number entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set number-specific attributes
         if device_class:
             self._attr_device_class = device_class
@@ -209,7 +209,7 @@ class PawControlSelectEntity(PawControlEntity):
     ) -> None:
         """Initialize select entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set select-specific attributes
         self._attr_options = options
         if entity_category:
@@ -233,7 +233,7 @@ class PawControlTextEntity(PawControlEntity):
     ) -> None:
         """Initialize text entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set text-specific attributes
         if entity_category:
             self._attr_entity_category = entity_category
@@ -260,7 +260,7 @@ class PawControlSwitchEntity(PawControlEntity):
     ) -> None:
         """Initialize switch entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set switch-specific attributes
         if device_class:
             self._attr_device_class = device_class
@@ -282,7 +282,7 @@ class PawControlDateTimeEntity(PawControlEntity):
     ) -> None:
         """Initialize datetime entity."""
         super().__init__(coordinator, entry, dog_id, entity_key, translation_key)
-        
+
         # Set datetime-specific attributes
         if entity_category:
             self._attr_entity_category = entity_category

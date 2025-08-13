@@ -110,7 +110,7 @@ action:
               message: "{{ !input name | title }}'s walk has started automatically"
               data:
                 tag: "pawcontrol_walk_{{ !input dog_id }}"
-      
+
       # Person left - confirm walk start
       - conditions:
           - condition: trigger
@@ -131,7 +131,7 @@ action:
               message: "{{ !input name | title }}'s walk tracked via GPS"
               data:
                 tag: "pawcontrol_walk_{{ !input dog_id }}"
-      
+
       # Person returned - end walk
       - conditions:
           - condition: trigger

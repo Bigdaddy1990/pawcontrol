@@ -445,12 +445,12 @@ class PawControlOptionsFlow(PawControlOptionsFlowMedicationMixin, PawControlOpti
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "medications", 
-                "reminders", 
-                "safe_zones", 
-                "advanced", 
-                "schedule", 
-                "modules", 
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
                 "dogs",
                 "medication_mapping",
                 "sources",
@@ -643,7 +643,7 @@ class PawControlOptionsFlow(PawControlOptionsFlowMedicationMixin, PawControlOpti
         )
 
 
-def _dog_key(d): 
+def _dog_key(d):
     return d.get("dog_id") or d.get("name")
 
 def _build_med_mapping_schema(dogs, current):
@@ -796,7 +796,7 @@ class PawControlOptionsFlowSafeZonesMixin:
         defaults = {}
         for d in dogs:
             dog_id = d.get("dog_id") or d.get("name")
-            if not dog_id: 
+            if not dog_id:
                 continue
             cur = sz.get(dog_id, {})
             defaults[dog_id] = {
@@ -815,7 +815,7 @@ class PawControlOptionsFlowSafeZonesMixin:
             out = {}
             for d in dogs:
                 dog_id = d.get("dog_id") or d.get("name")
-                if not dog_id: 
+                if not dog_id:
                     continue
                 out[dog_id] = {
                     "latitude": float(user_input.get(f"{dog_id}__lat", 0.0)),

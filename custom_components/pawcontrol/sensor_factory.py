@@ -27,7 +27,7 @@ class SensorConfig:
 
 class ConfigurableDogSensor(SensorEntity, RestoreSensor):
 
-    
+
     def __init__(self, hass: HomeAssistant, dog_id: str, title: str, config: SensorConfig):
         self.hass = hass
         self._dog = dog_id
@@ -38,12 +38,12 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
         self._apply_class_map(config.key)
         self._apply_classes_from_key(config.key)
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, dog_id)}, 
-            name=f"Hund {title}", 
-            manufacturer="Paw Control", 
+            identifiers={(DOMAIN, dog_id)},
+            name=f"Hund {title}",
+            manufacturer="Paw Control",
             model="PawControl Sensors"
         )
-        
+
         # Apply configuration
         if config.device_class:
             self._attr_device_class = config.device_class
@@ -80,13 +80,13 @@ class ConfigurableDogSensor(SensorEntity, RestoreSensor):
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         value = self._get_coordinator_data(self._config.data_path, self._config.default_value)
-        
+
         if self._config.transform_func and value is not None:
             try:
                 return self._config.transform_func(value)
             except (ValueError, TypeError):
                 return self._config.default_value
-        
+
         return value
 
 
@@ -227,7 +227,7 @@ def create_dog_sensors(hass: HomeAssistant, dog_id: str, title: str) -> list[Con
             self._attr_device_class = "speed"
             self._attr_state_class = "measurement"
 
-    
+
 
 CLASS_MAP = {
     "battery_level": {"device_class": "battery", "state_class": "measurement", "unit": "%"},

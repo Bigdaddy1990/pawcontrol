@@ -16,7 +16,7 @@ cards:
       - type: custom:mushroom-title-card
         title: 🐾 Paw Control
         subtitle: Smart Dog Management System
-        
+
       # System Status Row
       - type: horizontal-stack
         cards:
@@ -50,7 +50,7 @@ cards:
         entity: input_select.pawcontrol_active_dog
         name: Select Dog
         icon: mdi:dog
-        
+
       # Main Dog Card
       - type: custom:mushroom-template-card
         primary: "🐕 Rex"
@@ -121,7 +121,7 @@ cards:
                 dog_id: rex
                 duration_min: 30
                 distance_m: 1000
-                
+
           - type: custom:mushroom-template-card
             primary: Feed
             secondary: |
@@ -165,13 +165,13 @@ cards:
             entity: sensor.pawcontrol_rex_walks_today
             name: Walks Today
             icon: mdi:counter
-            
+
           # Total Distance
           - type: custom:mushroom-entity-card
             entity: sensor.pawcontrol_rex_total_distance_today
             name: Distance
             icon: mdi:map-marker-distance
-            
+
           # Calories Burned
           - type: custom:mushroom-entity-card
             entity: sensor.pawcontrol_rex_calories_burned_today
@@ -182,7 +182,7 @@ cards:
       - type: custom:mushroom-title-card
         title: 🍽️ Feeding
         subtitle: Today's Meals
-        
+
       - type: grid
         columns: 4
         cards:
@@ -204,7 +204,7 @@ cards:
                 meal_type: breakfast
                 portion_g: 200
                 food_type: dry
-                
+
           - type: custom:mushroom-template-card
             primary: Lunch
             secondary: "{{ states('sensor.pawcontrol_rex_feeding_lunch') }}x"
@@ -223,7 +223,7 @@ cards:
                 meal_type: lunch
                 portion_g: 150
                 food_type: wet
-                
+
           - type: custom:mushroom-template-card
             primary: Dinner
             secondary: "{{ states('sensor.pawcontrol_rex_feeding_dinner') }}x"
@@ -242,7 +242,7 @@ cards:
                 meal_type: dinner
                 portion_g: 200
                 food_type: dry
-                
+
           - type: custom:mushroom-template-card
             primary: Snacks
             secondary: "{{ states('sensor.pawcontrol_rex_feeding_snack') }}x"
@@ -268,14 +268,14 @@ cards:
       - type: custom:mushroom-title-card
         title: 🏥 Health & Care
         subtitle: Medical and Grooming Status
-        
+
       - type: horizontal-stack
         cards:
           - type: custom:mushroom-entity-card
             entity: sensor.pawcontrol_rex_weight
             name: Weight
             icon: mdi:weight
-            
+
           - type: custom:mushroom-template-card
             primary: Grooming
             secondary: |
@@ -306,24 +306,24 @@ cards:
       - type: custom:mushroom-title-card
         title: 📊 Activity Timeline
         subtitle: Recent Activities
-        
+
       - type: custom:logbook-card
         entity: sensor.pawcontrol_rex_last_action
         hours_to_show: 24
         max_items: 10
-        
+
       # Training Section
       - type: custom:mushroom-title-card
         title: 🎓 Training
         subtitle: Progress and Sessions
-        
+
       - type: horizontal-stack
         cards:
           - type: custom:mushroom-entity-card
             entity: sensor.pawcontrol_rex_training_sessions_today
             name: Sessions Today
             icon: mdi:school
-            
+
           - type: button
             entity: button.pawcontrol_rex_start_training
             name: Start Training
@@ -367,7 +367,7 @@ cards:
             icon: mdi:dog
             icon_color: green
             layout: horizontal
-            
+
           - type: custom:mushroom-chips-card
             chips:
               - type: template
@@ -384,7 +384,7 @@ cards:
                   service_data:
                     dog_id: rex
                     source: manual
-                    
+
               - type: template
                 icon: mdi:food
                 icon_color: |
@@ -401,7 +401,7 @@ cards:
                     meal_type: snack
                     portion_g: 100
                     food_type: dry
-                    
+
               - type: template
                 icon: mdi:emoticon-poop
                 tap_action:
@@ -409,7 +409,7 @@ cards:
                   service: button.press
                   service_data:
                     entity_id: button.pawcontrol_rex_log_poop
-                    
+
               - type: template
                 icon: mdi:pill
                 tap_action:
