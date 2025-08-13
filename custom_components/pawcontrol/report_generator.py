@@ -373,6 +373,7 @@ class ReportGenerator:
             }
 
             if format_type == "json":
+
                 def _write_json() -> None:
                     with open(filepath, "w", encoding="utf-8") as f:
                         json.dump(
@@ -388,7 +389,9 @@ class ReportGenerator:
                         writer.writerow(["Date", "Type", "Value", "Notes"])
 
                         # Write weight trends
-                        for weight_entry in health_export["health_data"]["weight_trend"]:
+                        for weight_entry in health_export["health_data"][
+                            "weight_trend"
+                        ]:
                             writer.writerow(
                                 [
                                     weight_entry.get("date", ""),
