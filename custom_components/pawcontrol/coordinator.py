@@ -288,7 +288,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self.entry._options = dict(options)
         self._initialize_dog_data()
 
-    
+
     def update_gps(self, dog_id: str, latitude: float, longitude: float, accuracy: float | None = None) -> None:
         """Update GPS-derived fields: last update, distance, and geofence enter/leave/time."""
         data = self._dog_data.get(dog_id)
@@ -400,7 +400,7 @@ def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
 
         await self.async_request_refresh()
 
-    async 
+    async
     def increment_walk_distance(self, dog_id: str, inc_m: float) -> None:
         """Increment live walk distance for a dog and notify listeners."""
         if dog_id not in self._dog_data:

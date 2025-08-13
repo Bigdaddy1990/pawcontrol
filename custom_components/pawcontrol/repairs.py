@@ -18,14 +18,20 @@ class InvalidGeofenceRepairFlow(RepairsFlow):
         self.hass = hass
         self.entry_id = entry_id
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> data_entry_flow.FlowResult:
         """First step: choose repair action."""
-        schema = vol.Schema({
-            vol.Required("action"): vol.In({
-                "reset": "reset",
-                "disable_alerts": "disable_alerts",
-            })
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("action"): vol.In(
+                    {
+                        "reset": "reset",
+                        "disable_alerts": "disable_alerts",
+                    }
+                )
+            }
+        )
         if user_input is not None:
             action = user_input["action"]
             entry = self.hass.config_entries.async_get_entry(self.entry_id)

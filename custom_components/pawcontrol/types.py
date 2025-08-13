@@ -1,4 +1,5 @@
 """Typed runtime data structures for Paw Control."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from .services import ServiceManager
 @dataclass
 class PawRuntimeData:
     """Aggregated, typed runtime data stored on the config entry."""
+
     coordinator: PawControlCoordinator
     gps_handler: PawControlGPSHandler
     setup_sync: SetupSync
