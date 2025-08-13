@@ -1,57 +1,31 @@
-ci:
-  autoupdate_schedule: monthly
-  autofix_prs: true
-
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Keep in sync with latest stable Ruff (Aug 2025)
-    rev: v0.12.8
+    rev: v0.6.9
     hooks:
-      # Lint (with auto-fix) first
-      - id: ruff-check
+      - id: ruff
         args: [--fix]
-        types_or: [python, pyi]
-      # Then format
       - id: ruff-format
-        types_or: [python, pyi]
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.10.0
     hooks:
-      - id: check-merge-conflict
-      - id: check-yaml
-      - id: check-json
-      - id: check-toml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: mixed-line-ending
-        args: [--fix=lf]
-      - id: no-commit-to-branch
-        args: [--branch=main, --branch=master]
+      - id: black
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
-    hooks:
-      - id: codespell
-        args:
-          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha
-          - --skip=./.*,*.csv,*.json,*.min.js,*.map
-          - --quiet-level=2
-        exclude: |
-          (?x)^(
-            tests/fixtures/|
-            .*/snapshots/|
-            .*/translations/|
-            .*/.git/|
-            .*/.tox/|
-            .*/.venv/|
-            dist/|
-            build/|
-            .*/node_modules/
-          )
 
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
-    hooks:
-      - id: yamllint
-        files: "\.(yaml|yml)$"
+ci:
+  autofix_prs: true
+  autoupdate_schedule: monthly
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  skip: [black, ruff, ruff-format]
+  submodules: false
+
+- repo: local
+  hooks:
+    - id: ruff-docstrings-ci
+      name: ruff docstrings only (D200, D205)
+      entry: ruff check --select D200,D205 --force-exclude .
+      language: system
+      types: [python]

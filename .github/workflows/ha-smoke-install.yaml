@@ -1,0 +1,20 @@
+name: HA pip smoke test (py3.13)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Show Python
+        run: python --version && pip --version
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+      - name: Install Home Assistant (latest patch)
+        run: python -m pip install --no-cache-dir "homeassistant>=2025.8.0"
