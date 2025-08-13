@@ -5,6 +5,19 @@ All notable changes to Paw Control will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.0.0...v1.0.1) (2025-08-13)
+
+
+### Bug Fixes
+
+* improve coordinate validation ([7597569](https://github.com/Bigdaddy1990/pawcontrol/commit/7597569bd6a50ad22ee148e01749a7f63c02d948))
+* initialize module logger ([31bef07](https://github.com/Bigdaddy1990/pawcontrol/commit/31bef07825bc944125040fef68f1804745942b0a))
+* initialize module logger ([62720a3](https://github.com/Bigdaddy1990/pawcontrol/commit/62720a3c8dd3f105b513918b0122d39578aa2c03))
+* quote home assistant type annotations ([0c59498](https://github.com/Bigdaddy1990/pawcontrol/commit/0c59498504964937bb808b4748fd0e541c4d1196))
+* robust notify fallback parsing ([44606d9](https://github.com/Bigdaddy1990/pawcontrol/commit/44606d9c5be4c61fa1628958811166dba2a3582f))
+* use Platform enums for platform list ([921ba55](https://github.com/Bigdaddy1990/pawcontrol/commit/921ba55cf8a792c7e66a015d0bec4d96576b5d53))
+* use text selector for notify service ([d941d71](https://github.com/Bigdaddy1990/pawcontrol/commit/d941d7139d05c11d5ba4af47a01688f54bdbc1ae))
+
 ## 1.0.0 (2025-08-13)
 
 
