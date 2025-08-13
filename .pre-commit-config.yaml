@@ -1,31 +1,49 @@
+ci:
+  autoupdate_schedule: monthly
+  autofix_prs: true
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.12.8
     hooks:
-      - id: ruff
-        args: [--fix]
+      # Format first (fast fail avoided; formatting will modify files)
       - id: ruff-format
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.10.0
+        types_or: [python, pyi]
+      # Then lint + fix. We purposely do NOT use --exit-non-zero-on-fix
+      # so CI only fails if violations remain after fixes.
+      - id: ruff-check
+        args: [--fix, --unsafe-fixes]
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: black
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: [--fix=lf]
 
-
-ci:
-  autofix_prs: true
-  autoupdate_schedule: monthly
-  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
-  autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit.com hooks
-
-    for more information, see https://pre-commit.ci
-  skip: [black, ruff, ruff-format]
-  submodules: false
-
-- repo: local
-  hooks:
-    - id: ruff-docstrings-ci
-      name: ruff docstrings only (D200, D205)
-      entry: ruff check --select D200,D205 --force-exclude .
-      language: system
-      types: [python]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+      - id: codespell
+        args:
+          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha
+          - --skip=./.*,*.csv,*.json,*.min.js,*.map
+          - --quiet-level=2
+        exclude: |
+          (?x)^(
+            tests/fixtures/|
+            .*/snapshots/|
+            .*/translations/|
+            .*/.git/|
+            .*/.tox/|
+            .*/.venv/|
+            dist/|
+            build/|
+            .*/node_modules/
+          )
