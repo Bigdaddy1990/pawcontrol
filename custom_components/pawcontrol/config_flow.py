@@ -429,16 +429,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PawControlOptionsFlow(config_entry)
 
 
-class PawControlOptionsFlow(
-    PawControlOptionsFlowMedicationMixin,  # noqa: F821
-    PawControlOptionsFlowRemindersMixin,  # noqa: F821
-    PawControlOptionsFlowSafeZonesMixin,  # noqa: F821
-    PawControlOptionsFlowAdvancedMixin,  # noqa: F821
-    PawControlOptionsFlowScheduleMixin,  # noqa: F821
-    PawControlOptionsFlowModulesMixin,  # noqa: F821
-    PawControlOptionsFlowMedMixin,  # noqa: F821
-    config_entries.OptionsFlow,
-):
+class PawControlOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Paw Control."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -493,7 +484,8 @@ class PawControlOptionsFlow(
     ) -> FlowResult:
         """Manage data sources."""
         if user_input is not None:
-            self._options[CONF_SOURCES] = user_input
+            # Store provided source configuration and finish options flow
+            self._options[CONF_SOURCES] = dict(user_input)
             return self.async_create_entry(title="", data=self._options)
 
         sources = self._options.get(CONF_SOURCES, {})
