@@ -178,7 +178,7 @@ async def async_setup_entry(hass: 'HomeAssistant', entry: 'ConfigEntry') -> bool
     # Add update listener
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    
+
     # Auto-prune stale devices (report or remove based on option)
     auto = bool(entry.options.get('auto_prune_devices', False))
     await _auto_prune_devices(hass, entry, auto=auto)
@@ -499,7 +499,7 @@ async def _register_services(  # noqa: C901
 
 
 
-    
+
 
 async def handle_gps_start_walk(call: 'ServiceCall') -> None:
     dog_id = call.data.get("dog_id")

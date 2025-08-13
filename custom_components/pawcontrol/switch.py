@@ -509,4 +509,3 @@ class DailyReportSwitch(SwitchEntity):
         _LOGGER.info("Disabling daily report")
         self._is_on = False
         self.async_write_ha_state()
-

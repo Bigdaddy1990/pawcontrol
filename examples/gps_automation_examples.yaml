@@ -72,7 +72,7 @@ automation:
           title: "🏠 Spaziergang beendet!"
           message: |
             Buddy ist wieder da! 📍
-            
+
             📏 Distanz: {{ states('sensor.buddy_walk_distance_last') }}km
             ⏱️ Dauer: {{ states('sensor.buddy_walk_duration_last') }} Min
             🏃 Ø-Speed: {{ states('sensor.buddy_walk_avg_speed_last') }} km/h
@@ -106,14 +106,14 @@ automation:
           priority: "critical"
           create_map_link: true
           notify_emergency_contacts: true
-      
+
       # Kritische Benachrichtigung
       - service: notify.mobile_app_owner_phone
         data:
           title: "🚨 NOTFALL: Buddy verloren!"
           message: |
             ⚠️ ACHTUNG: Buddy ist seit 5 Minuten außerhalb aller Sicherheitszonen!
-            
+
             📍 Letzte Position: {{ states('sensor.buddy_gps_location') }}
             🗺️ Adresse: {{ states('sensor.buddy_current_address') }}
             ⏰ Letztes Update: {{ states('sensor.buddy_gps_last_update') }}
@@ -140,7 +140,7 @@ automation:
           title: "🔋 GPS-Tracker Akku schwach!"
           message: |
             Buddy's GPS-Tracker hat nur noch {{ states('sensor.buddy_gps_battery_level') }}% Akku!
-            
+
             ⏱️ Geschätzte Restlaufzeit: {{ states('sensor.buddy_gps_battery_time_left') }}
             🔌 Bitte bald aufladen!
           data:
@@ -197,7 +197,7 @@ automation:
           title: "⚠️ Buddy braucht mehr Bewegung!"
           message: |
             Nur {{ states('sensor.buddy_walk_distance_today') }}km heute gelaufen 📉
-            
+
             🎯 Empfohlen: 2-4km täglich
             ⏰ Zeit für einen Abendspaziergang!
           data:
@@ -237,7 +237,7 @@ automation:
           title: "☀️ Perfektes Spaziergang-Wetter!"
           message: |
             🌡️ {{ states.weather.home.attributes.temperature }}°C und {{ states('weather.home') }}
-            
+
             💡 Optimaler Zeitpunkt für Spaziergang!
             GPS-Tracking startet automatisch wenn Sie losgehen.
           data:
@@ -264,7 +264,7 @@ automation:
           title: "⭐ Neue Lieblings-Route entdeckt!"
           message: |
             Buddy liebt seine neue Route! 🗺️
-            
+
             📍 Route: "{{ trigger.event.data.route_name }}"
             📏 Distanz: {{ trigger.event.data.distance }}km
             ⏱️ Ø-Dauer: {{ trigger.event.data.avg_duration }} Min
@@ -298,13 +298,13 @@ automation:
           consider_last_walks: true
           exclude_overused_routes: true
           buddy_energy_level: "{{ states('sensor.buddy_energy_level') }}"
-      
+
       - service: notify.mobile_app_owner_phone
         data:
           title: "🎯 Optimale Route für jetzt:"
           message: |
             Basierend auf Wetter, Zeit und Buddy's Präferenzen:
-            
+
             📍 Empfohlen: {{ states('sensor.buddy_recommended_route') }}
             📏 {{ states('sensor.buddy_recommended_route_distance') }}km
             ⏱️ ~{{ states('sensor.buddy_recommended_route_duration') }} Min
@@ -338,18 +338,18 @@ automation:
           include_route_analysis: true
           include_health_correlation: true
           include_weather_correlation: true
-      
+
       - service: notify.mobile_app_owner_phone
         data:
           title: "📊 Buddy's Wochenbericht KW{{ now().strftime('%V') }}"
           message: |
             🗓️ Aktivitätsbericht KW{{ now().strftime('%V') }}/2025:
-            
+
             🚶 {{ states('sensor.buddy_walks_count_weekly') }} Spaziergänge
             📏 {{ states('sensor.buddy_walk_distance_weekly') }}km Gesamtdistanz
             ⏱️ {{ states('sensor.buddy_active_time_weekly') }} aktive Zeit
             🔥 {{ states('sensor.buddy_calories_weekly') }} Kalorien verbrannt
-            
+
             📈 Trend: {{ states('sensor.buddy_activity_trend') }}
             ⭐ Top-Route: {{ states('sensor.buddy_top_route_weekly') }}
           data:
@@ -379,16 +379,16 @@ automation:
       - condition: numeric_state
         entity_id: sensor.buddy_gps_performance_score
         below: 70  # Performance unter 70%
-      
+
       - service: notify.mobile_app_owner_phone
         data:
           title: "⚠️ GPS-Performance Problem"
           message: |
             GPS-Tracking Performance ist auf {{ states('sensor.buddy_gps_performance_score') }}% gefallen
-            
+
             🔍 Hauptprobleme:
             {{ states('sensor.buddy_gps_performance_issues') }}
-            
+
             💡 Empfohlene Lösungen:
             {{ states('sensor.buddy_gps_optimization_suggestions') }}
           data:

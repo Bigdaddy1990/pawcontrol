@@ -117,7 +117,7 @@ action:
                     title: "Given ✅"
                   - action: "MED_SNOOZE"
                     title: "Snooze 15min ⏰"
-          
+
           # Send reminders if not acknowledged
           - repeat:
               count: !input max_reminders
@@ -148,7 +148,7 @@ action:
                           title: "Given ✅"
                         - action: "MED_SNOOZE"
                           title: "Snooze ⏰"
-      
+
       # Medication confirmed
       - conditions:
           - condition: trigger
@@ -171,7 +171,7 @@ action:
               data:
                 tag: "pawcontrol_medication_confirm_{{ !input dog_id }}"
                 timeout: 10
-      
+
       # Medication snoozed
       - conditions:
           - condition: trigger
