@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.text import TextEntity
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import (
     CONF_DOG_ID,
@@ -77,6 +77,7 @@ class PawControlTextBase(TextEntity):
     """Base class for Paw Control text entities."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
         self,
@@ -260,6 +261,7 @@ class ExportPathText(TextEntity):
     _attr_name = "Export Path"
     _attr_icon = "mdi:folder-export"
     _attr_native_max = 255
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
         """Initialize the text entity."""

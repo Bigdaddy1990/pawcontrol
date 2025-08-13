@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
 from .const import DOMAIN
 
@@ -28,7 +28,7 @@ class SensorConfig:
     state_class: Optional[SensorStateClass] = None
     unit: Optional[str] = None
     options: Optional[list[str]] = None
-    entity_category: Optional[str] = None
+    entity_category: Optional[EntityCategory] = None
     default_value: Any = None
     transform_func: Optional[callable] = None
 
@@ -195,7 +195,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             key="gps_points_total",
             name="GPS Points Total",
             data_path="gps.points_total",
-            entity_category="diagnostic",
+            entity_category=EntityCategory.DIAGNOSTIC,
             state_class=SensorStateClass.TOTAL,
             default_value=0,
             transform_func=lambda x: int(float(x)),
@@ -204,7 +204,7 @@ def create_sensor_configs() -> Dict[str, SensorConfig]:
             key="gps_accuracy_avg",
             name="GPS Accuracy Average",
             data_path="gps.accuracy_avg",
-            entity_category="diagnostic",
+            entity_category=EntityCategory.DIAGNOSTIC,
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
             unit="m",

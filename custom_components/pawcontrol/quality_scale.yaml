@@ -123,8 +123,8 @@ rules:
 
   # Entities have entity category set
   entity_category:
-    status: partial
-    comment: Diagnostic entities need category set
+    status: done
+    comment: Config and diagnostic entities specify entity_category
 
   # Has a repair flow
   repair_flow:
