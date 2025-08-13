@@ -1,4 +1,5 @@
-from homeassistant.config_entries import async_update_reload_and_abort, FlowResult
+from homeassistant.config_entries import FlowResult
+
 """Config flow for Paw Control integration."""
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import OptionsFlowWithReload
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -430,7 +431,16 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PawControlOptionsFlow(config_entry)
 
 
-class PawControlOptionsFlow(PawControlOptionsFlowMedicationMixin, PawControlOptionsFlowRemindersMixin, PawControlOptionsFlowSafeZonesMixin, PawControlOptionsFlowAdvancedMixin, PawControlOptionsFlowScheduleMixin, PawControlOptionsFlowModulesMixin, PawControlOptionsFlowMedMixin, config_entries.OptionsFlow):
+class PawControlOptionsFlow(
+    PawControlOptionsFlowMedicationMixin,
+    PawControlOptionsFlowRemindersMixin,
+    PawControlOptionsFlowSafeZonesMixin,
+    PawControlOptionsFlowAdvancedMixin,
+    PawControlOptionsFlowScheduleMixin,
+    PawControlOptionsFlowModulesMixin,
+    PawControlOptionsFlowMedMixin,
+    config_entries.OptionsFlow,
+):
     """Handle options flow for Paw Control."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -646,23 +656,29 @@ class PawControlOptionsFlow(PawControlOptionsFlowMedicationMixin, PawControlOpti
 def _dog_key(d):
     return d.get("dog_id") or d.get("name")
 
+
 def _build_med_mapping_schema(dogs, current):
     import voluptuous as vol
     from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
-    meals = ["breakfast","lunch","dinner"]
+
+    meals = ["breakfast", "lunch", "dinner"]
     schema_dict = {}
     for d in dogs:
         did = _dog_key(d)
         dm = (current or {}).get(did, {})
-        for idx in (1,2,3):
+        for idx in (1, 2, 3):
             key = f"medmap_{did}_slot{idx}"
             default = dm.get(f"slot{idx}", [])
-            schema_dict[vol.Optional(key, default=default)] = SelectSelector(SelectSelectorConfig(options=meals, multiple=True))
+            schema_dict[vol.Optional(key, default=default)] = SelectSelector(
+                SelectSelectorConfig(options=meals, multiple=True)
+            )
     return vol.Schema(schema_dict)
 
 
 class PawControlOptionsFlowMedMixin:
-    async def async_step_medication_mapping(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_medication_mapping(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         dogs = self._options.get(CONF_DOGS, [])
         current = self._options.get("medication_mapping", {})
         if user_input is not None:
@@ -670,7 +686,7 @@ class PawControlOptionsFlowMedMixin:
             for d in dogs:
                 did = _dog_key(d)
                 new_map[did] = {}
-                for idx in (1,2,3):
+                for idx in (1, 2, 3):
                     key = f"medmap_{did}_slot{idx}"
                     vals = user_input.get(key) or []
                     if isinstance(vals, str):
@@ -686,8 +702,13 @@ class PawControlOptionsFlowMedMixin:
 class PawControlOptionsFlowModulesMixin:
     async def async_step_modules(self, user_input=None):
         import voluptuous as vol
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
-        modules = opts.get("modules", {}) if isinstance(opts.get("modules"), dict) else {}
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
+        modules = (
+            opts.get("modules", {}) if isinstance(opts.get("modules"), dict) else {}
+        )
         defaults = {
             "gps": modules.get("gps", True),
             "feeding": modules.get("feeding", True),
@@ -711,15 +732,17 @@ class PawControlOptionsFlowModulesMixin:
             new_opts["modules"] = modules
             return self.async_create_entry(title="", data=new_opts)
 
-        schema = vol.Schema({
-            vol.Optional("gps", default=defaults["gps"]): bool,
-            vol.Optional("feeding", default=defaults["feeding"]): bool,
-            vol.Optional("health", default=defaults["health"]): bool,
-            vol.Optional("walk", default=defaults["walk"]): bool,
-            vol.Optional("grooming", default=defaults["grooming"]): bool,
-            vol.Optional("training", default=defaults["training"]): bool,
-            vol.Optional("notifications", default=defaults["notifications"]): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("gps", default=defaults["gps"]): bool,
+                vol.Optional("feeding", default=defaults["feeding"]): bool,
+                vol.Optional("health", default=defaults["health"]): bool,
+                vol.Optional("walk", default=defaults["walk"]): bool,
+                vol.Optional("grooming", default=defaults["grooming"]): bool,
+                vol.Optional("training", default=defaults["training"]): bool,
+                vol.Optional("notifications", default=defaults["notifications"]): bool,
+            }
+        )
         return self.async_show_form(step_id="modules", data_schema=schema)
 
 
@@ -727,9 +750,15 @@ class PawControlOptionsFlowScheduleMixin:
     async def async_step_schedule(self, user_input=None):
         import voluptuous as vol
         from homeassistant.helpers.selector import (
-            TimeSelector, TimeSelectorConfig, NumberSelector, NumberSelectorConfig
+            NumberSelector,
+            NumberSelectorConfig,
+            TimeSelector,
+            TimeSelectorConfig,
         )
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
         default_reset = opts.get("reset_time", "23:59:00")
         qh = opts.get("quiet_hours", {})
         default_qs = qh.get("start", "22:00:00")
@@ -740,57 +769,110 @@ class PawControlOptionsFlowScheduleMixin:
         if user_input is not None:
             new = dict(opts)
             new["reset_time"] = user_input.get("reset_time", default_reset)
-            new["quiet_hours"] = {"start": user_input.get("quiet_start", default_qs),
-                                  "end": user_input.get("quiet_end", default_qe)}
-            new["reminder_repeat"] = int(user_input.get("reminder_repeat", default_repeat))
+            new["quiet_hours"] = {
+                "start": user_input.get("quiet_start", default_qs),
+                "end": user_input.get("quiet_end", default_qe),
+            }
+            new["reminder_repeat"] = int(
+                user_input.get("reminder_repeat", default_repeat)
+            )
             new["snooze_min"] = int(user_input.get("snooze_min", default_snooze))
             return self.async_create_entry(title="", data=new)
 
-        schema = vol.Schema({
-            vol.Optional("reset_time", default=default_reset): TimeSelector(TimeSelectorConfig()),
-            vol.Optional("quiet_start", default=default_qs): TimeSelector(TimeSelectorConfig()),
-            vol.Optional("quiet_end", default=default_qe): TimeSelector(TimeSelectorConfig()),
-            vol.Optional("reminder_repeat", default=default_repeat): NumberSelector(NumberSelectorConfig(min=5, max=180, step=5, mode="box")),
-            vol.Optional("snooze_min", default=default_snooze): NumberSelector(NumberSelectorConfig(min=5, max=120, step=5, mode="box")),
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("reset_time", default=default_reset): TimeSelector(
+                    TimeSelectorConfig()
+                ),
+                vol.Optional("quiet_start", default=default_qs): TimeSelector(
+                    TimeSelectorConfig()
+                ),
+                vol.Optional("quiet_end", default=default_qe): TimeSelector(
+                    TimeSelectorConfig()
+                ),
+                vol.Optional("reminder_repeat", default=default_repeat): NumberSelector(
+                    NumberSelectorConfig(min=5, max=180, step=5, mode="box")
+                ),
+                vol.Optional("snooze_min", default=default_snooze): NumberSelector(
+                    NumberSelectorConfig(min=5, max=120, step=5, mode="box")
+                ),
+            }
+        )
         return self.async_show_form(step_id="schedule", data_schema=schema)
 
 
 class PawControlOptionsFlowAdvancedMixin:
     async def async_step_advanced(self, user_input=None):
         import voluptuous as vol
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
         defaults = {
-            "route_history_limit": int((opts.get("advanced") or {}).get("route_history_limit", 500)),
-            "enable_pawtracker_alias": bool((opts.get("advanced") or {}).get("enable_pawtracker_alias", True)),
-            "diagnostic_sensors": bool((opts.get("advanced") or {}).get("diagnostic_sensors", False)),
+            "route_history_limit": int(
+                (opts.get("advanced") or {}).get("route_history_limit", 500)
+            ),
+            "enable_pawtracker_alias": bool(
+                (opts.get("advanced") or {}).get("enable_pawtracker_alias", True)
+            ),
+            "diagnostic_sensors": bool(
+                (opts.get("advanced") or {}).get("diagnostic_sensors", False)
+            ),
         }
         if user_input is not None:
             new = dict(opts)
             new["advanced"] = {
-                "route_history_limit": int(user_input.get("route_history_limit", defaults["route_history_limit"])),
-                "enable_pawtracker_alias": bool(user_input.get("enable_pawtracker_alias", defaults["enable_pawtracker_alias"])),
-                "diagnostic_sensors": bool(user_input.get("diagnostic_sensors", defaults["diagnostic_sensors"])),
+                "route_history_limit": int(
+                    user_input.get(
+                        "route_history_limit", defaults["route_history_limit"]
+                    )
+                ),
+                "enable_pawtracker_alias": bool(
+                    user_input.get(
+                        "enable_pawtracker_alias", defaults["enable_pawtracker_alias"]
+                    )
+                ),
+                "diagnostic_sensors": bool(
+                    user_input.get("diagnostic_sensors", defaults["diagnostic_sensors"])
+                ),
             }
             return self.async_create_entry(title="", data=new)
 
-        schema = vol.Schema({
-            vol.Optional("route_history_limit", default=defaults["route_history_limit"]): int,
-            vol.Optional("enable_pawtracker_alias", default=defaults["enable_pawtracker_alias"]): bool,
-            vol.Optional("diagnostic_sensors", default=defaults["diagnostic_sensors"]): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "route_history_limit", default=defaults["route_history_limit"]
+                ): int,
+                vol.Optional(
+                    "enable_pawtracker_alias",
+                    default=defaults["enable_pawtracker_alias"],
+                ): bool,
+                vol.Optional(
+                    "diagnostic_sensors", default=defaults["diagnostic_sensors"]
+                ): bool,
+            }
+        )
         return self.async_show_form(step_id="advanced", data_schema=schema)
 
 
 class PawControlOptionsFlowSafeZonesMixin:
     async def async_step_safe_zones(self, user_input=None):
         import voluptuous as vol
-        from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, BooleanSelector
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
+        from homeassistant.helpers.selector import (
+            BooleanSelector,
+            NumberSelector,
+            NumberSelectorConfig,
+        )
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
         dogs = opts.get(CONF_DOGS, [])
         sz = dict(opts.get("safe_zones") or {})
         if not dogs:
-            return self.async_show_form(step_id="safe_zones", data_schema=vol.Schema({}))
+            return self.async_show_form(
+                step_id="safe_zones", data_schema=vol.Schema({})
+            )
 
         schema = {}
         defaults = {}
@@ -805,10 +887,24 @@ class PawControlOptionsFlowSafeZonesMixin:
                 "radius": cur.get("radius", 50),
                 "enable": bool(cur.get("enable_alerts", True)),
             }
-            schema[vol.Optional(f"{dog_id}__lat", default=defaults[dog_id]["lat"])] = NumberSelector(NumberSelectorConfig(min=-90, max=90, step=0.000001, mode="box"))
-            schema[vol.Optional(f"{dog_id}__lon", default=defaults[dog_id]["lon"])] = NumberSelector(NumberSelectorConfig(min=-180, max=180, step=0.000001, mode="box"))
-            schema[vol.Optional(f"{dog_id}__radius", default=defaults[dog_id]["radius"])] = NumberSelector(NumberSelectorConfig(min=5, max=2000, step=1, mode="box"))
-            schema[vol.Optional(f"{dog_id}__enable", default=defaults[dog_id]["enable"])] = BooleanSelector()
+            schema[vol.Optional(f"{dog_id}__lat", default=defaults[dog_id]["lat"])] = (
+                NumberSelector(
+                    NumberSelectorConfig(min=-90, max=90, step=0.000001, mode="box")
+                )
+            )
+            schema[vol.Optional(f"{dog_id}__lon", default=defaults[dog_id]["lon"])] = (
+                NumberSelector(
+                    NumberSelectorConfig(min=-180, max=180, step=0.000001, mode="box")
+                )
+            )
+            schema[
+                vol.Optional(f"{dog_id}__radius", default=defaults[dog_id]["radius"])
+            ] = NumberSelector(
+                NumberSelectorConfig(min=5, max=2000, step=1, mode="box")
+            )
+            schema[
+                vol.Optional(f"{dog_id}__enable", default=defaults[dog_id]["enable"])
+            ] = BooleanSelector()
 
         if user_input is not None:
             new = dict(opts)
@@ -826,16 +922,25 @@ class PawControlOptionsFlowSafeZonesMixin:
             new["safe_zones"] = out
             return self.async_create_entry(title="", data=new)
 
-        return self.async_show_form(step_id="safe_zones", data_schema=vol.Schema(schema))
+        return self.async_show_form(
+            step_id="safe_zones", data_schema=vol.Schema(schema)
+        )
 
 
 class PawControlOptionsFlowRemindersMixin:
     async def async_step_reminders(self, user_input=None):
         import voluptuous as vol
         from homeassistant.helpers.selector import (
-            TextSelector, TextSelectorConfig, NumberSelector, NumberSelectorConfig, BooleanSelector
+            BooleanSelector,
+            NumberSelector,
+            NumberSelectorConfig,
+            TextSelector,
+            TextSelectorConfig,
         )
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
         reminders = dict((opts.get("reminders") or {}))
         target = reminders.get("notify_target", "notify.notify")
         interval_min = int(reminders.get("interval_minutes", 0) or 0)
@@ -852,12 +957,20 @@ class PawControlOptionsFlowRemindersMixin:
             }
             return self.async_create_entry(title="", data=new)
 
-        schema = vol.Schema({
-            vol.Optional("notify_target", default=target): TextSelector(TextSelectorConfig(type="text")),
-            vol.Optional("interval_minutes", default=interval_min): NumberSelector(NumberSelectorConfig(min=0, max=1440, step=5, mode="box")),
-            vol.Optional("snooze_minutes", default=snooze_min): NumberSelector(NumberSelectorConfig(min=0, max=360, step=5, mode="box")),
-            vol.Optional("enable_auto", default=enable_auto): BooleanSelector(),
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("notify_target", default=target): TextSelector(
+                    TextSelectorConfig(type="text")
+                ),
+                vol.Optional("interval_minutes", default=interval_min): NumberSelector(
+                    NumberSelectorConfig(min=0, max=1440, step=5, mode="box")
+                ),
+                vol.Optional("snooze_minutes", default=snooze_min): NumberSelector(
+                    NumberSelectorConfig(min=0, max=360, step=5, mode="box")
+                ),
+                vol.Optional("enable_auto", default=enable_auto): BooleanSelector(),
+            }
+        )
         return self.async_show_form(step_id="reminders", data_schema=schema)
 
 
@@ -867,8 +980,11 @@ class PawControlOptionsFlowMedicationMixin:
     async def async_step_medications(self, user_input=None):
         import voluptuous as vol
         from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
-        dogs = (opts.get("dogs") or [])
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
+        dogs = opts.get("dogs") or []
         choices = []
         for d in dogs:
             did = d.get("dog_id") or d.get("name")
@@ -880,21 +996,31 @@ class PawControlOptionsFlowMedicationMixin:
         if user_input is not None:
             self._med_dog = user_input.get("dog_id")
             return await self.async_step_medications_configure()
-        schema = vol.Schema({
-            vol.Required("dog_id"): SelectSelector(SelectSelectorConfig(options=choices))
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("dog_id"): SelectSelector(
+                    SelectSelectorConfig(options=choices)
+                )
+            }
+        )
         return self.async_show_form(step_id="medications", data_schema=schema)
 
     async def async_step_medications_configure(self, user_input=None):
         import voluptuous as vol
         from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
-        opts = self._options if hasattr(self, "_options") else (self.entry.options or {})
+
+        opts = (
+            self._options if hasattr(self, "_options") else (self.entry.options or {})
+        )
         dog = getattr(self, "_med_dog", None)
         if not dog:
             return await self.async_step_medications()
         mapping = dict((opts.get("medication_mapping") or {}))
         dm = dict(mapping.get(dog) or {})
-        def _def(slot): return list(dm.get(slot) or [])
+
+        def _def(slot):
+            return list(dm.get(slot) or [])
+
         if user_input is not None:
             new = dict(opts)
             m = dict(new.get("medication_mapping") or {})
@@ -906,38 +1032,60 @@ class PawControlOptionsFlowMedicationMixin:
             new["medication_mapping"] = m
             return self.async_create_entry(title="", data=new)
         meal_opts = self.MEALS
-        schema = vol.Schema({
-            vol.Optional("slot1", default=_def("slot1")): SelectSelector(SelectSelectorConfig(options=meal_opts, multiple=True)),
-            vol.Optional("slot2", default=_def("slot2")): SelectSelector(SelectSelectorConfig(options=meal_opts, multiple=True)),
-            vol.Optional("slot3", default=_def("slot3")): SelectSelector(SelectSelectorConfig(options=meal_opts, multiple=True)),
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("slot1", default=_def("slot1")): SelectSelector(
+                    SelectSelectorConfig(options=meal_opts, multiple=True)
+                ),
+                vol.Optional("slot2", default=_def("slot2")): SelectSelector(
+                    SelectSelectorConfig(options=meal_opts, multiple=True)
+                ),
+                vol.Optional("slot3", default=_def("slot3")): SelectSelector(
+                    SelectSelectorConfig(options=meal_opts, multiple=True)
+                ),
+            }
+        )
         return self.async_show_form(step_id="medications_configure", data_schema=schema)
 
 
-async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+async def async_step_reconfigure(
+    self, user_input: dict[str, Any] | None = None
+) -> FlowResult:
     """Handle reconfiguration of the integration (Gold rule)."""
     errors: dict[str, str] = {}
     # Defaults from existing entry if available
-    entry = self._get_reconfigure_entry() if hasattr(self, '_get_reconfigure_entry') else None
+    entry = (
+        self._get_reconfigure_entry()
+        if hasattr(self, "_get_reconfigure_entry")
+        else None
+    )
     opts = entry.options if entry else {}
-    schema = vol.Schema({
-        vol.Optional('history_days', default=opts.get('history_days', 30)): vol.Coerce(int),
-        vol.Optional('geofence_radius_m', default=opts.get('geofence_radius_m', 75)): vol.Coerce(int),
-        vol.Optional('notify_target', default=opts.get('notify_target', '')): str,
-    })
+    schema = vol.Schema(
+        {
+            vol.Optional(
+                "history_days", default=opts.get("history_days", 30)
+            ): vol.Coerce(int),
+            vol.Optional(
+                "geofence_radius_m", default=opts.get("geofence_radius_m", 75)
+            ): vol.Coerce(int),
+            vol.Optional("notify_target", default=opts.get("notify_target", "")): str,
+        }
+    )
     if user_input is None:
-        return self.async_show_form(step_id='reconfigure', data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
+        )
     # Save as options
     if entry:
         new_opts = dict(opts)
         new_opts.update(user_input)
         self.hass.config_entries.async_update_entry(entry, options=new_opts)
-    return self.async_create_entry(title='Reconfigure', data={})
+    return self.async_create_entry(title="Reconfigure", data={})
 
 
-
-
-async def async_step_reauth(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+async def async_step_reauth(
+    self, user_input: dict[str, Any] | None = None
+) -> FlowResult:
     """Handle reauthentication flow (update credentials and reload)."""
     errors: dict[str, str] = {}
     schema = vol.Schema({vol.Required("api_key"): str})
@@ -953,9 +1101,10 @@ async def async_step_reauth(self, user_input: dict[str, Any] | None = None) -> F
     if entry:
         new_data = dict(entry.data)
         new_data["api_key"] = api_key
-        return self.async_update_reload_and_abort(entry, data=new_data, reason="reauth_successful")
+        return self.async_update_reload_and_abort(
+            entry, data=new_data, reason="reauth_successful"
+        )
     return self.async_abort(reason="reauth_successful")
-
 
 
 class OptionsFlowHandler(OptionsFlowWithReload):
@@ -969,30 +1118,53 @@ class OptionsFlowHandler(OptionsFlowWithReload):
 
     async def async_step_geofence(self, user_input: dict | None = None):
         import voluptuous as vol
+
         errors: dict[str, str] = {}
         opts = dict(self.config_entry.options)
 
         def _def(k, default=None):
             return opts.get(k, default)
 
-        schema = vol.Schema({
-            vol.Optional("home_lat", default=_def("home_lat", "")): str,
-            vol.Optional("home_lon", default=_def("home_lon", "")): str,
-            vol.Optional("geofence_radius_m", default=_def("geofence_radius_m", 100.0)): float,
-            vol.Optional("auto_prune_devices", default=_def("auto_prune_devices", False)): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("home_lat", default=_def("home_lat", "")): str,
+                vol.Optional("home_lon", default=_def("home_lon", "")): str,
+                vol.Optional(
+                    "geofence_radius_m", default=_def("geofence_radius_m", 100.0)
+                ): float,
+                vol.Optional(
+                    "auto_prune_devices", default=_def("auto_prune_devices", False)
+                ): bool,
+            }
+        )
 
         if user_input is None:
-            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+            return self.async_show_form(
+                step_id="geofence", data_schema=schema, errors=errors
+            )
 
         # validate
         try:
-            lat = float(user_input.get("home_lat")) if user_input.get("home_lat") not in (None, "") else None
-            lon = float(user_input.get("home_lon")) if user_input.get("home_lon") not in (None, "") else None
-            radius = float(user_input.get("geofence_radius_m")) if user_input.get("geofence_radius_m") is not None else None
+            lat = (
+                float(user_input.get("home_lat"))
+                if user_input.get("home_lat") not in (None, "")
+                else None
+            )
+            lon = (
+                float(user_input.get("home_lon"))
+                if user_input.get("home_lon") not in (None, "")
+                else None
+            )
+            radius = (
+                float(user_input.get("geofence_radius_m"))
+                if user_input.get("geofence_radius_m") is not None
+                else None
+            )
         except Exception:
             errors["base"] = "invalid_geofence"
-            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+            return self.async_show_form(
+                step_id="geofence", data_schema=schema, errors=errors
+            )
 
         if radius is not None and radius <= 0:
             errors["base"] = "invalid_geofence"
@@ -1000,7 +1172,9 @@ class OptionsFlowHandler(OptionsFlowWithReload):
             errors["base"] = "invalid_geofence"
 
         if errors:
-            return self.async_show_form(step_id="geofence", data_schema=schema, errors=errors)
+            return self.async_show_form(
+                step_id="geofence", data_schema=schema, errors=errors
+            )
 
         new_opts = dict(opts)
         new_opts.update(user_input)

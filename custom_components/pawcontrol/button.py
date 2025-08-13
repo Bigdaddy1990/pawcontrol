@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -13,17 +12,17 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
-    MODULE_WALK,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
-    MODULE_HEALTH,
     MODULE_GROOMING,
-    MODULE_TRAINING,
+    MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -594,7 +593,11 @@ class SyncSetupButton(ButtonEntity):
 
 
 class MarkMedicationButton(BaseDogButton):
-    def __init__(self, hass, dog_id): super().__init__(hass, dog_id, "mark_medication", "Medikament gegeben")
+    def __init__(self, hass, dog_id):
+        super().__init__(hass, dog_id, "mark_medication", "Medikament gegeben")
+
     async def async_press(self):
         now = self.hass.helpers.event.dt_util.utcnow().isoformat()
-        self.hass.states.async_set(f"sensor.{DOMAIN}_{self._dog}_last_medication", now, {"via":"button"})
+        self.hass.states.async_set(
+            f"sensor.{DOMAIN}_{self._dog}_last_medication", now, {"via": "button"}
+        )

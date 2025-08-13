@@ -10,17 +10,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
-    MODULE_WALK,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
-    MODULE_HEALTH,
     MODULE_GROOMING,
+    MODULE_HEALTH,
     MODULE_TRAINING,
-    MODULE_GPS,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -181,9 +180,7 @@ class DashboardGenerator:
                 {{% else %}}
                   ✅ {{{{ activity | title }}}} activity
                 {{% endif %}}
-            """.format(
-                DOMAIN, dog_id
-            ).strip(),
+            """.format(DOMAIN, dog_id).strip(),
             "icon": "mdi:dog-side",
             "icon_color": """
                 {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
@@ -193,9 +190,7 @@ class DashboardGenerator:
                 {{% else %}}
                   blue
                 {{% endif %}}
-            """.format(
-                DOMAIN, dog_id
-            ).strip(),
+            """.format(DOMAIN, dog_id).strip(),
             "tap_action": {"action": "more-info"},
         }
 
@@ -216,9 +211,7 @@ class DashboardGenerator:
                     {{% else %}}
                       Start Walk
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "icon": "mdi:walk",
                     "icon_color": """
                     {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
@@ -226,9 +219,7 @@ class DashboardGenerator:
                     {{% else %}}
                       grey
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.start_walk",
@@ -248,9 +239,7 @@ class DashboardGenerator:
                     {{% else %}}
                       Quick Feed
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "icon": "mdi:food",
                     "icon_color": """
                     {{% if is_state('binary_sensor.{0}_{1}_is_hungry', 'on') %}}
@@ -258,9 +247,7 @@ class DashboardGenerator:
                     {{% else %}}
                       grey
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.feed_dog",
@@ -393,9 +380,7 @@ class DashboardGenerator:
                     {{% else %}}
                       {{{{ days }}}} days ago
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "icon": "mdi:content-cut",
                     "icon_color": """
                     {{% if is_state('binary_sensor.{0}_{1}_needs_grooming', 'on') %}}
@@ -403,9 +388,7 @@ class DashboardGenerator:
                     {{% else %}}
                       green
                     {{% endif %}}
-                """.format(
-                        DOMAIN, dog_id
-                    ).strip(),
+                """.format(DOMAIN, dog_id).strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.start_grooming_session",
@@ -512,12 +495,12 @@ class DashboardGenerator:
 
             # This would require accessing the Lovelace storage
             # For now, we'll just log the intent
-            _LOGGER.info(f"Generated dashboard configuration for Paw Control")
+            _LOGGER.info("Generated dashboard configuration for Paw Control")
 
             # Store dashboard config for manual application
-            self.hass.data[DOMAIN][self.entry.entry_id][
-                "dashboard_config"
-            ] = dashboard_config
+            self.hass.data[DOMAIN][self.entry.entry_id]["dashboard_config"] = (
+                dashboard_config
+            )
 
             return True
 

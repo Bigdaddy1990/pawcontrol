@@ -13,17 +13,17 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
-    MODULE_WALK,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_GROOMING,
-    MODULE_TRAINING,
+    CONF_DOG_NAME,
+    CONF_DOGS,
     DEFAULT_GROOMING_INTERVAL_DAYS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_TRAINING,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)

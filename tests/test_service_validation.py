@@ -1,9 +1,10 @@
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.setup import async_setup_component
 
 DOMAIN = "pawcontrol"
+
 
 @pytest.mark.anyio
 async def test_service_validation_no_entries(hass: HomeAssistant):

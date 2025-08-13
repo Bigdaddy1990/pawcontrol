@@ -1,9 +1,10 @@
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
 DOMAIN = "pawcontrol"
+
 
 @pytest.mark.anyio
 async def test_diagnostics_redacts_sensitive(hass: HomeAssistant):

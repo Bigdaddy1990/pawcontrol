@@ -3,36 +3,26 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from homeassistant.components import (
-    input_boolean,
-    input_datetime,
-    input_number,
-    input_select,
-    input_text,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
 from ..const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    MODULE_WALK,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_GROOMING,
-    MODULE_MEDICATION,
-    MODULE_TRAINING,
-    MODULE_GPS,
-    CONF_VISITOR_MODE,
-    CONF_EXPORT_PATH,
+    CONF_DOGS,
     CONF_EXPORT_FORMAT,
+    CONF_EXPORT_PATH,
+    CONF_VISITOR_MODE,
     DEFAULT_GROOMING_INTERVAL_DAYS,
+    DOMAIN,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_TRAINING,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -298,11 +288,6 @@ class SetupSync:
 
         # Create the helper
         try:
-            service_data = {
-                **config,
-                "entity_id": entity_id,
-            }
-
             # Map component to service
             service_map = {
                 "input_boolean": "create_boolean",

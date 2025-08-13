@@ -10,24 +10,24 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
-    MODULE_WALK,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_GROOMING,
     MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+
 PARALLEL_UPDATES = 0
 
 _LOGGER = logging.getLogger(__name__)

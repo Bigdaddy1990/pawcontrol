@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 from typing import Any
-import voluptuous as vol
 
+import voluptuous as vol
+from homeassistant.components.device_automation.exceptions import (
+    InvalidDeviceAutomationConfig,
+)
+from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_ENTITY_ID, CONF_TYPE
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.config_validation import DEVICE_ACTION_BASE_SCHEMA
-from homeassistant.components.device_automation.exceptions import InvalidDeviceAutomationConfig
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .schemas import (
-    SERVICE_GPS_START_WALK,
     SERVICE_GPS_END_WALK,
-    SERVICE_GPS_POST_LOCATION,
+    SERVICE_GPS_START_WALK,
     SERVICE_TOGGLE_GEOFENCE_ALERTS,
 )
 
@@ -32,11 +33,15 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
     }
 )
 
-async def async_get_actions(hass: HomeAssistant, device_id: str) -> list[dict[str, Any]]:
+
+async def async_get_actions(
+    hass: HomeAssistant, device_id: str
+) -> list[dict[str, Any]]:
     return [
         {CONF_DOMAIN: DOMAIN, CONF_DEVICE_ID: device_id, CONF_TYPE: t}
         for t in ACTION_TYPES
     ]
+
 
 def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | None:
     if not device_id:
@@ -49,6 +54,7 @@ def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | 
         if idt[0] == DOMAIN:
             return idt[1]
     return None
+
 
 async def async_call_action_from_config(
     hass: HomeAssistant, config: ConfigType, variables: dict[str, Any], context: Any
@@ -63,14 +69,32 @@ async def async_call_action_from_config(
         raise InvalidDeviceAutomationConfig("Device has no Paw Control dog identifier")
 
     if action_type == "start_walk":
-        await hass.services.async_call(DOMAIN, SERVICE_GPS_START_WALK, {"dog_id": dog_id}, blocking=True, context=context)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GPS_START_WALK,
+            {"dog_id": dog_id},
+            blocking=True,
+            context=context,
+        )
         return
     if action_type == "end_walk":
-        await hass.services.async_call(DOMAIN, SERVICE_GPS_END_WALK, {"dog_id": dog_id}, blocking=True, context=context)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GPS_END_WALK,
+            {"dog_id": dog_id},
+            blocking=True,
+            context=context,
+        )
         return
     if action_type == "toggle_geofence_alerts":
         enabled = bool(config.get("enabled", True))
-        await hass.services.async_call(DOMAIN, SERVICE_TOGGLE_GEOFENCE_ALERTS, {"dog_id": dog_id, "enabled": enabled}, blocking=True, context=context)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_TOGGLE_GEOFENCE_ALERTS,
+            {"dog_id": dog_id, "enabled": enabled},
+            blocking=True,
+            context=context,
+        )
         return
 
     raise InvalidDeviceAutomationConfig(f"Unsupported action type: {action_type}")

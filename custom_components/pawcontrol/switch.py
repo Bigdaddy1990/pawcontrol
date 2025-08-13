@@ -12,21 +12,22 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOG_MODULES,
-    MODULE_WALK,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_GROOMING,
-    MODULE_TRAINING,
-    MODULE_NOTIFICATIONS,
     MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_WALK,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -151,6 +152,7 @@ async def async_setup_entry(
 
     async_add_entities(entities, True)
 
+
 class PawControlSwitchBase(SwitchEntity):
     """Base class for Paw Control switches."""
 
@@ -204,6 +206,7 @@ class PawControlSwitchBase(SwitchEntity):
         """Turn the switch off."""
         self._is_on = False
         self.async_write_ha_state()
+
 
 class ModuleSwitch(PawControlSwitchBase):
     """Switch to enable or disable a module.
@@ -261,6 +264,7 @@ class ModuleSwitch(PawControlSwitchBase):
         self._is_on = False
         self.async_write_ha_state()
 
+
 class AutoWalkDetectionSwitch(PawControlSwitchBase):
     """Switch for auto walk detection."""
 
@@ -288,6 +292,7 @@ class AutoWalkDetectionSwitch(PawControlSwitchBase):
         _LOGGER.info(f"Disabling auto walk detection for {self._dog_name}")
         self._is_on = False
         self.async_write_ha_state()
+
 
 class OverfeedingProtectionSwitch(PawControlSwitchBase):
     """Switch for overfeeding protection."""
@@ -317,6 +322,7 @@ class OverfeedingProtectionSwitch(PawControlSwitchBase):
         self._is_on = False
         self.async_write_ha_state()
 
+
 class NotificationEnabledSwitch(PawControlSwitchBase):
     """Switch to enable/disable notifications for a dog."""
 
@@ -344,6 +350,7 @@ class NotificationEnabledSwitch(PawControlSwitchBase):
         _LOGGER.info(f"Disabling notifications for {self._dog_name}")
         self._is_on = False
         self.async_write_ha_state()
+
 
 class VisitorModeSwitch(SwitchEntity):
     """Switch for visitor mode."""
@@ -389,6 +396,7 @@ class VisitorModeSwitch(SwitchEntity):
             blocking=False,
         )
 
+
 class EmergencyModeSwitch(SwitchEntity):
     """Switch for emergency mode."""
 
@@ -430,6 +438,7 @@ class EmergencyModeSwitch(SwitchEntity):
         self.coordinator._emergency_mode = False
         await self.coordinator.async_request_refresh()
 
+
 class QuietHoursSwitch(SwitchEntity):
     """Switch for quiet hours."""
 
@@ -469,6 +478,7 @@ class QuietHoursSwitch(SwitchEntity):
         _LOGGER.info("Disabling quiet hours")
         self._is_on = False
         self.async_write_ha_state()
+
 
 class DailyReportSwitch(SwitchEntity):
     """Switch for daily report."""

@@ -1,6 +1,7 @@
 """Constants for the Paw Control integration."""
 
 from typing import Final
+
 from homeassistant.const import Platform
 
 DOMAIN: Final[str] = "pawcontrol"

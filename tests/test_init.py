@@ -14,7 +14,10 @@ except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
 
 from custom_components.pawcontrol.const import DOMAIN
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("enable_custom_integrations")]
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.usefixtures("enable_custom_integrations"),
+]
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

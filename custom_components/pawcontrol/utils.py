@@ -1,4 +1,5 @@
 """Utility helpers for Paw Control (clean minimal set)."""
+
 from __future__ import annotations
 
 from math import atan2, cos, radians, sin, sqrt

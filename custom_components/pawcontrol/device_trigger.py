@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
 from homeassistant.components.homeassistant.triggers import event as event_trigger
 from homeassistant.const import (
@@ -15,16 +14,16 @@ from homeassistant.const import (
     CONF_TYPE,
 )
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DOMAIN,
-    EVENT_WALK_STARTED,
-    EVENT_WALK_ENDED,
     EVENT_DOG_FED,
-    EVENT_MEDICATION_GIVEN,
     EVENT_GROOMING_DONE,
+    EVENT_MEDICATION_GIVEN,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
 )
 
 TRIGGER_TYPES = {

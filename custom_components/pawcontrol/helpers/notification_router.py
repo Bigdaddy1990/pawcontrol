@@ -9,20 +9,18 @@ from typing import Any, Dict, List, Optional
 from homeassistant.components.notify import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from ..const import (
-    DOMAIN,
     CONF_NOTIFICATIONS,
     CONF_NOTIFY_FALLBACK,
     CONF_PERSON_ENTITIES,
-    CONF_SOURCES,
+    CONF_QUIET_END,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
-    CONF_QUIET_END,
-    CONF_REMINDER_REPEAT,
     CONF_SNOOZE_MIN,
+    CONF_SOURCES,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -200,9 +198,7 @@ class NotificationRouter:
                 # splitting just once we keep the full identifier (``john.doe``)
                 # and then normalize any remaining dots to underscores so
                 # ``notify.mobile_app_john_doe`` remains intact.
-                person_name = (
-                    person_entity.split(".", 1)[-1].replace(".", "_").lower()
-                )
+                person_name = person_entity.split(".", 1)[-1].replace(".", "_").lower()
                 notify_service = f"mobile_app_{person_name}"
 
                 # Check if service exists

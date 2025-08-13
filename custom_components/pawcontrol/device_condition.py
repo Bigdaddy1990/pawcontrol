@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-import voluptuous as vol
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr, condition
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.config_validation import DEVICE_CONDITION_BASE_SCHEMA
+import voluptuous as vol
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.config_validation import DEVICE_CONDITION_BASE_SCHEMA
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 
@@ -19,12 +19,16 @@ CONDITION_SCHEMA = DEVICE_CONDITION_BASE_SCHEMA.extend(
     }
 )
 
-async def async_get_conditions(hass: HomeAssistant, device_id: str) -> list[dict[str, Any]]:
+
+async def async_get_conditions(
+    hass: HomeAssistant, device_id: str
+) -> list[dict[str, Any]]:
     """List device conditions for a device."""
     return [
         {CONF_DOMAIN: DOMAIN, CONF_DEVICE_ID: device_id, CONF_TYPE: c}
         for c in CONDITION_TYPES
     ]
+
 
 def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | None:
     if not device_id:
@@ -38,6 +42,7 @@ def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | 
             return idt[1]
     return None
 
+
 def _get_coordinator(hass: HomeAssistant, dog_id: str | None):
     data = hass.data.get(DOMAIN) or {}
     for entry_id, st in data.items():
@@ -45,6 +50,7 @@ def _get_coordinator(hass: HomeAssistant, dog_id: str | None):
         if coord and getattr(coord, "_dog_data", {}).get(dog_id) is not None:
             return coord
     return None
+
 
 @callback
 def async_condition_from_config(config: ConfigType, config_validation: bool):
