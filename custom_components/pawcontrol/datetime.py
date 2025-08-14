@@ -22,7 +22,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
-from .entity import PawControlEntityBase
+from .entity import PawControlEntity
 
 if TYPE_CHECKING:  # pragma: no cover
     from homeassistant.config_entries import ConfigEntry
@@ -107,7 +107,7 @@ async def async_setup_entry(
     async_add_entities(entities, update_before_add=True)
 
 
-class PawControlDateTimeBase(PawControlEntityBase, DateTimeEntity):
+class PawControlDateTimeBase(PawControlEntity, DateTimeEntity):
     """Base class for Paw Control datetime entities."""
 
     _attr_entity_category = EntityCategory.CONFIG
