@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from homeassistant.components.notify import DOMAIN as NOTIFY_DOMAIN
 from homeassistant.config_entries import ConfigEntry
@@ -33,8 +33,8 @@ class NotificationRouter:
         """Initialize notification router."""
         self.hass = hass
         self.entry = entry
-        self._active_notifications: Dict[str, Dict[str, Any]] = {}
-        self._snoozed_notifications: Dict[str, datetime] = {}
+        self._active_notifications: dict[str, dict[str, Any]] = {}
+        self._snoozed_notifications: dict[str, datetime] = {}
 
     async def send_notification(
         self,
@@ -42,7 +42,7 @@ class NotificationRouter:
         message: str,
         dog_id: str | None = None,
         category: str = "general",
-        actions: List[Dict[str, str]] | None = None,
+        actions: list[dict[str, str]] | None = None,
         priority: str = "normal",
         tag: str | None = None,
     ) -> bool:
@@ -106,7 +106,7 @@ class NotificationRouter:
         self,
         action: str,
         tag: str,
-        data: Dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """Handle notification action response."""
         _LOGGER.info(f"Handling notification action: {action} for tag: {tag}")
@@ -178,7 +178,7 @@ class NotificationRouter:
             _LOGGER.error(f"Invalid quiet hours configuration: {err}")
             return True
 
-    async def _get_notification_targets(self) -> List[str]:
+    async def _get_notification_targets(self) -> list[str]:
         """Get list of notification targets based on presence and configuration."""
         targets = []
 
@@ -246,9 +246,9 @@ class NotificationRouter:
         message: str,
         dog_id: str | None,
         category: str,
-        actions: List[Dict[str, str]] | None,
+        actions: list[dict[str, str]] | None,
         tag: str | None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build notification data payload."""
         data = {
             "title": title,
@@ -322,7 +322,7 @@ class NotificationRouter:
         message: str,
         dog_id: str | None,
         category: str,
-        actions: List[Dict[str, str]] | None,
+        actions: list[dict[str, str]] | None,
         priority: str,
         tag: str | None,
     ) -> None:
@@ -338,7 +338,7 @@ class NotificationRouter:
         reminder_type: str,
         dog_id: str,
         dog_name: str,
-        additional_info: Dict[str, Any] | None = None,
+        additional_info: dict[str, Any] | None = None,
     ) -> bool:
         """Send a reminder notification for a specific type."""
 
@@ -429,7 +429,7 @@ class NotificationRouter:
             tag=tag,
         )
 
-    def get_active_notifications(self) -> Dict[str, Dict[str, Any]]:
+    def get_active_notifications(self) -> dict[str, dict[str, Any]]:
         """Get all active notifications."""
         return self._active_notifications.copy()
 

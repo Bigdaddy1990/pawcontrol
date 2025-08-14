@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .coordinator import PawControlCoordinator
 from .gps_handler import PawControlGPSHandler
-from .helpers.scheduler import PawControlScheduler
 from .helpers.setup_sync import SetupSync
 from .report_generator import ReportGenerator
 from .services import ServiceManager
+
+if TYPE_CHECKING:
+    from .helpers.scheduler import PawControlScheduler
 
 
 @dataclass
@@ -23,4 +25,4 @@ class PawRuntimeData:
     report_generator: ReportGenerator
     services: ServiceManager
     notification_router: Any  # Type imported dynamically to avoid circular imports
-    scheduler: PawControlScheduler | None = None
+    scheduler: 'PawControlScheduler | None' = None

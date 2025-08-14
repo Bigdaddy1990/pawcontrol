@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -17,13 +17,15 @@ _LOGGER = logging.getLogger(__name__)
 class RouteHistoryStore:
     """Manage route history storage."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str, domain: str):
+    def __init__(self, hass: HomeAssistant, entry_id: str, domain: str) -> None:
         """Initialize the storage."""
         self.hass = hass
+        self.entry_id = entry_id
+        self.domain = domain
         self._store = Store(hass, 1, f"{domain}_{entry_id}_route_history")
-        self._data: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
 
-    async def async_load(self) -> Dict[str, Any]:
+    async def async_load(self) -> dict[str, Any]:
         """Load route history from storage."""
         try:
             self._data = await self._store.async_load() or {"dogs": {}}
@@ -32,16 +34,13 @@ class RouteHistoryStore:
             self._data = {"dogs": {}}
         return self._data
 
-    async def async_save(self, data: Dict[str, Any]) -> None:
+    async def async_save(self, data: dict[str, Any]) -> None:
         """Save route history to storage."""
         self._data = data
         await self._store.async_save(data)
 
     async def async_add_walk(
         self,
-        hass: HomeAssistant,
-        entry_id: str,
-        domain: str,
         dog_id: str,
         start_time: str | None,
         end_time: str,
@@ -73,7 +72,7 @@ class RouteHistoryStore:
 
         await self.async_save(self._data)
 
-    async def async_list(self, dog_id: str) -> List[Dict[str, Any]]:
+    async def async_list(self, dog_id: str) -> list[dict[str, Any]]:
         """List routes for a dog."""
         await self.async_load()
         return self._data.get("dogs", {}).get(dog_id, [])

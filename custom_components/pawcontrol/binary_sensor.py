@@ -28,6 +28,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlBinarySensorEntity
 
 PARALLEL_UPDATES = 0
 
@@ -41,9 +42,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control binary sensor entities."""
     coordinator: PawControlCoordinator = entry.runtime_data.coordinator
-    if not coordinator.last_update_success:
-        raise PlatformNotReady
-
+    
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
@@ -57,82 +56,54 @@ async def async_setup_entry(
         if not dog_id:
             continue
 
-        dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
 
         # Walk module binary sensors
         if modules.get(MODULE_WALK):
             entities.extend(
                 [
-                    NeedsWalkBinarySensor(coordinator, dog_id, dog_name),
-                    WalkInProgressBinarySensor(coordinator, dog_id, dog_name),
+                    NeedsWalkBinarySensor(coordinator, entry, dog_id),
+                    WalkInProgressBinarySensor(coordinator, entry, dog_id),
                 ]
             )
 
         # Feeding module binary sensors
         if modules.get(MODULE_FEEDING):
-            entities.append(IsHungryBinarySensor(coordinator, dog_id, dog_name))
+            entities.append(IsHungryBinarySensor(coordinator, entry, dog_id))
 
         # Grooming module binary sensors
         if modules.get(MODULE_GROOMING):
-            entities.append(NeedsGroomingBinarySensor(coordinator, dog_id, dog_name))
+            entities.append(NeedsGroomingBinarySensor(coordinator, entry, dog_id))
 
         # GPS module binary sensors
         if modules.get(MODULE_GPS):
-            entities.append(IsHomeBinarySensor(coordinator, dog_id, dog_name))
+            entities.append(IsHomeBinarySensor(coordinator, entry, dog_id))
 
     # Global binary sensors
     entities.extend(
         [
-            VisitorModeBinarySensor(coordinator),
-            EmergencyModeBinarySensor(coordinator),
+            VisitorModeBinarySensor(coordinator, entry),
+            EmergencyModeBinarySensor(coordinator, entry),
         ]
     )
 
     async_add_entities(entities, True)
 
 
-class PawControlBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
-    """Base class for Paw Control binary sensors."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: PawControlCoordinator,
-        dog_id: str,
-        dog_name: str,
-        sensor_type: str,
-    ) -> None:
-        """Initialize the binary sensor."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
-        self._sensor_type = sensor_type
-
-        self._attr_unique_id = f"{DOMAIN}.{dog_id}.binary_sensor.{sensor_type}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, dog_id)},
-            name=f"🐕 {dog_name}",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.0.0",
-        )
-
-    @property
-    def dog_data(self) -> dict:
-        """Get dog data from coordinator."""
-        return self.coordinator.get_dog_data(self._dog_id)
-
-
-class NeedsWalkBinarySensor(PawControlBinarySensorBase):
+class NeedsWalkBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity):
     """Binary sensor for whether dog needs a walk."""
 
-    def __init__(self, coordinator, dog_id, dog_name):
+    def __init__(
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, dog_id, dog_name, "needs_walk")
-        self._attr_name = "Needs Walk"
-        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            "needs_walk",
+            device_class=BinarySensorDeviceClass.PROBLEM,
+        )
         self._attr_icon = "mdi:dog-side"
 
     @property
@@ -150,14 +121,20 @@ class NeedsWalkBinarySensor(PawControlBinarySensorBase):
         }
 
 
-class WalkInProgressBinarySensor(PawControlBinarySensorBase):
+class WalkInProgressBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity):
     """Binary sensor for whether walk is in progress."""
 
-    def __init__(self, coordinator, dog_id, dog_name):
+    def __init__(
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, dog_id, dog_name, "walk_in_progress")
-        self._attr_name = "Walk In Progress"
-        self._attr_device_class = BinarySensorDeviceClass.RUNNING
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            "walk_in_progress",
+            device_class=BinarySensorDeviceClass.RUNNING,
+        )
         self._attr_icon = "mdi:walk"
 
     @property
@@ -176,14 +153,20 @@ class WalkInProgressBinarySensor(PawControlBinarySensorBase):
         }
 
 
-class IsHungryBinarySensor(PawControlBinarySensorBase):
+class IsHungryBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity):
     """Binary sensor for whether dog is hungry."""
 
-    def __init__(self, coordinator, dog_id, dog_name):
+    def __init__(
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, dog_id, dog_name, "is_hungry")
-        self._attr_name = "Is Hungry"
-        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            "is_hungry",
+            device_class=BinarySensorDeviceClass.PROBLEM,
+        )
         self._attr_icon = "mdi:food-drumstick-off"
 
     @property
@@ -207,14 +190,20 @@ class IsHungryBinarySensor(PawControlBinarySensorBase):
         }
 
 
-class NeedsGroomingBinarySensor(PawControlBinarySensorBase):
+class NeedsGroomingBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity):
     """Binary sensor for whether dog needs grooming."""
 
-    def __init__(self, coordinator, dog_id, dog_name):
+    def __init__(
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, dog_id, dog_name, "needs_grooming")
-        self._attr_name = "Needs Grooming"
-        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            "needs_grooming",
+            device_class=BinarySensorDeviceClass.PROBLEM,
+        )
         self._attr_icon = "mdi:content-cut"
 
     @property
@@ -233,14 +222,20 @@ class NeedsGroomingBinarySensor(PawControlBinarySensorBase):
         }
 
 
-class IsHomeBinarySensor(PawControlBinarySensorBase):
+class IsHomeBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity):
     """Binary sensor for whether dog is at home."""
 
-    def __init__(self, coordinator, dog_id, dog_name):
+    def __init__(
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, dog_id, dog_name, "is_home")
-        self._attr_name = "Is Home"
-        self._attr_device_class = BinarySensorDeviceClass.PRESENCE
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            "is_home",
+            device_class=BinarySensorDeviceClass.PRESENCE,
+        )
         self._attr_icon = "mdi:home"
 
     @property
@@ -266,22 +261,28 @@ class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor for visitor mode status."""
 
     _attr_has_entity_name = True
-    _attr_name = "Visitor Mode"
     _attr_device_class = BinarySensorDeviceClass.PRESENCE
     _attr_icon = "mdi:account-group"
+    _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator: PawControlCoordinator):
+    def __init__(self, coordinator: PawControlCoordinator, entry: ConfigEntry):
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.visitor_mode"
-        self._attr_entity_category = EntityCategory.CONFIG
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_global_visitor_mode"
+        self._attr_translation_key = "visitor_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return name of the sensor."""
+        return "Visitor Mode"
 
     @property
     def is_on(self) -> bool:
@@ -293,22 +294,28 @@ class EmergencyModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor for emergency mode status."""
 
     _attr_has_entity_name = True
-    _attr_name = "Emergency Mode"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:alert-circle"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator: PawControlCoordinator):
+    def __init__(self, coordinator: PawControlCoordinator, entry: ConfigEntry):
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}.global.binary_sensor.emergency_mode"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_global_emergency_mode"
+        self._attr_translation_key = "emergency_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return name of the sensor."""
+        return "Emergency Mode"
 
     @property
     def is_on(self) -> bool:

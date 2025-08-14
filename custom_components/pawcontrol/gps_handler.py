@@ -67,11 +67,11 @@ async def async_update_location(hass: HomeAssistant, call: ServiceCall) -> None:
     dog = _get_dog_id(entry, call)
     lat = float(call.data.get("latitude"))
     lon = float(call.data.get("longitude"))
-    acc = call.data.get("accuracy")
+    acc = call.data.get("accuracy_m")  # Konsistent mit schema
     acc = float(acc) if acc is not None else None
 
     # Update safe-zone and live distance via coordinator
-    coordinator.process_location(dog, lat, lon, acc)
+    coordinator.update_gps(dog, lat, lon, acc)
 
     # Mark last action
     stats = coordinator._dog_data.setdefault(dog, {}).setdefault("statistics", {})
@@ -83,14 +83,14 @@ async def async_start_walk(hass: HomeAssistant, call: ServiceCall) -> None:
     entry, coordinator = _get_entry_and_coordinator(hass, call)
     dog = _get_dog_id(entry, call)
     src = call.data.get("source") or "manual"
-    coordinator.start_walk(dog, src)
+    await coordinator.start_walk(dog, src)
 
 
 async def async_end_walk(hass: HomeAssistant, call: ServiceCall) -> None:
     entry, coordinator = _get_entry_and_coordinator(hass, call)
     dog = _get_dog_id(entry, call)
     reason = call.data.get("reason") or "manual"
-    coordinator.end_walk(dog, reason)
+    await coordinator.end_walk(dog, reason)
 
 
 async def async_pause_tracking(hass: HomeAssistant, call: ServiceCall) -> None:
@@ -110,6 +110,7 @@ class PawControlGPSHandler:
         """Store reference to Home Assistant and configuration options."""
         self.hass = hass
         self.options = options or {}
+        self.entry_id: str | None = None  # Will be set by async_setup_entry
 
     async def async_update_location(
         self, hass: HomeAssistant, call: ServiceCall

@@ -26,6 +26,7 @@ from ..const import (
     CONF_SOURCES,
     DEFAULT_IDLE_TIMEOUT_MIN,
     DOMAIN,
+    DOOR_OPEN_TIMEOUT_SECONDS,
 )
 from ..utils import calculate_distance
 
@@ -188,29 +189,41 @@ class GPSLogic:
         if entity_id not in self._tracked_entities:
             return
 
-        tracking_data = self._tracked_entities[entity_id]
-        new_location = (latitude, longitude)
+        try:
+            # Validate coordinates
+            if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+                _LOGGER.warning(f"Invalid coordinates for {entity_id}: {latitude}, {longitude}")
+                return
 
-        # Calculate distance from last location
-        if tracking_data.last_location:
-            dist = calculate_distance(
-                tracking_data.last_location[0],
-                tracking_data.last_location[1],
-                new_location[0],
-                new_location[1],
-            )
+            tracking_data = self._tracked_entities[entity_id]
+            new_location = (latitude, longitude)
 
-            # Only update if movement is significant (> 5 meters)
-            if dist > 5:
-                tracking_data.total_distance += dist
+            # Calculate distance from last location
+            if tracking_data.last_location:
+                dist = calculate_distance(
+                    tracking_data.last_location[0],
+                    tracking_data.last_location[1],
+                    new_location[0],
+                    new_location[1],
+                )
+
+                # Import constant for minimum movement threshold
+                from ..const import GPS_MINIMUM_MOVEMENT_THRESHOLD_M
+                
+                # Only update if movement is significant
+                if dist > GPS_MINIMUM_MOVEMENT_THRESHOLD_M:
+                    tracking_data.total_distance += dist
+                    tracking_data.last_location = new_location
+                    tracking_data.last_update = dt_util.now()
+
+                    # Check if this could be a walk
+                    self._check_walk_activity(entity_id, dist)
+            else:
                 tracking_data.last_location = new_location
                 tracking_data.last_update = dt_util.now()
-
-                # Check if this could be a walk
-                self._check_walk_activity(entity_id, dist)
-        else:
-            tracking_data.last_location = new_location
-            tracking_data.last_update = dt_util.now()
+                
+        except Exception as err:
+            _LOGGER.error(f"Failed to update location for {entity_id}: {err}")
 
     def _handle_door_opened(self) -> None:
         """Handle door opened event."""
@@ -239,7 +252,7 @@ class GPSLogic:
                     time_diff = (
                         dt_util.now() - session["door_opened_at"]
                     ).total_seconds()
-                    if time_diff < 120:  # 2 minutes
+                    if time_diff < DOOR_OPEN_TIMEOUT_SECONDS:
                         # Likely someone left with dog
                         self._confirm_walk_start(dog_id, "door")
 
@@ -292,6 +305,11 @@ class GPSLogic:
 
     def _confirm_walk_start(self, dog_id: str, source: str) -> None:
         """Confirm walk has started."""
+        # Check if walk already in progress
+        if dog_id in self._walk_sessions and self._walk_sessions[dog_id].get("confirmed"):
+            _LOGGER.debug(f"Walk already in progress for {dog_id}")
+            return
+            
         _LOGGER.info("Walk started for %s via %s", dog_id, source)
 
         # Initialize walk session with consistent timestamps
@@ -302,20 +320,28 @@ class GPSLogic:
             "source": source,
             "total_distance": 0,
             "last_movement": now,
+            "points": [],  # Track GPS points for route
+            "max_speed": 0.0,
+            "avg_speed": 0.0,
         }
 
         # Call service to start walk
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                DOMAIN,
-                "start_walk",
-                {
-                    "dog_id": dog_id,
-                    "source": source,
-                },
-                blocking=False,
+        try:
+            self.hass.async_create_task(
+                self.hass.services.async_call(
+                    DOMAIN,
+                    "start_walk",
+                    {
+                        "dog_id": dog_id,
+                        "source": source,
+                    },
+                    blocking=False,
+                )
             )
-        )
+        except Exception as err:
+            _LOGGER.error(f"Failed to start walk service for {dog_id}: {err}")
+            # Clean up failed session
+            self._walk_sessions.pop(dog_id, None)
 
     def _confirm_walk_end(self, dog_id: str, reason: str) -> None:
         """Confirm walk has ended."""
@@ -372,15 +398,43 @@ class GPSLogic:
 
     def check_idle_timeout(self) -> None:
         """Check for idle walk sessions and end them."""
-        current_time = dt_util.now()
-        idle_timeout = timedelta(minutes=DEFAULT_IDLE_TIMEOUT_MIN)
+        try:
+            current_time = dt_util.now()
+            idle_timeout = timedelta(minutes=DEFAULT_IDLE_TIMEOUT_MIN)
 
-        for dog_id, session in list(self._walk_sessions.items()):
-            if session.get("confirmed"):
-                last_movement = session.get("last_movement")
-                if last_movement and (current_time - last_movement) > idle_timeout:
-                    _LOGGER.info("Walk idle timeout for %s", dog_id)
-                    self._confirm_walk_end(dog_id, "idle")
+            for dog_id, session in list(self._walk_sessions.items()):
+                if session.get("confirmed"):
+                    last_movement = session.get("last_movement")
+                    if last_movement and (current_time - last_movement) > idle_timeout:
+                        _LOGGER.info("Walk idle timeout for %s", dog_id)
+                        self._confirm_walk_end(dog_id, "idle")
+                        
+        except Exception as err:
+            _LOGGER.error(f"Error checking idle timeout: {err}")
+    
+    def get_walk_stats(self, dog_id: str) -> dict[str, Any] | None:
+        """Get current walk statistics for a dog."""
+        if dog_id not in self._walk_sessions:
+            return None
+            
+        session = self._walk_sessions[dog_id]
+        if not session.get("confirmed"):
+            return None
+            
+        start_time = session.get("start_time")
+        if not start_time:
+            return None
+            
+        duration_s = (dt_util.now() - start_time).total_seconds()
+        
+        return {
+            "duration_min": round(duration_s / 60, 1),
+            "distance_m": round(session.get("total_distance", 0), 1),
+            "max_speed_kmh": round(session.get("max_speed", 0) * 3.6, 1),
+            "avg_speed_kmh": round(session.get("avg_speed", 0) * 3.6, 1),
+            "source": session.get("source", "unknown"),
+            "points_count": len(session.get("points", [])),
+        }
 
     def get_current_location(self, entity_id: str) -> tuple[float, float] | None:
         """Get current location for tracked entity."""

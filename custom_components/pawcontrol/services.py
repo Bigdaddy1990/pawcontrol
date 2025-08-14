@@ -393,57 +393,165 @@ class ServiceManager:
 
     async def _handle_gps_start_walk(self, call: ServiceCall) -> None:
         """Handle GPS start walk service."""
-        from . import gps_handler
-
+        entry = self._get_entry_from_call(call)
+        gps_handler = entry.runtime_data.gps_handler
+        
         dog_id = call.data.get("dog_id")
         await gps_handler.async_start_walk(self.hass, call)
         self._fire_device_event("walk_started", dog_id)
 
     async def _handle_gps_end_walk(self, call: ServiceCall) -> None:
         """Handle GPS end walk service."""
-        from . import gps_handler
-
+        entry = self._get_entry_from_call(call)
+        gps_handler = entry.runtime_data.gps_handler
+        
         dog_id = call.data.get("dog_id")
         await gps_handler.async_end_walk(self.hass, call)
         self._fire_device_event("walk_ended", dog_id)
 
     async def _handle_gps_post_location(self, call: ServiceCall) -> None:
         """Handle GPS post location service."""
-        from . import gps_handler
-
+        entry = self._get_entry_from_call(call)
+        gps_handler = entry.runtime_data.gps_handler
+        
         dog_id = call.data.get("dog_id")
         await gps_handler.async_update_location(self.hass, call)
         self._fire_device_event("gps_location_posted", dog_id)
 
     async def _handle_gps_pause_tracking(self, call: ServiceCall) -> None:
         """Handle GPS pause tracking service."""
-        from . import gps_handler
-
+        entry = self._get_entry_from_call(call)
+        gps_handler = entry.runtime_data.gps_handler
+        
         await gps_handler.async_pause_tracking(self.hass, call)
 
     async def _handle_gps_resume_tracking(self, call: ServiceCall) -> None:
         """Handle GPS resume tracking service."""
-        from . import gps_handler
-
+        entry = self._get_entry_from_call(call)
+        gps_handler = entry.runtime_data.gps_handler
+        
         await gps_handler.async_resume_tracking(self.hass, call)
 
     async def _handle_gps_export_last_route(self, call: ServiceCall) -> None:
         """Handle GPS export last route service."""
-        from . import gps_handler
-
-        await gps_handler.async_export_last_route(call)
+        from .route_store import RouteHistoryStore
+        
+        entry = self._get_entry_from_call(call)
+        dog_id = call.data.get("dog_id")
+        
+        store = RouteHistoryStore(self.hass, entry.entry_id, DOMAIN)
+        routes = await store.async_list(dog_id)
+        
+        if routes:
+            # Get the last route
+            last_route = routes[-1]
+            
+            # Fire event with route data
+            self.hass.bus.async_fire(
+                f"{DOMAIN}_route_exported",
+                {
+                    "dog_id": dog_id,
+                    "route": last_route,
+                    "points": last_route.get("points", 0),
+                    "distance_m": last_route.get("distance_m", 0),
+                    "duration_s": last_route.get("duration_s", 0)
+                }
+            )
+            _LOGGER.info(f"Exported last route for {dog_id}")
+        else:
+            _LOGGER.warning(f"No routes found for {dog_id}")
 
     async def _handle_gps_generate_diagnostics(self, call: ServiceCall) -> None:
         """Handle GPS generate diagnostics service."""
-        from . import gps_handler
-
-        await gps_handler.async_generate_diagnostics(call)
+        from .gps_settings import GPSSettingsStore
+        from .route_store import RouteHistoryStore
+        
+        entry = self._get_entry_from_call(call)
+        dog_id = call.data.get("dog_id")
+        coordinator = self._get_coordinator(call)
+        
+        # Gather diagnostic information
+        dog_data = coordinator.get_dog_data(dog_id) if dog_id else {}
+        location_data = dog_data.get("location", {})
+        
+        # Load GPS settings
+        settings_store = GPSSettingsStore(self.hass, entry.entry_id, DOMAIN)
+        gps_settings = await settings_store.async_load()
+        
+        # Get route history stats
+        route_store = RouteHistoryStore(self.hass, entry.entry_id, DOMAIN)
+        routes = await route_store.async_list(dog_id) if dog_id else []
+        
+        diagnostics = {
+            "dog_id": dog_id,
+            "gps_enabled": bool(gps_settings.get("enabled", False)),
+            "last_gps_update": location_data.get("last_gps_update"),
+            "current_location": location_data.get("current_location", "unknown"),
+            "is_home": location_data.get("is_home"),
+            "distance_from_home": location_data.get("distance_from_home"),
+            "geofence": {
+                "radius_m": location_data.get("radius_m", 0),
+                "enters_today": location_data.get("enters_today", 0),
+                "leaves_today": location_data.get("leaves_today", 0),
+                "time_inside_today_min": location_data.get("time_inside_today_min", 0),
+            },
+            "routes": {
+                "total_count": len(routes),
+                "total_distance_m": sum(r.get("distance_m", 0) for r in routes),
+                "total_duration_s": sum(r.get("duration_s", 0) for r in routes),
+                "total_points": sum(r.get("points", 0) for r in routes),
+            },
+            "settings": gps_settings,
+        }
+        
+        # Fire event with diagnostics
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_gps_diagnostics",
+            {"diagnostics": diagnostics}
+        )
+        _LOGGER.info(f"Generated GPS diagnostics for {dog_id or 'all dogs'}")
 
     async def _handle_gps_reset_stats(self, call: ServiceCall) -> None:
         """Handle GPS reset stats service."""
-        from . import gps_handler
-
-        await gps_handler.async_reset_gps_stats(call)
+        entry = self._get_entry_from_call(call)
+        dog_id = call.data.get("dog_id")
+        coordinator = self._get_coordinator(call)
+        
+        if dog_id:
+            # Reset stats for specific dog
+            dog_data = coordinator._dog_data.get(dog_id, {})
+            if "location" in dog_data:
+                dog_data["location"]["enters_today"] = 0
+                dog_data["location"]["leaves_today"] = 0
+                dog_data["location"]["time_inside_today_min"] = 0.0
+                dog_data["location"]["last_gps_update"] = None
+            
+            if "walk" in dog_data:
+                dog_data["walk"]["total_distance_today"] = 0
+            
+            _LOGGER.info(f"Reset GPS stats for {dog_id}")
+        else:
+            # Reset stats for all dogs
+            for did, ddata in coordinator._dog_data.items():
+                if "location" in ddata:
+                    ddata["location"]["enters_today"] = 0
+                    ddata["location"]["leaves_today"] = 0
+                    ddata["location"]["time_inside_today_min"] = 0.0
+                    ddata["location"]["last_gps_update"] = None
+                
+                if "walk" in ddata:
+                    ddata["walk"]["total_distance_today"] = 0
+            
+            _LOGGER.info("Reset GPS stats for all dogs")
+        
+        # Refresh coordinator to update entities
+        await coordinator.async_request_refresh()
+        
+        # Fire event
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_gps_stats_reset",
+            {"dog_id": dog_id or "all"}
+        )
 
     async def _handle_route_history_list(self, call: ServiceCall) -> None:
         """Handle route history list service."""
@@ -462,9 +570,9 @@ class ServiceManager:
         from .route_store import RouteHistoryStore
 
         entry = self._get_entry_from_call(call)
-        dog_id = call.data.get("dog_id")
+        older_than_days = call.data.get("older_than_days")
         store = RouteHistoryStore(self.hass, entry.entry_id, DOMAIN)
-        await store.async_purge(dog_id=dog_id)
+        await store.async_purge(older_than_days=older_than_days)
 
     async def _handle_route_history_export_range(self, call: ServiceCall) -> None:
         """Handle route history export range service."""
@@ -543,7 +651,7 @@ class ServiceManager:
 
         # Route history
         store = RouteHistoryStore(self.hass, entry.entry_id, DOMAIN)
-        await store.async_purge(dog_id=None)
+        await store.async_purge(older_than_days=None)
 
         # GPS settings
         gstore = GPSSettingsStore(self.hass, entry.entry_id, DOMAIN)

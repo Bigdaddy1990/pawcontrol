@@ -1,348 +1,634 @@
+# Paw Control Services
+# Version 1.1.0
+
+# Core Management Services
 daily_reset:
-  description: Service 'SERVICE_DAILY_RESET' for Paw Control.
+  name: Daily Reset
+  description: Reset all daily counters for all dogs (walks, feedings, medications, etc.)
   fields:
     config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Daily Reset
-emergency_mode:
-  description: Service 'SERVICE_EMERGENCY_MODE' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Emergency Mode
-end_walk:
-  description: Service 'SERVICE_END_WALK' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service End Walk
-export_data:
-  description: Service 'SERVICE_EXPORT_DATA' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Export Data
-feed_dog:
-  description: Service 'SERVICE_FEED_DOG' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Feed Dog
-generate_report:
-  description: Service 'SERVICE_GENERATE_REPORT' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Generate Report
-log_health:
-  description: Service 'SERVICE_LOG_HEALTH' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Log Health
-log_medication:
-  description: Service 'SERVICE_LOG_MEDICATION' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Log Medication
-play_with_dog:
-  description: Service 'SERVICE_PLAY_WITH_DOG' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Play With Dog
-start_grooming:
-  description: Service 'SERVICE_START_GROOMING' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Start Grooming
-start_training:
-  description: Service 'SERVICE_START_TRAINING' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Start Training
-start_walk:
-  description: Service 'SERVICE_START_WALK' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Start Walk
+      name: Config Entry
+      description: Optional config entry ID to target a specific instance
+      example: "abcd1234efgh5678"
+      selector:
+        text:
+
 sync_setup:
-  description: Service 'SERVICE_SYNC_SETUP' for Paw Control.
+  name: Sync Setup
+  description: Synchronize helper entities and configuration
   fields:
     config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Sync Setup
-toggle_visitor:
-  description: Service 'SERVICE_TOGGLE_VISITOR' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Toggle Visitor
-walk_dog:
-  description: Service 'SERVICE_WALK_DOG' for Paw Control.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Service Walk Dog
-gps_end_walk:
-  description: Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
+      name: Config Entry
+      description: Optional config entry ID to target a specific instance
       selector:
-        text: {}
-    notes:
-      description: Notizen
-      required: false
-      selector:
-        text: {}
-    rating:
-      description: Bewertung 1–5 (optional)
-      required: false
-      selector:
-        number:
-          max: 5
-          min: 1
-          step: 1
-  name: GPS-Tracking beenden
-gps_export_last_route:
-  description: Exportiert die letzte Route als GeoJSON oder GPX.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-    format:
-      default: geojson
-      required: false
-      selector:
-        select:
-          options:
-          - geojson
-          - gpx
-    to_media:
-      default: false
-      required: false
-      selector:
-        boolean: {}
-  name: Letzte Route exportieren
-gps_generate_diagnostics:
-  description: Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-  name: GPS-Diagnose erstellen
-gps_pause_tracking:
-  description: Pausiert das Tracking (sofern Handler aktiv).
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-  name: GPS-Tracking pausieren
-gps_post_location:
-  description: Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt
-    wird).
-  fields:
-    accuracy:
-      required: false
-      selector:
-        number:
-          max: 1000
-          min: 0
-          step: 0.1
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-    latitude:
-      required: true
-      selector:
-        number:
-          max: 90
-          min: -90
-          step: 1.0e-06
-    longitude:
-      required: true
-      selector:
-        number:
-          max: 180
-          min: -180
-          step: 1.0e-06
-  name: GPS-Position posten (manuell)
-gps_reset_stats:
-  description: Setzt diagnostische GPS-Zähler zurück.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-  name: GPS-Statistiken zurücksetzen
-gps_resume_tracking:
-  description: Setzt das Tracking fort (sofern Handler aktiv).
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-  name: GPS-Tracking fortsetzen
-gps_start_walk:
-  description: Startet einen Spaziergang für einen Hund.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      description: Hund-ID (optional; wenn leer, wird der erste Hund genutzt)
-      example: rex
-      required: false
-      selector:
-        text: {}
-    walk_type:
-      default: normal
-      description: Typ des Spaziergangs (z. B. normal, auto_detected)
-      required: false
-      selector:
-        text: {}
-  name: GPS-Tracking starten
-notify_test:
-  description: Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback
-    persistent_notification).
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Test-Benachrichtigung senden
-purge_all_storage:
-  description: Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-  name: Alle gespeicherten Daten löschen
-route_history_export_range:
-  description: Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-    end:
-      required: false
-      selector:
-        text: {}
-    format:
-      default: geojson
-      required: false
-      selector:
-        select:
-          options:
-          - geojson
-          - gpx
-    start:
-      required: false
-      selector:
-        text: {}
-  name: Routenbereich exportieren
-route_history_list:
-  description: Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-  name: Routenindex erzeugen
-route_history_purge:
-  description: Löscht Routen, die älter sind als X Tage (wenn gesetzt).
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    older_than_days:
-      required: false
-      selector:
-        number:
-          max: 3650
-          min: 1
-          step: 1
-  name: Routenverlauf bereinigen
-toggle_geofence_alerts:
-  description: Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der
-    Zone.
-  fields:
-    config_entry_id:
-      description: Optional config entry ID to target a specific instance.
-      example: abcd1234efgh5678
-    dog_id:
-      required: false
-      selector:
-        text: {}
-    enable:
-      required: true
-      selector:
-        boolean: {}
-  name: Geofence-Alerts umschalten
+        text:
 
-
-prune_stale_devices:
-  name: Prune stale devices
-  description: Remove devices that are no longer present in the backend account.
+# Walk Management
+start_walk:
+  name: Start Walk
+  description: Start tracking a walk for a specific dog
   target:
-    device:
+    entity:
       integration: pawcontrol
+      domain: sensor
   fields:
-    auto:
-      name: Auto remove
-      description: If true, remove immediately; otherwise only create a Repairs issue.
-      required: false
-      default: true
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      example: "max"
+      selector:
+        text:
+    source:
+      name: Source
+      description: Source of walk initiation
+      default: "manual"
+      selector:
+        select:
+          options:
+            - manual
+            - gps
+            - door
+            - automation
+
+end_walk:
+  name: End Walk
+  description: End the current walk for a specific dog
+  target:
+    entity:
+      integration: pawcontrol
+      domain: sensor
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    reason:
+      name: Reason
+      description: Reason for ending the walk
+      default: "manual"
+      selector:
+        select:
+          options:
+            - manual
+            - home
+            - idle
+            - timeout
+
+walk_dog:
+  name: Quick Walk Log
+  description: Log a completed walk without real-time tracking
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    duration_min:
+      name: Duration (minutes)
+      description: Walk duration in minutes
+      required: true
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 600
+          step: 1
+          unit_of_measurement: "min"
+    distance_m:
+      name: Distance (meters)
+      description: Walk distance in meters
+      default: 1000
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 10
+          unit_of_measurement: "m"
+
+# Feeding Management
+feed_dog:
+  name: Feed Dog
+  description: Record a feeding for a specific dog
+  target:
+    entity:
+      integration: pawcontrol
+      domain: sensor
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    meal_type:
+      name: Meal Type
+      description: Type of meal
+      required: true
+      default: "dinner"
+      selector:
+        select:
+          options:
+            - breakfast
+            - lunch
+            - dinner
+            - snack
+    portion_g:
+      name: Portion (grams)
+      description: Portion size in grams
+      default: 200
+      selector:
+        number:
+          min: 10
+          max: 1500
+          step: 10
+          unit_of_measurement: "g"
+    food_type:
+      name: Food Type
+      description: Type of food
+      default: "dry"
+      selector:
+        select:
+          options:
+            - dry
+            - wet
+            - barf
+            - treat
+
+# Health Management
+log_health:
+  name: Log Health Data
+  description: Log health data for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    weight_kg:
+      name: Weight (kg)
+      description: Current weight in kilograms
+      selector:
+        number:
+          min: 0.5
+          max: 200
+          step: 0.1
+          unit_of_measurement: "kg"
+    note:
+      name: Note
+      description: Health observation note
+      selector:
+        text:
+          multiline: true
+
+log_medication:
+  name: Log Medication
+  description: Record medication given to a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    medication_name:
+      name: Medication Name
+      description: Name of the medication
+      required: true
+      selector:
+        text:
+    dose:
+      name: Dose
+      description: Dose given (e.g., "1 tablet", "5ml")
+      required: true
+      selector:
+        text:
+
+# Grooming Management
+start_grooming:
+  name: Start Grooming
+  description: Record a grooming session for a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    type:
+      name: Grooming Type
+      description: Type of grooming performed
+      default: "brush"
+      selector:
+        select:
+          options:
+            - bath
+            - brush
+            - trim
+            - nails
+            - ears
+            - teeth
+            - eyes
+    notes:
+      name: Notes
+      description: Additional grooming notes
+      selector:
+        text:
+          multiline: true
+
+# Activity Management
+play_session:
+  name: Play Session
+  description: Log a play session with a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    duration_min:
+      name: Duration (minutes)
+      description: Play session duration
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 240
+          step: 5
+          unit_of_measurement: "min"
+    intensity:
+      name: Intensity
+      description: Activity intensity level
+      default: "medium"
+      selector:
+        select:
+          options:
+            - low
+            - medium
+            - high
+
+training_session:
+  name: Training Session
+  description: Log a training session with a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    topic:
+      name: Training Topic
+      description: What was trained
+      required: true
+      example: "Basic Commands"
+      selector:
+        text:
+    duration_min:
+      name: Duration (minutes)
+      description: Training duration
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 240
+          step: 5
+          unit_of_measurement: "min"
+    notes:
+      name: Notes
+      description: Training progress notes
+      selector:
+        text:
+          multiline: true
+
+# Mode Management
+toggle_visitor:
+  name: Toggle Visitor Mode
+  description: Enable or disable visitor mode (for dog sitters)
+  fields:
+    enabled:
+      name: Enable
+      description: Enable visitor mode
+      required: true
       selector:
         boolean:
+
+emergency_mode:
+  name: Emergency Mode
+  description: Activate emergency mode for urgent situations
+  fields:
+    level:
+      name: Emergency Level
+      description: Severity level of emergency
+      default: "info"
+      selector:
+        select:
+          options:
+            - info
+            - warn
+            - critical
+    note:
+      name: Note
+      description: Emergency description
+      selector:
+        text:
+          multiline: true
+
+# Reporting & Export
+generate_report:
+  name: Generate Report
+  description: Generate activity report for all dogs
+  fields:
+    scope:
+      name: Report Scope
+      description: Time period for the report
+      default: "daily"
+      selector:
+        select:
+          options:
+            - daily
+            - weekly
+            - monthly
+            - custom
+    target:
+      name: Target
+      description: Where to send the report
+      default: "notification"
+      selector:
+        select:
+          options:
+            - notification
+            - file
+            - email
+    format:
+      name: Format
+      description: Report format
+      default: "text"
+      selector:
+        select:
+          options:
+            - text
+            - csv
+            - json
+            - pdf
+
+export_data:
+  name: Export Health Data
+  description: Export health data for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    from:
+      name: From Date
+      description: Start date for export
+      selector:
+        date:
+    to:
+      name: To Date
+      description: End date for export
+      selector:
+        date:
+    format:
+      name: Format
+      description: Export format
+      default: "csv"
+      selector:
+        select:
+          options:
+            - csv
+            - json
+
+# GPS Services
+gps_start_walk:
+  name: Start GPS Walk
+  description: Start GPS tracking for a dog walk
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier (optional, uses first dog if empty)
+      example: "rex"
+      selector:
+        text:
+    label:
+      name: Walk Label
+      description: Optional label for this walk
+      selector:
+        text:
+
+gps_end_walk:
+  name: End GPS Walk
+  description: End GPS tracking and calculate statistics
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+
+gps_post_location:
+  name: Post GPS Location
+  description: Manually post a GPS location update
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+    latitude:
+      name: Latitude
+      description: GPS latitude coordinate
+      required: true
+      selector:
+        number:
+          min: -90
+          max: 90
+          step: 0.000001
+          mode: box
+    longitude:
+      name: Longitude
+      description: GPS longitude coordinate
+      required: true
+      selector:
+        number:
+          min: -180
+          max: 180
+          step: 0.000001
+          mode: box
+    accuracy_m:
+      name: Accuracy (meters)
+      description: GPS accuracy in meters
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 0.1
+          unit_of_measurement: "m"
+    speed_m_s:
+      name: Speed (m/s)
+      description: Current speed in meters per second
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: "m/s"
+
+gps_pause_tracking:
+  name: Pause GPS Tracking
+  description: Temporarily pause GPS tracking
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+
+gps_resume_tracking:
+  name: Resume GPS Tracking
+  description: Resume paused GPS tracking
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+
+gps_export_last_route:
+  name: Export Last Route
+  description: Export the last GPS route
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+
+gps_generate_diagnostics:
+  name: Generate GPS Diagnostics
+  description: Generate GPS diagnostics report
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier (optional, all dogs if empty)
+      selector:
+        text:
+
+gps_reset_stats:
+  name: Reset GPS Statistics
+  description: Reset GPS tracking statistics
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier (optional, all dogs if empty)
+      selector:
+        text:
+
+# Route Management
+route_history_list:
+  name: List Route History
+  description: List historical routes for a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+
+route_history_purge:
+  name: Purge Route History
+  description: Delete old route history
+  fields:
+    older_than_days:
+      name: Older Than (days)
+      description: Delete routes older than this many days
+      selector:
+        number:
+          min: 1
+          max: 3650
+          step: 1
+          unit_of_measurement: "days"
+
+route_history_export_range:
+  name: Export Route Range
+  description: Export routes within a date range
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      selector:
+        text:
+    date_from:
+      name: From Date
+      description: Start date
+      selector:
+        date:
+    date_to:
+      name: To Date
+      description: End date
+      selector:
+        date:
+
+# Geofence Management
+toggle_geofence_alerts:
+  name: Toggle Geofence Alerts
+  description: Enable or disable geofence notifications
+  fields:
+    enabled:
+      name: Enable Alerts
+      description: Enable geofence alerts
+      required: true
+      selector:
+        boolean:
+
+# System Management
+notify_test:
+  name: Test Notification
+  description: Send a test notification
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier (optional)
+      selector:
+        text:
+    message:
+      name: Message
+      description: Test message content
+      selector:
+        text:
+
+purge_all_storage:
+  name: Purge All Storage
+  description: Delete all stored data (use with caution!)
+  fields:
+    confirm:
+      name: Confirm
+      description: Type 'DELETE' to confirm
+      required: true
+      selector:
+        text:
+
+send_medication_reminder:
+  name: Send Medication Reminder
+  description: Send a medication reminder notification
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Dog identifier
+      required: true
+      selector:
+        text:
+    medication:
+      name: Medication
+      description: Medication name
+      required: true
+      selector:
+        text:

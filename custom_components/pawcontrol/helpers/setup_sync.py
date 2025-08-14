@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -276,7 +276,7 @@ class SetupSync:
         )
 
     async def _ensure_helper(
-        self, component: str, entity_id: str, config: Dict[str, Any]
+        self, component: str, entity_id: str, config: dict[str, Any]
     ) -> None:
         """Ensure a helper entity exists with the given configuration."""
         full_entity_id = f"{component}.{entity_id}"

@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant import config_entries
 from homeassistant.components import dhcp, usb, zeroconf
 from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
@@ -125,7 +126,9 @@ class PawControlDiscoveryFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
+    async def async_step_dhcp(
+        self, discovery_info: dhcp.DhcpServiceInfo
+    ) -> FlowResult:
         """Handle DHCP discovery."""
         await self.async_set_unique_id(
             f"{DOMAIN}_dhcp_{discovery_info.macaddress.replace(':', '')}"
