@@ -39,7 +39,7 @@ class FressnapfTracker:
     def __init__(self, username, password):
         self.session = requests.Session()
         self.auth_token = None
-        
+
     async def login(self):
         # Hypothetische Login-Implementierung
         login_data = {
@@ -53,17 +53,17 @@ class FressnapfTracker:
             json=login_data
         )
         # Weitere Implementierung...
-        
+
     async def get_gps_location(self, tracker_id):
         # Hypothetische GPS-Abfrage
         if not self.auth_token:
             await self.login()
-            
+
         headers = {
             "Authorization": f"Bearer {self.auth_token}",
             "User-Agent": "FressnapfApp/2.1.0"
         }
-        
+
         response = await self.session.get(
             f"https://api.fressnapf.com/tracker/{tracker_id}/location",
             headers=headers
@@ -94,19 +94,19 @@ from selenium.webdriver.common.by import By
 class FressnapfWebScraper:
     def __init__(self):
         self.driver = webdriver.Chrome()
-        
+
     async def scrape_gps_data(self, username, password):
         # Web-App Login (falls verfügbar)
         self.driver.get("https://web.fressnapf.com/tracker")
-        
+
         # Login-Prozess
         username_field = self.driver.find_element(By.ID, "username")
         username_field.send_keys(username)
-        
+
         # GPS-Daten extrahieren
         gps_element = self.driver.find_element(By.CLASS_NAME, "gps-coordinates")
         coordinates = gps_element.text
-        
+
         return self.parse_coordinates(coordinates)
 ```
 
@@ -118,7 +118,7 @@ community_solutions:
     author: "@community_developer"
     description: "Python-Script für MQTT-Weiterleitung"
     status: "experimental"
-    
+
   - name: "Fressnapf Data Export Tool"
     author: "@another_developer"
     description: "Tool zum Export von Fressnapf-Daten"
@@ -139,7 +139,7 @@ data:
   longitude: 13.4050
   accuracy: 5
   source_info: "Fressnapf Tracker (Manual)"
-  
+
 # Automatisierung für regelmäßige Erinnerungen
 automation:
   - alias: "Fressnapf GPS Update Reminder"
@@ -168,11 +168,11 @@ def generate_gps_qr_code(latitude, longitude, accuracy=5):
         "source": "fressnapf",
         "timestamp": datetime.now().isoformat()
     }
-    
+
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(json.dumps(gps_data))
     qr.make(fit=True)
-    
+
     return qr.make_image(fill_color="black", back_color="white")
 
 # PawTracker QR-Scanner Service
@@ -192,7 +192,7 @@ data:
   file_path: "/config/fressnapf_export.csv"
   columns:
     timestamp: "Zeitstempel"
-    latitude: "Breitengrad" 
+    latitude: "Breitengrad"
     longitude: "Längengrad"
     accuracy: "Genauigkeit"
   date_format: "%Y-%m-%d %H:%M:%S"
@@ -265,14 +265,14 @@ import numpy as np
 class FressnapfGPSExtractor:
     def __init__(self):
         self.model = tf.keras.models.load_model('fressnapf_gps_model.h5')
-        
+
     def extract_gps_from_screenshot(self, screenshot_path):
         image = Image.open(screenshot_path)
         image_array = np.array(image)
-        
+
         # ML-basierte GPS-Koordinaten-Extraktion
         coordinates = self.model.predict(image_array)
-        
+
         return {
             'latitude': coordinates[0],
             'longitude': coordinates[1],
@@ -289,17 +289,17 @@ import time
 class FressnapfRPABot:
     def __init__(self):
         self.app_location = self.find_fressnapf_app()
-        
+
     def get_gps_automatically(self):
         # App öffnen
         click(self.app_location)
         time.sleep(3)
-        
+
         # Zu GPS-Ansicht navigieren
         click_gps_tab = locateOnScreen('fressnapf_gps_tab.png')
         if click_gps_tab:
             click(click_gps_tab)
-            
+
         # GPS-Koordinaten lesen
         gps_region = locateOnScreen('gps_coordinates_region.png')
         if gps_region:
@@ -319,7 +319,7 @@ fressnapf_users_survey:
   would_want_integration: 89%
   willing_to_manual_input: 67%
   technical_comfort_level: "medium"
-  
+
 integration_preferences:
   automatic: 78%
   manual_with_reminders: 56%
