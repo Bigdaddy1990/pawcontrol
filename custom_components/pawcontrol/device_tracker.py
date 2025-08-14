@@ -29,16 +29,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_MODULES,
     COORDINATE_PRECISION,
     DEFAULT_SAFE_ZONE_RADIUS,
-    DOMAIN,
     GPS_MIN_ACCURACY,
     MODULE_GPS,
     PARALLEL_UPDATES,
@@ -52,7 +49,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Set parallel updates to 0 for real-time location updates
-PARALLEL_UPDATES = 0
+PARALLEL_UPDATES = 0  # noqa: F811
 
 # ==============================================================================
 # PLATFORM SETUP
