@@ -1,16 +1,6 @@
 {
     "domain": "pawcontrol",
     "name": "Paw Control",
-    "version": "1.1.0",
-    "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-    "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
-    "codeowners": [
-        "@BigDaddy1990"
-    ],
-    "config_flow": true,
-    "iot_class": "local_polling",
-    "requirements": [],
-    "dependencies": [],
     "after_dependencies": [
         "mobile_app",
         "person",
@@ -22,8 +12,33 @@
         "dhcp",
         "zeroconf"
     ],
+    "codeowners": [
+        "@BigDaddy1990"
+    ],
+    "config_flow": true,
+    "dependencies": [],
+    "dhcp": [
+        {
+            "hostname": "pawtracker-*"
+        },
+        {
+            "macaddress": "DC:A6:32*"
+        }
+    ],
+    "documentation": "https://github.com/BigDaddy1990/pawcontrol",
+    "homekit": {
+        "models": [
+            "Smart Dog Manager"
+        ]
+    },
     "integration_type": "hub",
+    "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+    "loggers": [
+        "pawcontrol"
+    ],
     "quality_scale": "bronze",
+    "requirements": [],
     "usb": [
         {
             "vid": "10C4",
@@ -38,23 +53,8 @@
             "manufacturer": "*smart*pet*"
         }
     ],
+    "version": "1.1.0",
     "zeroconf": [
         "_pawcontrol._tcp.local."
-    ],
-    "dhcp": [
-        {
-            "hostname": "pawtracker-*"
-        },
-        {
-            "macaddress": "DC:A6:32*"
-        }
-    ],
-    "homekit": {
-        "models": [
-            "Smart Dog Manager"
-        ]
-    },
-    "loggers": [
-        "pawcontrol"
     ]
 }

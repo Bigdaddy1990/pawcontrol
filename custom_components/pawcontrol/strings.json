@@ -446,7 +446,7 @@
                 },
                 "dog_id": {
                     "name": "Dog Id",
-                    "description": "No description provided"
+                    "description": "Optional ID of the dog."
                 },
                 "selector": {
                     "name": "Selector",
