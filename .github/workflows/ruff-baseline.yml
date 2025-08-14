@@ -10,6 +10,8 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
+      - uses: astral-sh/ruff-action@v3
+      - uses: crate-ci/typos@v1.35.4
       - run: python -m pip install --upgrade pip ruff
       - run: |
           ruff check . --fix all || true
@@ -22,3 +24,12 @@ jobs:
           title: "chore: ruff baseline (format+fix+noqa)"
           commit-message: "chore: ruff baseline (format+fix+noqa)"
           body: "Automated ruff baseline via GitHub Actions."
+          
+#name: Ruff       
+#on: [ push, pull_request ]
+#jobs:
+#  ruff:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: astral-sh/ruff-action@v3
