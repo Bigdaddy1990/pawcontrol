@@ -17,16 +17,19 @@
     "zone",
     "calendar",
     "notify",
-    "device_tracker"
+    "device_tracker",
+    "usb",
+    "dhcp",
+    "zeroconf"
   ],
   "integration_type": "hub",
-  "quality_scale": "gold",
+  "quality_scale": [],
   "usb": [
     {
       "vid": "10C4",
       "pid": "EA60",
       "description": "*pawtracker*",
-      "manufacturer": "*PawControl*"
+      "manufacturer": "pawcontrol*"
     },
     {
       "vid": "0403",
