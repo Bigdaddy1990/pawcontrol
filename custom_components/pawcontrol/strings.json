@@ -67,7 +67,7 @@
             "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
             "invalid_path": "Invalid export path",
             "invalid_time": "Invalid time format",
-            "invalid_auth": "Ung\u00fcltige Anmeldedaten",
+            "invalid_auth": "Ungültige Anmeldedaten",
             "invalid_geofence": "Invalid geofence settings"
         },
         "abort": {
@@ -449,7 +449,8 @@
                     "description": "Optional ID of the dog."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "notes": {
                     "name": "Notes",
@@ -457,13 +458,14 @@
                 },
                 "rating": {
                     "name": "Rating",
-                    "description": "Bewertung 1\u20135 (optional)"
+                    "description": "Bewertung 1–5 (optional)"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optional numeric identifier"
                 }
             },
-            "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/\u00d8-Geschwindigkeit."
+            "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit."
         },
         "gps_export_last_route": {
             "name": "Gps Export Last Route",
@@ -473,22 +475,28 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "format": {
-                    "name": "Format"
+                    "name": "Format",
+                    "description": "No description provided"
                 },
                 "select": {
-                    "name": "Select"
+                    "name": "Select",
+                    "description": "No description provided"
                 },
                 "options": {
-                    "name": "Options"
+                    "name": "Options",
+                    "description": "No description provided"
                 },
                 "to_media": {
-                    "name": "To Media"
+                    "name": "To Media",
+                    "description": "No description provided"
                 }
             },
             "description": "Exportiert die letzte Route als GeoJSON oder GPX."
@@ -501,10 +509,12 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 }
             },
             "description": "Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/"
@@ -517,10 +527,12 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 }
             },
             "description": "Pausiert das Tracking (sofern Handler aktiv)."
@@ -529,26 +541,32 @@
             "name": "Gps Post Location",
             "fields": {
                 "accuracy": {
-                    "name": "Accuracy"
+                    "name": "Accuracy",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optional numeric identifier"
                 },
                 "config_entry_id": {
                     "name": "Config Entry Id",
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "latitude": {
-                    "name": "Latitude"
+                    "name": "Latitude",
+                    "description": "No description provided"
                 },
                 "longitude": {
-                    "name": "Longitude"
+                    "name": "Longitude",
+                    "description": "No description provided"
                 }
             },
             "description": "Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt"
@@ -561,13 +579,15 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 }
             },
-            "description": "Setzt diagnostische GPS-Z\u00e4hler zur\u00fcck."
+            "description": "Setzt diagnostische GPS-Zähler zurück."
         },
         "gps_resume_tracking": {
             "name": "Gps Resume Tracking",
@@ -577,10 +597,12 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 }
             },
             "description": "Setzt das Tracking fort (sofern Handler aktiv)."
@@ -597,14 +619,15 @@
                     "description": "Hund-ID (optional; wenn leer, wird der erste Hund genutzt)"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "walk_type": {
                     "name": "Walk Type",
                     "description": "Typ des Spaziergangs (z. B. normal, auto_detected)"
                 }
             },
-            "description": "Startet einen Spaziergang f\u00fcr einen Hund."
+            "description": "Startet einen Spaziergang für einen Hund."
         },
         "notify_test": {
             "name": "Notify Test",
@@ -614,7 +637,7 @@
                     "description": "Optional config entry ID to target a specific instance."
                 }
             },
-            "description": "Sendet eine Test-Nachricht \u00fcber das konfigurierte Notify-Ziel (Fallback"
+            "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback"
         },
         "purge_all_storage": {
             "name": "Purge All Storage",
@@ -624,7 +647,7 @@
                     "description": "Optional config entry ID to target a specific instance."
                 }
             },
-            "description": "L\u00f6scht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage)."
+            "description": "Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage)."
         },
         "route_history_export_range": {
             "name": "Route History Export Range",
@@ -634,25 +657,32 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "end": {
-                    "name": "End"
+                    "name": "End",
+                    "description": "No description provided"
                 },
                 "format": {
-                    "name": "Format"
+                    "name": "Format",
+                    "description": "No description provided"
                 },
                 "select": {
-                    "name": "Select"
+                    "name": "Select",
+                    "description": "No description provided"
                 },
                 "options": {
-                    "name": "Options"
+                    "name": "Options",
+                    "description": "No description provided"
                 },
                 "start": {
-                    "name": "Start"
+                    "name": "Start",
+                    "description": "No description provided"
                 }
             },
             "description": "Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis."
@@ -665,10 +695,12 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 }
             },
             "description": "Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/"
@@ -681,16 +713,19 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "older_than_days": {
-                    "name": "Older Than Days"
+                    "name": "Older Than Days",
+                    "description": "Delete routes older than this many days"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optional numeric identifier"
                 }
             },
-            "description": "L\u00f6scht Routen, die \u00e4lter sind als X Tage (wenn gesetzt)."
+            "description": "Löscht Routen, die älter sind als X Tage (wenn gesetzt)."
         },
         "toggle_geofence_alerts": {
             "name": "Toggle Geofence Alerts",
@@ -700,13 +735,16 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "No description provided"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "enable": {
-                    "name": "Enable"
+                    "name": "Enable",
+                    "description": "No description provided"
                 }
             },
             "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der"
@@ -719,10 +757,12 @@
                     "description": "If true, remove immediately; otherwise only create a Repairs issue."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "No description provided"
                 },
                 "boolean": {
-                    "name": "Boolean"
+                    "name": "Boolean",
+                    "description": "No description provided"
                 }
             },
             "description": "Remove devices that are no longer present in the backend account."
