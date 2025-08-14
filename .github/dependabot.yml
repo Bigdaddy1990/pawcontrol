@@ -1,11 +1,57 @@
 version: 2
 updates:
+  # 1) GitHub Actions (Workflows)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: daily
+      interval: "weekly"
+      day: "monday"
       time: "06:00"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 10
-    labels:
-      - dependency
-      - github_actions
+    rebase-strategy: "disabled"       # vermeidet Rebase-Flut bei aktiven Branches
+    groups:
+      actions-all:
+        patterns: ["*"]               # alle Actions in eine gebündelte PR
+        update-types: ["minor", "patch"]
+
+  # 2) Python (pip) – Runtime & Test-Dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:10"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    rebase-strategy: "disabled"
+    versioning-strategy: "increase-if-necessary"   # kein unnötiger Major-Bump
+    # Abhängigkeiten gruppieren, damit weniger PRs auflaufen:
+    groups:
+      python-test-deps:
+        # Test-/Tooling-Pakete in eine PR
+        patterns:
+          - "pytest"
+          - "pytest-*"
+          - "coverage"
+          - "coverage[toml]"
+          - "pytest-cov"
+          - "pytest-asyncio"
+          - "ruff"
+          - "mypy"
+          - "pre-commit"
+        update-types: ["minor", "patch"]
+      python-runtime:
+        # Alles andere (Runtime) in eine weitere PR
+        patterns: ["*"]
+        exclude-patterns:
+          - "pytest"
+          - "pytest-*"
+          - "coverage"
+          - "coverage[toml]"
+          - "pytest-cov"
+          - "pytest-asyncio"
+          - "ruff"
+          - "mypy"
+          - "pre-commit"
+        update-types: ["minor", "patch"]
