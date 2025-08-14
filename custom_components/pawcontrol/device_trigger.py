@@ -70,6 +70,14 @@ TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
 )
 
 
+def _get_dog_id(device: dr.DeviceEntry) -> str | None:
+    """Return the Paw Control dog ID from a device entry."""
+    for domain, identifier in device.identifiers:
+        if domain == DOMAIN:
+            return identifier
+    return None
+
+
 async def async_get_triggers(
     hass: HomeAssistant, device_id: str
 ) -> list[dict[str, Any]]:
@@ -91,11 +99,7 @@ async def async_get_triggers(
     triggers = []
 
     # Get dog_id from device identifiers
-    dog_id = None
-    for identifier in device.identifiers:
-        if identifier[0] == DOMAIN:
-            dog_id = identifier[1]
-            break
+    dog_id = _get_dog_id(device)
 
     if not dog_id or dog_id == "global":
         return []
@@ -132,11 +136,7 @@ async def async_attach_trigger(
     if not device:
         raise ValueError(f"Device {device_id} not found")
 
-    dog_id = None
-    for identifier in device.identifiers:
-        if identifier[0] == DOMAIN:
-            dog_id = identifier[1]
-            break
+    dog_id = _get_dog_id(device)
 
     if not dog_id:
         raise ValueError(f"Dog ID not found for device {device_id}")
@@ -173,22 +173,11 @@ async def async_attach_trigger(
         )
 
     # State-based triggers
-    if trigger_type == "needs_walk":
+    state_triggers = {"needs_walk", "is_hungry", "needs_grooming"}
+    if trigger_type in state_triggers:
         state_config = {
             "platform": "state",
-            "entity_id": f"binary_sensor.{DOMAIN}_{dog_id}_needs_walk",
-            "to": "on",
-        }
-    elif trigger_type == "is_hungry":
-        state_config = {
-            "platform": "state",
-            "entity_id": f"binary_sensor.{DOMAIN}_{dog_id}_is_hungry",
-            "to": "on",
-        }
-    elif trigger_type == "needs_grooming":
-        state_config = {
-            "platform": "state",
-            "entity_id": f"binary_sensor.{DOMAIN}_{dog_id}_needs_grooming",
+            "entity_id": f"binary_sensor.{DOMAIN}_{dog_id}_{trigger_type}",
             "to": "on",
         }
     else:
