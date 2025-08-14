@@ -54,9 +54,11 @@ if not hasattr(device_registry, "DeviceInfo"):
 # method with a version that always targets the running loop.
 try:  # pragma: no cover - Home Assistant available in the test environment
     import asyncio
+
     from homeassistant.core import HomeAssistant
 
     if not hasattr(HomeAssistant, "_pawcontrol_executor_patch"):
+
         async def async_add_executor_job(self, func, *args):
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, func, *args)
@@ -73,8 +75,8 @@ except Exception:  # pragma: no cover - Home Assistant not available
 # loader cannot resolve the custom component from the filesystem in the minimal
 # test environment.
 try:  # pragma: no cover - import may fail when Home Assistant is absent
-    from homeassistant import config_entries
     from custom_components.pawcontrol import config_flow as paw_config_flow
+    from homeassistant import config_entries
 
     if "pawcontrol" not in config_entries.HANDLERS:
         config_entries.HANDLERS["pawcontrol"] = paw_config_flow.PawControlConfigFlow

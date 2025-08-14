@@ -1,1 +1,1 @@
-Place icon.png (512x512) and logo.png here; submit to home-assistant/brands.
+Place icon.svg (256x256) and logo.svg (512x512) here; submit to home-assistant/brands.

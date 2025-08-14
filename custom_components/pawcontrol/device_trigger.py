@@ -6,14 +6,13 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
-
-from homeassistant.const import CONF_DOMAIN, CONF_TYPE
-from .compat import CONF_DEVICE_ID, CONF_PLATFORM, CONF_EVENT_DATA
 from homeassistant.components.homeassistant.triggers import event as event_trigger
+from homeassistant.const import CONF_DOMAIN, CONF_TYPE
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
+from .compat import CONF_DEVICE_ID, CONF_PLATFORM
 from .const import (
     DOMAIN,
     EVENT_DOG_FED,
