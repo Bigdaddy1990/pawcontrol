@@ -10,11 +10,15 @@ from __future__ import annotations
 import sys
 from enum import StrEnum
 from types import ModuleType
+from datetime import datetime, timezone
+import importlib
 
 try:  # pragma: no cover - Home Assistant available
-    from homeassistant.helpers import device_registry, entity
+    from homeassistant.helpers import device_registry, entity  # type: ignore
+    ha = sys.modules["homeassistant"]
 except Exception:  # pragma: no cover - create minimal stubs
     ha = sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
+    ha.__path__ = []  # mark as package
     helpers = ModuleType("homeassistant.helpers")
     ha.helpers = helpers  # type: ignore[attr-defined]
     sys.modules["homeassistant.helpers"] = helpers
@@ -22,6 +26,79 @@ except Exception:  # pragma: no cover - create minimal stubs
     device_registry = ModuleType("homeassistant.helpers.device_registry")
     sys.modules["homeassistant.helpers.entity"] = entity
     sys.modules["homeassistant.helpers.device_registry"] = device_registry
+
+# Ensure ``homeassistant.util`` is loaded or provide minimal implementation
+try:  # pragma: no cover - Home Assistant provides util module
+    import homeassistant.util as util  # type: ignore[assignment]
+    ha.util = util  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - create minimal util package
+    util = ModuleType("homeassistant.util")
+    util.__path__ = []
+    ha.util = util  # type: ignore[attr-defined]
+    sys.modules["homeassistant.util"] = util
+
+    util_logging = ModuleType("homeassistant.util.logging")
+
+    def log_exception(format_err, *args, **kwargs):  # pragma: no cover - stub
+        return None
+
+    util_logging.log_exception = log_exception  # type: ignore[attr-defined]
+    util.logging = util_logging  # type: ignore[attr-defined]
+    sys.modules["homeassistant.util.logging"] = util_logging
+
+# Provide logging submodule if missing
+try:  # pragma: no cover - Home Assistant provides logging helper
+    importlib.import_module("homeassistant.util.logging")
+except Exception:  # pragma: no cover - create minimal version
+    util_logging = ModuleType("homeassistant.util.logging")
+
+    def log_exception(format_err, *args, **kwargs):  # pragma: no cover - stub
+        return None
+
+    util_logging.log_exception = log_exception  # type: ignore[attr-defined]
+    util.logging = util_logging  # type: ignore[attr-defined]
+    sys.modules["homeassistant.util.logging"] = util_logging
+
+# Provide datetime helper submodule if missing
+try:  # pragma: no cover - Home Assistant provides dt helper
+    importlib.import_module("homeassistant.util.dt")
+except Exception:  # pragma: no cover - create minimal version
+    util_dt = ModuleType("homeassistant.util.dt")
+
+    UTC = timezone.utc
+
+    def now() -> datetime:  # pragma: no cover - stub
+        return datetime.now(UTC)
+
+    def utcnow() -> datetime:  # pragma: no cover - stub
+        return datetime.now(UTC)
+
+    def as_local(dt_obj: datetime) -> datetime:  # pragma: no cover - stub
+        if dt_obj.tzinfo is None:
+            dt_obj = dt_obj.replace(tzinfo=UTC)
+        return dt_obj.astimezone()
+
+    def as_utc(dt_obj: datetime) -> datetime:  # pragma: no cover - stub
+        if dt_obj.tzinfo is None:
+            return dt_obj.replace(tzinfo=UTC)
+        return dt_obj.astimezone(UTC)
+
+    def parse_datetime(value: str) -> datetime:  # pragma: no cover - stub
+        return datetime.fromisoformat(value)
+
+    def parse_date(value: str):  # pragma: no cover - stub
+        return datetime.fromisoformat(value).date()
+
+    util_dt.now = now  # type: ignore[attr-defined]
+    util_dt.utcnow = utcnow  # type: ignore[attr-defined]
+    util_dt.UTC = UTC  # type: ignore[attr-defined]
+    util_dt.as_local = as_local  # type: ignore[attr-defined]
+    util_dt.as_utc = as_utc  # type: ignore[attr-defined]
+    util_dt.parse_datetime = parse_datetime  # type: ignore[attr-defined]
+    util_dt.parse_date = parse_date  # type: ignore[attr-defined]
+
+    util.dt = util_dt  # type: ignore[attr-defined]
+    sys.modules["homeassistant.util.dt"] = util_dt
 
 if not hasattr(entity, "EntityCategory"):
 
