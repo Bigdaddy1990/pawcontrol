@@ -34,6 +34,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    DOMAIN,
     ICONS,
     MODULE_FEEDING,
     MODULE_GPS,

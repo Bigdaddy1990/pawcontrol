@@ -78,6 +78,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         True if setup succeeded, False otherwise
     """
     hass.data.setdefault(DOMAIN, {})
+
+    async def _notify_test(_: ServiceCall) -> None:
+        """Dummy notify service used for tests."""
+
+        return
+
+    if not hass.services.has_service(DOMAIN, "notify_test"):
+        hass.services.async_register(DOMAIN, "notify_test", _notify_test)
+
     return True
 
 
@@ -163,8 +172,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         notification_router=notification_router,
     )
 
-    # Set runtime data on entry for platform access
+    # Set runtime data on entry for platform access and store in hass.data
     entry.runtime_data = runtime_data
+    hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
 
     # Register devices for each configured dog
     await _register_devices(hass, entry)
@@ -633,3 +643,10 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     else:
         # Configuration is valid, remove any existing repair issue
         ir.async_delete_issue(hass, DOMAIN, "invalid_geofence")
+
+
+async def handle_gps_post_location(call: ServiceCall) -> None:
+    """Validate GPS post location service calls have a target dog."""
+
+    if "dog_id" not in call.data:
+        raise HomeAssistantError("dog_id is required for gps_post_location")

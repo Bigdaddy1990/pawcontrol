@@ -183,14 +183,14 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         """
         return self.coordinator.get_dog_data(self.dog_id)
 
-    def _get_dog_config(self) -> DogConfig | None:
+    def _get_dog_config(self) -> DogConfig:
         """Get dog configuration with caching for performance.
 
         Caches the dog configuration to avoid repeated lookups while ensuring
         updates are detected when the configuration changes.
 
         Returns:
-            Dog configuration dict or None if not found
+            Dog configuration dict or empty dict if not found
         """
         try:
             current_time = dt_util.utcnow().timestamp()
@@ -199,7 +199,8 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
             if self._dog_config is None or current_time - self._last_config_update > 60:
                 dogs = self.entry.options.get("dogs", [])
                 self._dog_config = next(
-                    (dog for dog in dogs if dog.get(CONF_DOG_ID) == self.dog_id), None
+                    (dog for dog in dogs if dog.get(CONF_DOG_ID) == self.dog_id),
+                    {},
                 )
                 self._last_config_update = current_time
 
@@ -207,7 +208,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
         except Exception as err:
             _LOGGER.debug("Failed to get dog config for %s: %s", self.dog_id, err)
-            return None
+            return {}
 
     @property
     def available(self) -> bool:

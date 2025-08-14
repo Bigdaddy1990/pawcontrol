@@ -31,6 +31,7 @@ from .const import (
     SERVICE_LOG_MEDICATION,
     SERVICE_NOTIFY_TEST,
     SERVICE_PLAY_WITH_DOG,
+    SERVICE_PRUNE_STALE_DEVICES,
     SERVICE_PURGE_ALL_STORAGE,
     SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
     SERVICE_ROUTE_HISTORY_LIST,
@@ -61,6 +62,7 @@ from .schemas import (
     SERVICE_LOG_MEDICATION_SCHEMA,
     SERVICE_NOTIFY_TEST_SCHEMA,
     SERVICE_PLAY_SESSION_SCHEMA,
+    SERVICE_PRUNE_STALE_DEVICES_SCHEMA,
     SERVICE_PURGE_ALL_STORAGE_SCHEMA,
     SERVICE_ROUTE_HISTORY_EXPORT_RANGE_SCHEMA,
     SERVICE_ROUTE_HISTORY_LIST_SCHEMA,
@@ -184,6 +186,10 @@ class ServiceManager:
             SERVICE_TOGGLE_GEOFENCE_ALERTS: (
                 self._handle_toggle_geofence_alerts,
                 SERVICE_TOGGLE_GEOFENCE_ALERTS_SCHEMA,
+            ),
+            SERVICE_PRUNE_STALE_DEVICES: (
+                self._handle_prune_stale_devices,
+                SERVICE_PRUNE_STALE_DEVICES_SCHEMA,
             ),
             SERVICE_PURGE_ALL_STORAGE: (
                 self._handle_purge_all_storage,
@@ -639,6 +645,13 @@ class ServiceManager:
         data = await store.async_load()
         data.setdefault("geofence", {})["alerts_enabled"] = enabled
         await store.async_save(data)
+
+    async def _handle_prune_stale_devices(self, call: ServiceCall) -> None:
+        """Handle pruning of stale devices."""
+        from . import _auto_prune_devices
+
+        entry = self._get_entry_from_call(call)
+        await _auto_prune_devices(self.hass, entry, auto=bool(call.data.get("auto")))
 
     async def _handle_purge_all_storage(self, call: ServiceCall) -> None:
         """Handle purge all storage service."""

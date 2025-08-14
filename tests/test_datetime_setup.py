@@ -17,7 +17,11 @@ class HomeAssistant:
 
 
 class ServiceCall:
-    pass
+    def __init__(self, domain=None, service=None, data=None, context=None):
+        self.domain = domain
+        self.service = service
+        self.data = data or {}
+        self.context = context
 
 
 ha_core.HomeAssistant = HomeAssistant
@@ -110,6 +114,22 @@ paw_datetime = importlib.import_module("custom_components.pawcontrol.datetime")
 NextMedicationDateTime = paw_datetime.NextMedicationDateTime
 async_setup_entry = paw_datetime.async_setup_entry
 DOMAIN = paw_datetime.DOMAIN
+
+# Clean up stub package to avoid interfering with other tests
+sys.modules.pop("custom_components.pawcontrol", None)
+# Remove stubbed Home Assistant modules to restore global state for other tests
+for mod in [
+    "homeassistant.core",
+    "homeassistant.config_entries",
+    "homeassistant.const",
+    "homeassistant.helpers",
+    "homeassistant.helpers.entity",
+    "homeassistant.helpers.entity_platform",
+    "homeassistant.components",
+    "homeassistant.components.datetime",
+    "homeassistant",
+]:
+    sys.modules.pop(mod, None)
 
 
 @pytest.mark.asyncio
