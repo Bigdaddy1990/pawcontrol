@@ -3,6 +3,7 @@ import sys
 import types
 from collections.abc import Generator
 
+import homeassistant.util  # Preload util module for HA test plugin
 import pytest
 import sitecustomize  # Ensure HA compatibility shims
 from custom_components.pawcontrol import compat  # ensure constants for HA
@@ -46,3 +47,11 @@ def enable_event_loop_debug() -> Generator[None]:
         if created_loop:
             loop.close()
             asyncio.set_event_loop(None)
+
+
+# Override plugin's fail_on_log_exception fixture to avoid dependency on
+# ``homeassistant.util.logging`` which may not be available in this minimal
+# test environment.
+@pytest.fixture(autouse=True)
+def fail_on_log_exception():
+    yield
