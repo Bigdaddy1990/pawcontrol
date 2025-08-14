@@ -17,9 +17,11 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import IntegrationNotFound
 
 from . import coordinator as coordinator_mod
 from . import gps_handler as gps
@@ -44,6 +46,8 @@ from .types import PawRuntimeData
 assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -95,7 +99,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _register_devices(hass, entry)
 
     # Setup platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except IntegrationNotFound:
+        _LOGGER.warning("Integration not found when forwarding entry setups")
 
     # Setup schedulers (daily reset, reports, reminders)
     await scheduler_mod.setup_schedulers(hass, entry)
