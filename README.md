@@ -34,7 +34,7 @@ Change history retention, geofence radius, notify target via **Reconfigure** in 
 - Entities have `unique_id`, `_attr_has_entity_name=True`, and use `translation_key` for naming.
 
 ## Icons & Translations
-- Dynamic icons via `icon.json`.
+- Dynamic icons via `icons.json`.
 - Localized strings in `translations/en.json` and `translations/de.json`.
 
 ## Diagnostics
