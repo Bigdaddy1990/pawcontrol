@@ -1,17 +1,24 @@
 name: HACS validation
-
 on:
+  pull_request:
+    paths:
+      - "custom_components/**"
+      - "hacs.json"
   push:
-    branches: [ "main" ]
-  schedule:
-    - cron: "0 4 * * *"
+    branches: [ main, master ]
+    paths:
+      - "custom_components/**"
+      - "hacs.json"
+
+permissions:
+  contents: read
 
 jobs:
-  hacs:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: HACS action
+      - uses: actions/checkout@v4
+      - name: HACS validation
         uses: hacs/action@main
         with:
           category: integration
