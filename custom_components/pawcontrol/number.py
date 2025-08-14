@@ -17,7 +17,7 @@ The number entities follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
@@ -26,7 +26,7 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.storage import Store
 
-from .compat import EntityCategory, UnitOfMass, UnitOfTime, UnitOfLength
+from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
@@ -100,15 +100,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control number entities from config entry.
-    
+
     Creates number entities based on configured dogs and enabled modules.
     Only creates entities for modules that are enabled for each dog.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
         async_add_entities: Callback to add entities
-        
+
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
@@ -143,40 +143,60 @@ async def async_setup_entry(
             # Get enabled modules for this dog
             dog_modules = dog.get(CONF_DOG_MODULES, {})
             dog_stored = stored_values.get(dog_id, {})
-            
+
             _LOGGER.debug(
                 "Creating number entities for dog %s (%s) with modules: %s",
                 dog_name,
                 dog_id,
-                list(dog_modules.keys())
+                list(dog_modules.keys()),
             )
 
             # Walk module numbers
             if dog_modules.get(MODULE_WALK, True):
-                entities.extend(_create_walk_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_walk_numbers(coordinator, entry, dog_id, store, dog_stored)
+                )
 
             # Feeding module numbers
             if dog_modules.get(MODULE_FEEDING, True):
-                entities.extend(_create_feeding_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_feeding_numbers(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Health module numbers
             if dog_modules.get(MODULE_HEALTH, True):
-                entities.extend(_create_health_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_health_numbers(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Grooming module numbers
             if dog_modules.get(MODULE_GROOMING, False):
-                entities.extend(_create_grooming_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_grooming_numbers(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Training module numbers
             if dog_modules.get(MODULE_TRAINING, False):
-                entities.extend(_create_training_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_training_numbers(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # GPS module numbers
             if dog_modules.get(MODULE_GPS, False):
-                entities.extend(_create_gps_numbers(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_gps_numbers(coordinator, entry, dog_id, store, dog_stored)
+                )
 
         _LOGGER.info("Created %d number entities", len(entities))
-        
+
         if entities:
             async_add_entities(entities, update_before_add=True)
 
@@ -187,10 +207,10 @@ async def async_setup_entry(
 
 async def _load_stored_values(store: Store) -> dict[str, dict[str, float]]:
     """Load stored values from persistent storage.
-    
+
     Args:
         store: Storage instance
-        
+
     Returns:
         Dictionary of stored values organized by dog_id and entity_key
     """
@@ -199,15 +219,15 @@ async def _load_stored_values(store: Store) -> dict[str, dict[str, float]]:
         if stored_values is None:
             _LOGGER.debug("No stored values found, using defaults")
             return {}
-        
+
         # Validate stored values structure
         if not isinstance(stored_values, dict):
             _LOGGER.warning("Invalid stored values structure, resetting")
             return {}
-            
+
         _LOGGER.debug("Loaded stored values for %d dogs", len(stored_values))
         return stored_values
-        
+
     except Exception as err:
         _LOGGER.error("Failed to load stored values: %s", err)
         return {}
@@ -221,14 +241,14 @@ def _create_walk_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create walk-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of walk number entities
     """
@@ -246,14 +266,14 @@ def _create_feeding_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create feeding-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of feeding number entities
     """
@@ -273,14 +293,14 @@ def _create_health_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create health-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of health number entities
     """
@@ -299,14 +319,14 @@ def _create_grooming_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create grooming-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of grooming number entities
     """
@@ -323,14 +343,14 @@ def _create_training_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create training-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of training number entities
     """
@@ -348,14 +368,14 @@ def _create_gps_numbers(
     dog_stored: dict[str, float],
 ) -> list[PawControlNumberEntity]:
     """Create GPS-related number entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of GPS number entities
     """
@@ -363,13 +383,15 @@ def _create_gps_numbers(
         GeofenceRadiusNumber(coordinator, entry, dog_id, store, dog_stored),
     ]
 
+
 # ==============================================================================
 # BASE NUMBER ENTITY WITH STORAGE
 # ==============================================================================
 
+
 class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
     """Base class for number entities with persistent storage.
-    
+
     Provides common functionality for number entities that need to persist
     their values across Home Assistant restarts. Values are stored per-dog
     and per-entity using Home Assistant's storage system.
@@ -396,7 +418,7 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
         mode: NumberMode = NumberMode.BOX,
     ) -> None:
         """Initialize the number entity with storage.
-        
+
         Args:
             coordinator: Data coordinator
             entry: Config entry
@@ -427,23 +449,23 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
             icon=icon,
             mode=mode,
         )
-        
+
         self._store = store
         self._stored_values = stored_values
         self._default_value = default_value or DEFAULT_VALUES.get(entity_key, min_value)
-        
+
         # Load current value from storage or use default
         self._current_value = stored_values.get(entity_key, self._default_value)
-        
+
         # Validate current value is within constraints
         self._current_value = self._validate_value(self._current_value)
 
     def _validate_value(self, value: float) -> float:
         """Validate and clamp value to acceptable range.
-        
+
         Args:
             value: Value to validate
-            
+
         Returns:
             Validated and clamped value
         """
@@ -453,11 +475,11 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
                 value = max(value, self._attr_native_min_value)
             if self._attr_native_max_value is not None:
                 value = min(value, self._attr_native_max_value)
-            
+
             # Round to step precision
             if self._attr_native_step is not None:
                 value = round(value / self._attr_native_step) * self._attr_native_step
-            
+
             return value
         except (TypeError, ValueError):
             _LOGGER.warning(
@@ -475,14 +497,14 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the value and persist it to storage.
-        
+
         Args:
             value: New value to set
         """
         try:
             # Validate the new value
             validated_value = self._validate_value(value)
-            
+
             if validated_value != value:
                 _LOGGER.debug(
                     "Value %s for %s clamped to %s",
@@ -490,12 +512,12 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
                     self.entity_id,
                     validated_value,
                 )
-            
+
             self._current_value = validated_value
 
             # Update storage
             await self._save_value_to_storage(validated_value)
-            
+
             # Apply value to coordinator if applicable
             await self._apply_value_to_coordinator(validated_value)
 
@@ -505,7 +527,7 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
                 self.dog_name,
                 validated_value,
             )
-            
+
             # Update entity state
             self.async_write_ha_state()
 
@@ -519,7 +541,7 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
 
     async def _save_value_to_storage(self, value: float) -> None:
         """Save value to persistent storage.
-        
+
         Args:
             value: Value to save
         """
@@ -534,16 +556,16 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
 
             # Save to storage
             await self._store.async_save(all_stored)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to save value to storage: %s", err)
 
     async def _apply_value_to_coordinator(self, value: float) -> None:
         """Apply value to coordinator data if applicable.
-        
+
         This method can be overridden by subclasses to immediately
         apply the new value to coordinator data for instant effects.
-        
+
         Args:
             value: Value to apply
         """
@@ -556,22 +578,28 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
         """Return additional state attributes."""
         try:
             attributes = super().extra_state_attributes or {}
-            attributes.update({
-                "default_value": self._default_value,
-                "is_default": self._current_value == self._default_value,
-            })
+            attributes.update(
+                {
+                    "default_value": self._default_value,
+                    "is_default": self._current_value == self._default_value,
+                }
+            )
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting extra attributes for %s: %s", self.entity_id, err)
+            _LOGGER.debug(
+                "Error getting extra attributes for %s: %s", self.entity_id, err
+            )
             return super().extra_state_attributes
+
 
 # ==============================================================================
 # WALK NUMBER ENTITIES
 # ==============================================================================
 
+
 class WalkThresholdNumber(PawControlNumberWithStorage):
     """Number entity for configuring walk threshold in hours.
-    
+
     Determines when a dog is considered to need a walk based on time
     since the last walk. Used by binary sensors and notifications.
     """
@@ -614,7 +642,7 @@ class WalkThresholdNumber(PawControlNumberWithStorage):
 
 class MinWalkDurationNumber(PawControlNumberWithStorage):
     """Number entity for configuring minimum walk duration in minutes.
-    
+
     Determines the minimum duration for a walk to be considered complete
     and count towards daily statistics.
     """
@@ -645,9 +673,11 @@ class MinWalkDurationNumber(PawControlNumberWithStorage):
             default_value=DEFAULT_VALUES["min_walk_duration"],
         )
 
+
 # ==============================================================================
 # FEEDING NUMBER ENTITIES
 # ==============================================================================
+
 
 class BreakfastPortionNumber(PawControlNumberWithStorage):
     """Number entity for configuring default breakfast portion size."""
@@ -685,12 +715,14 @@ class BreakfastPortionNumber(PawControlNumberWithStorage):
             attributes = super().extra_state_attributes or {}
             feeding_data = self.dog_data.get("feeding", {})
             feedings_today = feeding_data.get("feedings_today", {})
-            
-            attributes.update({
-                "meal_type": "breakfast",
-                "feedings_today": feedings_today.get("breakfast", 0),
-                "last_feeding": feeding_data.get("last_feeding"),
-            })
+
+            attributes.update(
+                {
+                    "meal_type": "breakfast",
+                    "feedings_today": feedings_today.get("breakfast", 0),
+                    "last_feeding": feeding_data.get("last_feeding"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting breakfast attributes: %s", err)
@@ -786,13 +818,15 @@ class SnackPortionNumber(PawControlNumberWithStorage):
             default_value=DEFAULT_VALUES["snack_portion"],
         )
 
+
 # ==============================================================================
 # HEALTH NUMBER ENTITIES
 # ==============================================================================
 
+
 class TargetWeightNumber(PawControlNumberWithStorage):
     """Number entity for configuring target weight for the dog.
-    
+
     Used for weight trend analysis and health monitoring.
     Automatically initializes with the dog's current weight if available.
     """
@@ -849,16 +883,18 @@ class TargetWeightNumber(PawControlNumberWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             health_data = self.dog_data.get("health", {})
-            
+
             current_weight = health_data.get("weight_kg", 0)
             if current_weight > 0 and self._current_value:
                 weight_diff = current_weight - self._current_value
-                attributes.update({
-                    "current_weight_kg": current_weight,
-                    "weight_difference_kg": round(weight_diff, 1),
-                    "at_target": abs(weight_diff) <= 0.5,
-                })
-            
+                attributes.update(
+                    {
+                        "current_weight_kg": current_weight,
+                        "weight_difference_kg": round(weight_diff, 1),
+                        "at_target": abs(weight_diff) <= 0.5,
+                    }
+                )
+
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting weight attributes: %s", err)
@@ -924,13 +960,15 @@ class WeightCheckIntervalNumber(PawControlNumberWithStorage):
             default_value=DEFAULT_VALUES["weight_check_days"],
         )
 
+
 # ==============================================================================
 # GROOMING NUMBER ENTITIES
 # ==============================================================================
 
+
 class GroomingIntervalNumber(PawControlNumberWithStorage):
     """Number entity for configuring grooming interval in days.
-    
+
     Determines when grooming reminders are triggered and when the
     dog is considered to need grooming.
     """
@@ -988,20 +1026,24 @@ class GroomingIntervalNumber(PawControlNumberWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             grooming_data = self.dog_data.get("grooming", {})
-            
-            attributes.update({
-                "last_grooming": grooming_data.get("last_grooming"),
-                "needs_grooming": grooming_data.get("needs_grooming", False),
-                "grooming_type": grooming_data.get("grooming_type"),
-            })
+
+            attributes.update(
+                {
+                    "last_grooming": grooming_data.get("last_grooming"),
+                    "needs_grooming": grooming_data.get("needs_grooming", False),
+                    "grooming_type": grooming_data.get("grooming_type"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting grooming attributes: %s", err)
             return super().extra_state_attributes
 
+
 # ==============================================================================
 # TRAINING NUMBER ENTITIES
 # ==============================================================================
+
 
 class TrainingDurationNumber(PawControlNumberWithStorage):
     """Number entity for configuring default training session duration."""
@@ -1038,12 +1080,14 @@ class TrainingDurationNumber(PawControlNumberWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             training_data = self.dog_data.get("training", {})
-            
-            attributes.update({
-                "last_training": training_data.get("last_training"),
-                "sessions_today": training_data.get("training_sessions_today", 0),
-                "last_topic": training_data.get("last_topic"),
-            })
+
+            attributes.update(
+                {
+                    "last_training": training_data.get("last_training"),
+                    "sessions_today": training_data.get("training_sessions_today", 0),
+                    "last_topic": training_data.get("last_topic"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting training attributes: %s", err)
@@ -1079,13 +1123,15 @@ class PlayDurationNumber(PawControlNumberWithStorage):
             default_value=DEFAULT_VALUES["play_duration"],
         )
 
+
 # ==============================================================================
 # GPS NUMBER ENTITIES
 # ==============================================================================
 
+
 class GeofenceRadiusNumber(PawControlNumberWithStorage):
     """Number entity for configuring geofence radius in meters.
-    
+
     Determines the size of the safe zone around the home location
     for GPS tracking and alerts.
     """
@@ -1134,13 +1180,15 @@ class GeofenceRadiusNumber(PawControlNumberWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             location_data = self.dog_data.get("location", {})
-            
-            attributes.update({
-                "home_lat": location_data.get("home_lat"),
-                "home_lon": location_data.get("home_lon"),
-                "is_home": location_data.get("is_home", True),
-                "distance_from_home": location_data.get("distance_from_home", 0),
-            })
+
+            attributes.update(
+                {
+                    "home_lat": location_data.get("home_lat"),
+                    "home_lon": location_data.get("home_lon"),
+                    "is_home": location_data.get("is_home", True),
+                    "distance_from_home": location_data.get("distance_from_home", 0),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting geofence attributes: %s", err)

@@ -17,7 +17,8 @@ Features:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -32,8 +33,7 @@ from .const import (
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.core import HomeAssistant
-    
+
     from .coordinator import PawControlCoordinator
     from .types import DogConfig, DogData
 
@@ -43,16 +43,17 @@ _LOGGER = logging.getLogger(__name__)
 # BASE ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
     """Base entity class for PawControl integration.
-    
+
     This class provides common functionality for all PawControl entities including:
     - Device information management
     - Dog data access patterns
     - Translation key handling
     - Availability management
     - Error handling and logging
-    
+
     All platform-specific entities should inherit from this base class or one
     of its specialized subclasses.
     """
@@ -70,7 +71,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         entity_category: EntityCategory | None = None,
     ) -> None:
         """Initialize the base PawControl entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -84,7 +85,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         self.entry = entry
         self.dog_id = dog_id
         self.entity_key = entity_key
-        
+
         # Validate dog_id exists in coordinator
         if self.dog_id not in coordinator._dog_data:
             _LOGGER.warning(
@@ -102,7 +103,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         # Set icon if provided, otherwise use default from category
         if icon:
             self._attr_icon = icon
-        elif hasattr(self, '_get_default_icon'):
+        elif hasattr(self, "_get_default_icon"):
             self._attr_icon = self._get_default_icon()
 
         # Set entity category for organization
@@ -118,7 +119,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
     def _setup_device_info(self) -> None:
         """Set up device information for this entity.
-        
+
         Creates a device entry that groups all entities for this dog together
         in the Home Assistant device registry.
         """
@@ -148,7 +149,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
     def _get_default_icon(self) -> str:
         """Get default icon for this entity type.
-        
+
         Returns:
             Default Material Design icon for this entity
         """
@@ -158,13 +159,17 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
     @property
     def dog_name(self) -> str:
         """Get the display name for this dog.
-        
+
         Returns:
             Dog's configured name or dog_id as fallback
         """
         try:
             dog_config = self._get_dog_config()
-            return dog_config.get(CONF_DOG_NAME, self.dog_id) if dog_config else self.dog_id
+            return (
+                dog_config.get(CONF_DOG_NAME, self.dog_id)
+                if dog_config
+                else self.dog_id
+            )
         except Exception as err:
             _LOGGER.debug("Failed to get dog name for %s: %s", self.dog_id, err)
             return self.dog_id
@@ -172,7 +177,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
     @property
     def dog_data(self) -> DogData:
         """Get all current data for this dog.
-        
+
         Returns:
             Complete dog data structure from coordinator
         """
@@ -180,30 +185,26 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
     def _get_dog_config(self) -> DogConfig | None:
         """Get dog configuration with caching for performance.
-        
+
         Caches the dog configuration to avoid repeated lookups while ensuring
         updates are detected when the configuration changes.
-        
+
         Returns:
             Dog configuration dict or None if not found
         """
         try:
             current_time = dt_util.utcnow().timestamp()
-            
+
             # Cache configuration for 60 seconds to improve performance
-            if (
-                self._dog_config is None 
-                or current_time - self._last_config_update > 60
-            ):
+            if self._dog_config is None or current_time - self._last_config_update > 60:
                 dogs = self.entry.options.get("dogs", [])
                 self._dog_config = next(
-                    (dog for dog in dogs if dog.get(CONF_DOG_ID) == self.dog_id),
-                    None
+                    (dog for dog in dogs if dog.get(CONF_DOG_ID) == self.dog_id), None
                 )
                 self._last_config_update = current_time
-                
+
             return self._dog_config
-            
+
         except Exception as err:
             _LOGGER.debug("Failed to get dog config for %s: %s", self.dog_id, err)
             return None
@@ -211,18 +212,18 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
     @property
     def available(self) -> bool:
         """Check if this entity is available.
-        
+
         An entity is considered available if:
         1. The coordinator is available
         2. The dog exists in coordinator data
         3. No critical errors are present
-        
+
         Returns:
             True if entity is available, False otherwise
         """
         if not super().available:
             return False
-            
+
         # Check if dog still exists in coordinator
         if self.dog_id not in self.coordinator._dog_data:
             _LOGGER.debug(
@@ -231,16 +232,16 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 self.dog_id,
             )
             return False
-            
+
         return True
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return additional state attributes.
-        
+
         Provides common attributes that are useful across all entity types.
         Subclasses can override this to add specific attributes.
-        
+
         Returns:
             Dictionary of additional state attributes
         """
@@ -251,20 +252,22 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 "dog_name": self.dog_name,
                 "integration": DOMAIN,
             }
-            
+
             # Add dog breed and size if available
             if dog_config:
                 if breed := dog_config.get("dog_breed"):
                     attributes["dog_breed"] = breed
                 if size := dog_config.get("dog_size"):
                     attributes["dog_size"] = size
-                    
+
             # Add last update timestamp
             if self.coordinator.last_update_success_time:
-                attributes["last_updated"] = self.coordinator.last_update_success_time.isoformat()
-                
+                attributes["last_updated"] = (
+                    self.coordinator.last_update_success_time.isoformat()
+                )
+
             return attributes
-            
+
         except Exception as err:
             _LOGGER.debug(
                 "Failed to get extra attributes for %s: %s",
@@ -275,7 +278,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
     def _handle_coordinator_update(self) -> None:
         """Handle coordinator data updates.
-        
+
         Called when the coordinator reports new data. This method can be
         overridden by subclasses to perform specific update logic.
         """
@@ -288,13 +291,15 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 err,
             )
 
+
 # ==============================================================================
 # SENSOR ENTITY CLASSES
 # ==============================================================================
 
+
 class PawControlSensorEntity(PawControlEntity):
     """Base sensor entity for PawControl.
-    
+
     Provides specialized functionality for sensor entities including
     device class, state class, and unit of measurement handling.
     """
@@ -314,7 +319,7 @@ class PawControlSensorEntity(PawControlEntity):
         precision: int | None = None,
     ) -> None:
         """Initialize sensor entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -352,13 +357,15 @@ class PawControlSensorEntity(PawControlEntity):
         """Get default icon for sensor entities."""
         return ICONS.get("statistics", "mdi:chart-line")
 
+
 # ==============================================================================
 # BINARY SENSOR ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlBinarySensorEntity(PawControlEntity):
     """Base binary sensor entity for PawControl.
-    
+
     Provides specialized functionality for binary sensor entities including
     device class handling and boolean state management.
     """
@@ -375,7 +382,7 @@ class PawControlBinarySensorEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize binary sensor entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -404,13 +411,15 @@ class PawControlBinarySensorEntity(PawControlEntity):
         """Get default icon for binary sensor entities."""
         return ICONS.get("notifications", "mdi:information")
 
+
 # ==============================================================================
 # BUTTON ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlButtonEntity(PawControlEntity):
     """Base button entity for PawControl.
-    
+
     Provides specialized functionality for button entities including
     press action handling and device class support.
     """
@@ -427,7 +436,7 @@ class PawControlButtonEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize button entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -458,19 +467,21 @@ class PawControlButtonEntity(PawControlEntity):
 
     async def async_press(self) -> None:
         """Handle button press.
-        
+
         This method should be overridden by specific button implementations
         to provide the actual button functionality.
         """
         _LOGGER.debug("Button pressed: %s", self.entity_id)
 
+
 # ==============================================================================
 # NUMBER ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlNumberEntity(PawControlEntity):
     """Base number entity for PawControl.
-    
+
     Provides specialized functionality for number entities including
     value range handling and step configuration.
     """
@@ -492,7 +503,7 @@ class PawControlNumberEntity(PawControlEntity):
         mode: str = "box",
     ) -> None:
         """Initialize number entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -537,22 +548,24 @@ class PawControlNumberEntity(PawControlEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the native value.
-        
+
         This method should be overridden by specific number implementations
         to provide actual value setting functionality.
-        
+
         Args:
             value: The new value to set
         """
         _LOGGER.debug("Number value set: %s = %s", self.entity_id, value)
 
+
 # ==============================================================================
 # SELECT ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlSelectEntity(PawControlEntity):
     """Base select entity for PawControl.
-    
+
     Provides specialized functionality for select entities including
     options management and selection handling.
     """
@@ -569,7 +582,7 @@ class PawControlSelectEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize select entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -599,22 +612,24 @@ class PawControlSelectEntity(PawControlEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Select an option.
-        
+
         This method should be overridden by specific select implementations
         to provide actual option selection functionality.
-        
+
         Args:
             option: The option to select
         """
         _LOGGER.debug("Option selected: %s = %s", self.entity_id, option)
 
+
 # ==============================================================================
 # TEXT ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlTextEntity(PawControlEntity):
     """Base text entity for PawControl.
-    
+
     Provides specialized functionality for text entities including
     length validation and pattern matching.
     """
@@ -634,7 +649,7 @@ class PawControlTextEntity(PawControlEntity):
         mode: str = "text",
     ) -> None:
         """Initialize text entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -673,22 +688,24 @@ class PawControlTextEntity(PawControlEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Set the text value.
-        
+
         This method should be overridden by specific text implementations
         to provide actual value setting functionality.
-        
+
         Args:
             value: The new text value to set
         """
         _LOGGER.debug("Text value set: %s = %s", self.entity_id, value)
 
+
 # ==============================================================================
 # SWITCH ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlSwitchEntity(PawControlEntity):
     """Base switch entity for PawControl.
-    
+
     Provides specialized functionality for switch entities including
     on/off state management and device class support.
     """
@@ -705,7 +722,7 @@ class PawControlSwitchEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize switch entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -736,10 +753,10 @@ class PawControlSwitchEntity(PawControlEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on.
-        
+
         This method should be overridden by specific switch implementations
         to provide actual turn-on functionality.
-        
+
         Args:
             **kwargs: Additional arguments
         """
@@ -747,22 +764,24 @@ class PawControlSwitchEntity(PawControlEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off.
-        
+
         This method should be overridden by specific switch implementations
         to provide actual turn-off functionality.
-        
+
         Args:
             **kwargs: Additional arguments
         """
         _LOGGER.debug("Switch turned off: %s", self.entity_id)
 
+
 # ==============================================================================
 # DATETIME ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlDateTimeEntity(PawControlEntity):
     """Base datetime entity for PawControl.
-    
+
     Provides specialized functionality for datetime entities including
     date/time value management and formatting.
     """
@@ -778,7 +797,7 @@ class PawControlDateTimeEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize datetime entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -804,22 +823,24 @@ class PawControlDateTimeEntity(PawControlEntity):
 
     async def async_set_value(self, value: Any) -> None:
         """Set the datetime value.
-        
+
         This method should be overridden by specific datetime implementations
         to provide actual value setting functionality.
-        
+
         Args:
             value: The new datetime value to set
         """
         _LOGGER.debug("Datetime value set: %s = %s", self.entity_id, value)
 
+
 # ==============================================================================
 # DEVICE TRACKER ENTITY CLASS
 # ==============================================================================
 
+
 class PawControlDeviceTrackerEntity(PawControlEntity):
     """Base device tracker entity for PawControl.
-    
+
     Provides specialized functionality for device tracker entities including
     location management and GPS coordinate handling.
     """
@@ -834,7 +855,7 @@ class PawControlDeviceTrackerEntity(PawControlEntity):
         icon: str | None = None,
     ) -> None:
         """Initialize device tracker entity.
-        
+
         Args:
             coordinator: The data update coordinator
             entry: The config entry for this integration instance
@@ -861,48 +882,52 @@ class PawControlDeviceTrackerEntity(PawControlEntity):
         """Force update for device trackers."""
         return True
 
+
 # ==============================================================================
 # UTILITY FUNCTIONS
 # ==============================================================================
 
+
 def create_entity_id(entry: ConfigEntry, dog_id: str, entity_key: str) -> str:
     """Create a consistent entity ID.
-    
+
     Args:
         entry: The config entry
         dog_id: The dog identifier
         entity_key: The entity key
-        
+
     Returns:
         Formatted entity ID string
     """
     return f"{DOMAIN}.{dog_id}_{entity_key}"
 
+
 def validate_dog_exists(coordinator: PawControlCoordinator, dog_id: str) -> bool:
     """Validate that a dog exists in the coordinator.
-    
+
     Args:
         coordinator: The data coordinator
         dog_id: The dog identifier to validate
-        
+
     Returns:
         True if dog exists, False otherwise
     """
     return dog_id in coordinator._dog_data
 
+
 def get_entity_icon(entity_type: str, entity_key: str) -> str:
     """Get appropriate icon for an entity.
-    
+
     Args:
         entity_type: The type of entity (sensor, binary_sensor, etc.)
         entity_key: The specific entity key
-        
+
     Returns:
         Material Design icon string
     """
     # First try specific entity key
     if icon := ICONS.get(entity_key):
         return icon
-    
+
     # Fall back to entity type
     return ICONS.get(entity_type, "mdi:information")

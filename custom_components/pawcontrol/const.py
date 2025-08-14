@@ -24,7 +24,7 @@ DOMAIN: Final[str] = "pawcontrol"
 # All platforms supported by this integration
 PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,
-    Platform.BINARY_SENSOR, 
+    Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.NUMBER,
     Platform.SELECT,
@@ -44,21 +44,35 @@ EARTH_RADIUS_M: Final[float] = 6_371_000.0
 # GPS accuracy and movement thresholds
 GPS_MIN_ACCURACY: Final[int] = 100  # meters - minimum acceptable GPS accuracy
 GPS_MAX_POINTS_PER_ROUTE: Final[int] = 10_000  # maximum GPS points stored per route
-GPS_POINT_FILTER_DISTANCE: Final[int] = 5  # meters - minimum distance between stored points
-GPS_MINIMUM_MOVEMENT_THRESHOLD_M: Final[int] = 5  # meters - minimum movement to register update
+GPS_POINT_FILTER_DISTANCE: Final[int] = (
+    5  # meters - minimum distance between stored points
+)
+GPS_MINIMUM_MOVEMENT_THRESHOLD_M: Final[int] = (
+    5  # meters - minimum movement to register update
+)
 
 # Walk detection and tracking thresholds
-DEFAULT_MIN_WALK_DISTANCE_M: Final[int] = 100  # meters - minimum distance to count as walk
-DEFAULT_MIN_WALK_DURATION_MIN: Final[int] = 5  # minutes - minimum duration to count as walk
+DEFAULT_MIN_WALK_DISTANCE_M: Final[int] = (
+    100  # meters - minimum distance to count as walk
+)
+DEFAULT_MIN_WALK_DURATION_MIN: Final[int] = (
+    5  # minutes - minimum duration to count as walk
+)
 DEFAULT_IDLE_TIMEOUT_MIN: Final[int] = 30  # minutes - time before auto-ending walk
-WALK_DISTANCE_UPDATE_THRESHOLD_M: Final[int] = 10  # meters - minimum change for UI update
-DOOR_OPEN_TIMEOUT_SECONDS: Final[int] = 120  # seconds - max time between door open and walk start
+WALK_DISTANCE_UPDATE_THRESHOLD_M: Final[int] = (
+    10  # meters - minimum change for UI update
+)
+DOOR_OPEN_TIMEOUT_SECONDS: Final[int] = (
+    120  # seconds - max time between door open and walk start
+)
 
 # Geofencing and safe zone parameters
 DEFAULT_SAFE_ZONE_RADIUS: Final[int] = 50  # meters - default geofence radius
 MAX_SAFE_ZONE_RADIUS: Final[int] = 2_000  # meters - maximum allowed geofence radius
 MIN_SAFE_ZONE_RADIUS: Final[int] = 5  # meters - minimum allowed geofence radius
-MIN_SIGNIFICANT_DISTANCE_M: Final[float] = 1.0  # meters - minimum distance change for processing
+MIN_SIGNIFICANT_DISTANCE_M: Final[float] = (
+    1.0  # meters - minimum distance change for processing
+)
 
 # ==============================================================================
 # DOG HEALTH AND ACTIVITY CONSTANTS
@@ -71,7 +85,9 @@ MIN_DOG_WEIGHT_KG: Final[float] = 0.5  # kg - minimum reasonable dog weight
 
 # Calorie calculation constants (based on veterinary guidelines)
 CALORIES_PER_KM_PER_KG: Final[float] = 1.5  # calories burned per km per kg body weight
-CALORIES_PER_MIN_PLAY_PER_KG: Final[float] = 0.25  # calories burned per minute play per kg
+CALORIES_PER_MIN_PLAY_PER_KG: Final[float] = (
+    0.25  # calories burned per minute play per kg
+)
 
 # Activity and care defaults
 DEFAULT_WALK_THRESHOLD_HOURS: Final[float] = 8.0  # hours - time before dog needs walk
@@ -80,11 +96,11 @@ DEFAULT_GROOMING_INTERVAL_DAYS: Final[int] = 30  # days - default grooming inter
 # Health monitoring thresholds (normal ranges for dogs)
 HEALTH_THRESHOLDS: Final[dict[str, float]] = {
     "temperature_high": 39.2,  # °C - upper normal limit
-    "temperature_low": 37.2,   # °C - lower normal limit  
+    "temperature_low": 37.2,  # °C - lower normal limit
     "heart_rate_high": 140.0,  # bpm - upper normal limit for medium dogs
-    "heart_rate_low": 60.0,    # bpm - lower normal limit for medium dogs
+    "heart_rate_low": 60.0,  # bpm - lower normal limit for medium dogs
     "respiratory_rate_high": 40.0,  # breaths/min - upper normal limit
-    "respiratory_rate_low": 10.0,   # breaths/min - lower normal limit
+    "respiratory_rate_low": 10.0,  # breaths/min - lower normal limit
 }
 
 # ==============================================================================
@@ -252,7 +268,7 @@ SERVICE_START_TRAINING: Final[str] = "training_session"
 
 # Storage keys for persistent data
 STORAGE_KEY_GPS_SETTINGS: Final[str] = "gps_settings"
-STORAGE_KEY_ROUTE_HISTORY: Final[str] = "route_history" 
+STORAGE_KEY_ROUTE_HISTORY: Final[str] = "route_history"
 STORAGE_KEY_USER_SETTINGS: Final[str] = "user_settings"
 
 # ==============================================================================
@@ -274,7 +290,7 @@ FOOD_TREAT: Final[str] = "treat"
 # Meal types with German translations for UI
 MEAL_TYPES: Final[dict[str, str]] = {
     MEAL_BREAKFAST: "Frühstück",
-    MEAL_LUNCH: "Mittag", 
+    MEAL_LUNCH: "Mittag",
     MEAL_DINNER: "Abend",
     MEAL_SNACK: "Snack",
 }
@@ -305,14 +321,14 @@ GROOMING_TYPES: Final[dict[str, str]] = {
     GROOMING_BATH: "Baden",
     GROOMING_BRUSH: "Bürsten",
     GROOMING_EARS: "Ohren reinigen",
-    GROOMING_EYES: "Augen reinigen", 
+    GROOMING_EYES: "Augen reinigen",
     GROOMING_NAILS: "Krallen schneiden",
     GROOMING_TEETH: "Zähne putzen",
     GROOMING_TRIM: "Fell schneiden",
 }
 
 # ==============================================================================
-# ACTIVITY AND TRAINING CONSTANTS  
+# ACTIVITY AND TRAINING CONSTANTS
 # ==============================================================================
 
 # Activity intensity levels
@@ -323,7 +339,7 @@ INTENSITY_HIGH: Final[str] = "high"
 # Activity intensity with German translations for UI
 INTENSITY_TYPES: Final[dict[str, str]] = {
     INTENSITY_LOW: "Niedrig",
-    INTENSITY_MEDIUM: "Mittel", 
+    INTENSITY_MEDIUM: "Mittel",
     INTENSITY_HIGH: "Hoch",
 }
 
@@ -348,7 +364,7 @@ TRAINING_TYPES: Final[dict[str, str]] = {
 # Vaccination identifiers and German names
 VACCINATION_NAMES: Final[dict[str, str]] = {
     "rabies": "Tollwut",
-    "distemper": "Staupe", 
+    "distemper": "Staupe",
     "hepatitis": "Hepatitis",
     "parvovirus": "Parvovirose",
     "parainfluenza": "Parainfluenza",
@@ -359,14 +375,14 @@ VACCINATION_NAMES: Final[dict[str, str]] = {
 
 # Vaccination intervals in months
 VACCINATION_INTERVALS: Final[dict[str, int]] = {
-    "rabies": 36,       # 3 years
-    "distemper": 36,    # 3 years
-    "hepatitis": 36,    # 3 years
-    "parvovirus": 36,   # 3 years
-    "parainfluenza": 12, # 1 year
-    "leptospirosis": 12, # 1 year
-    "bordetella": 12,   # 1 year
-    "lyme": 12,         # 1 year
+    "rabies": 36,  # 3 years
+    "distemper": 36,  # 3 years
+    "hepatitis": 36,  # 3 years
+    "parvovirus": 36,  # 3 years
+    "parainfluenza": 12,  # 1 year
+    "leptospirosis": 12,  # 1 year
+    "bordetella": 12,  # 1 year
+    "lyme": 12,  # 1 year
 }
 
 # Medical condition categories
@@ -402,7 +418,7 @@ ICONS: Final[dict[str, str]] = {
 # Device class mappings for sensors
 DEVICE_CLASSES: Final[dict[str, str]] = {
     "weight": "weight",
-    "distance": "distance", 
+    "distance": "distance",
     "duration": "duration",
     "temperature": "temperature",
     "timestamp": "timestamp",
@@ -413,7 +429,7 @@ DEVICE_CLASSES: Final[dict[str, str]] = {
 UNITS: Final[dict[str, str]] = {
     "weight": "kg",
     "distance": "m",
-    "duration": "min", 
+    "duration": "min",
     "temperature": "°C",
     "calories": "kcal",
     "speed": "km/h",
@@ -462,9 +478,9 @@ STATUS_UNKNOWN: Final[str] = "unknown"
 
 # Coordinate precision for storage and display
 COORDINATE_PRECISION: Final[int] = 6  # decimal places
-DISTANCE_PRECISION: Final[int] = 1   # decimal places for distances
-WEIGHT_PRECISION: Final[int] = 1     # decimal places for weights
-DURATION_PRECISION: Final[int] = 1   # decimal places for durations
+DISTANCE_PRECISION: Final[int] = 1  # decimal places for distances
+WEIGHT_PRECISION: Final[int] = 1  # decimal places for weights
+DURATION_PRECISION: Final[int] = 1  # decimal places for durations
 
 # ==============================================================================
 # LIMITS AND VALIDATION CONSTANTS
@@ -484,6 +500,6 @@ MIN_DOG_AGE_YEARS: Final[int] = 0
 MAX_DOG_AGE_YEARS: Final[int] = 30
 
 # Time limits in seconds
-CACHE_DURATION_SECONDS: Final[int] = 300    # 5 minutes
+CACHE_DURATION_SECONDS: Final[int] = 300  # 5 minutes
 SESSION_TIMEOUT_SECONDS: Final[int] = 3600  # 1 hour
-RETRY_DELAY_SECONDS: Final[int] = 60        # 1 minute
+RETRY_DELAY_SECONDS: Final[int] = 60  # 1 minute

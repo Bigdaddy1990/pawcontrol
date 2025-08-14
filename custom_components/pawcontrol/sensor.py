@@ -16,7 +16,7 @@ The sensors follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -29,18 +29,18 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime, UnitOfEnergy
+from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
     ICONS,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
     MODULE_FEEDING,
+    MODULE_GPS,
     MODULE_GROOMING,
+    MODULE_HEALTH,
     MODULE_TRAINING,
+    MODULE_WALK,
 )
 from .entity import PawControlSensorEntity
 
@@ -54,25 +54,23 @@ PARALLEL_UPDATES = 3
 
 # Sensor configuration constants
 MIN_MEANINGFUL_DISTANCE = 0.1  # meters
-MIN_MEANINGFUL_WEIGHT = 0.1    # kg
+MIN_MEANINGFUL_WEIGHT = 0.1  # kg
 MIN_MEANINGFUL_DURATION = 0.1  # minutes
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, 
-    entry: ConfigEntry, 
-    async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up Paw Control sensors from config entry.
-    
+
     Creates sensor entities based on configured dogs and enabled modules.
     Only creates sensors for modules that are enabled for each dog.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
         async_add_entities: Callback to add entities
-        
+
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
@@ -100,12 +98,12 @@ async def async_setup_entry(
 
             # Get enabled modules for this dog
             dog_modules = dog.get("dog_modules", {})
-            
+
             _LOGGER.debug(
                 "Creating sensors for dog %s (%s) with modules: %s",
                 dog_name,
                 dog_id,
-                list(dog_modules.keys())
+                list(dog_modules.keys()),
             )
 
             # Core sensors (always enabled)
@@ -124,7 +122,9 @@ async def async_setup_entry(
                 entities.extend(_create_health_sensors(coordinator, entry, dog_id))
 
             # Activity sensors (always enabled with walk or feeding)
-            if dog_modules.get(MODULE_WALK, True) or dog_modules.get(MODULE_FEEDING, True):
+            if dog_modules.get(MODULE_WALK, True) or dog_modules.get(
+                MODULE_FEEDING, True
+            ):
                 entities.extend(_create_activity_sensors(coordinator, entry, dog_id))
 
             # Location sensors (if GPS module enabled)
@@ -143,7 +143,7 @@ async def async_setup_entry(
                 entities.extend(_create_training_sensors(coordinator, entry, dog_id))
 
         _LOGGER.info("Created %d sensor entities", len(entities))
-        
+
         if entities:
             async_add_entities(entities, update_before_add=True)
 
@@ -153,17 +153,15 @@ async def async_setup_entry(
 
 
 def _create_core_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create core sensors that are always available.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of core sensor entities
     """
@@ -174,17 +172,15 @@ def _create_core_sensors(
 
 
 def _create_walk_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create walk-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of walk sensor entities
     """
@@ -200,17 +196,15 @@ def _create_walk_sensors(
 
 
 def _create_feeding_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create feeding-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of feeding sensor entities
     """
@@ -227,17 +221,15 @@ def _create_feeding_sensors(
 
 
 def _create_health_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create health-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of health sensor entities
     """
@@ -251,17 +243,15 @@ def _create_health_sensors(
 
 
 def _create_activity_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create activity-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of activity sensor entities
     """
@@ -274,17 +264,15 @@ def _create_activity_sensors(
 
 
 def _create_location_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create location and GPS-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of location sensor entities
     """
@@ -300,17 +288,15 @@ def _create_location_sensors(
 
 
 def _create_statistics_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create statistics sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of statistics sensor entities
     """
@@ -321,17 +307,15 @@ def _create_statistics_sensors(
 
 
 def _create_grooming_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create grooming-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of grooming sensor entities
     """
@@ -343,17 +327,15 @@ def _create_grooming_sensors(
 
 
 def _create_training_sensors(
-    coordinator: PawControlCoordinator, 
-    entry: ConfigEntry, 
-    dog_id: str
+    coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
 ) -> list[PawControlSensorEntity]:
     """Create training-related sensors.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of training sensor entities
     """
@@ -364,22 +346,21 @@ def _create_training_sensors(
         TrainingDurationTodaySensor(coordinator, entry, dog_id),
     ]
 
+
 # ==============================================================================
 # CORE SENSORS
 # ==============================================================================
 
+
 class LastActionSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for the last action performed for this dog.
-    
+
     Tracks the timestamp and type of the most recent action (walk, feeding,
     medication, etc.) performed for the dog.
     """
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last action sensor."""
         super().__init__(
@@ -408,28 +389,27 @@ class LastActionSensor(PawControlSensorEntity, SensorEntity):
         try:
             stats_data = self.dog_data.get("statistics", {})
             attributes = super().extra_state_attributes or {}
-            
+
             if action_type := stats_data.get("last_action_type"):
                 attributes["action_type"] = action_type
-                
+
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting last action attributes for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last action attributes for %s: %s", self.dog_id, err
+            )
             return super().extra_state_attributes
 
 
 class DogStatusSensor(PawControlSensorEntity, SensorEntity):
     """Sensor providing overall status summary for the dog.
-    
+
     Aggregates various data points to provide a high-level status
     indication like "active", "resting", "needs_attention", etc.
     """
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the dog status sensor."""
         super().__init__(
@@ -441,7 +421,13 @@ class DogStatusSensor(PawControlSensorEntity, SensorEntity):
             device_class=SensorDeviceClass.ENUM,
             icon=ICONS.get("dashboard", "mdi:information"),
         )
-        self._attr_options = ["resting", "active", "walking", "needs_attention", "unknown"]
+        self._attr_options = [
+            "resting",
+            "active",
+            "walking",
+            "needs_attention",
+            "unknown",
+        ]
 
     @property
     def native_value(self) -> str:
@@ -449,16 +435,17 @@ class DogStatusSensor(PawControlSensorEntity, SensorEntity):
         try:
             walk_data = self.dog_data.get("walk", {})
             feeding_data = self.dog_data.get("feeding", {})
-            
+
             # Check if currently walking
             if walk_data.get("walk_in_progress", False):
                 return "walking"
-            
+
             # Check if needs attention (hungry, needs walk, etc.)
-            if (walk_data.get("needs_walk", False) or 
-                feeding_data.get("is_hungry", False)):
+            if walk_data.get("needs_walk", False) or feeding_data.get(
+                "is_hungry", False
+            ):
                 return "needs_attention"
-            
+
             # Check recent activity to determine active vs resting
             last_action = self.dog_data.get("statistics", {}).get("last_action")
             if last_action:
@@ -470,9 +457,9 @@ class DogStatusSensor(PawControlSensorEntity, SensorEntity):
                             return "active"
                 except (ValueError, TypeError):
                     pass
-            
+
             return "resting"
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating dog status for %s: %s", self.dog_id, err)
             return "unknown"
@@ -482,35 +469,40 @@ class DogStatusSensor(PawControlSensorEntity, SensorEntity):
         """Return additional status information."""
         try:
             attributes = super().extra_state_attributes or {}
-            
+
             walk_data = self.dog_data.get("walk", {})
             feeding_data = self.dog_data.get("feeding", {})
-            
-            attributes.update({
-                "needs_walk": walk_data.get("needs_walk", False),
-                "is_hungry": feeding_data.get("is_hungry", False),
-                "walk_in_progress": walk_data.get("walk_in_progress", False),
-                "walks_today": walk_data.get("walks_today", 0),
-                "feedings_today": sum(feeding_data.get("feedings_today", {}).values()),
-            })
-            
+
+            attributes.update(
+                {
+                    "needs_walk": walk_data.get("needs_walk", False),
+                    "is_hungry": feeding_data.get("is_hungry", False),
+                    "walk_in_progress": walk_data.get("walk_in_progress", False),
+                    "walks_today": walk_data.get("walks_today", 0),
+                    "feedings_today": sum(
+                        feeding_data.get("feedings_today", {}).values()
+                    ),
+                }
+            )
+
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting status attributes for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting status attributes for %s: %s", self.dog_id, err
+            )
             return super().extra_state_attributes
+
 
 # ==============================================================================
 # WALK SENSORS
 # ==============================================================================
 
+
 class WalkDistanceCurrentSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current walk distance in progress."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the current walk distance sensor."""
         super().__init__(
@@ -536,7 +528,9 @@ class WalkDistanceCurrentSensor(PawControlSensorEntity, SensorEntity):
                 return distance if distance >= MIN_MEANINGFUL_DISTANCE else 0
             return None
         except Exception as err:
-            _LOGGER.debug("Error getting current walk distance for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting current walk distance for %s: %s", self.dog_id, err
+            )
             return None
 
     @property
@@ -552,10 +546,7 @@ class WalkDistanceLastSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for last completed walk distance."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last walk distance sensor."""
         super().__init__(
@@ -576,13 +567,16 @@ class WalkDistanceLastSensor(PawControlSensorEntity, SensorEntity):
         """Return the last walk distance."""
         try:
             walk_data = self.dog_data.get("walk", {})
-            if (not walk_data.get("walk_in_progress", False) and 
-                walk_data.get("last_walk")):
+            if not walk_data.get("walk_in_progress", False) and walk_data.get(
+                "last_walk"
+            ):
                 distance = walk_data.get("walk_distance_m", 0)
                 return distance if distance >= MIN_MEANINGFUL_DISTANCE else 0
             return None
         except Exception as err:
-            _LOGGER.debug("Error getting last walk distance for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last walk distance for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -590,10 +584,7 @@ class WalkDurationCurrentSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current walk duration in progress."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the current walk duration sensor."""
         super().__init__(
@@ -620,14 +611,22 @@ class WalkDurationCurrentSensor(PawControlSensorEntity, SensorEntity):
                     try:
                         start_time = dt_util.parse_datetime(start_time_str)
                         if start_time:
-                            duration_seconds = (dt_util.utcnow() - start_time).total_seconds()
+                            duration_seconds = (
+                                dt_util.utcnow() - start_time
+                            ).total_seconds()
                             duration_minutes = duration_seconds / 60
-                            return round(duration_minutes, 1) if duration_minutes > 0 else 0
+                            return (
+                                round(duration_minutes, 1)
+                                if duration_minutes > 0
+                                else 0
+                            )
                     except (ValueError, TypeError):
                         pass
             return None
         except Exception as err:
-            _LOGGER.debug("Error calculating current walk duration for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error calculating current walk duration for %s: %s", self.dog_id, err
+            )
             return None
 
     @property
@@ -643,10 +642,7 @@ class WalkDurationLastSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for last completed walk duration."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last walk duration sensor."""
         super().__init__(
@@ -667,13 +663,16 @@ class WalkDurationLastSensor(PawControlSensorEntity, SensorEntity):
         """Return the last walk duration."""
         try:
             walk_data = self.dog_data.get("walk", {})
-            if (not walk_data.get("walk_in_progress", False) and 
-                walk_data.get("last_walk")):
+            if not walk_data.get("walk_in_progress", False) and walk_data.get(
+                "last_walk"
+            ):
                 duration = walk_data.get("walk_duration_min", 0)
                 return duration if duration >= MIN_MEANINGFUL_DURATION else 0
             return None
         except Exception as err:
-            _LOGGER.debug("Error getting last walk duration for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last walk duration for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -681,10 +680,7 @@ class WalkDistanceTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total walk distance today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the total walk distance today sensor."""
         super().__init__(
@@ -706,15 +702,17 @@ class WalkDistanceTodaySensor(PawControlSensorEntity, SensorEntity):
         try:
             walk_data = self.dog_data.get("walk", {})
             total_distance = walk_data.get("total_distance_today", 0)
-            
+
             # Add current walk distance if in progress
             if walk_data.get("walk_in_progress", False):
                 current_distance = walk_data.get("walk_distance_m", 0)
                 total_distance += current_distance
-                
+
             return round(total_distance, 1)
         except Exception as err:
-            _LOGGER.debug("Error getting total walk distance for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting total walk distance for %s: %s", self.dog_id, err
+            )
             return 0
 
 
@@ -722,10 +720,7 @@ class WalksCountTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of walks completed today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the walks count today sensor."""
         super().__init__(
@@ -754,10 +749,7 @@ class LastWalkTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last completed walk."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last walk time sensor."""
         super().__init__(
@@ -780,18 +772,17 @@ class LastWalkTimeSensor(PawControlSensorEntity, SensorEntity):
             _LOGGER.debug("Error getting last walk time for %s: %s", self.dog_id, err)
             return None
 
+
 # ==============================================================================
 # FEEDING SENSORS
 # ==============================================================================
+
 
 class LastFeedingTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last feeding."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last feeding time sensor."""
         super().__init__(
@@ -811,7 +802,9 @@ class LastFeedingTimeSensor(PawControlSensorEntity, SensorEntity):
             feeding_data = self.dog_data.get("feeding", {})
             return feeding_data.get("last_feeding")
         except Exception as err:
-            _LOGGER.debug("Error getting last feeding time for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last feeding time for %s: %s", self.dog_id, err
+            )
             return None
 
     @property
@@ -820,16 +813,20 @@ class LastFeedingTimeSensor(PawControlSensorEntity, SensorEntity):
         try:
             attributes = super().extra_state_attributes or {}
             feeding_data = self.dog_data.get("feeding", {})
-            
-            attributes.update({
-                "meal_type": feeding_data.get("last_meal_type"),
-                "portion_g": feeding_data.get("last_portion_g"),
-                "food_type": feeding_data.get("last_food_type"),
-            })
-            
+
+            attributes.update(
+                {
+                    "meal_type": feeding_data.get("last_meal_type"),
+                    "portion_g": feeding_data.get("last_portion_g"),
+                    "food_type": feeding_data.get("last_food_type"),
+                }
+            )
+
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting feeding attributes for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting feeding attributes for %s: %s", self.dog_id, err
+            )
             return super().extra_state_attributes
 
 
@@ -837,10 +834,7 @@ class LastMealTypeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for the type of the last meal."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last meal type sensor."""
         super().__init__(
@@ -869,10 +863,7 @@ class FeedingsCountTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total number of feedings today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the feedings count today sensor."""
         super().__init__(
@@ -902,10 +893,7 @@ class TotalPortionsTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total food portions given today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the total portions today sensor."""
         super().__init__(
@@ -936,10 +924,7 @@ class BreakfastCountSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for breakfast count today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the breakfast count sensor."""
         super().__init__(
@@ -970,10 +955,7 @@ class LunchCountSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for lunch count today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the lunch count sensor."""
         super().__init__(
@@ -1004,10 +986,7 @@ class DinnerCountSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for dinner count today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the dinner count sensor."""
         super().__init__(
@@ -1038,10 +1017,7 @@ class SnackCountSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for snack count today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the snack count sensor."""
         super().__init__(
@@ -1067,18 +1043,17 @@ class SnackCountSensor(PawControlSensorEntity, SensorEntity):
             _LOGGER.debug("Error getting snack count for %s: %s", self.dog_id, err)
             return 0
 
+
 # ==============================================================================
 # HEALTH SENSORS
 # ==============================================================================
+
 
 class WeightSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for dog's current weight."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the weight sensor."""
         super().__init__(
@@ -1111,7 +1086,7 @@ class WeightSensor(PawControlSensorEntity, SensorEntity):
         try:
             attributes = super().extra_state_attributes or {}
             health_data = self.dog_data.get("health", {})
-            
+
             # Add weight trend analysis
             weight_trend = health_data.get("weight_trend", [])
             if len(weight_trend) >= 2:
@@ -1119,15 +1094,19 @@ class WeightSensor(PawControlSensorEntity, SensorEntity):
                 if len(recent_weights) >= 2:
                     weight_change = recent_weights[-1] - recent_weights[0]
                     attributes["weight_trend"] = (
-                        "increasing" if weight_change > 0.5 else
-                        "decreasing" if weight_change < -0.5 else
-                        "stable"
+                        "increasing"
+                        if weight_change > 0.5
+                        else "decreasing"
+                        if weight_change < -0.5
+                        else "stable"
                     )
                     attributes["weight_change_kg"] = round(weight_change, 1)
-            
+
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting weight attributes for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting weight attributes for %s: %s", self.dog_id, err
+            )
             return super().extra_state_attributes
 
 
@@ -1135,10 +1114,7 @@ class MedicationsTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of medications given today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the medications today sensor."""
         super().__init__(
@@ -1159,7 +1135,9 @@ class MedicationsTodaySensor(PawControlSensorEntity, SensorEntity):
             health_data = self.dog_data.get("health", {})
             return health_data.get("medications_today", 0)
         except Exception as err:
-            _LOGGER.debug("Error getting medications count for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting medications count for %s: %s", self.dog_id, err
+            )
             return 0
 
 
@@ -1167,10 +1145,7 @@ class LastMedicationTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last medication."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last medication time sensor."""
         super().__init__(
@@ -1190,7 +1165,9 @@ class LastMedicationTimeSensor(PawControlSensorEntity, SensorEntity):
             health_data = self.dog_data.get("health", {})
             return health_data.get("last_medication")
         except Exception as err:
-            _LOGGER.debug("Error getting last medication time for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last medication time for %s: %s", self.dog_id, err
+            )
             return None
 
     @property
@@ -1199,15 +1176,19 @@ class LastMedicationTimeSensor(PawControlSensorEntity, SensorEntity):
         try:
             attributes = super().extra_state_attributes or {}
             health_data = self.dog_data.get("health", {})
-            
-            attributes.update({
-                "medication_name": health_data.get("medication_name"),
-                "medication_dose": health_data.get("medication_dose"),
-            })
-            
+
+            attributes.update(
+                {
+                    "medication_name": health_data.get("medication_name"),
+                    "medication_dose": health_data.get("medication_dose"),
+                }
+            )
+
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting medication attributes for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting medication attributes for %s: %s", self.dog_id, err
+            )
             return super().extra_state_attributes
 
 
@@ -1215,10 +1196,7 @@ class LastVetVisitSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last vet visit."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last vet visit sensor."""
         super().__init__(
@@ -1246,10 +1224,7 @@ class WeightTrendSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for weight trend analysis."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the weight trend sensor."""
         super().__init__(
@@ -1270,10 +1245,10 @@ class WeightTrendSensor(PawControlSensorEntity, SensorEntity):
         try:
             health_data = self.dog_data.get("health", {})
             weight_trend = health_data.get("weight_trend", [])
-            
+
             if len(weight_trend) < 2:
                 return "insufficient_data"
-            
+
             # Analyze last 5 weight measurements
             recent_weights = [entry["weight"] for entry in weight_trend[-5:]]
             if len(recent_weights) >= 2:
@@ -1284,24 +1259,23 @@ class WeightTrendSensor(PawControlSensorEntity, SensorEntity):
                     return "decreasing"
                 else:
                     return "stable"
-                    
+
             return "insufficient_data"
         except Exception as err:
             _LOGGER.debug("Error calculating weight trend for %s: %s", self.dog_id, err)
             return "insufficient_data"
 
+
 # ==============================================================================
 # ACTIVITY SENSORS
 # ==============================================================================
+
 
 class ActivityLevelSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current activity level assessment."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the activity level sensor."""
         super().__init__(
@@ -1330,10 +1304,7 @@ class CaloriesBurnedTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for estimated calories burned today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the calories burned today sensor."""
         super().__init__(
@@ -1364,10 +1335,7 @@ class PlayTimeTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total play time today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the play time today sensor."""
         super().__init__(
@@ -1398,10 +1366,7 @@ class LastPlayTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last play session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last play time sensor."""
         super().__init__(
@@ -1424,18 +1389,17 @@ class LastPlayTimeSensor(PawControlSensorEntity, SensorEntity):
             _LOGGER.debug("Error getting last play time for %s: %s", self.dog_id, err)
             return None
 
+
 # ==============================================================================
 # LOCATION SENSORS (GPS MODULE)
 # ==============================================================================
+
 
 class DistanceFromHomeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current distance from home location."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the distance from home sensor."""
         super().__init__(
@@ -1459,7 +1423,9 @@ class DistanceFromHomeSensor(PawControlSensorEntity, SensorEntity):
             distance = location_data.get("distance_from_home", 0)
             return distance if distance >= 0 else None
         except Exception as err:
-            _LOGGER.debug("Error getting distance from home for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting distance from home for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -1467,10 +1433,7 @@ class CurrentLocationSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current location description."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the current location sensor."""
         super().__init__(
@@ -1499,10 +1462,7 @@ class GeofenceEntersTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of geofence entries today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the geofence enters today sensor."""
         super().__init__(
@@ -1532,10 +1492,7 @@ class GeofenceLeavesTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of geofence exits today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the geofence leaves today sensor."""
         super().__init__(
@@ -1565,10 +1522,7 @@ class TimeInsideTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total time inside geofence today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the time inside today sensor."""
         super().__init__(
@@ -1600,10 +1554,7 @@ class LastGPSUpdateSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last GPS update."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last GPS update sensor."""
         super().__init__(
@@ -1632,10 +1583,7 @@ class GPSAccuracySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current GPS accuracy."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the GPS accuracy sensor."""
         super().__init__(
@@ -1663,18 +1611,17 @@ class GPSAccuracySensor(PawControlSensorEntity, SensorEntity):
             _LOGGER.debug("Error getting GPS accuracy for %s: %s", self.dog_id, err)
             return None
 
+
 # ==============================================================================
 # STATISTICS SENSORS
 # ==============================================================================
+
 
 class PoopCountTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of bathroom breaks today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the poop count today sensor."""
         super().__init__(
@@ -1703,10 +1650,7 @@ class LastPoopTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last bathroom break."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last poop time sensor."""
         super().__init__(
@@ -1729,18 +1673,17 @@ class LastPoopTimeSensor(PawControlSensorEntity, SensorEntity):
             _LOGGER.debug("Error getting last poop time for %s: %s", self.dog_id, err)
             return None
 
+
 # ==============================================================================
 # GROOMING SENSORS
 # ==============================================================================
+
 
 class LastGroomingTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last grooming session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last grooming time sensor."""
         super().__init__(
@@ -1760,7 +1703,9 @@ class LastGroomingTimeSensor(PawControlSensorEntity, SensorEntity):
             grooming_data = self.dog_data.get("grooming", {})
             return grooming_data.get("last_grooming")
         except Exception as err:
-            _LOGGER.debug("Error getting last grooming time for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last grooming time for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -1768,10 +1713,7 @@ class LastGroomingTypeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for type of last grooming session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last grooming type sensor."""
         super().__init__(
@@ -1792,7 +1734,9 @@ class LastGroomingTypeSensor(PawControlSensorEntity, SensorEntity):
             grooming_data = self.dog_data.get("grooming", {})
             return grooming_data.get("grooming_type")
         except Exception as err:
-            _LOGGER.debug("Error getting last grooming type for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last grooming type for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -1800,10 +1744,7 @@ class DaysSinceGroomingSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for days since last grooming session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the days since grooming sensor."""
         super().__init__(
@@ -1824,7 +1765,7 @@ class DaysSinceGroomingSensor(PawControlSensorEntity, SensorEntity):
         try:
             grooming_data = self.dog_data.get("grooming", {})
             last_grooming = grooming_data.get("last_grooming")
-            
+
             if last_grooming:
                 last_grooming_time = dt_util.parse_datetime(last_grooming)
                 if last_grooming_time:
@@ -1832,21 +1773,22 @@ class DaysSinceGroomingSensor(PawControlSensorEntity, SensorEntity):
                     return max(0, days_since)
             return None
         except Exception as err:
-            _LOGGER.debug("Error calculating days since grooming for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error calculating days since grooming for %s: %s", self.dog_id, err
+            )
             return None
+
 
 # ==============================================================================
 # TRAINING SENSORS
 # ==============================================================================
 
+
 class LastTrainingTimeSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for timestamp of last training session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last training time sensor."""
         super().__init__(
@@ -1866,7 +1808,9 @@ class LastTrainingTimeSensor(PawControlSensorEntity, SensorEntity):
             training_data = self.dog_data.get("training", {})
             return training_data.get("last_training")
         except Exception as err:
-            _LOGGER.debug("Error getting last training time for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last training time for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -1874,10 +1818,7 @@ class LastTrainingTopicSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for topic of last training session."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the last training topic sensor."""
         super().__init__(
@@ -1896,7 +1837,9 @@ class LastTrainingTopicSensor(PawControlSensorEntity, SensorEntity):
             training_data = self.dog_data.get("training", {})
             return training_data.get("last_topic")
         except Exception as err:
-            _LOGGER.debug("Error getting last training topic for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting last training topic for %s: %s", self.dog_id, err
+            )
             return None
 
 
@@ -1904,10 +1847,7 @@ class TrainingSessionsTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for number of training sessions today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the training sessions today sensor."""
         super().__init__(
@@ -1928,7 +1868,9 @@ class TrainingSessionsTodaySensor(PawControlSensorEntity, SensorEntity):
             training_data = self.dog_data.get("training", {})
             return training_data.get("training_sessions_today", 0)
         except Exception as err:
-            _LOGGER.debug("Error getting training sessions count for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting training sessions count for %s: %s", self.dog_id, err
+            )
             return 0
 
 
@@ -1936,10 +1878,7 @@ class TrainingDurationTodaySensor(PawControlSensorEntity, SensorEntity):
     """Sensor for total training duration today."""
 
     def __init__(
-        self, 
-        coordinator: PawControlCoordinator, 
-        entry: ConfigEntry, 
-        dog_id: str
+        self, coordinator: PawControlCoordinator, entry: ConfigEntry, dog_id: str
     ) -> None:
         """Initialize the training duration today sensor."""
         super().__init__(
@@ -1962,5 +1901,7 @@ class TrainingDurationTodaySensor(PawControlSensorEntity, SensorEntity):
             training_data = self.dog_data.get("training", {})
             return training_data.get("training_duration_min", 0)
         except Exception as err:
-            _LOGGER.debug("Error getting training duration for %s: %s", self.dog_id, err)
+            _LOGGER.debug(
+                "Error getting training duration for %s: %s", self.dog_id, err
+            )
             return 0
