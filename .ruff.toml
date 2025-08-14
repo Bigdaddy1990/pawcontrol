@@ -2,7 +2,7 @@
 target-version = "py313"
 line-length = 88
 src = ["custom_components"]
-#unsafe-fixes = true
+unsafe-fixes = true
 
 [lint]
 # Base: pycodestyle (E), pyflakes (F)
