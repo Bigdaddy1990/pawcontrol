@@ -85,7 +85,7 @@ async def async_get_config_entry_diagnostics(
                 "unique_id": getattr(entry, "unique_id", None),
                 "disabled_by": getattr(entry, "disabled_by", None),
             },
-            "coordinator_data": {
+            "coordinator": {
                 "visitor_mode": getattr(coordinator, "visitor_mode", False),
                 "emergency_mode": getattr(coordinator, "emergency_mode", False),
                 "emergency_level": getattr(coordinator, "emergency_level", 0),

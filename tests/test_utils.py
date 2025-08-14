@@ -2,7 +2,13 @@
 
 import math
 
-from custom_components.pawcontrol.utils import validate_coordinates
+from custom_components.pawcontrol.utils import (
+    calculate_distance,
+    calculate_speed_kmh,
+    validate_coordinates,
+)
+
+EARTH_RADIUS_M = 6_371_000.0
 
 
 def test_validate_coordinates_valid():
@@ -26,3 +32,16 @@ def test_validate_coordinates_non_finite():
     """NaN or infinite values are rejected."""
     assert not validate_coordinates(math.nan, 0)
     assert not validate_coordinates(0, math.inf)
+
+
+def test_calculate_distance_equator():
+    """A one-degree shift at the equator has a known distance."""
+    distance = calculate_distance(0.0, 0.0, 0.0, 1.0)
+    expected = EARTH_RADIUS_M * math.pi / 180
+    assert math.isclose(distance, expected, rel_tol=1e-6)
+
+
+def test_calculate_speed_kmh():
+    """Speed calculation converts m/s to km/h."""
+    assert calculate_speed_kmh(1000.0, 3600.0) == 1.0
+    assert calculate_speed_kmh(1000.0, 0.0) == 0.0

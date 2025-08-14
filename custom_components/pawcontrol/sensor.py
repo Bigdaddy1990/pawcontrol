@@ -15,7 +15,7 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime
-from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, DOMAIN
+from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS
 from .coordinator import PawControlCoordinator
 from .entity import PawControlSensorEntity
 

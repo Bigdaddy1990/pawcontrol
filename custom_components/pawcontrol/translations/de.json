@@ -67,7 +67,7 @@
             "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
             "invalid_path": "Invalid export path",
             "invalid_time": "Invalid time format",
-            "invalid_auth": "Ung\u00fcltige Anmeldedaten",
+            "invalid_auth": "Ungültige Anmeldedaten",
             "invalid_geofence": "Invalid geofence settings"
         },
         "abort": {
@@ -159,7 +159,7 @@
     "services": {
         "gps_start_walk": {
             "name": "Gps Start Walk",
-            "description": "Startet einen Spaziergang f\u00fcr einen Hund.",
+            "description": "Startet einen Spaziergang für einen Hund.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -168,7 +168,7 @@
                 },
                 "label": {
                     "name": "Bezeichnung",
-                    "description": "Optionale Bezeichnung f\u00fcr den Spaziergang.",
+                    "description": "Optionale Bezeichnung für den Spaziergang.",
                     "example": "Abendrunde"
                 },
                 "config_entry_id": {
@@ -176,7 +176,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "walk_type": {
                     "name": "Walk Type",
@@ -186,7 +187,7 @@
         },
         "gps_end_walk": {
             "name": "Gps End Walk",
-            "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/\u00d8-Geschwindigkeit.",
+            "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -198,7 +199,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "notes": {
                     "name": "Notes",
@@ -206,10 +208,11 @@
                 },
                 "rating": {
                     "name": "Rating",
-                    "description": "Bewertung 1\u20135 (optional)"
+                    "description": "Bewertung 1–5 (optional)"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optionale numerische Kennung"
                 }
             }
         },
@@ -229,7 +232,7 @@
                 },
                 "longitude": {
                     "name": "Longitude",
-                    "description": "L\u00e4ngengrad in Dezimalgrad.",
+                    "description": "Längengrad in Dezimalgrad.",
                     "example": "13.405"
                 },
                 "accuracy_m": {
@@ -252,13 +255,16 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "accuracy": {
-                    "name": "Accuracy"
+                    "name": "Accuracy",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optionale numerische Kennung"
                 }
             }
         },
@@ -276,7 +282,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
@@ -294,7 +301,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
@@ -312,19 +320,24 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "format": {
-                    "name": "Format"
+                    "name": "Format",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "select": {
-                    "name": "Select"
+                    "name": "Select",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "options": {
-                    "name": "Options"
+                    "name": "Options",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "to_media": {
-                    "name": "To Media"
+                    "name": "To Media",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
@@ -342,13 +355,14 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
         "gps_reset_stats": {
             "name": "Gps Reset Stats",
-            "description": "Setzt diagnostische GPS-Z\u00e4hler zur\u00fcck.",
+            "description": "Setzt diagnostische GPS-Zähler zurück.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -360,7 +374,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
@@ -378,13 +393,14 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
         "route_history_purge": {
             "name": "Route History Purge",
-            "description": "L\u00f6scht Routen, die \u00e4lter sind als X Tage (wenn gesetzt).",
+            "description": "Löscht Routen, die älter sind als X Tage (wenn gesetzt).",
             "fields": {
                 "dog_id": {
                     "name": "Hund-ID",
@@ -396,13 +412,16 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "older_than_days": {
-                    "name": "Older Than Days"
+                    "name": "Older Than Days",
+                    "description": "Löscht Routen, die älter sind als diese Anzahl an Tagen"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "number": {
-                    "name": "Number"
+                    "name": "Number",
+                    "description": "Optionale numerische Kennung"
                 }
             }
         },
@@ -430,22 +449,28 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "end": {
-                    "name": "End"
+                    "name": "End",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "format": {
-                    "name": "Format"
+                    "name": "Format",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "select": {
-                    "name": "Select"
+                    "name": "Select",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "options": {
-                    "name": "Options"
+                    "name": "Options",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "start": {
-                    "name": "Start"
+                    "name": "Start",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
@@ -455,7 +480,7 @@
             "fields": {
                 "enabled": {
                     "name": "Aktiviert",
-                    "description": "True f\u00fcr aktivieren, false f\u00fcr deaktivieren.",
+                    "description": "True für aktivieren, false für deaktivieren.",
                     "example": "true"
                 },
                 "config_entry_id": {
@@ -463,19 +488,22 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "enable": {
-                    "name": "Enable"
+                    "name": "Enable",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             }
         },
         "purge_all_storage": {
             "name": "Purge All Storage",
-            "description": "L\u00f6scht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).",
+            "description": "Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).",
             "fields": {
                 "config_entry_id": {
                     "name": "Config Entry Id",
@@ -485,7 +513,7 @@
         },
         "notify_test": {
             "name": "Notify Test",
-            "description": "Sendet eine Test-Nachricht \u00fcber das konfigurierte Notify-Ziel (Fallback",
+            "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
             "fields": {
                 "title": {
                     "name": "Titel",
@@ -499,7 +527,7 @@
                 },
                 "target": {
                     "name": "Ziel",
-                    "description": "Optionales Notify-Ziel/Ger\u00e4t.",
+                    "description": "Optionales Notify-Ziel/Gerät.",
                     "example": "mobile_app_pixel"
                 },
                 "config_entry_id": {
@@ -666,10 +694,12 @@
                     "description": "If true, remove immediately; otherwise only create a Repairs issue."
                 },
                 "selector": {
-                    "name": "Selector"
+                    "name": "Selector",
+                    "description": "Keine Beschreibung verfügbar"
                 },
                 "boolean": {
-                    "name": "Boolean"
+                    "name": "Boolean",
+                    "description": "Keine Beschreibung verfügbar"
                 }
             },
             "description": "Remove devices that are no longer present in the backend account."
