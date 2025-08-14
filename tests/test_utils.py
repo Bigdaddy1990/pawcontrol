@@ -2,7 +2,6 @@ import math
 import types
 import pytest
 
-# Passe den Importpfad ggf. an deine Dateistruktur an:
 from custom_components.pawcontrol.const import EARTH_RADIUS_M
 from custom_components.pawcontrol.utils import (
     calculate_distance,
