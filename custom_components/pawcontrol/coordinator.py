@@ -290,7 +290,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             DEFAULT_DOG_WEIGHT_KG,
             MIN_DOG_WEIGHT_KG,
         )
-        
+
         walk_data = self._dog_data[dog_id]["walk"]
         activity_data = self._dog_data[dog_id]["activity"]
         dog_weight = self._dog_data[dog_id]["info"]["weight"]
@@ -458,26 +458,30 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         if not dog_id or dog_id not in self._dog_data:
             _LOGGER.error("Invalid or unknown dog_id: %s", dog_id)
             return
-        
+
         if inc_m <= 0:
             return  # No distance to add
-        
+
         try:
             walk = self._dog_data[dog_id]["walk"]
             current = float(walk.get("walk_distance_m", 0.0))
             new_distance = round(current + float(inc_m), 1)
-            
+
             # Only update if distance actually changed (avoid micro-updates)
             if new_distance > current:
                 walk["walk_distance_m"] = new_distance
-                
+
                 # Mark last action for stats
-                self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-                self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_progress"
-                
+                self._dog_data[dog_id]["statistics"]["last_action"] = (
+                    dt_util.now().isoformat()
+                )
+                self._dog_data[dog_id]["statistics"]["last_action_type"] = (
+                    "walk_progress"
+                )
+
                 # Import constant locally to avoid circular dependency
                 from .const import WALK_DISTANCE_UPDATE_THRESHOLD_M
-                
+
                 # Notify entities immediately only if significant change
                 if new_distance - current >= WALK_DISTANCE_UPDATE_THRESHOLD_M:
                     self.async_update_listeners()
@@ -506,7 +510,9 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             walk_data["walk_duration_min"] = 0
             walk_data["walk_distance_m"] = 0
 
-            self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action"] = (
+                dt_util.now().isoformat()
+            )
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_started"
 
             self.hass.bus.async_fire(
@@ -539,9 +545,13 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             walk_data["walk_in_progress"] = False
             walk_data["last_walk"] = dt_util.now().isoformat()
             walk_data["walks_today"] = walk_data.get("walks_today", 0) + 1
-            walk_data["total_distance_today"] = walk_data.get("total_distance_today", 0) + walk_data.get("walk_distance_m", 0)
+            walk_data["total_distance_today"] = walk_data.get(
+                "total_distance_today", 0
+            ) + walk_data.get("walk_distance_m", 0)
 
-            self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action"] = (
+                dt_util.now().isoformat()
+            )
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_ended"
 
             self.hass.bus.async_fire(

@@ -16,7 +16,6 @@ from .compat import DeviceInfo, EntityCategory
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
@@ -42,7 +41,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control switch entities."""
     coordinator: PawControlCoordinator = entry.runtime_data.coordinator
-    
+
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
@@ -136,9 +135,7 @@ async def async_setup_entry(
 
         # Feature switches
         if modules.get(MODULE_WALK):
-            entities.append(
-                AutoWalkDetectionSwitch(hass, coordinator, entry, dog_id)
-            )
+            entities.append(AutoWalkDetectionSwitch(hass, coordinator, entry, dog_id))
 
         if modules.get(MODULE_FEEDING):
             entities.append(
@@ -146,9 +143,7 @@ async def async_setup_entry(
             )
 
         if modules.get(MODULE_NOTIFICATIONS):
-            entities.append(
-                NotificationEnabledSwitch(hass, coordinator, entry, dog_id)
-            )
+            entities.append(NotificationEnabledSwitch(hass, coordinator, entry, dog_id))
 
     # Global switches
     entities.extend(
@@ -455,7 +450,9 @@ class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off emergency mode."""
         # Use coordinator method to properly reset
-        await self.coordinator.activate_emergency_mode("info", "Emergency mode deactivated")
+        await self.coordinator.activate_emergency_mode(
+            "info", "Emergency mode deactivated"
+        )
 
 
 class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):

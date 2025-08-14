@@ -19,7 +19,6 @@ from .compat import DeviceInfo, EntityCategory
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
@@ -42,7 +41,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control binary sensor entities."""
     coordinator: PawControlCoordinator = entry.runtime_data.coordinator
-    
+
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
