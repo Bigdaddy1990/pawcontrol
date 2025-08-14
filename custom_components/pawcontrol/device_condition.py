@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.config_validation import DEVICE_CONDITION_BASE_SCHEMA
 from homeassistant.helpers.typing import ConfigType
 
+from .compat import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from .const import DOMAIN
 
 CONDITION_TYPES = {"is_home", "in_geofence"}

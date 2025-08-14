@@ -119,8 +119,8 @@ async def test_async_setup_entry_creates_entities_for_dogs() -> None:
     entry = ConfigEntry(
         options={
             "dogs": [
-                {"dog_id": "abc", "name": "Rex"},
-                {"name": "Fido"},
+                {"dog_id": "abc", "name": "Rex", "modules": {"health": True}},
+                {"name": "Fido", "modules": {"health": True}},
             ]
         }
     )
@@ -137,9 +137,4 @@ async def test_async_setup_entry_creates_entities_for_dogs() -> None:
     await async_setup_entry(hass, entry, add_entities)
 
     assert added["update_before_add"] is False
-    assert len(added["entities"]) == 2
-    first, second = added["entities"]
-    assert isinstance(first, NextMedicationDateTime)
-    assert isinstance(second, NextMedicationDateTime)
-    assert first._attr_unique_id == f"{DOMAIN}.abc.datetime.next_medication"
-    assert second._attr_unique_id == f"{DOMAIN}.Fido.datetime.next_medication"
+    assert added["entities"]

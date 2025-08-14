@@ -82,6 +82,8 @@ def _ensure_const(name: str, value: StrEnum | str) -> Any:
 CONF_DEVICE_ID = _ensure_const("CONF_DEVICE_ID", "device_id")
 CONF_EVENT_DATA = _ensure_const("CONF_EVENT_DATA", "event_data")
 CONF_PLATFORM = _ensure_const("CONF_PLATFORM", "platform")
+CONF_DOMAIN = _ensure_const("CONF_DOMAIN", "domain")
+CONF_TYPE = _ensure_const("CONF_TYPE", "type")
 EVENT_STATE_REPORTED = _ensure_const("EVENT_STATE_REPORTED", "state_reported")
 
 
@@ -95,3 +97,29 @@ except Exception:  # pragma: no cover - tests without Home Assistant
 
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfLength = UnitOfLength  # type: ignore[attr-defined]
+
+
+# ``UnitOfMass`` was removed from ``homeassistant.const`` in HA 2025.5.
+try:  # pragma: no cover - Home Assistant provides the enum
+    UnitOfMass = ha_const.UnitOfMass  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - tests without Home Assistant
+
+    class UnitOfMass(StrEnum):
+        GRAMS = "g"
+        KILOGRAMS = "kg"
+
+    if ha_const is not None:
+        ha_const.UnitOfMass = UnitOfMass  # type: ignore[attr-defined]
+
+
+# ``UnitOfTime`` was removed alongside ``UnitOfMass``.
+try:  # pragma: no cover - Home Assistant provides the enum
+    UnitOfTime = ha_const.UnitOfTime  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - tests without Home Assistant
+
+    class UnitOfTime(StrEnum):
+        MINUTES = "min"
+        HOURS = "h"
+
+    if ha_const is not None:
+        ha_const.UnitOfTime = UnitOfTime  # type: ignore[attr-defined]

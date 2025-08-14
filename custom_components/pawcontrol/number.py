@@ -6,13 +6,12 @@ import logging
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfMass, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.storage import Store
 
-from .compat import EntityCategory
+from .compat import EntityCategory, UnitOfMass, UnitOfTime
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,

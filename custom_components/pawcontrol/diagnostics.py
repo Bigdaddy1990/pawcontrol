@@ -24,7 +24,6 @@ TO_REDACT = {
     "lon",
     "longitude",
     "gps",
-    "location",
     "email",
     "phone",
 }
@@ -87,11 +86,11 @@ async def async_get_config_entry_diagnostics(
                 "disabled_by": getattr(entry, "disabled_by", None),
             },
             "coordinator_data": {
-                "visitor_mode": coordinator.visitor_mode,
-                "emergency_mode": coordinator.emergency_mode,
-                "emergency_level": coordinator.emergency_level,
-                "dogs": dogs_data,
+                "visitor_mode": getattr(coordinator, "visitor_mode", False),
+                "emergency_mode": getattr(coordinator, "emergency_mode", False),
+                "emergency_level": getattr(coordinator, "emergency_level", 0),
             },
+            "dogs": dogs_data,
             "integration_manifest": hass.data[DOMAIN].get("manifest", {}),
         },
         TO_REDACT,

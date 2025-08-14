@@ -1121,6 +1121,30 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         )
 
 
+class GeofenceOptionsFlow(PawControlOptionsFlow):
+    """Options flow that focuses solely on geofence settings."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        return await super().async_step_geofence(user_input)
+
+    async def async_step_geofence(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        result = await super().async_step_geofence(user_input)
+        if result.get("type") == "create_entry":
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+        return result
+
+
+# Module-level options flow helper for compatibility with older Home Assistant
+async def async_get_options_flow(
+    config_entry: config_entries.ConfigEntry,
+) -> PawControlOptionsFlow:
+    """Return the options flow handler."""
+    return GeofenceOptionsFlow(config_entry)
+
 # Maintain backwards compatibility with tests and older Home Assistant
 # expectations which import ``ConfigFlow`` from the module directly.
 ConfigFlow = PawControlConfigFlow
