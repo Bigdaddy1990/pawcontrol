@@ -3,8 +3,8 @@
 Repository: https://github.com/home-assistant/brands
 
 ## Structure
-- `src/pawcontrol/icon.png|svg`
-- `src/pawcontrol/logo.png|svg`
+- `src/pawcontrol/icon.svg`
+- `src/pawcontrol/logo.svg`
 
 ## Checklist
 - [x] Vector SVGs provided (icon, logo)
