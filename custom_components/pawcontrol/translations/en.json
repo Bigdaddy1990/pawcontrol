@@ -67,12 +67,12 @@
       "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
       "invalid_path": "Invalid export path",
       "invalid_time": "Invalid time format",
-      "invalid_auth": "Ungültige Anmeldedaten",
+      "invalid_auth": "Invalid credentials",
       "invalid_geofence": "Invalid geofence settings"
     },
     "abort": {
       "single_instance_allowed": "Only one instance of Paw Control is allowed.",
-      "reauth_successful": "Anmeldedaten aktualisiert"
+      "reauth_successful": "Credentials updated"
     }
   },
   "options": {
