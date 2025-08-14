@@ -74,13 +74,25 @@ STORAGE_KEY = f"{DOMAIN}_select_settings"
 FOOD_TYPE_OPTIONS = [FOOD_DRY, FOOD_WET, FOOD_BARF, FOOD_TREAT]
 INTENSITY_OPTIONS = [INTENSITY_LOW, INTENSITY_MEDIUM, INTENSITY_HIGH]
 GROOMING_TYPE_OPTIONS = [
-    GROOMING_BRUSH, GROOMING_BATH, GROOMING_TRIM, GROOMING_NAILS,
-    GROOMING_EARS, GROOMING_TEETH, GROOMING_EYES
+    GROOMING_BRUSH,
+    GROOMING_BATH,
+    GROOMING_TRIM,
+    GROOMING_NAILS,
+    GROOMING_EARS,
+    GROOMING_TEETH,
+    GROOMING_EYES,
 ]
 TRAINING_TOPIC_OPTIONS = [
-    "Basic Commands", "Leash Training", "Tricks", "Agility", 
-    "Socialization", "House Training", "Behavior Correction",
-    "Recall Training", "Crate Training", "Impulse Control"
+    "Basic Commands",
+    "Leash Training",
+    "Tricks",
+    "Agility",
+    "Socialization",
+    "House Training",
+    "Behavior Correction",
+    "Recall Training",
+    "Crate Training",
+    "Impulse Control",
 ]
 MEAL_SCHEDULE_OPTIONS = ["1 meal", "2 meals", "3 meals", "Free feeding"]
 EXPORT_FORMAT_OPTIONS = ["csv", "json", "pdf", "xlsx"]
@@ -107,15 +119,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control select entities from config entry.
-    
+
     Creates select entities based on configured dogs and enabled modules.
     Only creates entities for modules that are enabled for each dog.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
         async_add_entities: Callback to add entities
-        
+
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
@@ -150,38 +162,56 @@ async def async_setup_entry(
             # Get enabled modules for this dog
             dog_modules = dog.get(CONF_DOG_MODULES, {})
             dog_stored = stored_values.get(dog_id, {})
-            
+
             _LOGGER.debug(
                 "Creating select entities for dog %s (%s) with modules: %s",
                 dog_name,
                 dog_id,
-                list(dog_modules.keys())
+                list(dog_modules.keys()),
             )
 
             # Core select entities (always available)
-            entities.extend(_create_core_selects(coordinator, entry, dog_id, store, dog_stored))
+            entities.extend(
+                _create_core_selects(coordinator, entry, dog_id, store, dog_stored)
+            )
 
             # Feeding module selects
             if dog_modules.get(MODULE_FEEDING, True):
-                entities.extend(_create_feeding_selects(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_feeding_selects(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Grooming module selects
             if dog_modules.get(MODULE_GROOMING, False):
-                entities.extend(_create_grooming_selects(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_grooming_selects(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Training module selects
             if dog_modules.get(MODULE_TRAINING, False):
-                entities.extend(_create_training_selects(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_training_selects(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
             # Health module selects
             if dog_modules.get(MODULE_HEALTH, True):
-                entities.extend(_create_health_selects(coordinator, entry, dog_id, store, dog_stored))
+                entities.extend(
+                    _create_health_selects(
+                        coordinator, entry, dog_id, store, dog_stored
+                    )
+                )
 
         # System-wide select entities
         entities.extend(_create_system_selects(hass, coordinator, entry, store))
 
         _LOGGER.info("Created %d select entities", len(entities))
-        
+
         if entities:
             async_add_entities(entities, update_before_add=True)
 
@@ -192,10 +222,10 @@ async def async_setup_entry(
 
 async def _load_stored_values(store: Store) -> dict[str, dict[str, str]]:
     """Load stored values from persistent storage.
-    
+
     Args:
         store: Storage instance
-        
+
     Returns:
         Dictionary of stored values organized by dog_id and entity_key
     """
@@ -204,15 +234,15 @@ async def _load_stored_values(store: Store) -> dict[str, dict[str, str]]:
         if stored_values is None:
             _LOGGER.debug("No stored values found, using defaults")
             return {}
-        
+
         # Validate stored values structure
         if not isinstance(stored_values, dict):
             _LOGGER.warning("Invalid stored values structure, resetting")
             return {}
-            
+
         _LOGGER.debug("Loaded stored values for %d dogs", len(stored_values))
         return stored_values
-        
+
     except Exception as err:
         _LOGGER.error("Failed to load stored values: %s", err)
         return {}
@@ -226,14 +256,14 @@ def _create_core_selects(
     dog_stored: dict[str, str],
 ) -> list[PawControlSelectEntity]:
     """Create core select entities available for all dogs.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of core select entities
     """
@@ -251,14 +281,14 @@ def _create_feeding_selects(
     dog_stored: dict[str, str],
 ) -> list[PawControlSelectEntity]:
     """Create feeding-related select entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of feeding select entities
     """
@@ -277,14 +307,14 @@ def _create_grooming_selects(
     dog_stored: dict[str, str],
 ) -> list[PawControlSelectEntity]:
     """Create grooming-related select entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of grooming select entities
     """
@@ -302,14 +332,14 @@ def _create_training_selects(
     dog_stored: dict[str, str],
 ) -> list[PawControlSelectEntity]:
     """Create training-related select entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of training select entities
     """
@@ -328,14 +358,14 @@ def _create_health_selects(
     dog_stored: dict[str, str],
 ) -> list[PawControlSelectEntity]:
     """Create health-related select entities.
-    
+
     Args:
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         store: Storage instance
         dog_stored: Stored values for this dog
-        
+
     Returns:
         List of health select entities
     """
@@ -351,13 +381,13 @@ def _create_system_selects(
     store: Store,
 ) -> list[SelectEntity]:
     """Create system-wide select entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         store: Storage instance
-        
+
     Returns:
         List of system select entities
     """
@@ -366,13 +396,15 @@ def _create_system_selects(
         NotificationPrioritySelect(hass, coordinator, entry, store),
     ]
 
+
 # ==============================================================================
 # BASE SELECT ENTITY WITH STORAGE
 # ==============================================================================
 
+
 class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
     """Base class for select entities with persistent storage.
-    
+
     Provides common functionality for select entities that need to persist
     their values across Home Assistant restarts. Values are stored per-dog
     and per-entity using Home Assistant's storage system.
@@ -394,7 +426,7 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
         default_option: str | None = None,
     ) -> None:
         """Initialize the select entity with storage.
-        
+
         Args:
             coordinator: Data coordinator
             entry: Config entry
@@ -417,27 +449,29 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
             entity_category=EntityCategory.CONFIG,
             icon=icon,
         )
-        
+
         self._store = store
         self._stored_values = stored_values
-        self._default_option = default_option or DEFAULT_VALUES.get(entity_key, options[0] if options else None)
-        
+        self._default_option = default_option or DEFAULT_VALUES.get(
+            entity_key, options[0] if options else None
+        )
+
         # Load current option from storage or use default
         stored_option = stored_values.get(entity_key, self._default_option)
         self._current_option = self._validate_option(stored_option)
 
     def _validate_option(self, option: str | None) -> str | None:
         """Validate that option is in available options list.
-        
+
         Args:
             option: Option to validate
-            
+
         Returns:
             Validated option or default if invalid
         """
         if option is None:
             return self._default_option
-            
+
         if option not in self._attr_options:
             _LOGGER.warning(
                 "Invalid option %s for %s, using default %s",
@@ -446,7 +480,7 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
                 self._default_option,
             )
             return self._default_option
-            
+
         return option
 
     @property
@@ -456,14 +490,14 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option and persist it to storage.
-        
+
         Args:
             option: New option to select
         """
         try:
             # Validate the new option
             validated_option = self._validate_option(option)
-            
+
             if validated_option != option:
                 _LOGGER.warning(
                     "Option %s for %s is invalid, using %s",
@@ -471,12 +505,12 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
                     self.entity_id,
                     validated_option,
                 )
-            
+
             self._current_option = validated_option
 
             # Update storage
             await self._save_option_to_storage(validated_option)
-            
+
             # Apply option to coordinator if applicable
             await self._apply_option_to_coordinator(validated_option)
 
@@ -486,7 +520,7 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
                 self.dog_name,
                 validated_option,
             )
-            
+
             # Update entity state
             self.async_write_ha_state()
 
@@ -500,7 +534,7 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
 
     async def _save_option_to_storage(self, option: str) -> None:
         """Save option to persistent storage.
-        
+
         Args:
             option: Option to save
         """
@@ -515,16 +549,16 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
 
             # Save to storage
             await self._store.async_save(all_stored)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to save option to storage: %s", err)
 
     async def _apply_option_to_coordinator(self, option: str) -> None:
         """Apply option to coordinator data if applicable.
-        
+
         This method can be overridden by subclasses to immediately
         apply the new option to coordinator data for instant effects.
-        
+
         Args:
             option: Option to apply
         """
@@ -537,23 +571,29 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
         """Return additional state attributes."""
         try:
             attributes = super().extra_state_attributes or {}
-            attributes.update({
-                "default_option": self._default_option,
-                "is_default": self._current_option == self._default_option,
-                "available_options": len(self._attr_options),
-            })
+            attributes.update(
+                {
+                    "default_option": self._default_option,
+                    "is_default": self._current_option == self._default_option,
+                    "available_options": len(self._attr_options),
+                }
+            )
             return attributes
         except Exception as err:
-            _LOGGER.debug("Error getting extra attributes for %s: %s", self.entity_id, err)
+            _LOGGER.debug(
+                "Error getting extra attributes for %s: %s", self.entity_id, err
+            )
             return super().extra_state_attributes
+
 
 # ==============================================================================
 # CORE SELECT ENTITIES
 # ==============================================================================
 
+
 class ActivityLevelSelect(PawControlSelectWithStorage):
     """Select entity for configuring dog's activity level.
-    
+
     Determines the overall activity expectations and calculations
     for calorie burning, exercise needs, and training intensity.
     """
@@ -597,13 +637,21 @@ class ActivityLevelSelect(PawControlSelectWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             activity_data = self.dog_data.get("activity", {})
-            
+
             # Add translated display value
-            attributes.update({
-                "display_value": INTENSITY_TYPES.get(self._current_option, self._current_option),
-                "calories_burned_today": activity_data.get("calories_burned_today", 0),
-                "play_duration_today": activity_data.get("play_duration_today_min", 0),
-            })
+            attributes.update(
+                {
+                    "display_value": INTENSITY_TYPES.get(
+                        self._current_option, self._current_option
+                    ),
+                    "calories_burned_today": activity_data.get(
+                        "calories_burned_today", 0
+                    ),
+                    "play_duration_today": activity_data.get(
+                        "play_duration_today_min", 0
+                    ),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting activity attributes: %s", err)
@@ -612,7 +660,7 @@ class ActivityLevelSelect(PawControlSelectWithStorage):
 
 class DogSizeSelect(PawControlSelectWithStorage):
     """Select entity for configuring dog's size category.
-    
+
     Used for calculating proper portion sizes, exercise needs,
     and health parameter ranges.
     """
@@ -650,13 +698,15 @@ class DogSizeSelect(PawControlSelectWithStorage):
         except Exception as err:
             _LOGGER.debug("Failed to apply dog size to coordinator: %s", err)
 
+
 # ==============================================================================
 # FEEDING SELECT ENTITIES
 # ==============================================================================
 
+
 class DefaultFoodTypeSelect(PawControlSelectWithStorage):
     """Select entity for configuring default food type.
-    
+
     Sets the default food type used in feeding buttons and calculations.
     Choices include dry, wet, BARF, and treats.
     """
@@ -700,13 +750,19 @@ class DefaultFoodTypeSelect(PawControlSelectWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             feeding_data = self.dog_data.get("feeding", {})
-            
+
             # Add translated display value
-            attributes.update({
-                "display_value": FEEDING_TYPES.get(self._current_option, self._current_option),
-                "last_feeding": feeding_data.get("last_feeding"),
-                "feedings_today": sum(feeding_data.get("feedings_today", {}).values()),
-            })
+            attributes.update(
+                {
+                    "display_value": FEEDING_TYPES.get(
+                        self._current_option, self._current_option
+                    ),
+                    "last_feeding": feeding_data.get("last_feeding"),
+                    "feedings_today": sum(
+                        feeding_data.get("feedings_today", {}).values()
+                    ),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting food type attributes: %s", err)
@@ -715,7 +771,7 @@ class DefaultFoodTypeSelect(PawControlSelectWithStorage):
 
 class MealScheduleSelect(PawControlSelectWithStorage):
     """Select entity for configuring meal schedule.
-    
+
     Determines how many meals per day and feeding expectations.
     """
 
@@ -778,13 +834,15 @@ class FeedingLocationSelect(PawControlSelectWithStorage):
             default_option="Kitchen",
         )
 
+
 # ==============================================================================
 # GROOMING SELECT ENTITIES
 # ==============================================================================
 
+
 class DefaultGroomingTypeSelect(PawControlSelectWithStorage):
     """Select entity for configuring default grooming type.
-    
+
     Sets the default grooming activity used in buttons and reminders.
     """
 
@@ -827,13 +885,17 @@ class DefaultGroomingTypeSelect(PawControlSelectWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             grooming_data = self.dog_data.get("grooming", {})
-            
+
             # Add translated display value
-            attributes.update({
-                "display_value": GROOMING_TYPES.get(self._current_option, self._current_option),
-                "last_grooming": grooming_data.get("last_grooming"),
-                "needs_grooming": grooming_data.get("needs_grooming", False),
-            })
+            attributes.update(
+                {
+                    "display_value": GROOMING_TYPES.get(
+                        self._current_option, self._current_option
+                    ),
+                    "last_grooming": grooming_data.get("last_grooming"),
+                    "needs_grooming": grooming_data.get("needs_grooming", False),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting grooming type attributes: %s", err)
@@ -860,18 +922,26 @@ class GroomingLocationSelect(PawControlSelectWithStorage):
             stored_values=stored_values,
             entity_key="grooming_location",
             translation_key="grooming_location",
-            options=["Bathroom", "Outdoor", "Professional Groomer", "Utility Room", "Other"],
+            options=[
+                "Bathroom",
+                "Outdoor",
+                "Professional Groomer",
+                "Utility Room",
+                "Other",
+            ],
             icon=ICONS.get("grooming", "mdi:map-marker"),
             default_option="Bathroom",
         )
+
 
 # ==============================================================================
 # TRAINING SELECT ENTITIES
 # ==============================================================================
 
+
 class TrainingTopicSelect(PawControlSelectWithStorage):
     """Select entity for configuring training topic focus.
-    
+
     Sets the current training focus area for sessions and progress tracking.
     """
 
@@ -914,12 +984,14 @@ class TrainingTopicSelect(PawControlSelectWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             training_data = self.dog_data.get("training", {})
-            
-            attributes.update({
-                "last_training": training_data.get("last_training"),
-                "sessions_today": training_data.get("training_sessions_today", 0),
-                "last_topic": training_data.get("last_topic"),
-            })
+
+            attributes.update(
+                {
+                    "last_training": training_data.get("last_training"),
+                    "sessions_today": training_data.get("training_sessions_today", 0),
+                    "last_topic": training_data.get("last_topic"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting training topic attributes: %s", err)
@@ -967,11 +1039,15 @@ class TrainingIntensitySelect(PawControlSelectWithStorage):
         """Return intensity-related information."""
         try:
             attributes = super().extra_state_attributes or {}
-            
+
             # Add translated display value
-            attributes.update({
-                "display_value": INTENSITY_TYPES.get(self._current_option, self._current_option),
-            })
+            attributes.update(
+                {
+                    "display_value": INTENSITY_TYPES.get(
+                        self._current_option, self._current_option
+                    ),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting training intensity attributes: %s", err)
@@ -1003,9 +1079,11 @@ class TrainingLocationSelect(PawControlSelectWithStorage):
             default_option="Indoor",
         )
 
+
 # ==============================================================================
 # HEALTH SELECT ENTITIES
 # ==============================================================================
+
 
 class VeterinarianSelect(PawControlSelectWithStorage):
     """Select entity for configuring preferred veterinarian."""
@@ -1038,23 +1116,27 @@ class VeterinarianSelect(PawControlSelectWithStorage):
         try:
             attributes = super().extra_state_attributes or {}
             health_data = self.dog_data.get("health", {})
-            
-            attributes.update({
-                "last_vet_visit": health_data.get("last_vet_visit"),
-                "next_appointment": health_data.get("next_vet_appointment"),
-            })
+
+            attributes.update(
+                {
+                    "last_vet_visit": health_data.get("last_vet_visit"),
+                    "next_appointment": health_data.get("next_vet_appointment"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting veterinarian attributes: %s", err)
             return super().extra_state_attributes
 
+
 # ==============================================================================
 # SYSTEM SELECT ENTITIES
 # ==============================================================================
 
+
 class ExportFormatSelect(SelectEntity):
     """Select entity for configuring data export format.
-    
+
     System-wide setting that determines the format used when exporting
     dog data and reports.
     """
@@ -1099,7 +1181,7 @@ class ExportFormatSelect(SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option.
-        
+
         Args:
             option: New export format to select
         """
@@ -1109,11 +1191,11 @@ class ExportFormatSelect(SelectEntity):
                 return
 
             _LOGGER.info("Export format set to %s", option)
-            
+
             # In a production environment, this would update the config entry
             # For now, we just log the change
             self.async_write_ha_state()
-            
+
         except Exception as err:
             _LOGGER.error("Failed to set export format: %s", err)
 
@@ -1169,11 +1251,13 @@ class NotificationPrioritySelect(SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the current selected option."""
-        return self.entry.options.get("notification_priority", DEFAULT_VALUES["notification_priority"])
+        return self.entry.options.get(
+            "notification_priority", DEFAULT_VALUES["notification_priority"]
+        )
 
     async def async_select_option(self, option: str) -> None:
         """Update the selected option.
-        
+
         Args:
             option: New notification priority to select
         """
@@ -1183,12 +1267,12 @@ class NotificationPrioritySelect(SelectEntity):
                 return
 
             _LOGGER.info("Notification priority set to %s", option)
-            
+
             # Apply to coordinator for immediate effect
             self.coordinator.notification_priority = option
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
             _LOGGER.error("Failed to set notification priority: %s", err)
 

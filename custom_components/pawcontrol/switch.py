@@ -62,7 +62,7 @@ MODULE_DEFINITIONS = {
         "description": "Walk tracking and GPS functionality",
     },
     MODULE_FEEDING: {
-        "name": "Feeding Module", 
+        "name": "Feeding Module",
         "icon": ICONS.get("feeding", "mdi:food"),
         "description": "Meal tracking and nutrition management",
     },
@@ -100,15 +100,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control switch entities from config entry.
-    
+
     Creates switch entities based on configured dogs and enabled modules.
     Includes both per-dog feature switches and system-wide configuration switches.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
         async_add_entities: Callback to add entities
-        
+
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
@@ -138,35 +138,41 @@ async def async_setup_entry(
 
             # Get enabled modules for this dog
             dog_modules = dog.get(CONF_DOG_MODULES, {})
-            
+
             _LOGGER.debug(
                 "Creating switch entities for dog %s (%s) with modules: %s",
                 dog_name,
                 dog_id,
-                list(dog_modules.keys())
+                list(dog_modules.keys()),
             )
 
             # Module enable/disable switches
-            entities.extend(_create_module_switches(hass, coordinator, entry, dog_id, dog_modules))
+            entities.extend(
+                _create_module_switches(hass, coordinator, entry, dog_id, dog_modules)
+            )
 
             # Feature-specific switches based on enabled modules
             if dog_modules.get(MODULE_WALK, True):
                 entities.extend(_create_walk_switches(hass, coordinator, entry, dog_id))
 
             if dog_modules.get(MODULE_FEEDING, True):
-                entities.extend(_create_feeding_switches(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_feeding_switches(hass, coordinator, entry, dog_id)
+                )
 
             if dog_modules.get(MODULE_GPS, False):
                 entities.extend(_create_gps_switches(hass, coordinator, entry, dog_id))
 
             if dog_modules.get(MODULE_NOTIFICATIONS, True):
-                entities.extend(_create_notification_switches(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_notification_switches(hass, coordinator, entry, dog_id)
+                )
 
         # System-wide switches
         entities.extend(_create_system_switches(hass, coordinator, entry))
 
         _LOGGER.info("Created %d switch entities", len(entities))
-        
+
         if entities:
             async_add_entities(entities, update_before_add=True)
 
@@ -183,19 +189,19 @@ def _create_module_switches(
     dog_modules: dict[str, bool],
 ) -> list[PawControlSwitchEntity]:
     """Create module enable/disable switches for a dog.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
         dog_modules: Current module configuration
-        
+
     Returns:
         List of module switch entities
     """
     switches = []
-    
+
     for module_id, module_info in MODULE_DEFINITIONS.items():
         enabled = dog_modules.get(module_id, False)
         switch = ModuleSwitch(
@@ -210,7 +216,7 @@ def _create_module_switches(
             enabled=enabled,
         )
         switches.append(switch)
-    
+
     return switches
 
 
@@ -221,13 +227,13 @@ def _create_walk_switches(
     dog_id: str,
 ) -> list[PawControlSwitchEntity]:
     """Create walk-related switches for a dog.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of walk switch entities
     """
@@ -244,13 +250,13 @@ def _create_feeding_switches(
     dog_id: str,
 ) -> list[PawControlSwitchEntity]:
     """Create feeding-related switches for a dog.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of feeding switch entities
     """
@@ -267,13 +273,13 @@ def _create_gps_switches(
     dog_id: str,
 ) -> list[PawControlSwitchEntity]:
     """Create GPS-related switches for a dog.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of GPS switch entities
     """
@@ -290,13 +296,13 @@ def _create_notification_switches(
     dog_id: str,
 ) -> list[PawControlSwitchEntity]:
     """Create notification-related switches for a dog.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of notification switch entities
     """
@@ -311,12 +317,12 @@ def _create_system_switches(
     entry: ConfigEntry,
 ) -> list[SwitchEntity]:
     """Create system-wide switches.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
-        
+
     Returns:
         List of system switch entities
     """
@@ -328,13 +334,15 @@ def _create_system_switches(
         AutoMaintenanceSwitch(hass, coordinator, entry),
     ]
 
+
 # ==============================================================================
 # MODULE SWITCH ENTITIES
 # ==============================================================================
 
+
 class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch to enable or disable a specific module for a dog.
-    
+
     Allows users to control which features are active for each dog,
     providing granular control over functionality and UI elements.
     """
@@ -352,7 +360,7 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
         enabled: bool = False,
     ) -> None:
         """Initialize the module switch.
-        
+
         Args:
             hass: Home Assistant instance
             coordinator: Data coordinator
@@ -389,12 +397,14 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
         """Return additional state attributes."""
         try:
             attributes = super().extra_state_attributes or {}
-            attributes.update({
-                "module_id": self._module_id,
-                "module_name": self._module_name,
-                "description": self._description,
-                "affects_entities": self._get_affected_entities_count(),
-            })
+            attributes.update(
+                {
+                    "module_id": self._module_id,
+                    "module_name": self._module_name,
+                    "description": self._description,
+                    "affects_entities": self._get_affected_entities_count(),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting module switch attributes: %s", err)
@@ -420,7 +430,7 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable the module.
-        
+
         Args:
             **kwargs: Additional arguments
         """
@@ -431,12 +441,12 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
                 self.dog_name,
             )
             self._is_on = True
-            
+
             # In a production environment, this would update the config entry
             # and trigger entity creation/removal as needed
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
             _LOGGER.error(
                 "Failed to enable %s module for %s: %s",
@@ -447,7 +457,7 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable the module.
-        
+
         Args:
             **kwargs: Additional arguments
         """
@@ -458,12 +468,12 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
                 self.dog_name,
             )
             self._is_on = False
-            
+
             # In a production environment, this would update the config entry
             # and trigger entity removal as needed
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
             _LOGGER.error(
                 "Failed to disable %s module for %s: %s",
@@ -472,13 +482,15 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
                 err,
             )
 
+
 # ==============================================================================
 # WALK FEATURE SWITCHES
 # ==============================================================================
 
+
 class AutoWalkDetectionSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch for automatic walk detection.
-    
+
     When enabled, the system will attempt to automatically detect
     when walks start and end based on GPS data and door sensors.
     """
@@ -513,36 +525,40 @@ class AutoWalkDetectionSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             _LOGGER.info("Enabling auto walk detection for %s", self.dog_name)
             self._is_on = True
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 walk_data = dog_data.setdefault("walk", {})
                 walk_data["auto_detection_enabled"] = True
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to enable auto walk detection for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable auto walk detection for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable auto walk detection."""
         try:
             _LOGGER.info("Disabling auto walk detection for %s", self.dog_name)
             self._is_on = False
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 walk_data = dog_data.setdefault("walk", {})
                 walk_data["auto_detection_enabled"] = False
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to disable auto walk detection for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable auto walk detection for %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -550,12 +566,16 @@ class AutoWalkDetectionSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             attributes = super().extra_state_attributes or {}
             walk_data = self.dog_data.get("walk", {})
-            
-            attributes.update({
-                "walk_in_progress": walk_data.get("walk_in_progress", False),
-                "last_walk": walk_data.get("last_walk"),
-                "detection_method": "GPS + Door Sensor" if self._is_on else "Manual Only",
-            })
+
+            attributes.update(
+                {
+                    "walk_in_progress": walk_data.get("walk_in_progress", False),
+                    "last_walk": walk_data.get("last_walk"),
+                    "detection_method": "GPS + Door Sensor"
+                    if self._is_on
+                    else "Manual Only",
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting auto walk detection attributes: %s", err)
@@ -597,7 +617,9 @@ class WalkReminderSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = True
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to enable walk reminders for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable walk reminders for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable walk reminders."""
@@ -606,15 +628,19 @@ class WalkReminderSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = False
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to disable walk reminders for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable walk reminders for %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # FEEDING FEATURE SWITCHES
 # ==============================================================================
 
+
 class OverfeedingProtectionSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch for overfeeding protection.
-    
+
     When enabled, prevents feeding actions that would exceed
     recommended daily portions based on dog size and activity level.
     """
@@ -649,36 +675,42 @@ class OverfeedingProtectionSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             _LOGGER.info("Enabling overfeeding protection for %s", self.dog_name)
             self._is_on = True
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 feeding_data = dog_data.setdefault("feeding", {})
                 feeding_data["overfeeding_protection"] = True
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to enable overfeeding protection for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable overfeeding protection for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable overfeeding protection."""
         try:
             _LOGGER.warning("Disabling overfeeding protection for %s", self.dog_name)
             self._is_on = False
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 feeding_data = dog_data.setdefault("feeding", {})
                 feeding_data["overfeeding_protection"] = False
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to disable overfeeding protection for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable overfeeding protection for %s: %s",
+                self.dog_name,
+                err,
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -686,13 +718,15 @@ class OverfeedingProtectionSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             attributes = super().extra_state_attributes or {}
             feeding_data = self.dog_data.get("feeding", {})
-            
+
             total_portions = feeding_data.get("total_portions_today", 0)
-            attributes.update({
-                "total_portions_today": total_portions,
-                "protection_active": self._is_on,
-                "last_feeding": feeding_data.get("last_feeding"),
-            })
+            attributes.update(
+                {
+                    "total_portions_today": total_portions,
+                    "protection_active": self._is_on,
+                    "last_feeding": feeding_data.get("last_feeding"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting overfeeding protection attributes: %s", err)
@@ -734,7 +768,9 @@ class FeedingReminderSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = True
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to enable feeding reminders for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable feeding reminders for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable feeding reminders."""
@@ -743,11 +779,15 @@ class FeedingReminderSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = False
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to disable feeding reminders for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable feeding reminders for %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # GPS FEATURE SWITCHES
 # ==============================================================================
+
 
 class GeofenceAlertsSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch for geofence alert notifications."""
@@ -782,36 +822,40 @@ class GeofenceAlertsSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             _LOGGER.info("Enabling geofence alerts for %s", self.dog_name)
             self._is_on = True
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 location_data = dog_data.setdefault("location", {})
                 location_data["geofence_alerts_enabled"] = True
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to enable geofence alerts for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable geofence alerts for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable geofence alerts."""
         try:
             _LOGGER.info("Disabling geofence alerts for %s", self.dog_name)
             self._is_on = False
-            
+
             # Apply to coordinator for immediate effect
             dog_data = self.coordinator.get_dog_data(self.dog_id)
             if dog_data:
                 location_data = dog_data.setdefault("location", {})
                 location_data["geofence_alerts_enabled"] = False
                 await self.coordinator.async_request_refresh()
-            
+
             self.async_write_ha_state()
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to disable geofence alerts for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable geofence alerts for %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -819,13 +863,15 @@ class GeofenceAlertsSwitch(PawControlSwitchEntity, SwitchEntity):
         try:
             attributes = super().extra_state_attributes or {}
             location_data = self.dog_data.get("location", {})
-            
-            attributes.update({
-                "is_home": location_data.get("is_home", True),
-                "distance_from_home": location_data.get("distance_from_home", 0),
-                "geofence_radius": location_data.get("radius_m", 50),
-                "alerts_enabled": self._is_on,
-            })
+
+            attributes.update(
+                {
+                    "is_home": location_data.get("is_home", True),
+                    "distance_from_home": location_data.get("distance_from_home", 0),
+                    "geofence_radius": location_data.get("radius_m", 50),
+                    "alerts_enabled": self._is_on,
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting geofence alerts attributes: %s", err)
@@ -867,7 +913,9 @@ class GPSTrackingSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = True
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to enable GPS tracking for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable GPS tracking for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable GPS tracking."""
@@ -876,15 +924,19 @@ class GPSTrackingSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = False
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to disable GPS tracking for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable GPS tracking for %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # NOTIFICATION SWITCHES
 # ==============================================================================
 
+
 class NotificationEnabledSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch to enable/disable all notifications for a dog.
-    
+
     Master switch that controls whether any notifications are sent
     for this specific dog's activities and reminders.
     """
@@ -921,7 +973,9 @@ class NotificationEnabledSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = True
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to enable notifications for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to enable notifications for %s: %s", self.dog_name, err
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable notifications for this dog."""
@@ -930,35 +984,43 @@ class NotificationEnabledSwitch(PawControlSwitchEntity, SwitchEntity):
             self._is_on = False
             self.async_write_ha_state()
         except Exception as err:
-            _LOGGER.error("Failed to disable notifications for %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to disable notifications for %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return notification configuration information."""
         try:
             attributes = super().extra_state_attributes or {}
-            attributes.update({
-                "notifications_enabled": self._is_on,
-                "affected_features": [
-                    "Walk reminders",
-                    "Feeding alerts", 
-                    "Health notifications",
-                    "Grooming reminders",
-                    "GPS alerts",
-                ] if self._is_on else [],
-            })
+            attributes.update(
+                {
+                    "notifications_enabled": self._is_on,
+                    "affected_features": [
+                        "Walk reminders",
+                        "Feeding alerts",
+                        "Health notifications",
+                        "Grooming reminders",
+                        "GPS alerts",
+                    ]
+                    if self._is_on
+                    else [],
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting notification switch attributes: %s", err)
             return super().extra_state_attributes
 
+
 # ==============================================================================
 # SYSTEM SWITCHES
 # ==============================================================================
 
+
 class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for visitor mode.
-    
+
     When enabled, reduces notifications and adjusts behavior patterns
     to account for visitors who might interact with the dogs.
     """
@@ -1040,9 +1102,11 @@ class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
                 "visitor_mode": self.is_on,
                 "affects": [
                     "Reduced notifications",
-                    "Adjusted feeding expectations", 
+                    "Adjusted feeding expectations",
                     "Modified walk detection",
-                ] if self.is_on else [],
+                ]
+                if self.is_on
+                else [],
             }
         except Exception as err:
             _LOGGER.debug("Error getting visitor mode attributes: %s", err)
@@ -1051,7 +1115,7 @@ class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
 
 class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for emergency mode.
-    
+
     When enabled, heightens alert sensitivity and enables priority
     notifications for urgent situations.
     """
@@ -1131,13 +1195,19 @@ class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
             attributes = {
                 "emergency_mode": self.is_on,
             }
-            
+
             if self.is_on:
-                attributes.update({
-                    "level": getattr(self.coordinator, "emergency_level", "unknown"),
-                    "activated_at": getattr(self.coordinator, "emergency_activated_at", None),
-                })
-                
+                attributes.update(
+                    {
+                        "level": getattr(
+                            self.coordinator, "emergency_level", "unknown"
+                        ),
+                        "activated_at": getattr(
+                            self.coordinator, "emergency_activated_at", None
+                        ),
+                    }
+                )
+
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting emergency mode attributes: %s", err)
@@ -1146,7 +1216,7 @@ class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
 
 class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for quiet hours mode.
-    
+
     When enabled, suppresses non-critical notifications during
     configured quiet hours periods.
     """
@@ -1218,7 +1288,9 @@ class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):
                     "Feeding reminders",
                     "Walk suggestions",
                     "Grooming alerts",
-                ] if self._is_on else [],
+                ]
+                if self._is_on
+                else [],
             }
         except Exception as err:
             _LOGGER.debug("Error getting quiet hours attributes: %s", err)
@@ -1296,7 +1368,9 @@ class DailyReportSwitch(CoordinatorEntity, SwitchEntity):
                     "Feeding summary",
                     "Health metrics",
                     "Activity levels",
-                ] if self._is_on else [],
+                ]
+                if self._is_on
+                else [],
             }
         except Exception as err:
             _LOGGER.debug("Error getting daily report attributes: %s", err)
@@ -1369,9 +1443,11 @@ class AutoMaintenanceSwitch(CoordinatorEntity, SwitchEntity):
                 "maintenance_tasks": [
                     "Daily counter reset",
                     "Data cleanup",
-                    "Cache optimization", 
+                    "Cache optimization",
                     "Storage management",
-                ] if self._is_on else [],
+                ]
+                if self._is_on
+                else [],
                 "schedule": "Daily at 00:00",
             }
         except Exception as err:

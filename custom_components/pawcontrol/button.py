@@ -78,15 +78,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control button entities from config entry.
-    
+
     Creates button entities based on configured dogs and enabled modules.
     Only creates buttons for modules that are enabled for each dog.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
         async_add_entities: Callback to add entities
-        
+
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
@@ -116,12 +116,12 @@ async def async_setup_entry(
 
             # Get enabled modules for this dog
             dog_modules = dog.get(CONF_DOG_MODULES, {})
-            
+
             _LOGGER.debug(
                 "Creating button entities for dog %s (%s) with modules: %s",
                 dog_name,
                 dog_id,
-                list(dog_modules.keys())
+                list(dog_modules.keys()),
             )
 
             # Walk module buttons
@@ -130,23 +130,33 @@ async def async_setup_entry(
 
             # Feeding module buttons
             if dog_modules.get(MODULE_FEEDING, True):
-                entities.extend(_create_feeding_buttons(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_feeding_buttons(hass, coordinator, entry, dog_id)
+                )
 
             # Health module buttons
             if dog_modules.get(MODULE_HEALTH, True):
-                entities.extend(_create_health_buttons(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_health_buttons(hass, coordinator, entry, dog_id)
+                )
 
             # Grooming module buttons
             if dog_modules.get(MODULE_GROOMING, False):
-                entities.extend(_create_grooming_buttons(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_grooming_buttons(hass, coordinator, entry, dog_id)
+                )
 
             # Training module buttons
             if dog_modules.get(MODULE_TRAINING, False):
-                entities.extend(_create_training_buttons(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_training_buttons(hass, coordinator, entry, dog_id)
+                )
 
             # Notification test button
             if dog_modules.get(MODULE_NOTIFICATIONS, True):
-                entities.extend(_create_notification_buttons(hass, coordinator, entry, dog_id))
+                entities.extend(
+                    _create_notification_buttons(hass, coordinator, entry, dog_id)
+                )
 
             # Core activity buttons (always available)
             entities.extend(_create_core_buttons(hass, coordinator, entry, dog_id))
@@ -155,7 +165,7 @@ async def async_setup_entry(
         entities.extend(_create_system_buttons(hass, coordinator, entry))
 
         _LOGGER.info("Created %d button entities", len(entities))
-        
+
         if entities:
             async_add_entities(entities, update_before_add=True)
 
@@ -171,13 +181,13 @@ def _create_walk_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create walk-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of walk button entities
     """
@@ -195,13 +205,13 @@ def _create_feeding_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create feeding-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of feeding button entities
     """
@@ -220,13 +230,13 @@ def _create_health_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create health-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of health button entities
     """
@@ -244,13 +254,13 @@ def _create_grooming_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create grooming-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of grooming button entities
     """
@@ -270,13 +280,13 @@ def _create_training_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create training-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of training button entities
     """
@@ -293,13 +303,13 @@ def _create_notification_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create notification-related button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of notification button entities
     """
@@ -315,13 +325,13 @@ def _create_core_buttons(
     dog_id: str,
 ) -> list[PawControlButtonEntity]:
     """Create core activity button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
         dog_id: Dog identifier
-        
+
     Returns:
         List of core button entities
     """
@@ -336,12 +346,12 @@ def _create_system_buttons(
     entry: ConfigEntry,
 ) -> list[ButtonEntity]:
     """Create system-wide button entities.
-    
+
     Args:
         hass: Home Assistant instance
         coordinator: Data coordinator
         entry: Config entry
-        
+
     Returns:
         List of system button entities
     """
@@ -352,13 +362,15 @@ def _create_system_buttons(
         ToggleVisitorModeButton(hass, coordinator, entry),
     ]
 
+
 # ==============================================================================
 # WALK BUTTON ENTITIES
 # ==============================================================================
 
+
 class StartWalkButton(PawControlButtonEntity, ButtonEntity):
     """Button to start a walk for the dog.
-    
+
     Initiates GPS tracking and walk recording for the specified dog.
     """
 
@@ -401,12 +413,14 @@ class StartWalkButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to start walk for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error starting walk for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error starting walk for dog %s: %s", self.dog_name, err
+            )
 
 
 class EndWalkButton(PawControlButtonEntity, ButtonEntity):
     """Button to end a walk for the dog.
-    
+
     Stops GPS tracking and finalizes walk statistics.
     """
 
@@ -449,12 +463,14 @@ class EndWalkButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to end walk for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error ending walk for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error ending walk for dog %s: %s", self.dog_name, err
+            )
 
 
 class QuickWalkButton(PawControlButtonEntity, ButtonEntity):
     """Button to log a quick walk with default values.
-    
+
     Records a standard walk without requiring real-time tracking.
     """
 
@@ -498,25 +514,31 @@ class QuickWalkButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log quick walk for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging quick walk for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging quick walk for dog %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return button configuration details."""
         try:
             attributes = super().extra_state_attributes or {}
-            attributes.update({
-                "default_duration_min": DEFAULT_WALK_DURATION_MIN,
-                "default_distance_m": DEFAULT_WALK_DISTANCE_M,
-            })
+            attributes.update(
+                {
+                    "default_duration_min": DEFAULT_WALK_DURATION_MIN,
+                    "default_distance_m": DEFAULT_WALK_DISTANCE_M,
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting quick walk attributes: %s", err)
             return super().extra_state_attributes
 
+
 # ==============================================================================
 # FEEDING BUTTON ENTITIES
 # ==============================================================================
+
 
 class FeedBreakfastButton(PawControlButtonEntity, ButtonEntity):
     """Button to log breakfast feeding."""
@@ -557,7 +579,9 @@ class FeedBreakfastButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log breakfast for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging breakfast for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging breakfast for dog %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -566,12 +590,14 @@ class FeedBreakfastButton(PawControlButtonEntity, ButtonEntity):
             attributes = super().extra_state_attributes or {}
             feeding_data = self.dog_data.get("feeding", {})
             feedings_today = feeding_data.get("feedings_today", {})
-            
-            attributes.update({
-                "default_portion_g": DEFAULT_BREAKFAST_PORTION_G,
-                "breakfast_count_today": feedings_today.get("breakfast", 0),
-                "last_feeding": feeding_data.get("last_feeding"),
-            })
+
+            attributes.update(
+                {
+                    "default_portion_g": DEFAULT_BREAKFAST_PORTION_G,
+                    "breakfast_count_today": feedings_today.get("breakfast", 0),
+                    "last_feeding": feeding_data.get("last_feeding"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting breakfast attributes: %s", err)
@@ -617,7 +643,9 @@ class FeedLunchButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log lunch for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging lunch for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging lunch for dog %s: %s", self.dog_name, err
+            )
 
 
 class FeedDinnerButton(PawControlButtonEntity, ButtonEntity):
@@ -659,7 +687,9 @@ class FeedDinnerButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log dinner for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging dinner for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging dinner for dog %s: %s", self.dog_name, err
+            )
 
 
 class FeedSnackButton(PawControlButtonEntity, ButtonEntity):
@@ -701,15 +731,19 @@ class FeedSnackButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log snack for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging snack for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging snack for dog %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # HEALTH BUTTON ENTITIES
 # ==============================================================================
 
+
 class LogWeightButton(PawControlButtonEntity, ButtonEntity):
     """Button to initiate weight logging.
-    
+
     In a complete implementation, this would open a dialog or form
     to enter the dog's current weight.
     """
@@ -737,7 +771,7 @@ class LogWeightButton(PawControlButtonEntity, ButtonEntity):
         try:
             # In a complete implementation, this would trigger a dialog or input form
             _LOGGER.info("Weight logging initiated for dog %s", self.dog_name)
-            
+
             # For demonstration, we could call a script or automation
             await self.hass.services.async_call(
                 "script",
@@ -746,7 +780,9 @@ class LogWeightButton(PawControlButtonEntity, ButtonEntity):
                 blocking=False,
             )
         except Exception as err:
-            _LOGGER.info("Weight logging button pressed for dog %s: %s", self.dog_name, err)
+            _LOGGER.info(
+                "Weight logging button pressed for dog %s: %s", self.dog_name, err
+            )
 
 
 class GiveMedicationButton(PawControlButtonEntity, ButtonEntity):
@@ -787,7 +823,9 @@ class GiveMedicationButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log medication for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging medication for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging medication for dog %s: %s", self.dog_name, err
+            )
 
 
 class LogHealthNoteButton(PawControlButtonEntity, ButtonEntity):
@@ -818,11 +856,15 @@ class LogHealthNoteButton(PawControlButtonEntity, ButtonEntity):
             # In a complete implementation, this would open a text input dialog
             _LOGGER.info("Health note logging initiated for dog %s", self.dog_name)
         except Exception as err:
-            _LOGGER.error("Error initiating health note for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Error initiating health note for dog %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # GROOMING BUTTON ENTITIES
 # ==============================================================================
+
 
 class GroomBathButton(PawControlButtonEntity, ButtonEntity):
     """Button to log bath grooming session."""
@@ -860,9 +902,15 @@ class GroomBathButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Bath grooming logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log bath grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log bath grooming for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging bath grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging bath grooming for dog %s: %s",
+                self.dog_name,
+                err,
+            )
 
 
 class GroomBrushButton(PawControlButtonEntity, ButtonEntity):
@@ -901,9 +949,15 @@ class GroomBrushButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Brush grooming logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log brush grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log brush grooming for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging brush grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging brush grooming for dog %s: %s",
+                self.dog_name,
+                err,
+            )
 
 
 class GroomNailsButton(PawControlButtonEntity, ButtonEntity):
@@ -942,9 +996,15 @@ class GroomNailsButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Nail grooming logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log nail grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log nail grooming for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging nail grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging nail grooming for dog %s: %s",
+                self.dog_name,
+                err,
+            )
 
 
 class GroomTeethButton(PawControlButtonEntity, ButtonEntity):
@@ -983,9 +1043,15 @@ class GroomTeethButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Teeth grooming logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log teeth grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log teeth grooming for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging teeth grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging teeth grooming for dog %s: %s",
+                self.dog_name,
+                err,
+            )
 
 
 class GroomEarsButton(PawControlButtonEntity, ButtonEntity):
@@ -1024,13 +1090,21 @@ class GroomEarsButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Ear grooming logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log ear grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log ear grooming for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging ear grooming for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging ear grooming for dog %s: %s",
+                self.dog_name,
+                err,
+            )
+
 
 # ==============================================================================
 # TRAINING BUTTON ENTITIES
 # ==============================================================================
+
 
 class StartTrainingButton(PawControlButtonEntity, ButtonEntity):
     """Button to start a training session."""
@@ -1071,7 +1145,9 @@ class StartTrainingButton(PawControlButtonEntity, ButtonEntity):
         except ServiceValidationError as err:
             _LOGGER.error("Failed to log training for dog %s: %s", self.dog_name, err)
         except Exception as err:
-            _LOGGER.error("Unexpected error logging training for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging training for dog %s: %s", self.dog_name, err
+            )
 
 
 class LogPlaySessionButton(PawControlButtonEntity, ButtonEntity):
@@ -1110,13 +1186,21 @@ class LogPlaySessionButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Play session logged for dog %s", self.dog_name)
         except ServiceValidationError as err:
-            _LOGGER.error("Failed to log play session for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log play session for dog %s: %s", self.dog_name, err
+            )
         except Exception as err:
-            _LOGGER.error("Unexpected error logging play session for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Unexpected error logging play session for dog %s: %s",
+                self.dog_name,
+                err,
+            )
+
 
 # ==============================================================================
 # CORE ACTIVITY BUTTON ENTITIES
 # ==============================================================================
+
 
 class LogPoopButton(PawControlButtonEntity, ButtonEntity):
     """Button to log a bathroom break."""
@@ -1147,19 +1231,21 @@ class LogPoopButton(PawControlButtonEntity, ButtonEntity):
             if dog_data:
                 stats = dog_data.setdefault("statistics", {})
                 current_time = dt_util.now()
-                
+
                 # Increment poop count
                 stats["poop_count_today"] = stats.get("poop_count_today", 0) + 1
                 stats["last_poop"] = current_time.isoformat()
                 stats["last_action"] = current_time.isoformat()
                 stats["last_action_type"] = "poop_logged"
-                
+
                 # Trigger coordinator update
                 await self.coordinator.async_request_refresh()
-                
+
                 _LOGGER.info("Bathroom break logged for dog %s", self.dog_name)
         except Exception as err:
-            _LOGGER.error("Failed to log bathroom break for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to log bathroom break for dog %s: %s", self.dog_name, err
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -1167,19 +1253,23 @@ class LogPoopButton(PawControlButtonEntity, ButtonEntity):
         try:
             attributes = super().extra_state_attributes or {}
             stats_data = self.dog_data.get("statistics", {})
-            
-            attributes.update({
-                "count_today": stats_data.get("poop_count_today", 0),
-                "last_poop": stats_data.get("last_poop"),
-            })
+
+            attributes.update(
+                {
+                    "count_today": stats_data.get("poop_count_today", 0),
+                    "last_poop": stats_data.get("last_poop"),
+                }
+            )
             return attributes
         except Exception as err:
             _LOGGER.debug("Error getting poop attributes: %s", err)
             return super().extra_state_attributes
 
+
 # ==============================================================================
 # NOTIFICATION BUTTON ENTITIES
 # ==============================================================================
+
 
 class NotifyTestButton(PawControlButtonEntity, ButtonEntity):
     """Button to test notification system."""
@@ -1217,11 +1307,15 @@ class NotifyTestButton(PawControlButtonEntity, ButtonEntity):
             )
             _LOGGER.info("Test notification sent for dog %s", self.dog_name)
         except Exception as err:
-            _LOGGER.error("Failed to send test notification for dog %s: %s", self.dog_name, err)
+            _LOGGER.error(
+                "Failed to send test notification for dog %s: %s", self.dog_name, err
+            )
+
 
 # ==============================================================================
 # SYSTEM BUTTON ENTITIES
 # ==============================================================================
+
 
 class DailyResetButton(ButtonEntity):
     """Button to trigger daily counter reset for all dogs."""
@@ -1410,8 +1504,8 @@ class ToggleVisitorModeButton(ButtonEntity):
     def icon(self) -> str:
         """Return icon based on current visitor mode state."""
         return (
-            ICONS.get("visitor", "mdi:account-group-outline") 
-            if self.coordinator.visitor_mode 
+            ICONS.get("visitor", "mdi:account-group-outline")
+            if self.coordinator.visitor_mode
             else ICONS.get("visitor", "mdi:account-group")
         )
 
@@ -1421,8 +1515,7 @@ class ToggleVisitorModeButton(ButtonEntity):
             new_state = not self.coordinator.visitor_mode
             await self.coordinator.set_visitor_mode(new_state)
             _LOGGER.info(
-                "Visitor mode %s via button", 
-                "enabled" if new_state else "disabled"
+                "Visitor mode %s via button", "enabled" if new_state else "disabled"
             )
         except Exception as err:
             _LOGGER.error("Failed to toggle visitor mode: %s", err)
