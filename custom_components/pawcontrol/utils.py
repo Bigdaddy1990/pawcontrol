@@ -14,16 +14,16 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from homeassistant.core import HomeAssistant
 
-# Numerik-Epsilon für Zeit-/Vergleichsoperationen
+# Small epsilon for time/comparison operations to avoid division by near-zero
 _EPS_TIME_S: Final[float] = 1e-9
 
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Return haversine distance in meters between two lat/lon points.
 
-    Stabilisiert gegen FP-Rundungsfehler via Clamping von 'a'.
+    Includes clamping to prevent floating point rounding errors.
     """
-    # Early-exit spart Trigonometrie bei identischen Koordinaten
+    # Early exit to skip trigonometric calculations when coordinates are identical
     if lat1 == lat2 and lon1 == lon2:
         return 0.0
 
@@ -36,11 +36,11 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     a = s_dphi * s_dphi + cos(phi1) * cos(phi2) * s_dlam * s_dlam
 
-    # Clamp gegen numerische Ausreißer
+    # Clamp against numerical out-of-range values
     if a <= 0.0:
         return 0.0
     if a >= 1.0:
-        # Antipodal → halber Erdumfang
+        # Antipodal case → half of Earth's circumference
         return pi * EARTH_RADIUS_M
 
     a = min(1.0, max(0.0, a))
@@ -54,13 +54,13 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
         return 0.0
     if not isfinite(distance_m):
         return 0.0
-    # m/s -> km/h
+    # Convert m/s to km/h
     return (distance_m / duration_s) * 3.6
 
 
 def validate_coordinates(lat: float, lon: float) -> bool:
     """Validate latitude and longitude values."""
-    # bool ist Subklasse von int -> explizit ablehnen
+    # Explicitly reject bool, since bool is a subclass of int in Python
     if isinstance(lat, bool) or isinstance(lon, bool):
         return False
 
@@ -91,7 +91,7 @@ async def safe_service_call(
 ) -> bool:
     """Call a Home Assistant service safely.
 
-    Gibt True/False zurück statt Exceptions still zu schlucken.
+    Returns True/False instead of silently swallowing exceptions.
     """
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
