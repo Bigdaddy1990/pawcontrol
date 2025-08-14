@@ -23,7 +23,7 @@
     "zeroconf"
   ],
   "integration_type": "hub",
-  "quality_scale": [],
+  "quality_scale": "silver",
   "usb": [
     {
       "vid": "10C4",
