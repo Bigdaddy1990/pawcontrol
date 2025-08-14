@@ -9,9 +9,14 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 MODULE_PATH = (
-    Path(__file__).resolve().parents[1] / "custom_components" / "pawcontrol" / "__init__.py"
+    Path(__file__).resolve().parents[1]
+    / "custom_components"
+    / "pawcontrol"
+    / "__init__.py"
 )
-spec = importlib.util.spec_from_file_location("custom_components.pawcontrol", MODULE_PATH)
+spec = importlib.util.spec_from_file_location(
+    "custom_components.pawcontrol", MODULE_PATH
+)
 comp = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(comp)
@@ -89,4 +94,3 @@ async def test_valid_geofence_no_issue(hass) -> None:
         if i.domain == comp.DOMAIN and i.issue_id == "invalid_geofence"
     ]
     assert not issues, "Did not expect invalid_geofence issue"
-
