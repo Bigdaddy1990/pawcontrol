@@ -57,7 +57,6 @@ PARALLEL_UPDATES = 0
 # ==============================================================================
 # PLATFORM SETUP
 # ==============================================================================
-
 async def async_setup_entry(
     hass: HomeAssistant, 
     entry: ConfigEntry, 
