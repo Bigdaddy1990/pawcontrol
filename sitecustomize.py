@@ -7,14 +7,15 @@ provides a minimal stub of the framework.
 
 from __future__ import annotations
 
+import importlib
 import sys
+from datetime import UTC, datetime
 from enum import StrEnum
 from types import ModuleType
-from datetime import datetime, timezone
-import importlib
 
 try:  # pragma: no cover - Home Assistant available
     from homeassistant.helpers import device_registry, entity  # type: ignore
+
     ha = sys.modules["homeassistant"]
 except Exception:  # pragma: no cover - create minimal stubs
     ha = sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover - create minimal stubs
 # Ensure ``homeassistant.util`` is loaded or provide minimal implementation
 try:  # pragma: no cover - Home Assistant provides util module
     import homeassistant.util as util  # type: ignore[assignment]
+
     ha.util = util  # type: ignore[attr-defined]
 except Exception:  # pragma: no cover - create minimal util package
     util = ModuleType("homeassistant.util")
@@ -65,7 +67,7 @@ try:  # pragma: no cover - Home Assistant provides dt helper
 except Exception:  # pragma: no cover - create minimal version
     util_dt = ModuleType("homeassistant.util.dt")
 
-    UTC = timezone.utc
+    UTC = UTC
 
     def now() -> datetime:  # pragma: no cover - stub
         return datetime.now(UTC)

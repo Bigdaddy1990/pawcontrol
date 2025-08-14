@@ -3,10 +3,10 @@ import sys
 import types
 from collections.abc import Generator
 
+import homeassistant.util  # Preload util module for HA test plugin
 import pytest
 import sitecustomize  # Ensure HA compatibility shims
 from custom_components.pawcontrol import compat  # ensure constants for HA
-import homeassistant.util  # Preload util module for HA test plugin
 
 try:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.core import HomeAssistant
