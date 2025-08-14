@@ -5,6 +5,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+# Expose the integration domain at module import time
+# so tests can reliably import it without depending on
+# the contents of :mod:`custom_components.pawcontrol.const`.
+DOMAIN = "pawcontrol"
+
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
@@ -22,9 +27,11 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
-    DOMAIN,
     EVENT_DAILY_RESET,
     PLATFORMS,
+)
+from .const import (
+    DOMAIN as CONST_DOMAIN,
 )
 from .helpers import notification_router as notification_router_mod
 from .helpers import scheduler as scheduler_mod
@@ -32,6 +39,9 @@ from .helpers import setup_sync as setup_sync_mod
 from .report_generator import ReportGenerator
 from .services import ServiceManager
 from .types import PawRuntimeData
+
+# Ensure the domain constant matches the value from const.py.
+assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ pytestmark = pytest.mark.asyncio
 
 def _make_config_entry(options: dict | None = None) -> ConfigEntry:
     """Create a minimal config entry for tests."""
-    from custom_components.pawcontrol import DOMAIN
+    from custom_components.pawcontrol.const import DOMAIN
 
     return ConfigEntry(
         version=1,
