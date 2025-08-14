@@ -30,51 +30,37 @@ class InvalidGeofenceRepairFlow(RepairsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> data_entry_flow.FlowResult:
-        """First step: choose repair action."""
-        schema = vol.Schema(
-            {
-                vol.Required("action"): vol.In(
-                    {
-                        "reset": "Reset to defaults (clear home, set 150m radius)",
-                        "disable_alerts": "Disable geofence alerts (keep current center)",
-                        "manual": "Manually enter coordinates",
-                    }
-                )
-            }
-        )
+        """Start fix by opening the options flow or handle selected action."""
 
-        if user_input is not None:
-            action = user_input["action"]
-
-            if action == "manual":
-                return await self.async_step_manual_coordinates()
-
-            entry = self.hass.config_entries.async_get_entry(self.entry_id)
-            if not entry:
-                # Entry vanished -> just delete the issue
-                ir.async_delete_issue(self.hass, DOMAIN, "invalid_geofence")
-                return self.async_create_entry(title="Geofence Fixed", data={})
-
-            opts = dict(entry.options or {})
-            geo = dict(opts.get("geofence") or {})
-
-            if action == "reset":
-                geo = {"lat": None, "lon": None, "radius_m": 150, "enable_alerts": True}
-            elif action == "disable_alerts":
-                geo["enable_alerts"] = False
-
-            opts["geofence"] = geo
-            self.hass.config_entries.async_update_entry(entry, options=opts)
+        if not user_input or "action" not in user_input:
+            if self.hass:
+                await self.hass.config_entries.options.async_init(self.entry_id)
             ir.async_delete_issue(self.hass, DOMAIN, "invalid_geofence")
             return self.async_create_entry(title="Geofence Fixed", data={})
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=schema,
-            description_placeholders={
-                "entry_id": self.entry_id[:8],
-            },
-        )
+        action = user_input["action"]
+
+        if action == "manual":
+            return await self.async_step_manual_coordinates()
+
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if not entry:
+            # Entry vanished -> just delete the issue
+            ir.async_delete_issue(self.hass, DOMAIN, "invalid_geofence")
+            return self.async_create_entry(title="Geofence Fixed", data={})
+
+        opts = dict(entry.options or {})
+        geo = dict(opts.get("geofence") or {})
+
+        if action == "reset":
+            geo = {"lat": None, "lon": None, "radius_m": 150, "enable_alerts": True}
+        elif action == "disable_alerts":
+            geo["enable_alerts"] = False
+
+        opts["geofence"] = geo
+        self.hass.config_entries.async_update_entry(entry, options=opts)
+        ir.async_delete_issue(self.hass, DOMAIN, "invalid_geofence")
+        return self.async_create_entry(title="Geofence Fixed", data={})
 
     async def async_step_manual_coordinates(
         self, user_input: dict[str, Any] | None = None
