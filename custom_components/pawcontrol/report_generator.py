@@ -33,11 +33,28 @@ ReportData: TypeAlias = dict[str, Any]
 class ReportGenerator:
     """Generate reports for Paw Control."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize report generator."""
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        coordinator: Any | None = None,
+    ) -> None:
+        """Initialize report generator.
+
+        Earlier versions of the integration accessed ``entry.runtime_data``
+        during initialisation which is not yet populated at this stage of the
+        setup process.  The tests construct the ``ReportGenerator`` before the
+        runtime data is attached to the config entry which previously resulted
+        in an ``AttributeError``.  Accepting an optional coordinator allows the
+        caller to provide it directly while still falling back to the runtime
+        data when available.
+        """
+
         self.hass = hass
         self.entry = entry
-        self.coordinator = entry.runtime_data.coordinator
+        self.coordinator = coordinator or getattr(
+            getattr(entry, "runtime_data", None), "coordinator", None
+        )
 
     async def generate_report(
         self,
