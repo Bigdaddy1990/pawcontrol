@@ -20,7 +20,9 @@ _LOGGER = logging.getLogger(__name__)
 class InvalidGeofenceRepairFlow(RepairsFlow):
     """Repair flow for invalid geofence options."""
 
-    def __init__(self, hass: HomeAssistant | None = None, entry_id: str | None = None) -> None:
+    def __init__(
+        self, hass: HomeAssistant | None = None, entry_id: str | None = None
+    ) -> None:
         """Initialize the repair flow."""
         self.hass = hass
         self.entry_id = entry_id or ""
