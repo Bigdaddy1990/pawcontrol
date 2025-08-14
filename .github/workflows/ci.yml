@@ -16,14 +16,12 @@ jobs:
   lint:
     name: Lint (ruff + pre-commit)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-          cache: pip
+          cache: pip  # setup-python builtin caching
           cache-dependency-path: |
             requirements*.txt
             pyproject.toml
@@ -41,12 +39,10 @@ jobs:
   validate:
     name: Validate (hassfest + HACS)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Hassfest
-        uses: home-assistant/actions/hassfest@master
+        uses: home-assistant/actions/hassfest@master  # offizielle Empfehlung
       - name: HACS validation
         uses: hacs/action@main
         with:
@@ -57,10 +53,8 @@ jobs:
     name: Tests (pytest + coverage)
     runs-on: ubuntu-latest
     needs: [lint, validate]
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
