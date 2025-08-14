@@ -7,6 +7,11 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+try:
+    from typing import TypeAlias
+except ImportError:
+    # Python < 3.10 compatibility
+    TypeAlias = type
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -21,7 +26,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-type ReportData = dict[str, Any]
+ReportData: TypeAlias = dict[str, Any]
 
 
 class ReportGenerator:

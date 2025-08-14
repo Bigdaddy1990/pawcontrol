@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .compat import DeviceInfo, EntityCategory
 from .const import (
@@ -26,6 +27,8 @@ from .const import (
     MODULE_TRAINING,
     MODULE_WALK,
 )
+from .coordinator import PawControlCoordinator
+from .entity import PawControlSwitchEntity
 
 PARALLEL_UPDATES = 0
 
@@ -38,10 +41,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control switch entities."""
-    coordinator = entry.runtime_data.coordinator
-    if not coordinator.last_update_success:
-        raise PlatformNotReady
-
+    coordinator: PawControlCoordinator = entry.runtime_data.coordinator
+    
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
@@ -55,7 +56,6 @@ async def async_setup_entry(
         if not dog_id:
             continue
 
-        dog_name = dog.get(CONF_DOG_NAME, dog_id)
         modules = dog.get(CONF_DOG_MODULES, {})
 
         # Module enable/disable switches
@@ -64,8 +64,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_WALK,
                     "Walk Module",
                     "mdi:dog-side",
@@ -74,8 +74,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_FEEDING,
                     "Feeding Module",
                     "mdi:food",
@@ -84,8 +84,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_HEALTH,
                     "Health Module",
                     "mdi:heart",
@@ -94,8 +94,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_GROOMING,
                     "Grooming Module",
                     "mdi:content-cut",
@@ -104,8 +104,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_TRAINING,
                     "Training Module",
                     "mdi:school",
@@ -114,8 +114,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_NOTIFICATIONS,
                     "Notifications",
                     "mdi:bell",
@@ -124,8 +124,8 @@ async def async_setup_entry(
                 ModuleSwitch(
                     hass,
                     coordinator,
+                    entry,
                     dog_id,
-                    dog_name,
                     MODULE_GPS,
                     "GPS Tracking",
                     "mdi:map-marker",
@@ -137,24 +137,24 @@ async def async_setup_entry(
         # Feature switches
         if modules.get(MODULE_WALK):
             entities.append(
-                AutoWalkDetectionSwitch(hass, coordinator, dog_id, dog_name)
+                AutoWalkDetectionSwitch(hass, coordinator, entry, dog_id)
             )
 
         if modules.get(MODULE_FEEDING):
             entities.append(
-                OverfeedingProtectionSwitch(hass, coordinator, dog_id, dog_name)
+                OverfeedingProtectionSwitch(hass, coordinator, entry, dog_id)
             )
 
         if modules.get(MODULE_NOTIFICATIONS):
             entities.append(
-                NotificationEnabledSwitch(hass, coordinator, dog_id, dog_name)
+                NotificationEnabledSwitch(hass, coordinator, entry, dog_id)
             )
 
     # Global switches
     entities.extend(
         [
-            VisitorModeSwitch(hass, coordinator),
-            EmergencyModeSwitch(hass, coordinator),
+            VisitorModeSwitch(hass, coordinator, entry),
+            EmergencyModeSwitch(hass, coordinator, entry),
             QuietHoursSwitch(hass, coordinator, entry),
             DailyReportSwitch(hass, coordinator, entry),
         ]
@@ -163,45 +163,38 @@ async def async_setup_entry(
     async_add_entities(entities, True)
 
 
-class PawControlSwitchBase(SwitchEntity):
-    """Base class for Paw Control switches."""
-
-    _attr_has_entity_name = True
-    _attr_entity_category = EntityCategory.CONFIG
+class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
+    """Switch to enable or disable a module."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        coordinator: Any,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
         dog_id: str,
-        dog_name: str,
-        switch_type: str,
-        name: str,
+        module_id: str,
+        module_name: str,
         icon: str,
+        enabled: bool = False,
     ) -> None:
         """Initialize the switch."""
-        self.hass = hass
-        self.coordinator = coordinator
-        self._dog_id = dog_id
-        self._dog_name = dog_name
-        self._switch_type = switch_type
-        self._is_on = False
-
-        self._attr_name = name
-        self._attr_icon = icon
-        self._attr_unique_id = f"{DOMAIN}.{dog_id}.switch.{switch_type}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, dog_id)},
-            name=f"🐕 {dog_name}",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.0.0",
+        super().__init__(
+            coordinator,
+            entry,
+            dog_id,
+            f"module_{module_id}",
+            entity_category=EntityCategory.CONFIG,
         )
+        self.hass = hass
+        self._module_id = module_id
+        self._module_name = module_name
+        self._attr_icon = icon
+        self._is_on = enabled
 
     @property
-    def dog_data(self) -> dict:
-        """Get dog data from coordinator."""
-        return self.coordinator.get_dog_data(self._dog_id)
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return f"{self.dog_name} - {self._module_name}"
 
     @property
     def is_on(self) -> bool:
@@ -209,180 +202,185 @@ class PawControlSwitchBase(SwitchEntity):
         return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        self._is_on = False
-        self.async_write_ha_state()
-
-
-class ModuleSwitch(PawControlSwitchBase):
-    """Switch to enable or disable a module.
-
-    The initial enabled state is supplied via the ``enabled`` argument so the
-    switch can be created without querying the coordinator's config entry.
-    """
-
-    def __init__(
-        self,
-        hass,
-        coordinator,
-        dog_id,
-        dog_name,
-        module_id,
-        module_name,
-        icon,
-        enabled: bool = False,
-    ) -> None:
-        """Initialize the switch.
-
-        Args:
-            enabled: If ``True`` the module starts enabled and the switch will
-                report as on.
-        """
-        super().__init__(
-            hass,
-            coordinator,
-            dog_id,
-            dog_name,
-            f"module_{module_id}",
-            module_name,
-            icon,
-        )
-        self._module_id = module_id
-        # Store the initial enabled state directly rather than asking the
-        # coordinator or config entry. Test coordinators may lack an ``entry``
-        # attribute and the coordinator does not persist per-module state,
-        # making such lookups unreliable and causing attribute errors during
-        # entity setup. Keeping the value in ``_is_on`` ensures consistent
-        # startup behavior.
-        self._is_on = enabled
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable the module."""
-        _LOGGER.info(f"Enabling {self._module_id} module for {self._dog_name}")
-        # Would update config entry
+        _LOGGER.info(f"Enabling {self._module_id} module for {self.dog_name}")
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable the module."""
-        _LOGGER.info(f"Disabling {self._module_id} module for {self._dog_name}")
-        # Would update config entry
+        _LOGGER.info(f"Disabling {self._module_id} module for {self.dog_name}")
         self._is_on = False
         self.async_write_ha_state()
 
 
-class AutoWalkDetectionSwitch(PawControlSwitchBase):
+class AutoWalkDetectionSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch for auto walk detection."""
 
-    def __init__(self, hass, coordinator, dog_id, dog_name):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+        dog_id: str,
+    ) -> None:
         """Initialize the switch."""
         super().__init__(
-            hass,
             coordinator,
+            entry,
             dog_id,
-            dog_name,
             "auto_walk_detection",
-            "Auto Walk Detection",
-            "mdi:walk",
+            entity_category=EntityCategory.CONFIG,
         )
+        self.hass = hass
+        self._attr_icon = "mdi:walk"
         self._is_on = True
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return f"{self.dog_name} - Auto Walk Detection"
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if switch is on."""
+        return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable auto walk detection."""
-        _LOGGER.info(f"Enabling auto walk detection for {self._dog_name}")
+        _LOGGER.info(f"Enabling auto walk detection for {self.dog_name}")
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable auto walk detection."""
-        _LOGGER.info(f"Disabling auto walk detection for {self._dog_name}")
+        _LOGGER.info(f"Disabling auto walk detection for {self.dog_name}")
         self._is_on = False
         self.async_write_ha_state()
 
 
-class OverfeedingProtectionSwitch(PawControlSwitchBase):
+class OverfeedingProtectionSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch for overfeeding protection."""
 
-    def __init__(self, hass, coordinator, dog_id, dog_name):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+        dog_id: str,
+    ) -> None:
         """Initialize the switch."""
         super().__init__(
-            hass,
             coordinator,
+            entry,
             dog_id,
-            dog_name,
             "overfeeding_protection",
-            "Overfeeding Protection",
-            "mdi:shield-check",
+            entity_category=EntityCategory.CONFIG,
         )
+        self.hass = hass
+        self._attr_icon = "mdi:shield-check"
         self._is_on = True
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return f"{self.dog_name} - Overfeeding Protection"
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if switch is on."""
+        return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable overfeeding protection."""
-        _LOGGER.info(f"Enabling overfeeding protection for {self._dog_name}")
+        _LOGGER.info(f"Enabling overfeeding protection for {self.dog_name}")
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable overfeeding protection."""
-        _LOGGER.warning(f"Disabling overfeeding protection for {self._dog_name}")
+        _LOGGER.warning(f"Disabling overfeeding protection for {self.dog_name}")
         self._is_on = False
         self.async_write_ha_state()
 
 
-class NotificationEnabledSwitch(PawControlSwitchBase):
+class NotificationEnabledSwitch(PawControlSwitchEntity, SwitchEntity):
     """Switch to enable/disable notifications for a dog."""
 
-    def __init__(self, hass, coordinator, dog_id, dog_name):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+        dog_id: str,
+    ) -> None:
         """Initialize the switch."""
         super().__init__(
-            hass,
             coordinator,
+            entry,
             dog_id,
-            dog_name,
             "notifications_enabled",
-            "Notifications Enabled",
-            "mdi:bell",
+            entity_category=EntityCategory.CONFIG,
         )
+        self.hass = hass
+        self._attr_icon = "mdi:bell"
         self._is_on = True
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return f"{self.dog_name} - Notifications"
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if switch is on."""
+        return self._is_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable notifications."""
-        _LOGGER.info(f"Enabling notifications for {self._dog_name}")
+        _LOGGER.info(f"Enabling notifications for {self.dog_name}")
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable notifications."""
-        _LOGGER.info(f"Disabling notifications for {self._dog_name}")
+        _LOGGER.info(f"Disabling notifications for {self.dog_name}")
         self._is_on = False
         self.async_write_ha_state()
 
 
-class VisitorModeSwitch(SwitchEntity):
+# Global Switches
+class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for visitor mode."""
 
     _attr_has_entity_name = True
-    _attr_name = "Visitor Mode"
     _attr_icon = "mdi:account-group"
+    _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, hass: HomeAssistant, coordinator: Any):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
         """Initialize the switch."""
+        super().__init__(coordinator)
         self.hass = hass
-        self.coordinator = coordinator
-
-        self._attr_unique_id = f"{DOMAIN}.global.switch.visitor_mode"
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_global_visitor_mode"
+        self._attr_translation_key = "visitor_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return "Visitor Mode"
 
     @property
     def is_on(self) -> bool:
@@ -393,7 +391,7 @@ class VisitorModeSwitch(SwitchEntity):
         """Turn on visitor mode."""
         await self.hass.services.async_call(
             DOMAIN,
-            "toggle_visitor_mode",
+            "toggle_visitor",
             {"enabled": True},
             blocking=False,
         )
@@ -402,32 +400,43 @@ class VisitorModeSwitch(SwitchEntity):
         """Turn off visitor mode."""
         await self.hass.services.async_call(
             DOMAIN,
-            "toggle_visitor_mode",
+            "toggle_visitor",
             {"enabled": False},
             blocking=False,
         )
 
 
-class EmergencyModeSwitch(SwitchEntity):
+class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for emergency mode."""
 
     _attr_has_entity_name = True
-    _attr_name = "Emergency Mode"
     _attr_icon = "mdi:alert-circle"
+    _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, hass: HomeAssistant, coordinator: Any):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
         """Initialize the switch."""
+        super().__init__(coordinator)
         self.hass = hass
-        self.coordinator = coordinator
-
-        self._attr_unique_id = f"{DOMAIN}.global.switch.emergency_mode"
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_global_emergency_mode"
+        self._attr_translation_key = "emergency_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return "Emergency Mode"
 
     @property
     def is_on(self) -> bool:
@@ -438,40 +447,49 @@ class EmergencyModeSwitch(SwitchEntity):
         """Turn on emergency mode."""
         await self.hass.services.async_call(
             DOMAIN,
-            "activate_emergency_mode",
-            {"level": "critical", "note": "Emergency mode activated"},
+            "emergency_mode",
+            {"level": "critical", "note": "Emergency mode activated via switch"},
             blocking=False,
         )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off emergency mode."""
-        # Reset emergency mode
-        self.coordinator._emergency_mode = False
-        await self.coordinator.async_request_refresh()
+        # Use coordinator method to properly reset
+        await self.coordinator.activate_emergency_mode("info", "Emergency mode deactivated")
 
 
-class QuietHoursSwitch(SwitchEntity):
+class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for quiet hours."""
 
     _attr_has_entity_name = True
-    _attr_name = "Quiet Hours"
     _attr_icon = "mdi:bell-sleep"
+    _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
         """Initialize the switch."""
+        super().__init__(coordinator)
         self.hass = hass
-        self.coordinator = coordinator
         self.entry = entry
-        self._is_on = True
-
-        self._attr_unique_id = f"{DOMAIN}.global.switch.quiet_hours"
+        self._is_on = bool(entry.options.get("quiet_hours", {}).get("enabled", True))
+        self._attr_unique_id = f"{entry.entry_id}_global_quiet_hours"
+        self._attr_translation_key = "quiet_hours"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return "Quiet Hours"
 
     @property
     def is_on(self) -> bool:
@@ -491,28 +509,38 @@ class QuietHoursSwitch(SwitchEntity):
         self.async_write_ha_state()
 
 
-class DailyReportSwitch(SwitchEntity):
+class DailyReportSwitch(CoordinatorEntity, SwitchEntity):
     """Switch for daily report."""
 
     _attr_has_entity_name = True
-    _attr_name = "Daily Report"
     _attr_icon = "mdi:file-document-clock"
+    _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, hass: HomeAssistant, coordinator: Any, entry: ConfigEntry):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
         """Initialize the switch."""
+        super().__init__(coordinator)
         self.hass = hass
-        self.coordinator = coordinator
         self.entry = entry
         self._is_on = bool(entry.options.get("export_path"))
-
-        self._attr_unique_id = f"{DOMAIN}.global.switch.daily_report"
+        self._attr_unique_id = f"{entry.entry_id}_global_daily_report"
+        self._attr_translation_key = "daily_report"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return "Daily Report"
 
     @property
     def is_on(self) -> bool:

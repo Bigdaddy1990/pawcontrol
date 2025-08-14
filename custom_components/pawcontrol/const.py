@@ -204,11 +204,14 @@ STORAGE_KEY_USER_SETTINGS = "user_settings"
 GPS_MIN_ACCURACY = 100  # meters
 GPS_MAX_POINTS_PER_ROUTE = 10000
 GPS_POINT_FILTER_DISTANCE = 5  # meters minimum between points
+GPS_MINIMUM_MOVEMENT_THRESHOLD_M = 5  # Minimum movement to register location update
 
 # Walk detection defaults
 DEFAULT_MIN_WALK_DISTANCE_M = 100  # meters
 DEFAULT_MIN_WALK_DURATION_MIN = 5  # minutes
 DEFAULT_IDLE_TIMEOUT_MIN = 30  # minutes
+WALK_DISTANCE_UPDATE_THRESHOLD_M = 10  # meters - minimum change to trigger UI update
+DOOR_OPEN_TIMEOUT_SECONDS = 120  # seconds - max time between door open and walk start
 
 # Safe zone defaults
 DEFAULT_SAFE_ZONE_RADIUS = 50  # meters
@@ -217,6 +220,13 @@ MIN_SAFE_ZONE_RADIUS = 5  # meters
 
 # Grooming defaults
 DEFAULT_GROOMING_INTERVAL_DAYS = 30
+
+# Health defaults
+DEFAULT_DOG_WEIGHT_KG = 20  # Default weight if not specified
+MAX_DOG_WEIGHT_KG = 200  # Maximum reasonable dog weight
+MIN_DOG_WEIGHT_KG = 0.5  # Minimum reasonable dog weight
+CALORIES_PER_KM_PER_KG = 1.5  # Calories burned per km per kg of body weight
+CALORIES_PER_MIN_PLAY_PER_KG = 0.25  # Calories burned per minute of play per kg
 
 # Notification defaults
 DEFAULT_NOTIFICATION_SERVICE = "notify.notify"
