@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # 1) GitHub Actions (Workflows)
+  # 1) GitHub Actions: hält Workflows aktuell (checkout, setup-python, upload-artifact, codecov, etc.)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -8,14 +8,16 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 10
-    rebase-strategy: "disabled"       # vermeidet Rebase-Flut bei aktiven Branches
+    open-pull-requests-limit: 8
+    rebase-strategy: "disabled"              # vermeidet Rebase-Flut
+    # Optional: nur Minor/Patch für Actions (Major meist manuell prüfen)
+    # versioning-strategy: "increase-if-necessary"
     groups:
       actions-all:
-        patterns: ["*"]               # alle Actions in eine gebündelte PR
+        patterns: ["*"]
         update-types: ["minor", "patch"]
 
-  # 2) Python (pip) – Runtime & Test-Dependencies
+  # 2) Python (pip): deckt requirements*.txt & pyproject.toml ab
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -23,13 +25,14 @@ updates:
       day: "monday"
       time: "06:10"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     rebase-strategy: "disabled"
-    versioning-strategy: "increase-if-necessary"   # kein unnötiger Major-Bump
-    # Abhängigkeiten gruppieren, damit weniger PRs auflaufen:
+    # konservativ: Major nur, wenn nötig
+    versioning-strategy: "increase-if-necessary"
+    # Wenn du viele requirements-Dateien hast, achte auf Namenskonventionen (siehe Hinweise unten).
     groups:
       python-test-deps:
-        # Test-/Tooling-Pakete in eine PR
+        # Alles Test-/Tooling-Zeug in eine gemeinsame PR
         patterns:
           - "pytest"
           - "pytest-*"
@@ -42,7 +45,7 @@ updates:
           - "pre-commit"
         update-types: ["minor", "patch"]
       python-runtime:
-        # Alles andere (Runtime) in eine weitere PR
+        # Restliche Pakete (Runtime) getrennt bündeln
         patterns: ["*"]
         exclude-patterns:
           - "pytest"
