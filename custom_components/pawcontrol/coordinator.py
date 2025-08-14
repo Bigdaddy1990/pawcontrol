@@ -241,7 +241,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         current_hour = dt_util.now().hour
 
         # Basic feeding schedule
-        return bool(6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0 or 11 <= current_hour < 14 and data["feedings_today"]["lunch"] == 0 or 17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0)
+        return bool(
+            6 <= current_hour < 9
+            and data["feedings_today"]["breakfast"] == 0
+            or 11 <= current_hour < 14
+            and data["feedings_today"]["lunch"] == 0
+            or 17 <= current_hour < 20
+            and data["feedings_today"]["dinner"] == 0
+        )
 
     def _calculate_needs_grooming(self, dog_id: str) -> bool:
         """Calculate if dog needs grooming."""
