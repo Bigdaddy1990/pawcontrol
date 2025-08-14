@@ -85,7 +85,7 @@ GROOMING_TYPE_OPTIONS = [
 TRAINING_TOPIC_OPTIONS = [
     "Basic Commands", "Leash Training", "Tricks", "Agility", 
     "Socialization", "House Training", "Behavior Correction",
-    "Recall Training", "Crate Training", "Impulse Control"
+    "Recall Training", "Create Training", "Impulse Control"
 ]
 MEAL_SCHEDULE_OPTIONS = ["1 meal", "2 meals", "3 meals", "Free feeding"]
 EXPORT_FORMAT_OPTIONS = ["csv", "json", "pdf", "xlsx"]
