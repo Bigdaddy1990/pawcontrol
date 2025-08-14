@@ -5,6 +5,19 @@ All notable changes to Paw Control will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.0.15...v1.1.0) (2025-08-14)
+
+
+### Features
+
+* run pre-commit in CI ([8ea178a](https://github.com/Bigdaddy1990/pawcontrol/commit/8ea178afd01fa3f9036e21e0a0da69e30bda74cf))
+
+
+### Bug Fixes
+
+* add missing translation strings ([#168](https://github.com/Bigdaddy1990/pawcontrol/issues/168)) ([e504ab8](https://github.com/Bigdaddy1990/pawcontrol/commit/e504ab867b94e1ba5656f4fe6fd76371af64af11))
+* rename icons mapping file ([fbf0f4b](https://github.com/Bigdaddy1990/pawcontrol/commit/fbf0f4bf5274745aad0b21a5b15ca4217e6524ce))
+
 ## [1.0.15](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.0.14...v1.0.15) (2025-08-14)
 
 
