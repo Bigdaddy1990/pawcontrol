@@ -66,14 +66,14 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control component.
-    
+
     This is called once when Home Assistant starts. It initializes the
     domain data structure for storing integration instances.
-    
+
     Args:
         hass: Home Assistant instance
         config: Home Assistant configuration (not used for config_entry_only)
-        
+
     Returns:
         True if setup succeeded, False otherwise
     """
@@ -83,21 +83,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Paw Control from a config entry.
-    
+
     This function orchestrates the complete initialization of the integration:
     1. Initializes the data coordinator for state management
     2. Sets up GPS tracking and geofencing
     3. Configures notification routing and scheduling
     4. Registers devices and forwards platform setups
     5. Performs initial data synchronization
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry for this integration instance
-        
+
     Returns:
         True if setup succeeded
-        
+
     Raises:
         ConfigEntryNotReady: If coordinator fails initial data refresh
     """
@@ -119,14 +119,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize GPS handler with configuration validation
     gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
     gps_handler_obj.entry_id = entry.entry_id
-    
+
     try:
         await gps_handler_obj.async_setup()
     except Exception as err:
         _LOGGER.error(
-            "Failed to setup GPS handler for entry %s: %s",
-            entry.entry_id, 
-            err
+            "Failed to setup GPS handler for entry %s: %s", entry.entry_id, err
         )
         raise ConfigEntryNotReady from err
 
@@ -244,17 +242,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry.
-    
+
     This function performs cleanup in reverse order of setup:
     1. Cleanup schedulers and background tasks
     2. Unload all platform integrations
     3. Unregister services if this is the last entry
     4. Clean up stored data
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry to unload
-        
+
     Returns:
         True if unload succeeded, False otherwise
     """
@@ -304,13 +302,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options for the config entry.
-    
+
     This function handles configuration changes without requiring a full reload:
     1. Updates coordinator with new options
     2. Reschedules background tasks with new timings
     3. Resyncs all helper modules and entities
     4. Refreshes coordinator data
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry with updated options
@@ -346,10 +344,10 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle removal of a config entry.
-    
+
     This function performs comprehensive cleanup when an integration
     instance is being permanently removed from Home Assistant.
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry being removed
@@ -387,15 +385,15 @@ async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: ConfigEntry, device: dr.DeviceEntry
 ) -> bool:
     """Allow removing a device from the device registry.
-    
+
     This function determines if a device can be safely removed and
     performs necessary cleanup of internal state.
-    
+
     Args:
-        hass: Home Assistant instance  
+        hass: Home Assistant instance
         entry: The config entry the device belongs to
         device: The device entry to potentially remove
-        
+
     Returns:
         True if the device can be removed, False otherwise
     """
@@ -429,11 +427,11 @@ async def async_remove_config_entry_device(
 
 async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Register devices for each configured dog.
-    
+
     Creates a device entry in Home Assistant's device registry for each
     dog configured in the integration. This enables proper device tracking
     and organization in the UI.
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry containing dog configurations
@@ -471,16 +469,16 @@ async def _auto_prune_devices(
     hass: HomeAssistant, entry: ConfigEntry, *, auto: bool
 ) -> int:
     """Remove or report stale devices that are no longer known by the coordinator.
-    
+
     This function identifies devices that exist in the device registry but
     are no longer known to the coordinator (e.g., after removing a dog
     from configuration).
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry to check devices for
         auto: If True, automatically remove stale devices. If False, create repair issue
-        
+
     Returns:
         Number of stale devices found (removed if auto=True)
     """
@@ -529,7 +527,7 @@ async def _auto_prune_devices(
                         dev.name,
                         err,
                     )
-        
+
         # Clean up repair issue since we handled it
         ir.async_delete_issue(hass, DOMAIN, "stale_devices")
         return removed
@@ -554,38 +552,38 @@ async def _auto_prune_devices(
 
 def _get_known_dog_ids(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
     """Get known dog IDs from coordinator.
-    
+
     Extracts the set of dog IDs that are currently known to the coordinator.
     This is used to identify stale devices.
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry to get dog IDs for
-        
+
     Returns:
         Set of known dog IDs
     """
     runtime_data = entry.runtime_data
     if not runtime_data:
         return set()
-        
+
     coordinator = getattr(runtime_data, "coordinator", None)
     if not coordinator:
         return set()
-        
+
     dog_data = getattr(coordinator, "_dog_data", {})
     if isinstance(dog_data, dict):
         return set(dog_data.keys())
-    
+
     return set()
 
 
 def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Create a Repairs issue if geofence settings look invalid.
-    
+
     Validates geofence configuration and creates repair issues for
     common configuration errors to help users correct their settings.
-    
+
     Args:
         hass: Home Assistant instance
         entry: The config entry to validate geofence settings for
@@ -598,21 +596,21 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     lon = geo.get("lon")
 
     invalid = False
-    
+
     # Validate radius
     if radius is not None and (not isinstance(radius, int | float) or radius <= 0):
         invalid = True
-        
+
     # Validate coordinate pair consistency
     if (lat is None) != (lon is None):
         invalid = True
-        
+
     # Validate latitude range
     if lat is not None and (
         not isinstance(lat, int | float) or not -90 <= float(lat) <= 90
     ):
         invalid = True
-        
+
     # Validate longitude range
     if lon is not None and (
         not isinstance(lon, int | float) or not -180 <= float(lon) <= 180
