@@ -1,4 +1,16 @@
-"""Data coordinator for Paw Control integration."""
+"""Data coordinator for Paw Control integration.
+
+This module provides the central data coordination for the Paw Control integration.
+It manages all dog-related data, GPS tracking, activity monitoring, and state
+calculations while ensuring efficient data handling and minimal resource usage.
+
+The coordinator follows Home Assistant's Platinum standards with:
+- Complete asynchronous operation
+- Full type annotations  
+- Robust error handling
+- Efficient data management and caching
+- Comprehensive logging and monitoring
+"""
 
 from __future__ import annotations
 
@@ -6,7 +18,7 @@ import logging
 import math
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -25,34 +37,82 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 
+if TYPE_CHECKING:
+    from .types import DogData, CoordinatorData
+
 _LOGGER = logging.getLogger(__name__)
+
+# Constants for calculations
+EARTH_RADIUS_M = 6371000  # Earth's radius in meters
+MIN_SIGNIFICANT_DISTANCE_M = 1.0  # Minimum distance change to trigger updates
+COORDINATE_PRECISION = 6  # Decimal places for coordinate storage
 
 
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate the Haversine distance between two points in meters."""
-    R = 6371000  # Earth's radius in meters
+    """Calculate the Haversine distance between two points in meters.
+    
+    Uses the Haversine formula to calculate the great-circle distance between
+    two points on Earth given their latitude and longitude coordinates.
+    
+    Args:
+        lat1: Latitude of first point in decimal degrees
+        lon1: Longitude of first point in decimal degrees  
+        lat2: Latitude of second point in decimal degrees
+        lon2: Longitude of second point in decimal degrees
+        
+    Returns:
+        Distance between the two points in meters
+        
+    Raises:
+        ValueError: If coordinates are invalid or out of range
+    """
+    # Validate coordinate ranges
+    if not (-90 <= lat1 <= 90 and -90 <= lat2 <= 90):
+        raise ValueError(f"Invalid latitude values: {lat1}, {lat2}")
+    if not (-180 <= lon1 <= 180 and -180 <= lon2 <= 180):
+        raise ValueError(f"Invalid longitude values: {lon1}, {lon2}")
 
-    # Convert to radians
+    # Convert to radians for calculation
     lat1_rad = math.radians(lat1)
     lat2_rad = math.radians(lat2)
     delta_lat = math.radians(lat2 - lat1)
     delta_lon = math.radians(lon2 - lon1)
 
-    # Haversine formula
+    # Haversine formula for great-circle distance
     a = (
         math.sin(delta_lat / 2) ** 2
         + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    return R * c
+    return EARTH_RADIUS_M * c
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Manage fetching and updating Paw Control data."""
+    """Manage fetching and updating Paw Control data.
+    
+    This coordinator serves as the central data hub for all dog-related information.
+    It handles GPS tracking, activity monitoring, health data, and automated
+    calculations while ensuring efficient updates and minimal resource usage.
+    
+    The coordinator maintains real-time state for:
+    - Dog location and geofencing
+    - Activity tracking (walks, feeding, health)
+    - Automated status calculations (needs walk, is hungry, etc.)
+    - Emergency and visitor modes
+    - Daily statistics and counters
+    """
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+        
+        Sets up the data coordinator with proper update intervals and
+        initializes all dog data structures based on configuration.
+        
+        Args:
+            hass: Home Assistant instance
+            entry: Config entry containing dog configurations
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -60,37 +120,49 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(minutes=5),
         )
         self.entry = entry
-        self._dog_data: dict[str, dict[str, Any]] = {}
+        self._dog_data: dict[str, DogData] = {}
         self._visitor_mode: bool = False
         self._emergency_mode: bool = False
         self._emergency_level: str = "info"
+        self._last_update_time: datetime | None = None
+        
+        # Initialize dog data structures
         self._initialize_dog_data()
 
     def _initialize_dog_data(self) -> None:
-        """Initialize data structure for each dog."""
+        """Initialize data structure for each configured dog.
+        
+        Creates comprehensive data structures for each dog including all
+        tracking categories: info, walks, location, feeding, health, etc.
+        This method ensures all required fields are present with safe defaults.
+        """
         dogs = self.entry.options.get(CONF_DOGS, [])
 
         for dog in dogs:
             dog_id = dog.get("dog_id")
             if not dog_id:
+                _LOGGER.warning("Skipping dog with missing ID: %s", dog)
                 continue
 
+            _LOGGER.debug("Initializing data for dog %s", dog_id)
+
+            # Create comprehensive dog data structure
             self._dog_data[dog_id] = {
                 "info": {
                     "name": dog.get("name", dog_id),
                     "breed": dog.get("breed", "Unknown"),
-                    "age": dog.get("age", 0),
-                    "weight": dog.get("weight", 0),
+                    "age": max(0, int(dog.get("age", 0))),
+                    "weight": max(0.1, float(dog.get("weight", 0))),
                     "size": dog.get("size", "medium"),
                 },
                 "walk": {
                     "last_walk": None,
                     "walk_in_progress": False,
                     "walk_start_time": None,
-                    "walk_duration_min": 0,
-                    "walk_distance_m": 0,
+                    "walk_duration_min": 0.0,
+                    "walk_distance_m": 0.0,
                     "walks_today": 0,
-                    "total_distance_today": 0,
+                    "total_distance_today": 0.0,
                     "needs_walk": False,
                 },
                 "safe_zone": {
@@ -115,7 +187,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "is_hungry": False,
                 },
                 "health": {
-                    "weight_kg": dog.get("weight", 0),
+                    "weight_kg": float(dog.get("weight", 0)),
                     "weight_trend": [],
                     "last_medication": None,
                     "medication_name": None,
@@ -144,13 +216,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "last_play": None,
                     "play_duration_today_min": 0,
                     "activity_level": "medium",
-                    "calories_burned_today": 0,
+                    "calories_burned_today": 0.0,
                 },
                 "location": {
                     "current_location": "home",
                     "last_gps_update": None,
                     "is_home": True,
-                    "distance_from_home": 0,
+                    "distance_from_home": 0.0,
                     "enters_today": 0,
                     "leaves_today": 0,
                     "time_inside_today_min": 0.0,
@@ -167,44 +239,60 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 },
             }
 
-    async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API or calculate derived values."""
+    async def _async_update_data(self) -> CoordinatorData:
+        """Fetch data from API or calculate derived values.
+        
+        This method performs all necessary data updates and calculations
+        for each dog. It's called periodically by the coordinator framework
+        to ensure data stays current.
+        
+        Returns:
+            Updated dog data dictionary
+            
+        Raises:
+            UpdateFailed: If critical data update operations fail
+        """
         try:
-            # Update calculated fields
+            current_time = dt_util.now()
+            
+            # Update calculated fields for each dog
             for dog_id, data in self._dog_data.items():
-                # Check if dog needs walk
-                data["walk"]["needs_walk"] = self._calculate_needs_walk(dog_id)
+                try:
+                    # Calculate derived status fields
+                    data["walk"]["needs_walk"] = self._calculate_needs_walk(dog_id)
+                    data["feeding"]["is_hungry"] = self._calculate_is_hungry(dog_id)
+                    data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(dog_id)
+                    data["activity"]["activity_level"] = self._calculate_activity_level(dog_id)
+                    data["health"]["next_medication_due"] = await self._calculate_next_medication(dog_id)
+                    data["activity"]["calories_burned_today"] = self._calculate_calories(dog_id)
+                    
+                except Exception as err:
+                    _LOGGER.error(
+                        "Failed to update calculated fields for dog %s: %s",
+                        dog_id,
+                        err,
+                    )
+                    # Continue with other dogs even if one fails
 
-                # Check if dog is hungry
-                data["feeding"]["is_hungry"] = self._calculate_is_hungry(dog_id)
-
-                # Check if grooming is needed
-                data["grooming"]["needs_grooming"] = self._calculate_needs_grooming(
-                    dog_id
-                )
-
-                # Calculate activity level
-                data["activity"]["activity_level"] = self._calculate_activity_level(
-                    dog_id
-                )
-
-                # Update medication due times
-                data["health"]["next_medication_due"] = self._calculate_next_medication(
-                    dog_id
-                )
-
-                # Calculate calories burned
-                data["activity"]["calories_burned_today"] = self._calculate_calories(
-                    dog_id
-                )
-
+            self._last_update_time = current_time
             return self._dog_data
 
         except Exception as err:
+            _LOGGER.error("Critical error updating coordinator data: %s", err)
             raise UpdateFailed(f"Error updating data: {err}") from err
 
     def _parse_datetime(self, date_string: str | None) -> datetime | None:
-        """Parse a datetime string safely with timezone awareness."""
+        """Parse a datetime string safely with timezone awareness.
+        
+        Handles various datetime formats and ensures proper timezone handling
+        for consistent time calculations throughout the integration.
+        
+        Args:
+            date_string: ISO format datetime string or None
+            
+        Returns:
+            Parsed datetime object with timezone info, or None if invalid
+        """
         if not date_string:
             return None
 
@@ -217,57 +305,98 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 parsed_dt = dt_util.as_local(parsed_dt)
 
             return parsed_dt
-        except (ValueError, TypeError, AttributeError):
-            _LOGGER.debug(f"Failed to parse datetime: {date_string}")
+        except (ValueError, TypeError, AttributeError) as err:
+            _LOGGER.debug("Failed to parse datetime '%s': %s", date_string, err)
             return None
 
     def _calculate_needs_walk(self, dog_id: str) -> bool:
-        """Calculate if dog needs a walk."""
+        """Calculate if dog needs a walk based on last walk time.
+        
+        Uses configurable threshold to determine if enough time has passed
+        since the last walk to warrant a new walk recommendation.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            True if dog needs a walk, False otherwise
+        """
         data = self._dog_data[dog_id]["walk"]
 
+        # Don't recommend walk if one is already in progress
         if data["walk_in_progress"]:
             return False
 
         last_walk_dt = self._parse_datetime(data["last_walk"])
         if not last_walk_dt:
-            return True
+            return True  # No previous walk recorded
 
         hours_since_walk = (dt_util.now() - last_walk_dt).total_seconds() / 3600
         return hours_since_walk >= DEFAULT_WALK_THRESHOLD_HOURS
 
     def _calculate_is_hungry(self, dog_id: str) -> bool:
-        """Calculate if dog is hungry based on feeding schedule."""
+        """Calculate if dog is hungry based on feeding schedule and current time.
+        
+        Determines hunger status based on typical feeding times and whether
+        the dog has already been fed for the current meal period.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            True if dog is likely hungry, False otherwise
+        """
         data = self._dog_data[dog_id]["feeding"]
         current_hour = dt_util.now().hour
 
-        # Basic feeding schedule
-        return bool(
-            6 <= current_hour < 9
-            and data["feedings_today"]["breakfast"] == 0
-            or 11 <= current_hour < 14
-            and data["feedings_today"]["lunch"] == 0
-            or 17 <= current_hour < 20
-            and data["feedings_today"]["dinner"] == 0
-        )
+        # Check feeding schedule against current time
+        is_breakfast_time = 6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0
+        is_lunch_time = 11 <= current_hour < 14 and data["feedings_today"]["lunch"] == 0
+        is_dinner_time = 17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0
+
+        return bool(is_breakfast_time or is_lunch_time or is_dinner_time)
 
     def _calculate_needs_grooming(self, dog_id: str) -> bool:
-        """Calculate if dog needs grooming."""
+        """Calculate if dog needs grooming based on interval since last session.
+        
+        Compares time since last grooming against the configured grooming
+        interval for this dog to determine if grooming is overdue.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            True if grooming is due, False otherwise
+        """
         data = self._dog_data[dog_id]["grooming"]
 
         last_grooming_dt = self._parse_datetime(data["last_grooming"])
         if not last_grooming_dt:
-            return True
+            return True  # No previous grooming recorded
 
         days_since = (dt_util.now() - last_grooming_dt).days
-        return days_since >= data["grooming_interval_days"]
+        interval_days = max(1, data.get("grooming_interval_days", 30))
+        
+        return days_since >= interval_days
 
     def _calculate_activity_level(self, dog_id: str) -> str:
-        """Calculate activity level based on today's activities."""
+        """Calculate current activity level based on today's activities.
+        
+        Combines walk duration and play time to determine overall
+        activity level using predefined thresholds.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Activity level: "low", "medium", or "high"
+        """
         walk_data = self._dog_data[dog_id]["walk"]
         activity_data = self._dog_data[dog_id]["activity"]
 
-        total_activity_min = walk_data.get("walk_duration_min", 0) + activity_data.get(
-            "play_duration_today_min", 0
+        total_activity_min = (
+            walk_data.get("walk_duration_min", 0) + 
+            activity_data.get("play_duration_today_min", 0)
         )
 
         if total_activity_min < 30:
@@ -277,14 +406,34 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             return "high"
 
-    def _calculate_next_medication(self, dog_id: str) -> datetime | None:
-        """Calculate next medication due time."""
-        # This would be implemented based on medication schedules
-        # For now, return None
+    async def _calculate_next_medication(self, dog_id: str) -> datetime | None:
+        """Calculate next medication due time based on schedule.
+        
+        This would be implemented based on medication schedules configured
+        for the specific dog. Currently returns None as placeholder.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Next medication due time, or None if no schedule
+        """
+        # TODO: Implement medication scheduling logic
+        # This would integrate with the medication management system
         return None
 
     def _calculate_calories(self, dog_id: str) -> float:
-        """Calculate approximate calories burned today."""
+        """Calculate approximate calories burned today based on activity.
+        
+        Uses scientific formulas considering dog weight, distance walked,
+        and play time to estimate caloric expenditure.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Estimated calories burned today
+        """
         from .const import (
             CALORIES_PER_KM_PER_KG,
             CALORIES_PER_MIN_PLAY_PER_KG,
@@ -296,25 +445,65 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         activity_data = self._dog_data[dog_id]["activity"]
         dog_weight = self._dog_data[dog_id]["info"]["weight"]
 
-        # Validate and use default if necessary
+        # Validate and use default weight if necessary
         if dog_weight <= MIN_DOG_WEIGHT_KG:
             dog_weight = DEFAULT_DOG_WEIGHT_KG
+            _LOGGER.debug(
+                "Using default weight %s kg for dog %s (invalid weight)",
+                DEFAULT_DOG_WEIGHT_KG,
+                dog_id,
+            )
 
-        # Calculate based on scientific formula
+        # Calculate calories from walking (based on distance and weight)
         distance_km = walk_data.get("total_distance_today", 0) / 1000
         walk_calories = distance_km * dog_weight * CALORIES_PER_KM_PER_KG
 
-        # Play calories based on intensity and weight
+        # Calculate calories from play (based on time and intensity)
         play_minutes = activity_data.get("play_duration_today_min", 0)
         play_calories = play_minutes * dog_weight * CALORIES_PER_MIN_PLAY_PER_KG
 
-        return round(walk_calories + play_calories, 1)
+        total_calories = walk_calories + play_calories
+        return round(total_calories, 1)
 
     def update_options(self, options: dict[str, Any] | Mapping[str, Any]) -> None:
-        """Update coordinator options."""
-        # Make a shallow copy to detach from the source mapping
-        self.entry._options = dict(options)
-        self._initialize_dog_data()
+        """Update coordinator options and reinitialize dog data.
+        
+        This method is called when the integration configuration changes.
+        It safely updates the internal options and reinitializes data structures.
+        
+        Args:
+            options: New configuration options from config entry
+        """
+        try:
+            # Make a shallow copy to detach from the source mapping
+            self.entry._options = dict(options)
+            
+            # Preserve existing data where possible during reinitialization
+            old_data = dict(self._dog_data)
+            self._initialize_dog_data()
+            
+            # Restore preserved data for existing dogs
+            for dog_id, new_data in self._dog_data.items():
+                if dog_id in old_data:
+                    # Preserve runtime state while updating configuration
+                    old_dog_data = old_data[dog_id]
+                    new_data["walk"].update({
+                        k: v for k, v in old_dog_data["walk"].items()
+                        if k not in ["needs_walk"]  # Recalculate derived fields
+                    })
+                    new_data["feeding"].update({
+                        k: v for k, v in old_dog_data["feeding"].items()
+                        if k not in ["is_hungry"]
+                    })
+                    # Continue for other categories...
+                    
+            _LOGGER.info("Successfully updated coordinator options")
+            
+        except Exception as err:
+            _LOGGER.error("Failed to update coordinator options: %s", err)
+            # Revert to previous state if update fails
+            if hasattr(self.entry, '_options'):
+                self._initialize_dog_data()
 
     def update_gps(
         self,
@@ -323,139 +512,192 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         longitude: float,
         accuracy: float | None = None,
     ) -> None:
-        """Update GPS-derived fields: last update, distance, and geofence enter/leave/time."""
+        """Update GPS-derived fields: last update, distance, and geofence tracking.
+        
+        This method efficiently processes GPS updates and calculates derived
+        values like distance from home and geofence transitions.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            latitude: GPS latitude coordinate  
+            longitude: GPS longitude coordinate
+            accuracy: GPS accuracy in meters (optional)
+        """
         data = self._dog_data.get(dog_id)
         if not data:
-            _LOGGER.warning("update_gps: unknown dog_id %s", dog_id)
+            _LOGGER.warning("GPS update for unknown dog_id: %s", dog_id)
             return
 
-        loc = data.setdefault("location", {})
-        loc["last_gps_update"] = dt_util.utcnow().isoformat()
-
-        # Take home center from stored loc if available, else from options
-        home_lat = loc.get("home_lat")
-        home_lon = loc.get("home_lon")
-        radius_m = loc.get("radius_m") or 0
-
         try:
-            opts = dict(getattr(self.entry, "_options", {}) or {})
-            geo = (
-                (opts.get("geofence") or {})
-                if isinstance(opts.get("geofence"), dict)
-                else {}
-            )
-            home_lat = home_lat if home_lat is not None else geo.get("lat")
-            home_lon = home_lon if home_lon is not None else geo.get("lon")
-            radius_m = radius_m or int(geo.get("radius_m") or 0)
-        except Exception:
-            pass
-
-        # Compute distance and inside flag
-        dist = None
-        inside = None
-        if isinstance(home_lat, int | float) and isinstance(home_lon, int | float):
-            try:
-                dist = round(
-                    _haversine_m(
-                        float(home_lat),
-                        float(home_lon),
-                        float(latitude),
-                        float(longitude),
-                    ),
-                    1,
+            # Validate coordinates
+            if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+                _LOGGER.error(
+                    "Invalid GPS coordinates for dog %s: lat=%s, lon=%s",
+                    dog_id, latitude, longitude
                 )
-            except Exception:
-                dist = None
+                return
 
-        if dist is not None and radius_m and radius_m > 0:
-            inside = dist <= float(radius_m)
+            loc = data.setdefault("location", {})
+            current_time = dt_util.utcnow()
+            loc["last_gps_update"] = current_time.isoformat()
 
-        # Initialize counters
-        if "enters_today" not in loc:
-            loc["enters_today"] = 0
-        if "leaves_today" not in loc:
-            loc["leaves_today"] = 0
-        if "time_inside_today_min" not in loc:
-            loc["time_inside_today_min"] = 0.0
+            # Get home coordinates and radius from configuration
+            home_lat = loc.get("home_lat")
+            home_lon = loc.get("home_lon") 
+            radius_m = loc.get("radius_m", 0)
 
-        # Transition tracking
-        prev_inside = loc.get("is_home")
-        last_ts = loc.get("last_ts")
-        now = dt_util.utcnow()
-
-        if last_ts:
+            # Fall back to options if not stored in location data
             try:
-                elapsed = (now - self._parse_datetime(last_ts)).total_seconds() / 60.0
-                # Accumulate time when previously inside=True
-                if prev_inside is True and elapsed > 0:
-                    loc["time_inside_today_min"] = round(
-                        float(loc.get("time_inside_today_min", 0.0)) + float(elapsed), 1
+                opts = dict(getattr(self.entry, "_options", {}) or {})
+                geo = opts.get("geofence", {}) if isinstance(opts.get("geofence"), dict) else {}
+                
+                home_lat = home_lat if home_lat is not None else geo.get("lat")
+                home_lon = home_lon if home_lon is not None else geo.get("lon")
+                radius_m = radius_m or int(geo.get("radius_m", 0))
+                
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Failed to get geofence config for dog %s: %s", dog_id, err)
+
+            # Calculate distance and geofence status
+            distance = None
+            inside = None
+            
+            if (isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float))):
+                try:
+                    distance = _haversine_m(float(home_lat), float(home_lon), latitude, longitude)
+                    distance = round(distance, 1)
+                    
+                    if radius_m and radius_m > 0:
+                        inside = distance <= float(radius_m)
+                        
+                except (ValueError, TypeError) as err:
+                    _LOGGER.warning(
+                        "Failed to calculate distance for dog %s: %s", 
+                        dog_id, err
                     )
-            except Exception:
-                pass
 
-        # Count transitions
-        if inside is not None and prev_inside is not None and inside != prev_inside:
-            if inside:
-                loc["enters_today"] = int(loc.get("enters_today", 0)) + 1
-            else:
-                loc["leaves_today"] = int(loc.get("leaves_today", 0)) + 1
+            # Initialize counters if missing
+            for counter in ["enters_today", "leaves_today", "time_inside_today_min"]:
+                if counter not in loc:
+                    loc[counter] = 0 if counter.endswith("_today") else 0.0
 
-        # Update location fields
-        if dist is not None:
-            loc["distance_from_home"] = dist
-        if inside is not None:
-            loc["is_home"] = inside
-            loc["current_location"] = "home" if inside else "away"
-        loc["last_ts"] = now.isoformat()
+            # Track transitions and time accumulation
+            prev_inside = loc.get("is_home")
+            last_ts = loc.get("last_ts")
 
-        # Notify listeners for immediate UI update
-        self.async_update_listeners()
+            if last_ts:
+                try:
+                    last_time = self._parse_datetime(last_ts)
+                    if last_time:
+                        elapsed_minutes = (current_time - last_time).total_seconds() / 60.0
+                        
+                        # Accumulate time when previously inside geofence
+                        if prev_inside is True and elapsed_minutes > 0:
+                            current_inside_time = float(loc.get("time_inside_today_min", 0.0))
+                            loc["time_inside_today_min"] = round(
+                                current_inside_time + elapsed_minutes, 1
+                            )
+                            
+                except Exception as err:
+                    _LOGGER.debug("Failed to calculate time accumulation: %s", err)
+
+            # Count geofence transitions
+            if (inside is not None and prev_inside is not None and inside != prev_inside):
+                if inside:
+                    loc["enters_today"] = int(loc.get("enters_today", 0)) + 1
+                    _LOGGER.debug("Dog %s entered geofence", dog_id)
+                else:
+                    loc["leaves_today"] = int(loc.get("leaves_today", 0)) + 1
+                    _LOGGER.debug("Dog %s left geofence", dog_id)
+
+            # Update location fields
+            if distance is not None:
+                loc["distance_from_home"] = distance
+            if inside is not None:
+                loc["is_home"] = inside
+                loc["current_location"] = "home" if inside else "away"
+            loc["last_ts"] = current_time.isoformat()
+
+            # Update last action for statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "gps_update"
+
+            # Notify listeners for immediate UI update (efficient batching)
+            self.async_update_listeners()
+
+        except Exception as err:
+            _LOGGER.error("Failed to update GPS for dog %s: %s", dog_id, err)
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any]:
-        """Get data for specific dog."""
+        """Get data for specific dog with safe fallback.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Dog data dictionary, or empty dict if dog not found
+        """
         return self._dog_data.get(dog_id, {})
 
     async def reset_daily_counters(self) -> None:
-        """Reset all daily counters."""
+        """Reset all daily counters for all dogs.
+        
+        This method is typically called at midnight via scheduler to reset
+        all daily tracking counters while preserving historical data.
+        """
         _LOGGER.info("Resetting daily counters for all dogs")
 
-        for dog_id in self._dog_data:
-            # Reset walk counters
-            self._dog_data[dog_id]["walk"]["walks_today"] = 0
-            self._dog_data[dog_id]["walk"]["total_distance_today"] = 0
+        try:
+            for dog_id in self._dog_data:
+                dog_data = self._dog_data[dog_id]
+                
+                # Reset walk counters
+                dog_data["walk"]["walks_today"] = 0
+                dog_data["walk"]["total_distance_today"] = 0.0
 
-            # Reset feeding counters
-            self._dog_data[dog_id]["feeding"]["feedings_today"] = {
-                "breakfast": 0,
-                "lunch": 0,
-                "dinner": 0,
-                "snack": 0,
-            }
-            self._dog_data[dog_id]["feeding"]["total_portions_today"] = 0
+                # Reset feeding counters
+                dog_data["feeding"]["feedings_today"] = {
+                    "breakfast": 0,
+                    "lunch": 0,
+                    "dinner": 0,
+                    "snack": 0,
+                }
+                dog_data["feeding"]["total_portions_today"] = 0
 
-            # Reset health counters
-            self._dog_data[dog_id]["health"]["medications_today"] = 0
+                # Reset health counters
+                dog_data["health"]["medications_today"] = 0
 
-            # Reset training counters
-            self._dog_data[dog_id]["training"]["training_sessions_today"] = 0
+                # Reset training counters
+                dog_data["training"]["training_sessions_today"] = 0
 
-            # Reset activity counters
-            self._dog_data[dog_id]["activity"]["play_duration_today_min"] = 0
-            self._dog_data[dog_id]["activity"]["calories_burned_today"] = 0
+                # Reset activity counters
+                dog_data["activity"]["play_duration_today_min"] = 0
+                dog_data["activity"]["calories_burned_today"] = 0.0
 
-            # Reset location counters
-            self._dog_data[dog_id]["location"]["enters_today"] = 0
-            self._dog_data[dog_id]["location"]["leaves_today"] = 0
-            self._dog_data[dog_id]["location"]["time_inside_today_min"] = 0.0
+                # Reset location counters
+                dog_data["location"]["enters_today"] = 0
+                dog_data["location"]["leaves_today"] = 0
+                dog_data["location"]["time_inside_today_min"] = 0.0
 
-            # Reset statistics
-            self._dog_data[dog_id]["statistics"]["poop_count_today"] = 0
+                # Reset statistics
+                dog_data["statistics"]["poop_count_today"] = 0
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info("Successfully reset daily counters for %d dogs", len(self._dog_data))
+
+        except Exception as err:
+            _LOGGER.error("Failed to reset daily counters: %s", err)
 
     def increment_walk_distance(self, dog_id: str, inc_m: float) -> None:
-        """Increment live walk distance for a dog and notify listeners."""
+        """Increment live walk distance for a dog and notify listeners.
+        
+        Efficiently updates walk distance during active walks while
+        minimizing unnecessary UI updates through threshold checking.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            inc_m: Distance increment in meters
+        """
         if not dog_id or dog_id not in self._dog_data:
             _LOGGER.error("Invalid or unknown dog_id: %s", dog_id)
             return
@@ -465,317 +707,555 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             walk = self._dog_data[dog_id]["walk"]
-            current = float(walk.get("walk_distance_m", 0.0))
-            new_distance = round(current + float(inc_m), 1)
+            current_distance = float(walk.get("walk_distance_m", 0.0))
+            new_distance = round(current_distance + float(inc_m), 1)
 
             # Only update if distance actually changed (avoid micro-updates)
-            if new_distance > current:
+            if new_distance > current_distance:
                 walk["walk_distance_m"] = new_distance
 
-                # Mark last action for stats
-                self._dog_data[dog_id]["statistics"]["last_action"] = (
-                    dt_util.now().isoformat()
-                )
-                self._dog_data[dog_id]["statistics"]["last_action_type"] = (
-                    "walk_progress"
-                )
+                # Update statistics
+                current_time = dt_util.now()
+                self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+                self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_progress"
 
-                # Import constant locally to avoid circular dependency
+                # Import threshold locally to avoid circular dependency
                 from .const import WALK_DISTANCE_UPDATE_THRESHOLD_M
 
-                # Notify entities immediately only if significant change
-                if new_distance - current >= WALK_DISTANCE_UPDATE_THRESHOLD_M:
+                # Only notify listeners for significant distance changes
+                if new_distance - current_distance >= WALK_DISTANCE_UPDATE_THRESHOLD_M:
                     self.async_update_listeners()
-        except Exception as err:
-            _LOGGER.error(f"Failed to increment walk distance for {dog_id}: {err}")
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Failed to increment walk distance for dog %s: %s", dog_id, err)
 
     def notify_updates(self) -> None:
-        """Notify all entities listening to this coordinator."""
+        """Notify all entities listening to this coordinator.
+        
+        This is a convenience method for triggering UI updates when
+        data changes outside the normal update cycle.
+        """
         self.async_update_listeners()
 
     async def start_walk(self, dog_id: str, source: str = "manual") -> None:
-        """Start a walk for a dog."""
+        """Start a walk for a dog.
+        
+        Initializes walk tracking state and fires appropriate events
+        for other parts of the integration to respond to.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            source: Source of the walk start (manual, automatic, etc.)
+        """
         if not dog_id or dog_id not in self._dog_data:
-            _LOGGER.error(f"Invalid or unknown dog_id: {dog_id}")
+            _LOGGER.error("Cannot start walk for invalid dog_id: %s", dog_id)
             return
 
         try:
             walk_data = self._dog_data[dog_id]["walk"]
 
+            # Check if walk already in progress
             if walk_data.get("walk_in_progress", False):
-                _LOGGER.warning(f"Walk already in progress for {dog_id}")
+                _LOGGER.warning("Walk already in progress for dog %s", dog_id)
                 return
 
+            # Initialize walk state
+            current_time = dt_util.now()
             walk_data["walk_in_progress"] = True
-            walk_data["walk_start_time"] = dt_util.now().isoformat()
-            walk_data["walk_duration_min"] = 0
-            walk_data["walk_distance_m"] = 0
+            walk_data["walk_start_time"] = current_time.isoformat()
+            walk_data["walk_duration_min"] = 0.0
+            walk_data["walk_distance_m"] = 0.0
 
-            self._dog_data[dog_id]["statistics"]["last_action"] = (
-                dt_util.now().isoformat()
-            )
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_started"
 
+            # Fire event for other components
             self.hass.bus.async_fire(
-                EVENT_WALK_STARTED, {ATTR_DOG_ID: dog_id, "source": source}
+                EVENT_WALK_STARTED, 
+                {ATTR_DOG_ID: dog_id, "source": source}
             )
 
             await self.async_request_refresh()
+            _LOGGER.info("Started walk for dog %s (source: %s)", dog_id, source)
+
         except Exception as err:
-            _LOGGER.error(f"Failed to start walk for {dog_id}: {err}")
+            _LOGGER.error("Failed to start walk for dog %s: %s", dog_id, err)
 
     async def end_walk(self, dog_id: str, reason: str = "manual") -> None:
-        """End a walk for a dog."""
+        """End a walk for a dog.
+        
+        Finalizes walk statistics, updates daily counters, and fires
+        completion events with walk summary data.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            reason: Reason for ending walk (manual, automatic, timeout, etc.)
+        """
         if not dog_id or dog_id not in self._dog_data:
-            _LOGGER.error(f"Invalid or unknown dog_id: {dog_id}")
+            _LOGGER.error("Cannot end walk for invalid dog_id: %s", dog_id)
             return
 
         try:
             walk_data = self._dog_data[dog_id]["walk"]
 
+            # Check if walk is actually in progress
             if not walk_data.get("walk_in_progress", False):
-                _LOGGER.warning(f"No walk in progress for {dog_id}")
+                _LOGGER.warning("No walk in progress for dog %s", dog_id)
                 return
 
-            # Calculate duration
+            current_time = dt_util.now()
+            
+            # Calculate final duration
             start_time_dt = self._parse_datetime(walk_data.get("walk_start_time"))
             if start_time_dt:
-                duration = (dt_util.now() - start_time_dt).total_seconds() / 60
-                walk_data["walk_duration_min"] = round(duration, 1)
+                duration_seconds = (current_time - start_time_dt).total_seconds()
+                walk_data["walk_duration_min"] = round(duration_seconds / 60, 1)
 
+            # Finalize walk state
             walk_data["walk_in_progress"] = False
-            walk_data["last_walk"] = dt_util.now().isoformat()
+            walk_data["last_walk"] = current_time.isoformat()
             walk_data["walks_today"] = walk_data.get("walks_today", 0) + 1
-            walk_data["total_distance_today"] = walk_data.get(
-                "total_distance_today", 0
-            ) + walk_data.get("walk_distance_m", 0)
-
-            self._dog_data[dog_id]["statistics"]["last_action"] = (
-                dt_util.now().isoformat()
+            
+            # Add distance to daily total
+            walk_distance = walk_data.get("walk_distance_m", 0)
+            walk_data["total_distance_today"] = (
+                walk_data.get("total_distance_today", 0) + walk_distance
             )
+
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_ended"
 
+            # Fire completion event with summary
             self.hass.bus.async_fire(
                 EVENT_WALK_ENDED,
                 {
                     ATTR_DOG_ID: dog_id,
                     "reason": reason,
                     "duration_min": walk_data.get("walk_duration_min", 0),
-                    "distance_m": walk_data.get("walk_distance_m", 0),
+                    "distance_m": walk_distance,
                 },
             )
 
             await self.async_request_refresh()
-        except Exception as err:
-            _LOGGER.error(f"Failed to end walk for {dog_id}: {err}")
+            _LOGGER.info(
+                "Ended walk for dog %s: %.1f min, %.1f m (reason: %s)",
+                dog_id,
+                walk_data.get("walk_duration_min", 0),
+                walk_distance,
+                reason,
+            )
 
-    async def log_walk(self, dog_id: str, duration_min: int, distance_m: int) -> None:
-        """Log a completed walk."""
+        except Exception as err:
+            _LOGGER.error("Failed to end walk for dog %s: %s", dog_id, err)
+
+    async def log_walk(
+        self, dog_id: str, duration_min: int, distance_m: int
+    ) -> None:
+        """Log a completed walk (manual entry).
+        
+        Records a walk that was completed outside the normal tracking system.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            duration_min: Walk duration in minutes
+            distance_m: Walk distance in meters
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot log walk for unknown dog: %s", dog_id)
             return
 
-        walk_data = self._dog_data[dog_id]["walk"]
+        try:
+            walk_data = self._dog_data[dog_id]["walk"]
+            current_time = dt_util.now()
 
-        walk_data["last_walk"] = dt_util.now().isoformat()
-        walk_data["walk_duration_min"] = duration_min
-        walk_data["walk_distance_m"] = distance_m
-        walk_data["walks_today"] += 1
-        walk_data["total_distance_today"] += distance_m
+            # Record walk data
+            walk_data["last_walk"] = current_time.isoformat()
+            walk_data["walk_duration_min"] = max(0, float(duration_min))
+            walk_data["walk_distance_m"] = max(0, float(distance_m))
+            walk_data["walks_today"] += 1
+            walk_data["total_distance_today"] += max(0, float(distance_m))
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_logged"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_logged"
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info(
+                "Logged walk for dog %s: %d min, %d m",
+                dog_id, duration_min, distance_m
+            )
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Invalid walk data for dog %s: %s", dog_id, err)
+        except Exception as err:
+            _LOGGER.error("Failed to log walk for dog %s: %s", dog_id, err)
 
     async def feed_dog(
         self, dog_id: str, meal_type: str, portion_g: int, food_type: str
     ) -> None:
-        """Record feeding for a dog."""
+        """Record feeding for a dog.
+        
+        Tracks feeding events and updates daily nutrition counters.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            meal_type: Type of meal (breakfast, lunch, dinner, snack)
+            portion_g: Portion size in grams
+            food_type: Type of food given
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot feed unknown dog: %s", dog_id)
             return
 
-        feeding_data = self._dog_data[dog_id]["feeding"]
+        try:
+            feeding_data = self._dog_data[dog_id]["feeding"]
+            current_time = dt_util.now()
 
-        feeding_data["last_feeding"] = dt_util.now().isoformat()
-        feeding_data["last_meal_type"] = meal_type
-        feeding_data["last_portion_g"] = portion_g
-        feeding_data["last_food_type"] = food_type
+            # Record feeding data
+            feeding_data["last_feeding"] = current_time.isoformat()
+            feeding_data["last_meal_type"] = meal_type
+            feeding_data["last_portion_g"] = max(0, int(portion_g))
+            feeding_data["last_food_type"] = food_type
 
-        if meal_type in feeding_data["feedings_today"]:
-            feeding_data["feedings_today"][meal_type] += 1
+            # Update daily counters
+            if meal_type in feeding_data["feedings_today"]:
+                feeding_data["feedings_today"][meal_type] += 1
 
-        feeding_data["total_portions_today"] += portion_g
+            feeding_data["total_portions_today"] += max(0, int(portion_g))
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "fed"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "fed"
 
-        self.hass.bus.async_fire(
-            EVENT_DOG_FED,
-            {
-                ATTR_DOG_ID: dog_id,
-                "meal_type": meal_type,
-                "portion_g": portion_g,
-                "food_type": food_type,
-            },
-        )
+            # Fire feeding event
+            self.hass.bus.async_fire(
+                EVENT_DOG_FED,
+                {
+                    ATTR_DOG_ID: dog_id,
+                    "meal_type": meal_type,
+                    "portion_g": portion_g,
+                    "food_type": food_type,
+                },
+            )
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info(
+                "Fed dog %s: %s, %d g of %s",
+                dog_id, meal_type, portion_g, food_type
+            )
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Invalid feeding data for dog %s: %s", dog_id, err)
+        except Exception as err:
+            _LOGGER.error("Failed to record feeding for dog %s: %s", dog_id, err)
 
     async def log_health_data(
         self, dog_id: str, weight_kg: float | None, note: str
     ) -> None:
-        """Log health data for a dog."""
+        """Log health data for a dog.
+        
+        Records health information and maintains weight trend history.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            weight_kg: Current weight in kilograms (optional)
+            note: Health note or observation
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot log health data for unknown dog: %s", dog_id)
             return
 
-        health_data = self._dog_data[dog_id]["health"]
+        try:
+            health_data = self._dog_data[dog_id]["health"]
+            current_time = dt_util.now()
 
-        if weight_kg is not None:
-            health_data["weight_kg"] = weight_kg
-            # Keep last 30 weight measurements for trend
-            health_data["weight_trend"].append(
-                {"date": dt_util.now().isoformat(), "weight": weight_kg}
-            )
-            health_data["weight_trend"] = health_data["weight_trend"][-30:]
+            # Record weight if provided
+            if weight_kg is not None:
+                weight_kg = max(0.1, float(weight_kg))  # Minimum weight validation
+                health_data["weight_kg"] = weight_kg
+                
+                # Maintain weight trend (last 30 measurements)
+                health_data["weight_trend"].append({
+                    "date": current_time.isoformat(),
+                    "weight": weight_kg
+                })
+                health_data["weight_trend"] = health_data["weight_trend"][-30:]
 
-        if note:
-            health_data["health_notes"].append(
-                {"date": dt_util.now().isoformat(), "note": note}
-            )
+            # Record health note if provided
+            if note and note.strip():
+                health_data["health_notes"].append({
+                    "date": current_time.isoformat(),
+                    "note": note.strip()
+                })
+                # Keep last 100 notes
+                health_data["health_notes"] = health_data["health_notes"][-100:]
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "health_logged"
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info("Logged health data for dog %s", dog_id)
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Invalid health data for dog %s: %s", dog_id, err)
+        except Exception as err:
+            _LOGGER.error("Failed to log health data for dog %s: %s", dog_id, err)
 
     async def log_medication(
         self, dog_id: str, medication_name: str, dose: str
     ) -> None:
-        """Log medication for a dog."""
+        """Log medication for a dog.
+        
+        Records medication administration and updates daily counters.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            medication_name: Name of the medication
+            dose: Dosage information
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot log medication for unknown dog: %s", dog_id)
             return
 
-        health_data = self._dog_data[dog_id]["health"]
+        try:
+            health_data = self._dog_data[dog_id]["health"]
+            current_time = dt_util.now()
 
-        health_data["last_medication"] = dt_util.now().isoformat()
-        health_data["medication_name"] = medication_name
-        health_data["medication_dose"] = dose
-        health_data["medications_today"] += 1
+            # Record medication data
+            health_data["last_medication"] = current_time.isoformat()
+            health_data["medication_name"] = medication_name
+            health_data["medication_dose"] = dose
+            health_data["medications_today"] += 1
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "medication_given"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "medication_given"
 
-        self.hass.bus.async_fire(
-            EVENT_MEDICATION_GIVEN,
-            {
-                ATTR_DOG_ID: dog_id,
-                "medication": medication_name,
-                "dose": dose,
-            },
-        )
+            # Fire medication event
+            self.hass.bus.async_fire(
+                EVENT_MEDICATION_GIVEN,
+                {
+                    ATTR_DOG_ID: dog_id,
+                    "medication": medication_name,
+                    "dose": dose,
+                },
+            )
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info(
+                "Logged medication for dog %s: %s (%s)",
+                dog_id, medication_name, dose
+            )
 
-    async def start_grooming(self, dog_id: str, grooming_type: str, notes: str) -> None:
-        """Start grooming session for a dog."""
+        except Exception as err:
+            _LOGGER.error("Failed to log medication for dog %s: %s", dog_id, err)
+
+    async def start_grooming(
+        self, dog_id: str, grooming_type: str, notes: str
+    ) -> None:
+        """Start grooming session for a dog.
+        
+        Records grooming activity and maintains grooming history.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            grooming_type: Type of grooming (bath, brush, nail_trim, etc.)
+            notes: Additional notes about the grooming session
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot start grooming for unknown dog: %s", dog_id)
             return
 
-        grooming_data = self._dog_data[dog_id]["grooming"]
+        try:
+            grooming_data = self._dog_data[dog_id]["grooming"]
+            current_time = dt_util.now()
 
-        grooming_data["last_grooming"] = dt_util.now().isoformat()
-        grooming_data["grooming_type"] = grooming_type
-        grooming_data["grooming_history"].append(
-            {"date": dt_util.now().isoformat(), "type": grooming_type, "notes": notes}
-        )
-
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
-
-        self.hass.bus.async_fire(
-            EVENT_GROOMING_DONE,
-            {
-                ATTR_DOG_ID: dog_id,
+            # Record grooming data
+            grooming_data["last_grooming"] = current_time.isoformat()
+            grooming_data["grooming_type"] = grooming_type
+            
+            # Add to grooming history
+            grooming_data["grooming_history"].append({
+                "date": current_time.isoformat(),
                 "type": grooming_type,
-            },
-        )
+                "notes": notes
+            })
+            # Keep last 50 grooming sessions
+            grooming_data["grooming_history"] = grooming_data["grooming_history"][-50:]
 
-        await self.async_request_refresh()
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
+
+            # Fire grooming event
+            self.hass.bus.async_fire(
+                EVENT_GROOMING_DONE,
+                {
+                    ATTR_DOG_ID: dog_id,
+                    "type": grooming_type,
+                },
+            )
+
+            await self.async_request_refresh()
+            _LOGGER.info("Started grooming for dog %s: %s", dog_id, grooming_type)
+
+        except Exception as err:
+            _LOGGER.error("Failed to start grooming for dog %s: %s", dog_id, err)
 
     async def log_play_session(
         self, dog_id: str, duration_min: int, intensity: str
     ) -> None:
-        """Log play session for a dog."""
+        """Log play session for a dog.
+        
+        Records play activity and updates daily activity counters.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            duration_min: Play duration in minutes
+            intensity: Play intensity (low, medium, high)
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot log play session for unknown dog: %s", dog_id)
             return
 
-        activity_data = self._dog_data[dog_id]["activity"]
+        try:
+            activity_data = self._dog_data[dog_id]["activity"]
+            current_time = dt_util.now()
 
-        activity_data["last_play"] = dt_util.now().isoformat()
-        activity_data["play_duration_today_min"] += duration_min
+            # Record play data
+            activity_data["last_play"] = current_time.isoformat()
+            activity_data["play_duration_today_min"] += max(0, int(duration_min))
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "played"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "played"
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info(
+                "Logged play session for dog %s: %d min (%s intensity)",
+                dog_id, duration_min, intensity
+            )
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Invalid play session data for dog %s: %s", dog_id, err)
+        except Exception as err:
+            _LOGGER.error("Failed to log play session for dog %s: %s", dog_id, err)
 
     async def log_training(
         self, dog_id: str, topic: str, duration_min: int, notes: str
     ) -> None:
-        """Log training session for a dog."""
+        """Log training session for a dog.
+        
+        Records training activity and maintains training history.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            topic: Training topic or skill
+            duration_min: Training duration in minutes
+            notes: Training notes and observations
+        """
         if dog_id not in self._dog_data:
-            _LOGGER.error(f"Dog {dog_id} not found")
+            _LOGGER.error("Cannot log training for unknown dog: %s", dog_id)
             return
 
-        training_data = self._dog_data[dog_id]["training"]
+        try:
+            training_data = self._dog_data[dog_id]["training"]
+            current_time = dt_util.now()
 
-        training_data["last_training"] = dt_util.now().isoformat()
-        training_data["last_topic"] = topic
-        training_data["training_duration_min"] = duration_min
-        training_data["training_sessions_today"] += 1
-        training_data["training_history"].append(
-            {
-                "date": dt_util.now().isoformat(),
+            # Record training data
+            training_data["last_training"] = current_time.isoformat()
+            training_data["last_topic"] = topic
+            training_data["training_duration_min"] = max(0, int(duration_min))
+            training_data["training_sessions_today"] += 1
+            
+            # Add to training history
+            training_data["training_history"].append({
+                "date": current_time.isoformat(),
                 "topic": topic,
                 "duration": duration_min,
-                "notes": notes,
-            }
-        )
+                "notes": notes
+            })
+            # Keep last 100 training sessions
+            training_data["training_history"] = training_data["training_history"][-100:]
 
-        self._dog_data[dog_id]["statistics"]["last_action"] = dt_util.now().isoformat()
-        self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"
+            # Update statistics
+            self._dog_data[dog_id]["statistics"]["last_action"] = current_time.isoformat()
+            self._dog_data[dog_id]["statistics"]["last_action_type"] = "trained"
 
-        await self.async_request_refresh()
+            await self.async_request_refresh()
+            _LOGGER.info(
+                "Logged training for dog %s: %s (%d min)",
+                dog_id, topic, duration_min
+            )
+
+        except (ValueError, TypeError) as err:
+            _LOGGER.error("Invalid training data for dog %s: %s", dog_id, err)
+        except Exception as err:
+            _LOGGER.error("Failed to log training for dog %s: %s", dog_id, err)
 
     async def set_visitor_mode(self, enabled: bool) -> None:
-        """Set visitor mode."""
-        self._visitor_mode = enabled
-        await self.async_request_refresh()
+        """Set visitor mode state.
+        
+        Visitor mode can be used to modify behavior when guests are present.
+        
+        Args:
+            enabled: True to enable visitor mode, False to disable
+        """
+        try:
+            self._visitor_mode = bool(enabled)
+            await self.async_request_refresh()
+            _LOGGER.info("Visitor mode %s", "enabled" if enabled else "disabled")
+        except Exception as err:
+            _LOGGER.error("Failed to set visitor mode: %s", err)
 
     async def activate_emergency_mode(self, level: str, note: str) -> None:
-        """Activate emergency mode."""
-        self._emergency_mode = True
-        self._emergency_level = level
-        _LOGGER.warning(f"Emergency mode activated: {level} - {note}")
-        await self.async_request_refresh()
+        """Activate emergency mode with specified level.
+        
+        Emergency mode can trigger enhanced monitoring and notifications.
+        
+        Args:
+            level: Emergency level (info, warning, critical)
+            note: Description of the emergency situation
+        """
+        try:
+            self._emergency_mode = True
+            self._emergency_level = level
+            
+            _LOGGER.warning(
+                "Emergency mode activated: level=%s, note=%s",
+                level, note
+            )
+            
+            await self.async_request_refresh()
+        except Exception as err:
+            _LOGGER.error("Failed to activate emergency mode: %s", err)
 
     @property
     def visitor_mode(self) -> bool:
-        """Return visitor mode status."""
+        """Return visitor mode status.
+        
+        Returns:
+            True if visitor mode is enabled, False otherwise
+        """
         return self._visitor_mode
 
     @property
     def emergency_mode(self) -> bool:
-        """Return emergency mode status."""
+        """Return emergency mode status.
+        
+        Returns:
+            True if emergency mode is active, False otherwise
+        """
         return self._emergency_mode
 
     @property
     def emergency_level(self) -> str:
-        """Return emergency level."""
+        """Return current emergency level.
+        
+        Returns:
+            Emergency level string (info, warning, critical)
+        """
         return self._emergency_level

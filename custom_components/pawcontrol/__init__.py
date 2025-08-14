@@ -1,4 +1,18 @@
-"""The Paw Control integration for Home Assistant."""
+"""The Paw Control integration for Home Assistant.
+
+This integration provides comprehensive smart dog management capabilities including:
+- GPS tracking and geofencing
+- Activity monitoring (walks, feeding, health)
+- Automated notifications and reminders
+- Device discovery and health monitoring
+- Comprehensive reporting and analytics
+
+The integration follows Home Assistant's Platinum quality standards with:
+- Full asynchronous operation
+- Complete type annotations
+- Robust error handling
+- Efficient data management
+"""
 
 from __future__ import annotations
 
@@ -31,9 +45,10 @@ from .const import (
     CONF_DOGS,
     EVENT_DAILY_RESET,
     PLATFORMS,
-    SERVICE_NOTIFY_TEST,
 )
-from .const import DOMAIN as CONST_DOMAIN
+from .const import (
+    DOMAIN as CONST_DOMAIN,
+)
 from .helpers import notification_router as notification_router_mod
 from .helpers import scheduler as scheduler_mod
 from .helpers import setup_sync as setup_sync_mod
@@ -50,45 +65,97 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Paw Control component."""
+    """Set up the Paw Control component.
+    
+    This is called once when Home Assistant starts. It initializes the
+    domain data structure for storing integration instances.
+    
+    Args:
+        hass: Home Assistant instance
+        config: Home Assistant configuration (not used for config_entry_only)
+        
+    Returns:
+        True if setup succeeded, False otherwise
+    """
     hass.data.setdefault(DOMAIN, {})
-
-    async def _placeholder_notify(call: ServiceCall) -> None:
-        """Temporary handler for the notify_test service before entries load."""
-
-    if not hass.services.has_service(DOMAIN, SERVICE_NOTIFY_TEST):
-        hass.services.async_register(DOMAIN, SERVICE_NOTIFY_TEST, _placeholder_notify)
-
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Paw Control from a config entry."""
+    """Set up Paw Control from a config entry.
+    
+    This function orchestrates the complete initialization of the integration:
+    1. Initializes the data coordinator for state management
+    2. Sets up GPS tracking and geofencing
+    3. Configures notification routing and scheduling
+    4. Registers devices and forwards platform setups
+    5. Performs initial data synchronization
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry for this integration instance
+        
+    Returns:
+        True if setup succeeded
+        
+    Raises:
+        ConfigEntryNotReady: If coordinator fails initial data refresh
+    """
     hass.data.setdefault(DOMAIN, {})
 
-    # Initialize coordinator
+    # Initialize coordinator with proper error handling
     coordinator = coordinator_mod.PawControlCoordinator(hass, entry)
 
     try:
         await coordinator.async_config_entry_first_refresh()
     except Exception as err:
+        _LOGGER.error(
+            "Failed to perform initial data refresh for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
         raise ConfigEntryNotReady from err
 
-    # Initialize GPS handler
+    # Initialize GPS handler with configuration validation
     gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
     gps_handler_obj.entry_id = entry.entry_id
-    await gps_handler_obj.async_setup()
+    
+    try:
+        await gps_handler_obj.async_setup()
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to setup GPS handler for entry %s: %s",
+            entry.entry_id, 
+            err
+        )
+        raise ConfigEntryNotReady from err
 
-    # Initialize helpers
-    notification_router = notification_router_mod.NotificationRouter(hass, entry)
-    setup_sync = setup_sync_mod.SetupSync(hass, entry)
-    report_generator = ReportGenerator(hass, entry, coordinator)
+    # Initialize helper modules with error handling
+    try:
+        notification_router = notification_router_mod.NotificationRouter(hass, entry)
+        setup_sync = setup_sync_mod.SetupSync(hass, entry)
+        report_generator = ReportGenerator(hass, entry, coordinator)
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to initialize helper modules for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        raise ConfigEntryNotReady from err
 
-    # Initialize service manager
+    # Initialize service manager with registration
     services = ServiceManager(hass, entry)
-    await services.async_register_services()
+    try:
+        await services.async_register_services()
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to register services for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        raise ConfigEntryNotReady from err
 
-    # Create runtime data
+    # Create runtime data container for efficient access
     runtime_data = PawRuntimeData(
         coordinator=coordinator,
         gps_handler=gps_handler_obj,
@@ -98,97 +165,242 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         notification_router=notification_router,
     )
 
-    # Set runtime data on entry
+    # Set runtime data on entry for platform access
     entry.runtime_data = runtime_data
 
-    # Register devices for each dog
+    # Register devices for each configured dog
     await _register_devices(hass, entry)
 
-    # Setup platforms
+    # Setup platforms with proper error handling
     try:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    except IntegrationNotFound:
-        _LOGGER.warning("Integration not found when forwarding entry setups")
+    except IntegrationNotFound as err:
+        _LOGGER.warning(
+            "Integration not found when forwarding entry setups for %s: %s",
+            entry.entry_id,
+            err,
+        )
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to forward entry setups for %s: %s",
+            entry.entry_id,
+            err,
+        )
+        raise ConfigEntryNotReady from err
 
-    # Setup schedulers (daily reset, reports, reminders)
-    await scheduler_mod.setup_schedulers(hass, entry)
+    # Setup schedulers for automated tasks (daily reset, reports, reminders)
+    try:
+        await scheduler_mod.setup_schedulers(hass, entry)
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to setup schedulers for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        # Non-critical, continue setup
 
-    # Initial sync of helpers and entities
-    await setup_sync.sync_all()
+    # Perform initial synchronization of helpers and entities
+    try:
+        await setup_sync.sync_all()
+    except Exception as err:
+        _LOGGER.warning(
+            "Failed initial sync for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        # Non-critical, continue setup
 
-    # Add update listener
+    # Add update listener for configuration changes
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # Auto-prune stale devices (report or remove based on option)
-    auto = bool(entry.options.get("auto_prune_devices", False))
-    await _auto_prune_devices(hass, entry, auto=auto)
+    # Auto-prune stale devices based on configuration
+    auto_prune = bool(entry.options.get("auto_prune_devices", False))
+    try:
+        removed_count = await _auto_prune_devices(hass, entry, auto=auto_prune)
+        if removed_count > 0:
+            _LOGGER.info(
+                "Auto-pruned %d stale devices for entry %s",
+                removed_count,
+                entry.entry_id,
+            )
+    except Exception as err:
+        _LOGGER.warning(
+            "Failed to auto-prune devices for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        # Non-critical, continue setup
 
-    # Check geofence options
+    # Validate geofence configuration and create repair issues if needed
     _check_geofence_options(hass, entry)
+
+    _LOGGER.info(
+        "Successfully set up Paw Control integration with %d dogs",
+        len(entry.options.get(CONF_DOGS, [])),
+    )
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    # Cleanup schedulers
-    await scheduler_mod.cleanup_schedulers(hass, entry)
+    """Unload a config entry.
+    
+    This function performs cleanup in reverse order of setup:
+    1. Cleanup schedulers and background tasks
+    2. Unload all platform integrations
+    3. Unregister services if this is the last entry
+    4. Clean up stored data
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry to unload
+        
+    Returns:
+        True if unload succeeded, False otherwise
+    """
+    _LOGGER.debug("Starting unload for entry %s", entry.entry_id)
+
+    # Cleanup schedulers first to stop background tasks
+    try:
+        await scheduler_mod.cleanup_schedulers(hass, entry)
+    except Exception as err:
+        _LOGGER.warning(
+            "Failed to cleanup schedulers for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
 
     # Unload platforms
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    try:
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to unload platforms for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        unload_ok = False
 
     if unload_ok:
         # Clean up stored data
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
-        # Unregister services if no more entries
-        if not hass.data[DOMAIN]:
-            await entry.runtime_data.services.async_unregister_services()
+        # Unregister services if no more entries exist
+        if not hass.data[DOMAIN] and hasattr(entry, "runtime_data"):
+            try:
+                await entry.runtime_data.services.async_unregister_services()
+            except Exception as err:
+                _LOGGER.warning(
+                    "Failed to unregister services: %s",
+                    err,
+                )
+
+        _LOGGER.info("Successfully unloaded entry %s", entry.entry_id)
+    else:
+        _LOGGER.error("Failed to unload entry %s", entry.entry_id)
 
     return unload_ok
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Update options."""
+    """Update options for the config entry.
+    
+    This function handles configuration changes without requiring a full reload:
+    1. Updates coordinator with new options
+    2. Reschedules background tasks with new timings
+    3. Resyncs all helper modules and entities
+    4. Refreshes coordinator data
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry with updated options
+    """
+    _LOGGER.debug("Updating options for entry %s", entry.entry_id)
+
     runtime_data = entry.runtime_data
 
-    # Update coordinator with new options
-    runtime_data.coordinator.update_options(entry.options)
+    try:
+        # Update coordinator with new options
+        runtime_data.coordinator.update_options(entry.options)
 
-    # Resync helpers and entities
-    await runtime_data.setup_sync.sync_all()
+        # Resync helpers and entities with new configuration
+        await runtime_data.setup_sync.sync_all()
 
-    # Reschedule tasks with new times
-    await scheduler_mod.cleanup_schedulers(hass, entry)
-    await scheduler_mod.setup_schedulers(hass, entry)
+        # Reschedule tasks with new timing configuration
+        await scheduler_mod.cleanup_schedulers(hass, entry)
+        await scheduler_mod.setup_schedulers(hass, entry)
 
-    # Refresh data
-    await runtime_data.coordinator.async_request_refresh()
+        # Refresh data to apply any new settings
+        await runtime_data.coordinator.async_request_refresh()
+
+        _LOGGER.info("Successfully updated options for entry %s", entry.entry_id)
+
+    except Exception as err:
+        _LOGGER.error(
+            "Failed to update options for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        # Don't raise - partial updates may have succeeded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle removal of a config entry."""
+    """Handle removal of a config entry.
+    
+    This function performs comprehensive cleanup when an integration
+    instance is being permanently removed from Home Assistant.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry being removed
+    """
+    _LOGGER.info("Removing entry %s", entry.entry_id)
+
     try:
         await async_unload_entry(hass, entry)
     except HomeAssistantError as err:
-        _LOGGER.warning("Failed to unload config entry %s: %s", entry.entry_id, err)
+        _LOGGER.warning(
+            "Failed to unload config entry during removal %s: %s",
+            entry.entry_id,
+            err,
+        )
 
-    # Remove entry data
+    # Remove entry data from domain storage
     domain_data = hass.data.get(DOMAIN, {})
     if entry.entry_id in domain_data:
         domain_data.pop(entry.entry_id, None)
 
-    # If domain empty, unregister services
+    # Clean up services if this was the last integration instance
     if not domain_data and hasattr(entry, "runtime_data"):
-        await entry.runtime_data.services.async_unregister_services()
+        try:
+            await entry.runtime_data.services.async_unregister_services()
+        except Exception as err:
+            _LOGGER.warning(
+                "Failed to unregister services during removal: %s",
+                err,
+            )
+
+    _LOGGER.info("Successfully removed entry %s", entry.entry_id)
 
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: ConfigEntry, device: dr.DeviceEntry
 ) -> bool:
-    """Allow removing a device from the device registry."""
+    """Allow removing a device from the device registry.
+    
+    This function determines if a device can be safely removed and
+    performs necessary cleanup of internal state.
+    
+    Args:
+        hass: Home Assistant instance  
+        entry: The config entry the device belongs to
+        device: The device entry to potentially remove
+        
+    Returns:
+        True if the device can be removed, False otherwise
+    """
     # Only allow removal for devices with our DOMAIN identifier
-    dog_id = None
+    dog_id: str | None = None
     if device.identifiers:
         for idt in device.identifiers:
             if idt[0] == DOMAIN:
@@ -196,18 +408,36 @@ async def async_remove_config_entry_device(
                 break
 
     if not dog_id:
+        _LOGGER.debug(
+            "Device %s does not belong to %s domain, denying removal",
+            device.id,
+            DOMAIN,
+        )
         return False
 
     # Cleanup internal caches/state if present
     runtime_data = entry.runtime_data
     if runtime_data and hasattr(runtime_data.coordinator, "_dog_data"):
         runtime_data.coordinator._dog_data.pop(dog_id, None)
+        _LOGGER.info(
+            "Cleaned up coordinator data for removed dog device %s",
+            dog_id,
+        )
 
     return True
 
 
 async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Register devices for each dog."""
+    """Register devices for each configured dog.
+    
+    Creates a device entry in Home Assistant's device registry for each
+    dog configured in the integration. This enables proper device tracking
+    and organization in the UI.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry containing dog configurations
+    """
     device_registry = dr.async_get(hass)
 
     dogs = entry.options.get(CONF_DOGS, [])
@@ -215,29 +445,56 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
         dog_id = dog.get(CONF_DOG_ID)
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
 
-        device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, dog_id)},
-            name=f"🐕 {dog_name}",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-        )
+        if not dog_id:
+            _LOGGER.warning("Skipping dog with missing ID: %s", dog)
+            continue
+
+        try:
+            device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DOMAIN, dog_id)},
+                name=f"🐕 {dog_name}",
+                manufacturer="Paw Control",
+                model="Smart Dog Manager",
+                sw_version="1.1.0",
+            )
+            _LOGGER.debug("Registered device for dog %s (%s)", dog_name, dog_id)
+        except Exception as err:
+            _LOGGER.error(
+                "Failed to register device for dog %s: %s",
+                dog_id,
+                err,
+            )
 
 
 async def _auto_prune_devices(
     hass: HomeAssistant, entry: ConfigEntry, *, auto: bool
 ) -> int:
-    """Remove or report stale devices that are no longer known by the coordinator."""
+    """Remove or report stale devices that are no longer known by the coordinator.
+    
+    This function identifies devices that exist in the device registry but
+    are no longer known to the coordinator (e.g., after removing a dog
+    from configuration).
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry to check devices for
+        auto: If True, automatically remove stale devices. If False, create repair issue
+        
+    Returns:
+        Number of stale devices found (removed if auto=True)
+    """
     dev_reg = dr.async_get(hass)
-    known = _get_known_dog_ids(hass, entry)
+    known_dog_ids = _get_known_dog_ids(hass, entry)
     stale_devices: list[dr.DeviceEntry] = []
 
+    # Find all devices belonging to this config entry
     for dev in list(dev_reg.devices.values()):
         if entry.entry_id not in dev.config_entries:
             continue
 
-        dog_id = None
+        # Extract dog_id from device identifiers
+        dog_id: str | None = None
         if dev.identifiers:
             for idt in dev.identifiers:
                 if idt[0] == DOMAIN:
@@ -247,22 +504,37 @@ async def _auto_prune_devices(
         if not dog_id:
             continue
 
-        if dog_id not in known:
+        # Check if dog_id is still known to coordinator
+        if dog_id not in known_dog_ids:
             stale_devices.append(dev)
 
     if not stale_devices:
+        # No stale devices found, clean up any existing repair issue
         ir.async_delete_issue(hass, DOMAIN, "stale_devices")
         return 0
 
     if auto:
+        # Automatically remove stale devices
         removed = 0
         for dev in stale_devices:
+            # Only remove if device belongs exclusively to this config entry
             if dev.config_entries == {entry.entry_id}:
-                dev_reg.async_remove_device(dev.id)
-                removed += 1
+                try:
+                    dev_reg.async_remove_device(dev.id)
+                    removed += 1
+                    _LOGGER.info("Auto-removed stale device %s", dev.name)
+                except Exception as err:
+                    _LOGGER.error(
+                        "Failed to remove stale device %s: %s",
+                        dev.name,
+                        err,
+                    )
+        
+        # Clean up repair issue since we handled it
         ir.async_delete_issue(hass, DOMAIN, "stale_devices")
         return removed
 
+    # Create repair issue to notify user about stale devices
     try:
         ir.async_create_issue(
             hass,
@@ -275,22 +547,49 @@ async def _auto_prune_devices(
             learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/stale-devices/",
         )
     except HomeAssistantError as err:
-        _LOGGER.warning("Failed to create stale_devices issue: %s", err)
+        _LOGGER.warning("Failed to create stale_devices repair issue: %s", err)
 
     return len(stale_devices)
 
 
 def _get_known_dog_ids(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
-    """Get known dog IDs from coordinator."""
+    """Get known dog IDs from coordinator.
+    
+    Extracts the set of dog IDs that are currently known to the coordinator.
+    This is used to identify stale devices.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry to get dog IDs for
+        
+    Returns:
+        Set of known dog IDs
+    """
     runtime_data = entry.runtime_data
-    dog_data = getattr(getattr(runtime_data, "coordinator", None), "_dog_data", {})
+    if not runtime_data:
+        return set()
+        
+    coordinator = getattr(runtime_data, "coordinator", None)
+    if not coordinator:
+        return set()
+        
+    dog_data = getattr(coordinator, "_dog_data", {})
     if isinstance(dog_data, dict):
-        return set(dog_data)
+        return set(dog_data.keys())
+    
     return set()
 
 
 def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Create a Repairs issue if geofence settings look invalid."""
+    """Create a Repairs issue if geofence settings look invalid.
+    
+    Validates geofence configuration and creates repair issues for
+    common configuration errors to help users correct their settings.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: The config entry to validate geofence settings for
+    """
     opts = entry.options or {}
     geo = opts.get("geofence", {})
 
@@ -299,16 +598,24 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     lon = geo.get("lon")
 
     invalid = False
-    if radius is not None and (not isinstance(radius, int | float) or radius <= 0):
+    
+    # Validate radius
+    if radius is not None and (not isinstance(radius, (int, float)) or radius <= 0):
         invalid = True
+        
+    # Validate coordinate pair consistency
     if (lat is None) != (lon is None):
         invalid = True
+        
+    # Validate latitude range
     if lat is not None and (
-        not isinstance(lat, int | float) or not -90 <= float(lat) <= 90
+        not isinstance(lat, (int, float)) or not -90 <= float(lat) <= 90
     ):
         invalid = True
+        
+    # Validate longitude range
     if lon is not None and (
-        not isinstance(lon, int | float) or not -180 <= float(lon) <= 180
+        not isinstance(lon, (int, float)) or not -180 <= float(lon) <= 180
     ):
         invalid = True
 
@@ -324,6 +631,7 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 learn_more_url="https://developers.home-assistant.io/docs/core/integration-quality-scale/",
             )
         except HomeAssistantError as err:
-            _LOGGER.warning("Failed to create invalid_geofence issue: %s", err)
+            _LOGGER.warning("Failed to create invalid_geofence repair issue: %s", err)
     else:
+        # Configuration is valid, remove any existing repair issue
         ir.async_delete_issue(hass, DOMAIN, "invalid_geofence")
