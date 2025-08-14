@@ -14,7 +14,7 @@ ignore = ["E501"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 fixable = ["ALL"]
 
-#[lint.per-file-ignores]
+[lint.per-file-ignores]
 # Common package patterns
 #"__init__.py" = ["F401", "F403", "E402"]
 #"tests/**" = ["E402", "F401"]
