@@ -6,13 +6,41 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
-from homeassistant.components.homeassistant.triggers import event as event_trigger
-from homeassistant.const import CONF_DOMAIN, CONF_TYPE
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+
+from .compat import CONF_DEVICE_ID, CONF_DOMAIN, CONF_PLATFORM, CONF_TYPE
+
+try:  # pragma: no cover - Home Assistant provides the event trigger module
+    from homeassistant.components.homeassistant.triggers import event as event_trigger
+except Exception:  # pragma: no cover - minimal fallback for tests
+
+    class event_trigger:  # type: ignore[too-few-public-methods]
+        CONF_PLATFORM = "platform"
+        CONF_EVENT_TYPE = "event_type"
+        CONF_EVENT_DATA = "event_data"
+
+        @staticmethod
+        def TRIGGER_SCHEMA(cfg):  # type: ignore[return-type]
+            return cfg
+
+        @staticmethod
+        async def async_attach_trigger(
+            hass, config, action, trigger_info, *, platform_type="event"
+        ):
+            return lambda: None
+
+
+try:  # pragma: no cover - Home Assistant provides these
+    from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+except Exception:  # pragma: no cover - minimal stubs for tests
+    from collections.abc import Callable as CALLBACK_TYPE  # type: ignore[assignment]
+
+    class HomeAssistant:  # type: ignore[too-few-public-methods]
+        pass
+
+
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
-from .compat import CONF_DEVICE_ID, CONF_PLATFORM
 from .const import (
     DOMAIN,
     EVENT_DOG_FED,
@@ -28,6 +56,8 @@ TRIGGER_TYPES = {
     "dog_fed",
     "medication_given",
     "grooming_done",
+    "gps_location_posted",
+    "geofence_alert",
     "needs_walk",
     "is_hungry",
     "needs_grooming",
@@ -118,6 +148,8 @@ async def async_attach_trigger(
         "dog_fed": EVENT_DOG_FED,
         "medication_given": EVENT_MEDICATION_GIVEN,
         "grooming_done": EVENT_GROOMING_DONE,
+        "gps_location_posted": f"{DOMAIN}_gps_location_posted",
+        "geofence_alert": f"{DOMAIN}_geofence_alert",
     }
 
     if trigger_type in event_map:
@@ -127,12 +159,17 @@ async def async_attach_trigger(
                 {
                     event_trigger.CONF_PLATFORM: "event",
                     event_trigger.CONF_EVENT_TYPE: event_map[trigger_type],
-                    event_trigger.CONF_EVENT_DATA: {"dog_id": dog_id},
+                    event_trigger.CONF_EVENT_DATA: {"device_id": device_id},
                 }
             ),
         }
+        trig_info = {
+            **trigger_info,
+            "trigger_data": trigger_info.get("trigger_data", {}),
+            "variables": trigger_info.get("variables", {}),
+        }
         return await event_trigger.async_attach_trigger(
-            hass, event_config, action, trigger_info, platform_type="device"
+            hass, event_config, action, trig_info, platform_type="device"
         )
 
     # State-based triggers

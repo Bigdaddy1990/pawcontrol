@@ -192,6 +192,8 @@ class ServiceManager:
         }
 
         for service_name, (handler, schema) in services.items():
+            if self.hass.services.has_service(DOMAIN, service_name):
+                self.hass.services.async_remove(DOMAIN, service_name)
             self.hass.services.async_register(
                 DOMAIN, service_name, handler, schema=schema
             )

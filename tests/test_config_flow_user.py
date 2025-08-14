@@ -1,15 +1,14 @@
 import pytest
-from homeassistant import config_entries
+from custom_components.pawcontrol import config_flow as cf
 from homeassistant.core import HomeAssistant
-
-DOMAIN = "pawcontrol"
 
 
 @pytest.mark.anyio
 async def test_config_flow_user_starts(hass: HomeAssistant):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
+    flow = cf.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    result = await flow.async_step_user()
     assert result["type"] in ("form", "abort")
     if result["type"] == "form":
         assert "step_id" in result

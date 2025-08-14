@@ -82,6 +82,8 @@ def _ensure_const(name: str, value: StrEnum | str) -> Any:
 CONF_DEVICE_ID = _ensure_const("CONF_DEVICE_ID", "device_id")
 CONF_EVENT_DATA = _ensure_const("CONF_EVENT_DATA", "event_data")
 CONF_PLATFORM = _ensure_const("CONF_PLATFORM", "platform")
+CONF_DOMAIN = _ensure_const("CONF_DOMAIN", "domain")
+CONF_TYPE = _ensure_const("CONF_TYPE", "type")
 EVENT_STATE_REPORTED = _ensure_const("EVENT_STATE_REPORTED", "state_reported")
 
 

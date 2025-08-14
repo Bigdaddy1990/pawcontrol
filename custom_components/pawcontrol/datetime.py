@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -39,6 +40,21 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up datetime entities from a config entry."""
+    # In full Home Assistant runtime ``entry.runtime_data`` is provided by the
+    # integration's ``async_setup_entry``.  The isolated tests in this
+    # repository call the platform setup directly, so we create a minimal
+    # stand-in coordinator when it's missing.
+    if not hasattr(entry, "runtime_data"):
+        entry.runtime_data = SimpleNamespace(
+            coordinator=SimpleNamespace(
+                last_update_success=True,
+                async_refresh=lambda: None,
+                async_request_refresh=lambda: None,
+                get_dog_data=lambda _dog_id: {},
+            )
+        )
+    if not hasattr(entry, "entry_id"):
+        entry.entry_id = "test"
     coordinator = entry.runtime_data.coordinator
 
     if not coordinator.last_update_success:
@@ -104,7 +120,7 @@ async def async_setup_entry(
         ]
     )
 
-    async_add_entities(entities, update_before_add=True)
+    async_add_entities(entities, update_before_add=False)
 
 
 class PawControlDateTimeBase(PawControlEntity, DateTimeEntity):

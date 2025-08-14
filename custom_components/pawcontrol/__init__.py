@@ -31,10 +31,9 @@ from .const import (
     CONF_DOGS,
     EVENT_DAILY_RESET,
     PLATFORMS,
+    SERVICE_NOTIFY_TEST,
 )
-from .const import (
-    DOMAIN as CONST_DOMAIN,
-)
+from .const import DOMAIN as CONST_DOMAIN
 from .helpers import notification_router as notification_router_mod
 from .helpers import scheduler as scheduler_mod
 from .helpers import setup_sync as setup_sync_mod
@@ -53,6 +52,13 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control component."""
     hass.data.setdefault(DOMAIN, {})
+
+    async def _placeholder_notify(call: ServiceCall) -> None:
+        """Temporary handler for the notify_test service before entries load."""
+
+    if not hass.services.has_service(DOMAIN, SERVICE_NOTIFY_TEST):
+        hass.services.async_register(DOMAIN, SERVICE_NOTIFY_TEST, _placeholder_notify)
+
     return True
 
 
