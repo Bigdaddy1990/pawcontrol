@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
-from math import atan2, cos, radians, sin, sqrt
+from math import atan2, cos, isfinite, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
@@ -43,6 +43,9 @@ def validate_coordinates(lat: float, lon: float) -> bool:
         lat_f = float(lat)
         lon_f = float(lon)
     except (TypeError, ValueError):
+        return False
+
+    if not (isfinite(lat_f) and isfinite(lon_f)):
         return False
 
     return -90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0
