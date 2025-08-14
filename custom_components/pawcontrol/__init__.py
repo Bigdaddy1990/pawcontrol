@@ -280,6 +280,14 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         invalid = True
     if (lat is None) != (lon is None):
         invalid = True
+    if lat is not None and (
+        not isinstance(lat, int | float) or not -90 <= float(lat) <= 90
+    ):
+        invalid = True
+    if lon is not None and (
+        not isinstance(lon, int | float) or not -180 <= float(lon) <= 180
+    ):
+        invalid = True
 
     if invalid:
         try:
