@@ -55,6 +55,7 @@ PARALLEL_UPDATES = 0  # noqa: F811
 # PLATFORM SETUP
 # ==============================================================================
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
