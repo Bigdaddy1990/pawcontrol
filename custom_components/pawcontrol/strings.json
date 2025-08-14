@@ -445,7 +445,8 @@
                     "description": "Optional config entry ID to target a specific instance."
                 },
                 "dog_id": {
-                    "name": "Dog Id"
+                    "name": "Dog Id",
+                    "description": "Optional ID of the dog."
                 },
                 "selector": {
                     "name": "Selector"
