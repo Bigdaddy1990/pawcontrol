@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     CONF_DOGS,
+    DEFAULT_MEDICATION_REMINDER_HOURS,
     DEFAULT_WALK_THRESHOLD_HOURS,
     DOMAIN,
     EVENT_DOG_FED,
@@ -418,20 +419,35 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return "high"
 
     async def _calculate_next_medication(self, dog_id: str) -> datetime | None:
-        """Calculate next medication due time based on schedule.
+        """Calculate next medication due time based on last dose.
 
-        This would be implemented based on medication schedules configured
-        for the specific dog. Currently returns None as placeholder.
+        Uses the configured reminder interval when available; otherwise
+        falls back to :data:`DEFAULT_MEDICATION_REMINDER_HOURS`.
 
         Args:
             dog_id: Unique identifier for the dog
 
         Returns:
-            Next medication due time, or None if no schedule
+            Next medication due time, or None if no previous medication
         """
-        # TODO: Implement medication scheduling logic
-        # This would integrate with the medication management system
-        return None
+        health_data = self._dog_data[dog_id]["health"]
+        last_med_dt = self._parse_datetime(health_data.get("last_medication"))
+        if not last_med_dt:
+            return None
+
+        try:
+            reminder_hours = float(
+                self._dog_data[dog_id]
+                .get("settings", {})
+                .get(
+                    "medication_reminder_hours",
+                    DEFAULT_MEDICATION_REMINDER_HOURS,
+                )
+            )
+        except (TypeError, ValueError):
+            reminder_hours = DEFAULT_MEDICATION_REMINDER_HOURS
+
+        return last_med_dt + timedelta(hours=reminder_hours)
 
     def _calculate_calories(self, dog_id: str) -> float:
         """Calculate approximate calories burned today based on activity.

@@ -92,6 +92,9 @@ CALORIES_PER_MIN_PLAY_PER_KG: Final[float] = (
 # Activity and care defaults
 DEFAULT_WALK_THRESHOLD_HOURS: Final[float] = 8.0  # hours - time before dog needs walk
 DEFAULT_GROOMING_INTERVAL_DAYS: Final[int] = 30  # days - default grooming interval
+DEFAULT_MEDICATION_REMINDER_HOURS: Final[int] = (
+    12  # hours - between medication reminders
+)
 
 # Health monitoring thresholds (normal ranges for dogs)
 HEALTH_THRESHOLDS: Final[dict[str, float]] = {

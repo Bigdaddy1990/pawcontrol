@@ -33,6 +33,7 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOGS,
     DEFAULT_GROOMING_INTERVAL_DAYS,
+    DEFAULT_MEDICATION_REMINDER_HOURS,
     DEFAULT_MIN_WALK_DURATION_MIN,
     DEFAULT_WALK_THRESHOLD_HOURS,
     DOMAIN,
@@ -72,7 +73,7 @@ DEFAULT_VALUES = {
     "training_duration": 15,
     "play_duration": 20,
     "geofence_radius": 50,
-    "medication_reminder_hours": 12,
+    "medication_reminder_hours": DEFAULT_MEDICATION_REMINDER_HOURS,
     "weight_check_days": 7,
 }
 
