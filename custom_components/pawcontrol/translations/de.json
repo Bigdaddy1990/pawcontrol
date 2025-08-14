@@ -451,25 +451,11 @@
     },
     "toggle_geofence_alerts": {
       "name": "Toggle Geofence Alerts",
-      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der",
+      "description": "Aktiviert oder deaktiviert Geofence-Benachrichtigungen.",
       "fields": {
         "enabled": {
-          "name": "Aktiviert",
-          "description": "True für aktivieren, false für deaktivieren.",
-          "example": "true"
-        },
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
-        },
-        "dog_id": {
-          "name": "Dog Id"
-        },
-        "selector": {
-          "name": "Selector"
-        },
-        "enable": {
-          "name": "Enable"
+          "name": "Benachrichtigungen aktivieren",
+          "description": "Geofence-Benachrichtigungen einschalten"
         }
       }
     },
@@ -484,27 +470,16 @@
       }
     },
     "notify_test": {
-      "name": "Notify Test",
-      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
+      "name": "Test Notification",
+      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback).",
       "fields": {
-        "title": {
-          "name": "Titel",
-          "description": "Titel der Nachricht.",
-          "example": "Test"
+        "dog_id": {
+          "name": "Hund-ID",
+          "description": "Hund-Kennung (optional)"
         },
         "message": {
           "name": "Nachricht",
-          "description": "Nachrichtentext.",
-          "example": "Hallo von Paw Control"
-        },
-        "target": {
-          "name": "Ziel",
-          "description": "Optionales Notify-Ziel/Gerät.",
-          "example": "mobile_app_pixel"
-        },
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
+          "description": "Inhalt der Testnachricht"
         }
       }
     },

@@ -609,14 +609,18 @@
       "description": "Startet einen Spaziergang für einen Hund."
     },
     "notify_test": {
-      "name": "Notify Test",
+      "name": "Test Notification",
+      "description": "Send a test notification",
       "fields": {
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Dog identifier (optional)"
+        },
+        "message": {
+          "name": "Message",
+          "description": "Test message content"
         }
-      },
-      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback"
+      }
     },
     "purge_all_storage": {
       "name": "Purge All Storage",
@@ -696,22 +700,13 @@
     },
     "toggle_geofence_alerts": {
       "name": "Toggle Geofence Alerts",
+      "description": "Enable or disable geofence notifications",
       "fields": {
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
-        },
-        "dog_id": {
-          "name": "Dog Id"
-        },
-        "selector": {
-          "name": "Selector"
-        },
-        "enable": {
-          "name": "Enable"
+        "enabled": {
+          "name": "Enable Alerts",
+          "description": "Enable geofence alerts"
         }
-      },
-      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der"
+      }
     },
     "prune_stale_devices": {
       "name": "Prune stale devices",

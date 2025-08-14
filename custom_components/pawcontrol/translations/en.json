@@ -451,25 +451,11 @@
     },
     "toggle_geofence_alerts": {
       "name": "Toggle Geofence Alerts",
-      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der",
+      "description": "Enable or disable geofence notifications",
       "fields": {
         "enabled": {
-          "name": "Enabled",
-          "description": "True to enable geofence alerts, false to disable.",
-          "example": "true"
-        },
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
-        },
-        "dog_id": {
-          "name": "Dog Id"
-        },
-        "selector": {
-          "name": "Selector"
-        },
-        "enable": {
-          "name": "Enable"
+          "name": "Enable Alerts",
+          "description": "Enable geofence alerts"
         }
       }
     },
@@ -484,27 +470,16 @@
       }
     },
     "notify_test": {
-      "name": "Notify Test",
-      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
+      "name": "Test Notification",
+      "description": "Send a test notification",
       "fields": {
-        "title": {
-          "name": "Title",
-          "description": "Notification title.",
-          "example": "Test"
+        "dog_id": {
+          "name": "Dog ID",
+          "description": "Dog identifier (optional)"
         },
         "message": {
           "name": "Message",
-          "description": "Notification message body.",
-          "example": "Hello from Paw Control"
-        },
-        "target": {
-          "name": "Target",
-          "description": "Optional notify target/device.",
-          "example": "mobile_app_pixel"
-        },
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
+          "description": "Test message content"
         }
       }
     },
