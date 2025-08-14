@@ -1,14 +1,14 @@
 import math
 import types
-import pytest
 
+import pytest
 from custom_components.pawcontrol.const import EARTH_RADIUS_M
 from custom_components.pawcontrol.utils import (
     calculate_distance,
     calculate_speed_kmh,
-    validate_coordinates,
     format_coordinates,
     safe_service_call,
+    validate_coordinates,
 )
 
 # --------------------------
