@@ -95,3 +95,28 @@ except Exception:  # pragma: no cover - tests without Home Assistant
 
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfLength = UnitOfLength  # type: ignore[attr-defined]
+
+# ``UnitOfMass`` was converted to an enum in newer Home Assistant versions.
+try:  # pragma: no cover - Home Assistant provides the enum
+    UnitOfMass = ha_const.UnitOfMass  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - tests without Home Assistant
+
+    class UnitOfMass(StrEnum):
+        GRAMS = "g"
+        KILOGRAMS = "kg"
+
+    if ha_const is not None:  # type: ignore[truthy-bool]
+        ha_const.UnitOfMass = UnitOfMass  # type: ignore[attr-defined]
+
+# ``UnitOfTime`` was converted to an enum in newer Home Assistant versions.
+try:  # pragma: no cover - Home Assistant provides the enum
+    UnitOfTime = ha_const.UnitOfTime  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - tests without Home Assistant
+
+    class UnitOfTime(StrEnum):
+        SECONDS = "s"
+        MINUTES = "min"
+        HOURS = "h"
+
+    if ha_const is not None:  # type: ignore[truthy-bool]
+        ha_const.UnitOfTime = UnitOfTime  # type: ignore[attr-defined]
