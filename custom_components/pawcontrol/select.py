@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -53,7 +52,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control select entities."""
     coordinator: PawControlCoordinator = entry.runtime_data.coordinator
-    
+
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
@@ -78,8 +77,12 @@ async def async_setup_entry(
         if modules.get(MODULE_FEEDING):
             entities.extend(
                 [
-                    DefaultFoodTypeSelect(coordinator, entry, dog_id, store, dog_stored),
-                    PreferredMealTimeSelect(coordinator, entry, dog_id, store, dog_stored),
+                    DefaultFoodTypeSelect(
+                        coordinator, entry, dog_id, store, dog_stored
+                    ),
+                    PreferredMealTimeSelect(
+                        coordinator, entry, dog_id, store, dog_stored
+                    ),
                 ]
             )
 
@@ -94,12 +97,16 @@ async def async_setup_entry(
             entities.extend(
                 [
                     TrainingTopicSelect(coordinator, entry, dog_id, store, dog_stored),
-                    TrainingIntensitySelect(coordinator, entry, dog_id, store, dog_stored),
+                    TrainingIntensitySelect(
+                        coordinator, entry, dog_id, store, dog_stored
+                    ),
                 ]
             )
 
         # Activity level select (always available)
-        entities.append(ActivityLevelSelect(coordinator, entry, dog_id, store, dog_stored))
+        entities.append(
+            ActivityLevelSelect(coordinator, entry, dog_id, store, dog_stored)
+        )
 
     # Global selects
     entities.append(ExportFormatSelect(hass, coordinator, entry, store))
@@ -149,23 +156,23 @@ class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Update the selected option and persist it."""
         self._current_option = option
-        
+
         # Load current storage
         all_stored = await self._store.async_load() or {}
-        
+
         # Update value for this dog and entity
         if self.dog_id not in all_stored:
             all_stored[self.dog_id] = {}
         all_stored[self.dog_id][self.entity_key] = option
-        
+
         # Save to storage
         await self._store.async_save(all_stored)
-        
+
         _LOGGER.debug(f"Set {self.entity_key} for {self.dog_name} to {option}")
-        
+
         # Update in coordinator if needed
         await self._update_coordinator(option)
-        
+
         self.async_write_ha_state()
 
     async def _update_coordinator(self, option: str) -> None:
@@ -342,11 +349,11 @@ class ExportFormatSelect(SelectEntity):
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
-        self, 
-        hass: HomeAssistant, 
-        coordinator: PawControlCoordinator, 
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
         entry: ConfigEntry,
-        store: Store
+        store: Store,
     ):
         """Initialize the select entity."""
         self.hass = hass
@@ -376,7 +383,7 @@ class ExportFormatSelect(SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Update the selected option."""
         _LOGGER.info(f"Export format set to {option}")
-        
+
         # Would update config entry options in production
         # For now just log
         self.async_write_ha_state()

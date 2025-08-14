@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
@@ -17,7 +16,6 @@ from .compat import EntityCategory
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    CONF_DOG_NAME,
     CONF_DOGS,
     DEFAULT_GROOMING_INTERVAL_DAYS,
     DEFAULT_MIN_WALK_DURATION_MIN,
@@ -48,7 +46,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control number entities."""
     coordinator: PawControlCoordinator = entry.runtime_data.coordinator
-    
+
     if not coordinator.last_update_success:
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
@@ -74,7 +72,9 @@ async def async_setup_entry(
             entities.extend(
                 [
                     WalkThresholdNumber(coordinator, entry, dog_id, store, dog_stored),
-                    MinWalkDurationNumber(coordinator, entry, dog_id, store, dog_stored),
+                    MinWalkDurationNumber(
+                        coordinator, entry, dog_id, store, dog_stored
+                    ),
                 ]
             )
 
@@ -82,7 +82,9 @@ async def async_setup_entry(
         if modules.get(MODULE_FEEDING):
             entities.extend(
                 [
-                    BreakfastPortionNumber(coordinator, entry, dog_id, store, dog_stored),
+                    BreakfastPortionNumber(
+                        coordinator, entry, dog_id, store, dog_stored
+                    ),
                     LunchPortionNumber(coordinator, entry, dog_id, store, dog_stored),
                     DinnerPortionNumber(coordinator, entry, dog_id, store, dog_stored),
                     SnackPortionNumber(coordinator, entry, dog_id, store, dog_stored),
@@ -91,15 +93,21 @@ async def async_setup_entry(
 
         # Health module numbers
         if modules.get(MODULE_HEALTH):
-            entities.append(TargetWeightNumber(coordinator, entry, dog_id, store, dog_stored))
+            entities.append(
+                TargetWeightNumber(coordinator, entry, dog_id, store, dog_stored)
+            )
 
         # Grooming module numbers
         if modules.get(MODULE_GROOMING):
-            entities.append(GroomingIntervalNumber(coordinator, entry, dog_id, store, dog_stored))
+            entities.append(
+                GroomingIntervalNumber(coordinator, entry, dog_id, store, dog_stored)
+            )
 
         # Training module numbers
         if modules.get(MODULE_TRAINING):
-            entities.append(TrainingDurationNumber(coordinator, entry, dog_id, store, dog_stored))
+            entities.append(
+                TrainingDurationNumber(coordinator, entry, dog_id, store, dog_stored)
+            )
 
     async_add_entities(entities, True)
 
@@ -153,18 +161,18 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Update the value and persist it."""
         self._current_value = value
-        
+
         # Load current storage
         all_stored = await self._store.async_load() or {}
-        
+
         # Update value for this dog and entity
         if self.dog_id not in all_stored:
             all_stored[self.dog_id] = {}
         all_stored[self.dog_id][self.entity_key] = value
-        
+
         # Save to storage
         await self._store.async_save(all_stored)
-        
+
         _LOGGER.debug(f"Set {self.entity_key} for {self.dog_name} to {value}")
         self.async_write_ha_state()
 
@@ -309,7 +317,7 @@ class TargetWeightNumber(PawControlNumberWithStorage):
         # Get initial weight from dog info
         dog_data = coordinator.get_dog_data(dog_id)
         current_weight = dog_data.get("info", {}).get("weight", 20)
-        
+
         super().__init__(
             coordinator,
             entry,
@@ -329,7 +337,7 @@ class TargetWeightNumber(PawControlNumberWithStorage):
     async def async_set_native_value(self, value: float) -> None:
         """Update the value and also update in coordinator."""
         await super().async_set_native_value(value)
-        
+
         # Also update in coordinator for immediate effect
         dog_data = self.coordinator.get_dog_data(self.dog_id)
         if dog_data and "health" in dog_data:
@@ -347,7 +355,7 @@ class GroomingIntervalNumber(PawControlNumberWithStorage):
         current_interval = dog_data.get("grooming", {}).get(
             "grooming_interval_days", DEFAULT_GROOMING_INTERVAL_DAYS
         )
-        
+
         super().__init__(
             coordinator,
             entry,
@@ -367,7 +375,7 @@ class GroomingIntervalNumber(PawControlNumberWithStorage):
     async def async_set_native_value(self, value: float) -> None:
         """Update the value and also update in coordinator."""
         await super().async_set_native_value(value)
-        
+
         # Update in coordinator for immediate effect
         dog_data = self.coordinator.get_dog_data(self.dog_id)
         if dog_data and "grooming" in dog_data:

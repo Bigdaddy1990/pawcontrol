@@ -428,12 +428,12 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle reconfiguration of the integration (Gold rule)."""
         errors: dict[str, str] = {}
-        
+
         # Get the existing entry
         entry = self.hass.config_entries.async_get_entry(self.context.get("entry_id"))
         if not entry:
             return self.async_abort(reason="reconfigure_failed")
-            
+
         opts = entry.options
 
         if user_input is not None:
@@ -452,10 +452,12 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     "geofence_radius_m", default=opts.get("geofence_radius_m", 75)
                 ): vol.Coerce(int),
-                vol.Optional("notify_target", default=opts.get("notify_target", "")): str,
+                vol.Optional(
+                    "notify_target", default=opts.get("notify_target", "")
+                ): str,
             }
         )
-        
+
         return self.async_show_form(
             step_id="reconfigure", data_schema=schema, errors=errors
         )
@@ -465,10 +467,10 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle reauthentication flow."""
         errors: dict[str, str] = {}
-        
+
         if user_input is not None:
             api_key = user_input.get("api_key", "")
-            
+
             if not api_key or len(api_key) < 6:
                 errors["base"] = "invalid_auth"
             else:
@@ -483,7 +485,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     self.hass.config_entries.async_update_entry(entry, data=new_data)
                     await self.hass.config_entries.async_reload(entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
-                    
+
                 return self.async_abort(reason="reauth_failed")
 
         schema = vol.Schema({vol.Required("api_key"): str})
@@ -731,7 +733,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
             "training": modules.get("training", False),
             "notifications": modules.get("notifications", True),
         }
-        
+
         if user_input is not None:
             self._options["modules"] = {
                 "gps": bool(user_input.get("gps")),
@@ -777,7 +779,9 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
             self._options["reminder_repeat"] = int(
                 user_input.get("reminder_repeat", default_repeat)
             )
-            self._options["snooze_min"] = int(user_input.get("snooze_min", default_snooze))
+            self._options["snooze_min"] = int(
+                user_input.get("snooze_min", default_snooze)
+            )
             return self.async_create_entry(title="", data=self._options)
 
         schema = vol.Schema(
@@ -808,17 +812,23 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         advanced = self._options.get("advanced", {})
         defaults = {
             "route_history_limit": int(advanced.get("route_history_limit", 500)),
-            "enable_pawtracker_alias": bool(advanced.get("enable_pawtracker_alias", True)),
+            "enable_pawtracker_alias": bool(
+                advanced.get("enable_pawtracker_alias", True)
+            ),
             "diagnostic_sensors": bool(advanced.get("diagnostic_sensors", False)),
         }
-        
+
         if user_input is not None:
             self._options["advanced"] = {
                 "route_history_limit": int(
-                    user_input.get("route_history_limit", defaults["route_history_limit"])
+                    user_input.get(
+                        "route_history_limit", defaults["route_history_limit"]
+                    )
                 ),
                 "enable_pawtracker_alias": bool(
-                    user_input.get("enable_pawtracker_alias", defaults["enable_pawtracker_alias"])
+                    user_input.get(
+                        "enable_pawtracker_alias", defaults["enable_pawtracker_alias"]
+                    )
                 ),
                 "diagnostic_sensors": bool(
                     user_input.get("diagnostic_sensors", defaults["diagnostic_sensors"])
@@ -848,7 +858,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         """Manage safe zones configuration."""
         dogs = self._options.get(CONF_DOGS, [])
         sz = dict(self._options.get("safe_zones") or {})
-        
+
         if not dogs:
             return self.async_show_form(
                 step_id="safe_zones", data_schema=vol.Schema({})
@@ -951,14 +961,14 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
             name = d.get("name") or did
             if did:
                 choices.append({"value": did, "label": name})
-                
+
         if not choices:
             return self.async_abort(reason="no_dogs")
-            
+
         if user_input is not None:
             self._med_dog = user_input.get("dog_id")
             return await self.async_step_medications_configure()
-            
+
         schema = vol.Schema(
             {
                 vol.Required("dog_id"): SelectSelector(
@@ -974,7 +984,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         """Configure medication slots for selected dog."""
         if not self._med_dog:
             return await self.async_step_medications()
-            
+
         mapping = dict(self._options.get("medication_mapping") or {})
         dm = dict(mapping.get(self._med_dog) or {})
 
@@ -990,7 +1000,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
             }
             self._options["medication_mapping"] = m
             return self.async_create_entry(title="", data=self._options)
-            
+
         meal_opts = self.MEALS
         schema = vol.Schema(
             {
@@ -1013,7 +1023,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         """Manage medication mapping for all dogs at once."""
         dogs = self._options.get(CONF_DOGS, [])
         current = self._options.get("medication_mapping", {})
-        
+
         if user_input is not None:
             new_map = {}
             for d in dogs:
@@ -1042,7 +1052,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
                 schema_dict[vol.Optional(key, default=default)] = SelectSelector(
                     SelectSelectorConfig(options=self.MEALS, multiple=True)
                 )
-                
+
         schema = vol.Schema(schema_dict)
         return self.async_show_form(step_id="medication_mapping", data_schema=schema)
 

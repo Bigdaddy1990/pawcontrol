@@ -15,7 +15,6 @@ from .compat import EntityCategory
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_MODULES,
-    CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
@@ -196,7 +195,11 @@ class FeedBreakfastButton(PawControlButtonEntity, ButtonEntity):
     def __init__(self, hass, coordinator, entry, dog_id):
         """Initialize the button."""
         super().__init__(
-            coordinator, entry, dog_id, "feed_breakfast", translation_key="feed_breakfast"
+            coordinator,
+            entry,
+            dog_id,
+            "feed_breakfast",
+            translation_key="feed_breakfast",
         )
         self.hass = hass
         self._attr_icon = "mdi:food-apple"
@@ -317,7 +320,11 @@ class GiveMedicationButton(PawControlButtonEntity, ButtonEntity):
     def __init__(self, hass, coordinator, entry, dog_id):
         """Initialize the button."""
         super().__init__(
-            coordinator, entry, dog_id, "give_medication", translation_key="give_medication"
+            coordinator,
+            entry,
+            dog_id,
+            "give_medication",
+            translation_key="give_medication",
         )
         self.hass = hass
         self._attr_icon = "mdi:pill"
@@ -417,7 +424,11 @@ class StartTrainingButton(PawControlButtonEntity, ButtonEntity):
     def __init__(self, hass, coordinator, entry, dog_id):
         """Initialize the button."""
         super().__init__(
-            coordinator, entry, dog_id, "start_training", translation_key="start_training"
+            coordinator,
+            entry,
+            dog_id,
+            "start_training",
+            translation_key="start_training",
         )
         self.hass = hass
         self._attr_icon = "mdi:school"
