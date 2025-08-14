@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from homeassistant.components.persistent_notification import create as pn_create
@@ -41,8 +42,6 @@ def register_install_service(hass: HomeAssistant, entry: ConfigEntry) -> None:
         await show_install_help(hass, entry)
 
     # idempotent register
-    try:
+    with contextlib.suppress(Exception):
         hass.services.async_remove("pawcontrol", "show_install_help")
-    except Exception:
-        pass
     hass.services.async_register("pawcontrol", "show_install_help", _svc)

@@ -25,4 +25,4 @@ class PawRuntimeData:
     report_generator: ReportGenerator
     services: ServiceManager
     notification_router: Any  # Type imported dynamically to avoid circular imports
-    scheduler: "PawControlScheduler | None" = None
+    scheduler: PawControlScheduler | None = None

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -148,7 +148,7 @@ class PawControlDateTimeBase(PawControlEntityBase, DateTimeEntity):
     async def async_set_value(self, value: datetime) -> None:
         """Set the datetime value."""
         if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
+            value = value.replace(tzinfo=UTC)
 
         self._stored_value = value
 
@@ -249,7 +249,7 @@ class NextFeedingDateTime(PawControlDateTimeBase):
         next_feeding = None
         min_diff = timedelta(days=1)
 
-        for meal, time_str in feeding_schedule.items():
+        for _meal, time_str in feeding_schedule.items():
             if not time_str:
                 continue
 

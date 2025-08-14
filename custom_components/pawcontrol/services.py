@@ -531,7 +531,7 @@ class ServiceManager:
             _LOGGER.info(f"Reset GPS stats for {dog_id}")
         else:
             # Reset stats for all dogs
-            for did, ddata in coordinator._dog_data.items():
+            for _did, ddata in coordinator._dog_data.items():
                 if "location" in ddata:
                     ddata["location"]["enters_today"] = 0
                     ddata["location"]["leaves_today"] = 0
@@ -607,9 +607,7 @@ class ServiceManager:
                 return False
             if df and t.date() < df:
                 return False
-            if dt and t.date() > dt:
-                return False
-            return True
+            return not (dt and t.date() > dt)
 
         filtered = [x for x in data if in_range(x)]
 

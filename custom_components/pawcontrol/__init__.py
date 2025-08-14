@@ -276,7 +276,7 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     lon = geo.get("lon")
 
     invalid = False
-    if radius is not None and (not isinstance(radius, (int, float)) or radius <= 0):
+    if radius is not None and (not isinstance(radius, int | float) or radius <= 0):
         invalid = True
     if (lat is None) != (lon is None):
         invalid = True

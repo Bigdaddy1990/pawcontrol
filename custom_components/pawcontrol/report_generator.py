@@ -246,7 +246,7 @@ class ReportGenerator:
                 )
 
                 # Write data for each dog
-                for dog_id, dog_data in report_data["dogs"].items():
+                for _dog_id, dog_data in report_data["dogs"].items():
                     writer.writerow(
                         [
                             dog_data["name"],
@@ -286,7 +286,7 @@ class ReportGenerator:
         lines.append(f"Scope: {report_data['scope'].capitalize()}")
         lines.append("=" * 50)
 
-        for dog_id, dog_data in report_data["dogs"].items():
+        for _dog_id, dog_data in report_data["dogs"].items():
             lines.append(f"\n🐕 {dog_data['name']}")
             lines.append("-" * 30)
 
