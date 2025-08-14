@@ -6,6 +6,9 @@ from homeassistant.const import Platform
 
 DOMAIN: Final[str] = "pawcontrol"
 
+# Average Earth radius in meters used for distance calculations
+EARTH_RADIUS_M: Final[float] = 6_371_000.0
+
 # Platforms supported by the integration
 PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,

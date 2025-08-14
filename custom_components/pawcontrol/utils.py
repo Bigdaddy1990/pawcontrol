@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
 
+from .const import EARTH_RADIUS_M
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -16,13 +18,12 @@ if TYPE_CHECKING:
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Return haversine distance in meters between two lat/lon points."""
-    radius = 6_371_000.0
     phi1, phi2 = radians(lat1), radians(lat2)
     dphi = radians(lat2 - lat1)
     dlambda = radians(lon2 - lon1)
     a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return radius * c
+    return EARTH_RADIUS_M * c
 
 
 def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
