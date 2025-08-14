@@ -21,7 +21,7 @@ Implements Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -85,7 +85,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 

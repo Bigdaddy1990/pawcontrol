@@ -18,7 +18,7 @@ import logging
 import math
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -38,7 +38,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from .types import DogData, CoordinatorData
+    from .types import CoordinatorData, DogData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -562,7 +562,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             distance = None
             inside = None
             
-            if (isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float))):
+            if (isinstance(home_lat, int | float) and isinstance(home_lon, int | float)):
                 try:
                     distance = _haversine_m(float(home_lat), float(home_lon), latitude, longitude)
                     distance = round(distance, 1)
