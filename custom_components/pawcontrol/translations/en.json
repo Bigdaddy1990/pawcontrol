@@ -158,12 +158,12 @@
     },
     "services": {
         "gps_start_walk": {
-            "name": "Gps Start Walk",
-            "description": "Startet einen Spaziergang für einen Hund.",
+            "name": "GPS Start Walk",
+            "description": "Starts a walk for a dog.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
-                    "description": "Hund-ID (optional; wenn leer, wird der erste Hund genutzt)",
+                    "description": "Dog ID (optional; if empty, the first dog is used)",
                     "example": "buddy"
                 },
                 "label": {
@@ -181,13 +181,13 @@
                 },
                 "walk_type": {
                     "name": "Walk Type",
-                    "description": "Typ des Spaziergangs (z. B. normal, auto_detected)"
+                    "description": "Type of walk (e.g., normal, auto_detected)"
                 }
             }
         },
         "gps_end_walk": {
-            "name": "Gps End Walk",
-            "description": "Beendet den Spaziergang und berechnet Distanz/Dauer/Ø-Geschwindigkeit.",
+            "name": "GPS End Walk",
+            "description": "Ends the walk and calculates distance, duration, and average speed.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -204,11 +204,11 @@
                 },
                 "notes": {
                     "name": "Notes",
-                    "description": "Notizen"
+                    "description": "Notes"
                 },
                 "rating": {
                     "name": "Rating",
-                    "description": "Bewertung 1–5 (optional)"
+                    "description": "Rating 1–5 (optional)"
                 },
                 "number": {
                     "name": "Number",
@@ -217,8 +217,8 @@
             }
         },
         "gps_post_location": {
-            "name": "Gps Post Location",
-            "description": "Manuelles Einspeisen einer GPS-Position (falls kein Webhook genutzt",
+            "name": "GPS Post Location",
+            "description": "Manually post a GPS position (if no webhook is used)",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -269,8 +269,8 @@
             }
         },
         "gps_pause_tracking": {
-            "name": "Gps Pause Tracking",
-            "description": "Pausiert das Tracking (sofern Handler aktiv).",
+            "name": "GPS Pause Tracking",
+            "description": "Pauses tracking (if the handler is active)",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -288,8 +288,8 @@
             }
         },
         "gps_resume_tracking": {
-            "name": "Gps Resume Tracking",
-            "description": "Setzt das Tracking fort (sofern Handler aktiv).",
+            "name": "GPS Resume Tracking",
+            "description": "Resumes tracking (if the handler is active)",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -307,8 +307,8 @@
             }
         },
         "gps_export_last_route": {
-            "name": "Gps Export Last Route",
-            "description": "Exportiert die letzte Route als GeoJSON oder GPX.",
+            "name": "GPS Export Last Route",
+            "description": "Exports the last route as GeoJSON or GPX.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -342,8 +342,8 @@
             }
         },
         "gps_generate_diagnostics": {
-            "name": "Gps Generate Diagnostics",
-            "description": "Schreibt Diagnosedaten in /config/pawcontrol_diagnostics/",
+            "name": "GPS Generate Diagnostics",
+            "description": "Writes diagnostic data to /config/pawcontrol_diagnostics/",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -361,8 +361,8 @@
             }
         },
         "gps_reset_stats": {
-            "name": "Gps Reset Stats",
-            "description": "Setzt diagnostische GPS-Zähler zurück.",
+            "name": "GPS Reset Stats",
+            "description": "Resets diagnostic GPS counters.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -381,7 +381,7 @@
         },
         "route_history_list": {
             "name": "Route History List",
-            "description": "Schreibt eine kompakte Index-Datei mit den letzten Routen nach /config/pawcontrol_diagnostics/",
+            "description": "Writes a compact index file of recent routes to /config/pawcontrol_diagnostics/",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -400,7 +400,7 @@
         },
         "route_history_purge": {
             "name": "Route History Purge",
-            "description": "Löscht Routen, die älter sind als X Tage (wenn gesetzt).",
+            "description": "Deletes routes older than X days (if set)",
             "fields": {
                 "dog_id": {
                     "name": "Dog ID",
@@ -427,7 +427,7 @@
         },
         "route_history_export_range": {
             "name": "Route History Export Range",
-            "description": "Exportiert eine Sammlung von Routen (ohne Punkte) als ZIP ins Medienverzeichnis.",
+            "description": "Exports a collection of routes (without points) as a ZIP to the media directory.",
             "fields": {
                 "dog_id": {
                     "name": "Dog Id",
@@ -476,7 +476,7 @@
         },
         "toggle_geofence_alerts": {
             "name": "Toggle Geofence Alerts",
-            "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der",
+            "description": "Enables or disables notifications when entering or leaving the geofence",
             "fields": {
                 "enabled": {
                     "name": "Enabled",
@@ -503,7 +503,7 @@
         },
         "purge_all_storage": {
             "name": "Purge All Storage",
-            "description": "Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage).",
+            "description": "Deletes stored GPS settings and route history (storage).",
             "fields": {
                 "config_entry_id": {
                     "name": "Config Entry Id",
@@ -513,7 +513,7 @@
         },
         "notify_test": {
             "name": "Notify Test",
-            "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
+            "description": "Sends a test message via the configured notify target (fallback)",
             "fields": {
                 "title": {
                     "name": "Title",
@@ -768,10 +768,10 @@
                 "name": "Calories Burned Today"
             },
             "gps_points_total": {
-                "name": "Gps Points Total"
+                "name": "GPS Points Total"
             },
             "gps_accuracy_avg": {
-                "name": "Gps Accuracy Avg"
+                "name": "GPS Accuracy Avg"
             },
             "geofence_enters_today": {
                 "name": "Geofence Enters Today"
