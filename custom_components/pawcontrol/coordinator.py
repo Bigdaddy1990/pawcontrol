@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -47,7 +48,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * c
 
 
-class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
+class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Manage fetching and updating Paw Control data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -59,7 +60,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             update_interval=timedelta(minutes=5),
         )
         self.entry = entry
-        self._dog_data: Dict[str, Dict[str, Any]] = {}
+        self._dog_data: dict[str, dict[str, Any]] = {}
         self._visitor_mode: bool = False
         self._emergency_mode: bool = False
         self._emergency_level: str = "info"
@@ -166,7 +167,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 },
             }
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API or calculate derived values."""
         try:
             # Update calculated fields
@@ -240,14 +241,14 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         current_hour = dt_util.now().hour
 
         # Basic feeding schedule
-        if 6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0:
-            return True
-        elif 11 <= current_hour < 14 and data["feedings_today"]["lunch"] == 0:
-            return True
-        elif 17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0:
-            return True
-
-        return False
+        return bool(
+            6 <= current_hour < 9
+            and data["feedings_today"]["breakfast"] == 0
+            or 11 <= current_hour < 14
+            and data["feedings_today"]["lunch"] == 0
+            or 17 <= current_hour < 20
+            and data["feedings_today"]["dinner"] == 0
+        )
 
     def _calculate_needs_grooming(self, dog_id: str) -> bool:
         """Calculate if dog needs grooming."""
@@ -352,7 +353,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Compute distance and inside flag
         dist = None
         inside = None
-        if isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float)):
+        if isinstance(home_lat, int | float) and isinstance(home_lon, int | float):
             try:
                 dist = round(
                     _haversine_m(
@@ -411,7 +412,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # Notify listeners for immediate UI update
         self.async_update_listeners()
 
-    def get_dog_data(self, dog_id: str) -> Dict[str, Any]:
+    def get_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Get data for specific dog."""
         return self._dog_data.get(dog_id, {})
 
@@ -623,7 +624,7 @@ class PawControlCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         await self.async_request_refresh()
 
     async def log_health_data(
-        self, dog_id: str, weight_kg: Optional[float], note: str
+        self, dog_id: str, weight_kg: float | None, note: str
     ) -> None:
         """Log health data for a dog."""
         if dog_id not in self._dog_data:

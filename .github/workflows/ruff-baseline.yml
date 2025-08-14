@@ -23,8 +23,8 @@ jobs:
           title: "chore: ruff baseline (format+fix+noqa)"
           commit-message: "chore: ruff baseline (format+fix+noqa)"
           body: "Automated ruff baseline via GitHub Actions."
-          
-#name: Ruff       
+
+#name: Ruff
 #on: [ push, pull_request ]
 #jobs:
 #  ruff:

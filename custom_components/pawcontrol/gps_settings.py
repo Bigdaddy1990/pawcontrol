@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -15,9 +15,9 @@ class GPSSettingsStore:
         """Initialize the storage."""
         self.hass = hass
         self._store = Store(hass, 1, f"{domain}_{entry_id}_gps_settings")
-        self._data: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
 
-    async def async_load(self) -> Dict[str, Any]:
+    async def async_load(self) -> dict[str, Any]:
         """Load settings from storage."""
         try:
             self._data = await self._store.async_load() or {}
@@ -25,7 +25,7 @@ class GPSSettingsStore:
             self._data = {}
         return self._data
 
-    async def async_save(self, data: Dict[str, Any]) -> None:
+    async def async_save(self, data: dict[str, Any]) -> None:
         """Save settings to storage."""
         self._data = data
         await self._store.async_save(data)

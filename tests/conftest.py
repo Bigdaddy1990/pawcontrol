@@ -29,7 +29,7 @@ def anyio_backend() -> str:
 
 
 @pytest.fixture(autouse=True)
-def enable_event_loop_debug() -> Generator[None, None, None]:
+def enable_event_loop_debug() -> Generator[None]:
     """Ensure an event loop exists and enable debug mode for tests."""
     created_loop = False
     try:

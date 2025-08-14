@@ -2,8 +2,8 @@ import importlib
 import pathlib
 import sys
 import types
+from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import Callable, Iterable
 from unittest.mock import MagicMock
 
 import pytest

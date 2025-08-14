@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -34,7 +34,7 @@ class DashboardGenerator:
         self.entry = entry
         self._entity_registry = er.async_get(hass)
 
-    def generate_dashboard_config(self) -> Dict[str, Any]:
+    def generate_dashboard_config(self) -> dict[str, Any]:
         """Generate complete dashboard configuration."""
         dogs = self.entry.options.get(CONF_DOGS, [])
 
@@ -65,7 +65,7 @@ class DashboardGenerator:
             "cards": [{"type": "vertical-stack", "cards": cards}],
         }
 
-    def _generate_empty_dashboard(self) -> Dict[str, Any]:
+    def _generate_empty_dashboard(self) -> dict[str, Any]:
         """Generate dashboard when no dogs are configured."""
         return {
             "title": "Paw Control",
@@ -79,7 +79,7 @@ class DashboardGenerator:
             ],
         }
 
-    def _generate_header_card(self) -> Dict[str, Any]:
+    def _generate_header_card(self) -> dict[str, Any]:
         """Generate header card."""
         return {
             "type": "custom:mushroom-title-card",
@@ -87,7 +87,7 @@ class DashboardGenerator:
             "subtitle": "Smart Dog Management System",
         }
 
-    def _generate_system_status_card(self) -> Dict[str, Any]:
+    def _generate_system_status_card(self) -> dict[str, Any]:
         """Generate system status card."""
         return {
             "type": "horizontal-stack",
@@ -133,7 +133,7 @@ class DashboardGenerator:
             ],
         }
 
-    def _generate_dog_cards(self, dog: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _generate_dog_cards(self, dog: dict[str, Any]) -> list[dict[str, Any]]:
         """Generate cards for a specific dog."""
         dog_id = dog.get(CONF_DOG_ID)
         dog_name = dog.get(CONF_DOG_NAME, dog_id)
@@ -164,39 +164,39 @@ class DashboardGenerator:
 
         return cards
 
-    def _generate_dog_status_card(self, dog_id: str, dog_name: str) -> Dict[str, Any]:
+    def _generate_dog_status_card(self, dog_id: str, dog_name: str) -> dict[str, Any]:
         """Generate main status card for a dog."""
         return {
             "type": "custom:mushroom-template-card",
             "primary": f"🐕 {dog_name}",
-            "secondary": """
-                {{% set activity = states('sensor.{0}_{1}_activity_level') %}}
-                {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
+            "secondary": f"""
+                {{% set activity = states('sensor.{DOMAIN}_{dog_id}_activity_level') %}}
+                {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_walk_in_progress', 'on') %}}
                   🚶 Walking Now
-                {{% elif is_state('binary_sensor.{0}_{1}_needs_walk', 'on') %}}
+                {{% elif is_state('binary_sensor.{DOMAIN}_{dog_id}_needs_walk', 'on') %}}
                   ⚠️ Needs walk
-                {{% elif is_state('binary_sensor.{0}_{1}_is_hungry', 'on') %}}
+                {{% elif is_state('binary_sensor.{DOMAIN}_{dog_id}_is_hungry', 'on') %}}
                   🍽️ Hungry
                 {{% else %}}
                   ✅ {{{{ activity | title }}}} activity
                 {{% endif %}}
-            """.format(DOMAIN, dog_id).strip(),
+            """.strip(),
             "icon": "mdi:dog-side",
-            "icon_color": """
-                {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
+            "icon_color": f"""
+                {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_walk_in_progress', 'on') %}}
                   green
-                {{% elif is_state('binary_sensor.{0}_{1}_needs_walk', 'on') %}}
+                {{% elif is_state('binary_sensor.{DOMAIN}_{dog_id}_needs_walk', 'on') %}}
                   orange
                 {{% else %}}
                   blue
                 {{% endif %}}
-            """.format(DOMAIN, dog_id).strip(),
+            """.strip(),
             "tap_action": {"action": "more-info"},
         }
 
     def _generate_quick_actions_card(
-        self, dog_id: str, dog_name: str, modules: Dict
-    ) -> Dict[str, Any]:
+        self, dog_id: str, dog_name: str, modules: dict
+    ) -> dict[str, Any]:
         """Generate quick actions card."""
         cards = []
 
@@ -205,21 +205,21 @@ class DashboardGenerator:
                 {
                     "type": "custom:mushroom-template-card",
                     "primary": "Walk",
-                    "secondary": """
-                    {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
+                    "secondary": f"""
+                    {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_walk_in_progress', 'on') %}}
                       In Progress
                     {{% else %}}
                       Start Walk
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "icon": "mdi:walk",
-                    "icon_color": """
-                    {{% if is_state('binary_sensor.{0}_{1}_walk_in_progress', 'on') %}}
+                    "icon_color": f"""
+                    {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_walk_in_progress', 'on') %}}
                       green
                     {{% else %}}
                       grey
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.start_walk",
@@ -233,21 +233,21 @@ class DashboardGenerator:
                 {
                     "type": "custom:mushroom-template-card",
                     "primary": "Feed",
-                    "secondary": """
-                    {{% if is_state('binary_sensor.{0}_{1}_is_hungry', 'on') %}}
+                    "secondary": f"""
+                    {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_is_hungry', 'on') %}}
                       Hungry!
                     {{% else %}}
                       Quick Feed
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "icon": "mdi:food",
-                    "icon_color": """
-                    {{% if is_state('binary_sensor.{0}_{1}_is_hungry', 'on') %}}
+                    "icon_color": f"""
+                    {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_is_hungry', 'on') %}}
                       orange
                     {{% else %}}
                       grey
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.feed_dog",
@@ -267,7 +267,7 @@ class DashboardGenerator:
             else {"type": "markdown", "content": ""}
         )
 
-    def _generate_statistics_card(self, dog_id: str, modules: Dict) -> Dict[str, Any]:
+    def _generate_statistics_card(self, dog_id: str, modules: dict) -> dict[str, Any]:
         """Generate statistics card."""
         cards = []
 
@@ -301,7 +301,7 @@ class DashboardGenerator:
             else {"type": "markdown", "content": ""}
         )
 
-    def _generate_feeding_card(self, dog_id: str) -> Dict[str, Any]:
+    def _generate_feeding_card(self, dog_id: str) -> dict[str, Any]:
         """Generate feeding status card."""
         return {
             "type": "vertical-stack",
@@ -326,7 +326,7 @@ class DashboardGenerator:
 
     def _generate_meal_card(
         self, dog_id: str, meal_type: str, icon: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate individual meal card."""
         return {
             "type": "custom:mushroom-template-card",
@@ -352,7 +352,7 @@ class DashboardGenerator:
             },
         }
 
-    def _generate_health_card(self, dog_id: str, modules: Dict) -> Dict[str, Any]:
+    def _generate_health_card(self, dog_id: str, modules: dict) -> dict[str, Any]:
         """Generate health status card."""
         cards = []
 
@@ -371,8 +371,8 @@ class DashboardGenerator:
                 {
                     "type": "custom:mushroom-template-card",
                     "primary": "Grooming",
-                    "secondary": """
-                    {{% set days = states('sensor.{0}_{1}_days_since_grooming') | int %}}
+                    "secondary": f"""
+                    {{% set days = states('sensor.{DOMAIN}_{dog_id}_days_since_grooming') | int %}}
                     {{% if days == 0 %}}
                       Today
                     {{% elif days == 1 %}}
@@ -380,15 +380,15 @@ class DashboardGenerator:
                     {{% else %}}
                       {{{{ days }}}} days ago
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "icon": "mdi:content-cut",
-                    "icon_color": """
-                    {{% if is_state('binary_sensor.{0}_{1}_needs_grooming', 'on') %}}
+                    "icon_color": f"""
+                    {{% if is_state('binary_sensor.{DOMAIN}_{dog_id}_needs_grooming', 'on') %}}
                       orange
                     {{% else %}}
                       green
                     {{% endif %}}
-                """.format(DOMAIN, dog_id).strip(),
+                """.strip(),
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.start_grooming_session",
@@ -417,7 +417,7 @@ class DashboardGenerator:
             else {"type": "markdown", "content": ""}
         )
 
-    def _generate_training_card(self, dog_id: str) -> Dict[str, Any]:
+    def _generate_training_card(self, dog_id: str) -> dict[str, Any]:
         """Generate training status card."""
         return {
             "type": "vertical-stack",
@@ -457,7 +457,7 @@ class DashboardGenerator:
             ],
         }
 
-    def _generate_footer_card(self) -> Dict[str, Any]:
+    def _generate_footer_card(self) -> dict[str, Any]:
         """Generate footer card with global actions."""
         return {
             "type": "horizontal-stack",

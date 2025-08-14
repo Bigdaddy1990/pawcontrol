@@ -66,5 +66,5 @@ async def test_gps_post_location_calls_handler(hass: HomeAssistant):
 @pytest.mark.anyio
 async def test_route_history_list_requires_loaded_entry(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         await hass.services.async_call(DOMAIN, "route_history_list", {}, blocking=True)

@@ -200,20 +200,19 @@ class StaleDevicesRepairFlow(RepairsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> data_entry_flow.FlowResult:
         """Handle stale devices."""
-        if user_input is not None:
-            if user_input.get("confirm_removal"):
-                # Call the prune service
-                await self.hass.services.async_call(
-                    DOMAIN,
-                    "prune_stale_devices",
-                    {"auto": True},
-                    blocking=True,
-                )
+        if user_input is not None and user_input.get("confirm_removal"):
+            # Call the prune service
+            await self.hass.services.async_call(
+                DOMAIN,
+                "prune_stale_devices",
+                {"auto": True},
+                blocking=True,
+            )
 
-                ir.async_delete_issue(self.hass, DOMAIN, "stale_devices")
-                return self.async_create_entry(
-                    title="Stale Devices Removed", data={"removed": len(self.devices)}
-                )
+            ir.async_delete_issue(self.hass, DOMAIN, "stale_devices")
+            return self.async_create_entry(
+                title="Stale Devices Removed", data={"removed": len(self.devices)}
+            )
 
         return self.async_show_form(
             step_id="init",
@@ -297,23 +296,22 @@ class CorruptedDataRepairFlow(RepairsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> data_entry_flow.FlowResult:
         """Confirm full data reset."""
-        if user_input is not None:
-            if user_input.get("confirm") == "DELETE":
-                # Purge all storage
-                await self.hass.services.async_call(
-                    DOMAIN,
-                    "purge_all_storage",
-                    {"confirm": "DELETE"},
-                    blocking=True,
-                )
+        if user_input is not None and user_input.get("confirm") == "DELETE":
+            # Purge all storage
+            await self.hass.services.async_call(
+                DOMAIN,
+                "purge_all_storage",
+                {"confirm": "DELETE"},
+                blocking=True,
+            )
 
-                # Reload integration
-                entry = self.hass.config_entries.async_get_entry(self.entry_id)
-                if entry:
-                    await self.hass.config_entries.async_reload(self.entry_id)
+            # Reload integration
+            entry = self.hass.config_entries.async_get_entry(self.entry_id)
+            if entry:
+                await self.hass.config_entries.async_reload(self.entry_id)
 
-                ir.async_delete_issue(self.hass, DOMAIN, "corrupted_data")
-                return self.async_create_entry(title="Data Reset Complete", data={})
+            ir.async_delete_issue(self.hass, DOMAIN, "corrupted_data")
+            return self.async_create_entry(title="Data Reset Complete", data={})
 
         return self.async_show_form(
             step_id="confirm_reset",

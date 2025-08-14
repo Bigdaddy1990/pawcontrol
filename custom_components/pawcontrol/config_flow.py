@@ -1063,8 +1063,8 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         errors: dict[str, str] = {}
         geo = dict(self._options.get("geofence") or {})
 
-        default_lat = geo.get("lat", None)
-        default_lon = geo.get("lon", None)
+        default_lat = geo.get("lat")
+        default_lon = geo.get("lon")
         default_radius = geo.get("radius_m", 150)
         default_alerts = bool(geo.get("enable_alerts", True))
 
@@ -1095,7 +1095,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
                 st = self.hass.states.get(entity_id)
                 la = st and st.attributes.get("latitude")
                 lo = st and st.attributes.get("longitude")
-                if isinstance(la, (float, int)) and isinstance(lo, (float, int)):
+                if isinstance(la, float | int) and isinstance(lo, float | int):
                     lat, lon = float(la), float(lo)
                 else:
                     errors["base"] = "invalid_geofence"
