@@ -611,12 +611,24 @@
     "notify_test": {
       "name": "Notify Test",
       "fields": {
+        "title": {
+          "name": "Title",
+          "description": "Notification title."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Notification message body."
+        },
+        "target": {
+          "name": "Target",
+          "description": "Optional notify target/device."
+        },
         "config_entry_id": {
           "name": "Config Entry Id",
           "description": "Optional config entry ID to target a specific instance."
         }
       },
-      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback"
+      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback)."
     },
     "purge_all_storage": {
       "name": "Purge All Storage",
@@ -711,7 +723,7 @@
           "name": "Enable"
         }
       },
-      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der"
+      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der Geozone."
     },
     "prune_stale_devices": {
       "name": "Prune stale devices",
