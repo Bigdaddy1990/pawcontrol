@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.loader import async_get_integration, IntegrationNotFound
+from homeassistant.loader import IntegrationNotFound, async_get_integration
 
 from .const import DOMAIN
 
