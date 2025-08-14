@@ -16,7 +16,7 @@ The sensors follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -29,18 +29,18 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime, UnitOfEnergy
+from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
     ICONS,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
     MODULE_FEEDING,
+    MODULE_GPS,
     MODULE_GROOMING,
+    MODULE_HEALTH,
     MODULE_TRAINING,
+    MODULE_WALK,
 )
 from .entity import PawControlSensorEntity
 

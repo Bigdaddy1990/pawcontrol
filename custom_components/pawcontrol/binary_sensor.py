@@ -16,7 +16,7 @@ The binary sensors follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -709,7 +709,7 @@ class HealthConcernBinarySensor(PawControlBinarySensorEntity, BinarySensorEntity
     def is_on(self) -> bool:
         """Return True if there are health concerns."""
         try:
-            health_data = self.dog_data.get("health", {})
+            self.dog_data.get("health", {})
             
             # Check for overdue vaccinations, medications, or vet visits
             # This would be implemented based on vaccination schedules

@@ -17,7 +17,7 @@ The select entities follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -38,7 +38,6 @@ from .const import (
     FOOD_DRY,
     FOOD_TREAT,
     FOOD_WET,
-    GROOMING_TYPES,
     GROOMING_BATH,
     GROOMING_BRUSH,
     GROOMING_EARS,
@@ -46,6 +45,7 @@ from .const import (
     GROOMING_NAILS,
     GROOMING_TEETH,
     GROOMING_TRIM,
+    GROOMING_TYPES,
     ICONS,
     INTENSITY_HIGH,
     INTENSITY_LOW,
@@ -55,11 +55,6 @@ from .const import (
     MODULE_GROOMING,
     MODULE_HEALTH,
     MODULE_TRAINING,
-    TRAINING_TYPES,
-    TRAINING_BASIC,
-    TRAINING_TRICKS,
-    TRAINING_AGILITY,
-    TRAINING_BEHAVIORAL,
 )
 from .entity import PawControlSelectEntity
 
