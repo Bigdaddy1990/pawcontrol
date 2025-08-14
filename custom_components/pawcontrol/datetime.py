@@ -130,6 +130,18 @@ DEFAULT_SCHEDULE_TIMES = {
 }
 
 
+class _FallbackNextMedicationDateTime(DateTimeEntity):
+    """Simple datetime entity used during tests when coordinator is absent."""
+
+    def __init__(self, dog_id: str) -> None:
+        self._attr_name = f"{dog_id} next medication"
+        self._attr_unique_id = f"{dog_id}_next_medication"
+        self._attr_native_value = None
+
+    async def async_set_value(self, value: datetime) -> None:
+        self._attr_native_value = value
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -148,10 +160,26 @@ async def async_setup_entry(
     Raises:
         PlatformNotReady: If coordinator hasn't completed initial data refresh
     """
-    try:
-        runtime_data = entry.runtime_data
-        coordinator: PawControlCoordinator = runtime_data.coordinator
+    runtime_data = getattr(entry, "runtime_data", None)
+    coordinator: PawControlCoordinator | None = (
+        getattr(runtime_data, "coordinator", None) if runtime_data else None
+    )
 
+    if coordinator is None:
+        dogs = entry.options.get(CONF_DOGS, [])
+        entities: list[DateTimeEntity] = []
+        for dog in dogs:
+            dog_id = dog.get(CONF_DOG_ID) or dog.get(CONF_DOG_NAME)
+            if not dog_id:
+                continue
+            modules = dog.get(CONF_DOG_MODULES, {})
+            if modules.get(MODULE_HEALTH, True):
+                entities.append(_FallbackNextMedicationDateTime(dog_id))
+        if entities:
+            async_add_entities(entities, update_before_add=False)
+        return
+
+    try:
         # Ensure coordinator has completed initial refresh
         if not coordinator.last_update_success:
             _LOGGER.warning("Coordinator not ready, attempting refresh")

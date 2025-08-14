@@ -1300,10 +1300,20 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage geofence settings."""
-        # Implementation following same pattern as other steps
-        pass
+        if user_input is not None:
+            self._options.update(user_input)
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+            return self.async_create_entry(title="", data=self._options)
+
+        return self.async_show_form(step_id="geofence", data_schema=vol.Schema({}))
 
 
 # Maintain backwards compatibility with tests and older Home Assistant
 # expectations which import ConfigFlow from the module directly.
 ConfigFlow = PawControlConfigFlow
+
+
+@callback
+def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:
+    """Return an options flow for the given config entry."""
+    return PawControlOptionsFlow(config_entry)

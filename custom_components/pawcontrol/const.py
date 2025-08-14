@@ -249,6 +249,7 @@ SERVICE_EXPORT_OPTIONS: Final[str] = "export_options"
 SERVICE_IMPORT_OPTIONS: Final[str] = "import_options"
 SERVICE_NOTIFY_TEST: Final[str] = "notify_test"
 SERVICE_PURGE_ALL_STORAGE: Final[str] = "purge_all_storage"
+SERVICE_PRUNE_STALE_DEVICES: Final[str] = "prune_stale_devices"
 
 # Route and history services
 SERVICE_ROUTE_HISTORY_LIST: Final[str] = "route_history_list"

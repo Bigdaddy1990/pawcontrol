@@ -250,3 +250,7 @@ SERVICE_PURGE_ALL_STORAGE_SCHEMA = vol.Schema(
         vol.Optional("config_entry_id"): str,
     }
 )
+
+SERVICE_PRUNE_STALE_DEVICES_SCHEMA = vol.Schema(
+    {vol.Optional("auto", default=False): bool}
+)
