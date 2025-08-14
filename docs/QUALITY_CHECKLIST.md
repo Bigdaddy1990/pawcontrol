@@ -15,7 +15,7 @@ This document maps our implementation to the **Integration Quality Scale**.
 - [x] Repair issues & Repair flows (`repairs.py`) for user-guided fixes.
 - [x] Device Registry: each dog/tracker is a Device; `unique_id` for entities.
 - [x] Entity naming: `_attr_has_entity_name=True`, `translation_key` set; `strings.json` updated.
-- [x] Icon translations via `icons.json` with state mappings.
+- [x] Icon translations via `icon.json` with state mappings.
 - [x] Reconfigure flow (`async_step_reconfigure`) to change options post-setup.
 - [x] Services/Translations in sync; `services.yaml` matches registrations.
 - [ ] Brands assets prepared (SVG placeholders here) – PR to `home-assistant/brands` pending.
