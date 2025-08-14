@@ -808,21 +808,7 @@
         },
         "invalid_geofence": {
             "title": "Invalid geofence configuration",
-            "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius.",
-            "fix_flow": {
-                "step": {
-                    "init": {
-                        "title": "Fix geofence settings",
-                        "description": "Choose how to resolve the invalid geofence settings.",
-                        "data": {
-                            "action": "Action"
-                        },
-                        "data_description": {
-                            "action": "Select how to resolve the invalid geofence settings"
-                        }
-                    }
-                }
-            }
+            "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
         }
     },
     "exceptions": {
