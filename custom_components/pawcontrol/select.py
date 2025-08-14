@@ -91,7 +91,7 @@ TRAINING_TOPIC_OPTIONS = [
     "House Training",
     "Behavior Correction",
     "Recall Training",
-    "Crate Training",
+    "Create Training",
     "Impulse Control",
 ]
 MEAL_SCHEDULE_OPTIONS = ["1 meal", "2 meals", "3 meals", "Free feeding"]
