@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.loader import async_get_integration
+from homeassistant.loader import async_get_integration, IntegrationNotFound
 
 from .const import DOMAIN
 
@@ -24,11 +24,15 @@ def async_register(
 
 async def async_system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     """Get system health information."""
-    integration = await async_get_integration(hass, DOMAIN)
+    try:
+        integration = await async_get_integration(hass, DOMAIN)
+        version = integration.version or "unknown"
+    except IntegrationNotFound:
+        version = "unknown"
     entries = hass.config_entries.async_entries(DOMAIN)
 
     health_info = {
-        "version": integration.version or "unknown",
+        "version": version,
         "entries": len(entries),
     }
 
