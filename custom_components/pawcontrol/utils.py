@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import suppress
-from math import atan2, cos, isfinite, radians, sin, sqrt, pi
+from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.exceptions import HomeAssistantError
@@ -12,6 +11,7 @@ from .const import EARTH_RADIUS_M
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
     from homeassistant.core import HomeAssistant
 
 # Small epsilon for time/comparison operations to avoid division by near-zero
@@ -82,7 +82,7 @@ def format_coordinates(lat: float, lon: float) -> str:
 
 
 async def safe_service_call(
-    hass: "HomeAssistant",
+    hass: HomeAssistant,
     domain: str,
     service: str,
     data: Mapping[str, Any] | None = None,
