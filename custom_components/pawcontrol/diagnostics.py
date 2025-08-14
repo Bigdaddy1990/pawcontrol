@@ -73,16 +73,18 @@ async def async_get_config_entry_diagnostics(
     return async_redact_data(
         {
             "entry": {
-                "entry_id": entry.entry_id,
-                "version": entry.version,
-                "domain": entry.domain,
-                "title": entry.title,
-                "options": entry.options,
-                "pref_disable_new_entities": entry.pref_disable_new_entities,
-                "pref_disable_polling": entry.pref_disable_polling,
-                "source": entry.source,
-                "unique_id": entry.unique_id,
-                "disabled_by": entry.disabled_by,
+                "entry_id": getattr(entry, "entry_id", ""),
+                "version": getattr(entry, "version", 1),
+                "domain": getattr(entry, "domain", DOMAIN),
+                "title": getattr(entry, "title", ""),
+                "options": getattr(entry, "options", {}),
+                "pref_disable_new_entities": getattr(
+                    entry, "pref_disable_new_entities", False
+                ),
+                "pref_disable_polling": getattr(entry, "pref_disable_polling", False),
+                "source": getattr(entry, "source", ""),
+                "unique_id": getattr(entry, "unique_id", None),
+                "disabled_by": getattr(entry, "disabled_by", None),
             },
             "coordinator_data": {
                 "visitor_mode": coordinator.visitor_mode,

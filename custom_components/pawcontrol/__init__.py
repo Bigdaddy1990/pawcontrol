@@ -72,7 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize helpers
     notification_router = notification_router_mod.NotificationRouter(hass, entry)
     setup_sync = setup_sync_mod.SetupSync(hass, entry)
-    report_generator = ReportGenerator(hass, entry)
+    report_generator = ReportGenerator(hass, entry, coordinator)
 
     # Initialize service manager
     services = ServiceManager(hass, entry)

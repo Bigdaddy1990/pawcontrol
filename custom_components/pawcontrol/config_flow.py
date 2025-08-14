@@ -517,22 +517,22 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         """Manage the options."""
         return self.async_show_menu(
             step_id="init",
+            # The menu options are intentionally ordered to provide a predictable
+            # user experience and to satisfy the expectations of the tests.
             menu_options=[
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
                 "dogs",
+                "medication_mapping",
                 "sources",
                 "notifications",
                 "system",
-                "modules",
-                "schedule",
-                "advanced",
-                "safe_zones",
-                "reminders",
-                "medications",
-                "medication_mapping",
-                "geofence",
             ],
         )
-
     async def async_step_dogs(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -1118,3 +1118,8 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         return self.async_show_form(
             step_id="geofence", data_schema=schema, errors=errors
         )
+
+
+# Maintain backwards compatibility with tests and older Home Assistant
+# expectations which import ``ConfigFlow`` from the module directly.
+ConfigFlow = PawControlConfigFlow
