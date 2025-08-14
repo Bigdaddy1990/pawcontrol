@@ -533,6 +533,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
                 "system",
             ],
         )
+
     async def async_step_dogs(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:

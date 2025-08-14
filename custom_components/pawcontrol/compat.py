@@ -89,9 +89,9 @@ EVENT_STATE_REPORTED = _ensure_const("EVENT_STATE_REPORTED", "state_reported")
 try:  # pragma: no cover - Home Assistant provides the enum
     UnitOfLength = ha_const.UnitOfLength  # type: ignore[attr-defined]
 except Exception:  # pragma: no cover - tests without Home Assistant
+
     class UnitOfLength(StrEnum):
         METERS = "m"
 
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfLength = UnitOfLength  # type: ignore[attr-defined]
-
