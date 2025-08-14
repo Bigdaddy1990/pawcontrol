@@ -20,6 +20,11 @@ jobs:
         run: pre-commit run --show-diff-on-failure --color always --all-files
       - name: Hassfest
         uses: home-assistant/actions/hassfest@master
+      - name: mypy
+        run: |
+         pip install mypy
+         mypy custom_components/pawcontrol
+
 
   tests:
     runs-on: ubuntu-latest
