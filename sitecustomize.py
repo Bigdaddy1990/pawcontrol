@@ -58,6 +58,7 @@ try:  # pragma: no cover - Home Assistant available in the test environment
     from homeassistant.core import HomeAssistant
 
     if not hasattr(HomeAssistant, "_pawcontrol_executor_patch"):
+
         async def async_add_executor_job(self, func, *args):
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, func, *args)
