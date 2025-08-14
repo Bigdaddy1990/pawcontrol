@@ -370,15 +370,23 @@
       },
       "description": "Service 'SERVICE_LOG_MEDICATION' for Paw Control."
     },
-    "play_with_dog": {
-      "name": "Play With Dog",
+    "play_session": {
+      "name": "Play Session",
       "fields": {
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
+        "dog_id": {
+          "name": "Dog Id",
+          "description": "Unique identifier of the dog"
+        },
+        "duration_min": {
+          "name": "Duration (minutes)",
+          "description": "Play session duration"
+        },
+        "intensity": {
+          "name": "Intensity",
+          "description": "Activity intensity level"
         }
       },
-      "description": "Service 'SERVICE_PLAY_WITH_DOG' for Paw Control."
+      "description": "Log a play session with a dog."
     },
     "start_grooming": {
       "name": "Start Grooming",
@@ -390,15 +398,27 @@
       },
       "description": "Service 'SERVICE_START_GROOMING' for Paw Control."
     },
-    "start_training": {
-      "name": "Start Training",
+    "training_session": {
+      "name": "Training Session",
       "fields": {
-        "config_entry_id": {
-          "name": "Config Entry Id",
-          "description": "Optional config entry ID to target a specific instance."
+        "dog_id": {
+          "name": "Dog Id",
+          "description": "Unique identifier of the dog"
+        },
+        "topic": {
+          "name": "Training Topic",
+          "description": "What was trained"
+        },
+        "duration_min": {
+          "name": "Duration (minutes)",
+          "description": "Training duration"
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Training progress notes"
         }
       },
-      "description": "Service 'SERVICE_START_TRAINING' for Paw Control."
+      "description": "Log a training session with a dog."
     },
     "start_walk": {
       "name": "Start Walk",
@@ -627,6 +647,20 @@
         }
       },
       "description": "Löscht gespeicherte GPS-Einstellungen und den Routenverlauf (Storage)."
+    },
+    "send_medication_reminder": {
+      "name": "Send Medication Reminder",
+      "fields": {
+        "dog_id": {
+          "name": "Dog Id",
+          "description": "Dog identifier"
+        },
+        "medication": {
+          "name": "Medication",
+          "description": "Medication name"
+        }
+      },
+      "description": "Send a medication reminder notification."
     },
     "route_history_export_range": {
       "name": "Route History Export Range",
