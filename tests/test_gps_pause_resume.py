@@ -1,9 +1,8 @@
-import pytest
-from homeassistant.core import HomeAssistant
-from homeassistant import config_entries
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
 import custom_components.pawcontrol as comp
+import pytest
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 DOMAIN = comp.DOMAIN
 
@@ -24,4 +23,3 @@ async def test_gps_pause_and_resume(hass: HomeAssistant, expected_lingering_time
 
     assert hass.services.has_service(DOMAIN, "gps_pause_tracking")
     assert hass.services.has_service(DOMAIN, "gps_resume_tracking")
-

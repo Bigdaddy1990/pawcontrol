@@ -1145,6 +1145,7 @@ async def async_get_options_flow(
     """Return the options flow handler."""
     return GeofenceOptionsFlow(config_entry)
 
+
 # Maintain backwards compatibility with tests and older Home Assistant
 # expectations which import ``ConfigFlow`` from the module directly.
 ConfigFlow = PawControlConfigFlow

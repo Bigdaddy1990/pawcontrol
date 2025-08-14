@@ -53,6 +53,7 @@ async def test_device_trigger_geofence_alert(hass):
     device_id = device.id
 
     trigger = {"domain": comp.DOMAIN, "type": "geofence_alert", "device_id": device_id}
+
     async def action(*_args, **_kwargs):
         pass
 

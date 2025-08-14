@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.util import dt as dt_util
-
-from types import SimpleNamespace
 
 from .compat import DeviceInfo, EntityCategory
 from .const import (

@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-from .compat import CONF_DEVICE_ID, CONF_PLATFORM, CONF_DOMAIN, CONF_TYPE
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
+
+from .compat import CONF_DEVICE_ID, CONF_DOMAIN, CONF_PLATFORM, CONF_TYPE
+
 try:  # pragma: no cover - Home Assistant provides the event trigger module
     from homeassistant.components.homeassistant.triggers import event as event_trigger
 except Exception:  # pragma: no cover - minimal fallback for tests
@@ -21,8 +23,12 @@ except Exception:  # pragma: no cover - minimal fallback for tests
             return cfg
 
         @staticmethod
-        async def async_attach_trigger(hass, config, action, trigger_info, *, platform_type="event"):
+        async def async_attach_trigger(
+            hass, config, action, trigger_info, *, platform_type="event"
+        ):
             return lambda: None
+
+
 try:  # pragma: no cover - Home Assistant provides these
     from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 except Exception:  # pragma: no cover - minimal stubs for tests
@@ -31,8 +37,10 @@ except Exception:  # pragma: no cover - minimal stubs for tests
     class HomeAssistant:  # type: ignore[too-few-public-methods]
         pass
 
+
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
+
 from .const import (
     DOMAIN,
     EVENT_DOG_FED,

@@ -1,7 +1,6 @@
 import pytest
-from homeassistant.core import HomeAssistant
-
 from custom_components.pawcontrol import config_flow as cf
+from homeassistant.core import HomeAssistant
 
 
 @pytest.mark.anyio
