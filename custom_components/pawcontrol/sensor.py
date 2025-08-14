@@ -10,13 +10,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfMass, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .compat import EntityCategory, UnitOfLength
-from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS
+from .compat import EntityCategory, UnitOfLength, UnitOfMass, UnitOfTime
+from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, DOMAIN
 from .coordinator import PawControlCoordinator
 from .entity import PawControlSensorEntity
 
