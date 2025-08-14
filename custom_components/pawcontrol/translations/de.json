@@ -451,7 +451,7 @@
     },
     "toggle_geofence_alerts": {
       "name": "Toggle Geofence Alerts",
-      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der",
+      "description": "Aktiviert/Deaktiviert Benachrichtigungen bei Verlassen/Betreten der Geozone.",
       "fields": {
         "enabled": {
           "name": "Aktiviert",
@@ -500,7 +500,7 @@
     },
     "notify_test": {
       "name": "Notify Test",
-      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback",
+      "description": "Sendet eine Test-Nachricht über das konfigurierte Notify-Ziel (Fallback).",
       "fields": {
         "title": {
           "name": "Titel",
