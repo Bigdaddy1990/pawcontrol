@@ -20,7 +20,7 @@ class DummyCoordinator:
         return self._dog_data[dog_id]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_diagnostics_redacts_sensitive(hass: HomeAssistant):
     entry = SimpleNamespace(
         entry_id="abc123", version=1, domain=DOMAIN, title="Paw Control"

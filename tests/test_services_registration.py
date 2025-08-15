@@ -5,7 +5,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 DOMAIN = "pawcontrol"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_services_registered(hass: HomeAssistant):
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
