@@ -1,10 +1,9 @@
 from unittest.mock import patch
 
+import custom_components.pawcontrol as comp
 import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-import custom_components.pawcontrol as comp
 
 DOMAIN = comp.DOMAIN
 
@@ -19,11 +18,15 @@ async def test_gps_pause_and_resume(hass: HomeAssistant, expected_lingering_time
         options={"dogs": [{"dog_id": "d1"}]},
     )
     entry.add_to_hass(hass)
-    
+
     # Mock the heavy dependencies to avoid setup issues in tests
     with (
-        patch("custom_components.pawcontrol.coordinator.PawControlCoordinator") as mock_coord,
-        patch("custom_components.pawcontrol.helpers.notification_router.NotificationRouter"),
+        patch(
+            "custom_components.pawcontrol.coordinator.PawControlCoordinator"
+        ) as mock_coord,
+        patch(
+            "custom_components.pawcontrol.helpers.notification_router.NotificationRouter"
+        ),
         patch("custom_components.pawcontrol.helpers.setup_sync.SetupSync"),
         patch("custom_components.pawcontrol.services.ServiceManager"),
     ):
