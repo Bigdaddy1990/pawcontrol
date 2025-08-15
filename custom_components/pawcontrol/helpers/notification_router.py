@@ -58,7 +58,11 @@ class NotificationRouter:
             return False
 
         # Check if snoozed
-        if tag and tag in self._snoozed_notifications and dt_util.now() < self._snoozed_notifications[tag]:
+        if (
+            tag
+            and tag in self._snoozed_notifications
+            and dt_util.now() < self._snoozed_notifications[tag]
+        ):
             _LOGGER.debug(f"Notification snoozed: {tag}")
             return False
 
