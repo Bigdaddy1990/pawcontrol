@@ -43,6 +43,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_DISCOVERY_INFO,
     CONF_CALENDAR,
     CONF_DEVICE_TRACKERS,
     CONF_DOG_AGE,
@@ -73,9 +74,9 @@ from .const import (
     DEFAULT_RESET_TIME,
     DEFAULT_SNOOZE_MIN,
     DOMAIN,
+    MAX_DOGS_PER_INTEGRATION,
     MAX_DOG_AGE_YEARS,
     MAX_DOG_WEIGHT_KG,
-    MAX_DOGS_PER_INTEGRATION,
     MIN_DOG_AGE_YEARS,
     MIN_DOG_WEIGHT_KG,
     MODULE_DASHBOARD,
@@ -116,6 +117,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._sources: dict[str, Any] = {}
         self._notifications: dict[str, Any] = {}
         self._reauth_entry: ConfigEntry | None = None
+        self._discovery_info: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

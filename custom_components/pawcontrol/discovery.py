@@ -57,7 +57,14 @@ class PawControlDiscoveryFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(
             f"{DOMAIN}_usb_{discovery_info.vid}_{discovery_info.pid}_{discovery_info.serial_number or 'unknown'}"
         )
-        self._abort_if_unique_id_configured()
+        # GOLD-TIER: Update device info if already configured
+        self._abort_if_unique_id_configured(
+            updates={
+                "device": discovery_info.device,
+                "description": discovery_info.description,
+                "manufacturer": discovery_info.manufacturer,
+            }
+        )
 
         self._discovered_device = {
             "type": "usb",
@@ -94,7 +101,10 @@ class PawControlDiscoveryFlow(config_entries.ConfigFlow, domain=DOMAIN):
         name = discovery_info.name.replace(f".{ZEROCONF_TYPE}", "")
 
         await self.async_set_unique_id(f"{DOMAIN}_mdns_{discovery_info.hostname}")
-        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+        # GOLD-TIER: Update network info if already configured
+        self._abort_if_unique_id_configured(
+            updates={CONF_HOST: host, "hostname": discovery_info.hostname}
+        )
 
         self._discovered_device = {
             "type": "zeroconf",
@@ -130,7 +140,10 @@ class PawControlDiscoveryFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(
             f"{DOMAIN}_dhcp_{discovery_info.macaddress.replace(':', '')}"
         )
-        self._abort_if_unique_id_configured()
+        # GOLD-TIER: Update network info if already configured
+        self._abort_if_unique_id_configured(
+            updates={"ip": discovery_info.ip, "hostname": discovery_info.hostname}
+        )
 
         self._discovered_device = {
             "type": "dhcp",

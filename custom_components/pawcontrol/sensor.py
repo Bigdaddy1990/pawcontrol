@@ -70,7 +70,7 @@ async def async_setup_entry(
 
     Creates sensor entities based on configured dogs and enabled modules.
     Only creates sensors for modules that are enabled for each dog.
-
+    
     Platinum optimizations:
     - Validates coordinator health before setup
     - Efficient entity creation with early validation
@@ -96,13 +96,13 @@ async def async_setup_entry(
             if not coordinator.last_update_success:
                 _LOGGER.error("Coordinator failed initial refresh")
                 raise PlatformNotReady("Coordinator failed to initialize")
-
+                
         # Platinum: Validate coordinator health status
-        if hasattr(coordinator, "coordinator_status"):  # noqa: SIM102
+        if hasattr(coordinator, 'coordinator_status'):
             if coordinator.coordinator_status != STATUS_READY:
                 _LOGGER.warning(
                     "Coordinator status is %s, may affect sensor reliability",
-                    coordinator.coordinator_status,
+                    coordinator.coordinator_status
                 )
 
         dogs = entry.options.get(CONF_DOGS, [])
@@ -128,7 +128,7 @@ async def async_setup_entry(
                 dog_id,
                 list(dog_modules.keys()),
             )
-
+            
             # Platinum: Track entity creation for monitoring
             dog_entity_count = 0
 
@@ -136,36 +136,28 @@ async def async_setup_entry(
             core_entities = _create_core_sensors(coordinator, entry, dog_id)
             entities.extend(core_entities)
             dog_entity_count += len(core_entities)
-            entity_count_by_type["core"] = entity_count_by_type.get("core", 0) + len(
-                core_entities
-            )
+            entity_count_by_type["core"] = entity_count_by_type.get("core", 0) + len(core_entities)
 
             # Walk sensors (if walk module enabled)
             if dog_modules.get(MODULE_WALK, True):
                 walk_entities = _create_walk_sensors(coordinator, entry, dog_id)
                 entities.extend(walk_entities)
                 dog_entity_count += len(walk_entities)
-                entity_count_by_type["walk"] = entity_count_by_type.get(
-                    "walk", 0
-                ) + len(walk_entities)
+                entity_count_by_type["walk"] = entity_count_by_type.get("walk", 0) + len(walk_entities)
 
             # Feeding sensors (if feeding module enabled)
             if dog_modules.get(MODULE_FEEDING, True):
                 feeding_entities = _create_feeding_sensors(coordinator, entry, dog_id)
                 entities.extend(feeding_entities)
                 dog_entity_count += len(feeding_entities)
-                entity_count_by_type["feeding"] = entity_count_by_type.get(
-                    "feeding", 0
-                ) + len(feeding_entities)
+                entity_count_by_type["feeding"] = entity_count_by_type.get("feeding", 0) + len(feeding_entities)
 
             # Health sensors (if health module enabled)
             if dog_modules.get(MODULE_HEALTH, True):
                 health_entities = _create_health_sensors(coordinator, entry, dog_id)
                 entities.extend(health_entities)
                 dog_entity_count += len(health_entities)
-                entity_count_by_type["health"] = entity_count_by_type.get(
-                    "health", 0
-                ) + len(health_entities)
+                entity_count_by_type["health"] = entity_count_by_type.get("health", 0) + len(health_entities)
 
             # Activity sensors (always enabled with walk or feeding)
             if dog_modules.get(MODULE_WALK, True) or dog_modules.get(
@@ -174,45 +166,35 @@ async def async_setup_entry(
                 activity_entities = _create_activity_sensors(coordinator, entry, dog_id)
                 entities.extend(activity_entities)
                 dog_entity_count += len(activity_entities)
-                entity_count_by_type["activity"] = entity_count_by_type.get(
-                    "activity", 0
-                ) + len(activity_entities)
+                entity_count_by_type["activity"] = entity_count_by_type.get("activity", 0) + len(activity_entities)
 
             # Location sensors (if GPS module enabled)
             if dog_modules.get(MODULE_GPS, False):
                 location_entities = _create_location_sensors(coordinator, entry, dog_id)
                 entities.extend(location_entities)
                 dog_entity_count += len(location_entities)
-                entity_count_by_type["location"] = entity_count_by_type.get(
-                    "location", 0
-                ) + len(location_entities)
+                entity_count_by_type["location"] = entity_count_by_type.get("location", 0) + len(location_entities)
 
             # Statistics sensors (always enabled)
             stats_entities = _create_statistics_sensors(coordinator, entry, dog_id)
             entities.extend(stats_entities)
             dog_entity_count += len(stats_entities)
-            entity_count_by_type["statistics"] = entity_count_by_type.get(
-                "statistics", 0
-            ) + len(stats_entities)
+            entity_count_by_type["statistics"] = entity_count_by_type.get("statistics", 0) + len(stats_entities)
 
             # Grooming sensors (if grooming module enabled)
             if dog_modules.get(MODULE_GROOMING, False):
                 grooming_entities = _create_grooming_sensors(coordinator, entry, dog_id)
                 entities.extend(grooming_entities)
                 dog_entity_count += len(grooming_entities)
-                entity_count_by_type["grooming"] = entity_count_by_type.get(
-                    "grooming", 0
-                ) + len(grooming_entities)
+                entity_count_by_type["grooming"] = entity_count_by_type.get("grooming", 0) + len(grooming_entities)
 
             # Training sensors (if training module enabled)
             if dog_modules.get(MODULE_TRAINING, False):
                 training_entities = _create_training_sensors(coordinator, entry, dog_id)
                 entities.extend(training_entities)
                 dog_entity_count += len(training_entities)
-                entity_count_by_type["training"] = entity_count_by_type.get(
-                    "training", 0
-                ) + len(training_entities)
-
+                entity_count_by_type["training"] = entity_count_by_type.get("training", 0) + len(training_entities)
+                
             _LOGGER.debug("Created %d sensors for dog %s", dog_entity_count, dog_name)
 
         # Platinum: Comprehensive logging with entity breakdown
@@ -220,7 +202,7 @@ async def async_setup_entry(
             "Created %d sensor entities across %d dogs - breakdown: %s",
             len(entities),
             len(dogs),
-            entity_count_by_type,
+            entity_count_by_type
         )
 
         if entities:
@@ -579,7 +561,7 @@ class DogStatusSensor(PawControlSensorEntity, SensorEntity):
 
 class WalkDistanceCurrentSensor(PawControlSensorEntity, SensorEntity):
     """Sensor for current walk distance in progress.
-
+    
     Platinum optimizations:
     - Validates meaningful distance changes
     - Efficient state updates with thresholds
@@ -611,15 +593,12 @@ class WalkDistanceCurrentSensor(PawControlSensorEntity, SensorEntity):
             walk_data = self.dog_data.get("walk", {})
             if walk_data.get("walk_in_progress", False):
                 distance = walk_data.get("walk_distance_m", 0)
-
+                
                 # Platinum: Filter meaningless updates
                 if distance >= MIN_MEANINGFUL_DISTANCE_M:
                     # Only update if change is significant enough
-                    if (
-                        self._last_reported_value is None
-                        or abs(distance - self._last_reported_value)
-                        >= SENSOR_UPDATE_THRESHOLD
-                    ):
+                    if (self._last_reported_value is None or 
+                        abs(distance - self._last_reported_value) >= SENSOR_UPDATE_THRESHOLD):
                         self._last_reported_value = distance
                         return distance
                     return self._last_reported_value

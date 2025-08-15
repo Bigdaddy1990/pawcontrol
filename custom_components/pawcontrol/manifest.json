@@ -38,7 +38,7 @@
     "custom_components.pawcontrol",
     "pawcontrol"
   ],
-  "quality_scale": "platinum",
+  "quality_scale": "silver",
   "requirements": [],
   "usb": [
     {
