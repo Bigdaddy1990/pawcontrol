@@ -89,14 +89,15 @@ async def async_setup_entry(
         runtime_data = entry.runtime_data
         coordinator: PawControlCoordinator = runtime_data.coordinator
 
-        # Platinum: Enhanced coordinator validation
+    # Platinum: Enhanced coordinator validation
+    if not coordinator.last_update_success:
+       _LOGGER.warning("Coordinator not ready, attempting refresh")
+    if hasattr(coordinator, "async_refresh"):
+        await coordinator.async_refresh()
         if not coordinator.last_update_success:
-            _LOGGER.warning("Coordinator not ready, attempting refresh")
-            await coordinator.async_refresh()
-            if not coordinator.last_update_success:
-                _LOGGER.error("Coordinator failed initial refresh")
-                raise PlatformNotReady("Coordinator failed to initialize")
-
+            _LOGGER.error("Coordinator failed initial refresh")
+            raise PlatformNotReady("Coordinator failed to initialize")
+     else:
         # Platinum: Validate coordinator health status
         if hasattr(coordinator, "coordinator_status"):
             if coordinator.coordinator_status != STATUS_READY:
