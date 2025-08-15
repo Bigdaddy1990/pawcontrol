@@ -6,12 +6,6 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
-
-try:
-    from homeassistant.config_entries import ConfigEntryState
-except ModuleNotFoundError:  # pragma: no cover - skip if dependency missing
-    pytest.skip("homeassistant is required for tests", allow_module_level=True)
-
 from custom_components.pawcontrol.const import DOMAIN
 
 pytestmark = [
@@ -51,7 +45,7 @@ async def test_setup_entry(
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    assert mock_config_entry.state == ConfigEntryState.LOADED
+        assert mock_config_entry.state.value == "loaded"
     assert DOMAIN in hass.data
     assert mock_config_entry.entry_id in hass.data[DOMAIN]
     assert mock_config_entry.runtime_data is not None
@@ -62,12 +56,12 @@ async def test_unload_entry(
     init_integration: MockConfigEntry,
 ) -> None:
     """Test unloading the integration."""
-    assert init_integration.state == ConfigEntryState.LOADED
+    assert init_integration.state.value == "loaded"
 
     await hass.config_entries.async_unload(init_integration.entry_id)
     await hass.async_block_till_done()
 
-    assert init_integration.state == ConfigEntryState.NOT_LOADED
+    assert init_integration.state.value == "not_loaded"
     assert init_integration.entry_id not in hass.data.get(DOMAIN, {})
 
 
@@ -85,4 +79,4 @@ async def test_setup_entry_fails_on_exception(
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    assert mock_config_entry.state == ConfigEntryState.SETUP_RETRY
+    assert mock_config_entry.state.value == "setup_retry"

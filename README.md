@@ -78,7 +78,7 @@ Eine umfassende Home Assistant Integration für intelligentes Hundemanagement mi
 
 ### Unterstützte Hardware
 - **GPS-Tracker**: Via Person/Device-Tracker Entitäten
-- **Türsensoren**: Beliebige binary_sensor für Gassi-Erkennung  
+- **Türsensoren**: Beliebige binary_sensor für Gassi-Erkennung
 - **USB-Geräte**: Automatische Erkennung von Paw-Trackern
 - **Netzwerk**: DHCP-Discovery für Tracker-Hardware
 
@@ -104,7 +104,7 @@ service: pawcontrol.start_walk
 data:
   dog_id: "buddy"
 
-# Fütterung protokollieren  
+# Fütterung protokollieren
 service: pawcontrol.feed_dog
 data:
   dog_id: "buddy"
@@ -169,7 +169,7 @@ Die Integration erstellt automatisch folgende Entitäten pro Hund:
 
 ### Binary Sensoren
 - `binary_sensor.{dog_name}_needs_walk` - Gassi erforderlich
-- `binary_sensor.{dog_name}_is_hungry` - Fütterung erforderlich  
+- `binary_sensor.{dog_name}_is_hungry` - Fütterung erforderlich
 - `binary_sensor.{dog_name}_is_home` - Zuhause/Unterwegs
 - `binary_sensor.{dog_name}_walk_in_progress` - Gassi läuft
 
@@ -209,7 +209,7 @@ logger:
 ### Entwicklung
 1. Forken Sie das Repository
 2. Erstellen Sie einen Feature-Branch
-3. Implementieren Sie Tests für neue Features  
+3. Implementieren Sie Tests für neue Features
 4. Führen Sie die Tests aus: `pytest`
 5. Erstellen Sie einen Pull Request
 

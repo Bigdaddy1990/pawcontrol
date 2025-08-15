@@ -14,8 +14,8 @@ The coordinator follows Home Assistant's Platinum standards with:
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -24,7 +24,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
-from .utils import calculate_distance, validate_coordinates
 
 from .const import (
     ATTR_DOG_ID,
@@ -50,6 +49,7 @@ from .const import (
     STATUS_READY,
     WALK_DISTANCE_UPDATE_THRESHOLD_M,
 )
+from .utils import calculate_distance, validate_coordinates
 
 if TYPE_CHECKING:
     from .types import CoordinatorData, DogData
@@ -95,7 +95,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._emergency_mode: bool = False
         self._emergency_level: str = "info"
         self._last_update_time: datetime | None = None
-        
+
         # Platinum performance optimizations
         self._last_refresh_request: datetime | None = None
         self._update_debounce_tasks: dict[str, asyncio.Task] = {}
@@ -544,7 +544,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Fire error event for monitoring
                 self.hass.bus.async_fire(
                     f"{DOMAIN}_error",
-                    {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id}
+                    {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id},
                 )
                 return
 
@@ -765,21 +765,21 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         This is a convenience method for triggering UI updates when
         data changes outside the normal update cycle.
-        
+
         Platinum optimization: Implements debouncing to prevent UI spam.
         """
         self._schedule_debounced_update("general")
-        
+
     def _schedule_debounced_update(self, update_key: str) -> None:
         """Schedule a debounced update to prevent UI spam.
-        
+
         Args:
             update_key: Key to identify the type of update for debouncing
         """
         # Cancel existing debounce task if any
         if update_key in self._update_debounce_tasks:
             self._update_debounce_tasks[update_key].cancel()
-        
+
         # Schedule new debounced update
         async def _debounced_update() -> None:
             await asyncio.sleep(ENTITY_UPDATE_DEBOUNCE_SECONDS)
@@ -789,29 +789,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Error during debounced update: %s", err)
             finally:
                 self._update_debounce_tasks.pop(update_key, None)
-        
+
         self._update_debounce_tasks[update_key] = self.hass.async_create_task(
             _debounced_update()
         )
-        
+
     async def _safe_request_refresh(self) -> None:
         """Request a refresh with throttling and error handling.
-        
+
         Platinum optimization: Prevents spam requests and tracks errors.
         """
         async with self._refresh_lock:
             now = dt_util.utcnow()
-            
+
             # Throttle refresh requests to prevent performance issues
             if self._last_refresh_request:
                 time_since_last = (now - self._last_refresh_request).total_seconds()
                 if time_since_last < COORDINATOR_REFRESH_THROTTLE_SECONDS:
                     _LOGGER.debug(
-                        "Throttling refresh request (%.1fs since last)",
-                        time_since_last
+                        "Throttling refresh request (%.1fs since last)", time_since_last
                     )
                     return
-            
+
             self._last_refresh_request = now
             try:
                 await self.async_request_refresh()
@@ -822,27 +821,27 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.warning(
                     "Coordinator refresh failed (attempt %d): %s",
                     self._error_count,
-                    err
+                    err,
                 )
                 if self._error_count >= 3:
                     self._status = ERROR_COORDINATOR_UNAVAILABLE
                     # Fire error event for monitoring
                     self.hass.bus.async_fire(
                         f"{DOMAIN}_coordinator_error",
-                        {"error_count": self._error_count, "status": self._status}
+                        {"error_count": self._error_count, "status": self._status},
                     )
                 raise
-                
-    @property 
+
+    @property
     def coordinator_status(self) -> str:
         """Return current coordinator status for health monitoring."""
         return self._status
-        
+
     @property
     def integration_version(self) -> str:
         """Return integration version."""
         return self._version
-        
+
     @property
     def error_count(self) -> int:
         """Return current error count for diagnostics."""
