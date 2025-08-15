@@ -1,130 +1,245 @@
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Bigdaddy1990/pawcontrol/main.svg)](https://results.pre-commit.ci/latest/github/Bigdaddy1990/pawcontrol/main)
+# 🐕 Paw Control - Smart Dog Management for Home Assistant
 
-[![CI](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/ci.yml)
-[![hassfest](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/hassfest.yml/badge.svg)](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/hassfest.yml)
-[![HACS validation](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/hacs.yml/badge.svg)](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/hacs.yml)
-[![Release](https://img.shields.io/github/v/release/Bigdaddy1990/pawcontrol?sort=semver)](https://github.com/Bigdaddy1990/pawcontrol/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Bronze-CD7F32)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![GitHub release](https://img.shields.io/github/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
-[![CI](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/Bigdaddy1990/pawcontrol/actions/workflows/ci.yml)
+Eine umfassende Home Assistant Integration für intelligentes Hundemanagement mit GPS-Tracking, Gesundheitsüberwachung, Geofencing und automatisierten Erinnerungen.
 
-# Paw Control – Home Assistant Integration
+## ✨ Features
 
-**Purpose**: Track dog-related activities, GPS routes, geofence alerts, notifications & diagnostics.
+### 🚶‍♂️ Gassi-Tracking
+- **GPS-basierte Routenverfolgung** mit Distanz und Dauer
+- **Automatische Gassi-Erkennung** über Türsensoren
+- **Tägliche Statistiken** und Verlaufsdaten
+- **Kalorienbedarf-Berechnung** basierend auf Aktivität
 
-## Installation
-1. Copy `custom_components/pawcontrol/` into your HA `config/custom_components/` folder.
-2. Restart Home Assistant.
-3. Settings → Integrations → *Add Integration* → **Paw Control**.
+### 📍 Geofencing & Standort
+- **Sichere Zonen definieren** mit konfigurierbarem Radius
+- **Ein-/Ausgangsmeldungen** bei Geofence-Verlassen
+- **Anwesenheitserkennung** (Zuhause/Unterwegs)
+- **DHCP/USB/Zeroconf Discovery** für automatische Erkennung
 
-## Features
-- GPS walk tracking (start/stop/pause/resume; route export & diagnostics).
-- Route history list/purge/export (events & storage).
-- Geofence alerts toggle, medication/feeding logs, notifications.
-- Diagnostics download with sensitive data redaction.
-- Repair flows for common issues (e.g., storage corruption).
+### 🍽️ Fütterungsmanagement
+- **Mahlzeiten-Tracking** (Frühstück, Mittag, Abend, Snacks)
+- **Portion- und Nahrungstyp-Erfassung**
+- **Automatische Hunger-Erkennung** basierend auf Fütterungszeiten
+- **Tägliche Ernährungsstatistiken**
 
-## Services
-See `services.yaml` for the full list and field descriptions. All services accept optional `config_entry_id` to target a specific instance.
+### 💊 Gesundheit & Medikamente
+- **Gewichtsverfolgung** mit Trend-Analyse
+- **Medikamentenerinnerungen** mit konfigurierbaren Intervallen
+- **Gesundheitsnotizen** und Verlaufsdokumentation
+- **Impfstatus-Tracking** mit Terminerinnerungen
 
-## Options & Reconfigure
-Change history retention, geofence radius, notify target via **Reconfigure** in the integration settings.
+### 🛁 Pflege & Training
+- **Pflegetermine verwalten** (Baden, Bürsten, Krallen, etc.)
+- **Training-Sessions dokumentieren** mit Themen und Notizen
+- **Automatische Erinnerungen** basierend auf Intervallen
+- **Aktivitätslevel-Berechnung**
 
-## Devices & Entities
-- Each dog/tracker is a **Device** (Device Registry).
-- Entities have `unique_id`, `_attr_has_entity_name=True`, and use `translation_key` for naming.
+### 🔔 Intelligente Benachrichtigungen
+- **Ruhezeiten-Respektierung** (konfigurierbare Zeiten)
+- **Prioritätsbasierte Meldungen** (Info, Warnung, Kritisch)
+- **Schlummer-Funktionen** mit konfigurierbarer Dauer
+- **Fallback-Benachrichtigungen** bei Zielverfügbarkeit
 
-## Icons & Translations
-- Dynamic icons via `icons.json`.
-- Localized strings in `translations/en.json` and `translations/de.json`.
+## 🚀 Installation
 
-## Diagnostics
-Settings → Integrations → Paw Control → (⋮) → **Download diagnostics**.
+### Voraussetzungen
+- Home Assistant 2024.1.0 oder neuer
+- Python 3.11+
+- Konfiguration über UI (Config Flow)
 
-## Development / Tests
-- Tests under `tests/`; run with `pytest`.
-- Target coverage ≥ 95% (Silver/Gold requirement).
+### Automatische Installation (HACS)
+1. Öffnen Sie HACS in Home Assistant
+2. Gehen Sie zu "Integrations"
+3. Klicken Sie auf "⋮" → "Custom Repositories"
+4. Fügen Sie `https://github.com/BigDaddy1990/pawcontrol` hinzu
+5. Kategorien: "Integration"
+6. Installieren Sie "Paw Control"
 
+### Manuelle Installation
+1. Laden Sie die neueste Version herunter
+2. Extrahieren Sie `custom_components/pawcontrol/` nach `<config_dir>/custom_components/`
+3. Starten Sie Home Assistant neu
+4. Gehen Sie zu "Einstellungen" → "Geräte & Dienste" → "Integration hinzufügen"
+5. Suchen Sie nach "Paw Control"
 
-## Developer tooling
+## ⚙️ Konfiguration
 
-### Pre-commit
-```bash
-pipx install pre-commit  # or: pip install pre-commit
-pre-commit install
-pre-commit run --all-files
+### Ersteinrichtung
+1. **Anzahl Hunde**: Geben Sie an, wie viele Hunde Sie haben (1-10)
+2. **Hunde-Details**: Name, Rasse, Alter, Gewicht und Größe für jeden Hund
+3. **Module**: Wählen Sie gewünschte Funktionen (GPS, Gesundheit, etc.)
+4. **Datenquellen**: Optional - Türsensoren, Kalender, Wetter
+5. **Benachrichtigungen**: Ruhezeiten und Erinnerungsintervalle
+6. **System**: Zurücksetzungszeit und Export-Einstellungen
+
+### Unterstützte Hardware
+- **GPS-Tracker**: Via Person/Device-Tracker Entitäten
+- **Türsensoren**: Beliebige binary_sensor für Gassi-Erkennung  
+- **USB-Geräte**: Automatische Erkennung von Paw-Trackern
+- **Netzwerk**: DHCP-Discovery für Tracker-Hardware
+
+### Geofencing einrichten
+```yaml
+# Automatische Konfiguration über UI
+# Oder manuell in configuration.yaml:
+geofence:
+  latitude: 52.5200  # Ihr Heimstandort
+  longitude: 13.4050
+  radius_m: 100      # Radius in Metern
+  alerts_enabled: true
 ```
 
-### Lint & Format (CI mirrors these)
-```bash
-ruff check .
-ruff format .
-black .
+## 📱 Verwendung
+
+### Services
+Die Integration stellt umfangreiche Services zur Verfügung:
+
+```yaml
+# Gassi starten
+service: pawcontrol.start_walk
+data:
+  dog_id: "buddy"
+
+# Fütterung protokollieren  
+service: pawcontrol.feed_dog
+data:
+  dog_id: "buddy"
+  meal_type: "breakfast"
+  portion_g: 200
+  food_type: "dry"
+
+# GPS-Position manuell setzen
+service: pawcontrol.gps_post_location
+data:
+  dog_id: "buddy"
+  latitude: 52.5200
+  longitude: 13.4050
+  accuracy: 5
 ```
 
-### Releases
-- Conventional commits → Release Please erstellt automatisch einen Release-PR.
-- Merge → Tag wird erstellt → Workflow **Release (tag)** baut `dist/pawcontrol.zip` und veröffentlicht das Release.
+### Automatisierungsbeispiele
 
-> Hinweis: Aktiviere **pre-commit.ci** für dieses Repo, indem du das GitHub-App-Setup abschließt (Sign-in auf https://pre-commit.ci/ und Repo auswählen).
+**Gassi-Erinnerung basierend auf Zeit:**
+```yaml
+automation:
+  - alias: "Gassi-Erinnerung Abends"
+    trigger:
+      - platform: time
+        at: "19:00:00"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.buddy_needs_walk
+        state: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          message: "Buddy braucht einen Abendspaziergang!"
+```
 
+**Automatische Geofence-Benachrichtigung:**
+```yaml
+automation:
+  - alias: "Hund hat sicheren Bereich verlassen"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_is_home
+        from: "on"
+        to: "off"
+    action:
+      - service: notify.family
+        data:
+          title: "🐕 Geofence Alert"
+          message: "Buddy hat den sicheren Bereich verlassen!"
+```
 
-## Installation via HACS (Custom Repository)
+## 📊 Entitäten
 
-[![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&owner=Bigdaddy1990&repository=pawcontrol)
+Die Integration erstellt automatisch folgende Entitäten pro Hund:
 
-1. In Home Assistant → **HACS → Integrationen** (oben rechts **⋮**).
-2. **Custom repositories** wählen → URL `https://github.com/Bigdaddy1990/pawcontrol` eintragen → **Type: Integration** → **ADD**.
-3. Anschließend in HACS nach **Paw Control** suchen → **Download** → Home Assistant neu starten.
-4. Integration in **Einstellungen → Geräte & Dienste → Integration hinzufügen → Paw Control** konfigurieren.
+### Sensoren
+- `sensor.{dog_name}_walk_distance_today` - Tageskilometer
+- `sensor.{dog_name}_last_feeding` - Letzte Fütterung
+- `sensor.{dog_name}_weight` - Aktuelles Gewicht
+- `sensor.{dog_name}_activity_level` - Aktivitätslevel
+- `sensor.{dog_name}_calories_burned_today` - Verbrannte Kalorien
 
-> Alternativ direkt über My Home Assistant: [https://my.home-assistant.io/redirect/hacs_repository/?category=integration&owner=Bigdaddy1990&repository=pawcontrol](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&owner=Bigdaddy1990&repository=pawcontrol)
+### Binary Sensoren
+- `binary_sensor.{dog_name}_needs_walk` - Gassi erforderlich
+- `binary_sensor.{dog_name}_is_hungry` - Fütterung erforderlich  
+- `binary_sensor.{dog_name}_is_home` - Zuhause/Unterwegs
+- `binary_sensor.{dog_name}_walk_in_progress` - Gassi läuft
 
+### Device Tracker
+- `device_tracker.{dog_name}` - GPS-Position (falls konfiguriert)
 
-## Device Automations
-Diese Integration stellt **Geräte-Trigger** bereit (Einstellungen → Automationen → Gerät auswählen):
-- `gps_location_posted`
-- `walk_started`
-- `walk_ended`
-- `geofence_alert`
-Die Trigger werden über interne Events (`pawcontrol_<type>`) ausgelöst und enthalten `device_id`/`dog_id` im `event_data`.
+## 🔧 Fehlerbehebung
 
+### Häufige Probleme
 
-## Geofence-Events & Device-Automations
+**GPS-Tracking funktioniert nicht:**
+- Prüfen Sie die Person/Device-Tracker Konfiguration
+- Stellen Sie sicher, dass GPS-Module aktiviert sind
+- Überprüfen Sie die Geofence-Koordinaten
 
-Diese Integration feuert bei Geofence-Übergängen **Events** mit `device_id`:
-- `pawcontrol_geofence_alert` mit `action` = `entered` | `exited`, `zone`, `distance_m`, `radius_m`
-- Zusätzlich: `pawcontrol_safe_zone_entered` / `pawcontrol_safe_zone_left` (abwärtskompatibel)
+**Benachrichtigungen kommen nicht an:**
+- Überprüfen Sie den Fallback-Service in den Einstellungen
+- Testen Sie mit `pawcontrol.notify_test`
+- Prüfen Sie die Ruhezeiten-Konfiguration
 
-In der Automations-UI stehen als **Geräte-Trigger** zur Verfügung:
-- `geofence_alert`, `gps_location_posted`, `walk_started`, `walk_ended`
+**Entitäten erscheinen nicht:**
+- Führen Sie `pawcontrol.sync_setup` aus
+- Prüfen Sie die Logs auf Fehler
+- Starten Sie Home Assistant neu
 
-**Geräte-Conditions**:
-- `is_home` – Hund ist laut Integration „zu Hause“
-- `in_geofence` – Hund ist innerhalb des definierten Safe-Zone-Grenzbereichs (alias von `is_home`)
+### Logs und Diagnose
+```yaml
+# Erweiterte Logs aktivieren
+logger:
+  default: warning
+  logs:
+    custom_components.pawcontrol: debug
+```
 
-> Hinweis: Geofence-Alerts lassen sich per Service `pawcontrol.toggle_geofence_alerts` je Hund aktivieren/deaktivieren.
+## 🤝 Mitwirken
 
+### Entwicklung
+1. Forken Sie das Repository
+2. Erstellen Sie einen Feature-Branch
+3. Implementieren Sie Tests für neue Features  
+4. Führen Sie die Tests aus: `pytest`
+5. Erstellen Sie einen Pull Request
 
-## Branding
+### Quality Scale Roadmap
+**Aktuell: Bronze**
+- ✅ UI-Setup funktionsfähig
+- ✅ Grundlegende Coding-Standards
+- ⚠️ **Test-Coverage erweitern** (Bronze-Blocker)
+- ⚠️ **Dokumentation vervollständigen** (Bronze-Blocker)
 
-Siehe [`docs/BRANDING.md`](docs/BRANDING.md) für die Schritte zum Einreichen der Logos/Icons im zentralen Brands-Repo.
+**Silver-Ziele:**
+- 📝 Mehrere aktive Code-Owner definieren
+- 🧪 95%+ Test-Coverage erreichen
+- 📖 Troubleshooting-Dokumentation
 
+**Gold-Ziele:**
+- 🔍 Discovery Update Info implementieren
+- 🌍 Vollständige deutsche Übersetzungen
+- 📚 Umfassende Benutzerdokumentation
 
-## Repairs & Wartung
+## 📄 Lizenz
 
-Diese Integration meldet Probleme im **Reparaturen**-Dashboard (Einstellungen → System → Reparaturen) und bietet **Fix-Flows** an:
+Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
 
-- **`invalid_geofence`** – Geofence-Einstellungen sind ungültig. Der Fix-Flow fragt **Latitude**, **Longitude** und **Radius (m)** ab und aktualisiert die Optionen.
-- **`stale_devices`** – Veraltete Geräte erkannt. Der Fix-Flow entfernt die verwaisten Geräte automatisch. Alternativ steht der Service `pawcontrol.prune_stale_devices` zur Verfügung (mit Option `auto: false` nur Hinweis ohne Löschen).
+## 🙏 Danksagungen
 
-> Hintergrund: Repair-Issues/Fix-Flows folgen den offiziellen HA-Vorgaben. Issues werden automatisch entfernt, sobald der Fix-Flow erfolgreich war.
+- Home Assistant Community für das Feedback
+- Beta-Tester für die Qualitätssicherung
+- Alle Mitwirkenden an diesem Projekt
 
+---
 
-**Hinweis:** Der Fix-Flow für `invalid_geofence` **öffnet jetzt direkt den Options-Dialog** der Integration.
-Dort kannst du `home_lat`, `home_lon` und `geofence_radius_m` setzen. Nach dem Speichern verschwindet der Hinweis automatisch.
-
-
-### Options-Flow (mit Auto-Reload)
-
-Der Options-Dialog nutzt **OptionsFlowWithReload**: Änderungen werden nach dem Speichern **automatisch neu geladen** – kein manueller Reload nötig.
-Es gibt einen dedizierten **„Geofence“**-Step (Latitude/Longitude/Radius + Auto-Prune-Schalter).
+**Hinweis:** Diese Integration befindet sich in aktiver Entwicklung. Features können sich ändern. Für Produktionsumgebungen empfehlen wir, stabile Releases zu verwenden.
