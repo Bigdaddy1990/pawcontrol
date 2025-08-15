@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -66,5 +67,5 @@ async def test_gps_post_location_calls_handler(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_route_history_list_requires_loaded_entry(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
-    with pytest.raises(Exception):
+    with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "route_history_list", {}, blocking=True)

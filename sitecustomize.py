@@ -7,6 +7,7 @@ provides a minimal stub of the framework.
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import sys
 from datetime import UTC, datetime
@@ -201,10 +202,8 @@ try:  # pragma: no cover - Home Assistant may not be installed
         cc_target = Path(hass.config.config_dir) / "custom_components"
         repo_cc = repo_root / "custom_components"
         if not cc_target.exists():
-            try:
+            with contextlib.suppress(Exception):
                 cc_target.symlink_to(repo_cc, target_is_directory=True)
-            except Exception:
-                pass
 
     loader._async_mount_config_dir = _patched_mount_config_dir
 except Exception:  # pragma: no cover - ignore if patching fails

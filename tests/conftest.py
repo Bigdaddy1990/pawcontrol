@@ -5,7 +5,6 @@ from collections.abc import Generator
 from unittest import mock
 
 import pytest
-import sitecustomize
 from custom_components.pawcontrol.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
