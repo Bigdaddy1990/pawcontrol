@@ -5,6 +5,22 @@ All notable changes to Paw Control will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.2.0...v1.3.0) (2025-08-15)
+
+
+### Features
+
+* add medication reminder scheduling ([e77ba53](https://github.com/Bigdaddy1990/pawcontrol/commit/e77ba53ce6e1e8545739c5742be909393d7ebe73))
+* run pre-commit in CI ([8ea178a](https://github.com/Bigdaddy1990/pawcontrol/commit/8ea178afd01fa3f9036e21e0a0da69e30bda74cf))
+
+
+### Bug Fixes
+
+* add missing translation strings ([#168](https://github.com/Bigdaddy1990/pawcontrol/issues/168)) ([e504ab8](https://github.com/Bigdaddy1990/pawcontrol/commit/e504ab867b94e1ba5656f4fe6fd76371af64af11))
+* improve coordinate validation ([7597569](https://github.com/Bigdaddy1990/pawcontrol/commit/7597569bd6a50ad22ee148e01749a7f63c02d948))
+* rename icons mapping file ([fbf0f4b](https://github.com/Bigdaddy1990/pawcontrol/commit/fbf0f4bf5274745aad0b21a5b15ca4217e6524ce))
+* resolve syntax issues and enable reconfiguration ([29b6d6f](https://github.com/Bigdaddy1990/pawcontrol/commit/29b6d6fc42628ff43ee58311e1eea50ad8523627))
+
 ## [1.2.0](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.1.0...v1.2.0) (2025-08-15)
 
 
