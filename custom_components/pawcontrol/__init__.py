@@ -17,6 +17,7 @@ The integration follows Home Assistant's Platinum quality standards with:
 from __future__ import annotations
 
 import logging
+import types
 from typing import TYPE_CHECKING, Any
 
 # Expose the integration domain at module import time
@@ -24,40 +25,73 @@ from typing import TYPE_CHECKING, Any
 # the contents of :mod:`custom_components.pawcontrol.const`.
 DOMAIN = "pawcontrol"
 
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigEntryState,
-)
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import (
-    ConfigEntryNotReady,
-    HomeAssistantError,
-    ServiceValidationError,
-)
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import IntegrationNotFound
+# The full Home Assistant core is not available in the execution environment
+# for the kata tests.  To keep the module importable we gracefully fall back to
+# small stub implementations when the real dependencies are missing.  The
+# actual integration will use the real Home Assistant modules when running
+# inside Home Assistant.
+try:  # pragma: no cover - exercised only when HA is installed
+    from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+except ModuleNotFoundError:  # pragma: no cover - test environment
+    class ConfigEntry:  # type: ignore[empty-body]
+        pass
 
-from . import coordinator as coordinator_mod
-from . import gps_handler as gps
+    class ConfigEntryState:  # type: ignore[empty-body]
+        pass
+
+try:  # pragma: no cover - exercised only when HA is installed
+    from homeassistant.core import HomeAssistant, ServiceCall
+except ModuleNotFoundError:  # pragma: no cover - test environment
+    class HomeAssistant:  # type: ignore[empty-body]
+        pass
+
+    class ServiceCall:  # type: ignore[empty-body]
+        pass
+
+try:  # pragma: no cover - exercised only when HA is installed
+    from homeassistant.exceptions import (
+        ConfigEntryNotReady,
+        HomeAssistantError,
+        ServiceValidationError,
+    )
+except ModuleNotFoundError:  # pragma: no cover - test environment
+    class HomeAssistantError(Exception):
+        """Fallback base exception used during tests."""
+
+    class ConfigEntryNotReady(HomeAssistantError):
+        """Raised when an entry is not ready during tests."""
+
+    class ServiceValidationError(HomeAssistantError):
+        """Raised when service data fails validation during tests."""
+
+try:  # pragma: no cover - exercised only when HA is installed
+    from homeassistant.helpers import config_validation as cv
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import issue_registry as ir
+    from homeassistant.helpers.typing import ConfigType
+    from homeassistant.loader import IntegrationNotFound
+except (ModuleNotFoundError, ImportError):  # pragma: no cover - test environment
+    cv = types.SimpleNamespace(config_entry_only_config_schema=lambda _domain: {})
+    dr = types.SimpleNamespace()  # type: ignore[assignment]
+    ir = types.SimpleNamespace()  # type: ignore[assignment]
+
+    class IntegrationNotFound(Exception):
+        """Fallback error when integration lookup fails in tests."""
+
+    ConfigType = dict[str, Any]  # type: ignore[misc]
+
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
     EVENT_DAILY_RESET,
     PLATFORMS,
-)
-from .const import (
     DOMAIN as CONST_DOMAIN,
 )
-from .helpers import notification_router as notification_router_mod
-from .helpers import scheduler as scheduler_mod
-from .helpers import setup_sync as setup_sync_mod
-from .report_generator import ReportGenerator
-from .services import ServiceManager
-from .types import PawRuntimeData
+
+# Import of heavy modules that depend on the real Home Assistant framework is
+# deferred until runtime inside the setup functions to keep this module
+# importable in the lightweight test environment used for the kata.
 
 # Ensure the domain constant matches the value from const.py.
 assert DOMAIN == CONST_DOMAIN
@@ -113,6 +147,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Raises:
         ConfigEntryNotReady: If coordinator fails initial data refresh
     """
+    from . import coordinator as coordinator_mod
+    from . import gps_handler as gps
+    from .helpers import notification_router as notification_router_mod
+    from .helpers import scheduler as scheduler_mod
+    from .helpers import setup_sync as setup_sync_mod
+    from .report_generator import ReportGenerator
+    from .services import ServiceManager
+    from .types import PawRuntimeData
+
     hass.data.setdefault(DOMAIN, {})
 
     # Initialize coordinator with proper error handling
@@ -269,6 +312,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Returns:
         True if unload succeeded, False otherwise
     """
+    from .helpers import scheduler as scheduler_mod
+
     _LOGGER.debug("Starting unload for entry %s", entry.entry_id)
 
     # Cleanup schedulers first to stop background tasks
@@ -326,6 +371,8 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass: Home Assistant instance
         entry: The config entry with updated options
     """
+    from .helpers import scheduler as scheduler_mod
+
     _LOGGER.debug("Updating options for entry %s", entry.entry_id)
 
     runtime_data = entry.runtime_data

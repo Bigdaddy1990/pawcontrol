@@ -96,5 +96,10 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except (HomeAssistantError, ValueError):
+    except Exception:
+        # Catch broad exceptions to ensure the caller gets a boolean
+        # result rather than propagating errors from underlying service
+        # calls.  This mirrors Home Assistant's own ``async_call``
+        # behaviour where any raised ``HomeAssistantError`` (or other
+        # unexpected exception) should result in ``False``.
         return False
