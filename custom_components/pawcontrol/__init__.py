@@ -56,10 +56,8 @@ assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-if hasattr(cv, "config_entry_only_config_schema"):
-    CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-else:  # pragma: no cover - stub environment without config validation
-    CONFIG_SCHEMA = None
+# This integration only supports config entries, no YAML configuration
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
