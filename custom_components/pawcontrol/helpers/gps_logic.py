@@ -25,7 +25,6 @@ from ..const import (
     CONF_PERSON_ENTITIES,
     CONF_SOURCES,
     DEFAULT_IDLE_TIMEOUT_MIN,
-    DOMAIN,
     DOOR_OPEN_TIMEOUT_SECONDS,
 )
 from ..utils import calculate_distance
@@ -325,7 +324,6 @@ class GPSLogic:
             "total_distance": 0,
             "last_movement": now,
         }
-
 
     def _confirm_walk_end(self, dog_id: str, reason: str) -> None:
         """Confirm walk has ended."""

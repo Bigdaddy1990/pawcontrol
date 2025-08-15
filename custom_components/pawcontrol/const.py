@@ -405,24 +405,20 @@ ICONS: Final[dict[str, str]] = {
     "grooming": "mdi:content-cut",
     "training": "mdi:school-outline",
     "medication": "mdi:pill",
-    
     # Tracking and monitoring
     "gps": "mdi:crosshairs-gps",
     "location": "mdi:map-marker-radius",
     "activity": "mdi:run-fast",
     "statistics": "mdi:chart-line-variant",
-    
     # System and interface
     "dashboard": "mdi:view-dashboard-outline",
     "notifications": "mdi:bell-outline",
     "emergency": "mdi:alert-circle",
     "visitor": "mdi:account-group",
     "settings": "mdi:cog-outline",
-    
     # Data management
     "export": "mdi:database-export",
     "import": "mdi:database-import",
-    
     # Status indicators
     "online": "mdi:check-circle",
     "offline": "mdi:alert-circle-outline",

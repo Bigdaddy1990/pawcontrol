@@ -2,12 +2,12 @@ import asyncio
 import sys
 import types
 from collections.abc import Generator
+from unittest import mock
 
 import pytest
 import sitecustomize  # noqa: F401
-from unittest import mock
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.pawcontrol.const import DOMAIN
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 try:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.core import HomeAssistant
@@ -74,6 +74,7 @@ def restore_config_entry_state():
 # Helper fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mocker():
     """Minimal mocker fixture with automatic patch cleanup."""
@@ -87,7 +88,12 @@ def mocker():
     def patch_object(target, attribute, *args, **kwargs):
         new_attr = kwargs.get("new", mock.MagicMock())
         try:
-            p = mock.patch.object(target, attribute, new_attr, **{k: v for k, v in kwargs.items() if k != 'new'})
+            p = mock.patch.object(
+                target,
+                attribute,
+                new_attr,
+                **{k: v for k, v in kwargs.items() if k != "new"},
+            )
             patches.append(p)
             return p.start()
         except Exception:

@@ -11,74 +11,74 @@ quality_scale: silver  # Updated after discovering comprehensive test coverage
 bronze:
   # IQS-01: Can be easily set up through the UI
   ui_setup: true
-  
+
   # IQS-02: Source code adheres to basic coding standards
   coding_standards: true
-  
+
   # IQS-03: Automated tests that guard integration setup
   automated_tests: true  # ✅ 30+ comprehensive test files with full coverage
-  
+
   # IQS-04: Basic end-user documentation
   basic_documentation: true  # ✅ Comprehensive README.md with installation guide
 
 silver:
   # IQS-05: Stable user experience under various conditions
   stable_experience: true
-  
+
   # IQS-06: One or more active code owners
   active_code_owners: false  # BLOCKER: Only @BigDaddy1990, need multiple owners
-  
+
   # IQS-07: Correctly recover from connection errors
   connection_recovery: true
-  
+
   # IQS-08: Automatically trigger re-authentication
   auto_reauth: true
-  
+
   # IQS-09: Detailed documentation with troubleshooting
   detailed_documentation: true  # ✅ README includes troubleshooting section
 
 gold:
   # IQS-10: Best user experience - streamlined and intuitive
   best_user_experience: true
-  
+
   # IQS-11: Automatic discovery for easy setup
   automatic_discovery: false  # BLOCKER: Discovery info not implemented
-  
+
   # IQS-12: Integration can be reconfigured
   reconfiguration: true
-  
+
   # IQS-13: Supports translations
   translations: false  # BLOCKER: DE translations are copy-paste of EN
-  
+
   # IQS-14: Extensive documentation for non-technical users
   extensive_documentation: false  # BLOCKER: No extensive user documentation
-  
+
   # IQS-15: Device firmware updates (N/A for this integration)
   firmware_updates: null
-  
+
   # IQS-16: Automated tests covering entire integration
   comprehensive_tests: true  # ✅ 30+ test files provide comprehensive coverage
 
 platinum:
   # IQS-17: All source code follows HA standards and best practices
   ha_standards: true
-  
+
   # IQS-18: Fully typed with type annotations
   full_typing: true
-  
+
   # IQS-19: Clear code comments for maintainability
   clear_comments: true
-  
+
   # IQS-20: Fully asynchronous integration codebase
   fully_async: true
-  
+
   # IQS-21: Efficient data handling (reduced network/CPU usage)
   efficient_data_handling: true
 
 # BRONZE STATUS: ✅ ACHIEVED
 # All Bronze requirements are fulfilled:
 # ✅ UI Setup working
-# ✅ Code standards met (async, typed, well-structured) 
+# ✅ Code standards met (async, typed, well-structured)
 # ✅ Comprehensive test coverage (30+ test files)
 # ✅ Basic documentation (README.md)
 

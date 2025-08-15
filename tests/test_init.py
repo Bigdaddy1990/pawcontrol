@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
-
 from custom_components.pawcontrol.const import DOMAIN
 
 pytestmark = [
