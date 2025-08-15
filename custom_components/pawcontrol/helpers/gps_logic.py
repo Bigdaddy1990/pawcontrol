@@ -247,7 +247,7 @@ class GPSLogic:
 
         # Check if anyone left recently
         for dog_id, session in self._walk_sessions.items():
-            if session.get("potential_walk") and not session.get("confirmed"):  # noqa: SIM102
+            if session.get("potential_walk") and not session.get("confirmed"):
                 # Check if door was opened recently (within 2 minutes)
                 if session.get("door_opened_at"):
                     time_diff = (
