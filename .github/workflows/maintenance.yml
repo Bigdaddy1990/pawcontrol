@@ -1,11 +1,9 @@
-name: Maintenance Tasks
+name: HA Maintenance Tasks
 
 on:
   schedule:
-    # Täglich um 3:00 UTC - Home Assistant Validation
+    # Täglich um 3:00 UTC - Hassfest validation (HA Standard)
     - cron: '0 3 * * *'
-    # Täglich um 16:34 UTC - Stale Issues/PRs
-    - cron: '34 16 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -13,27 +11,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  daily-validation:
+  daily-hassfest:
     name: Daily HA Validation
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         
-      - name: Daily Hassfest check
+      - name: Daily Hassfest Validation
         uses: home-assistant/actions/hassfest@master
 
-  stale-management:
-    name: Stale Issues/PRs
+  # Stale issues management - HA Standard
+  stale:
+    name: Stale Issues Management
     runs-on: ubuntu-latest
-    if: github.event.schedule == '34 16 * * *' || github.event_name == 'workflow_dispatch'
     permissions:
       issues: write
       pull-requests: write
     steps:
-      - name: Mark stale issues and PRs
-        uses: actions/stale@v5
+      - name: Stale Issues and PRs
+        uses: actions/stale@v9
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-issue-message: |
