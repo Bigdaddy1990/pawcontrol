@@ -117,8 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     # Import heavy modules lazily to avoid Home Assistant dependency during tests
-    from . import coordinator as coordinator_mod
-    from . import gps_handler as gps
     from .helpers import notification_router as notification_router_mod
     from .helpers import scheduler as scheduler_mod
     from .helpers import setup_sync as setup_sync_mod
@@ -214,17 +212,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Failed to register devices for entry %s: %s", entry.entry_id, err
         )
         # Device registration failure is non-critical, continue setup
-    _LOGGER.warning("Continuing setup without device registration")
+        _LOGGER.warning("Continuing setup without device registration")
 
-# Setup platforms with proper error handling
-try:
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-except IntegrationNotFound as err:
-    _LOGGER.warning(
-        "Integration not found when forwarding entry setups for %s: %s",
-        entry.entry_id,
-        err,
-    )
+    # Setup platforms with proper error handling
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except IntegrationNotFound as err:
+        _LOGGER.warning(
+            "Integration not found when forwarding entry setups for %s: %s",
+            entry.entry_id,
+            err,
+        )
     except Exception as err:
         _LOGGER.error(
             "Failed to forward entry setups for %s: %s",
@@ -295,6 +293,7 @@ except IntegrationNotFound as err:
             entry.entry_id,
         )
 
+    entry.state = ConfigEntryState.LOADED
     return True
 
 
