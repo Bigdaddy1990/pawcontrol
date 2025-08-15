@@ -346,13 +346,18 @@ class SetupSync:
                     remaining = entity_name[len(f"{DOMAIN}_") :]
                     parts = remaining.split("_")
 
-                    if parts and parts[0] not in current_dog_ids and parts[0] not in [
-                        "visitor",
-                        "emergency",
-                        "export",
-                        "last",
-                        "weather",
-                    ]:
+                    if (
+                        parts
+                        and parts[0] not in current_dog_ids
+                        and parts[0]
+                        not in [
+                            "visitor",
+                            "emergency",
+                            "export",
+                            "last",
+                            "weather",
+                        ]
+                    ):
                         _LOGGER.info(
                             f"Would remove orphaned entity: {entity.entity_id}"
                         )

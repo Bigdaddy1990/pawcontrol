@@ -654,7 +654,7 @@ class PawDeviceTracker(PawControlDeviceTrackerEntity, TrackerEntity):
 
         Performs initialization tasks when the entity is first added to the
         Home Assistant entity registry.
-        """
+        """  # noqa: D401
         await super().async_added_to_hass()
         _LOGGER.info("Device tracker added for dog: %s", self.dog_id)
 
@@ -663,6 +663,6 @@ class PawDeviceTracker(PawControlDeviceTrackerEntity, TrackerEntity):
 
         Performs cleanup tasks when the entity is being removed from the
         Home Assistant entity registry.
-        """
+        """  # noqa: D401
         await super().async_will_remove_from_hass()
         _LOGGER.info("Device tracker removed for dog: %s", self.dog_id)
