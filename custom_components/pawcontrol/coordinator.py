@@ -15,7 +15,6 @@ The coordinator follows Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
-import math
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -37,56 +36,12 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
+from .utils import calculate_distance, validate_coordinates
 
 if TYPE_CHECKING:
     from .types import CoordinatorData, DogData
 
 _LOGGER = logging.getLogger(__name__)
-
-# Constants for calculations
-EARTH_RADIUS_M = 6371000  # Earth's radius in meters
-MIN_SIGNIFICANT_DISTANCE_M = 1.0  # Minimum distance change to trigger updates
-COORDINATE_PRECISION = 6  # Decimal places for coordinate storage
-
-
-def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate the Haversine distance between two points in meters.
-
-    Uses the Haversine formula to calculate the great-circle distance between
-    two points on Earth given their latitude and longitude coordinates.
-
-    Args:
-        lat1: Latitude of first point in decimal degrees
-        lon1: Longitude of first point in decimal degrees
-        lat2: Latitude of second point in decimal degrees
-        lon2: Longitude of second point in decimal degrees
-
-    Returns:
-        Distance between the two points in meters
-
-    Raises:
-        ValueError: If coordinates are invalid or out of range
-    """
-    # Validate coordinate ranges
-    if not (-90 <= lat1 <= 90 and -90 <= lat2 <= 90):
-        raise ValueError(f"Invalid latitude values: {lat1}, {lat2}")
-    if not (-180 <= lon1 <= 180 and -180 <= lon2 <= 180):
-        raise ValueError(f"Invalid longitude values: {lon1}, {lon2}")
-
-    # Convert to radians for calculation
-    lat1_rad = math.radians(lat1)
-    lat2_rad = math.radians(lat2)
-    delta_lat = math.radians(lat2 - lat1)
-    delta_lon = math.radians(lon2 - lon1)
-
-    # Haversine formula for great-circle distance
-    a = (
-        math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
-    )
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-    return EARTH_RADIUS_M * c
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -605,14 +560,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if isinstance(home_lat, int | float) and isinstance(home_lon, int | float):
                 try:
-                    distance = _haversine_m(
-                        float(home_lat), float(home_lon), latitude, longitude
-                    )
-                    distance = round(distance, 1)
+                    if validate_coordinates(
+                        float(home_lat), float(home_lon)
+                    ) and validate_coordinates(latitude, longitude):
+                        distance = calculate_distance(
+                            float(home_lat), float(home_lon), latitude, longitude
+                        )
+                        distance = round(distance, 1)
 
-                    if radius_m and radius_m > 0:
-                        inside = distance <= float(radius_m)
-
+                        if radius_m and radius_m > 0:
+                            inside = distance <= float(radius_m)
                 except (ValueError, TypeError) as err:
                     _LOGGER.warning(
                         "Failed to calculate distance for dog %s: %s", dog_id, err
