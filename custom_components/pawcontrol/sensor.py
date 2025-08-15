@@ -98,7 +98,7 @@ async def async_setup_entry(
                 raise PlatformNotReady("Coordinator failed to initialize")
                 
         # Platinum: Validate coordinator health status
-        if hasattr(coordinator, 'coordinator_status'):
+        if hasattr(coordinator, 'coordinator_status'):  # noqa: SIM102
             if coordinator.coordinator_status != STATUS_READY:
                 _LOGGER.warning(
                     "Coordinator status is %s, may affect sensor reliability",

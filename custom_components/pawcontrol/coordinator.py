@@ -14,8 +14,8 @@ The coordinator follows Home Assistant's Platinum standards with:
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
