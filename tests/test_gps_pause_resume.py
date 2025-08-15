@@ -7,7 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 DOMAIN = comp.DOMAIN
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_gps_pause_and_resume(hass: HomeAssistant, expected_lingering_timers):
     assert await comp.async_setup(hass, {}) or True

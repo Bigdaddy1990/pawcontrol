@@ -5,7 +5,7 @@ from homeassistant.setup import async_setup_component
 DOMAIN = "pawcontrol"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_diagnostics_redacts_sensitive(hass: HomeAssistant):
     await async_setup_component(hass, DOMAIN, {})
     # Fake a config entry and attach some sensitive data in runtime storage
