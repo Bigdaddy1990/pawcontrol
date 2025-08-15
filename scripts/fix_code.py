@@ -128,7 +128,6 @@ def main():
         if run_command(cmd_filtered, description):
             success_count += 1
 
-
     if check_only:
         if success_count == total_count:
             return 0
