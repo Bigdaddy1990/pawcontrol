@@ -21,26 +21,22 @@ import sys
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import (
-    ConfigEntryNotReady,
-    HomeAssistantError,
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    issue_registry as ir,
 )
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import IntegrationNotFound
 
-from . import coordinator as coordinator_mod
-from . import gps_handler as gps
+from . import coordinator as coordinator_mod, gps_handler as gps
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
-    PLATFORMS,
-)
-from .const import (
     DOMAIN as CONST_DOMAIN,
+    PLATFORMS,
 )
 
 # Expose the integration domain at module import time so tests can reliably
@@ -76,7 +72,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     async def _notify_test(_: ServiceCall) -> None:
-        """Dummy notify service used for tests."""
+        """Dummy notify service used for tests."""  # noqa: D401
         return
 
     if not hass.services.has_service(DOMAIN, "notify_test"):
@@ -108,9 +104,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     # Import heavy modules lazily to avoid Home Assistant dependency during tests
-    from .helpers import notification_router as notification_router_mod
-    from .helpers import scheduler as scheduler_mod
-    from .helpers import setup_sync as setup_sync_mod
+    from .helpers import (
+        notification_router as notification_router_mod,
+        scheduler as scheduler_mod,
+        setup_sync as setup_sync_mod,
+    )
     from .report_generator import ReportGenerator
     from .services import ServiceManager
     from .types import PawRuntimeData

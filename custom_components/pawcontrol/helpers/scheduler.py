@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Iterable
 from datetime import datetime, time, timedelta
+import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback

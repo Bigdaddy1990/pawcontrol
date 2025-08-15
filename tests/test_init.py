@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
+
 from custom_components.pawcontrol.const import DOMAIN
 
 pytestmark = [
@@ -14,8 +15,9 @@ pytestmark = [
 ]
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
     from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from homeassistant.core import HomeAssistant
 
 
 async def test_setup_entry(
@@ -55,7 +57,7 @@ async def test_setup_entry(
         mock_service_manager.return_value.async_register_services.return_value = None
         mock_gps_handler.return_value.async_setup.return_value = None
         mock_report_generator.return_value = None
-        
+
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
