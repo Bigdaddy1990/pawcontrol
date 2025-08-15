@@ -19,10 +19,11 @@ if ha_entity and hasattr(ha_entity, "EntityCategory"):
     EntityCategory = ha_entity.EntityCategory  # type: ignore[assignment]
 else:  # pragma: no cover - fallback for tests
 
-    class EntityCategory(StrEnum):
+    class _EntityCategory(StrEnum):
         CONFIG = "config"
         DIAGNOSTIC = "diagnostic"
 
+    EntityCategory = _EntityCategory
     if ha_entity is not None:
         ha_entity.EntityCategory = EntityCategory  # type: ignore[attr-defined]
 
@@ -92,9 +93,10 @@ try:  # pragma: no cover - Home Assistant provides the enum
     UnitOfLength = ha_const.UnitOfLength  # type: ignore[attr-defined]
 except Exception:  # pragma: no cover - tests without Home Assistant
 
-    class UnitOfLength(StrEnum):
+    class _UnitOfLength(StrEnum):
         METERS = "m"
 
+    UnitOfLength = _UnitOfLength
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfLength = UnitOfLength  # type: ignore[attr-defined]
 
@@ -103,10 +105,11 @@ try:  # pragma: no cover - Home Assistant provides the enum
     UnitOfMass = ha_const.UnitOfMass  # type: ignore[attr-defined]
 except Exception:  # pragma: no cover - tests without Home Assistant
 
-    class UnitOfMass(StrEnum):
+    class _UnitOfMass(StrEnum):
         GRAMS = "g"
         KILOGRAMS = "kg"
 
+    UnitOfMass = _UnitOfMass
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfMass = UnitOfMass  # type: ignore[attr-defined]
 
@@ -115,10 +118,11 @@ try:  # pragma: no cover - Home Assistant provides the enum
     UnitOfTime = ha_const.UnitOfTime  # type: ignore[attr-defined]
 except Exception:  # pragma: no cover - tests without Home Assistant
 
-    class UnitOfTime(StrEnum):
+    class _UnitOfTime(StrEnum):
         SECONDS = "s"
         MINUTES = "min"
         HOURS = "h"
 
+    UnitOfTime = _UnitOfTime
     if ha_const is not None:  # type: ignore[truthy-bool]
         ha_const.UnitOfTime = UnitOfTime  # type: ignore[attr-defined]
