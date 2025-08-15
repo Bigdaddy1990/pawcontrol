@@ -1,6 +1,5 @@
 import custom_components.pawcontrol as comp
 import pytest
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 
 DOMAIN = comp.DOMAIN

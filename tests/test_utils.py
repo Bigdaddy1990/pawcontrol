@@ -1,5 +1,4 @@
 import math
-import types
 
 import pytest
 from custom_components.pawcontrol.const import EARTH_RADIUS_M

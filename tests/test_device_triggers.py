@@ -7,7 +7,6 @@ pytestmark = pytest.mark.asyncio
 async def test_device_trigger_gps_location_posted(hass):
     """Device trigger fires when event with matching device_id is fired."""
     import custom_components.pawcontrol as comp
-    from custom_components.pawcontrol import compat  # ensure constants
     from custom_components.pawcontrol.device_trigger import (
         async_attach_trigger,
         async_get_triggers,
@@ -41,7 +40,6 @@ async def test_device_trigger_gps_location_posted(hass):
 
 async def test_device_trigger_geofence_alert(hass):
     import custom_components.pawcontrol as comp
-    from custom_components.pawcontrol import compat  # ensure constants
     from custom_components.pawcontrol.device_trigger import async_attach_trigger
     from homeassistant.helpers import device_registry as dr
 
