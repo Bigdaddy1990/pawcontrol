@@ -1,4 +1,5 @@
 """Generate requirements_test.txt from pyproject optional test dependencies."""
+
 from __future__ import annotations
 
 import pathlib
