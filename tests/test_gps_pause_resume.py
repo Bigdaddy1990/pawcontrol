@@ -1,8 +1,10 @@
-import custom_components.pawcontrol as comp
+from unittest.mock import patch
+
 import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from unittest.mock import patch
+
+import custom_components.pawcontrol as comp
 
 DOMAIN = comp.DOMAIN
 
