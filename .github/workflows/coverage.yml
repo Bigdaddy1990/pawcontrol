@@ -2,7 +2,15 @@ name: Coverage
 
 on:
   push:
-  pull_request:
+    branches: [main]
+    paths:
+      - 'custom_components/**'
+      - 'CHANGELOG.md'
+      - 'pyproject.toml'
+      
+#on:
+#  push:
+#  pull_request:
 
 jobs:
   coverage:
