@@ -202,7 +202,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Failed to register devices for entry %s: %s", entry.entry_id, err
         )
         # Device registration failure is non-critical, continue setup
-        _LOGGER.warning("Continuing setup without device registration")
+    _LOGGER.warning("Continuing setup without device registration")
 
     # Setup platforms with proper error handling
     try:
@@ -210,8 +210,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except IntegrationNotFound as err:
         _LOGGER.warning(
             "Integration not found when forwarding entry setups for %s: %s",
-            entry.entry_id,
-            err,
+             entry.entry_id,
+             err,
         )
     except Exception as err:
         _LOGGER.error(
