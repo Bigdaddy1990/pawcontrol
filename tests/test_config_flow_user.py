@@ -3,7 +3,7 @@ from custom_components.pawcontrol import config_flow as cf
 from homeassistant.core import HomeAssistant
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_config_flow_user_starts(hass: HomeAssistant):
     flow = cf.PawControlConfigFlow()
     flow.hass = hass

@@ -19,7 +19,20 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.text import TextEntity, TextMode
+try:  # pragma: no cover - fallback when text platform unavailable
+    from homeassistant.components.text import TextEntity, TextMode
+except Exception:  # pragma: no cover
+    from enum import Enum
+
+    class TextMode(str, Enum):  # type: ignore[misc]
+        TEXT = "text"
+
+    class TextEntity:  # type: ignore[misc]
+        """Fallback TextEntity for stubbed Home Assistant environments."""
+
+        pass
+
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
@@ -149,7 +162,7 @@ async def async_setup_entry(
         stored_values = await _load_stored_values(store)
 
         dogs = entry.options.get(CONF_DOGS, [])
-        entities: list[PawControlTextEntity | TextEntity] = []
+        entities: list[TextEntity] = []
 
         _LOGGER.debug("Setting up text entities for %d dogs", len(dogs))
 
@@ -379,7 +392,7 @@ def _create_system_text_entities(
 # ==============================================================================
 
 
-class PawControlTextWithStorage(PawControlTextEntity, TextEntity):
+class PawControlTextWithStorage(PawControlTextEntity):
     """Base class for text entities with persistent storage.
 
     Provides common functionality for text entities that need to persist

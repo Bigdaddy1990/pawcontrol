@@ -20,6 +20,26 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+try:  # pragma: no cover - fallback for tests without select platform
+    from homeassistant.components.select import SelectEntity
+except Exception:  # pragma: no cover
+
+    class SelectEntity:  # type: ignore[misc]
+        """Fallback SelectEntity for stubbed Home Assistant environments."""
+
+        pass
+
+
+try:  # pragma: no cover - fallback for tests without text platform
+    from homeassistant.components.text import TextEntity
+except Exception:  # pragma: no cover
+
+    class TextEntity:  # type: ignore[misc]
+        """Fallback TextEntity for stubbed Home Assistant environments."""
+
+        pass
+
+
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -661,7 +681,7 @@ class PawControlNumberEntity(PawControlEntity):
 # ==============================================================================
 
 
-class PawControlSelectEntity(PawControlEntity):
+class PawControlSelectEntity(PawControlEntity, SelectEntity):
     """Base select entity for PawControl.
 
     Provides specialized functionality for select entities including
@@ -725,7 +745,7 @@ class PawControlSelectEntity(PawControlEntity):
 # ==============================================================================
 
 
-class PawControlTextEntity(PawControlEntity):
+class PawControlTextEntity(PawControlEntity, TextEntity):
     """Base text entity for PawControl.
 
     Provides specialized functionality for text entities including

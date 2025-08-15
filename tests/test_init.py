@@ -45,7 +45,7 @@ async def test_setup_entry(
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-        assert mock_config_entry.state.value == "loaded"
+    assert mock_config_entry.state.value == "loaded"
     assert DOMAIN in hass.data
     assert mock_config_entry.entry_id in hass.data[DOMAIN]
     assert mock_config_entry.runtime_data is not None

@@ -1,6 +1,8 @@
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
+@pytest.mark.asyncio
 async def test_reauth_updates_entry(hass):
     import custom_components.pawcontrol.config_flow as cf
 

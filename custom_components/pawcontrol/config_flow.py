@@ -917,8 +917,41 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options."""
-        return await self.async_step_geofence()
+        """Manage the options.
+
+        When the integration is already set up, show the geofence form
+        directly. Otherwise present the full menu of configuration
+        categories for initial configuration.
+
+        Args:
+            user_input: User input from the form submission
+
+        Returns:
+            Form or menu flow result depending on integration state
+        """
+        if (
+            DOMAIN in self.hass.data
+            and self.config_entry.entry_id in self.hass.data[DOMAIN]
+        ):
+            return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
+
+        return self.async_show_menu(
+            step_id="init",
+            # Menu options ordered for predictable user experience
+            menu_options=[
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
+                "dogs",
+                "medication_mapping",
+                "sources",
+                "notifications",
+                "system",
+            ],
+        )
 
     async def async_step_dogs(
         self, user_input: dict[str, Any] | None = None
