@@ -5,6 +5,13 @@ All notable changes to Paw Control will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.1.0...v1.2.0) (2025-08-15)
+
+
+### Features
+
+* add medication reminder scheduling ([e77ba53](https://github.com/Bigdaddy1990/pawcontrol/commit/e77ba53ce6e1e8545739c5742be909393d7ebe73))
+
 ## [1.1.0](https://github.com/Bigdaddy1990/pawcontrol/compare/v1.0.15...v1.1.0) (2025-08-14)
 
 
