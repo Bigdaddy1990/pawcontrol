@@ -5,10 +5,7 @@ on:
       - "custom_components/**"
       - "hacs.json"
   push:
-    branches: [ main, master ]
-    paths:
-      - "custom_components/**"
-      - "hacs.json"
+    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -17,7 +14,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: HACS validation
         uses: hacs/action@main
         with:
