@@ -30,6 +30,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    BooleanSelectorConfig,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -43,9 +44,9 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
-    CONF_DISCOVERY_INFO,
     CONF_CALENDAR,
     CONF_DEVICE_TRACKERS,
+    CONF_DISCOVERY_INFO,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
@@ -103,7 +104,6 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     integration, guiding users through dog configuration, data sources,
     notifications, and system settings.
     """
-
     VERSION = 1
 
     def __init__(self) -> None:
