@@ -1,51 +1,81 @@
-ci:
-  autoupdate_schedule: monthly
-  autofix_prs: true
+# Home Assistant konforme Pre-commit Konfiguration
+# Basiert auf HA Developer Guidelines
 
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.2
     hooks:
-      # 1) Lint + Fix (inkl. unsichere Fixes EINMALIG freigeben)
-      - id: ruff-check
-        args: [--fix, --unsafe-fixes]
-        types_or: [python, pyi]
-      # 2) Danach formatieren
-      - id: ruff-format
-        types_or: [python, pyi]
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+      - id: pyupgrade
+        args: [--py312-plus]
+        
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
     hooks:
-      - id: check-yaml
-        # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
-        args: [--unsafe, --allow-multiple-documents]
-        # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(blueprints/|examples/)
-      - id: check-json
-      - id: check-toml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: mixed-line-ending
-        args: [--fix=lf]
-
+      - id: black
+        args:
+          - --safe
+          - --quiet
+        files: ^((homeassistant|script|tests)/.+)?[^/]+\.py$
+        
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.3.0
     hooks:
       - id: codespell
         args:
-          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme
-          - --skip=./.*,*.csv,*.json,*.min.js,*.map
+          - --ignore-words-list=hass,alot,datas,dof,dur,ether,farenheit,hist,iff,ines,ist,lightsensor,mut,nd,pres,referer,ser,serie,te,technik,ue,uint,visability,wan,wanna,withing,iam,incomfort,ba,haa,pullrequests
+          - --skip="./.*,*.csv,*.json"
           - --quiet-level=2
-        exclude: |
-          (?x)^(
-            tests/fixtures/|
-            .*/snapshots/|
-            .*/translations/|
-            .*/.git/|
-            .*/.tox/|
-            .*/.venv/|
-            dist/|
-            build/|
-            .*/node_modules/
-          )
+        exclude_types: [csv, json]
+        exclude: ^tests/fixtures/
+        
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - pycodestyle==2.11.1
+          - pyflakes==3.2.0
+          - flake8-docstrings==1.7.0
+          - pydocstyle==6.3.0
+          - flake8-comprehensions==3.14.0
+          - flake8-noqa==1.4.0
+          - mccabe==0.7.0
+        files: ^(custom_components|tests)/.+\.py$
+        
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+        files: ^(custom_components|tests)/.+\.py$
+        
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-executables-have-shebangs
+        stages: [manual]
+      - id: check-json
+        exclude: (.vscode|.devcontainer)
+      - id: no-commit-to-branch
+        args:
+          - --branch=dev
+          - --branch=master
+          - --branch=rc
+      - id: check-yaml
+      - id: check-toml
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        stages: [manual]
+
+# Disable autofix for now - only check
+default_install_hook_types: [pre-commit]
+fail_fast: true

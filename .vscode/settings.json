@@ -1,0 +1,54 @@
+// VS Code settings für automatisches Code-Fixing
+{
+  // Python Language Server
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  
+  // Ruff Integration - AUTO-FIX EVERYTHING
+  "ruff.enable": true,
+  "ruff.fixAll": true,
+  "ruff.format.args": ["--config=.ruff.toml"],
+  "ruff.lint.args": ["--config=.ruff.toml", "--fix", "--unsafe-fixes"],
+  "ruff.organizeImports": true,
+  
+  // Auto-Format und Auto-Fix on Save
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.unusedImports": "explicit"
+  },
+  
+  // Python file handling
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  
+  // File associations
+  "files.associations": {
+    "*.py": "python",
+    ".ruff.toml": "toml"
+  },
+  
+  // Auto-save for immediate fixes
+  "files.autoSave": "onFocusChange",
+  
+  // Error and warning display
+  "problems.decorations.enabled": true,
+  "editor.rulers": [88],
+  
+  // Extensions recommendations
+  "extensions.recommendations": [
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "ms-python.black-formatter"
+  ]
+}
