@@ -1,27 +1,62 @@
-# Ruff config for this Home Assistant custom integration
+# Aggressive Ruff config with auto-fixing
 target-version = "py313"
 line-length = 88
-src = ["custom_components"]
-unsafe-fixes = true
+src = ["custom_components/pawcontrol", "tests"]
 
 [lint]
-# Base: pycodestyle (E), pyflakes (F)
-# Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
-# Start with core correctness + imports
-#select = ["E4", "E7", "E9", "F", "I"]
-#select = ["E", "F", "I", "UP", "B"]
-# Ignore long lines initially; ruff format will wrap many cases
-#ignore = ["E501"]
-#select = ["E", "F", "I", "UP", "B", "SIM"]
-fixable = ["ALL"]
+# Alle wichtigen Rules mit Auto-Fix
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific
+    "PERF",   # perflint
+    "FURB",   # refurb
+    "N",      # pep8-naming
+    "C4",     # flake8-comprehensions
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "RET",    # flake8-return
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate
+    "PL",     # pylint
+]
 
-#[lint.per-file-ignores]
-# Common package patterns
-#"__init__.py" = ["F401", "F403", "E402"]
-#"tests/**" = ["E402", "F401"]
-#"scripts/**" = ["E402", "F401"]
+ignore = [
+    "E501",   # line-too-long (handled by formatter)
+    "PLR",    # pylint refactor (too aggressive)
+    "T20",    # print statements (OK in tests)
+    "ERA001", # commented code (sometimes needed)
+]
+
+# Auto-fix EVERYTHING possible
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unsafe fixes - be aggressive
+unsafe-fixes = true
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401", "F403", "E402"]
+"tests/**" = ["PLR2004", "S101", "T20", "ARG"]
+"conftest.py" = ["F401", "E402"]
+
+[lint.isort]
+force-single-line = false
+known-first-party = ["custom_components.pawcontrol"]
+
+[lint.pylint]
+max-args = 8
+max-branches = 15
 
 [format]
-# Keep defaults close to HA style
 quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 docstring-code-format = true
+docstring-code-line-length = 80
