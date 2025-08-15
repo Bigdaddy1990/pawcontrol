@@ -155,9 +155,35 @@ except Exception:  # pragma: no cover - Home Assistant not available
 # test environment.
 try:  # pragma: no cover - import may fail when Home Assistant is absent
     from custom_components.pawcontrol import config_flow as paw_config_flow
+    from custom_components import pawcontrol as paw_module
     from homeassistant import config_entries
 
     if "pawcontrol" not in config_entries.HANDLERS:
         config_entries.HANDLERS["pawcontrol"] = paw_config_flow.PawControlConfigFlow
+
+    # Expose the integration as a built-in component so the loader can
+    # resolve it even when custom component paths aren't configured.
+    sys.modules.setdefault("homeassistant.components.pawcontrol", paw_module)
 except Exception:  # pragma: no cover - ignore if either import fails
+    pass
+
+# Ensure the repository's custom_components path is available when Home
+# Assistant mounts the config dir during integration setup. This allows the
+# loader to resolve the Paw Control integration even when the config directory
+# used for tests doesn't contain a copy of the custom component.
+try:  # pragma: no cover - Home Assistant may not be installed
+    from pathlib import Path
+    import homeassistant.loader as loader
+
+    _orig_mount = loader._async_mount_config_dir
+    repo_root = Path(__file__).resolve().parent
+
+    def _patched_mount_config_dir(hass):  # pragma: no cover - test helper
+        _orig_mount(hass)
+        if str(repo_root) not in sys.path:
+            sys.path.insert(0, str(repo_root))
+            sys.path_importer_cache.pop(str(repo_root), None)
+
+    loader._async_mount_config_dir = _patched_mount_config_dir
+except Exception:  # pragma: no cover - ignore if patching fails
     pass

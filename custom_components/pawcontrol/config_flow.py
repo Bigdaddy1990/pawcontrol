@@ -882,8 +882,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="reauth", data_schema=schema, errors=errors)
 
     @staticmethod
-    @callback
-    def async_get_options_flow(
+    async def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> PawControlOptionsFlow:
         """Get the options flow for this handler.
@@ -1312,7 +1311,6 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
 ConfigFlow = PawControlConfigFlow
 
 
-@callback
-def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:
+async def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:
     """Return an options flow for the given config entry."""
     return PawControlOptionsFlow(config_entry)
