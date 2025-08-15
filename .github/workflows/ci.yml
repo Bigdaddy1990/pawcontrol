@@ -23,7 +23,7 @@ jobs:
           python-version: "3.13"
           cache: pip  # setup-python builtin caching
           cache-dependency-path: |
-            requirements*.txt
+            requirements_test.txt
             pyproject.toml
       - name: Install lint deps
         run: |
@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Hassfest
-        uses: home-assistant/actions/hassfest@master  # offizielle Empfehlung
+        uses: home-assistant/actions/hassfest@master
       - name: HACS validation
         uses: hacs/action@main
         with:
