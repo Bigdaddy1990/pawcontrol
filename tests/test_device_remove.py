@@ -12,11 +12,15 @@ async def test_async_remove_config_entry_device_allows_removal(hass):
 
     entry = MockConfigEntry(domain=comp.DOMAIN, data={}, options={}, entry_id="e1")
     entry.add_to_hass(hass)
-    
+
     # Mock the heavy dependencies to avoid setup issues in tests
     with (
-        patch("custom_components.pawcontrol.coordinator.PawControlCoordinator") as mock_coord,
-        patch("custom_components.pawcontrol.helpers.notification_router.NotificationRouter"),
+        patch(
+            "custom_components.pawcontrol.coordinator.PawControlCoordinator"
+        ) as mock_coord,
+        patch(
+            "custom_components.pawcontrol.helpers.notification_router.NotificationRouter"
+        ),
         patch("custom_components.pawcontrol.helpers.setup_sync.SetupSync"),
         patch("custom_components.pawcontrol.services.ServiceManager"),
     ):

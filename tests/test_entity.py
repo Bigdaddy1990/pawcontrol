@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
+
 from custom_components.pawcontrol.compat import EntityCategory
 from custom_components.pawcontrol.const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN
 from custom_components.pawcontrol.entity import (

@@ -1,4 +1,5 @@
 import pytest
+
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 

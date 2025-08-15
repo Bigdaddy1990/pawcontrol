@@ -34,6 +34,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    DOMAIN as _DOMAIN,
     ENTITY_UPDATE_DEBOUNCE_SECONDS,
     ICONS,
     MAX_CONCURRENT_UPDATES,
@@ -47,9 +48,6 @@ from .const import (
     MODULE_TRAINING,
     MODULE_WALK,
     STATUS_READY,
-)
-from .const import (
-    DOMAIN as _DOMAIN,
 )
 from .entity import PawControlSensorEntity
 
