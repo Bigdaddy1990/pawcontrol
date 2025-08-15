@@ -17,6 +17,9 @@ from homeassistant.const import Platform
 # Integration domain identifier
 DOMAIN: Final[str] = "pawcontrol"
 
+# Integration version for internal tracking
+INTEGRATION_VERSION: Final[str] = "1.2.0"
+
 # ==============================================================================
 # PLATFORMS
 # ==============================================================================
@@ -82,6 +85,7 @@ MIN_SIGNIFICANT_DISTANCE_M: Final[float] = (
 DEFAULT_DOG_WEIGHT_KG: Final[float] = 20.0  # kg - default weight if not specified
 MAX_DOG_WEIGHT_KG: Final[float] = 200.0  # kg - maximum reasonable dog weight
 MIN_DOG_WEIGHT_KG: Final[float] = 0.5  # kg - minimum reasonable dog weight
+MIN_MEANINGFUL_WEIGHT: Final[float] = 0.1  # kg - minimum weight for sensor display
 
 # Calorie calculation constants (based on veterinary guidelines)
 CALORIES_PER_KM_PER_KG: Final[float] = 1.5  # calories burned per km per kg body weight
@@ -398,25 +402,38 @@ CONDITION_PREVENTIVE: Final[str] = "preventive"
 # UI ICONS AND VISUAL ELEMENTS
 # ==============================================================================
 
-# Material Design Icons for different categories
+# Material Design Icons for different categories - optimized for better UX
 ICONS: Final[dict[str, str]] = {
+    # Core dog care activities
     "feeding": "mdi:food-drumstick",
-    "gps": "mdi:map-marker",
+    "walk": "mdi:dog-side",
     "health": "mdi:medical-bag",
-    "walk": "mdi:walk",
-    "grooming": "mdi:shower",
-    "training": "mdi:school",
+    "grooming": "mdi:content-cut",
+    "training": "mdi:school-outline",
     "medication": "mdi:pill",
-    "dashboard": "mdi:view-dashboard",
-    "notifications": "mdi:bell",
-    "location": "mdi:crosshairs-gps",
-    "activity": "mdi:run",
-    "statistics": "mdi:chart-line",
-    "emergency": "mdi:alert",
-    "visitor": "mdi:account-multiple",
-    "settings": "mdi:cog",
-    "export": "mdi:export",
-    "import": "mdi:import",
+    
+    # Tracking and monitoring
+    "gps": "mdi:crosshairs-gps",
+    "location": "mdi:map-marker-radius",
+    "activity": "mdi:run-fast",
+    "statistics": "mdi:chart-line-variant",
+    
+    # System and interface
+    "dashboard": "mdi:view-dashboard-outline",
+    "notifications": "mdi:bell-outline",
+    "emergency": "mdi:alert-circle",
+    "visitor": "mdi:account-group",
+    "settings": "mdi:cog-outline",
+    
+    # Data management
+    "export": "mdi:database-export",
+    "import": "mdi:database-import",
+    
+    # Status indicators
+    "online": "mdi:check-circle",
+    "offline": "mdi:alert-circle-outline",
+    "warning": "mdi:alert-triangle",
+    "error": "mdi:close-circle",
 }
 
 # Device class mappings for sensors
@@ -462,19 +479,24 @@ DOG_SIZES: Final[dict[str, dict[str, str | tuple[float, float]]]] = {
 # ERROR AND STATUS CODES
 # ==============================================================================
 
-# Error codes for various failure conditions
+# Error codes for various failure conditions - comprehensive coverage
 ERROR_DOG_NOT_FOUND: Final[str] = "dog_not_found"
 ERROR_INVALID_CONFIG: Final[str] = "invalid_config"
 ERROR_GPS_UNAVAILABLE: Final[str] = "gps_unavailable"
 ERROR_SENSOR_OFFLINE: Final[str] = "sensor_offline"
 ERROR_NETWORK_ERROR: Final[str] = "network_error"
 ERROR_PERMISSION_DENIED: Final[str] = "permission_denied"
+ERROR_COORDINATOR_UNAVAILABLE: Final[str] = "coordinator_unavailable"
+ERROR_INVALID_COORDINATES: Final[str] = "invalid_coordinates"
+ERROR_DEVICE_NOT_READY: Final[str] = "device_not_ready"
 
 # Status indicators
 STATUS_ACTIVE: Final[str] = "active"
 STATUS_INACTIVE: Final[str] = "inactive"
 STATUS_ERROR: Final[str] = "error"
 STATUS_UNKNOWN: Final[str] = "unknown"
+STATUS_INITIALIZING: Final[str] = "initializing"
+STATUS_READY: Final[str] = "ready"
 
 # ==============================================================================
 # COORDINATE AND PRECISION CONSTANTS
@@ -490,20 +512,25 @@ DURATION_PRECISION: Final[int] = 1  # decimal places for durations
 # LIMITS AND VALIDATION CONSTANTS
 # ==============================================================================
 
-# Maximum values for various inputs
+# Maximum values for various inputs - optimized for performance and UX
 MAX_DOGS_PER_INTEGRATION: Final[int] = 10
 MAX_ROUTE_POINTS: Final[int] = 10_000
 MAX_HISTORY_DAYS: Final[int] = 365
 MAX_STRING_LENGTH: Final[int] = 255
 MAX_NOTE_LENGTH: Final[int] = 1000
+MAX_CONCURRENT_UPDATES: Final[int] = 3  # Prevent coordinator overload
 
 # Minimum values for validation
 MIN_UPDATE_INTERVAL_SECONDS: Final[int] = 30
 MIN_GEOFENCE_RADIUS_M: Final[int] = 5
 MIN_DOG_AGE_YEARS: Final[int] = 0
 MAX_DOG_AGE_YEARS: Final[int] = 30
+MIN_MEANINGFUL_DISTANCE_M: Final[float] = 1.0  # For filtering noise
+MIN_MEANINGFUL_DURATION_S: Final[float] = 1.0  # For filtering noise
 
-# Time limits in seconds
+# Time limits in seconds - performance optimized
 CACHE_DURATION_SECONDS: Final[int] = 300  # 5 minutes
 SESSION_TIMEOUT_SECONDS: Final[int] = 3600  # 1 hour
 RETRY_DELAY_SECONDS: Final[int] = 60  # 1 minute
+COORDINATOR_REFRESH_THROTTLE_SECONDS: Final[int] = 5  # Prevent spam
+ENTITY_UPDATE_DEBOUNCE_SECONDS: Final[float] = 0.5  # Debounce entity updates

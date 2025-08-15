@@ -1,5 +1,6 @@
 {
     "title": "Paw Control",
+    "version": "1.2.0",
     "config": {
         "step": {
             "user": {
@@ -68,11 +69,23 @@
             "invalid_path": "Invalid export path",
             "invalid_time": "Invalid time format",
             "invalid_auth": "Ungültige Anmeldedaten",
-            "invalid_geofence": "Invalid geofence settings"
+            "invalid_geofence": "Invalid geofence settings",
+                "invalid_dog_name": "Dog name cannot be empty",
+                "invalid_dog_data": "Invalid dog configuration data",
+                "invalid_weight": "Weight must be between 0.1 and 200 kg",
+                "invalid_age": "Age must be between 0 and 30 years",
+                "invalid_dog_count": "Number of dogs must be between 1 and 10",
+                "invalid_sources": "Invalid data source configuration",
+                "invalid_notifications": "Invalid notification settings",
+                "invalid_system_config": "Invalid system configuration",
+                "coordinator_unavailable": "Coordinator is not available",
+                "device_not_ready": "Device is not ready"
         },
         "abort": {
             "single_instance_allowed": "Only one instance of Paw Control is allowed.",
-            "reauth_successful": "Anmeldedaten aktualisiert"
+            "reauth_successful": "Authentication credentials updated",
+            "reconfigure_successful": "Reconfiguration completed successfully",
+            "reconfigure_failed": "Reconfiguration failed - please try again"
         }
     },
     "options": {
@@ -243,6 +256,45 @@
             },
             "geofence_time_inside_today_min": {
                 "name": "Geofence Time Inside Today"
+            },
+            "coordinator_status": {
+                "name": "Coordinator Status"
+            },
+            "system_version": {
+                "name": "System Version"
+            },
+            "last_error": {
+                "name": "Last Error"
+            },
+            "error_count": {
+                "name": "Error Count"
+            },
+            "needs_walk": {
+                "name": "Needs Walk"
+            },
+            "is_hungry": {
+                "name": "Is Hungry"
+            },
+            "needs_grooming": {
+                "name": "Needs Grooming"
+            },
+            "is_home": {
+                "name": "Is Home"
+            },
+            "walk_in_progress": {
+                "name": "Walk in Progress"
+            },
+            "gps_active": {
+                "name": "GPS Active"
+            },
+            "visitor_mode": {
+                "name": "Visitor Mode"
+            },
+            "emergency_mode": {
+                "name": "Emergency Mode"
+            },
+            "system_healthy": {
+                "name": "System Healthy"
             }
         }
     },
@@ -271,6 +323,18 @@
         "invalid_geofence": {
             "title": "Invalid geofence configuration",
             "description": "The configured geofence appears to be invalid. Use the fix flow to update latitude/longitude and radius."
+        },
+        "coordinator_errors": {
+            "title": "Coordinator errors detected",
+            "description": "The Paw Control coordinator has encountered {count} errors. Check the logs for details and consider restarting the integration."
+        },
+        "gps_errors": {
+            "title": "GPS tracking issues",
+            "description": "GPS tracking is experiencing issues. Check device connectivity and GPS permissions."
+        },
+        "performance_warning": {
+            "title": "Performance optimization needed",
+            "description": "High update frequency detected. Consider adjusting polling intervals for better performance."
         }
     },
     "services": {
@@ -282,7 +346,7 @@
                     "description": "Optional config entry ID to target a specific instance."
                 }
             },
-            "description": "Service 'SERVICE_DAILY_RESET' for Paw Control."
+            "description": "Reset all daily counters and statistics for all dogs."
         },
         "emergency_mode": {
             "name": "Emergency Mode",
@@ -290,9 +354,17 @@
                 "config_entry_id": {
                     "name": "Config Entry Id",
                     "description": "Optional config entry ID to target a specific instance."
+                },
+                "level": {
+                    "name": "Emergency Level",
+                    "description": "Severity level of the emergency (info, warning, critical)."
+                },
+                "note": {
+                    "name": "Note",
+                    "description": "Description of the emergency situation."
                 }
             },
-            "description": "Service 'SERVICE_EMERGENCY_MODE' for Paw Control."
+            "description": "Activate emergency mode for urgent situations."
         },
         "end_walk": {
             "name": "End Walk",

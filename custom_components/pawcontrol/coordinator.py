@@ -15,6 +15,7 @@ The coordinator follows Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
+import asyncio
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -26,15 +27,27 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_DOG_ID,
+    CALORIES_PER_KM_PER_KG,
+    CALORIES_PER_MIN_PLAY_PER_KG,
     CONF_DOGS,
+    COORDINATOR_REFRESH_THROTTLE_SECONDS,
+    DEFAULT_DOG_WEIGHT_KG,
     DEFAULT_MEDICATION_REMINDER_HOURS,
     DEFAULT_WALK_THRESHOLD_HOURS,
     DOMAIN,
+    ENTITY_UPDATE_DEBOUNCE_SECONDS,
+    ERROR_COORDINATOR_UNAVAILABLE,
+    ERROR_INVALID_COORDINATES,
     EVENT_DOG_FED,
     EVENT_GROOMING_DONE,
     EVENT_MEDICATION_GIVEN,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
+    INTEGRATION_VERSION,
+    MIN_DOG_WEIGHT_KG,
+    MIN_MEANINGFUL_DISTANCE_M,
+    STATUS_READY,
+    WALK_DISTANCE_UPDATE_THRESHOLD_M,
 )
 from .utils import calculate_distance, validate_coordinates
 
@@ -74,6 +87,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER,
             name=f"{DOMAIN}_{entry.entry_id}",
             update_interval=timedelta(minutes=5),
+            always_update=False,  # Platinum optimization - only update when data changes
         )
         self.entry = entry
         self._dog_data: dict[str, DogData] = {}
@@ -81,6 +95,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._emergency_mode: bool = False
         self._emergency_level: str = "info"
         self._last_update_time: datetime | None = None
+        
+        # Platinum performance optimizations
+        self._last_refresh_request: datetime | None = None
+        self._update_debounce_tasks: dict[str, asyncio.Task] = {}
+        self._refresh_lock = asyncio.Lock()
+        self._status: str = STATUS_READY
+        self._error_count: int = 0
+        self._version: str = INTEGRATION_VERSION
 
         # Initialize dog data structures
         self._initialize_dog_data()
@@ -416,12 +438,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Estimated calories burned today
         """
-        from .const import (
-            CALORIES_PER_KM_PER_KG,
-            CALORIES_PER_MIN_PLAY_PER_KG,
-            DEFAULT_DOG_WEIGHT_KG,
-            MIN_DOG_WEIGHT_KG,
-        )
 
         walk_data = self._dog_data[dog_id]["walk"]
         activity_data = self._dog_data[dog_id]["activity"]
@@ -517,13 +533,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
 
         try:
-            # Validate coordinates
-            if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            # Platinum validation - use proper coordinate validation
+            if not validate_coordinates(latitude, longitude):
                 _LOGGER.error(
                     "Invalid GPS coordinates for dog %s: lat=%s, lon=%s",
                     dog_id,
                     latitude,
                     longitude,
+                )
+                # Fire error event for monitoring
+                self.hass.bus.async_fire(
+                    f"{DOMAIN}_error",
+                    {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id}
                 )
                 return
 
@@ -687,7 +708,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Reset statistics
                 dog_data["statistics"]["poop_count_today"] = 0
 
-            await self.async_request_refresh()
+            await self._safe_request_refresh()
             _LOGGER.info(
                 "Successfully reset daily counters for %d dogs", len(self._dog_data)
             )
@@ -709,8 +730,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.error("Invalid or unknown dog_id: %s", dog_id)
             return
 
-        if inc_m <= 0:
-            return  # No distance to add
+        if inc_m <= MIN_MEANINGFUL_DISTANCE_M:
+            return  # Filter out noise/insignificant updates
 
         try:
             walk = self._dog_data[dog_id]["walk"]
@@ -730,12 +751,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "walk_progress"
                 )
 
-                # Import threshold locally to avoid circular dependency
-                from .const import WALK_DISTANCE_UPDATE_THRESHOLD_M
-
-                # Only notify listeners for significant distance changes
+                # Use debounced updates for better performance
                 if new_distance - current_distance >= WALK_DISTANCE_UPDATE_THRESHOLD_M:
-                    self.async_update_listeners()
+                    self._schedule_debounced_update(f"walk_distance_{dog_id}")
 
         except (ValueError, TypeError) as err:
             _LOGGER.error(
@@ -747,8 +765,88 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         This is a convenience method for triggering UI updates when
         data changes outside the normal update cycle.
+        
+        Platinum optimization: Implements debouncing to prevent UI spam.
         """
-        self.async_update_listeners()
+        self._schedule_debounced_update("general")
+        
+    def _schedule_debounced_update(self, update_key: str) -> None:
+        """Schedule a debounced update to prevent UI spam.
+        
+        Args:
+            update_key: Key to identify the type of update for debouncing
+        """
+        # Cancel existing debounce task if any
+        if update_key in self._update_debounce_tasks:
+            self._update_debounce_tasks[update_key].cancel()
+        
+        # Schedule new debounced update
+        async def _debounced_update() -> None:
+            await asyncio.sleep(ENTITY_UPDATE_DEBOUNCE_SECONDS)
+            try:
+                self.async_update_listeners()
+            except Exception as err:
+                _LOGGER.debug("Error during debounced update: %s", err)
+            finally:
+                self._update_debounce_tasks.pop(update_key, None)
+        
+        self._update_debounce_tasks[update_key] = self.hass.async_create_task(
+            _debounced_update()
+        )
+        
+    async def _safe_request_refresh(self) -> None:
+        """Request a refresh with throttling and error handling.
+        
+        Platinum optimization: Prevents spam requests and tracks errors.
+        """
+        async with self._refresh_lock:
+            now = dt_util.utcnow()
+            
+            # Throttle refresh requests to prevent performance issues
+            if self._last_refresh_request:
+                time_since_last = (now - self._last_refresh_request).total_seconds()
+                if time_since_last < COORDINATOR_REFRESH_THROTTLE_SECONDS:
+                    _LOGGER.debug(
+                        "Throttling refresh request (%.1fs since last)",
+                        time_since_last
+                    )
+                    return
+            
+            self._last_refresh_request = now
+            try:
+                await self.async_request_refresh()
+                self._error_count = 0  # Reset error count on successful refresh
+                self._status = STATUS_READY
+            except Exception as err:
+                self._error_count += 1
+                _LOGGER.warning(
+                    "Coordinator refresh failed (attempt %d): %s",
+                    self._error_count,
+                    err
+                )
+                if self._error_count >= 3:
+                    self._status = ERROR_COORDINATOR_UNAVAILABLE
+                    # Fire error event for monitoring
+                    self.hass.bus.async_fire(
+                        f"{DOMAIN}_coordinator_error",
+                        {"error_count": self._error_count, "status": self._status}
+                    )
+                raise
+                
+    @property 
+    def coordinator_status(self) -> str:
+        """Return current coordinator status for health monitoring."""
+        return self._status
+        
+    @property
+    def integration_version(self) -> str:
+        """Return integration version."""
+        return self._version
+        
+    @property
+    def error_count(self) -> int:
+        """Return current error count for diagnostics."""
+        return self._error_count
 
     async def start_walk(self, dog_id: str, source: str = "manual") -> None:
         """Start a walk for a dog.

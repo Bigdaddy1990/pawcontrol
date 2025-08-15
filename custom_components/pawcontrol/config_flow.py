@@ -73,6 +73,11 @@ from .const import (
     DEFAULT_RESET_TIME,
     DEFAULT_SNOOZE_MIN,
     DOMAIN,
+    MAX_DOGS_PER_INTEGRATION,
+    MAX_DOG_AGE_YEARS,
+    MAX_DOG_WEIGHT_KG,
+    MIN_DOG_AGE_YEARS,
+    MIN_DOG_WEIGHT_KG,
     MODULE_DASHBOARD,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -88,13 +93,6 @@ if TYPE_CHECKING:
     pass
 
 _LOGGER = logging.getLogger(__name__)
-
-# Validation constants
-MAX_DOGS_SUPPORTED = 10
-MIN_DOG_WEIGHT_KG = 0.1
-MAX_DOG_WEIGHT_KG = 200.0
-MIN_DOG_AGE_YEARS = 0
-MAX_DOG_AGE_YEARS = 30
 
 
 class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -141,9 +139,9 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 # Validate and store number of dogs
                 num_dogs = int(user_input.get("num_dogs", 1))
-                if not (1 <= num_dogs <= MAX_DOGS_SUPPORTED):
+                if not (1 <= num_dogs <= MAX_DOGS_PER_INTEGRATION):
                     raise ValueError(
-                        f"Number of dogs must be between 1 and {MAX_DOGS_SUPPORTED}"
+                        f"Number of dogs must be between 1 and {MAX_DOGS_PER_INTEGRATION}"
                     )
 
                 # Initialize dog configuration structures
@@ -180,7 +178,7 @@ class PawControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required("num_dogs", default=1): NumberSelector(
                     NumberSelectorConfig(
                         min=1,
-                        max=MAX_DOGS_SUPPORTED,
+                        max=MAX_DOGS_PER_INTEGRATION,
                         mode="box",
                     )
                 ),
