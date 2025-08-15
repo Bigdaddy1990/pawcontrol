@@ -154,8 +154,8 @@ except Exception:  # pragma: no cover - Home Assistant not available
 # loader cannot resolve the custom component from the filesystem in the minimal
 # test environment.
 try:  # pragma: no cover - import may fail when Home Assistant is absent
-    from custom_components.pawcontrol import config_flow as paw_config_flow
     from custom_components import pawcontrol as paw_module
+    from custom_components.pawcontrol import config_flow as paw_config_flow
     from homeassistant import config_entries
 
     if "pawcontrol" not in config_entries.HANDLERS:
@@ -173,6 +173,7 @@ except Exception:  # pragma: no cover - ignore if either import fails
 # used for tests doesn't contain a copy of the custom component.
 try:  # pragma: no cover - Home Assistant may not be installed
     from pathlib import Path
+
     import homeassistant.loader as loader
 
     _orig_mount = loader._async_mount_config_dir

@@ -47,7 +47,6 @@ from .const import (
     MODULE_TRAINING,
     MODULE_WALK,
     STATUS_READY,
-    DOMAIN,
 )
 from .entity import PawControlSensorEntity
 
