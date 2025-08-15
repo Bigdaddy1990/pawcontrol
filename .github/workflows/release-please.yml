@@ -9,16 +9,13 @@ permissions:
   pull-requests: write
   issues: write
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  release-please:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # oder RELEASE_PLEASE_TOKEN (PAT)
           release-type: simple
