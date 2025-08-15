@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from custom_components.pawcontrol.compat import EntityCategory
@@ -13,10 +13,9 @@ from custom_components.pawcontrol.entity import (
     PawControlEntity,
     PawControlSensorEntity,
 )
-from homeassistant.core import HomeAssistant
 
 if TYPE_CHECKING:
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    pass
 
 pytestmark = [pytest.mark.asyncio]
 
