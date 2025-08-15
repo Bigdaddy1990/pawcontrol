@@ -1,5 +1,3 @@
-
-
 def test_actions_module_importable():
     import custom_components.pawcontrol.device_action as device_action
 
