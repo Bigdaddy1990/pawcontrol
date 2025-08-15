@@ -17,7 +17,8 @@ from custom_components.pawcontrol.entity import (
 if TYPE_CHECKING:
     pass
 
-pytestmark = [pytest.mark.asyncio]
+# Remove asyncio mark - these are sync tests
+# pytestmark = [pytest.mark.asyncio]
 
 
 @pytest.fixture

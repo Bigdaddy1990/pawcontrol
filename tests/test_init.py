@@ -41,7 +41,21 @@ async def test_setup_entry(
             "custom_components.pawcontrol.helpers.setup_sync.SetupSync",
             return_value=mock_setup_sync,
         ),
+        patch(
+            "custom_components.pawcontrol.services.ServiceManager"
+        ) as mock_service_manager,
+        patch(
+            "custom_components.pawcontrol.gps_handler.PawControlGPSHandler"
+        ) as mock_gps_handler,
+        patch(
+            "custom_components.pawcontrol.report_generator.ReportGenerator"
+        ) as mock_report_generator,
     ):
+        # Setup all mocks properly
+        mock_service_manager.return_value.async_register_services.return_value = None
+        mock_gps_handler.return_value.async_setup.return_value = None
+        mock_report_generator.return_value = None
+        
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
