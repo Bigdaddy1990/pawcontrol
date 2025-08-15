@@ -55,7 +55,7 @@ async def test_setup_entry(
         mock_service_manager.return_value.async_register_services.return_value = None
         mock_gps_handler.return_value.async_setup.return_value = None
         mock_report_generator.return_value = None
-        
+
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
