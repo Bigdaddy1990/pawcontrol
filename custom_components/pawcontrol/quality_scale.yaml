@@ -11,74 +11,74 @@ quality_scale: platinum
 bronze:
   # IQS-01: Can be easily set up through the UI
   ui_setup: true
-  
+
   # IQS-02: Source code adheres to basic coding standards
   coding_standards: true
-  
+
   # IQS-03: Automated tests that guard integration setup
   automated_tests: false  # TODO: Implement tests
-  
+
   # IQS-04: Basic end-user documentation
   basic_documentation: true
 
 silver:
   # IQS-05: Stable user experience under various conditions
   stable_experience: true
-  
+
   # IQS-06: One or more active code owners
   active_code_owners: false  # TODO: Define code owners
-  
+
   # IQS-07: Correctly recover from connection errors
   connection_recovery: true
-  
+
   # IQS-08: Automatically trigger re-authentication
   auto_reauth: true
-  
+
   # IQS-09: Detailed documentation with troubleshooting
   detailed_documentation: true
 
 gold:
   # IQS-10: Best user experience - streamlined and intuitive
   best_user_experience: true
-  
+
   # IQS-11: Automatic discovery for easy setup
   automatic_discovery: false  # TODO: Implement discovery
-  
+
   # IQS-12: Integration can be reconfigured
   reconfiguration: true
-  
+
   # IQS-13: Supports translations
   translations: false  # TODO: Complete translations
-  
+
   # IQS-14: Extensive documentation for non-technical users
   extensive_documentation: true
-  
+
   # IQS-15: Device firmware updates (N/A for this integration)
   firmware_updates: null
-  
+
   # IQS-16: Automated tests covering entire integration
   comprehensive_tests: false  # TODO: Implement comprehensive tests
 
 platinum:
   # IQS-17: All source code follows HA standards and best practices
   ha_standards: true
-  
+
   # IQS-18: Fully typed with type annotations
   full_typing: true
-  
+
   # IQS-19: Clear code comments for maintainability
   clear_comments: true
-  
+
   # IQS-20: Fully asynchronous integration codebase
   fully_async: true
-  
+
   # IQS-21: Efficient data handling (reduced network/CPU usage)
   efficient_data_handling: true
 
 # Current issues blocking full compliance
 blockers:
   - "Missing automated tests (Bronze requirement)"
-  - "No active code owners defined (Silver requirement)" 
+  - "No active code owners defined (Silver requirement)"
   - "Missing automatic discovery implementation (Gold requirement)"
   - "Incomplete translation support (Gold requirement)"
   - "Missing comprehensive test coverage (Gold requirement)"
