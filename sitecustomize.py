@@ -8,10 +8,10 @@ provides a minimal stub of the framework.
 from __future__ import annotations
 
 import contextlib
-import importlib
-import sys
 from datetime import UTC, datetime
 from enum import StrEnum
+import importlib
+import sys
 from types import ModuleType
 
 try:  # pragma: no cover - Home Assistant available

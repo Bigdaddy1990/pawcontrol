@@ -18,12 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    CONF_EXPORT_PATH,
-)
+from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_DOGS, CONF_EXPORT_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
