@@ -18,14 +18,24 @@ from homeassistant.const import Platform
 DOMAIN: Final[str] = "pawcontrol"
 
 # Integration version for internal tracking
-INTEGRATION_VERSION: Final[str] = "1.2.0"
+INTEGRATION_VERSION: Final[str] = "1.3.0"
 
 # ==============================================================================
 # PLATFORMS
 # ==============================================================================
 
 # All platforms supported by this integration
-PLATFORMS: Final[list[Platform]] = []
+PLATFORMS: Final[list[Platform]] = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.DATETIME,
+    Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.TEXT,
+]
 
 # Default parallel updates for platforms that require serial execution
 PARALLEL_UPDATES: Final[int] = 0

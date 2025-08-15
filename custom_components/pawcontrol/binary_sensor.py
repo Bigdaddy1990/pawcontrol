@@ -37,6 +37,7 @@ from .const import (
     CONF_DOGS,
     DOMAIN,
     ICONS,
+    INTEGRATION_VERSION,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_GROOMING,
@@ -51,8 +52,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# No parallel updates to avoid coordinator conflicts
-PARALLEL_UPDATES = 0
+# Optimal parallel updates for binary sensors (Platinum optimization)
+PARALLEL_UPDATES = 1
 
 # Constants for state evaluation
 WALK_OVERDUE_HOURS = 8
@@ -1069,7 +1070,7 @@ class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.1.0",
+            sw_version=INTEGRATION_VERSION,
             configuration_url=f"/config/integrations/integration/{DOMAIN}",
         )
 
@@ -1107,7 +1108,7 @@ class EmergencyModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.1.0",
+            sw_version=INTEGRATION_VERSION,
             configuration_url=f"/config/integrations/integration/{DOMAIN}",
         )
 
@@ -1158,7 +1159,7 @@ class SystemHealthyBinarySensor(CoordinatorEntity, BinarySensorEntity):
             name="Paw Control System",
             manufacturer="Paw Control",
             model="Smart Dog Manager",
-            sw_version="1.1.0",
+            sw_version=INTEGRATION_VERSION,
             configuration_url=f"/config/integrations/integration/{DOMAIN}",
         )
 
