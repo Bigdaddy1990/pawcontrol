@@ -1,7 +1,7 @@
 # 🐕 Paw Control - Smart Dog Management for Home Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum-E5E4E2)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Custom-99670A)](https://developers.home-assistant.io/docs/core/integration-quality-scale/#-custom)
 [![GitHub release](https://img.shields.io/github/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
 Eine umfassende Home Assistant Integration für intelligentes Hundemanagement mit GPS-Tracking, Gesundheitsüberwachung, Geofencing und automatisierten Erinnerungen.

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
-    SensorEntity,
+    SensorEntityClass,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -94,7 +94,11 @@ async def async_setup_entry(
         runtime_data = entry.runtime_data
         coordinator: PawControlCoordinator = runtime_data.coordinator
 
-        # Platinum: Enhanced coordinator validation
+    # Platinum: Enhanced coordinator validation
+    if not coordinator.last_update_success:
+       _LOGGER.warning("Coordinator not ready, attempting refresh")
+    if hasattr(coordinator, "async_refresh"):
+        await coordinator.async_refresh()
         if not coordinator.last_update_success:
             _LOGGER.warning("Coordinator not ready, attempting refresh")
             if hasattr(coordinator, "async_refresh"):

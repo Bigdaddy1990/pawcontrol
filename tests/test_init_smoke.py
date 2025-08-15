@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 DOMAIN = comp.DOMAIN
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_domain_setup_registers_services(hass: HomeAssistant):
     # Setting up the domain should register services
     assert await comp.async_setup(hass, {}) or True
