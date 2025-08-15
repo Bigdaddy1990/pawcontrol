@@ -5,8 +5,6 @@ from __future__ import annotations
 from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
-from homeassistant.exceptions import HomeAssistantError
-
 from .const import EARTH_RADIUS_M
 
 if TYPE_CHECKING:
@@ -96,5 +94,5 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except (HomeAssistantError, ValueError):
+    except Exception:  # noqa: BLE001 - log-free helper should never raise
         return False
