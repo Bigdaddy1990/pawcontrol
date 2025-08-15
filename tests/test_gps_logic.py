@@ -1,12 +1,13 @@
-import logging
 from datetime import datetime, timedelta
+import logging
 from unittest.mock import AsyncMock
+
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.helpers.gps_logic import GPSLogic
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 def test_confirm_walk_start_clears_stale_keys(hass: HomeAssistant, mocker) -> None:

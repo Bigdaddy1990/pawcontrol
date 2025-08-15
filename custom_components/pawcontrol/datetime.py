@@ -16,8 +16,8 @@ The datetime entities follow Home Assistant's Platinum standards with:
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime, timedelta
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.datetime import DateTimeEntity

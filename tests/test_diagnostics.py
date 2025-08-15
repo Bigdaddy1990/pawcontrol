@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
+
 from custom_components.pawcontrol import diagnostics as diag
 from custom_components.pawcontrol.const import DOMAIN
 from homeassistant.core import HomeAssistant
