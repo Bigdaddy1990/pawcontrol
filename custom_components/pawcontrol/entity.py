@@ -113,7 +113,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         # Cache dog configuration for efficient access
         self._dog_config: DogConfig | None = None
         self._last_config_update: float = 0
-        
+
         # Platinum performance tracking
         self._last_state_change: float = 0
         self._update_count: int = 0
@@ -130,12 +130,12 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         try:
             dog_name = self.dog_name
             dog_config = self._get_dog_config()
-            
+
             # Platinum enhancement: Include breed and size in device info
             device_name = f"🐕 {dog_name}"
             if dog_config.get("dog_breed") and dog_config["dog_breed"] != "Unknown":
                 device_name += f" ({dog_config['dog_breed']})"
-                
+
             self._attr_device_info = DeviceInfo(
                 identifiers={(DOMAIN, self.dog_id)},
                 name=device_name,
@@ -162,42 +162,42 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
     def _determine_best_icon(self, icon_override: str | None) -> str:
         """Determine the best icon for this entity.
-        
+
         Platinum optimization: Smart icon selection based on context.
 
         Args:
             icon_override: Optional icon override
-            
+
         Returns:
             Best Material Design icon for this entity
         """
         if icon_override:
             return icon_override
-            
+
         # Try entity-specific icon first
         if self.entity_key in ICONS:
             return ICONS[self.entity_key]
-            
+
         # Fall back to category-based icons
         category_map = {
             "walk": "walk",
-            "feeding": "feeding", 
+            "feeding": "feeding",
             "health": "health",
             "grooming": "grooming",
             "training": "training",
             "gps": "gps",
             "location": "location",
             "activity": "activity",
-            "statistics": "statistics"
+            "statistics": "statistics",
         }
-        
+
         for keyword, icon_key in category_map.items():
             if keyword in self.entity_key.lower():
                 return ICONS.get(icon_key, "mdi:information")
-                
+
         # Ultimate fallback
         return ICONS.get("settings", "mdi:information")
-        
+
     def _get_default_icon(self) -> str:
         """Get default icon for this entity type.
 
@@ -284,9 +284,9 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 self.dog_id,
             )
             return False
-            
+
         # Platinum: Check coordinator health status
-        if hasattr(self.coordinator, 'coordinator_status'):
+        if hasattr(self.coordinator, "coordinator_status"):
             status = self.coordinator.coordinator_status
             if status != STATUS_READY:
                 _LOGGER.debug(
@@ -304,7 +304,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
         Provides common attributes that are useful across all entity types.
         Subclasses can override this to add specific attributes.
-        
+
         Platinum enhancement: Includes diagnostics and health info.
 
         Returns:
@@ -335,13 +335,13 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 attributes["last_updated"] = (
                     self.coordinator.last_update_success_time.isoformat()
                 )
-                
+
             # Platinum: Add diagnostic information
-            if hasattr(self.coordinator, 'coordinator_status'):
+            if hasattr(self.coordinator, "coordinator_status"):
                 attributes["coordinator_status"] = self.coordinator.coordinator_status
-            if hasattr(self.coordinator, 'error_count'):
+            if hasattr(self.coordinator, "error_count"):
                 attributes["coordinator_errors"] = self.coordinator.error_count
-                
+
             # Entity-specific diagnostics
             attributes["entity_updates"] = self._update_count
             if self._last_state_change > 0:
@@ -364,24 +364,24 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
 
         Called when the coordinator reports new data. This method can be
         overridden by subclasses to perform specific update logic.
-        
+
         Platinum optimization: Tracks update frequency for diagnostics.
         """
         try:
             current_time = dt_util.utcnow().timestamp()
             time_since_last = current_time - self._last_state_change
-            
+
             # Platinum: Track update patterns for diagnostics
             if time_since_last < ENTITY_UPDATE_DEBOUNCE_SECONDS:
                 _LOGGER.debug(
                     "Rapid update detected for %s (%.2fs since last)",
                     self.entity_id,
-                    time_since_last
+                    time_since_last,
                 )
-                
+
             self._last_state_change = current_time
             self._update_count += 1
-            
+
             super()._handle_coordinator_update()
         except Exception as err:
             _LOGGER.error(
