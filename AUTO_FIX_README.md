@@ -8,7 +8,7 @@
 # Alle Code-Quality-Probleme automatisch beheben
 python scripts/fix_code.py
 
-# Nur prüfen ohne zu ändern  
+# Nur prüfen ohne zu ändern
 python scripts/fix_code.py --check
 ```
 
@@ -31,12 +31,12 @@ python scripts/fix_code.py --check
 
 ## Was wird automatisch behoben
 
-✅ **Formatierung** - Einheitlicher Code-Style  
-✅ **Import-Sortierung** - Saubere Import-Organisation  
-✅ **Code-Simplification** - Lesbarerer Code  
-✅ **Python-Upgrades** - Moderne Syntax  
-✅ **Unused Code** - Entfernung toter Code-Bereiche  
-✅ **NoQA-Annotations** - Dokumentierte Code-Exceptions  
+✅ **Formatierung** - Einheitlicher Code-Style
+✅ **Import-Sortierung** - Saubere Import-Organisation
+✅ **Code-Simplification** - Lesbarerer Code
+✅ **Python-Upgrades** - Moderne Syntax
+✅ **Unused Code** - Entfernung toter Code-Bereiche
+✅ **NoQA-Annotations** - Dokumentierte Code-Exceptions
 ✅ **Linting-Fixes** - 200+ Auto-fixable Rules
 
 ## Kein manueller Aufwand mehr
