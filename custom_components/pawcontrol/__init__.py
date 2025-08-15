@@ -204,15 +204,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Device registration failure is non-critical, continue setup
     _LOGGER.warning("Continuing setup without device registration")
 
-    # Setup platforms with proper error handling
-    try:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    except IntegrationNotFound as err:
-        _LOGGER.warning(
-            "Integration not found when forwarding entry setups for %s: %s",
-             entry.entry_id,
-             err,
-        )
+# Setup platforms with proper error handling
+try:
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+except IntegrationNotFound as err:
+    _LOGGER.warning(
+        "Integration not found when forwarding entry setups for %s: %s",
+        entry.entry_id,
+        err,
+    )
     except Exception as err:
         _LOGGER.error(
             "Failed to forward entry setups for %s: %s",
