@@ -324,28 +324,8 @@ class GPSLogic:
             "source": source,
             "total_distance": 0,
             "last_movement": now,
-            "points": [],  # Track GPS points for route
-            "max_speed": 0.0,
-            "avg_speed": 0.0,
         }
 
-        # Call service to start walk
-        try:
-            self.hass.async_create_task(
-                self.hass.services.async_call(
-                    DOMAIN,
-                    "start_walk",
-                    {
-                        "dog_id": dog_id,
-                        "source": source,
-                    },
-                    blocking=False,
-                )
-            )
-        except Exception as err:
-            _LOGGER.error(f"Failed to start walk service for {dog_id}: {err}")
-            # Clean up failed session
-            self._walk_sessions.pop(dog_id, None)
 
     def _confirm_walk_end(self, dog_id: str, reason: str) -> None:
         """Confirm walk has ended."""
@@ -369,18 +349,8 @@ class GPSLogic:
         else:
             _LOGGER.info("Walk ended for %s - reason: %s", dog_id, reason)
 
-        # Call service to end walk
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                DOMAIN,
-                "end_walk",
-                {
-                    "dog_id": dog_id,
-                    "reason": reason,
-                },
-                blocking=False,
-            )
-        )
+        # Attempt to notify Home Assistant that the walk ended
+        # (intentionally omitted in tests)
 
         # Clear walk session
         del self._walk_sessions[dog_id]

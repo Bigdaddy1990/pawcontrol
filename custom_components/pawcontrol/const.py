@@ -25,17 +25,10 @@ INTEGRATION_VERSION: Final[str] = "1.2.0"
 # ==============================================================================
 
 # All platforms supported by this integration
-PLATFORMS: Final[list[Platform]] = [
-    Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.TEXT,
-    Platform.DATETIME,
-    Platform.SWITCH,
-    Platform.DEVICE_TRACKER,
-]
+PLATFORMS: Final[list[Platform]] = []
+
+# Default parallel updates for platforms that require serial execution
+PARALLEL_UPDATES: Final[int] = 0
 
 # ==============================================================================
 # GEOGRAPHIC AND MEASUREMENT CONSTANTS

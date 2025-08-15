@@ -286,15 +286,14 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
             return False
             
         # Platinum: Check coordinator health status
-        if hasattr(self.coordinator, 'coordinator_status'):
-            status = self.coordinator.coordinator_status
-            if status != STATUS_READY:
-                _LOGGER.debug(
-                    "Entity %s unavailable: coordinator status is %s",
-                    self.entity_id,
-                    status,
-                )
-                return False
+        status = getattr(self.coordinator, "coordinator_status", STATUS_READY)
+        if isinstance(status, str) and status != STATUS_READY:
+            _LOGGER.debug(
+                "Entity %s unavailable: coordinator status is %s",
+                self.entity_id,
+                status,
+            )
+            return False
 
         return True
 
