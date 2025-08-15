@@ -1,54 +1,82 @@
-// VS Code settings für automatisches Code-Fixing
+// Home Assistant konforme VS Code Settings mit Auto-Fixes
 {
-  // Python Language Server
+  // Python für HA Development mit Auto-Fix
   "python.defaultInterpreterPath": "python",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
   
-  // Ruff Integration - AUTO-FIX EVERYTHING
-  "ruff.enable": true,
-  "ruff.fixAll": true,
-  "ruff.format.args": ["--config=.ruff.toml"],
-  "ruff.lint.args": ["--config=.ruff.toml", "--fix", "--unsafe-fixes"],
-  "ruff.organizeImports": true,
-  
-  // Auto-Format und Auto-Fix on Save
-  "editor.formatOnSave": true,
-  "editor.formatOnPaste": true,
-  "editor.formatOnType": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "explicit",
-    "source.unusedImports": "explicit"
-  },
-  
-  // Python file handling
+  // HA-konforme Formatierung mit Auto-Fix
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
-      "source.organizeImports.ruff": "explicit"
+      "source.organizeImports.ruff": "explicit",
+      "source.fixAll.ruff": "explicit"
     }
   },
   
-  // File associations
+  // Ruff für HA-konforme Auto-Fixes
+  "ruff.enable": true,
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.args": ["--config=.ruff.toml"],
+  "ruff.lint.args": ["--config=.ruff.toml", "--fix"],
+  "ruff.format.args": ["--config=.ruff.toml"],
+  
+  // Black formatting (HA Standard)
+  "black-formatter.args": ["--safe"],
+  
+  // HA Development Standards mit Auto-Fix
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.rulers": [88],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.autoSave": "onFocusChange",
+  
+  // Pre-commit integration für Auto-Fix
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.py$",
+        "cmd": "pre-commit run --files ${file}"
+      }
+    ]
+  },
+  
+  // File associations für HA
   "files.associations": {
     "*.py": "python",
+    "manifest.json": "json",
+    "services.yaml": "yaml",
+    "*.yaml": "yaml",
     ".ruff.toml": "toml"
   },
   
-  // Auto-save for immediate fixes
-  "files.autoSave": "onFocusChange",
-  
-  // Error and warning display
-  "problems.decorations.enabled": true,
-  "editor.rulers": [88],
-  
-  // Extensions recommendations
+  // HA recommended extensions mit Auto-Fix Funktionen
   "extensions.recommendations": [
-    "charliermarsh.ruff",
     "ms-python.python",
-    "ms-python.black-formatter"
-  ]
+    "ms-python.black-formatter", 
+    "charliermarsh.ruff",
+    "ms-python.pylint",
+    "redhat.vscode-yaml",
+    "emeraldwalk.RunOnSave"
+  ],
+  
+  // Test configuration für HA
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  
+  // Auto-Fix on Error Detection
+  "problems.decorations.enabled": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  }
 }
