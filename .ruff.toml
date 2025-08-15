@@ -16,8 +16,8 @@ fixable = ["ALL"]
 
 [lint.per-file-ignores]
 # Common package patterns
-"__init__.py" = ["F401", "F403", "E402"]
-"tests/**" = ["E402", "F401"]
+#"__init__.py" = ["F401", "F403", "E402"]
+#"tests/**" = ["E402", "F401"]
 "scripts/**" = ["E402", "F401"]
 
 [format]
