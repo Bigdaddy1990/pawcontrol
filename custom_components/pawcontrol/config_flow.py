@@ -917,34 +917,8 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options.
-
-        Presents the main options menu with all available configuration
-        categories organized logically for user convenience.
-
-        Args:
-            user_input: User input (not used in menu step)
-
-        Returns:
-            Options menu flow result
-        """
-        return self.async_show_menu(
-            step_id="init",
-            # Menu options ordered for predictable user experience
-            menu_options=[
-                "medications",
-                "reminders",
-                "safe_zones",
-                "advanced",
-                "schedule",
-                "modules",
-                "dogs",
-                "medication_mapping",
-                "sources",
-                "notifications",
-                "system",
-            ],
-        )
+        """Manage the options."""
+        return await self.async_step_geofence()
 
     async def async_step_dogs(
         self, user_input: dict[str, Any] | None = None

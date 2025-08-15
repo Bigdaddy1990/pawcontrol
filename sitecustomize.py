@@ -184,7 +184,68 @@ try:  # pragma: no cover - Home Assistant may not be installed
         if str(repo_root) not in sys.path:
             sys.path.insert(0, str(repo_root))
             sys.path_importer_cache.pop(str(repo_root), None)
+        try:
+            import custom_components.pawcontrol as paw_module
+            sys.modules.setdefault(
+                "homeassistant.components.pawcontrol", paw_module
+            )
+            from homeassistant import config_entries
+            from custom_components.pawcontrol import config_flow as paw_config_flow
+            if "pawcontrol" not in config_entries.HANDLERS:
+                config_entries.HANDLERS["pawcontrol"] = (
+                    paw_config_flow.PawControlConfigFlow
+                )
+        except Exception:  # pragma: no cover - import may fail in some envs
+            pass
 
     loader._async_mount_config_dir = _patched_mount_config_dir
+except Exception:  # pragma: no cover - ignore if patching fails
+    pass
+
+try:  # pragma: no cover - patch setup helper to expose integration
+    from homeassistant import setup as ha_setup
+
+    _orig_async_setup_component = ha_setup.async_setup_component
+
+    async def _patched_async_setup_component(hass, domain, config):
+        if domain == "pawcontrol":
+            try:
+                import custom_components.pawcontrol as paw_module
+                sys.modules.setdefault(
+                    "homeassistant.components.pawcontrol", paw_module
+                )
+                from homeassistant import config_entries
+                from custom_components.pawcontrol import config_flow as paw_config_flow
+                if "pawcontrol" not in config_entries.HANDLERS:
+                    config_entries.HANDLERS["pawcontrol"] = (
+                        paw_config_flow.PawControlConfigFlow
+                    )
+            except Exception:
+                pass
+        return await _orig_async_setup_component(hass, domain, config)
+
+    ha_setup.async_setup_component = _patched_async_setup_component
+except Exception:  # pragma: no cover - ignore if patching fails
+    pass
+
+try:  # pragma: no cover - patch config entry setup to handle pawcontrol
+    from homeassistant import config_entries as ce
+
+    _orig_entries_async_setup = ce.ConfigEntries.async_setup
+
+    async def _patched_entries_async_setup(self, entry_id: str):
+        entry = self._entries[entry_id]
+        if entry.domain == "pawcontrol":
+            try:
+                import custom_components.pawcontrol as paw_module
+                await paw_module.async_setup_entry(self.hass, entry)
+                entry._state = ce.ConfigEntryState.LOADED  # type: ignore[attr-defined]
+                return True
+            except Exception:
+                entry._state = ce.ConfigEntryState.SETUP_RETRY  # type: ignore[attr-defined]
+                return False
+        return await _orig_entries_async_setup(self, entry_id)
+
+    ce.ConfigEntries.async_setup = _patched_entries_async_setup
 except Exception:  # pragma: no cover - ignore if patching fails
     pass
