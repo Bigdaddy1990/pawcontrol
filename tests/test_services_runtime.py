@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 DOMAIN = "pawcontrol"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_history_list_emits_event(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
 
@@ -39,7 +39,7 @@ async def test_route_history_list_emits_event(hass: HomeAssistant):
         assert events[0].data["result"][0]["id"] == "r1"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_gps_post_location_calls_handler(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
 
@@ -63,7 +63,7 @@ async def test_gps_post_location_calls_handler(hass: HomeAssistant):
         assert called["data"]["latitude"] == 52.5
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_history_list_requires_loaded_entry(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
     with pytest.raises(Exception):

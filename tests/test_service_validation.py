@@ -6,7 +6,7 @@ from homeassistant.setup import async_setup_component
 DOMAIN = "pawcontrol"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_service_validation_no_entries(hass: HomeAssistant):
     # Setup domain (registers services) but no config entry loaded
     await async_setup_component(hass, DOMAIN, {})

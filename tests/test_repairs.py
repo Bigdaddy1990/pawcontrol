@@ -11,7 +11,7 @@ class DummyEntry:
     title = "Dummy"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_repair_issue_registers(hass: HomeAssistant):
     issue_reg = ir.async_get(hass)
     create_repair_issue(hass, "missing_door_sensor", DummyEntry())

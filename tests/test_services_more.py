@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 DOMAIN = "pawcontrol"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_toggle_geofence_and_purge_storage(hass: HomeAssistant):
     assert await async_setup_component(hass, DOMAIN, {}) or True
 
