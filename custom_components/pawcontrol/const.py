@@ -31,7 +31,6 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.DATETIME,
     Platform.DEVICE_TRACKER,
     Platform.NUMBER,
-    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.TEXT,
