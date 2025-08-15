@@ -12,7 +12,22 @@ from __future__ import annotations
 
 from typing import Final
 
-from homeassistant.const import Platform
+try:  # pragma: no cover - Home Assistant may not be installed
+    from homeassistant.const import Platform
+except Exception:  # pragma: no cover - provide minimal fallback enum
+    from enum import StrEnum
+
+    class Platform(StrEnum):  # type: ignore[missing-class-docstring]
+        BINARY_SENSOR = "binary_sensor"
+        BUTTON = "button"
+        DATETIME = "datetime"
+        DEVICE_TRACKER = "device_tracker"
+        NUMBER = "number"
+        SELECT = "select"
+        SENSOR = "sensor"
+        SWITCH = "switch"
+        TEXT = "text"
+
 
 # Integration domain identifier
 DOMAIN: Final[str] = "pawcontrol"

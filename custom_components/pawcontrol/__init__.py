@@ -19,29 +19,38 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-# Expose the integration domain at module import time
-# so tests can reliably import it without depending on
-# the contents of :mod:`custom_components.pawcontrol.const`.
+# Expose the integration domain at module import time so tests can reliably
+# import it without depending on the contents of ``const.py``.
 DOMAIN = "pawcontrol"
 
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigEntryState,
-)
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import (
-    ConfigEntryNotReady,
-    HomeAssistantError,
-    ServiceValidationError,
-)
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import IntegrationNotFound
+if TYPE_CHECKING:  # pragma: no cover - imported only for type checking
+    from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+    from homeassistant.core import HomeAssistant, ServiceCall
+    from homeassistant.helpers.typing import ConfigType
+else:  # pragma: no cover - provide minimal stubs when Home Assistant is absent
+    ConfigEntry = ConfigEntryState = HomeAssistant = ServiceCall = object  # type: ignore[assignment]
+    ConfigType = dict[str, Any]  # type: ignore[assignment]
 
-from . import coordinator as coordinator_mod
-from . import gps_handler as gps
+try:  # pragma: no cover - Home Assistant available
+    from homeassistant.exceptions import (
+        ConfigEntryNotReady,
+        HomeAssistantError,
+        ServiceValidationError,
+    )
+    from homeassistant.helpers import (
+        config_validation as cv,
+    )
+    from homeassistant.helpers import (
+        device_registry as dr,
+    )
+    from homeassistant.helpers import (
+        issue_registry as ir,
+    )
+    from homeassistant.loader import IntegrationNotFound
+except Exception:  # pragma: no cover - fallback stubs for test environment
+    ConfigEntryNotReady = HomeAssistantError = ServiceValidationError = Exception  # type: ignore[assignment]
+    cv = dr = ir = IntegrationNotFound = object  # type: ignore[assignment]
+
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -52,19 +61,16 @@ from .const import (
 from .const import (
     DOMAIN as CONST_DOMAIN,
 )
-from .helpers import notification_router as notification_router_mod
-from .helpers import scheduler as scheduler_mod
-from .helpers import setup_sync as setup_sync_mod
-from .report_generator import ReportGenerator
-from .services import ServiceManager
-from .types import PawRuntimeData
 
 # Ensure the domain constant matches the value from const.py.
 assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+if hasattr(cv, "config_entry_only_config_schema"):
+    CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+else:  # pragma: no cover - stub environment without config validation
+    CONFIG_SCHEMA = None
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -113,6 +119,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ConfigEntryNotReady: If coordinator fails initial data refresh
     """
     hass.data.setdefault(DOMAIN, {})
+
+    # Import heavy modules lazily to avoid Home Assistant dependency during tests
+    from . import coordinator as coordinator_mod
+    from . import gps_handler as gps
+    from .helpers import notification_router as notification_router_mod
+    from .helpers import scheduler as scheduler_mod
+    from .helpers import setup_sync as setup_sync_mod
+    from .report_generator import ReportGenerator
+    from .services import ServiceManager
+    from .types import PawRuntimeData
 
     # Initialize coordinator with proper error handling
     coordinator = coordinator_mod.PawControlCoordinator(hass, entry)
@@ -302,6 +318,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Starting unload for entry %s", entry.entry_id)
 
     # Cleanup schedulers first to stop background tasks
+    from .helpers import scheduler as scheduler_mod
+
     try:
         await scheduler_mod.cleanup_schedulers(hass, entry)
     except Exception as err:
@@ -366,6 +384,8 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
         entry: The config entry with updated options
     """
     _LOGGER.debug("Updating options for entry %s", entry.entry_id)
+
+    from .helpers import scheduler as scheduler_mod
 
     runtime_data = entry.runtime_data
 
