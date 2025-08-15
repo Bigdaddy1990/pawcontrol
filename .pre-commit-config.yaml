@@ -1,5 +1,5 @@
-# Home Assistant konforme Pre-commit Konfiguration
-# Basiert auf HA Developer Guidelines
+# Home Assistant konforme Pre-commit mit Auto-Fixes
+# Basiert auf https://github.com/home-assistant/core/.pre-commit-config.yaml
 
 repos:
   - repo: https://github.com/asottile/pyupgrade
@@ -15,7 +15,7 @@ repos:
         args:
           - --safe
           - --quiet
-        files: ^((homeassistant|script|tests)/.+)?[^/]+\.py$
+        files: ^((custom_components|tests)/.+)?[^/]+\.py$
         
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
@@ -28,28 +28,19 @@ repos:
         exclude_types: [csv, json]
         exclude: ^tests/fixtures/
         
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies:
-          - pycodestyle==2.11.1
-          - pyflakes==3.2.0
-          - flake8-docstrings==1.7.0
-          - pydocstyle==6.3.0
-          - flake8-comprehensions==3.14.0
-          - flake8-noqa==1.4.0
-          - mccabe==0.7.0
-        files: ^(custom_components|tests)/.+\.py$
-        
+  # Ruff mit HA-konformen Auto-Fixes
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
     hooks:
       - id: ruff
         args:
           - --fix
+          - --exit-non-zero-on-fix
+        files: ^(custom_components|tests)/.+\.py$
+      - id: ruff-format
         files: ^(custom_components|tests)/.+\.py$
         
+  # Standard pre-commit hooks mit Auto-Fix
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -64,6 +55,10 @@ repos:
           - --branch=rc
       - id: check-yaml
       - id: check-toml
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-case-conflict
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.35.1
@@ -76,6 +71,18 @@ repos:
       - id: prettier
         stages: [manual]
 
-# Disable autofix for now - only check
+# HA-konforme CI Auto-Fix Settings
+ci:
+  autofix_prs: true
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
+
 default_install_hook_types: [pre-commit]
-fail_fast: true
+fail_fast: false
