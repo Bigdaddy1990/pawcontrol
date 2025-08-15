@@ -10,7 +10,7 @@ updates:
     labels:
       - dependency
       - github_actions
-      
+
   # 2) Python (pip): deckt requirements*.txt & pyproject.toml ab
   - package-ecosystem: "pip"
     directory: "/"
