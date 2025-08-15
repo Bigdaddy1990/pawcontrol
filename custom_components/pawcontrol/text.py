@@ -483,9 +483,11 @@ class PawControlTextWithStorage(PawControlTextEntity):
                 "Set %s for %s to: %s",
                 self.entity_key,
                 self.dog_name,
-                validated_value[:50] + "..."
-                if len(validated_value) > 50
-                else validated_value,
+                (
+                    validated_value[:50] + "..."
+                    if len(validated_value) > 50
+                    else validated_value
+                ),
             )
 
             # Update entity state
@@ -567,9 +569,9 @@ class PawControlTextWithStorage(PawControlTextEntity):
             attributes = super().extra_state_attributes or {}
             attributes.update(
                 {
-                    "character_count": len(self._current_value)
-                    if self._current_value
-                    else 0,
+                    "character_count": (
+                        len(self._current_value) if self._current_value else 0
+                    ),
                     "max_length": self._attr_native_max,
                     "last_updated": dt_util.utcnow().isoformat(),
                     "is_default": self._current_value == self._default_value,

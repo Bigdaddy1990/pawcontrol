@@ -649,9 +649,11 @@ class PawControlDateTimeWithStorage(PawControlDateTimeEntity, DateTimeEntity):
                         "is_future": self._current_value > now,
                         "is_today": self._current_value.date() == now.date(),
                         "days_until": diff.days if diff.days > 0 else 0,
-                        "hours_until": diff.total_seconds() / 3600
-                        if diff.total_seconds() > 0
-                        else 0,
+                        "hours_until": (
+                            diff.total_seconds() / 3600
+                            if diff.total_seconds() > 0
+                            else 0
+                        ),
                         "formatted_time": self._current_value.strftime(
                             "%Y-%m-%d %H:%M"
                         ),
@@ -1006,9 +1008,9 @@ class NextFeedingDateTime(PawControlDateTimeWithStorage):
                         feeding_data.get("feedings_today", {}).values()
                     ),
                     "is_hungry": feeding_data.get("is_hungry", False),
-                    "calculation_method": "manual"
-                    if self._current_value
-                    else "automatic",
+                    "calculation_method": (
+                        "manual" if self._current_value else "automatic"
+                    ),
                 }
             )
             return attributes
@@ -1315,9 +1317,9 @@ class DailyResetDateTime(DateTimeEntity):
 
             return {
                 "configured_time": reset_time,
-                "next_reset": self.native_value.isoformat()
-                if self.native_value
-                else None,
+                "next_reset": (
+                    self.native_value.isoformat() if self.native_value else None
+                ),
                 "timezone": str(now.tzinfo),
                 "affects": [
                     "Daily walk counters",
@@ -1420,9 +1422,9 @@ class WeeklyReportDateTime(DateTimeEntity):
                 "report_day": "Sunday",
                 "generation_enabled": self.entry.options.get("weekly_report", False),
                 "export_format": self.entry.options.get("export_format", "csv"),
-                "next_report": self.native_value.isoformat()
-                if self.native_value
-                else None,
+                "next_report": (
+                    self.native_value.isoformat() if self.native_value else None
+                ),
                 "includes": [
                     "Weekly walk summaries",
                     "Feeding patterns",

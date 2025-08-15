@@ -607,9 +607,9 @@ class AutoWalkDetectionSwitch(PawControlSwitchEntity, SwitchEntity):
                 {
                     "walk_in_progress": walk_data.get("walk_in_progress", False),
                     "last_walk": walk_data.get("last_walk"),
-                    "detection_method": "GPS + Door Sensor"
-                    if self._is_on
-                    else "Manual Only",
+                    "detection_method": (
+                        "GPS + Door Sensor" if self._is_on else "Manual Only"
+                    ),
                 }
             )
             return attributes
@@ -1032,15 +1032,17 @@ class NotificationEnabledSwitch(PawControlSwitchEntity, SwitchEntity):
             attributes.update(
                 {
                     "notifications_enabled": self._is_on,
-                    "affected_features": [
-                        "Walk reminders",
-                        "Feeding alerts",
-                        "Health notifications",
-                        "Grooming reminders",
-                        "GPS alerts",
-                    ]
-                    if self._is_on
-                    else [],
+                    "affected_features": (
+                        [
+                            "Walk reminders",
+                            "Feeding alerts",
+                            "Health notifications",
+                            "Grooming reminders",
+                            "GPS alerts",
+                        ]
+                        if self._is_on
+                        else []
+                    ),
                 }
             )
             return attributes
@@ -1129,13 +1131,15 @@ class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
         try:
             return {
                 "visitor_mode": self.is_on,
-                "affects": [
-                    "Reduced notifications",
-                    "Adjusted feeding expectations",
-                    "Modified walk detection",
-                ]
-                if self.is_on
-                else [],
+                "affects": (
+                    [
+                        "Reduced notifications",
+                        "Adjusted feeding expectations",
+                        "Modified walk detection",
+                    ]
+                    if self.is_on
+                    else []
+                ),
             }
         except Exception as err:
             _LOGGER.debug("Error getting visitor mode attributes: %s", err)
@@ -1299,13 +1303,15 @@ class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):
                 "enabled": self._is_on,
                 "start_time": quiet_config.get("quiet_start", "22:00"),
                 "end_time": quiet_config.get("quiet_end", "07:00"),
-                "suppressed_notifications": [
-                    "Feeding reminders",
-                    "Walk suggestions",
-                    "Grooming alerts",
-                ]
-                if self._is_on
-                else [],
+                "suppressed_notifications": (
+                    [
+                        "Feeding reminders",
+                        "Walk suggestions",
+                        "Grooming alerts",
+                    ]
+                    if self._is_on
+                    else []
+                ),
             }
         except Exception as err:
             _LOGGER.debug("Error getting quiet hours attributes: %s", err)
@@ -1371,14 +1377,16 @@ class DailyReportSwitch(CoordinatorEntity, SwitchEntity):
                 "export_format": self.entry.options.get("export_format", "csv"),
                 "export_path": self.entry.options.get("export_path", "Not configured"),
                 "generation_time": "23:55",
-                "includes": [
-                    "Walk statistics",
-                    "Feeding summary",
-                    "Health metrics",
-                    "Activity levels",
-                ]
-                if self._is_on
-                else [],
+                "includes": (
+                    [
+                        "Walk statistics",
+                        "Feeding summary",
+                        "Health metrics",
+                        "Activity levels",
+                    ]
+                    if self._is_on
+                    else []
+                ),
             }
         except Exception as err:
             _LOGGER.debug("Error getting daily report attributes: %s", err)
@@ -1441,14 +1449,16 @@ class AutoMaintenanceSwitch(CoordinatorEntity, SwitchEntity):
         try:
             return {
                 "enabled": self._is_on,
-                "maintenance_tasks": [
-                    "Daily counter reset",
-                    "Data cleanup",
-                    "Cache optimization",
-                    "Storage management",
-                ]
-                if self._is_on
-                else [],
+                "maintenance_tasks": (
+                    [
+                        "Daily counter reset",
+                        "Data cleanup",
+                        "Cache optimization",
+                        "Storage management",
+                    ]
+                    if self._is_on
+                    else []
+                ),
                 "schedule": "Daily at 00:00",
             }
         except Exception as err:

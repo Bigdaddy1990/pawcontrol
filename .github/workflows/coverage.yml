@@ -7,7 +7,7 @@ on:
       - 'custom_components/**'
       - 'CHANGELOG.md'
       - 'pyproject.toml'
-      
+
 #on:
 #  push:
 #  pull_request:

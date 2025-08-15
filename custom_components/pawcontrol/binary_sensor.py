@@ -1187,9 +1187,11 @@ class SystemHealthyBinarySensor(CoordinatorEntity, BinarySensorEntity):
         try:
             return {
                 "coordinator_available": self.coordinator.last_update_success,
-                "last_update": self.coordinator.last_update_success_time.isoformat()
-                if self.coordinator.last_update_success_time
-                else None,
+                "last_update": (
+                    self.coordinator.last_update_success_time.isoformat()
+                    if self.coordinator.last_update_success_time
+                    else None
+                ),
                 "emergency_mode": self.coordinator.emergency_mode,
                 "visitor_mode": self.coordinator.visitor_mode,
             }
