@@ -41,7 +41,7 @@ ignore = [
     "D411",  # Missing blank line before section
     "E501",  # line too long -> handled by black
     "E731",  # do not assign a lambda expression, use a def
-    
+
     # Home Assistant specific ignores
     "D100",  # Missing docstring in public module
     "D101",  # Missing docstring in public class

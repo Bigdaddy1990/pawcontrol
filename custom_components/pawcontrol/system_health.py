@@ -90,21 +90,25 @@ async def async_system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         entry_info = {
             f"entry_{entry.entry_id[:8]}": {
                 "dogs": dogs_count,
-                "active_modules": ", ".join(sorted(active_modules))
-                if active_modules
-                else "none",
+                "active_modules": (
+                    ", ".join(sorted(active_modules)) if active_modules else "none"
+                ),
                 "coordinator": coordinator_health,
                 "last_update": last_update,
                 "gps": gps_status,
                 "active_walks": active_walks,
                 "storage": storage_status,
                 "notifications": notification_status,
-                "visitor_mode": coordinator.visitor_mode
-                if hasattr(coordinator, "visitor_mode")
-                else False,
-                "emergency_mode": coordinator.emergency_mode
-                if hasattr(coordinator, "emergency_mode")
-                else False,
+                "visitor_mode": (
+                    coordinator.visitor_mode
+                    if hasattr(coordinator, "visitor_mode")
+                    else False
+                ),
+                "emergency_mode": (
+                    coordinator.emergency_mode
+                    if hasattr(coordinator, "emergency_mode")
+                    else False
+                ),
             }
         }
 

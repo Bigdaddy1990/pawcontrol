@@ -248,9 +248,9 @@ def create_sensor_configs() -> dict[str, SensorConfig]:
             state_class=SensorStateClass.MEASUREMENT,
             unit="min",
             default_value=0.0,
-            transform_func=lambda s: round(float(s) / 60.0, 1)
-            if s is not None
-            else None,
+            transform_func=lambda s: (
+                round(float(s) / 60.0, 1) if s is not None else None
+            ),
         ),
         # Geofence sensors
         "geofence_enters_today": SensorConfig(
