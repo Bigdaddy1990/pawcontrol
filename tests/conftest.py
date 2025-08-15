@@ -1,12 +1,13 @@
 import asyncio
+from collections.abc import Generator
 import sys
 import types
-from collections.abc import Generator
 from unittest import mock
 
 import pytest
-from custom_components.pawcontrol.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.pawcontrol.const import DOMAIN
 
 try:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.core import HomeAssistant
