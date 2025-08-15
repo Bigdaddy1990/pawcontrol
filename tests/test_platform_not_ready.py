@@ -1,6 +1,7 @@
 import pytest
-from homeassistant.exceptions import PlatformNotReady
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from homeassistant.exceptions import PlatformNotReady
 
 pytestmark = pytest.mark.asyncio
 

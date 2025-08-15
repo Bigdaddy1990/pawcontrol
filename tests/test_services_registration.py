@@ -1,6 +1,7 @@
 import pytest
-from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from homeassistant.core import HomeAssistant
 
 DOMAIN = "pawcontrol"
 
