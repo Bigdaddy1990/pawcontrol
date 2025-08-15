@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
-    SensorEntity,
+    SensorEntityClass,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
