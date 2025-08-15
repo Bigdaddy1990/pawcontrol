@@ -247,10 +247,12 @@ class GPSLogic:
 
         # Check if anyone left recently
         for dog_id, session in self._walk_sessions.items():
-            if session.get("potential_walk") and not session.get("confirmed") and session.get("door_opened_at"):
-                time_diff = (
-                    dt_util.now() - session["door_opened_at"]
-                ).total_seconds()
+            if (
+                session.get("potential_walk")
+                and not session.get("confirmed")
+                and session.get("door_opened_at")
+            ):
+                time_diff = (dt_util.now() - session["door_opened_at"]).total_seconds()
                 if time_diff < DOOR_OPEN_TIMEOUT_SECONDS:
                     # Likely someone left with dog
                     self._confirm_walk_start(dog_id, "door")
