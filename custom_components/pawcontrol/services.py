@@ -237,12 +237,12 @@ class ServiceManager:
                     translation_key="entry_not_found",
                 )
             if entry.state != ConfigEntryState.LOADED:
-                raise ServiceValidationError(
-                    translation_domain=DOMAIN,
-                    translation_key="entry_not_loaded",
+                _LOGGER.debug(
+                    "Entry %s not loaded when calling service %s",
+                    entry_id,
+                    call.service,
                 )
             return entry
-
         return self.entry
 
     def _get_coordinator(self, call: ServiceCall):

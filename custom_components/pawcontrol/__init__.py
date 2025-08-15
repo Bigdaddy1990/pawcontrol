@@ -231,7 +231,10 @@ except IntegrationNotFound as err:
             entry.entry_id,
             err,
         )
-        raise ConfigEntryNotReady from err
+        _LOGGER.warning(
+            "Continuing setup without forwarding entry platforms for %s",
+            entry.entry_id,
+        )
 
     # Setup schedulers for automated tasks (daily reset, reports, reminders)
     try:
