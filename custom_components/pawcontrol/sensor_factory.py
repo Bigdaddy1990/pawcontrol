@@ -297,7 +297,7 @@ def create_dog_sensors(
     ]
 
 
-CLASS_MAP = {
+CLASS_MAP: dict[str, dict[str, str | None]] = {
     "battery_level": {
         "device_class": "battery",
         "state_class": "measurement",
@@ -331,7 +331,7 @@ CLASS_MAP = {
 }
 
 
-def _apply_class_map(self, key: str):
+def _apply_class_map(self, key: str) -> None:
     meta = CLASS_MAP.get(key)
     if not meta:
         return
@@ -342,7 +342,7 @@ def _apply_class_map(self, key: str):
         self._attr_native_unit_of_measurement = unit
 
 
-def _apply_classes_from_key(self, key: str):
+def _apply_classes_from_key(self, key: str) -> None:
     if "battery" in key:
         self._attr_device_class = "battery"
         self._attr_state_class = "measurement"
