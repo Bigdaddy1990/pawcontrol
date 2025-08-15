@@ -15,6 +15,9 @@ async def test_sensor_platform_not_ready(hass):
     class DummyCoordinator:
         last_update_success = False
 
+        async def async_refresh(self):
+            return None
+
     entry.runtime_data = type("RD", (), {"coordinator": DummyCoordinator()})()
 
     with pytest.raises(PlatformNotReady):

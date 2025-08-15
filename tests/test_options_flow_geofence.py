@@ -22,9 +22,10 @@ async def test_options_flow_geofence_triggers_reload(hass, monkeypatch):
 
     flow = await cf.async_get_options_flow(entry)
     flow.hass = hass
+    flow.handler = entry.entry_id
 
     res = await flow.async_step_init()
-    assert res["type"] == "form"
+    assert res["type"] == "menu"
 
     data = {
         "home_lat": "50.0",
