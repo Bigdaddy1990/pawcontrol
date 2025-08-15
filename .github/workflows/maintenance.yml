@@ -1,0 +1,49 @@
+name: Maintenance Tasks
+
+on:
+  schedule:
+    # Täglich um 3:00 UTC - Home Assistant Validation
+    - cron: '0 3 * * *'
+    # Täglich um 16:34 UTC - Stale Issues/PRs
+    - cron: '34 16 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  daily-validation:
+    name: Daily HA Validation
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        
+      - name: Daily Hassfest check
+        uses: home-assistant/actions/hassfest@master
+
+  stale-management:
+    name: Stale Issues/PRs
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '34 16 * * *' || github.event_name == 'workflow_dispatch'
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Mark stale issues and PRs
+        uses: actions/stale@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had 
+            activity for 60 days. It will be closed in 7 days if no further activity occurs.
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had 
+            activity for 30 days. It will be closed in 7 days if no further activity occurs.
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          days-before-stale: 60
+          days-before-close: 7
+          days-before-pr-stale: 30

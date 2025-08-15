@@ -1,0 +1,127 @@
+name: Main CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Verhindert parallele Läufe die Rate Limits verursachen
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  HOMEASSISTANT_VERSION: "2025.8.1"
+
+jobs:
+  # Job 1: Code Quality (Linting, Formatting)
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pre-commit ruff
+          
+      - name: Run pre-commit
+        run: pre-commit run --show-diff-on-failure --color always --all-files
+
+  # Job 2: Home Assistant Validation (läuft nur nach quality)
+  homeassistant-validation:
+    name: Home Assistant Validation
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        
+      - name: Hassfest validation
+        uses: home-assistant/actions/hassfest@master
+        
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  # Job 3: Tests mit Coverage (läuft nur nach HA validation)
+  tests:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: homeassistant-validation
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U pytest pytest-asyncio pytest-cov
+          pip install -U homeassistant==${{ env.HOMEASSISTANT_VERSION }}
+          pip install -U pytest-homeassistant-custom-component
+          
+      - name: Run tests with coverage
+        env:
+          PYTHONPATH: .
+        run: |
+          pytest --cov=custom_components/pawcontrol --cov-report=xml --cov-report=term-missing --cov-fail-under=95
+          
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false # Nicht CI brechen wegen Codecov
+
+  # Job 4: Release (nur bei main pushes, nach allen Tests)
+  release:
+    name: Release Management
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        
+      - name: Release Please
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: simple
+          
+      - name: Build HACS package
+        if: steps.release.outputs.release_created
+        run: |
+          mkdir -p dist
+          zip -r dist/pawcontrol.zip custom_components/pawcontrol
+          
+      - name: Upload Release Assets
+        if: steps.release.outputs.release_created
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          files: dist/pawcontrol.zip
+          generate_release_notes: true
