@@ -247,15 +247,13 @@ class GPSLogic:
 
         # Check if anyone left recently
         for dog_id, session in self._walk_sessions.items():
-            if session.get("potential_walk") and not session.get("confirmed"):
-                # Check if door was opened recently (within 2 minutes)
-                if session.get("door_opened_at"):
-                    time_diff = (
-                        dt_util.now() - session["door_opened_at"]
-                    ).total_seconds()
-                    if time_diff < DOOR_OPEN_TIMEOUT_SECONDS:
-                        # Likely someone left with dog
-                        self._confirm_walk_start(dog_id, "door")
+            if session.get("potential_walk") and not session.get("confirmed") and session.get("door_opened_at"):
+                time_diff = (
+                    dt_util.now() - session["door_opened_at"]
+                ).total_seconds()
+                if time_diff < DOOR_OPEN_TIMEOUT_SECONDS:
+                    # Likely someone left with dog
+                    self._confirm_walk_start(dog_id, "door")
 
     def _handle_zone_change(self, entity_id: str, old_zone: str, new_zone: str) -> None:
         """Handle zone change for tracked entity."""

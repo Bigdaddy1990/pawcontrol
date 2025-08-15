@@ -60,7 +60,7 @@ def validate_dog_weight(weight: Any) -> float:
     try:
         weight_float = float(weight)
     except (TypeError, ValueError):
-        raise ValidationError("Weight must be a number")
+        raise ValidationError("Weight must be a number") from None
 
     if weight_float <= 0 or weight_float > 200:
         raise ValidationError("Weight must be between 0.1 and 200 kg")
@@ -83,7 +83,7 @@ def validate_dog_age(age: Any) -> int:
     try:
         age_int = int(age)
     except (TypeError, ValueError):
-        raise ValidationError("Age must be a whole number")
+        raise ValidationError("Age must be a whole number") from None
 
     if age_int < 0 or age_int > 30:
         raise ValidationError("Age must be between 0 and 30 years")
@@ -108,7 +108,7 @@ def validate_gps_coordinates(lat: Any, lon: Any) -> tuple[float, float]:
         lat_float = float(lat)
         lon_float = float(lon)
     except (TypeError, ValueError):
-        raise ValidationError("GPS coordinates must be numbers")
+        raise ValidationError("GPS coordinates must be numbers") from None
 
     if not -90 <= lat_float <= 90:
         raise ValidationError(f"Invalid latitude: {lat_float}")
@@ -137,7 +137,7 @@ def validate_gps_accuracy(accuracy: Any) -> float | None:
     try:
         acc_float = float(accuracy)
     except (TypeError, ValueError):
-        raise ValidationError("Accuracy must be a number")
+        raise ValidationError("Accuracy must be a number") from None
 
     if acc_float < 0 or acc_float > 10000:
         raise ValidationError("Accuracy must be between 0 and 10000 meters")
@@ -160,7 +160,7 @@ def validate_walk_duration(duration: Any) -> float:
     try:
         duration_float = float(duration)
     except (TypeError, ValueError):
-        raise ValidationError("Duration must be a number")
+        raise ValidationError("Duration must be a number") from None
 
     if duration_float < 0 or duration_float > 1440:  # Max 24 hours
         raise ValidationError("Duration must be between 0 and 1440 minutes")
@@ -183,7 +183,7 @@ def validate_distance(distance: Any) -> float:
     try:
         distance_float = float(distance)
     except (TypeError, ValueError):
-        raise ValidationError("Distance must be a number")
+        raise ValidationError("Distance must be a number") from None
 
     if distance_float < 0 or distance_float > 100000:  # Max 100km
         raise ValidationError("Distance must be between 0 and 100000 meters")
@@ -230,7 +230,7 @@ def validate_portion_size(portion: Any) -> int:
     try:
         portion_int = int(portion)
     except (TypeError, ValueError):
-        raise ValidationError("Portion must be a whole number")
+        raise ValidationError("Portion must be a whole number") from None
 
     if portion_int < 0 or portion_int > 5000:  # Max 5kg
         raise ValidationError("Portion must be between 0 and 5000 grams")
@@ -253,7 +253,7 @@ def validate_medication_slot(slot: Any) -> int:
     try:
         slot_int = int(slot)
     except (TypeError, ValueError):
-        raise ValidationError("Slot must be a number")
+        raise ValidationError("Slot must be a number") from None
 
     if slot_int < 1 or slot_int > 3:
         raise ValidationError("Slot must be 1, 2, or 3")
@@ -276,7 +276,7 @@ def validate_rating(rating: Any) -> int:
     try:
         rating_int = int(rating)
     except (TypeError, ValueError):
-        raise ValidationError("Rating must be a whole number")
+        raise ValidationError("Rating must be a whole number") from None
 
     if rating_int < 1 or rating_int > 5:
         raise ValidationError("Rating must be between 1 and 5")

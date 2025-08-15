@@ -40,6 +40,7 @@
   ],
   "quality_scale": "custom",
   "requirements": [],
+  "homeassistant": "2024.1.0",
   "usb": [
     {
       "vid": "10C4",
