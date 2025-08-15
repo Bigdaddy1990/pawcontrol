@@ -49,9 +49,26 @@ from .entity import PawControlSwitchEntity
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
 
+
+def _get_system_device_info() -> DeviceInfo:
+    """Get standardized device info for system-wide entities.
+    
+    Returns:
+        DeviceInfo for global system entities
+    """
+    return DeviceInfo(
+        identifiers={(DOMAIN, "global")},
+        name="Paw Control System", 
+        manufacturer="Paw Control",
+        model="Smart Dog Manager",
+        sw_version="1.1.0",
+        configuration_url=f"/config/integrations/integration/{DOMAIN}",
+    )
+
 _LOGGER = logging.getLogger(__name__)
 
-# No parallel updates to avoid state conflicts
+# No parallel updates to avoid state conflicts during module toggling
+# This prevents race conditions when multiple switches modify the same dog configuration
 PARALLEL_UPDATES = 0
 
 # Module definitions with display names and icons
@@ -413,19 +430,37 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
     def _get_affected_entities_count(self) -> int:
         """Get count of entities that would be affected by this module."""
         try:
-            # This could count actual entities in the registry
-            # For now, return estimated counts based on module type
-            entity_counts = {
-                MODULE_WALK: 8,
-                MODULE_FEEDING: 10,
-                MODULE_HEALTH: 6,
-                MODULE_GROOMING: 4,
-                MODULE_TRAINING: 5,
-                MODULE_NOTIFICATIONS: 2,
-                MODULE_GPS: 7,
-            }
-            return entity_counts.get(self._module_id, 0)
-        except Exception:
+            from homeassistant.helpers import entity_registry as er
+            
+            entity_reg = er.async_get(self.hass)
+            affected_count = 0
+            
+            # Count actual entities in the registry for this dog and module
+            for entity in entity_reg.entities.values():
+                if (
+                    entity.config_entry_id == self.entry.entry_id
+                    and entity.unique_id
+                    and self.dog_id in entity.unique_id
+                    and self._module_id in entity.unique_id
+                ):
+                    affected_count += 1
+            
+            # Fallback to estimated counts if registry lookup fails
+            if affected_count == 0:
+                entity_counts = {
+                    MODULE_WALK: 8,
+                    MODULE_FEEDING: 10,
+                    MODULE_HEALTH: 6,
+                    MODULE_GROOMING: 4,
+                    MODULE_TRAINING: 5,
+                    MODULE_NOTIFICATIONS: 2,
+                    MODULE_GPS: 7,
+                }
+                affected_count = entity_counts.get(self._module_id, 0)
+                
+            return affected_count
+        except Exception as err:
+            _LOGGER.debug("Error counting affected entities: %s", err)
             return 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -1041,14 +1076,7 @@ class VisitorModeSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_global_visitor_mode"
         self._attr_translation_key = "visitor_mode"
         self._attr_icon = ICONS.get("visitor", "mdi:account-group")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
-        )
+        self._attr_device_info = _get_system_device_info()
 
     @property
     def name(self) -> str:
@@ -1136,14 +1164,7 @@ class EmergencyModeSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_global_emergency_mode"
         self._attr_translation_key = "emergency_mode"
         self._attr_icon = ICONS.get("emergency", "mdi:alert-circle")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
-        )
+        self._attr_device_info = _get_system_device_info()
 
     @property
     def name(self) -> str:
@@ -1238,14 +1259,7 @@ class QuietHoursSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_global_quiet_hours"
         self._attr_translation_key = "quiet_hours"
         self._attr_icon = ICONS.get("notifications", "mdi:bell-sleep")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
-        )
+        self._attr_device_info = _get_system_device_info()
 
     @property
     def name(self) -> str:
@@ -1317,14 +1331,7 @@ class DailyReportSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_global_daily_report"
         self._attr_translation_key = "daily_report"
         self._attr_icon = ICONS.get("export", "mdi:file-document-clock")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
-        )
+        self._attr_device_info = _get_system_device_info()
 
     @property
     def name(self) -> str:
@@ -1397,14 +1404,7 @@ class AutoMaintenanceSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_global_auto_maintenance"
         self._attr_translation_key = "auto_maintenance"
         self._attr_icon = ICONS.get("settings", "mdi:cog-refresh")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
-        )
+        self._attr_device_info = _get_system_device_info()
 
     @property
     def name(self) -> str:

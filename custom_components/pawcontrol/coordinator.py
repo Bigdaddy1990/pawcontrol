@@ -37,12 +37,14 @@ from .const import (
     DOMAIN,
     ENTITY_UPDATE_DEBOUNCE_SECONDS,
     ERROR_COORDINATOR_UNAVAILABLE,
+    ERROR_DOG_NOT_FOUND,
     ERROR_INVALID_COORDINATES,
     EVENT_DOG_FED,
     EVENT_GROOMING_DONE,
     EVENT_MEDICATION_GIVEN,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
+    GPS_MIN_ACCURACY,
     INTEGRATION_VERSION,
     MIN_DOG_WEIGHT_KG,
     MIN_MEANINGFUL_DISTANCE_M,
@@ -527,12 +529,30 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             longitude: GPS longitude coordinate
             accuracy: GPS accuracy in meters (optional)
         """
+        # Validate dog_id parameter
+        if not dog_id or not isinstance(dog_id, str):
+            _LOGGER.error("Invalid dog_id provided for GPS update: %s", dog_id)
+            raise ValueError(f"Invalid dog_id: {dog_id}")
+        
         data = self._dog_data.get(dog_id)
         if not data:
             _LOGGER.warning("GPS update for unknown dog_id: %s", dog_id)
-            return
+            # Fire error event for monitoring
+            self.hass.bus.async_fire(
+                f"{DOMAIN}_error",
+                {"error_type": ERROR_DOG_NOT_FOUND, "dog_id": dog_id},
+            )
+            raise ValueError(f"Dog not found: {dog_id}")
 
         try:
+            # Validate GPS accuracy if provided (before coordinate validation)
+            if accuracy is not None:
+                if not isinstance(accuracy, (int, float)) or accuracy < 0:
+                    _LOGGER.warning("Invalid GPS accuracy for dog %s: %s, ignoring", dog_id, accuracy)
+                    accuracy = None
+                elif accuracy > GPS_MIN_ACCURACY:
+                    _LOGGER.debug("Low GPS accuracy for dog %s: %s meters", dog_id, accuracy)
+            
             # Platinum validation - use proper coordinate validation
             if not validate_coordinates(latitude, longitude):
                 _LOGGER.error(
@@ -546,7 +566,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"{DOMAIN}_error",
                     {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id},
                 )
-                return
+                raise ValueError(f"Invalid coordinates: lat={latitude}, lon={longitude}")
 
             loc = data.setdefault("location", {})
             current_time = dt_util.utcnow()
