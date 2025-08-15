@@ -1,21 +1,13 @@
 name: hassfest
 on:
-  pull_request:
-    paths:
-      - "custom_components/**"
-      - ".github/workflows/hassfest.yml"
   push:
-    branches: [ main, master ]
-    paths:
-      - "custom_components/**"
-      - ".github/workflows/hassfest.yml"
-
-permissions:
-  contents: read
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 3 * * *"
 
 jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: home-assistant/actions/hassfest@master
