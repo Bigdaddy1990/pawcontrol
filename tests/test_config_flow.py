@@ -33,6 +33,7 @@ async def test_options_flow_instantiation_and_options_copy(hass):
     flow = config_flow.PawControlOptionsFlow(entry)
     flow.hass = hass
 
+    assert flow.config_entry is entry
     assert flow._options == {"existing": True}
 
     # Modifying internal options should not mutate original config entry

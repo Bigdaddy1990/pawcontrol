@@ -48,9 +48,6 @@ from .const import (
     MODULE_WALK,
     STATUS_READY,
 )
-from .const import (
-    DOMAIN as DOMAIN,
-)
 from .entity import PawControlSensorEntity
 
 if TYPE_CHECKING:

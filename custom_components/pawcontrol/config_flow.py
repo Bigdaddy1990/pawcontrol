@@ -912,7 +912,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         Args:
             config_entry: The config entry this options flow manages
         """
-        super().__init__()
+        self.config_entry = config_entry
         self._options = dict(config_entry.options)
         self._med_dog: str | None = None
 
@@ -1312,8 +1312,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
 ConfigFlow = PawControlConfigFlow
 
 
-async def async_get_options_flow(
-    config_entry: ConfigEntry,
-) -> PawControlOptionsFlow:
+@callback
+def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:
     """Return an options flow for the given config entry."""
     return PawControlOptionsFlow(config_entry)

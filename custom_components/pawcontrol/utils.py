@@ -96,5 +96,5 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except (HomeAssistantError, ValueError, Exception):
+    except (HomeAssistantError, ValueError):
         return False
