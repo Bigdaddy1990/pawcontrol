@@ -216,7 +216,7 @@ logger:
 ### Quality Scale Status
 **Aktuell: Platinum (Technisch Erfüllt)**
 - ✅ Alle Bronze-Anforderungen erfüllt
-- ✅ Alle Gold-Anforderungen erfüllt  
+- ✅ Alle Gold-Anforderungen erfüllt
 - ✅ Alle Platinum-Anforderungen erfüllt
 - ⚠️ **Einziger Blocker:** Zusätzliche Code-Owner für Silver benötigt
 

@@ -146,7 +146,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Failed to setup GPS handler for entry %s: %s", entry.entry_id, err
         )
         # GPS setup is not critical - continue without it
-        _LOGGER.warning("Continuing setup without GPS handler due to initialization failure")
+        _LOGGER.warning(
+            "Continuing setup without GPS handler due to initialization failure"
+        )
         gps_handler_obj = None
 
     # Initialize helper modules with error handling
@@ -196,7 +198,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await _register_devices(hass, entry)
     except Exception as err:
-        _LOGGER.error("Failed to register devices for entry %s: %s", entry.entry_id, err)
+        _LOGGER.error(
+            "Failed to register devices for entry %s: %s", entry.entry_id, err
+        )
         # Device registration failure is non-critical, continue setup
         _LOGGER.warning("Continuing setup without device registration")
 
@@ -273,7 +277,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not runtime_data.coordinator.last_update_success:
         _LOGGER.warning(
             "Setup completed but coordinator has not successfully updated data for entry %s",
-            entry.entry_id
+            entry.entry_id,
         )
 
     return True
@@ -319,14 +323,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Force unload individual platforms if bulk unload fails
         unload_ok = await _force_unload_platforms(hass, entry)
         if unload_ok:
-            _LOGGER.info("Successfully force-unloaded platforms for entry %s", entry.entry_id)
+            _LOGGER.info(
+                "Successfully force-unloaded platforms for entry %s", entry.entry_id
+            )
 
     if unload_ok:
         # Clean up stored data
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
         # Unregister services if no more entries exist
-        if not hass.data[DOMAIN] and hasattr(entry, "runtime_data") and entry.runtime_data.services:
+        if (
+            not hass.data[DOMAIN]
+            and hasattr(entry, "runtime_data")
+            and entry.runtime_data.services
+        ):
             try:
                 await entry.runtime_data.services.async_unregister_services()
             except Exception as err:
@@ -412,7 +422,11 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         domain_data.pop(entry.entry_id, None)
 
     # Clean up services if this was the last integration instance
-    if not domain_data and hasattr(entry, "runtime_data") and entry.runtime_data.services:
+    if (
+        not domain_data
+        and hasattr(entry, "runtime_data")
+        and entry.runtime_data.services
+    ):
         try:
             await entry.runtime_data.services.async_unregister_services()
         except Exception as err:
@@ -680,28 +694,41 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def _force_unload_platforms(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Force unload platforms individually if bulk unload fails.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to unload platforms for
-        
+
     Returns:
         True if all platforms unloaded successfully, False otherwise
     """
     unload_results = []
-    
+
     for platform in PLATFORMS:
         try:
             result = await hass.config_entries.async_unload_platforms(entry, [platform])
             unload_results.append(result)
             if result:
-                _LOGGER.debug("Successfully unloaded platform %s for entry %s", platform, entry.entry_id)
+                _LOGGER.debug(
+                    "Successfully unloaded platform %s for entry %s",
+                    platform,
+                    entry.entry_id,
+                )
             else:
-                _LOGGER.warning("Failed to unload platform %s for entry %s", platform, entry.entry_id)
+                _LOGGER.warning(
+                    "Failed to unload platform %s for entry %s",
+                    platform,
+                    entry.entry_id,
+                )
         except Exception as err:
-            _LOGGER.error("Error unloading platform %s for entry %s: %s", platform, entry.entry_id, err)
+            _LOGGER.error(
+                "Error unloading platform %s for entry %s: %s",
+                platform,
+                entry.entry_id,
+                err,
+            )
             unload_results.append(False)
-    
+
     # Return True only if all platforms unloaded successfully
     return all(unload_results)
 

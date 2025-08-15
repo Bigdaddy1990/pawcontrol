@@ -533,7 +533,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not dog_id or not isinstance(dog_id, str):
             _LOGGER.error("Invalid dog_id provided for GPS update: %s", dog_id)
             raise ValueError(f"Invalid dog_id: {dog_id}")
-        
+
         data = self._dog_data.get(dog_id)
         if not data:
             _LOGGER.warning("GPS update for unknown dog_id: %s", dog_id)
@@ -548,11 +548,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Validate GPS accuracy if provided (before coordinate validation)
             if accuracy is not None:
                 if not isinstance(accuracy, (int, float)) or accuracy < 0:
-                    _LOGGER.warning("Invalid GPS accuracy for dog %s: %s, ignoring", dog_id, accuracy)
+                    _LOGGER.warning(
+                        "Invalid GPS accuracy for dog %s: %s, ignoring",
+                        dog_id,
+                        accuracy,
+                    )
                     accuracy = None
                 elif accuracy > GPS_MIN_ACCURACY:
-                    _LOGGER.debug("Low GPS accuracy for dog %s: %s meters", dog_id, accuracy)
-            
+                    _LOGGER.debug(
+                        "Low GPS accuracy for dog %s: %s meters", dog_id, accuracy
+                    )
+
             # Platinum validation - use proper coordinate validation
             if not validate_coordinates(latitude, longitude):
                 _LOGGER.error(
@@ -566,7 +572,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"{DOMAIN}_error",
                     {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id},
                 )
-                raise ValueError(f"Invalid coordinates: lat={latitude}, lon={longitude}")
+                raise ValueError(
+                    f"Invalid coordinates: lat={latitude}, lon={longitude}"
+                )
 
             loc = data.setdefault("location", {})
             current_time = dt_util.utcnow()
