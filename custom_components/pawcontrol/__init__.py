@@ -24,6 +24,12 @@ from typing import TYPE_CHECKING, Any
 # the contents of :mod:`custom_components.pawcontrol.const`.
 DOMAIN = "pawcontrol"
 
+# Ensure Home Assistant can discover this custom integration even when
+# the custom components path isn't explicitly set up in tests.
+import sys
+
+sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
+
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,

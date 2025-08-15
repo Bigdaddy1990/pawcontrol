@@ -919,15 +919,22 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
     ) -> FlowResult:
         """Manage the options.
 
-        Presents the main options menu with all available configuration
-        categories organized logically for user convenience.
+        When the integration is already set up, show the geofence form
+        directly. Otherwise present the full menu of configuration
+        categories for initial configuration.
 
         Args:
-            user_input: User input (not used in menu step)
+            user_input: User input from the form submission
 
         Returns:
-            Options menu flow result
+            Form or menu flow result depending on integration state
         """
+        if (
+            DOMAIN in self.hass.data
+            and self.config_entry.entry_id in self.hass.data[DOMAIN]
+        ):
+            return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
+
         return self.async_show_menu(
             step_id="init",
             # Menu options ordered for predictable user experience
