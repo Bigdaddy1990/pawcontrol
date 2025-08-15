@@ -52,18 +52,19 @@ if TYPE_CHECKING:
 
 def _get_system_device_info() -> DeviceInfo:
     """Get standardized device info for system-wide entities.
-    
+
     Returns:
         DeviceInfo for global system entities
     """
     return DeviceInfo(
         identifiers={(DOMAIN, "global")},
-        name="Paw Control System", 
+        name="Paw Control System",
         manufacturer="Paw Control",
         model="Smart Dog Manager",
         sw_version="1.1.0",
         configuration_url=f"/config/integrations/integration/{DOMAIN}",
     )
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -431,10 +432,10 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
         """Get count of entities that would be affected by this module."""
         try:
             from homeassistant.helpers import entity_registry as er
-            
+
             entity_reg = er.async_get(self.hass)
             affected_count = 0
-            
+
             # Count actual entities in the registry for this dog and module
             for entity in entity_reg.entities.values():
                 if (
@@ -444,7 +445,7 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
                     and self._module_id in entity.unique_id
                 ):
                     affected_count += 1
-            
+
             # Fallback to estimated counts if registry lookup fails
             if affected_count == 0:
                 entity_counts = {
@@ -457,7 +458,7 @@ class ModuleSwitch(PawControlSwitchEntity, SwitchEntity):
                     MODULE_GPS: 7,
                 }
                 affected_count = entity_counts.get(self._module_id, 0)
-                
+
             return affected_count
         except Exception as err:
             _LOGGER.debug("Error counting affected entities: %s", err)

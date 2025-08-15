@@ -94,5 +94,5 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except Exception:  # noqa: BLE001 - log-free helper should never raise
+    except Exception:
         return False
