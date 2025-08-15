@@ -17,47 +17,47 @@ The integration follows Home Assistant's Platinum quality standards with:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any  # noqa: F401
+from typing import TYPE_CHECKING, Any
 
 # Expose the integration domain at module import time
 # so tests can reliably import it without depending on
 # the contents of :mod:`custom_components.pawcontrol.const`.
 DOMAIN = "pawcontrol"
 
-from homeassistant.config_entries import (  # noqa: E402, F401
+from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,
 )
-from homeassistant.core import HomeAssistant, ServiceCall  # noqa: E402
-from homeassistant.exceptions import (  # noqa: E402
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import (
     ConfigEntryNotReady,
     HomeAssistantError,
-    ServiceValidationError,  # noqa: F401
+    ServiceValidationError,
 )
-from homeassistant.helpers import config_validation as cv  # noqa: E402
-from homeassistant.helpers import device_registry as dr  # noqa: E402
-from homeassistant.helpers import issue_registry as ir  # noqa: E402
-from homeassistant.helpers.typing import ConfigType  # noqa: E402
-from homeassistant.loader import IntegrationNotFound  # noqa: E402
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import IntegrationNotFound
 
-from . import coordinator as coordinator_mod  # noqa: E402
-from . import gps_handler as gps  # noqa: E402
-from .const import (  # noqa: E402
+from . import coordinator as coordinator_mod
+from . import gps_handler as gps
+from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
-    EVENT_DAILY_RESET,  # noqa: F401
+    EVENT_DAILY_RESET,
     PLATFORMS,
 )
-from .const import (  # noqa: E402
+from .const import (
     DOMAIN as CONST_DOMAIN,
 )
-from .helpers import notification_router as notification_router_mod  # noqa: E402
-from .helpers import scheduler as scheduler_mod  # noqa: E402
-from .helpers import setup_sync as setup_sync_mod  # noqa: E402
-from .report_generator import ReportGenerator  # noqa: E402
-from .services import ServiceManager  # noqa: E402
-from .types import PawRuntimeData  # noqa: E402
+from .helpers import notification_router as notification_router_mod
+from .helpers import scheduler as scheduler_mod
+from .helpers import setup_sync as setup_sync_mod
+from .report_generator import ReportGenerator
+from .services import ServiceManager
+from .types import PawRuntimeData
 
 # Ensure the domain constant matches the value from const.py.
 assert DOMAIN == CONST_DOMAIN
