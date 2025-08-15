@@ -22,6 +22,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
+          pytest --fixtures [testpath]
           pytest --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
