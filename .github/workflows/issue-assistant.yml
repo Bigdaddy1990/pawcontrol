@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        
+
       - name: Generate AI summary
         id: ai-summary
         uses: actions/ai-inference@v2
@@ -28,15 +28,15 @@ jobs:
             1. A concise 2-sentence summary
             2. Suggested labels (bug, enhancement, question, etc.)
             3. Estimated complexity (simple, medium, complex)
-            
+
             Title: ${{ github.event.issue.title }}
             Body: ${{ github.event.issue.body }}
-            
+
             Format your response as:
             **Summary:** [summary]
             **Labels:** [labels]
             **Complexity:** [complexity]
-            
+
       - name: Comment with summary
         if: success()
         run: |
