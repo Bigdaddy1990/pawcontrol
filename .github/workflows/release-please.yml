@@ -1,21 +1,33 @@
-name: release-please
+name: Release Please
+
+# Nur bei main-branch pushes, nicht bei PRs
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [main]
+    paths:
+      - 'custom_components/**'
+      - 'CHANGELOG.md'
+      - 'pyproject.toml'
+      
+#on:
+#  push:
+#    branches:
+#      - main
+  # Verhindere parallele Läufe
+#  workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+concurrency:
+  group: release-please
+  cancel-in-progress: false
 
 jobs:
-  release:
+  release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
       - uses: googleapis/release-please-action@v4
-        id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # oder RELEASE_PLEASE_TOKEN (PAT)
+          # Rate Limiting reduzieren
+          token: ${{ secrets.GITHUB_TOKEN }}
           release-type: simple
+          # Nur bei echten Änderungen laufen
+          skip-github-release: false
