@@ -24,6 +24,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
+from .utils import calculate_distance, validate_coordinates
 
 from .const import (
     ATTR_DOG_ID,
@@ -49,7 +50,6 @@ from .const import (
     STATUS_READY,
     WALK_DISTANCE_UPDATE_THRESHOLD_M,
 )
-from .utils import calculate_distance, validate_coordinates
 
 if TYPE_CHECKING:
     from .types import CoordinatorData, DogData
