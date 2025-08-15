@@ -2,10 +2,7 @@ import pytest
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-pytestmark = [
-    pytest.mark.asyncio,
-    pytest.mark.skip(reason="service wrapper tests require full environment"),
-]
+pytestmark = pytest.mark.asyncio
 
 
 async def test_service_wrapper_requires_target(hass):
