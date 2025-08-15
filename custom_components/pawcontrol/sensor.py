@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
-    SensorEntityClass,
+    SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -93,12 +93,11 @@ async def async_setup_entry(
     try:
         runtime_data = entry.runtime_data
         coordinator: PawControlCoordinator = runtime_data.coordinator
+    except AttributeError as err:
+        raise PlatformNotReady("Coordinator not initialized") from err
 
-    # Platinum: Enhanced coordinator validation
-    if not coordinator.last_update_success:
-       _LOGGER.warning("Coordinator not ready, attempting refresh")
-    if hasattr(coordinator, "async_refresh"):
-        await coordinator.async_refresh()
+    try:
+        # Enhanced coordinator validation
         if not coordinator.last_update_success:
             _LOGGER.warning("Coordinator not ready, attempting refresh")
             if hasattr(coordinator, "async_refresh"):
@@ -109,13 +108,15 @@ async def async_setup_entry(
             else:
                 raise PlatformNotReady("Coordinator missing refresh method")
 
-        # Platinum: Validate coordinator health status
-        if hasattr(coordinator, "coordinator_status"):
-            if coordinator.coordinator_status != STATUS_READY:
-                _LOGGER.warning(
-                    "Coordinator status is %s, may affect sensor reliability",
-                    coordinator.coordinator_status,
-                )
+        # Validate coordinator health status
+        if (
+            hasattr(coordinator, "coordinator_status")
+            and coordinator.coordinator_status != STATUS_READY
+        ):
+            _LOGGER.warning(
+                "Coordinator status is %s, may affect sensor reliability",
+                coordinator.coordinator_status,
+            )
 
         dogs = entry.options.get(CONF_DOGS, [])
         entities: list[PawControlSensorEntity] = []
