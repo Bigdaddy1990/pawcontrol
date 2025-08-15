@@ -10,7 +10,7 @@ updates:
     labels:
       - dependency
       - github_actions
-      
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
