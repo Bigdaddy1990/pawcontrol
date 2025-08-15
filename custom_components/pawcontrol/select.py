@@ -147,7 +147,7 @@ async def async_setup_entry(
         stored_values = await _load_stored_values(store)
 
         dogs = entry.options.get(CONF_DOGS, [])
-        entities: list[PawControlSelectEntity | SelectEntity] = []
+        entities: list[SelectEntity] = []
 
         _LOGGER.debug("Setting up select entities for %d dogs", len(dogs))
 
@@ -402,7 +402,7 @@ def _create_system_selects(
 # ==============================================================================
 
 
-class PawControlSelectWithStorage(PawControlSelectEntity, SelectEntity):
+class PawControlSelectWithStorage(PawControlSelectEntity):
     """Base class for select entities with persistent storage.
 
     Provides common functionality for select entities that need to persist

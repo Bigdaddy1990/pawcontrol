@@ -48,7 +48,12 @@ from .const import (
     MODULE_WALK,
     STATUS_READY,
 )
+from .const import (
+    DOMAIN as _DOMAIN,
+)
 from .entity import PawControlSensorEntity
+
+DOMAIN = _DOMAIN
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
@@ -95,9 +100,15 @@ async def async_setup_entry(
     if hasattr(coordinator, "async_refresh"):
         await coordinator.async_refresh()
         if not coordinator.last_update_success:
-            _LOGGER.error("Coordinator failed initial refresh")
-            raise PlatformNotReady("Coordinator failed to initialize")
-     else:
+            _LOGGER.warning("Coordinator not ready, attempting refresh")
+            if hasattr(coordinator, "async_refresh"):
+                await coordinator.async_refresh()
+                if not coordinator.last_update_success:
+                    _LOGGER.error("Coordinator failed initial refresh")
+                    raise PlatformNotReady("Coordinator failed to initialize")
+            else:
+                raise PlatformNotReady("Coordinator missing refresh method")
+
         # Platinum: Validate coordinator health status
         if hasattr(coordinator, "coordinator_status"):
             if coordinator.coordinator_status != STATUS_READY:

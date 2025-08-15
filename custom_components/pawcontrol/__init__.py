@@ -23,34 +23,30 @@ from typing import TYPE_CHECKING, Any
 # import it without depending on the contents of ``const.py``.
 DOMAIN = "pawcontrol"
 
-if TYPE_CHECKING:  # pragma: no cover - imported only for type checking
-    from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-    from homeassistant.core import HomeAssistant, ServiceCall
-    from homeassistant.helpers.typing import ConfigType
-else:  # pragma: no cover - provide minimal stubs when Home Assistant is absent
-    ConfigEntry = ConfigEntryState = HomeAssistant = ServiceCall = object  # type: ignore[assignment]
-    ConfigType = dict[str, Any]  # type: ignore[assignment]
+# Ensure Home Assistant can discover this custom integration even when
+# the custom components path isn't explicitly set up in tests.
+import sys
 
-try:  # pragma: no cover - Home Assistant available
-    from homeassistant.exceptions import (
-        ConfigEntryNotReady,
-        HomeAssistantError,
-        ServiceValidationError,
-    )
-    from homeassistant.helpers import (
-        config_validation as cv,
-    )
-    from homeassistant.helpers import (
-        device_registry as dr,
-    )
-    from homeassistant.helpers import (
-        issue_registry as ir,
-    )
-    from homeassistant.loader import IntegrationNotFound
-except Exception:  # pragma: no cover - fallback stubs for test environment
-    ConfigEntryNotReady = HomeAssistantError = ServiceValidationError = Exception  # type: ignore[assignment]
-    cv = dr = ir = IntegrationNotFound = object  # type: ignore[assignment]
+sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
 
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+)
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import (
+    ConfigEntryNotReady,
+    HomeAssistantError,
+    ServiceValidationError,
+)
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import IntegrationNotFound
+
+from . import coordinator as coordinator_mod
+from . import gps_handler as gps
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,

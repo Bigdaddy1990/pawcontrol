@@ -911,42 +911,37 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
             config_entry: The config entry this options flow manages
         """
         self.config_entry = config_entry
-    self._options = dict(config_entry.options)
-    self._med_dog: str | None = None
+        self._options = dict(config_entry.options)
+        self._med_dog: str | None = None
 
-  async def async_step_init(
-    self, user_input: dict[str, Any] | None = None
-     ) -> FlowResult:
-    """Entry point for the options flow.
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options.
 
-    When the integration is already set up, tests expect a streamlined
-    interface for tweaking geofence settings directly.  In other contexts
-    (such as unit tests exercising the full menu) the original options menu
-    should remain available.  We therefore display the geofence form only
-    when runtime data for this entry exists.
+        When the integration is already set up, show the geofence form
+        directly. Otherwise present the full menu of configuration
+        categories for initial configuration.
 
-    Args:
-        user_input: Optional user input from the form submission.
+        Args:
+            user_input: User input from the form submission
 
-    Returns:
-        A flow result for either the geofence form or the main options
-        menu, depending on integration state.
-    """
-    if (
-        self.hass
-        and DOMAIN in self.hass.data
-        and self.config_entry.entry_id in self.hass.data[DOMAIN]
-    ):
-        return await self.async_step_geofence(user_input)
+        Returns:
+            Form or menu flow result depending on integration state
+        """
+        if (
+            DOMAIN in self.hass.data
+            and self.config_entry.entry_id in self.hass.data[DOMAIN]
+        ):
+            return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
 
-    # Integration not yet fully set up: present the full options menu
-    return self.async_show_menu(
-        step_id="init",
-        # Menu options ordered for predictable user experience
-        menu_options=[
-            "medications",
-            "reminders",
-            "safe_zones",
+        return self.async_show_menu(
+            step_id="init",
+            # Menu options ordered for predictable user experience
+            menu_options=[
+                "medications",
+                "reminders",
+                "safe_zones",
                 "advanced",
                 "schedule",
                 "modules",
