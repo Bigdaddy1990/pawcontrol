@@ -1,11 +1,11 @@
-# Home Assistant konforme Ruff-Konfiguration
+# Home Assistant konforme Ruff-Konfiguration mit Auto-Fixes
 # Basiert auf https://github.com/home-assistant/core/.ruff.toml
 
-target-version = "py312"  # HA 2025.8.1 verwendet Python 3.12+
+target-version = "py312"  # HA 2025.8.1 Standard
 line-length = 88
 
 [lint]
-# Home Assistant Standard Rules
+# Home Assistant Standard Rules mit Auto-Fix
 select = [
     "B007", # Loop control variable {name} not used within loop body
     "B014", # Exception handler is an `except:` clause
@@ -28,6 +28,7 @@ select = [
     "RUF006", # Store a reference to the return value of asyncio.create_task
     "UP",     # pyupgrade
     "W",      # pycodestyle
+    "I",      # isort (HA verwendet das)
 ]
 
 ignore = [
@@ -51,6 +52,24 @@ ignore = [
     "D107",  # Missing docstring in __init__
 ]
 
+# HA-konforme Auto-Fix Rules
+fixable = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes/autoflake
+    "UP",    # pyupgrade
+    "I",     # isort
+    "SIM",   # flake8-simplify (safe ones)
+    "B",     # bugbear (safe ones)
+    "RUF",   # ruff specific (safe ones)
+    "W",     # warnings
+]
+
+unfixable = [
+    "D",     # docstrings (manual review needed)
+    "T20",   # print statements (might be intentional)
+    "C901",  # complexity (manual review needed)
+]
+
 [lint.flake8-pytest-style]
 fixture-parentheses = false
 
@@ -58,6 +77,7 @@ fixture-parentheses = false
 force-sort-within-sections = true
 known-first-party = [
     "homeassistant",
+    "custom_components.pawcontrol",
 ]
 combine-as-imports = true
 split-on-trailing-comma = false
@@ -67,3 +87,9 @@ max-complexity = 25
 
 [lint.pydocstyle]
 convention = "pep257"
+
+[format]
+# HA-konforme Formatierung
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
