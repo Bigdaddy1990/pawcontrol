@@ -186,11 +186,11 @@ try:  # pragma: no cover - Home Assistant may not be installed
             sys.path_importer_cache.pop(str(repo_root), None)
         try:
             import custom_components.pawcontrol as paw_module
-            sys.modules.setdefault(
-                "homeassistant.components.pawcontrol", paw_module
-            )
-            from homeassistant import config_entries
+
+            sys.modules.setdefault("homeassistant.components.pawcontrol", paw_module)
             from custom_components.pawcontrol import config_flow as paw_config_flow
+            from homeassistant import config_entries
+
             if "pawcontrol" not in config_entries.HANDLERS:
                 config_entries.HANDLERS["pawcontrol"] = (
                     paw_config_flow.PawControlConfigFlow
@@ -219,11 +219,13 @@ try:  # pragma: no cover - patch setup helper to expose integration
         if domain == "pawcontrol":
             try:
                 import custom_components.pawcontrol as paw_module
+
                 sys.modules.setdefault(
                     "homeassistant.components.pawcontrol", paw_module
                 )
-                from homeassistant import config_entries
                 from custom_components.pawcontrol import config_flow as paw_config_flow
+                from homeassistant import config_entries
+
                 if "pawcontrol" not in config_entries.HANDLERS:
                     config_entries.HANDLERS["pawcontrol"] = (
                         paw_config_flow.PawControlConfigFlow
@@ -246,6 +248,7 @@ try:  # pragma: no cover - patch config entry setup to handle pawcontrol
         if entry.domain == "pawcontrol":
             try:
                 import custom_components.pawcontrol as paw_module
+
                 await paw_module.async_setup_entry(self.hass, entry)
                 entry._state = ce.ConfigEntryState.LOADED  # type: ignore[attr-defined]
                 return True
