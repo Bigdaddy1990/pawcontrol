@@ -11,22 +11,6 @@ updates:
       - dependency
       - github_actions
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Berlin"
-    open-pull-requests-limit: 8
-    rebase-strategy: "disabled"              # vermeidet Rebase-Flut
-    # Optional: nur Minor/Patch für Actions (Major meist manuell prüfen)
-    # versioning-strategy: "increase-if-necessary"
-    groups:
-      actions-all:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-
   # 2) Python (pip): deckt requirements*.txt & pyproject.toml ab
   - package-ecosystem: "pip"
     directory: "/"
