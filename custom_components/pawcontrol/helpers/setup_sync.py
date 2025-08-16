@@ -55,7 +55,7 @@ class SetupSync:
 
         except Exception as err:
             _LOGGER.error(f"Error during synchronization: {err}")
-            raise HomeAssistantError(f"Failed to sync setup: {err}") from err
+            raise HomeAssistantError(f"Failed to sync setup: {err}")
 
     async def _sync_global_helpers(self) -> None:
         """Synchronize global helpers."""
@@ -346,18 +346,20 @@ class SetupSync:
                     remaining = entity_name[len(f"{DOMAIN}_") :]
                     parts = remaining.split("_")
 
-                    if parts and parts[0] not in current_dog_ids and parts[0] not in [
-                        "visitor",
-                        "emergency",
-                        "export",
-                        "last",
-                        "weather",
-                    ]:
-                        _LOGGER.info(
-                            f"Would remove orphaned entity: {entity.entity_id}"
-                        )
-                        # In production:
-                        # self._entity_registry.async_remove(entity.entity_id)
+                    if parts and parts[0] not in current_dog_ids:
+                        # Check if this looks like a dog_id (not a global helper)
+                        if parts[0] not in [
+                            "visitor",
+                            "emergency",
+                            "export",
+                            "last",
+                            "weather",
+                        ]:
+                            _LOGGER.info(
+                                f"Would remove orphaned entity: {entity.entity_id}"
+                            )
+                            # In production:
+                            # self._entity_registry.async_remove(entity.entity_id)
 
     async def cleanup_all(self) -> None:
         """Remove all helpers created by this integration."""

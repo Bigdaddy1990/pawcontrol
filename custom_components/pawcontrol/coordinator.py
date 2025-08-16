@@ -547,7 +547,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             # Validate GPS accuracy if provided (before coordinate validation)
             if accuracy is not None:
-                if not isinstance(accuracy, int | float) or accuracy < 0:
+                if not isinstance(accuracy, (int, float)) or accuracy < 0:
                     _LOGGER.warning(
                         "Invalid GPS accuracy for dog %s: %s, ignoring",
                         dog_id,
