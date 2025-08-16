@@ -39,22 +39,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff black pyupgrade pre-commit
           
+      - name: Generate requirements_test.txt
+        run: |
+          echo "📦 Generating requirements_test.txt from pyproject.toml..."
+          python .github/scripts/generate_requirements.py
+          
+          # Verify generation worked
+          if [ -f requirements_test.txt ]; then
+            echo "✅ Requirements generated successfully"
+            echo "📋 Current requirements:"
+            cat requirements_test.txt
+          else
+            echo "❌ Failed to generate requirements_test.txt"
+            exit 1
+          fi
+          
       - name: HA-konforme Auto-Fixes anwenden
         run: |
           echo "🔧 Applying Home Assistant auto-fixes..."
           
-          # 1. Pyupgrade für Python 3.13+ (HA Standard)
-          find custom_components tests -name "*.py" -exec pyupgrade --py313-plus {} \; || true
+          # Option 1: Use our HA-Fix script (recommended)
+          echo "🎆 Using integrated HA-fix script..."
+          python .github/scripts/ha_fix.py
           
-          # 2. Ruff Auto-Fixes (HA Rules)
-          ruff check --fix custom_components tests || true
-          ruff format custom_components tests || true
-          
-          # 3. Black formatting (HA Standard)
-          black custom_components tests || true
-          
-          # 4. Import sorting via ruff
-          ruff check --select I --fix custom_components tests || true
+          # Option 2: Individual commands (fallback if script fails)
+          # Uncomment if ha_fix.py fails:
+          # echo "🔄 Fallback: Individual HA tools..."
+          # find custom_components tests -name "*.py" -exec pyupgrade --py313-plus {} \; || true
+          # ruff check --fix custom_components tests || true  
+          # ruff format custom_components tests || true
+          # black custom_components tests || true
+          # ruff check --select I --fix custom_components tests || true
 
       - name: Run HA pre-commit hooks
         run: pre-commit run --all-files || true
