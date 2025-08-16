@@ -33,15 +33,27 @@ jobs:
           title: "chore: ruff baseline (format+fix+noqa)"
           commit-message: "chore: ruff baseline (format+fix+noqa)"
           body: "Automated ruff baseline via GitHub Actions."
-
+          
+      - name: Run ha_fix (check only)
+        run: |
+          python -m pip install --upgrade pip
+          python .github/scripts/ha_fix.py --check
+          
       - name: Run tests
         env:
           PYTHONPATH: .
         run: |
           pytest -q --cov=custom_components.pawcontrol --cov-report=xml
-
+      - name: Install test stack
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-homeassistant-custom-component
+          
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
           fail_ci_if_error: true
+
+
+
