@@ -3,7 +3,7 @@
 repos:
   # --- Ruff: Lint (inkl. pyupgrade-Regeln) -------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9   # pinnen; aktualisiert sich problemlos via Dependabot
+    rev: v0.12.8   # pinnen; aktualisiert sich problemlos via Dependabot
     hooks:
       - id: ruff
         name: ruff (lint)
