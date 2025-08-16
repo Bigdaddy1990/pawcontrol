@@ -23,9 +23,9 @@ repos:
       - id: codespell
         args:
           - --ignore-words-list=hass,alot,datas,dof,dur,ether,farenheit,hist,iff,ines,ist,lightsensor,mut,nd,pres,referer,ser,serie,te,technik,ue,uint,visability,wan,wanna,withing,iam,incomfort,ba,haa,pullrequests
-          - --skip="./.*,*.csv,*.json"
+          - --skip="./.*,*.csv,*.json,*.md"
           - --quiet-level=2
-        exclude_types: [csv, json, md]
+        exclude_types: [csv, json]
         exclude: ^tests/fixtures/
         
   # Ruff mit HA-konformen Auto-Fixes
