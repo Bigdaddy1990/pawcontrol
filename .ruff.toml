@@ -6,17 +6,6 @@
 target-version = "py313"       # HA 2025.8 läuft auf Python 3.13
 line-length = 88               # Ruff-Formatter Default (HA-kompatibel)
 unsafe-fixes = true
-extend-exclude = [
-  ".git",
-  ".venv",
-  "venv",
-  "build",
-  "dist",
-  "node_modules",
-  # Test-/Fixture-Daten nicht linten
-  "tests/fixtures",
-  "tests/data",
-]
 
 # -------------------- Lint-Auswahl --------------------
 [lint]
@@ -53,10 +42,10 @@ force-single-line = false
 known-first-party = ["custom_components", "tests"]
 combine-as-imports = true
 
-# -------------------- Per-File-Ignores --------------------
 [lint.per-file-ignores]
-"custom_components/**/__init__.py" = ["F401"]   # re-exporte erlauben
-"tests/**" = ["S101", "D"]                      # keine Bandit/Dokstring-Pflicht in Tests
+# Common package patterns
+"__init__.py" = ["F401", "F403", "E402"] # re-exporte erlauben
+"tests/**" = ["S101", "D"]   # keine Bandit/Dokstring-Pflicht in Tests
 
 # -------------------- Formatter --------------------
 [format]
