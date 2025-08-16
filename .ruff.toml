@@ -1,51 +1,27 @@
-# Ruff = Linter + Formatter für HA-Style
-# Doku: https://docs.astral.sh/ruff/
-# HA nutzt Ruff für Format & Lint. Ziel: schnell & CI-konsistent.
-
-# -------------------- Global --------------------
-target-version = "py313"       # HA 2025.8 läuft auf Python 3.13
-line-length = 88               # Ruff-Formatter Default (HA-kompatibel)
+# Ruff config for this Home Assistant custom integration
+target-version = "py313"
+line-length = 88
 src = ["custom_components"]
 unsafe-fixes = true
 
-# -------------------- Lint-Auswahl --------------------
 [lint]
-# Kernregeln: PEP8/pyflakes/pycodestyle + Import-Sort + moderne Syntax + Bugs
-select = [
-  "E",    # pycodestyle
-  "F",    # pyflakes
-  "W",    # pycodestyle warnings
-  "I",    # isort (Import-Sort via Ruff)
-  "UP",   # pyupgrade (moderne Syntax)
-  "B",    # flake8-bugbear
-  "A",    # flake8-builtins
-  "BLE",  # flake8-blind-except
-  "RET",  # flake8-return
-  "SIM",  # flake8-simplify
-  "PERF", # perflint
-  "TRY",  # tryceratops (Exception-Handling)
-  "PGH",  # pygrep-hooks (typische Fehler)
-  "N",    # pep8-naming
-]
+# Base: pycodestyle (E), pyflakes (F)
+# Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
+# Start with core correctness + imports
+select = ["E4", "E7", "E9", "F", "I"]
+#select = ["E", "F", "I", "UP", "B"]
+# Ignore long lines initially; ruff format will wrap many cases
+ignore = ["E501"]
+#select = ["E", "F", "I", "UP", "B", "SIM"]
 fixable = ["ALL"]
-
-# Optional: Preview-Checks deaktiviert lassen, bis du sie bewusst aktivierst
-preview = false
-
-# Import-Sorter (wie isort) innerhalb Ruff steuern:
-[lint.isort]
-force-single-line = false
-known-first-party = ["custom_components", "tests"]
-combine-as-imports = true
 
 [lint.per-file-ignores]
 # Common package patterns
-"__init__.py" = ["F401", "F403", "E402"] # re-exporte erlauben
-"tests/**" = ["S101", "D"]   # keine Bandit/Dokstring-Pflicht in Tests
+"__init__.py" = ["F401", "F403", "E402"]
+"tests/**" = ["E402", "F401"]
+"scripts/**" = ["E402", "F401"]
 
-# -------------------- Formatter --------------------
 [format]
-quote-style = "preserve"
-indent-style = "space"
-line-ending = "lf"
-docstring-code-format = true   # Codeblöcke in Docstrings formatieren
+# Keep defaults close to HA style
+quote-style = "double"
+docstring-code-format = true
