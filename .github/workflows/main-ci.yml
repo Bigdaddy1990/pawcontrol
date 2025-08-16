@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.13"  # HA 2025.8.2 Standard
+  PYTHON_VERSION: "3.12"  # HA 2025.8.2 Standard
   HOMEASSISTANT_VERSION: "2025.8.2"
 
 jobs:
@@ -65,7 +65,7 @@ jobs:
           # Option 2: Individual commands (fallback if script fails)
           # Uncomment if ha_fix.py fails:
           # echo "🔄 Fallback: Individual HA tools..."
-          # find custom_components tests -name "*.py" -exec pyupgrade --py313-plus {} \; || true
+          # find custom_components tests -name "*.py" -exec pyupgrade --py312-plus {} \; || true
           # ruff check --fix custom_components tests || true  
           # ruff format custom_components tests || true
           # black custom_components tests || true
@@ -83,7 +83,7 @@ jobs:
             git add .
             git commit -m "🤖 Apply Home Assistant auto-fixes
 
-            - Applied pyupgrade (Python 3.13+)
+            - Applied pyupgrade (Python 3.12+)
             - Applied ruff auto-fixes (HA rules)
             - Applied black formatting
             - Fixed import sorting
@@ -126,7 +126,7 @@ jobs:
     needs: [hassfest, hacs]
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -156,7 +156,7 @@ jobs:
             -v
           
       - name: Upload Coverage (HA Standard)
-        if: matrix.python-version == '3.13'
+        if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
