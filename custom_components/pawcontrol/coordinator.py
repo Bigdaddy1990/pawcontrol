@@ -19,29 +19,11 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
-
-# Python 3.12+ Type aliases and Exception groups
-type DogID = str
-type CoordinatorState = dict[str, Any]
-type UpdateResult = dict[str, Any] | None
-
-# Exception groups for robust error handling
-class CoordinatorErrors(ExceptionGroup):
-    """Group for coordinator-related errors."""
-    pass
-
-class DataUpdateErrors(ExceptionGroup):
-    """Group for data update errors."""
-    pass
-
-class ValidationErrors(ExceptionGroup):
-    """Group for validation errors."""
-    pass
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
+from .utils import calculate_distance, validate_coordinates
 
 from .const import (
     ATTR_DOG_ID,
@@ -69,14 +51,31 @@ from .const import (
     STATUS_READY,
     WALK_DISTANCE_UPDATE_THRESHOLD_M,
 )
-from .utils import calculate_distance, validate_coordinates
+
 
 if TYPE_CHECKING:
     from .types import CoordinatorData, DogData
 
 _LOGGER = logging.getLogger(__name__)
 
+# Python 3.12+ Type aliases and Exception groups
+type DogID = str
+type CoordinatorState = dict[str, Any]
+type UpdateResult = dict[str, Any] | None
 
+# Exception groups for robust error handling
+class CoordinatorErrors(ExceptionGroup):
+    """Group for coordinator-related errors."""
+    pass
+
+class DataUpdateErrors(ExceptionGroup):
+    """Group for data update errors."""
+    pass
+
+class ValidationErrors(ExceptionGroup):
+    """Group for validation errors."""
+    pass
+    
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Manage fetching and updating Paw Control data.
 
