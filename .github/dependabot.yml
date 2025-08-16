@@ -1,54 +1,17 @@
 version: 2
 updates:
-  # 1) GitHub Actions: hält Workflows aktuell (checkout, setup-python, upload-artifact, codecov, etc.)
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: daily
-      time: "06:00"
-    open-pull-requests-limit: 10
-    labels:
-      - dependency
-      - github_actions
-
-  # 2) Python (pip): deckt requirements*.txt & pyproject.toml ab
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "06:10"
-      timezone: "Europe/Berlin"
-    open-pull-requests-limit: 8
-    rebase-strategy: "disabled"
-    # konservativ: Major nur, wenn nötig
-    versioning-strategy: "increase-if-necessary"
-    # Wenn du viele requirements-Dateien hast, achte auf Namenskonventionen (siehe Hinweise unten).
     groups:
-      python-test-deps:
-        # Alles Test-/Tooling-Zeug in eine gemeinsame PR
+      ha-test-stack:
         patterns:
           - "pytest"
           - "pytest-*"
-          - "coverage"
-          - "coverage[toml]"
-          - "pytest-cov"
-          - "pytest-asyncio"
-          - "ruff"
-          - "mypy"
-          - "pre-commit"
-        update-types: ["minor", "patch"]
-      python-runtime:
-        # Restliche Pakete (Runtime) getrennt bündeln
-        patterns: ["*"]
-        exclude-patterns:
-          - "pytest"
-          - "pytest-*"
-          - "coverage"
-          - "coverage[toml]"
-          - "pytest-cov"
-          - "pytest-asyncio"
-          - "ruff"
-          - "mypy"
-          - "pre-commit"
-        update-types: ["minor", "patch"]
+          - "pytest-homeassistant*"
+          - "ruff*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
