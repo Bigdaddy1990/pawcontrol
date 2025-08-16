@@ -1,6 +1,7 @@
 name: hassfest
 on:
-  push:
+  pull_request:
+  #push:
     branches: [ "main" ]
   schedule:
     - cron: "0 3 * * *"
