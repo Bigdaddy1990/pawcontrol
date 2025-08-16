@@ -1,22 +1,30 @@
-# Run:  pre-commit install
-# Local check all: pre-commit run --all-files
-repos:
-  # --- Ruff: Lint (inkl. pyupgrade-Regeln) -------------------------------
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8   # pinnen; aktualisiert sich problemlos via Dependabot
-    hooks:
-      - id: ruff
-        name: ruff (lint)
-        args: [--fix]   # Fixes hier erlaubt; CI nutzt --check
-      - id: ruff-format
-        name: ruff (format)
+ci:
+  autoupdate_schedule: monthly
+  autofix_prs: true
 
-  # --- Generische Hygiene-Hooks ------------------------------------------
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.8
     hooks:
+      # 1) Lint + Fix (inkl. unsichere Fixes EINMALIG freigeben)
+      - id: ruff-check
+        args: [--fix, --unsafe-fixes]
+        types_or: [python, pyi]
+      # 2) Danach formatieren
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
+        args: [--unsafe, --allow-multiple-documents]
+        # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
+        exclude: ^(blueprints/|examples/)
+      - id: check-json
+      - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
-      - id: check-yaml
-      - id: check-json
-      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
