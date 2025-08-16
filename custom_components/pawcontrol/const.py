@@ -21,7 +21,7 @@ except ImportError:
 
     class Platform(StrEnum):
         """Fallback Platform enum for environments without Home Assistant."""
-        
+
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         DATETIME = "datetime"

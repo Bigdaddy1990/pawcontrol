@@ -178,7 +178,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     notification_router = None
     setup_sync = None
     report_generator = None
-    
+
     try:
         notification_router = notification_router_mod.NotificationRouter(hass, entry)
         setup_sync = setup_sync_mod.SetupSync(hass, entry)
@@ -318,16 +318,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def _ensure_critical_services(hass: HomeAssistant) -> None:
     """Ensure critical services are available.
-    
+
     Args:
         hass: Home Assistant instance
     """
-    critical_services = [
-        "gps_pause_tracking",
-        "gps_resume_tracking", 
-        "notify_test"
-    ]
-    
+    critical_services = ["gps_pause_tracking", "gps_resume_tracking", "notify_test"]
+
     for service in critical_services:
         if not hass.services.has_service(DOMAIN, service):
             hass.services.async_register(DOMAIN, service, lambda call: None)
@@ -354,6 +350,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Cleanup schedulers first to stop background tasks
     try:
         from .helpers import scheduler as scheduler_mod
+
         await scheduler_mod.cleanup_schedulers(hass, entry)
     except (ImportError, Exception) as err:
         _LOGGER.warning(
@@ -385,11 +382,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Unregister services if no more entries exist
         runtime_data = getattr(entry, "runtime_data", None)
-        if (
-            not hass.data[DOMAIN]
-            and runtime_data
-            and runtime_data.get("services")
-        ):
+        if not hass.data[DOMAIN] and runtime_data and runtime_data.get("services"):
             try:
                 await runtime_data["services"].async_unregister_services()
             except Exception as err:
@@ -480,11 +473,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Clean up services if this was the last integration instance
     runtime_data = getattr(entry, "runtime_data", None)
-    if (
-        not domain_data
-        and runtime_data
-        and runtime_data.get("services")
-    ):
+    if not domain_data and runtime_data and runtime_data.get("services"):
         try:
             await runtime_data["services"].async_unregister_services()
         except Exception as err:

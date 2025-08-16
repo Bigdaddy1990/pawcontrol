@@ -15,11 +15,11 @@ from typing import Any
 
 class PawControlError(Exception):
     """Base exception for all Paw Control integration errors.
-    
+
     This serves as the root exception class for all errors originating
     from the Paw Control integration. It provides a common interface
     for error handling and supports structured error data.
-    
+
     Attributes:
         error_code: A unique code identifying the type of error
         details: Additional structured data about the error
@@ -35,7 +35,7 @@ class PawControlError(Exception):
         recoverable: bool = False,
     ) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: Human-readable error message
             error_code: Optional unique error code for categorization
@@ -57,7 +57,7 @@ class PawControlError(Exception):
 
 class ConfigurationError(PawControlError):
     """Raised when there are configuration-related errors.
-    
+
     This exception indicates problems with the integration configuration,
     such as invalid settings, missing required parameters, or incompatible
     option combinations.
@@ -72,7 +72,7 @@ class ConfigurationError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize configuration error.
-        
+
         Args:
             message: Human-readable error message
             config_section: The configuration section containing the error
@@ -86,14 +86,14 @@ class ConfigurationError(PawControlError):
 
 class DogNotFoundError(PawControlError):
     """Raised when an operation references a non-existent dog.
-    
+
     This exception is thrown when attempting to perform operations
     on a dog that is not configured in the integration.
     """
 
     def __init__(self, dog_id: str, **kwargs: Any) -> None:
         """Initialize dog not found error.
-        
+
         Args:
             dog_id: The ID of the dog that was not found
             **kwargs: Additional arguments passed to parent class
@@ -110,7 +110,7 @@ class DogNotFoundError(PawControlError):
 
 class DataValidationError(PawControlError):
     """Raised when input data fails validation.
-    
+
     This exception indicates that user-provided data does not meet
     the required format, type, or constraint requirements.
     """
@@ -126,7 +126,7 @@ class DataValidationError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize data validation error.
-        
+
         Args:
             message: Human-readable error message
             field_name: Name of the field that failed validation
@@ -159,14 +159,14 @@ class DataValidationError(PawControlError):
 
 class GPSError(PawControlError):
     """Base exception for GPS-related errors.
-    
+
     This serves as the parent class for all GPS and location-related
     errors in the integration.
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
         """Initialize GPS error.
-        
+
         Args:
             message: Human-readable error message
             **kwargs: Additional arguments passed to parent class
@@ -176,7 +176,7 @@ class GPSError(PawControlError):
 
 class InvalidCoordinatesError(GPSError):
     """Raised when invalid GPS coordinates are provided.
-    
+
     This exception is thrown when latitude or longitude values
     are outside their valid ranges or are not numeric.
     """
@@ -188,7 +188,7 @@ class InvalidCoordinatesError(GPSError):
         **kwargs: Any,
     ) -> None:
         """Initialize invalid coordinates error.
-        
+
         Args:
             latitude: The invalid latitude value, if any
             longitude: The invalid longitude value, if any
@@ -201,12 +201,12 @@ class InvalidCoordinatesError(GPSError):
         if longitude is not None:
             if not isinstance(longitude, (int, float)) or not -180 <= longitude <= 180:
                 parts.append(f"longitude {longitude} (must be -180 to 180)")
-        
+
         if parts:
             message = f"Invalid coordinates: {', '.join(parts)}"
         else:
             message = "Invalid coordinates provided"
-            
+
         super().__init__(
             message,
             error_code="INVALID_COORDINATES",
@@ -219,7 +219,7 @@ class InvalidCoordinatesError(GPSError):
 
 class GPSProviderError(GPSError):
     """Raised when there are errors with GPS data providers.
-    
+
     This exception indicates problems communicating with or receiving
     data from GPS data sources like device trackers or external APIs.
     """
@@ -233,7 +233,7 @@ class GPSProviderError(GPSError):
         **kwargs: Any,
     ) -> None:
         """Initialize GPS provider error.
-        
+
         Args:
             message: Human-readable error message
             provider_name: Name of the GPS provider that failed
@@ -256,7 +256,7 @@ class GPSProviderError(GPSError):
 
 class GeofenceError(GPSError):
     """Raised when there are errors with geofence operations.
-    
+
     This exception indicates problems with geofence configuration,
     calculation, or state management.
     """
@@ -269,7 +269,7 @@ class GeofenceError(GPSError):
         **kwargs: Any,
     ) -> None:
         """Initialize geofence error.
-        
+
         Args:
             message: Human-readable error message
             geofence_name: Name of the geofence that caused the error
@@ -291,7 +291,7 @@ class GeofenceError(GPSError):
 
 class CoordinatorError(PawControlError):
     """Raised when there are errors with the data coordinator.
-    
+
     This exception indicates problems with data coordination,
     state management, or data synchronization.
     """
@@ -304,7 +304,7 @@ class CoordinatorError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize coordinator error.
-        
+
         Args:
             message: Human-readable error message
             coordinator_state: Current state of the coordinator
@@ -322,7 +322,7 @@ class CoordinatorError(PawControlError):
 
 class DataConsistencyError(CoordinatorError):
     """Raised when data consistency checks fail.
-    
+
     This exception indicates that the internal data state is
     inconsistent or corrupted in some way.
     """
@@ -336,7 +336,7 @@ class DataConsistencyError(CoordinatorError):
         **kwargs: Any,
     ) -> None:
         """Initialize data consistency error.
-        
+
         Args:
             message: Human-readable error message
             inconsistency_type: Type of inconsistency detected
@@ -363,7 +363,7 @@ class DataConsistencyError(CoordinatorError):
 
 class ServiceError(PawControlError):
     """Raised when there are errors with service operations.
-    
+
     This exception indicates problems with Home Assistant service
     calls or service registration.
     """
@@ -377,7 +377,7 @@ class ServiceError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize service error.
-        
+
         Args:
             message: Human-readable error message
             service_name: Name of the service that failed
@@ -399,7 +399,7 @@ class ServiceError(PawControlError):
 
 class NotificationError(PawControlError):
     """Raised when there are errors with notification delivery.
-    
+
     This exception indicates problems sending notifications
     through Home Assistant's notification system.
     """
@@ -413,7 +413,7 @@ class NotificationError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize notification error.
-        
+
         Args:
             message: Human-readable error message
             notification_target: Target that failed to receive notification
@@ -441,7 +441,7 @@ class NotificationError(PawControlError):
 
 class DeviceError(PawControlError):
     """Raised when there are errors with device operations.
-    
+
     This exception indicates problems with device discovery,
     communication, or management.
     """
@@ -455,7 +455,7 @@ class DeviceError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize device error.
-        
+
         Args:
             message: Human-readable error message
             device_id: ID of the device that caused the error
@@ -477,7 +477,7 @@ class DeviceError(PawControlError):
 
 class HardwareNotFoundError(DeviceError):
     """Raised when expected hardware is not found.
-    
+
     This exception indicates that required hardware (like GPS trackers
     or sensors) could not be discovered or connected.
     """
@@ -490,7 +490,7 @@ class HardwareNotFoundError(DeviceError):
         **kwargs: Any,
     ) -> None:
         """Initialize hardware not found error.
-        
+
         Args:
             hardware_type: Type of hardware that was not found
             expected_location: Where the hardware was expected to be found
@@ -499,7 +499,7 @@ class HardwareNotFoundError(DeviceError):
         message = f"Required hardware not found: {hardware_type}"
         if expected_location:
             message += f" (expected at {expected_location})"
-            
+
         super().__init__(
             message,
             error_code="HARDWARE_NOT_FOUND",
@@ -520,7 +520,7 @@ class HardwareNotFoundError(DeviceError):
 
 class StorageError(PawControlError):
     """Raised when there are errors with data storage operations.
-    
+
     This exception indicates problems reading from or writing to
     persistent storage systems.
     """
@@ -534,7 +534,7 @@ class StorageError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize storage error.
-        
+
         Args:
             message: Human-readable error message
             storage_type: Type of storage that failed
@@ -562,7 +562,7 @@ class StorageError(PawControlError):
 
 class SetupError(PawControlError):
     """Raised when there are errors during integration setup.
-    
+
     This exception indicates problems during the initialization
     or setup phase of the integration.
     """
@@ -576,7 +576,7 @@ class SetupError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize setup error.
-        
+
         Args:
             message: Human-readable error message
             setup_phase: The setup phase that failed
@@ -598,7 +598,7 @@ class SetupError(PawControlError):
 
 class MigrationError(PawControlError):
     """Raised when there are errors during data migration.
-    
+
     This exception indicates problems migrating data from older
     versions of the integration.
     """
@@ -613,7 +613,7 @@ class MigrationError(PawControlError):
         **kwargs: Any,
     ) -> None:
         """Initialize migration error.
-        
+
         Args:
             message: Human-readable error message
             from_version: Version migrating from
@@ -650,26 +650,26 @@ def wrap_exception(
     additional_details: dict[str, Any] | None = None,
 ) -> PawControlError:
     """Wrap a generic exception in a PawControlError.
-    
+
     This utility function converts generic exceptions into the
     integration's structured exception hierarchy.
-    
+
     Args:
         func_name: Name of the function where the error occurred
         original_exception: The original exception to wrap
         error_code: Optional error code to assign
         recoverable: Whether the error might be temporary
         additional_details: Additional structured data about the error
-        
+
     Returns:
         A PawControlError wrapping the original exception
     """
     message = f"Error in {func_name}: {original_exception}"
-    
+
     details = {"original_exception": str(original_exception)}
     if additional_details:
         details.update(additional_details)
-    
+
     return PawControlError(
         message,
         error_code=error_code or "WRAPPED_EXCEPTION",
@@ -685,24 +685,26 @@ def create_validation_error(
     expected_type: str | None = None,
 ) -> DataValidationError:
     """Create a standardized validation error.
-    
+
     This utility function creates consistent validation error messages
     and structured data for field validation failures.
-    
+
     Args:
         field_name: Name of the field that failed validation
         value: The value that failed validation
         constraint: Description of the constraint that was violated
         expected_type: The expected data type, if applicable
-        
+
     Returns:
         A DataValidationError with standardized formatting
     """
     if expected_type:
         message = f"Field '{field_name}' failed validation: expected {expected_type}, got {type(value).__name__} ({value}). Constraint: {constraint}"
     else:
-        message = f"Field '{field_name}' failed validation: {constraint}. Value: {value}"
-    
+        message = (
+            f"Field '{field_name}' failed validation: {constraint}. Value: {value}"
+        )
+
     return DataValidationError(
         message,
         field_name=field_name,

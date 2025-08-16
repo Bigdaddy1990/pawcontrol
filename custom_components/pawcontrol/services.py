@@ -26,7 +26,6 @@ from .const import (
     ATTR_DOG_ID,
     CONF_DOG_ID,
     DOMAIN,
-    ERROR_DOG_NOT_FOUND,
     EVENT_DOG_FED,
     EVENT_GROOMING_DONE,
     EVENT_MEDICATION_GIVEN,
@@ -81,10 +80,12 @@ SERVICE_SCHEMA_WALK_DOG = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Optional("duration_min", default=30): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=480)  # 1 minute to 8 hours
+            vol.Coerce(int),
+            vol.Range(min=1, max=480),  # 1 minute to 8 hours
         ),
         vol.Optional("distance_m", default=0): vol.All(
-            vol.Coerce(int), vol.Range(min=0, max=50000)  # 0 to 50km
+            vol.Coerce(int),
+            vol.Range(min=0, max=50000),  # 0 to 50km
         ),
     }
 )
@@ -108,7 +109,8 @@ SERVICE_SCHEMA_FEED_DOG = vol.Schema(
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Required("meal_type"): vol.In(list(MEAL_TYPES.keys())),
         vol.Required("portion_g"): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=5000)  # 1g to 5kg
+            vol.Coerce(int),
+            vol.Range(min=1, max=5000),  # 1g to 5kg
         ),
         vol.Optional("food_type", default="dry"): vol.In(list(FEEDING_TYPES.keys())),
     }
@@ -120,12 +122,16 @@ SERVICE_SCHEMA_LOG_HEALTH = vol.Schema(
         vol.Optional("weight_kg"): vol.All(
             vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT_KG, max=MAX_DOG_WEIGHT_KG)
         ),
-        vol.Optional("note", default=""): vol.All(cv.string, vol.Length(max=MAX_STRING_LENGTH)),
+        vol.Optional("note", default=""): vol.All(
+            cv.string, vol.Length(max=MAX_STRING_LENGTH)
+        ),
         vol.Optional("temperature"): vol.All(
-            vol.Coerce(float), vol.Range(min=35.0, max=45.0)  # °C
+            vol.Coerce(float),
+            vol.Range(min=35.0, max=45.0),  # °C
         ),
         vol.Optional("heart_rate"): vol.All(
-            vol.Coerce(int), vol.Range(min=40, max=200)  # BPM
+            vol.Coerce(int),
+            vol.Range(min=40, max=200),  # BPM
         ),
     }
 )
@@ -133,9 +139,15 @@ SERVICE_SCHEMA_LOG_HEALTH = vol.Schema(
 SERVICE_SCHEMA_LOG_MEDICATION = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
-        vol.Required("medication_name"): vol.All(cv.string, vol.Length(min=1, max=MAX_STRING_LENGTH)),
-        vol.Required("dose"): vol.All(cv.string, vol.Length(min=1, max=MAX_STRING_LENGTH)),
-        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=MAX_STRING_LENGTH)),
+        vol.Required("medication_name"): vol.All(
+            cv.string, vol.Length(min=1, max=MAX_STRING_LENGTH)
+        ),
+        vol.Required("dose"): vol.All(
+            cv.string, vol.Length(min=1, max=MAX_STRING_LENGTH)
+        ),
+        vol.Optional("notes", default=""): vol.All(
+            cv.string, vol.Length(max=MAX_STRING_LENGTH)
+        ),
     }
 )
 
@@ -143,7 +155,9 @@ SERVICE_SCHEMA_START_GROOMING = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Required("grooming_type"): vol.In(list(GROOMING_TYPES.keys())),
-        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=MAX_STRING_LENGTH)),
+        vol.Optional("notes", default=""): vol.All(
+            cv.string, vol.Length(max=MAX_STRING_LENGTH)
+        ),
     }
 )
 
@@ -151,9 +165,12 @@ SERVICE_SCHEMA_PLAY_SESSION = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Required("duration_min"): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=240)  # 1 minute to 4 hours
+            vol.Coerce(int),
+            vol.Range(min=1, max=240),  # 1 minute to 4 hours
         ),
-        vol.Optional("intensity", default="medium"): vol.In(list(INTENSITY_TYPES.keys())),
+        vol.Optional("intensity", default="medium"): vol.In(
+            list(INTENSITY_TYPES.keys())
+        ),
         vol.Optional("activity_type", default="play"): cv.string,
     }
 )
@@ -163,10 +180,15 @@ SERVICE_SCHEMA_TRAINING_SESSION = vol.Schema(
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Required("topic"): vol.In(list(TRAINING_TYPES.keys())),
         vol.Required("duration_min"): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=120)  # 1 minute to 2 hours
+            vol.Coerce(int),
+            vol.Range(min=1, max=120),  # 1 minute to 2 hours
         ),
-        vol.Optional("intensity", default="medium"): vol.In(list(INTENSITY_TYPES.keys())),
-        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=MAX_STRING_LENGTH)),
+        vol.Optional("intensity", default="medium"): vol.In(
+            list(INTENSITY_TYPES.keys())
+        ),
+        vol.Optional("notes", default=""): vol.All(
+            cv.string, vol.Length(max=MAX_STRING_LENGTH)
+        ),
     }
 )
 
@@ -188,7 +210,9 @@ SERVICE_SCHEMA_GPS_POST_LOCATION = vol.Schema(
 
 SERVICE_SCHEMA_GENERATE_REPORT = vol.Schema(
     {
-        vol.Optional("report_type", default="daily"): vol.In(["daily", "weekly", "monthly"]),
+        vol.Optional("report_type", default="daily"): vol.In(
+            ["daily", "weekly", "monthly"]
+        ),
         vol.Optional("dog_id"): cv.string,
         vol.Optional("start_date"): cv.date,
         vol.Optional("end_date"): cv.date,
@@ -198,9 +222,9 @@ SERVICE_SCHEMA_GENERATE_REPORT = vol.Schema(
 
 SERVICE_SCHEMA_EXPORT_DATA = vol.Schema(
     {
-        vol.Optional("data_type", default="all"): vol.In([
-            "all", "walks", "feeding", "health", "grooming", "training", "gps"
-        ]),
+        vol.Optional("data_type", default="all"): vol.In(
+            ["all", "walks", "feeding", "health", "grooming", "training", "gps"]
+        ),
         vol.Optional("dog_id"): cv.string,
         vol.Optional("start_date"): cv.date,
         vol.Optional("end_date"): cv.date,
@@ -211,7 +235,9 @@ SERVICE_SCHEMA_EXPORT_DATA = vol.Schema(
 
 SERVICE_SCHEMA_NOTIFY_TEST = vol.Schema(
     {
-        vol.Optional("message", default="Test notification from Paw Control"): cv.string,
+        vol.Optional(
+            "message", default="Test notification from Paw Control"
+        ): cv.string,
         vol.Optional("title", default="Paw Control Test"): cv.string,
         vol.Optional("target"): cv.string,
     }
@@ -238,19 +264,24 @@ SERVICE_SCHEMA_GPS_DIAGNOSTICS = vol.Schema(
 )
 
 
-# Python 3.12+ Service routing types  
+# Python 3.12+ Service routing types
 type ServiceHandler = str
 type ServiceData = dict[str, Any]
 type ServiceResult = bool | dict[str, Any]
 
+
 # Exception groups for service errors
 class ServiceErrors(ExceptionGroup):
     """Group for service-related errors."""
+
     pass
+
 
 class ValidationErrors(ExceptionGroup):
     """Group for validation-related errors."""
+
     pass
+
 
 class ServiceManager:
     """Manages all Home Assistant services for Paw Control integration.
@@ -311,41 +342,117 @@ class ServiceManager:
                 # Core services
                 "walk": [
                     (SERVICE_WALK_DOG, self._handle_walk_dog, SERVICE_SCHEMA_WALK_DOG),
-                    (SERVICE_START_WALK, self._handle_start_walk, SERVICE_SCHEMA_START_WALK),
+                    (
+                        SERVICE_START_WALK,
+                        self._handle_start_walk,
+                        SERVICE_SCHEMA_START_WALK,
+                    ),
                     (SERVICE_END_WALK, self._handle_end_walk, SERVICE_SCHEMA_END_WALK),
                 ],
                 "feeding": [
                     (SERVICE_FEED_DOG, self._handle_feed_dog, SERVICE_SCHEMA_FEED_DOG),
                 ],
                 "health": [
-                    (SERVICE_LOG_HEALTH, self._handle_log_health, SERVICE_SCHEMA_LOG_HEALTH),
-                    (SERVICE_LOG_MEDICATION, self._handle_log_medication, SERVICE_SCHEMA_LOG_MEDICATION),
+                    (
+                        SERVICE_LOG_HEALTH,
+                        self._handle_log_health,
+                        SERVICE_SCHEMA_LOG_HEALTH,
+                    ),
+                    (
+                        SERVICE_LOG_MEDICATION,
+                        self._handle_log_medication,
+                        SERVICE_SCHEMA_LOG_MEDICATION,
+                    ),
                 ],
                 "grooming": [
-                    (SERVICE_START_GROOMING, self._handle_start_grooming, SERVICE_SCHEMA_START_GROOMING),
+                    (
+                        SERVICE_START_GROOMING,
+                        self._handle_start_grooming,
+                        SERVICE_SCHEMA_START_GROOMING,
+                    ),
                 ],
                 "activity": [
-                    (SERVICE_PLAY_SESSION, self._handle_play_session, SERVICE_SCHEMA_PLAY_SESSION),
-                    (SERVICE_TRAINING_SESSION, self._handle_training_session, SERVICE_SCHEMA_TRAINING_SESSION),
+                    (
+                        SERVICE_PLAY_SESSION,
+                        self._handle_play_session,
+                        SERVICE_SCHEMA_PLAY_SESSION,
+                    ),
+                    (
+                        SERVICE_TRAINING_SESSION,
+                        self._handle_training_session,
+                        SERVICE_SCHEMA_TRAINING_SESSION,
+                    ),
                 ],
                 "gps": [
-                    (SERVICE_GPS_POST_LOCATION, self._handle_gps_post_location, SERVICE_SCHEMA_GPS_POST_LOCATION),
-                    (SERVICE_GPS_PAUSE_TRACKING, self._handle_gps_pause_tracking, SERVICE_SCHEMA_GPS_BASIC),
-                    (SERVICE_GPS_RESUME_TRACKING, self._handle_gps_resume_tracking, SERVICE_SCHEMA_GPS_BASIC),
-                    (SERVICE_GPS_GENERATE_DIAGNOSTICS, self._handle_gps_generate_diagnostics, SERVICE_SCHEMA_GPS_DIAGNOSTICS),
-                    (SERVICE_GPS_RESET_STATS, self._handle_gps_reset_stats, SERVICE_SCHEMA_GPS_BASIC),
-                    (SERVICE_GPS_EXPORT_LAST_ROUTE, self._handle_gps_export_last_route, SERVICE_SCHEMA_GPS_BASIC),
-                    (SERVICE_GPS_LIST_WEBHOOKS, self._handle_gps_list_webhooks, SERVICE_SCHEMA_GPS_BASIC),
-                    (SERVICE_GPS_REGENERATE_WEBHOOKS, self._handle_gps_regenerate_webhooks, SERVICE_SCHEMA_GPS_BASIC),
+                    (
+                        SERVICE_GPS_POST_LOCATION,
+                        self._handle_gps_post_location,
+                        SERVICE_SCHEMA_GPS_POST_LOCATION,
+                    ),
+                    (
+                        SERVICE_GPS_PAUSE_TRACKING,
+                        self._handle_gps_pause_tracking,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_GPS_RESUME_TRACKING,
+                        self._handle_gps_resume_tracking,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_GPS_GENERATE_DIAGNOSTICS,
+                        self._handle_gps_generate_diagnostics,
+                        SERVICE_SCHEMA_GPS_DIAGNOSTICS,
+                    ),
+                    (
+                        SERVICE_GPS_RESET_STATS,
+                        self._handle_gps_reset_stats,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_GPS_EXPORT_LAST_ROUTE,
+                        self._handle_gps_export_last_route,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_GPS_LIST_WEBHOOKS,
+                        self._handle_gps_list_webhooks,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_GPS_REGENERATE_WEBHOOKS,
+                        self._handle_gps_regenerate_webhooks,
+                        SERVICE_SCHEMA_GPS_BASIC,
+                    ),
                 ],
                 "system": [
                     (SERVICE_DAILY_RESET, self._handle_daily_reset, vol.Schema({})),
                     (SERVICE_SYNC_SETUP, self._handle_sync_setup, vol.Schema({})),
-                    (SERVICE_TOGGLE_VISITOR, self._handle_toggle_visitor, vol.Schema({})),
-                    (SERVICE_GENERATE_REPORT, self._handle_generate_report, SERVICE_SCHEMA_GENERATE_REPORT),
-                    (SERVICE_EXPORT_DATA, self._handle_export_data, SERVICE_SCHEMA_EXPORT_DATA),
-                    (SERVICE_NOTIFY_TEST, self._handle_notify_test, SERVICE_SCHEMA_NOTIFY_TEST),
-                    (SERVICE_PRUNE_STALE_DEVICES, self._handle_prune_stale_devices, SERVICE_SCHEMA_PRUNE_STALE_DEVICES),
+                    (
+                        SERVICE_TOGGLE_VISITOR,
+                        self._handle_toggle_visitor,
+                        vol.Schema({}),
+                    ),
+                    (
+                        SERVICE_GENERATE_REPORT,
+                        self._handle_generate_report,
+                        SERVICE_SCHEMA_GENERATE_REPORT,
+                    ),
+                    (
+                        SERVICE_EXPORT_DATA,
+                        self._handle_export_data,
+                        SERVICE_SCHEMA_EXPORT_DATA,
+                    ),
+                    (
+                        SERVICE_NOTIFY_TEST,
+                        self._handle_notify_test,
+                        SERVICE_SCHEMA_NOTIFY_TEST,
+                    ),
+                    (
+                        SERVICE_PRUNE_STALE_DEVICES,
+                        self._handle_prune_stale_devices,
+                        SERVICE_SCHEMA_PRUNE_STALE_DEVICES,
+                    ),
                 ],
             }
 
@@ -361,7 +468,9 @@ class ServiceManager:
                     case _:
                         _LOGGER.warning(f"Unknown service category: {category}")
 
-            _LOGGER.info("Registered %d Paw Control services", len(self._registered_services))
+            _LOGGER.info(
+                "Registered %d Paw Control services", len(self._registered_services)
+            )
 
         except Exception as err:
             _LOGGER.error("Failed to register services: %s", err)
@@ -369,7 +478,9 @@ class ServiceManager:
         finally:
             self._is_registering = False
 
-    async def _register_service_category(self, services: list[tuple], category: str) -> None:
+    async def _register_service_category(
+        self, services: list[tuple], category: str
+    ) -> None:
         """Register a category of services with enhanced error handling."""
         errors = []
         for service_name, handler, schema in services:
@@ -377,7 +488,7 @@ class ServiceManager:
                 await self._register_service(service_name, handler, schema)
             except Exception as err:
                 errors.append(err)
-                
+
         if errors:
             raise ServiceErrors(f"Failed to register {category} services", errors)
 
@@ -505,7 +616,9 @@ class ServiceManager:
                 SERVICE_SCHEMA_PRUNE_STALE_DEVICES,
             )
 
-            _LOGGER.info("Registered %d Paw Control services", len(self._registered_services))
+            _LOGGER.info(
+                "Registered %d Paw Control services", len(self._registered_services)
+            )
 
         except Exception as err:
             _LOGGER.error("Failed to register services: %s", err)
@@ -553,7 +666,9 @@ class ServiceManager:
                     self.hass.services.async_remove(DOMAIN, service_name)
                     _LOGGER.debug("Unregistered service: %s", service_name)
             except Exception as err:
-                _LOGGER.warning("Failed to unregister service %s: %s", service_name, err)
+                _LOGGER.warning(
+                    "Failed to unregister service %s: %s", service_name, err
+                )
 
         self._registered_services.clear()
         _LOGGER.info("Unregistered all Paw Control services")
@@ -581,10 +696,10 @@ class ServiceManager:
             data: Service call data (sanitized)
         """
         self._service_call_count += 1
-        
+
         # Sanitize sensitive data for logging
         sanitized_data = {k: v for k, v in data.items() if k != "api_key"}
-        
+
         _LOGGER.debug(
             "Service call #%d: %s with data: %s",
             self._service_call_count,
@@ -602,7 +717,7 @@ class ServiceManager:
         Logs a completed walk with specified duration and distance.
         """
         self._log_service_call("walk_dog", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         duration_min = call.data["duration_min"]
         distance_m = call.data["distance_m"]
@@ -610,7 +725,9 @@ class ServiceManager:
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.log_walk(dog_id, duration_min, distance_m)
-            _LOGGER.info("Logged walk for dog %s: %d min, %d m", dog_id, duration_min, distance_m)
+            _LOGGER.info(
+                "Logged walk for dog %s: %d min, %d m", dog_id, duration_min, distance_m
+            )
 
         except Exception as err:
             _LOGGER.error("Failed to log walk for dog %s: %s", dog_id, err)
@@ -622,14 +739,14 @@ class ServiceManager:
         Starts live walk tracking for a dog.
         """
         self._log_service_call("start_walk", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         source = call.data.get("source", "manual")
 
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.start_walk(dog_id, source)
-            
+
             # Fire event for automation triggers
             self.hass.bus.async_fire(
                 EVENT_WALK_STARTED, {ATTR_DOG_ID: dog_id, "source": source}
@@ -646,14 +763,14 @@ class ServiceManager:
         Ends live walk tracking for a dog.
         """
         self._log_service_call("end_walk", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         reason = call.data.get("reason", "manual")
 
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.end_walk(dog_id, reason)
-            
+
             # Fire event for automation triggers
             self.hass.bus.async_fire(
                 EVENT_WALK_ENDED, {ATTR_DOG_ID: dog_id, "reason": reason}
@@ -670,7 +787,7 @@ class ServiceManager:
         Records a feeding event for a dog.
         """
         self._log_service_call("feed_dog", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         meal_type = call.data["meal_type"]
         portion_g = call.data["portion_g"]
@@ -679,7 +796,7 @@ class ServiceManager:
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.feed_dog(dog_id, meal_type, portion_g, food_type)
-            
+
             # Fire event for automation triggers
             self.hass.bus.async_fire(
                 EVENT_DOG_FED,
@@ -704,7 +821,7 @@ class ServiceManager:
         Records health data for a dog.
         """
         self._log_service_call("log_health", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         weight_kg = call.data.get("weight_kg")
         note = call.data.get("note", "")
@@ -724,7 +841,7 @@ class ServiceManager:
         Records medication administration for a dog.
         """
         self._log_service_call("log_medication", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         medication_name = call.data["medication_name"]
         dose = call.data["dose"]
@@ -732,7 +849,7 @@ class ServiceManager:
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.log_medication(dog_id, medication_name, dose)
-            
+
             # Fire event for automation triggers
             self.hass.bus.async_fire(
                 EVENT_MEDICATION_GIVEN,
@@ -756,7 +873,7 @@ class ServiceManager:
         Records a grooming session for a dog.
         """
         self._log_service_call("start_grooming", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         grooming_type = call.data["grooming_type"]
         notes = call.data.get("notes", "")
@@ -764,7 +881,7 @@ class ServiceManager:
         try:
             self._validate_dog_exists(dog_id)
             await self.coordinator.start_grooming(dog_id, grooming_type, notes)
-            
+
             # Fire event for automation triggers
             self.hass.bus.async_fire(
                 EVENT_GROOMING_DONE,
@@ -785,7 +902,7 @@ class ServiceManager:
         Records a play session for a dog.
         """
         self._log_service_call("play_session", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         duration_min = call.data["duration_min"]
         intensity = call.data.get("intensity", "medium")
@@ -810,7 +927,7 @@ class ServiceManager:
         Records a training session for a dog.
         """
         self._log_service_call("training_session", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         topic = call.data["topic"]
         duration_min = call.data["duration_min"]
@@ -843,7 +960,7 @@ class ServiceManager:
         Updates GPS location for a dog.
         """
         self._log_service_call("gps_post_location", call.data)
-        
+
         dog_id = call.data[CONF_DOG_ID]
         latitude = call.data["latitude"]
         longitude = call.data["longitude"]
@@ -851,13 +968,13 @@ class ServiceManager:
 
         try:
             self._validate_dog_exists(dog_id)
-            
+
             # Validate coordinates
             if not (-90 <= latitude <= 90):
                 raise ServiceValidationError(f"Invalid latitude: {latitude}")
             if not (-180 <= longitude <= 180):
                 raise ServiceValidationError(f"Invalid longitude: {longitude}")
-            
+
             self.coordinator.update_gps(dog_id, latitude, longitude, accuracy)
             _LOGGER.debug(
                 "Updated GPS for dog %s: %f, %f (accuracy: %s)",
@@ -874,7 +991,7 @@ class ServiceManager:
     async def _handle_gps_pause_tracking(self, call: ServiceCall) -> None:
         """Handle gps_pause_tracking service call."""
         self._log_service_call("gps_pause_tracking", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
@@ -890,7 +1007,7 @@ class ServiceManager:
     async def _handle_gps_resume_tracking(self, call: ServiceCall) -> None:
         """Handle gps_resume_tracking service call."""
         self._log_service_call("gps_resume_tracking", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
@@ -906,23 +1023,27 @@ class ServiceManager:
     async def _handle_gps_generate_diagnostics(self, call: ServiceCall) -> None:
         """Handle gps_generate_diagnostics service call."""
         self._log_service_call("gps_generate_diagnostics", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
                 diagnostics = await gps_handler.async_generate_diagnostics()
-                _LOGGER.info("Generated GPS diagnostics with %d entries", len(diagnostics))
+                _LOGGER.info(
+                    "Generated GPS diagnostics with %d entries", len(diagnostics)
+                )
             else:
                 _LOGGER.warning("GPS handler not available for diagnostics")
 
         except Exception as err:
             _LOGGER.error("Failed to generate GPS diagnostics: %s", err)
-            raise HomeAssistantError(f"Failed to generate GPS diagnostics: {err}") from err
+            raise HomeAssistantError(
+                f"Failed to generate GPS diagnostics: {err}"
+            ) from err
 
     async def _handle_gps_reset_stats(self, call: ServiceCall) -> None:
         """Handle gps_reset_stats service call."""
         self._log_service_call("gps_reset_stats", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
@@ -938,12 +1059,15 @@ class ServiceManager:
     async def _handle_gps_export_last_route(self, call: ServiceCall) -> None:
         """Handle gps_export_last_route service call."""
         self._log_service_call("gps_export_last_route", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
                 route_data = await gps_handler.async_export_last_route()
-                _LOGGER.info("Exported last route with %d points", len(route_data.get("points", [])))
+                _LOGGER.info(
+                    "Exported last route with %d points",
+                    len(route_data.get("points", [])),
+                )
             else:
                 _LOGGER.warning("GPS handler not available")
 
@@ -954,7 +1078,7 @@ class ServiceManager:
     async def _handle_gps_list_webhooks(self, call: ServiceCall) -> None:
         """Handle gps_list_webhooks service call."""
         self._log_service_call("gps_list_webhooks", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
@@ -970,7 +1094,7 @@ class ServiceManager:
     async def _handle_gps_regenerate_webhooks(self, call: ServiceCall) -> None:
         """Handle gps_regenerate_webhooks service call."""
         self._log_service_call("gps_regenerate_webhooks", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if gps_handler := runtime_data.get("gps_handler"):
@@ -981,7 +1105,9 @@ class ServiceManager:
 
         except Exception as err:
             _LOGGER.error("Failed to regenerate GPS webhooks: %s", err)
-            raise HomeAssistantError(f"Failed to regenerate GPS webhooks: {err}") from err
+            raise HomeAssistantError(
+                f"Failed to regenerate GPS webhooks: {err}"
+            ) from err
 
     # ==============================================================================
     # SYSTEM AND UTILITY SERVICE HANDLERS
@@ -993,7 +1119,7 @@ class ServiceManager:
         Resets daily counters for all dogs.
         """
         self._log_service_call("daily_reset", call.data)
-        
+
         try:
             await self.coordinator.reset_daily_counters()
             _LOGGER.info("Daily counters reset for all dogs")
@@ -1005,7 +1131,7 @@ class ServiceManager:
     async def _handle_sync_setup(self, call: ServiceCall) -> None:
         """Handle sync_setup service call."""
         self._log_service_call("sync_setup", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if setup_sync := runtime_data.get("setup_sync"):
@@ -1021,12 +1147,12 @@ class ServiceManager:
     async def _handle_toggle_visitor(self, call: ServiceCall) -> None:
         """Handle toggle_visitor service call."""
         self._log_service_call("toggle_visitor", call.data)
-        
+
         try:
             # Toggle visitor mode in coordinator
             current_mode = getattr(self.coordinator, "_visitor_mode", False)
             self.coordinator._visitor_mode = not current_mode
-            
+
             mode_str = "enabled" if self.coordinator._visitor_mode else "disabled"
             _LOGGER.info("Visitor mode %s", mode_str)
 
@@ -1037,7 +1163,7 @@ class ServiceManager:
     async def _handle_generate_report(self, call: ServiceCall) -> None:
         """Handle generate_report service call."""
         self._log_service_call("generate_report", call.data)
-        
+
         try:
             runtime_data = self.entry.runtime_data
             if report_generator := runtime_data.get("report_generator"):
@@ -1055,11 +1181,11 @@ class ServiceManager:
     async def _handle_export_data(self, call: ServiceCall) -> None:
         """Handle export_data service call."""
         self._log_service_call("export_data", call.data)
-        
+
         try:
             data_type = call.data.get("data_type", "all")
             format_type = call.data.get("format", "csv")
-            
+
             # Export data logic would go here
             _LOGGER.info("Exported %s data in %s format", data_type, format_type)
 
@@ -1070,7 +1196,7 @@ class ServiceManager:
     async def _handle_notify_test(self, call: ServiceCall) -> None:
         """Handle notify_test service call."""
         self._log_service_call("notify_test", call.data)
-        
+
         try:
             message = call.data.get("message", "Test notification from Paw Control")
             title = call.data.get("title", "Paw Control Test")
@@ -1088,20 +1214,24 @@ class ServiceManager:
 
         except Exception as err:
             _LOGGER.error("Failed to send test notification: %s", err)
-            raise HomeAssistantError(f"Failed to send test notification: {err}") from err
+            raise HomeAssistantError(
+                f"Failed to send test notification: {err}"
+            ) from err
 
     async def _handle_prune_stale_devices(self, call: ServiceCall) -> None:
         """Handle prune_stale_devices service call."""
         self._log_service_call("prune_stale_devices", call.data)
-        
+
         try:
             dry_run = call.data.get("dry_run", False)
-            
+
             # Import the prune function from __init__.py
             from . import _auto_prune_devices
-            
-            removed_count = await _auto_prune_devices(self.hass, self.entry, auto=not dry_run)
-            
+
+            removed_count = await _auto_prune_devices(
+                self.hass, self.entry, auto=not dry_run
+            )
+
             action = "would remove" if dry_run else "removed"
             _LOGGER.info("Device pruning %s %d stale devices", action, removed_count)
 
