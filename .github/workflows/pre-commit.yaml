@@ -11,6 +11,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - run: |
+          ruff check .
+          ruff check . --fix all || true
+          ruff check . --fix --unsafe-fixes || true
+          ruff check . --add-noqa || true
+          ruff check . --extend-select RUF100 --fix || true
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/ruff-baseline
+          title: "chore: ruff baseline (format+fix+noqa)"
+          commit-message: "chore: ruff baseline (format+fix+noqa)"
+          body: "Automated ruff baseline via GitHub Actions."
    #   - uses: pre-commit/action@v3.0.1
    #     with:
    #       extra_args: --all-files
