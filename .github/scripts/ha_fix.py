@@ -1,17 +1,5 @@
-#!/usr/bin/env python3
-"""
-ha_fix.py – Apply or check Home Assistant–style auto-fixes.
-
-- Uses ruff (lint + pyupgrade rules) and ruff format.
-- "--check" mode: fails CI if changes would be required (no writes).
-- Default mode: applies fixes in-place.
-
-Usage:
-  python .github/scripts/ha_fix.py          # apply fixes
-  python .github/scripts/ha_fix.py --check  # only check
-"""
-
 from __future__ import annotations
+
 import argparse
 import subprocess
 import sys
