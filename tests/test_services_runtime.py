@@ -45,8 +45,6 @@ async def test_gps_post_location_calls_handler(
 ) -> None:
     import custom_components.pawcontrol as comp
 
-    entry = init_integration
-
     called = {}
 
     async def fake_update_location(hass, call):
