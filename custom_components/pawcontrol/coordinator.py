@@ -63,19 +63,26 @@ type DogID = str
 type CoordinatorState = dict[str, Any]
 type UpdateResult = dict[str, Any] | None
 
+
 # Exception groups for robust error handling
 class CoordinatorErrors(ExceptionGroup):
     """Group for coordinator-related errors."""
+
     pass
+
 
 class DataUpdateErrors(ExceptionGroup):
     """Group for data update errors."""
+
     pass
+
 
 class ValidationErrors(ExceptionGroup):
     """Group for validation errors."""
+
     pass
-    
+
+
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Manage fetching and updating Paw Control data.
 
@@ -144,9 +151,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Initializing data for dog %s", dog_id)
 
             # Input validation for dog configuration
-            dog_weight = max(MIN_DOG_WEIGHT_KG, float(dog.get("weight", DEFAULT_DOG_WEIGHT_KG)))
+            dog_weight = max(
+                MIN_DOG_WEIGHT_KG, float(dog.get("weight", DEFAULT_DOG_WEIGHT_KG))
+            )
             dog_age = max(0, int(dog.get("age", 0)))
-            
+
             # Create comprehensive dog data structure
             self._dog_data[dog_id] = {
                 "info": {
@@ -252,7 +261,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     # Python 3.12+ Pattern matching for update types
                     updates = {
                         "walk": lambda: self._calculate_needs_walk(dog_id),
-                        "feeding": lambda: self._calculate_is_hungry(dog_id), 
+                        "feeding": lambda: self._calculate_is_hungry(dog_id),
                         "grooming": lambda: self._calculate_needs_grooming(dog_id),
                         "activity": lambda: self._calculate_activity_level(dog_id),
                         "health": lambda: self._calculate_next_medication(dog_id),
@@ -272,23 +281,31 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                                 case "activity":
                                     data["activity"]["activity_level"] = calc_func()
                                 case "health":
-                                    data["health"]["next_medication_due"] = await calc_func()
+                                    data["health"][
+                                        "next_medication_due"
+                                    ] = await calc_func()
                                 case "calories":
-                                    data["activity"]["calories_burned_today"] = calc_func()
+                                    data["activity"]["calories_burned_today"] = (
+                                        calc_func()
+                                    )
                         except Exception as update_err:
                             update_errors.append(update_err)
-                            _LOGGER.debug(f"Failed {update_type} update for {dog_id}: {update_err}")
+                            _LOGGER.debug(
+                                f"Failed {update_type} update for {dog_id}: {update_err}"
+                            )
 
                 except Exception as dog_err:
                     update_errors.append(dog_err)
                     _LOGGER.error(f"Failed to update dog {dog_id}: {dog_err}")
 
             self._last_update_time = current_time
-            
+
             # Log aggregated errors without failing
             if update_errors:
-                _LOGGER.warning(f"Update completed with {len(update_errors)} non-critical errors")
-            
+                _LOGGER.warning(
+                    f"Update completed with {len(update_errors)} non-critical errors"
+                )
+
             return self._dog_data
 
         except (ValueError, TypeError) as err:
@@ -390,7 +407,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return False
-            
+
         data = self._dog_data[dog_id]["walk"]
 
         # Don't recommend walk if one is already in progress
@@ -418,7 +435,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return False
-            
+
         data = self._dog_data[dog_id]["feeding"]
         current_hour = dt_util.now().hour
 
@@ -447,7 +464,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return False
-            
+
         data = self._dog_data[dog_id]["grooming"]
 
         last_grooming_dt = self._parse_datetime(data["last_grooming"])
@@ -473,7 +490,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return "medium"
-            
+
         walk_data = self._dog_data[dog_id]["walk"]
         activity_data = self._dog_data[dog_id]["activity"]
 
@@ -502,7 +519,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return None
-            
+
         health_data = self._dog_data[dog_id]["health"]
         last_med_dt = self._parse_datetime(health_data.get("last_medication"))
         if not last_med_dt:
@@ -536,7 +553,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if dog_id not in self._dog_data:
             return 0.0
-            
+
         walk_data = self._dog_data[dog_id]["walk"]
         activity_data = self._dog_data[dog_id]["activity"]
         dog_weight = self._dog_data[dog_id]["info"]["weight"]
@@ -572,7 +589,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         try:
             # Make a shallow copy to detach from the source mapping
-            if hasattr(self.entry, '_options'):
+            if hasattr(self.entry, "_options"):
                 self.entry._options = dict(options)
             else:
                 # Fallback for test environments
@@ -602,7 +619,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         }
                     )
                     # Preserve other categories
-                    for category in ["health", "grooming", "training", "activity", "location", "statistics"]:
+                    for category in [
+                        "health",
+                        "grooming",
+                        "training",
+                        "activity",
+                        "location",
+                        "statistics",
+                    ]:
                         if category in old_dog_data:
                             new_data[category].update(old_dog_data[category])
 
@@ -710,7 +734,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             distance = None
             inside = None
 
-            if isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float)):
+            if isinstance(home_lat, (int, float)) and isinstance(
+                home_lon, (int, float)
+            ):
                 try:
                     if validate_coordinates(
                         float(home_lat), float(home_lon)
@@ -799,7 +825,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def cleanup(self) -> None:
         """Cleanup coordinator resources.
-        
+
         Cancels all pending debounce tasks and clears data structures.
         Should be called during unload.
         """
@@ -807,14 +833,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for task in self._update_debounce_tasks.values():
             if not task.done():
                 task.cancel()
-        
+
         self._update_debounce_tasks.clear()
-        
+
         # Clear data structures
         self._dog_data.clear()
         self._last_refresh_request = None
         self._last_update_time = None
-        
+
         _LOGGER.debug("Coordinator cleanup completed")
 
     async def reset_daily_counters(self) -> None:
@@ -1009,7 +1035,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Args:
             dog_id: Unique identifier for the dog
             source: Source of the walk start (manual, automatic, etc.)
-            
+
         Raises:
             ValueError: If dog_id is invalid or not found
         """
@@ -1059,7 +1085,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Args:
             dog_id: Unique identifier for the dog
             reason: Reason for ending walk (manual, automatic, timeout, etc.)
-            
+
         Raises:
             ValueError: If dog_id is invalid or not found
         """
@@ -1133,13 +1159,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: Unique identifier for the dog
             duration_min: Walk duration in minutes
             distance_m: Walk distance in meters
-            
+
         Raises:
             ValueError: If dog_id is invalid or input parameters are invalid
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if duration_min < 0 or distance_m < 0:
             raise ValueError("Duration and distance must be non-negative")
 
@@ -1184,13 +1210,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             meal_type: Type of meal (breakfast, lunch, dinner, snack)
             portion_g: Portion size in grams
             food_type: Type of food given
-            
+
         Raises:
             ValueError: If dog_id is invalid or input parameters are invalid
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if portion_g < 0:
             raise ValueError("Portion size must be non-negative")
 
@@ -1250,13 +1276,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: Unique identifier for the dog
             weight_kg: Current weight in kilograms (optional)
             note: Health note or observation
-            
+
         Raises:
             ValueError: If dog_id is invalid or weight is invalid
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if weight_kg is not None and weight_kg <= 0:
             raise ValueError("Weight must be positive")
 
@@ -1310,13 +1336,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: Unique identifier for the dog
             medication_name: Name of the medication
             dose: Dosage information
-            
+
         Raises:
             ValueError: If dog_id is invalid or medication data is invalid
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if not medication_name or not medication_name.strip():
             raise ValueError("Medication name is required")
 
@@ -1366,7 +1392,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: Unique identifier for the dog
             grooming_type: Type of grooming (bath, brush, nail_trim, etc.)
             notes: Additional notes about the grooming session
-            
+
         Raises:
             ValueError: If dog_id is invalid
         """
@@ -1425,13 +1451,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: Unique identifier for the dog
             duration_min: Play duration in minutes
             intensity: Play intensity (low, medium, high)
-            
+
         Raises:
             ValueError: If dog_id is invalid or duration is negative
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if duration_min < 0:
             raise ValueError("Duration must be non-negative")
 
@@ -1476,13 +1502,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             topic: Training topic or skill
             duration_min: Training duration in minutes
             notes: Training notes and observations
-            
+
         Raises:
             ValueError: If dog_id is invalid or duration is negative
         """
         if dog_id not in self._dog_data:
             raise ValueError(f"Unknown dog: {dog_id}")
-            
+
         if duration_min < 0:
             raise ValueError("Duration must be non-negative")
 
