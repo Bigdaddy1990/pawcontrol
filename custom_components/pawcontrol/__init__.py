@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-import sys
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -44,16 +44,15 @@ from .const import (
     DOMAIN as CONST_DOMAIN,
 )
 
+if TYPE_CHECKING:
+    from .types import PawRuntimeData
+
 # Expose the integration domain at module import time so tests can reliably
 # import it without depending on the contents of ``const.py``.
 DOMAIN = "pawcontrol"
 
-# Ensure Home Assistant can discover this custom integration even when
-# the custom components path isn't explicitly set up in tests.
-sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
-
 # Ensure the domain constant matches the value from const.py.
-assert DOMAIN == CONST_DOMAIN
+assert DOMAIN == CONST_DOMAIN, f"Domain mismatch: {DOMAIN} != {CONST_DOMAIN}"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +70,6 @@ async def _maybe_await(result):
     this helper makes the integration tolerant to such patches by awaiting the
     result only when necessary.
     """
-
     if inspect.isawaitable(result):
         return await result
     return result
@@ -96,6 +94,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         """Dummy notify service used for tests."""
         return
 
+    # Only register test service if not already present
     if not hass.services.has_service(DOMAIN, "notify_test"):
         hass.services.async_register(DOMAIN, "notify_test", _notify_test)
 
@@ -125,12 +124,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = hass.data.setdefault(DOMAIN, {})
 
     # Import heavy modules lazily to avoid Home Assistant dependency during tests
-    from .helpers import notification_router as notification_router_mod
-    from .helpers import scheduler as scheduler_mod
-    from .helpers import setup_sync as setup_sync_mod
-    from .report_generator import ReportGenerator
-    from .services import ServiceManager
-    from .types import PawRuntimeData
+    try:
+        from .helpers import notification_router as notification_router_mod
+        from .helpers import scheduler as scheduler_mod
+        from .helpers import setup_sync as setup_sync_mod
+        from .report_generator import ReportGenerator
+        from .services import ServiceManager
+    except ImportError as err:
+        _LOGGER.error("Failed to import required modules: %s", err)
+        raise ConfigEntryNotReady(f"Import error: {err}") from err
 
     # Reuse existing coordinator if setup is retried
     if entry.entry_id in data and "coordinator" in data[entry.entry_id]:
@@ -157,10 +159,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(f"Coordinator initialization failed: {err}") from err
 
     # Initialize GPS handler with configuration validation
-    gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
-    gps_handler_obj.entry_id = entry.entry_id
-
+    gps_handler_obj = None
     try:
+        gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
+        gps_handler_obj.entry_id = entry.entry_id
         await _maybe_await(gps_handler_obj.async_setup())
     except Exception as err:
         _LOGGER.error(
@@ -173,6 +175,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         gps_handler_obj = None
 
     # Initialize helper modules with error handling
+    notification_router = None
+    setup_sync = None
+    report_generator = None
+    
     try:
         notification_router = notification_router_mod.NotificationRouter(hass, entry)
         setup_sync = setup_sync_mod.SetupSync(hass, entry)
@@ -184,13 +190,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             err,
         )
         # Use fallback implementations for tests
-        notification_router = None
-        setup_sync = None
-        report_generator = None
+        _LOGGER.warning("Continuing setup with limited functionality")
 
     # Initialize service manager with registration
-    services = ServiceManager(hass, entry)
+    services = None
     try:
+        services = ServiceManager(hass, entry)
         await _maybe_await(services.async_register_services())
     except Exception as err:
         _LOGGER.error(
@@ -199,27 +204,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             err,
         )
         # Services not critical for tests - continue without them
-        services = None
 
-    # Guarantee critical GPS control services are available even when the
+    # Ensure critical GPS control services are available even when the
     # ServiceManager is heavily mocked in tests. The handlers are no-ops but
     # allow tests to verify that the services exist.
-    if not hass.services.has_service(DOMAIN, "gps_pause_tracking"):
-        hass.services.async_register(DOMAIN, "gps_pause_tracking", lambda call: None)
-    if not hass.services.has_service(DOMAIN, "gps_resume_tracking"):
-        hass.services.async_register(DOMAIN, "gps_resume_tracking", lambda call: None)
-    if not hass.services.has_service(DOMAIN, "notify_test"):
-        hass.services.async_register(DOMAIN, "notify_test", lambda call: None)
+    _ensure_critical_services(hass)
 
     # Create runtime data container for efficient access
-    runtime_data = PawRuntimeData(
-        coordinator=coordinator,
-        gps_handler=gps_handler_obj,  # May be None if GPS setup failed
-        setup_sync=setup_sync,
-        report_generator=report_generator,
-        services=services,
-        notification_router=notification_router,
-    )
+    runtime_data: PawRuntimeData = {
+        "coordinator": coordinator,
+        "gps_handler": gps_handler_obj,  # May be None if GPS setup failed
+        "setup_sync": setup_sync,
+        "report_generator": report_generator,
+        "services": services,
+        "notification_router": notification_router,
+    }
 
     # Set runtime data on entry for platform access and store in hass.data
     entry.runtime_data = runtime_data
@@ -308,13 +307,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Final validation of setup success
-    if not runtime_data.coordinator.last_update_success:
+    if not runtime_data["coordinator"].last_update_success:
         _LOGGER.warning(
             "Setup completed but coordinator has not successfully updated data for entry %s",
             entry.entry_id,
         )
 
     return True
+
+
+def _ensure_critical_services(hass: HomeAssistant) -> None:
+    """Ensure critical services are available.
+    
+    Args:
+        hass: Home Assistant instance
+    """
+    critical_services = [
+        "gps_pause_tracking",
+        "gps_resume_tracking", 
+        "notify_test"
+    ]
+    
+    for service in critical_services:
+        if not hass.services.has_service(DOMAIN, service):
+            hass.services.async_register(DOMAIN, service, lambda call: None)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -336,11 +352,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Starting unload for entry %s", entry.entry_id)
 
     # Cleanup schedulers first to stop background tasks
-    from .helpers import scheduler as scheduler_mod
-
     try:
+        from .helpers import scheduler as scheduler_mod
         await scheduler_mod.cleanup_schedulers(hass, entry)
-    except Exception as err:
+    except (ImportError, Exception) as err:
         _LOGGER.warning(
             "Failed to cleanup schedulers for entry %s: %s",
             entry.entry_id,
@@ -348,6 +363,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     # Unload platforms with detailed error handling
+    unload_ok = False
     try:
         unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     except Exception as err:
@@ -368,13 +384,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
         # Unregister services if no more entries exist
+        runtime_data = getattr(entry, "runtime_data", None)
         if (
             not hass.data[DOMAIN]
-            and hasattr(entry, "runtime_data")
-            and entry.runtime_data.services
+            and runtime_data
+            and runtime_data.get("services")
         ):
             try:
-                await entry.runtime_data.services.async_unregister_services()
+                await runtime_data["services"].async_unregister_services()
             except Exception as err:
                 _LOGGER.warning(
                     "Failed to unregister services: %s",
@@ -403,24 +420,27 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     _LOGGER.debug("Updating options for entry %s", entry.entry_id)
 
-    from .helpers import scheduler as scheduler_mod
-
-    runtime_data = entry.runtime_data
+    runtime_data = getattr(entry, "runtime_data", None)
+    if not runtime_data:
+        _LOGGER.error("No runtime data found for entry %s", entry.entry_id)
+        return
 
     try:
+        from .helpers import scheduler as scheduler_mod
+
         # Update coordinator with new options
-        runtime_data.coordinator.update_options(entry.options)
+        runtime_data["coordinator"].update_options(entry.options)
 
         # Resync helpers and entities with new configuration (if available)
-        if runtime_data.setup_sync:
-            await _maybe_await(runtime_data.setup_sync.sync_all())
+        if runtime_data.get("setup_sync"):
+            await _maybe_await(runtime_data["setup_sync"].sync_all())
 
         # Reschedule tasks with new timing configuration
         await scheduler_mod.cleanup_schedulers(hass, entry)
         await scheduler_mod.setup_schedulers(hass, entry)
 
         # Refresh data to apply any new settings
-        await runtime_data.coordinator.async_request_refresh()
+        await runtime_data["coordinator"].async_request_refresh()
 
         _LOGGER.info("Successfully updated options for entry %s", entry.entry_id)
 
@@ -456,17 +476,17 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Remove entry data from domain storage
     domain_data = hass.data.get(DOMAIN, {})
-    if entry.entry_id in domain_data:
-        domain_data.pop(entry.entry_id, None)
+    domain_data.pop(entry.entry_id, None)
 
     # Clean up services if this was the last integration instance
+    runtime_data = getattr(entry, "runtime_data", None)
     if (
         not domain_data
-        and hasattr(entry, "runtime_data")
-        and entry.runtime_data.services
+        and runtime_data
+        and runtime_data.get("services")
     ):
         try:
-            await entry.runtime_data.services.async_unregister_services()
+            await runtime_data["services"].async_unregister_services()
         except Exception as err:
             _LOGGER.warning(
                 "Failed to unregister services during removal: %s",
@@ -509,9 +529,9 @@ async def async_remove_config_entry_device(
         return False
 
     # Cleanup internal caches/state if present
-    runtime_data = entry.runtime_data
-    if runtime_data and hasattr(runtime_data.coordinator, "_dog_data"):
-        runtime_data.coordinator._dog_data.pop(dog_id, None)
+    runtime_data = getattr(entry, "runtime_data", None)
+    if runtime_data and hasattr(runtime_data["coordinator"], "_dog_data"):
+        runtime_data["coordinator"]._dog_data.pop(dog_id, None)
         _LOGGER.info(
             "Cleaned up coordinator data for removed dog device %s",
             dog_id,
@@ -549,7 +569,7 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 name=f"🐕 {dog_name}",
                 manufacturer="Paw Control",
                 model="Smart Dog Manager",
-                sw_version="1.1.0",
+                sw_version="1.3.0",
             )
             _LOGGER.debug("Registered device for dog %s (%s)", dog_name, dog_id)
         except Exception as err:
@@ -658,11 +678,11 @@ def _get_known_dog_ids(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
     Returns:
         Set of known dog IDs
     """
-    runtime_data = entry.runtime_data
+    runtime_data = getattr(entry, "runtime_data", None)
     if not runtime_data:
         return set()
 
-    coordinator = getattr(runtime_data, "coordinator", None)
+    coordinator = runtime_data.get("coordinator")
     if not coordinator:
         return set()
 
@@ -693,7 +713,7 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     invalid = False
 
     # Validate radius
-    if radius is not None and (not isinstance(radius, int | float) or radius <= 0):
+    if radius is not None and (not isinstance(radius, (int, float)) or radius <= 0):
         invalid = True
 
     # Validate coordinate pair consistency
@@ -702,13 +722,13 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Validate latitude range
     if lat is not None and (
-        not isinstance(lat, int | float) or not -90 <= float(lat) <= 90
+        not isinstance(lat, (int, float)) or not -90 <= float(lat) <= 90
     ):
         invalid = True
 
     # Validate longitude range
     if lon is not None and (
-        not isinstance(lon, int | float) or not -180 <= float(lon) <= 180
+        not isinstance(lon, (int, float)) or not -180 <= float(lon) <= 180
     ):
         invalid = True
 
@@ -773,6 +793,5 @@ async def _force_unload_platforms(hass: HomeAssistant, entry: ConfigEntry) -> bo
 
 async def handle_gps_post_location(call: ServiceCall) -> None:
     """Validate GPS post location service calls have a target dog."""
-
     if "dog_id" not in call.data:
         raise HomeAssistantError("dog_id is required for gps_post_location")

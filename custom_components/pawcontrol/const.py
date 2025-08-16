@@ -12,12 +12,16 @@ from __future__ import annotations
 
 from typing import Final
 
-try:  # pragma: no cover - Home Assistant may not be installed
+# Safe import with specific exception handling for Home Assistant components
+try:
     from homeassistant.const import Platform
-except Exception:  # pragma: no cover - provide minimal fallback enum
+except ImportError:
+    # Provide proper fallback enum for test environments
     from enum import StrEnum
 
-    class Platform(StrEnum):  # type: ignore[missing-class-docstring]
+    class Platform(StrEnum):
+        """Fallback Platform enum for environments without Home Assistant."""
+        
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         DATETIME = "datetime"
@@ -46,6 +50,7 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.DATETIME,
     Platform.DEVICE_TRACKER,
     Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.TEXT,
