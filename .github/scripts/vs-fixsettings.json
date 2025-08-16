@@ -1,0 +1,82 @@
+// Home Assistant konforme VS Code Settings mit Auto-Fixes
+{
+  // Python für HA Development mit Auto-Fix
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  
+  // HA-konforme Formatierung mit Auto-Fix
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+  
+  // Ruff für HA-konforme Auto-Fixes
+  "ruff.enable": true,
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.args": ["--config=.ruff.toml"],
+  "ruff.lint.args": ["--config=.ruff.toml", "--fix"],
+  "ruff.format.args": ["--config=.ruff.toml"],
+  
+  // Black formatting (HA Standard)
+  "black-formatter.args": ["--safe"],
+  
+  // HA Development Standards mit Auto-Fix
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.rulers": [88],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.autoSave": "onFocusChange",
+  
+  // Pre-commit integration für Auto-Fix
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.py$",
+        "cmd": "pre-commit run --files ${file}"
+      }
+    ]
+  },
+  
+  // File associations für HA
+  "files.associations": {
+    "*.py": "python",
+    "manifest.json": "json",
+    "services.yaml": "yaml",
+    "*.yaml": "yaml",
+    ".ruff.toml": "toml"
+  },
+  
+  // HA recommended extensions mit Auto-Fix Funktionen
+  "extensions.recommendations": [
+    "ms-python.python",
+    "ms-python.black-formatter", 
+    "charliermarsh.ruff",
+    "ms-python.pylint",
+    "redhat.vscode-yaml",
+    "emeraldwalk.RunOnSave"
+  ],
+  
+  // Test configuration für HA
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  
+  // Auto-Fix on Error Detection
+  "problems.decorations.enabled": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  }
+}
