@@ -17,27 +17,13 @@ The integration follows Home Assistant's Platinum quality standards with:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
-
-# Expose the integration domain at module import time so tests can reliably
-# import it without depending on the contents of ``const.py``.
-DOMAIN = "pawcontrol"
-
-# Ensure Home Assistant can discover this custom integration even when
-# the custom components path isn't explicitly set up in tests.
 import sys
 
-sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
-
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigEntryState,
-)
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     ConfigEntryNotReady,
     HomeAssistantError,
-    ServiceValidationError,
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -51,22 +37,27 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
-    EVENT_DAILY_RESET,
     PLATFORMS,
 )
 from .const import (
     DOMAIN as CONST_DOMAIN,
 )
 
+# Expose the integration domain at module import time so tests can reliably
+# import it without depending on the contents of ``const.py``.
+DOMAIN = "pawcontrol"
+
+# Ensure Home Assistant can discover this custom integration even when
+# the custom components path isn't explicitly set up in tests.
+sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
+
 # Ensure the domain constant matches the value from const.py.
 assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-if hasattr(cv, "config_entry_only_config_schema"):
-    CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-else:  # pragma: no cover - stub environment without config validation
-    CONFIG_SCHEMA = None
+# This integration only supports config entries, no YAML configuration
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -293,7 +284,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
         )
 
-    entry.state = ConfigEntryState.LOADED
     return True
 
 
