@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.12"  # HA 2025.8.1 Standard
-  HOMEASSISTANT_VERSION: "2025.8.1"
+  PYTHON_VERSION: "3.13"  # HA 2025.8.2 Standard
+  HOMEASSISTANT_VERSION: "2025.8.2"
 
 jobs:
   # Job 1: HA-konforme Code Quality mit Auto-Fixes
@@ -43,8 +43,8 @@ jobs:
         run: |
           echo "🔧 Applying Home Assistant auto-fixes..."
           
-          # 1. Pyupgrade für Python 3.12+ (HA Standard)
-          find custom_components tests -name "*.py" -exec pyupgrade --py312-plus {} \; || true
+          # 1. Pyupgrade für Python 3.13+ (HA Standard)
+          find custom_components tests -name "*.py" -exec pyupgrade --py313-plus {} \; || true
           
           # 2. Ruff Auto-Fixes (HA Rules)
           ruff check --fix custom_components tests || true
@@ -55,7 +55,7 @@ jobs:
           
           # 4. Import sorting via ruff
           ruff check --select I --fix custom_components tests || true
-          
+
       - name: Run HA pre-commit hooks
         run: pre-commit run --all-files || true
         
@@ -68,7 +68,7 @@ jobs:
             git add .
             git commit -m "🤖 Apply Home Assistant auto-fixes
 
-            - Applied pyupgrade (Python 3.12+)
+            - Applied pyupgrade (Python 3.13+)
             - Applied ruff auto-fixes (HA rules)
             - Applied black formatting
             - Fixed import sorting
@@ -111,7 +111,7 @@ jobs:
     needs: [hassfest, hacs]
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -141,7 +141,7 @@ jobs:
             -v
           
       - name: Upload Coverage (HA Standard)
-        if: matrix.python-version == '3.12'
+        if: matrix.python-version == '3.13'
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
