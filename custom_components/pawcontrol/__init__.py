@@ -17,13 +17,22 @@ The integration follows Home Assistant's Platinum quality standards with:
 from __future__ import annotations
 
 import logging
-import sys
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import ConfigEntry
+# Expose the integration domain at module import time
+# so tests can reliably import it without depending on
+# the contents of :mod:`custom_components.pawcontrol.const`.
+DOMAIN = "pawcontrol"
+
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+)
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     ConfigEntryNotReady,
     HomeAssistantError,
+    ServiceValidationError,
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -37,26 +46,24 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    EVENT_DAILY_RESET,
     PLATFORMS,
 )
 from .const import (
     DOMAIN as CONST_DOMAIN,
 )
-
-# Expose the integration domain at module import time so tests can reliably
-# import it without depending on the contents of ``const.py``.
-DOMAIN = "pawcontrol"
-
-# Ensure Home Assistant can discover this custom integration even when
-# the custom components path isn't explicitly set up in tests.
-sys.modules.setdefault("homeassistant.components.pawcontrol", sys.modules[__name__])
+from .helpers import notification_router as notification_router_mod
+from .helpers import scheduler as scheduler_mod
+from .helpers import setup_sync as setup_sync_mod
+from .report_generator import ReportGenerator
+from .services import ServiceManager
+from .types import PawRuntimeData
 
 # Ensure the domain constant matches the value from const.py.
 assert DOMAIN == CONST_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# This integration only supports config entries, no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
@@ -77,6 +84,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def _notify_test(_: ServiceCall) -> None:
         """Dummy notify service used for tests."""
+
         return
 
     if not hass.services.has_service(DOMAIN, "notify_test"):
@@ -107,14 +115,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
     hass.data.setdefault(DOMAIN, {})
 
-    # Import heavy modules lazily to avoid Home Assistant dependency during tests
-    from .helpers import notification_router as notification_router_mod
-    from .helpers import scheduler as scheduler_mod
-    from .helpers import setup_sync as setup_sync_mod
-    from .report_generator import ReportGenerator
-    from .services import ServiceManager
-    from .types import PawRuntimeData
-
     # Initialize coordinator with proper error handling
     coordinator = coordinator_mod.PawControlCoordinator(hass, entry)
 
@@ -126,15 +126,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             err,
         )
-        # Enhanced error context for debugging
-        error_details = {
-            "entry_id": entry.entry_id,
-            "coordinator_status": getattr(coordinator, "coordinator_status", "unknown"),
-            "error_type": type(err).__name__,
-            "dogs_count": len(entry.options.get(CONF_DOGS, [])),
-        }
-        _LOGGER.debug("Coordinator initialization failure details: %s", error_details)
-        raise ConfigEntryNotReady(f"Coordinator initialization failed: {err}") from err
+        raise ConfigEntryNotReady from err
 
     # Initialize GPS handler with configuration validation
     gps_handler_obj = gps.PawControlGPSHandler(hass, entry.options)
@@ -146,11 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error(
             "Failed to setup GPS handler for entry %s: %s", entry.entry_id, err
         )
-        # GPS setup is not critical - continue without it
-        _LOGGER.warning(
-            "Continuing setup without GPS handler due to initialization failure"
-        )
-        gps_handler_obj = None
+        raise ConfigEntryNotReady from err
 
     # Initialize helper modules with error handling
     try:
@@ -163,10 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             err,
         )
-        # Use fallback implementations for tests
-        notification_router = None
-        setup_sync = None
-        report_generator = None
+        raise ConfigEntryNotReady from err
 
     # Initialize service manager with registration
     services = ServiceManager(hass, entry)
@@ -178,13 +163,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             err,
         )
-        # Services not critical for tests - continue without them
-        services = None
+        raise ConfigEntryNotReady from err
 
     # Create runtime data container for efficient access
     runtime_data = PawRuntimeData(
         coordinator=coordinator,
-        gps_handler=gps_handler_obj,  # May be None if GPS setup failed
+        gps_handler=gps_handler_obj,
         setup_sync=setup_sync,
         report_generator=report_generator,
         services=services,
@@ -195,15 +179,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = runtime_data
     hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
 
-    # Register devices for each configured dog with validation
-    try:
-        await _register_devices(hass, entry)
-    except Exception as err:
-        _LOGGER.error(
-            "Failed to register devices for entry %s: %s", entry.entry_id, err
-        )
-        # Device registration failure is non-critical, continue setup
-        _LOGGER.warning("Continuing setup without device registration")
+    # Register devices for each configured dog
+    await _register_devices(hass, entry)
 
     # Setup platforms with proper error handling
     try:
@@ -220,10 +197,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             err,
         )
-        _LOGGER.warning(
-            "Continuing setup without forwarding entry platforms for %s",
-            entry.entry_id,
-        )
+        raise ConfigEntryNotReady from err
 
     # Setup schedulers for automated tasks (daily reset, reports, reminders)
     try:
@@ -236,17 +210,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         # Non-critical, continue setup
 
-    # Perform initial synchronization of helpers and entities (if available)
-    if setup_sync:
-        try:
-            await setup_sync.sync_all()
-        except Exception as err:
-            _LOGGER.warning(
-                "Failed initial sync for entry %s: %s",
-                entry.entry_id,
-                err,
-            )
-            # Non-critical, continue setup
+    # Perform initial synchronization of helpers and entities
+    try:
+        await setup_sync.sync_all()
+    except Exception as err:
+        _LOGGER.warning(
+            "Failed initial sync for entry %s: %s",
+            entry.entry_id,
+            err,
+        )
+        # Non-critical, continue setup
 
     # Add update listener for configuration changes
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -277,13 +250,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         len(entry.options.get(CONF_DOGS, [])),
     )
 
-    # Final validation of setup success
-    if not runtime_data.coordinator.last_update_success:
-        _LOGGER.warning(
-            "Setup completed but coordinator has not successfully updated data for entry %s",
-            entry.entry_id,
-        )
-
     return True
 
 
@@ -306,8 +272,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Starting unload for entry %s", entry.entry_id)
 
     # Cleanup schedulers first to stop background tasks
-    from .helpers import scheduler as scheduler_mod
-
     try:
         await scheduler_mod.cleanup_schedulers(hass, entry)
     except Exception as err:
@@ -317,7 +281,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             err,
         )
 
-    # Unload platforms with detailed error handling
+    # Unload platforms
     try:
         unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     except Exception as err:
@@ -326,23 +290,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             err,
         )
-        # Force unload individual platforms if bulk unload fails
-        unload_ok = await _force_unload_platforms(hass, entry)
-        if unload_ok:
-            _LOGGER.info(
-                "Successfully force-unloaded platforms for entry %s", entry.entry_id
-            )
+        unload_ok = False
 
     if unload_ok:
         # Clean up stored data
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
         # Unregister services if no more entries exist
-        if (
-            not hass.data[DOMAIN]
-            and hasattr(entry, "runtime_data")
-            and entry.runtime_data.services
-        ):
+        if not hass.data[DOMAIN] and hasattr(entry, "runtime_data"):
             try:
                 await entry.runtime_data.services.async_unregister_services()
             except Exception as err:
@@ -373,17 +328,14 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     _LOGGER.debug("Updating options for entry %s", entry.entry_id)
 
-    from .helpers import scheduler as scheduler_mod
-
     runtime_data = entry.runtime_data
 
     try:
         # Update coordinator with new options
         runtime_data.coordinator.update_options(entry.options)
 
-        # Resync helpers and entities with new configuration (if available)
-        if runtime_data.setup_sync:
-            await runtime_data.setup_sync.sync_all()
+        # Resync helpers and entities with new configuration
+        await runtime_data.setup_sync.sync_all()
 
         # Reschedule tasks with new timing configuration
         await scheduler_mod.cleanup_schedulers(hass, entry)
@@ -430,11 +382,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         domain_data.pop(entry.entry_id, None)
 
     # Clean up services if this was the last integration instance
-    if (
-        not domain_data
-        and hasattr(entry, "runtime_data")
-        and entry.runtime_data.services
-    ):
+    if not domain_data and hasattr(entry, "runtime_data"):
         try:
             await entry.runtime_data.services.async_unregister_services()
         except Exception as err:
@@ -698,47 +646,6 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     else:
         # Configuration is valid, remove any existing repair issue
         ir.async_delete_issue(hass, DOMAIN, "invalid_geofence")
-
-
-async def _force_unload_platforms(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Force unload platforms individually if bulk unload fails.
-
-    Args:
-        hass: Home Assistant instance
-        entry: Config entry to unload platforms for
-
-    Returns:
-        True if all platforms unloaded successfully, False otherwise
-    """
-    unload_results = []
-
-    for platform in PLATFORMS:
-        try:
-            result = await hass.config_entries.async_unload_platforms(entry, [platform])
-            unload_results.append(result)
-            if result:
-                _LOGGER.debug(
-                    "Successfully unloaded platform %s for entry %s",
-                    platform,
-                    entry.entry_id,
-                )
-            else:
-                _LOGGER.warning(
-                    "Failed to unload platform %s for entry %s",
-                    platform,
-                    entry.entry_id,
-                )
-        except Exception as err:
-            _LOGGER.error(
-                "Error unloading platform %s for entry %s: %s",
-                platform,
-                entry.entry_id,
-                err,
-            )
-            unload_results.append(False)
-
-    # Return True only if all platforms unloaded successfully
-    return all(unload_results)
 
 
 async def handle_gps_post_location(call: ServiceCall) -> None:
