@@ -26,7 +26,6 @@ from .const import (
     ATTR_DOG_ID,
     CONF_DOG_ID,
     DOMAIN,
-    ERROR_DOG_NOT_FOUND,
     EVENT_DOG_FED,
     EVENT_GROOMING_DONE,
     EVENT_MEDICATION_GIVEN,

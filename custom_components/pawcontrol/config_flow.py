@@ -15,7 +15,6 @@ The config flow follows Home Assistant's Platinum standards with:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -36,11 +35,9 @@ from homeassistant.config_entries import (
     OptionsFlow,
     OptionsFlowWithConfigEntry,
 )
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
@@ -62,22 +59,15 @@ from .const import (
     DEFAULT_RESET_TIME,
     DOG_SIZES,
     DOMAIN,
-    ERROR_INVALID_CONFIG,
-    FEEDING_TYPES,
-    GROOMING_TYPES,
-    INTENSITY_TYPES,
     MAX_DOG_AGE_YEARS,
     MAX_DOG_WEIGHT_KG,
     MAX_DOGS_PER_INTEGRATION,
-    MEAL_TYPES,
     MIN_DOG_AGE_YEARS,
     MIN_DOG_WEIGHT_KG,
-    TRAINING_TYPES,
 )
 from .discovery import can_connect_pawtracker
 from .exceptions import (
     PawControlConfigError,
-    PawControlConnectionError,
     PawControlValidationError,
 )
 
@@ -100,7 +90,7 @@ type ValidationResult = tuple[dict[str, Any], dict[str, str] | None]
 ''')
 else:
     # Fallback for Python < 3.12
-    from typing import Union, Literal
+    from typing import Literal
     FlowStep = Literal[
         "user", "discovery_confirm", "reauth_confirm",
         "dog_basic", "dog_modules", "sources", 
@@ -522,7 +512,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     options=config,
                 )
 
-            except PawControlConfigError as err:
+            except PawControlConfigError:
                 errors = {"base": "config_error"}
                 return self.async_show_form(
                     step_id="advanced",
