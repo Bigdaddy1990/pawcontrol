@@ -1,13 +1,15 @@
+# .github/workflows/hassfest.yml
 name: hassfest
+
 on:
   push:
-    branches: [ "main" ]
+  pull_request:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 0 * * *"
 
 jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: home-assistant/actions/hassfest@master
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@main
