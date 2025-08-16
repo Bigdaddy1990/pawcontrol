@@ -4,7 +4,6 @@ Home Assistant konforme Code-Quality Tools
 
 Wrapper für die offiziellen HA Development Tools:
 - pyupgrade (Python 3.12+)
-- black (formatting)
 - ruff (linting + auto-fix)
 - pre-commit hooks
 
@@ -54,20 +53,16 @@ def main():
         (["/usr/bin/env python3", "-m", "pyupgrade", "--py312-plus"] + 
          [str(f) for f in Path(".").rglob("*.py") if "custom_components" in str(f) or "tests" in str(f)],
          "pyupgrade (Python 3.12+)"),
-        
-        # 2. black formatting (HA standard)
-        (["black"] + (["--check", "--diff"] if check_only else []) + ["custom_components", "tests"],
-         "black formatting"),
-        
-        # 3. ruff check + auto-fix (HA uses this)
+
+        # 2. ruff check + auto-fix (HA uses this)
         (["ruff", "check"] + ([] if check_only else ["--fix"]) + ["custom_components", "tests"],
          "ruff linting"),
         
-        # 4. ruff format (additional formatting)
+        # 3. ruff format (additional formatting)
         (["ruff", "format"] + (["--check"] if check_only else []) + ["custom_components", "tests"],
          "ruff formatting"),
         
-        # 5. pre-commit hooks (if available)
+        # 4. pre-commit hooks (if available)
         (["pre-commit", "run", "--all-files"] + ([] if not check_only else []),
          "pre-commit hooks"),
     ]
