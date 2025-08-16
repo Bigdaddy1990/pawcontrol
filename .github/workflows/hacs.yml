@@ -1,22 +1,19 @@
+# .github/workflows/hacs.yml
 name: HACS validation
-on:
-  #pull_request:
-   #paths:
-     # - "custom_components/**"
-     # - "hacs.json"
-  push:
-    branches: [ "main" ]
 
-permissions:
-  contents: read
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 3 * * *"
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: HACS validation
-        uses: hacs/action@main
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
         with:
           category: integration
+          repository: ${{ github.repository }}
           ignore: brands
