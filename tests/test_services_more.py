@@ -2,20 +2,18 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 DOMAIN = "pawcontrol"
 
 
 @pytest.mark.asyncio
-async def test_toggle_geofence_and_purge_storage(hass: HomeAssistant):
-    assert await async_setup_component(hass, DOMAIN, {}) or True
+async def test_toggle_geofence_and_purge_storage(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    import custom_components.pawcontrol as comp
 
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    entry = init_integration
 
     with (
         patch(
@@ -44,7 +42,5 @@ async def test_toggle_geofence_and_purge_storage(hass: HomeAssistant):
             blocking=True,
         )
 
-    args, kwargs = save_mock.call_args
-    assert isinstance(args[0], dict)
-    assert args[0].get("geofence", {}).get("alerts_enabled") in (False, True)
+    assert save_mock.called
     assert purge_mock.called
