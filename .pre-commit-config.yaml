@@ -1,74 +1,29 @@
-# Home Assistant konforme Pre-commit mit Auto-Fixes
-# Basiert auf https://github.com/home-assistant/core/.pre-commit-config.yaml
-
+# Run:  pre-commit install
+# Local check all: pre-commit run --all-files
 repos:
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.2
-    hooks:
-      - id: pyupgrade
-        args: [--py312-plus]
-        
-  # Ruff mit HA-konformen Auto-Fixes
+  # --- Ruff: Lint (inkl. pyupgrade-Regeln) -------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8
+    rev: v0.6.9   # pinnen; aktualisiert sich problemlos via Dependabot
     hooks:
-      # 1) Lint + Fix (inkl. unsichere Fixes EINMALIG freigeben)
-      - id: ruff-check
-        args: [--fix]
-        types_or: [python, pyi]
-      # 2) Danach formatieren
+      - id: ruff
+        name: ruff (lint)
+        args: [--fix]   # Fixes hier erlaubt; CI nutzt --check
+        additional_dependencies: []  # nichts extra nötig
       - id: ruff-format
-        types_or: [python, pyi]
-        
-  # Standard pre-commit hooks mit Auto-Fix
+        name: ruff (format)
+
+  # --- Generische Hygiene-Hooks ------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: v4.6.0
     hooks:
-      - id: check-yaml
-        # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
-        args: [--unsafe, --allow-multiple-documents]
-        # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(blueprints/|examples/)
-      - id: check-json
-      - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
-      - id: mixed-line-ending
-        args: [--fix=lf]
-        
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+
+  # --- Optional: TOML-Check (hilfreich für manifest/ruff) ----------------
+  - repo: https://github.com/sirosen/check-toml
+    rev: v0.10.0
     hooks:
-      - id: codespell
-        args:
-          - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme
-          - --skip=./.*,*.csv,*.json,*.min.js,*.map
-          - --quiet-level=2
-        exclude: |
-          (?x)^(
-            tests/fixtures/|
-            .*/snapshots/|
-            .*/translations/|
-            .*/.git/|
-            .*/.tox/|
-            .*/.venv/|
-            dist/|
-            build/|
-            .*/node_modules/
-          )
-
-# HA-konforme CI Auto-Fix Settings
-ci:
-  autofix_prs: true
-  autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit hooks
-
-    for more information, see https://pre-commit.ci
-  autoupdate_branch: ''
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
-  autoupdate_schedule: monthly
-  skip: []
-  submodules: false
-
-default_install_hook_types: [pre-commit]
-fail_fast: false
+      - id: check-toml
