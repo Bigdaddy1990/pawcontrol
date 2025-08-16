@@ -2,34 +2,11 @@ import asyncio
 import sys
 import types
 from collections.abc import Generator
-from pathlib import Path
 from unittest import mock
-
-from homeassistant import config_entries
-import homeassistant.loader as loader
 
 import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-# Ensure the repository's custom_components path is discoverable by
-# ``async_setup_component``. Home Assistant normally looks for custom
-# integrations inside the config directory; during tests the integration lives
-# in the repository root. We patch the loader's config dir mounting function to
-# add the repo root to ``sys.path`` so that the Paw Control integration can be
-# imported as if it were installed in the config dir.
-REPO_ROOT = Path(__file__).resolve().parent.parent
-_orig_mount = loader._async_mount_config_dir
-
-
-def _patched_mount_config_dir(hass):  # pragma: no cover - test helper
-    _orig_mount(hass)
-    if str(REPO_ROOT) not in sys.path:
-        sys.path.insert(0, str(REPO_ROOT))
-        sys.path_importer_cache.pop(str(REPO_ROOT), None)
-
-
-loader._async_mount_config_dir = _patched_mount_config_dir
 
 try:  # pragma: no cover - fallback when Home Assistant isn't installed
     from homeassistant.core import HomeAssistant
@@ -173,8 +150,6 @@ async def init_integration(
     mock_setup_sync,
 ):
     """Set up the integration for tests."""
-    import custom_components.pawcontrol as comp
-
     mock_config_entry.add_to_hass(hass)
     with (
         mock.patch(
@@ -190,10 +165,6 @@ async def init_integration(
             return_value=mock_setup_sync,
         ),
     ):
-        assert await comp.async_setup(hass, {}) or True
-        await comp.async_setup_entry(hass, mock_config_entry)
-        object.__setattr__(
-            mock_config_entry, "state", config_entries.ConfigEntryState.LOADED
-        )
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
     return mock_config_entry

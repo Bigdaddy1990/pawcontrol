@@ -19,7 +19,6 @@ async def test_service_wrapper_requires_target(hass):
     with pytest.raises(HomeAssistantError):
         # Build a fake service call with no target/dog_id
         call = ServiceCall(
-            hass,
             comp.DOMAIN,
             "gps_post_location",
             data={"latitude": 1.0, "longitude": 2.0, "accuracy": 5},
