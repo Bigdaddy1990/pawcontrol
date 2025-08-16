@@ -929,6 +929,12 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         Returns:
             Form or menu flow result depending on integration state
         """
+        if (
+            DOMAIN in self.hass.data
+            and self.config_entry.entry_id in self.hass.data[DOMAIN]
+        ):
+            return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
+
         return self.async_show_menu(
             step_id="init",
             # Menu options ordered for predictable user experience
@@ -1301,13 +1307,7 @@ class PawControlOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             self._options.update(user_input)
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            result = self.async_create_entry(title="", data=self._options)
-            # Home Assistant typically returns FlowResultType enums for the
-            # ``type`` field.  The tests expect the string value instead, so we
-            # normalise the result here for compatibility with the lightweight
-            # test environment which doesn't use the enums.
-            result["type"] = getattr(result["type"], "value", result["type"])
-            return result
+            return self.async_create_entry(title="", data=self._options)
 
         return self.async_show_form(step_id="geofence", data_schema=vol.Schema({}))
 
