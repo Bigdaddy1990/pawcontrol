@@ -1,7 +1,7 @@
 # Home Assistant konforme Ruff-Konfiguration mit Auto-Fixes
 # Basiert auf https://github.com/home-assistant/core/.ruff.toml
 
-target-version = "py313"  # HA 2025.8.2 Standard
+target-version = "py312"  # HA 2025.8.2 Standard
 line-length = 88
 
 [lint]
