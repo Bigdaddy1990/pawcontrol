@@ -25,7 +25,7 @@ repos:
           - --ignore-words-list=hass,alot,datas,dof,dur,ether,farenheit,hist,iff,ines,ist,lightsensor,mut,nd,pres,referer,ser,serie,te,technik,ue,uint,visability,wan,wanna,withing,iam,incomfort,ba,haa,pullrequests
           - --skip="./.*,*.csv,*.json"
           - --quiet-level=2
-        exclude_types: [csv, json]
+        exclude_types: [csv, json, md]
         exclude: ^tests/fixtures/
         
   # Ruff mit HA-konformen Auto-Fixes
