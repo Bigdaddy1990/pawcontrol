@@ -26,12 +26,7 @@ select = [
   "PGH",  # pygrep-hooks (typische Fehler)
   "N",    # pep8-naming
 ]
-
-# Häufige, in HA-Komponenten legitime Ausnahmen:
-ignore = [
-  # In __init__.py sind re-exporte üblich
-  "E402",  # module level import not at top of file (für HA-Init teils okay)
-]
+fixable = ["ALL"]
 
 # Optional: Preview-Checks deaktiviert lassen, bis du sie bewusst aktivierst
 preview = false
