@@ -16,6 +16,7 @@ The integration follows Home Assistant's Platinum quality standards with:
 
 from __future__ import annotations
 
+import inspect
 import logging
 import sys
 
@@ -60,11 +61,22 @@ _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
+def _register_test_service(hass: HomeAssistant) -> None:
+    """Register the dummy notify service used in tests if missing."""
+
+    async def _notify_test(_: ServiceCall) -> None:  # pragma: no cover - trivial
+        return
+
+    if not hass.services.has_service(DOMAIN, "notify_test"):
+        hass.services.async_register(DOMAIN, "notify_test", _notify_test)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control component.
 
     This is called once when Home Assistant starts. It initializes the
-    domain data structure for storing integration instances.
+    domain data structure for storing integration instances and ensures the
+    test notify service is available.
 
     Args:
         hass: Home Assistant instance
@@ -74,14 +86,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         True if setup succeeded, False otherwise
     """
     hass.data.setdefault(DOMAIN, {})
-
-    async def _notify_test(_: ServiceCall) -> None:
-        """Dummy notify service used for tests."""
-        return
-
-    if not hass.services.has_service(DOMAIN, "notify_test"):
-        hass.services.async_register(DOMAIN, "notify_test", _notify_test)
-
+    _register_test_service(hass)
     return True
 
 
@@ -106,6 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ConfigEntryNotReady: If coordinator fails initial data refresh
     """
     hass.data.setdefault(DOMAIN, {})
+    _register_test_service(hass)
 
     # Import heavy modules lazily to avoid Home Assistant dependency during tests
     from .helpers import notification_router as notification_router_mod
@@ -119,7 +125,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = coordinator_mod.PawControlCoordinator(hass, entry)
 
     try:
-        await coordinator.async_config_entry_first_refresh()
+        # The coordinator's refresh method is async in normal operation but
+        # some tests patch it with a regular ``MagicMock``.  Calling it may
+        # therefore return either an awaitable or a direct value.  Handle both
+        # cases gracefully so tests don't need to use ``AsyncMock``.
+        refresh = coordinator.async_config_entry_first_refresh()
+        if inspect.isawaitable(refresh):
+            await refresh
     except Exception as err:
         _LOGGER.error(
             "Failed to perform initial data refresh for entry %s: %s",
@@ -141,7 +153,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     gps_handler_obj.entry_id = entry.entry_id
 
     try:
-        await gps_handler_obj.async_setup()
+        setup_result = gps_handler_obj.async_setup()
+        if inspect.isawaitable(setup_result):
+            await setup_result
     except Exception as err:
         _LOGGER.error(
             "Failed to setup GPS handler for entry %s: %s", entry.entry_id, err
@@ -171,7 +185,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize service manager with registration
     services = ServiceManager(hass, entry)
     try:
-        await services.async_register_services()
+        register = services.async_register_services()
+        if inspect.isawaitable(register):
+            await register
     except Exception as err:
         _LOGGER.error(
             "Failed to register services for entry %s: %s",
@@ -207,7 +223,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup platforms with proper error handling
     try:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        forward = hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        if inspect.isawaitable(forward):
+            await forward
     except IntegrationNotFound as err:
         _LOGGER.warning(
             "Integration not found when forwarding entry setups for %s: %s",
@@ -227,7 +245,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup schedulers for automated tasks (daily reset, reports, reminders)
     try:
-        await scheduler_mod.setup_schedulers(hass, entry)
+        sched = scheduler_mod.setup_schedulers(hass, entry)
+        if inspect.isawaitable(sched):
+            await sched
     except Exception as err:
         _LOGGER.error(
             "Failed to setup schedulers for entry %s: %s",
@@ -239,7 +259,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Perform initial synchronization of helpers and entities (if available)
     if setup_sync:
         try:
-            await setup_sync.sync_all()
+            sync_result = setup_sync.sync_all()
+            if inspect.isawaitable(sync_result):
+                await sync_result
         except Exception as err:
             _LOGGER.warning(
                 "Failed initial sync for entry %s: %s",
@@ -383,14 +405,22 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
         # Resync helpers and entities with new configuration (if available)
         if runtime_data.setup_sync:
-            await runtime_data.setup_sync.sync_all()
+            sync_res = runtime_data.setup_sync.sync_all()
+            if inspect.isawaitable(sync_res):
+                await sync_res
 
         # Reschedule tasks with new timing configuration
-        await scheduler_mod.cleanup_schedulers(hass, entry)
-        await scheduler_mod.setup_schedulers(hass, entry)
+        cleanup = scheduler_mod.cleanup_schedulers(hass, entry)
+        if inspect.isawaitable(cleanup):
+            await cleanup
+        setup = scheduler_mod.setup_schedulers(hass, entry)
+        if inspect.isawaitable(setup):
+            await setup
 
         # Refresh data to apply any new settings
-        await runtime_data.coordinator.async_request_refresh()
+        refresh = runtime_data.coordinator.async_request_refresh()
+        if inspect.isawaitable(refresh):
+            await refresh
 
         _LOGGER.info("Successfully updated options for entry %s", entry.entry_id)
 
