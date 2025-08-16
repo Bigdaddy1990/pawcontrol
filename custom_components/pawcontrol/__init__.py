@@ -13,6 +13,7 @@ The integration follows Home Assistant's Platinum quality standards with:
 - Robust error handling
 - Efficient data management
 """
+
 from __future__ import annotations
 
 import logging
