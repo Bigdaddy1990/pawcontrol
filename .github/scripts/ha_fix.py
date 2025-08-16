@@ -51,9 +51,9 @@ def main():
     # Home Assistant Standard Tools (in order)
     commands = [
         # 1. pyupgrade (HA uses this for Python upgrades)
-        (["/usr/bin/env python3", "-m", "pyupgrade", "--py313-plus"] + 
+        (["/usr/bin/env python3", "-m", "pyupgrade", "--py312-plus"] + 
          [str(f) for f in Path(".").rglob("*.py") if "custom_components" in str(f) or "tests" in str(f)],
-         "pyupgrade (Python 3.13+)"),
+         "pyupgrade (Python 3.12+)"),
         
         # 2. black formatting (HA standard)
         (["black"] + (["--check", "--diff"] if check_only else []) + ["custom_components", "tests"],
