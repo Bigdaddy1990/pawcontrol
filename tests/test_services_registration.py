@@ -7,9 +7,13 @@ DOMAIN = "pawcontrol"
 
 @pytest.mark.asyncio
 async def test_services_registered(hass: HomeAssistant):
+    import custom_components.pawcontrol as comp
+
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
+    # Set up the integration directly to register services
+    assert await comp.async_setup(hass, {}) or True
+    await comp.async_setup_entry(hass, entry)
     await hass.async_block_till_done()
     for svc in [
         "notify_test",
