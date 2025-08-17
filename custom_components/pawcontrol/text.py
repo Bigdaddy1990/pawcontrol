@@ -17,6 +17,7 @@ The text entities follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 try:  # pragma: no cover - fallback when text platform unavailable
@@ -1013,7 +1014,8 @@ class ExportPathText(TextEntity):
     """Text entity for configuring data export path.
 
     System-wide setting that determines where exported data files
-    and reports are saved.
+    and reports are saved. Updates are persisted to the config entry
+    so the path survives restarts.
     """
 
     _attr_has_entity_name = True
@@ -1069,10 +1071,14 @@ class ExportPathText(TextEntity):
             # Validate and sanitize the path
             validated_path = self._validate_path(value)
 
+            # Persist the new path to the config entry
+            new_options = dict(self.entry.options)
+            new_options["export_path"] = validated_path
+            self.hass.config_entries.async_update_entry(self.entry, options=new_options)
+
             _LOGGER.info("Export path set to: %s", validated_path)
 
-            # In a production environment, this would update the config entry
-            # For now, we just log the change and update state
+            # Update entity state after persisting
             self.async_write_ha_state()
 
         except Exception as err:
@@ -1088,17 +1094,16 @@ class ExportPathText(TextEntity):
             Validated path
         """
         try:
-            if not isinstance(path, str):
-                path = str(path)
+            path_obj = Path(str(path)).expanduser()
 
-            # Trim whitespace
-            path = path.strip()
-
-            # Basic path validation
-            if path and not path.startswith(("/", "C:", "D:", "E:", "F:")):
+            if not path_obj.is_absolute():
                 _LOGGER.warning("Invalid path format: %s", path)
 
-            return path
+            normalized = str(path_obj)
+            if self._attr_native_max and len(normalized) > self._attr_native_max:
+                normalized = normalized[: self._attr_native_max]
+
+            return normalized
         except Exception:
             return ""
 
