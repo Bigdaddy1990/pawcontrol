@@ -1,3 +1,5 @@
+"""Device conditions for the Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -31,29 +33,25 @@ async def async_get_conditions(
 
 
 def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | None:
+    """Return the Paw Control dog identifier for a device."""
     if not device_id:
         return None
-    dev_reg = dr.async_get(hass)
-    dev = dev_reg.async_get(device_id)
-    if not dev or not dev.identifiers:
-        return None
-    for idt in dev.identifiers:
-        if idt[0] == DOMAIN:
-            return idt[1]
+    if dev := dr.async_get(hass).async_get(device_id):
+        return next(
+            (identifier for domain, identifier in dev.identifiers if domain == DOMAIN),
+            None,
+        )
     return None
 
 
 def _get_coordinator(hass: HomeAssistant, dog_id: str | None):
+    """Retrieve the coordinator containing data for the given dog."""
     if not dog_id:
         return None
 
     for entry in hass.config_entries.async_entries(DOMAIN):
-        runtime = getattr(entry, "runtime_data", None)
-        coordinator = getattr(runtime, "coordinator", None)
-        if (
-            coordinator
-            and getattr(coordinator, "_dog_data", {}).get(dog_id) is not None
-        ):
+        coordinator = getattr(getattr(entry, "runtime_data", None), "coordinator", None)
+        if coordinator and dog_id in getattr(coordinator, "_dog_data", {}):
             return coordinator
 
     return None
@@ -72,16 +70,15 @@ def async_condition_from_config(config: ConfigType, config_validation: bool):
         dog_id = _dog_id_from_device_id(hass, device_id)
         if not dog_id:
             return False
-        coord = _get_coordinator(hass, dog_id)
-        if not coord:
+
+        coordinator = _get_coordinator(hass, dog_id)
+        if not coordinator:
             return False
-        dog = coord._dog_data.get(dog_id) or {}
-        loc = dog.get("location") or {}
-        is_home = bool(loc.get("is_home", False))
-        if cond_type == "is_home":
-            return is_home
-        if cond_type == "in_geofence":
-            return is_home
-        return False
+
+        dog = coordinator._dog_data.get(dog_id, {})
+        loc = dog.get("location", {})
+        is_home = bool(loc.get("is_home"))
+
+        return {"is_home": is_home, "in_geofence": is_home}.get(cond_type, False)
 
     return _check
