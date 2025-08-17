@@ -15,22 +15,21 @@ from typing import Final
 # Safe import with specific exception handling for Home Assistant components
 try:
     from homeassistant.const import Platform
-except ImportError:
-    # Provide proper fallback enum for test environments
+except ImportError:  # pragma: no cover - fallback for testing environments
     from enum import StrEnum
 
-    class Platform(StrEnum):
+    class Platform(StrEnum):  # pragma: no cover - executed only without HA
         """Fallback Platform enum for environments without Home Assistant."""
 
-        BINARY_SENSOR = "binary_sensor"
-        BUTTON = "button"
-        DATETIME = "datetime"
-        DEVICE_TRACKER = "device_tracker"
-        NUMBER = "number"
-        SELECT = "select"
-        SENSOR = "sensor"
-        SWITCH = "switch"
-        TEXT = "text"
+        BINARY_SENSOR = "binary_sensor"  # pragma: no cover
+        BUTTON = "button"  # pragma: no cover
+        DATETIME = "datetime"  # pragma: no cover
+        DEVICE_TRACKER = "device_tracker"  # pragma: no cover
+        NUMBER = "number"  # pragma: no cover
+        SELECT = "select"  # pragma: no cover
+        SENSOR = "sensor"  # pragma: no cover
+        SWITCH = "switch"  # pragma: no cover
+        TEXT = "text"  # pragma: no cover
 
 
 # Integration domain identifier
