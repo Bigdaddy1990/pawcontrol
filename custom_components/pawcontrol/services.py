@@ -14,6 +14,8 @@ The service manager follows Home Assistant's Platinum standards with:
 
 from __future__ import annotations
 
+import asyncio
+import functools
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -355,6 +357,7 @@ class ServiceManager:
         self._registered_services: set[str] = set()
         self._service_call_count: int = 0
         self._is_registering: bool = False
+        self._call_semaphore = asyncio.Semaphore(MAX_CONCURRENT_SERVICE_CALLS)
 
     @property
     def coordinator(self) -> PawControlCoordinator:
@@ -588,8 +591,9 @@ class ServiceManager:
                 _LOGGER.debug("Service %s already registered, skipping", service_name)
                 return
 
+            wrapped_handler = self._wrap_handler(handler)
             self.hass.services.async_register(
-                DOMAIN, service_name, handler, schema=schema
+                DOMAIN, service_name, wrapped_handler, schema=schema
             )
             self._registered_services.add(service_name)
             _LOGGER.debug("Registered service: %s", service_name)
@@ -618,6 +622,16 @@ class ServiceManager:
 
         self._registered_services.clear()
         _LOGGER.info("Unregistered all Paw Control services")
+
+    def _wrap_handler(self, handler: Any) -> Any:
+        """Wrap a service handler with concurrency limiting."""
+
+        @functools.wraps(handler)
+        async def wrapper(call: ServiceCall) -> None:
+            async with self._call_semaphore:
+                await handler(call)
+
+        return wrapper
 
     def _validate_dog_exists(self, dog_id: str) -> None:
         """Validate that a dog exists in the coordinator.
