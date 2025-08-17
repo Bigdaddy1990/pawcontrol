@@ -70,9 +70,7 @@ async def async_get_config_entry_diagnostics(
 
     dogs_data = {}
     for dog_id in getattr(coordinator, "_dog_data", {}):
-        dogs_data[dog_id] = _sanitize_dog_data(
-            coordinator.get_dog_data(dog_id)
-        )
+        dogs_data[dog_id] = _sanitize_dog_data(coordinator.get_dog_data(dog_id))
 
     return async_redact_data(
         {
