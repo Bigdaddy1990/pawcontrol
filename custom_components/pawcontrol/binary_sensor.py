@@ -16,6 +16,7 @@ The binary sensors follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
@@ -93,6 +94,25 @@ async def async_setup_entry(
         dogs = entry.options.get(CONF_DOGS, [])
         entities: list[PawControlBinarySensorEntity | CoordinatorEntity] = []
 
+        # Map modules to their creation functions and default enabled state
+        module_creators: dict[
+            str,
+            tuple[
+                Callable[
+                    [PawControlCoordinator, ConfigEntry, str],
+                    list[PawControlBinarySensorEntity],
+                ],
+                bool,
+            ],
+        ] = {
+            MODULE_WALK: (_create_walk_binary_sensors, True),
+            MODULE_FEEDING: (_create_feeding_binary_sensors, True),
+            MODULE_HEALTH: (_create_health_binary_sensors, True),
+            MODULE_GROOMING: (_create_grooming_binary_sensors, False),
+            MODULE_GPS: (_create_location_binary_sensors, False),
+            MODULE_TRAINING: (_create_training_binary_sensors, False),
+        }
+
         _LOGGER.debug("Setting up binary sensors for %d dogs", len(dogs))
 
         for dog in dogs:
@@ -113,39 +133,9 @@ async def async_setup_entry(
                 list(dog_modules.keys()),
             )
 
-            # Walk module binary sensors
-            if dog_modules.get(MODULE_WALK, True):
-                entities.extend(_create_walk_binary_sensors(coordinator, entry, dog_id))
-
-            # Feeding module binary sensors
-            if dog_modules.get(MODULE_FEEDING, True):
-                entities.extend(
-                    _create_feeding_binary_sensors(coordinator, entry, dog_id)
-                )
-
-            # Health module binary sensors
-            if dog_modules.get(MODULE_HEALTH, True):
-                entities.extend(
-                    _create_health_binary_sensors(coordinator, entry, dog_id)
-                )
-
-            # Grooming module binary sensors
-            if dog_modules.get(MODULE_GROOMING, False):
-                entities.extend(
-                    _create_grooming_binary_sensors(coordinator, entry, dog_id)
-                )
-
-            # GPS module binary sensors
-            if dog_modules.get(MODULE_GPS, False):
-                entities.extend(
-                    _create_location_binary_sensors(coordinator, entry, dog_id)
-                )
-
-            # Training module binary sensors
-            if dog_modules.get(MODULE_TRAINING, False):
-                entities.extend(
-                    _create_training_binary_sensors(coordinator, entry, dog_id)
-                )
+            for module, (creator, default_enabled) in module_creators.items():
+                if dog_modules.get(module, default_enabled):
+                    entities.extend(creator(coordinator, entry, dog_id))
 
         # System-wide binary sensors (always created)
         entities.extend(_create_system_binary_sensors(coordinator, entry))
