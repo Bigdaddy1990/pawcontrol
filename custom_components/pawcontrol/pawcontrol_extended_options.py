@@ -314,9 +314,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             for dog in current_dogs
         }
         schema = vol.Schema({vol.Required("dog_to_remove"): vol.In(dog_options)})
-        return self.async_show_form(
-            step_id="select_dog_remove", data_schema=schema
-        )
+        return self.async_show_form(step_id="select_dog_remove", data_schema=schema)
 
     async def async_step_edit_dog(
         self, user_input: dict[str, Any] | None = None
@@ -1031,10 +1029,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(CONF_DOG_NAME): str,
                 vol.Optional(CONF_DOG_BREED, default=""): str,
                 vol.Optional(CONF_DOG_AGE, default=1): vol.Coerce(int),
-                vol.Optional(CONF_DOG_WEIGHT, default=DEFAULT_DOG_WEIGHT_KG): vol.Coerce(float),
                 vol.Optional(
-                    CONF_DOG_SIZE, default=SIZE_MEDIUM
-                ): vol.In([SIZE_SMALL, SIZE_MEDIUM, SIZE_LARGE, SIZE_XLARGE]),
+                    CONF_DOG_WEIGHT, default=DEFAULT_DOG_WEIGHT_KG
+                ): vol.Coerce(float),
+                vol.Optional(CONF_DOG_SIZE, default=SIZE_MEDIUM): vol.In(
+                    [SIZE_SMALL, SIZE_MEDIUM, SIZE_LARGE, SIZE_XLARGE]
+                ),
             }
         )
 

@@ -1112,9 +1112,7 @@ class ServiceManager:
         try:
             from .gps_settings import GPSSettingsStore
 
-            store = GPSSettingsStore(
-                self.hass, call.data["config_entry_id"], DOMAIN
-            )
+            store = GPSSettingsStore(self.hass, call.data["config_entry_id"], DOMAIN)
             data = await store.async_load()
             data["alerts_enabled"] = call.data["enabled"]
             await store.async_save(data)
@@ -1130,15 +1128,11 @@ class ServiceManager:
         try:
             from .route_store import RouteHistoryStore
 
-            store = RouteHistoryStore(
-                self.hass, call.data["config_entry_id"], DOMAIN
-            )
+            store = RouteHistoryStore(self.hass, call.data["config_entry_id"], DOMAIN)
             await store.async_purge()
         except Exception as err:
             _LOGGER.error("Failed to purge storage: %s", err)
-            raise HomeAssistantError(
-                f"Failed to purge storage: {err}"
-            ) from err
+            raise HomeAssistantError(f"Failed to purge storage: {err}") from err
 
     async def _handle_prune_stale_devices(self, call: ServiceCall) -> None:
         """Handle prune_stale_devices service call."""
