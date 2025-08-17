@@ -62,6 +62,20 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Mapping of common entity keywords to icon keys. Defined at module level
+# to avoid recreating the dictionary each time an icon is determined.
+ICON_CATEGORY_MAP: dict[str, str] = {
+    "walk": "walk",
+    "feeding": "feeding",
+    "health": "health",
+    "grooming": "grooming",
+    "training": "training",
+    "gps": "gps",
+    "location": "location",
+    "activity": "activity",
+    "statistics": "statistics",
+}
+
 # ==============================================================================
 # BASE ENTITY CLASS
 # ==============================================================================
@@ -109,8 +123,8 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
         self.dog_id = dog_id
         self.entity_key = entity_key
 
-        # Validate dog_id exists in coordinator
-        if self.dog_id not in coordinator._dog_data:
+        # Validate dog_id exists in coordinator using the public data accessor
+        if not self._dog_exists():
             _LOGGER.warning(
                 "Entity created for unknown dog_id: %s (entity: %s)",
                 self.dog_id,
@@ -199,19 +213,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
             return ICONS[self.entity_key]
 
         # Fall back to category-based icons
-        category_map = {
-            "walk": "walk",
-            "feeding": "feeding",
-            "health": "health",
-            "grooming": "grooming",
-            "training": "training",
-            "gps": "gps",
-            "location": "location",
-            "activity": "activity",
-            "statistics": "statistics",
-        }
-
-        for keyword, icon_key in category_map.items():
+        for keyword, icon_key in ICON_CATEGORY_MAP.items():
             if keyword in self.entity_key.lower():
                 return ICONS.get(icon_key, "mdi:information")
 
@@ -252,6 +254,10 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
             Complete dog data structure from coordinator
         """
         return self.coordinator.get_dog_data(self.dog_id)
+
+    def _dog_exists(self) -> bool:
+        """Check if the coordinator has data for this dog."""
+        return bool(self.coordinator.get_dog_data(self.dog_id))
 
     def _get_dog_config(self) -> DogConfig:
         """Get dog configuration with caching for performance.
@@ -297,7 +303,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
             return False
 
         # Check if dog still exists in coordinator
-        if self.dog_id not in self.coordinator._dog_data:
+        if not self._dog_exists():
             _LOGGER.debug(
                 "Entity %s unavailable: dog %s not in coordinator data",
                 self.entity_id,
