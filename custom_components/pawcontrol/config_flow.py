@@ -9,63 +9,64 @@ Goals:
 
 from __future__ import annotations
 
-from typing import Any, Final
 import logging
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
-    DOMAIN,
-    # Module constants
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    MODULE_GROOMING,
-    MODULE_TRAINING,
-    MODULE_NOTIFICATIONS,
-    MODULE_DASHBOARD,
-    MODULE_MEDICATION,
-    # Dog size constants
-    SIZE_SMALL,
-    SIZE_MEDIUM,
-    SIZE_LARGE,
-    SIZE_XLARGE,
-    CONF_DOGS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
-    CONF_DOG_SIZE,
-    CONF_DOG_BREED,
-    CONF_DOG_AGE,
-    CONF_DOG_MODULES,
-    CONF_DEVICE_TRACKERS,
-    CONF_PERSON_ENTITIES,
-    CONF_DOOR_SENSOR,
-    CONF_WEATHER,
     CONF_CALENDAR,
+    CONF_DEVICE_TRACKERS,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_MODULES,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_DOOR_SENSOR,
+    CONF_PERSON_ENTITIES,
     CONF_SOURCES,
+    CONF_WEATHER,
+    DEFAULT_EXPORT_FORMAT,
+    DEFAULT_REMINDER_REPEAT,
+    # Defaults
+    DEFAULT_RESET_TIME,
+    DEFAULT_SAFE_ZONE_RADIUS,
+    DEFAULT_SNOOZE_MIN,
+    DOMAIN,
     # GPS Constants
     GPS_MIN_ACCURACY,
     GPS_POINT_FILTER_DISTANCE,
-    DEFAULT_SAFE_ZONE_RADIUS,
+    MAX_DOG_AGE_YEARS,
+    MAX_DOG_WEIGHT_KG,
     MAX_SAFE_ZONE_RADIUS,
-    MIN_SAFE_ZONE_RADIUS,
-    # Defaults
-    DEFAULT_RESET_TIME,
-    DEFAULT_EXPORT_FORMAT,
-    DEFAULT_REMINDER_REPEAT,
-    DEFAULT_SNOOZE_MIN,
     # Limits
     MIN_DOG_AGE_YEARS,
-    MAX_DOG_AGE_YEARS,
     MIN_DOG_WEIGHT_KG,
-    MAX_DOG_WEIGHT_KG,
+    MIN_SAFE_ZONE_RADIUS,
+    MODULE_DASHBOARD,
+    # Module constants
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_WALK,
+    SIZE_LARGE,
+    SIZE_MEDIUM,
+    # Dog size constants
+    SIZE_SMALL,
+    SIZE_XLARGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -293,7 +294,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options with a comprehensive menu."""
-        if user_input is not None:
+        if user_input is not None:  # noqa: SIM102
             # Handle direct option updates for backward compatibility
             if "geofencing_enabled" in user_input or "modules" in user_input:
                 return self.async_create_entry(title="", data=user_input)

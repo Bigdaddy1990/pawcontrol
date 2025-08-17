@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
-
-import logging
 
 from .const import EARTH_RADIUS_M
 

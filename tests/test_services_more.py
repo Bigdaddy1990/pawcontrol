@@ -11,7 +11,6 @@ DOMAIN = "pawcontrol"
 async def test_toggle_geofence_and_purge_storage(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-    import custom_components.pawcontrol as comp
 
     entry = init_integration
 

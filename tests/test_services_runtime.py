@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -13,7 +12,6 @@ DOMAIN = "pawcontrol"
 async def test_route_history_list_emits_event(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-    import custom_components.pawcontrol as comp
 
     entry = init_integration
 
@@ -43,7 +41,6 @@ async def test_route_history_list_emits_event(
 async def test_gps_post_location_calls_handler(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-    import custom_components.pawcontrol as comp
 
     called = {}
 

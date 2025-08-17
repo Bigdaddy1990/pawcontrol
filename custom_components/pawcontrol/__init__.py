@@ -710,7 +710,7 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     invalid = False
 
     # Validate radius
-    if radius is not None and (not isinstance(radius, (int, float)) or radius <= 0):
+    if radius is not None and (not isinstance(radius, int | float) or radius <= 0):
         invalid = True
 
     # Validate coordinate pair consistency
@@ -719,13 +719,13 @@ def _check_geofence_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # Validate latitude range
     if lat is not None and (
-        not isinstance(lat, (int, float)) or not -90 <= float(lat) <= 90
+        not isinstance(lat, int | float) or not -90 <= float(lat) <= 90
     ):
         invalid = True
 
     # Validate longitude range
     if lon is not None and (
-        not isinstance(lon, (int, float)) or not -180 <= float(lon) <= 180
+        not isinstance(lon, int | float) or not -180 <= float(lon) <= 180
     ):
         invalid = True
 
