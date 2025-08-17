@@ -50,18 +50,26 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 
-TRIGGER_TYPES = {
-    "walk_started",
-    "walk_ended",
-    "dog_fed",
-    "medication_given",
-    "grooming_done",
-    "gps_location_posted",
-    "geofence_alert",
-    "needs_walk",
-    "is_hungry",
-    "needs_grooming",
+# Mapping of trigger types that fire on events to the associated
+# Home Assistant event names. This is defined at the module level so it is
+# created only once and keeps ``async_attach_trigger`` minimal.
+EVENT_TRIGGER_MAP = {
+    "walk_started": EVENT_WALK_STARTED,
+    "walk_ended": EVENT_WALK_ENDED,
+    "dog_fed": EVENT_DOG_FED,
+    "medication_given": EVENT_MEDICATION_GIVEN,
+    "grooming_done": EVENT_GROOMING_DONE,
+    "gps_location_posted": f"{DOMAIN}_gps_location_posted",
+    "geofence_alert": f"{DOMAIN}_geofence_alert",
 }
+
+# Trigger types that are based on entity state changes rather than events.
+STATE_TRIGGER_TYPES = {"needs_walk", "is_hungry", "needs_grooming"}
+
+# All supported trigger types. Keeping this derived from the above constants
+# reduces the chances of the list drifting out of sync when new triggers are
+# added in the future.
+TRIGGER_TYPES = set(EVENT_TRIGGER_MAP) | STATE_TRIGGER_TYPES
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
     {
@@ -141,24 +149,14 @@ async def async_attach_trigger(
     if not dog_id:
         raise ValueError(f"Dog ID not found for device {device_id}")
 
-    # Map trigger types to events
-    event_map = {
-        "walk_started": EVENT_WALK_STARTED,
-        "walk_ended": EVENT_WALK_ENDED,
-        "dog_fed": EVENT_DOG_FED,
-        "medication_given": EVENT_MEDICATION_GIVEN,
-        "grooming_done": EVENT_GROOMING_DONE,
-        "gps_location_posted": f"{DOMAIN}_gps_location_posted",
-        "geofence_alert": f"{DOMAIN}_geofence_alert",
-    }
-
-    if trigger_type in event_map:
+    # Event based triggers
+    if trigger_type in EVENT_TRIGGER_MAP:
         # Event-based trigger
         event_config = {
             **event_trigger.TRIGGER_SCHEMA(
                 {
                     event_trigger.CONF_PLATFORM: "event",
-                    event_trigger.CONF_EVENT_TYPE: event_map[trigger_type],
+                    event_trigger.CONF_EVENT_TYPE: EVENT_TRIGGER_MAP[trigger_type],
                     event_trigger.CONF_EVENT_DATA: {"device_id": device_id},
                 }
             ),
@@ -173,8 +171,7 @@ async def async_attach_trigger(
         )
 
     # State-based triggers
-    state_triggers = {"needs_walk", "is_hungry", "needs_grooming"}
-    if trigger_type in state_triggers:
+    if trigger_type in STATE_TRIGGER_TYPES:
         state_config = {
             "platform": "state",
             "entity_id": f"binary_sensor.{DOMAIN}_{dog_id}_{trigger_type}",
