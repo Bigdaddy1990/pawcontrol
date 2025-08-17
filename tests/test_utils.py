@@ -1,14 +1,42 @@
+import importlib.util
 import math
+import sys
+import types
+from pathlib import Path
 
 import pytest
-from custom_components.pawcontrol.const import EARTH_RADIUS_M
-from custom_components.pawcontrol.utils import (
-    calculate_distance,
-    calculate_speed_kmh,
-    format_coordinates,
-    safe_service_call,
-    validate_coordinates,
+
+try:
+    from custom_components.pawcontrol.const import EARTH_RADIUS_M
+except ModuleNotFoundError:  # pragma: no cover - fallback for missing HA
+    EARTH_RADIUS_M = 6_371_000.0
+
+_CC_PATH = Path(__file__).resolve().parents[1] / "custom_components"
+_PKG_PATH = _CC_PATH / "pawcontrol"
+
+if "custom_components" not in sys.modules:
+    cc_pkg = types.ModuleType("custom_components")
+    cc_pkg.__path__ = [str(_CC_PATH)]  # type: ignore[attr-defined]
+    sys.modules["custom_components"] = cc_pkg
+
+pkg = types.ModuleType("custom_components.pawcontrol")
+pkg.__path__ = [str(_PKG_PATH)]  # type: ignore[attr-defined]
+sys.modules["custom_components.pawcontrol"] = pkg
+
+_UTILS_PATH = _PKG_PATH / "utils.py"
+spec = importlib.util.spec_from_file_location(
+    "custom_components.pawcontrol.utils", _UTILS_PATH
 )
+assert spec and spec.loader  # satisfy mypy
+_mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(_mod)
+
+calculate_bearing = _mod.calculate_bearing
+calculate_distance = _mod.calculate_distance
+calculate_speed_kmh = _mod.calculate_speed_kmh
+format_coordinates = _mod.format_coordinates
+safe_service_call = _mod.safe_service_call
+validate_coordinates = _mod.validate_coordinates
 
 # --------------------------
 # calculate_distance tests
@@ -59,6 +87,24 @@ def test_calculate_distance_near_antipodal_stability():
 def test_calculate_distance_non_finite_values():
     assert calculate_distance(float("nan"), 0.0, 0.0, 0.0) == 0.0
     assert calculate_distance(0.0, float("inf"), 0.0, 0.0) == 0.0
+
+
+# --------------------------
+# calculate_bearing tests
+# --------------------------
+
+
+def test_calculate_bearing_north():
+    assert math.isclose(calculate_bearing(0.0, 0.0, 1.0, 0.0), 0.0, abs_tol=1e-9)
+
+
+def test_calculate_bearing_east():
+    assert math.isclose(calculate_bearing(0.0, 0.0, 0.0, 1.0), 90.0, abs_tol=1e-9)
+
+
+def test_calculate_bearing_identical_or_invalid():
+    assert calculate_bearing(10.0, 10.0, 10.0, 10.0) == 0.0
+    assert calculate_bearing(float("nan"), 0.0, 0.0, 0.0) == 0.0
 
 
 # --------------------------

@@ -5,11 +5,39 @@ from collections.abc import Generator
 from pathlib import Path
 from unittest import mock
 
-import homeassistant.loader as loader
 import pytest
-from custom_components.pawcontrol.const import DOMAIN
-from homeassistant import config_entries
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+try:
+    from custom_components.pawcontrol.const import DOMAIN
+except ModuleNotFoundError:  # pragma: no cover - minimal fallback
+    DOMAIN = "pawcontrol"
+
+try:
+    import homeassistant.loader as loader
+    from homeassistant import config_entries
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+except ModuleNotFoundError:  # pragma: no cover - minimal stubs for tests
+    loader = types.SimpleNamespace(_async_mount_config_dir=lambda hass: None)
+
+    class _ConfigEntryState:
+        LOADED = object()
+
+    config_entries = types.SimpleNamespace(ConfigEntryState=_ConfigEntryState)
+
+    class MockConfigEntry:  # type: ignore[empty-body]
+        def __init__(
+            self,
+            domain: str = "",
+            data: dict | None = None,
+            options: dict | None = None,
+        ):
+            self.domain = domain
+            self.data = data or {}
+            self.options = options or {}
+
+        def add_to_hass(self, hass):  # noqa: D401 - stub method
+            return None
+
 
 # Ensure the repository's custom_components path is discoverable by
 # ``async_setup_component``. Home Assistant normally looks for custom
@@ -82,7 +110,11 @@ def fail_on_log_exception():
 @pytest.fixture(autouse=True)
 def restore_config_entry_state():
     """Ensure ConfigEntryState is reset after tests modify it."""
-    from homeassistant import config_entries
+    try:
+        from homeassistant import config_entries
+    except (ModuleNotFoundError, ImportError):  # pragma: no cover - minimal env
+        yield
+        return
 
     original = config_entries.ConfigEntryState
     try:

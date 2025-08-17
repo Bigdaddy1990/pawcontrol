@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from math import atan2, cos, isfinite, pi, radians, sin, sqrt
+from math import atan2, cos, degrees, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
 from .const import EARTH_RADIUS_M
@@ -53,6 +53,27 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
     return EARTH_RADIUS_M * c
+
+
+def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return the initial bearing in degrees from point ``A`` to ``B``.
+
+    The result is normalized to the range ``[0, 360)``.  Non‑finite inputs or
+    identical coordinates result in ``0``.
+    """
+
+    if not all(isfinite(val) for val in (lat1, lon1, lat2, lon2)):
+        return 0.0
+    if lat1 == lat2 and lon1 == lon2:
+        return 0.0
+
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dlambda = radians(lon2 - lon1)
+
+    x = sin(dlambda) * cos(phi2)
+    y = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dlambda)
+    bearing = atan2(x, y)
+    return (degrees(bearing) + 360.0) % 360.0
 
 
 def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
