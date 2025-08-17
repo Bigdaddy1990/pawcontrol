@@ -105,6 +105,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+def setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Synchronous setup fallback.
+
+    Home Assistant prefers ``async_setup`` for integrations, but some test
+    scenarios still rely on the legacy ``setup`` entry point.  Providing a
+    thin wrapper that mirrors :func:`async_setup` ensures the component can
+    be initialized regardless of which entry point the loader uses.
+    """
+    hass.data.setdefault(DOMAIN, {})
+
+    def _notify_test(_: ServiceCall) -> None:
+        return
+
+    if not hass.services.has_service(DOMAIN, "notify_test"):
+        hass.services.register(DOMAIN, "notify_test", _notify_test)
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Paw Control from a config entry.
 
