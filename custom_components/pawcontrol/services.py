@@ -215,9 +215,7 @@ SERVICE_SCHEMA_GPS_POST_LOCATION = vol.Schema(
     }
 )
 
-SERVICE_SCHEMA_ROUTE_HISTORY = vol.Schema(
-    {vol.Required("config_entry_id"): cv.string}
-)
+SERVICE_SCHEMA_ROUTE_HISTORY = vol.Schema({vol.Required("config_entry_id"): cv.string})
 
 SERVICE_SCHEMA_ROUTE_HISTORY_EXPORT_RANGE = vol.Schema(
     {
@@ -1066,9 +1064,7 @@ class ServiceManager:
             entry_id = call.data.get("config_entry_id", self.entry.entry_id)
             route_store = RouteHistoryStore(self.hass, entry_id, DOMAIN)
         routes = await route_store.async_list(call.data.get("dog_id", ""))
-        self.hass.bus.async_fire(
-            f"{DOMAIN}_route_history_listed", {"result": routes}
-        )
+        self.hass.bus.async_fire(f"{DOMAIN}_route_history_listed", {"result": routes})
 
     async def _handle_route_history_purge(self, call: ServiceCall) -> None:
         """Handle route_history_purge service call."""
