@@ -13,6 +13,10 @@ if TYPE_CHECKING:
 
     from homeassistant.core import HomeAssistant
 
+
+# Reuse a module-level logger rather than fetching it per call
+_LOGGER = logging.getLogger(__name__)
+
 # Small epsilon for time/comparison operations to avoid division by near-zero
 _EPS_TIME_S: Final[float] = 1e-9
 
@@ -125,7 +129,5 @@ async def safe_service_call(
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
     except Exception as err:  # pragma: no cover - broad for safety
-        logging.getLogger(__name__).debug(
-            "Service call %s.%s failed: %s", domain, service, err
-        )
+        _LOGGER.debug("Service call %s.%s failed: %s", domain, service, err)
         return False
