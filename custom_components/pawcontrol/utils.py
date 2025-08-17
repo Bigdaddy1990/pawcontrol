@@ -23,6 +23,10 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     Includes clamping to prevent floating point rounding errors.
     """
+    # Return 0 for any non‑finite coordinate values
+    if not all(isfinite(val) for val in (lat1, lon1, lat2, lon2)):
+        return 0.0
+
     # Early exit to skip trigonometric calculations when coordinates are identical
     if lat1 == lat2 and lon1 == lon2:
         return 0.0
