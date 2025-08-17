@@ -8,9 +8,8 @@ from custom_components.pawcontrol.discovery import (
     normalize_zeroconf_info,
 )
 
-pytestmark = pytest.mark.asyncio
 
-
+@pytest.mark.asyncio
 @pytest.mark.enable_socket
 async def test_can_connect_pawtracker_tcp_success(hass, socket_enabled):
     async def handle(reader, writer):
@@ -26,6 +25,7 @@ async def test_can_connect_pawtracker_tcp_success(hass, socket_enabled):
         await server.wait_closed()
 
 
+@pytest.mark.asyncio
 @pytest.mark.enable_socket
 async def test_can_connect_pawtracker_tcp_fail(hass, socket_enabled):
     async def handle(reader, writer):
