@@ -6,7 +6,16 @@ available in Home Assistant but may be absent in the minimal test environment.
 
 from __future__ import annotations
 
-from enum import StrEnum
+try:  # pragma: no cover - Python 3.11+
+    from enum import StrEnum
+except Exception:  # pragma: no cover - Python <3.11 fallback
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        """Minimal ``StrEnum`` backport for older Python versions."""
+
+        pass
+
 from typing import Any
 
 # EntityCategory -------------------------------------------------------------------------
@@ -80,12 +89,25 @@ def _ensure_const(name: str, value: StrEnum | str) -> Any:
 
 
 # Common string constants used throughout the integration
-CONF_DEVICE_ID = _ensure_const("CONF_DEVICE_ID", "device_id")
-CONF_EVENT_DATA = _ensure_const("CONF_EVENT_DATA", "event_data")
-CONF_PLATFORM = _ensure_const("CONF_PLATFORM", "platform")
-CONF_DOMAIN = _ensure_const("CONF_DOMAIN", "domain")
-CONF_TYPE = _ensure_const("CONF_TYPE", "type")
-EVENT_STATE_REPORTED = _ensure_const("EVENT_STATE_REPORTED", "state_reported")
+_STRING_CONSTS: dict[str, StrEnum | str] = {
+    "CONF_DEVICE_ID": "device_id",
+    "CONF_EVENT_DATA": "event_data",
+    "CONF_PLATFORM": "platform",
+    "CONF_DOMAIN": "domain",
+    "CONF_TYPE": "type",
+    "EVENT_STATE_REPORTED": "state_reported",
+}
+
+globals().update({name: _ensure_const(name, value) for name, value in _STRING_CONSTS.items()})
+
+__all__ = [
+    "EntityCategory",
+    "DeviceInfo",
+    *list(_STRING_CONSTS.keys()),
+    "UnitOfLength",
+    "UnitOfMass",
+    "UnitOfTime",
+]
 
 
 # ``UnitOfLength`` was converted to an enum in newer Home Assistant versions.
