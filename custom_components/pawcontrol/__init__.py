@@ -57,6 +57,13 @@ assert DOMAIN == CONST_DOMAIN, f"Domain mismatch: {DOMAIN} != {CONST_DOMAIN}"
 
 _LOGGER = logging.getLogger(__name__)
 
+# Some tests construct ``Mock(spec=HomeAssistant)`` and expect the ``config``
+# attribute to exist on the class object.  Home Assistant normally adds this at
+# runtime, so the bare class lacks it.  Defining it here keeps such mocks
+# functional even when ``homeassistant.core`` is reloaded in the test suite.
+if not hasattr(HomeAssistant, "config"):
+    HomeAssistant.config = None  # type: ignore[assignment]
+
 # This integration only supports config entries, no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 

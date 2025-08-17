@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 import logging
+import inspect
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -68,6 +69,7 @@ from .const import (
     MAX_DOG_AGE_YEARS,
     MIN_DOG_WEIGHT_KG,
     MAX_DOG_WEIGHT_KG,
+    DEFAULT_DOG_WEIGHT_KG,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -142,7 +144,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         dogs_info = f"Currently configured dogs: {len(current_dogs)}\n"
 
         for i, dog in enumerate(current_dogs, 1):
-            dogs_info += f"{i}. {dog.get(CONF_DOG_NAME, 'Unnamed')} (ID: {dog.get(CONF_DOG_ID, 'unknown')})\n"
+            dogs_info += (
+                f"{i}. {dog.get(CONF_DOG_NAME, 'Unnamed')} "
+                f"({dog.get(CONF_DOG_ID, 'unknown')})\n"
+            )
 
         schema = vol.Schema(
             {
@@ -283,6 +288,34 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="select_dog_edit",
             data_schema=schema,
+        )
+
+    async def async_step_select_dog_remove(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Select and remove a dog from the configuration."""
+        current_dogs = self._data.get(CONF_DOGS, [])
+
+        if user_input is not None:
+            dog_id = user_input.get("dog_to_remove")
+            new_dogs = [d for d in current_dogs if d.get(CONF_DOG_ID) != dog_id]
+            new_data = dict(self._data)
+            new_data[CONF_DOGS] = new_dogs
+            await self.hass.config_entries.async_update_entry(
+                self._entry, data=new_data
+            )
+            return self.async_create_entry(title="", data=new_data)
+
+        if not current_dogs:
+            return await self.async_step_dogs()
+
+        dog_options = {
+            dog[CONF_DOG_ID]: f"{dog[CONF_DOG_NAME]} ({dog[CONF_DOG_ID]})"
+            for dog in current_dogs
+        }
+        schema = vol.Schema({vol.Required("dog_to_remove"): vol.In(dog_options)})
+        return self.async_show_form(
+            step_id="select_dog_remove", data_schema=schema
         )
 
     async def async_step_edit_dog(
@@ -489,6 +522,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_options = dict(self._options)
             new_options.update(user_input)
+            reload_fn = getattr(getattr(self, "hass", None), "config_entries", None)
+            if reload_fn is not None:
+                async_reload = getattr(reload_fn, "async_reload", None)
+                if async_reload is not None:
+                    result = async_reload(self._entry.entry_id)
+                    if inspect.isawaitable(result):
+                        await result
             return self.async_create_entry(title="", data=new_options)
 
         # Enhanced geofence options
@@ -933,6 +973,70 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 data_schema=vol.Schema({}),
                 errors={"base": "cleanup_failed"},
             )
+
+    # ------------------------------------------------------------------
+    # Helper methods used by the test-suite
+    # ------------------------------------------------------------------
+    def _create_dog_config(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Create a normalized dog configuration from user input."""
+        modules = {
+            MODULE_WALK: user_input.get(f"module_{MODULE_WALK}", True),
+            MODULE_FEEDING: user_input.get(f"module_{MODULE_FEEDING}", True),
+        }
+        return {
+            CONF_DOG_ID: user_input[CONF_DOG_ID],
+            CONF_DOG_NAME: user_input.get(CONF_DOG_NAME, ""),
+            CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, ""),
+            CONF_DOG_AGE: user_input.get(CONF_DOG_AGE, 0),
+            CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 0.0),
+            CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, SIZE_MEDIUM),
+            CONF_DOG_MODULES: modules,
+        }
+
+    def _update_dog_config(
+        self, dog: dict[str, Any], user_input: dict[str, Any]
+    ) -> None:
+        """Update an existing dog configuration in place."""
+        dog[CONF_DOG_NAME] = user_input.get(CONF_DOG_NAME, dog.get(CONF_DOG_NAME, ""))
+        if CONF_DOG_AGE in user_input:
+            dog[CONF_DOG_AGE] = user_input[CONF_DOG_AGE]
+        modules = dog.setdefault(CONF_DOG_MODULES, {})
+        if f"module_{MODULE_WALK}" in user_input:
+            modules[MODULE_WALK] = user_input[f"module_{MODULE_WALK}"]
+        if f"module_{MODULE_FEEDING}" in user_input:
+            modules[MODULE_FEEDING] = user_input[f"module_{MODULE_FEEDING}"]
+
+    def _get_available_entities(self, registry) -> dict[str, list[str]]:
+        """Return available entities grouped by domain."""
+        entities: dict[str, list[str]] = {
+            "person": [],
+            "device_tracker": [],
+            "door_sensor": [],
+            "weather": [],
+            "calendar": [],
+        }
+        for ent in registry.entities.values():
+            domain = getattr(ent, "domain", ent.entity_id.split(".")[0])
+            if domain == "binary_sensor":
+                entities["door_sensor"].append(ent.entity_id)
+            elif domain in entities:
+                entities[domain].append(ent.entity_id)
+        return entities
+
+    def _get_dog_config_schema(self) -> vol.Schema:
+        """Return schema for validating dog configuration."""
+        return vol.Schema(
+            {
+                vol.Required(CONF_DOG_ID): str,
+                vol.Required(CONF_DOG_NAME): str,
+                vol.Optional(CONF_DOG_BREED, default=""): str,
+                vol.Optional(CONF_DOG_AGE, default=1): vol.Coerce(int),
+                vol.Optional(CONF_DOG_WEIGHT, default=DEFAULT_DOG_WEIGHT_KG): vol.Coerce(float),
+                vol.Optional(
+                    CONF_DOG_SIZE, default=SIZE_MEDIUM
+                ): vol.In([SIZE_SMALL, SIZE_MEDIUM, SIZE_LARGE, SIZE_XLARGE]),
+            }
+        )
 
 
 # Register the options flow handler

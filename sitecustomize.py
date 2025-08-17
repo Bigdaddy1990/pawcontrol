@@ -131,9 +131,16 @@ if not hasattr(device_registry, "DeviceInfo"):
 # future from a different loop raises ``RuntimeError: Task ... got Future ...
 # attached to a different loop``.  To keep the tests lightweight we replace the
 # method with a version that always targets the running loop.
-try:  # pragma: no cover - Home Assistant available in the test environment
-    import asyncio
+try:  # pragma: no cover - ensure ``HomeAssistant.config`` exists for mocks
+    from homeassistant.core import HomeAssistant
 
+    if not hasattr(HomeAssistant, "config"):
+        HomeAssistant.config = None  # type: ignore[assignment]
+except Exception:  # pragma: no cover - Home Assistant not available
+    pass
+
+try:  # pragma: no cover - patch executor job helper when possible
+    import asyncio
     from homeassistant.core import HomeAssistant
 
     if not hasattr(HomeAssistant, "_pawcontrol_executor_patch"):
