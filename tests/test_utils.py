@@ -56,6 +56,11 @@ def test_calculate_distance_near_antipodal_stability():
     assert d > 0.9 * math.pi * EARTH_RADIUS_M  # sanity bound
 
 
+def test_calculate_distance_non_finite_values():
+    assert calculate_distance(float("nan"), 0.0, 0.0, 0.0) == 0.0
+    assert calculate_distance(0.0, float("inf"), 0.0, 0.0) == 0.0
+
+
 # --------------------------
 # calculate_speed_kmh tests
 # --------------------------
