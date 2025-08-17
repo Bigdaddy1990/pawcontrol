@@ -47,6 +47,7 @@ ACTION_SCHEMA = DEVICE_ACTION_BASE_SCHEMA.extend(
 async def async_get_actions(
     hass: HomeAssistant, device_id: str
 ) -> list[dict[str, Any]]:
+    """Return available actions for a Paw Control device."""
     return [
         {CONF_DOMAIN: DOMAIN, CONF_DEVICE_ID: device_id, CONF_TYPE: t}
         for t in ACTION_TYPES
@@ -54,20 +55,32 @@ async def async_get_actions(
 
 
 def _dog_id_from_device_id(hass: HomeAssistant, device_id: str | None) -> str | None:
+    """Resolve Paw Control dog identifier for a device."""
     if not device_id:
         return None
-    if dev := dr.async_get(hass).async_get(device_id):
-        return next(
-            (identifier for domain, identifier in dev.identifiers if domain == DOMAIN),
-            None,
-        )
-    return None
+    dev = dr.async_get(hass).async_get(device_id)
+    if not dev:
+        return None
+    return next(
+        (identifier for domain, identifier in dev.identifiers if domain == DOMAIN),
+        None,
+    )
+
+
+async def _call_service(
+    hass: HomeAssistant, service: str, data: dict[str, Any], context: Any
+) -> None:
+    """Invoke a Paw Control service including the given dog identifier."""
+    await hass.services.async_call(
+        DOMAIN, service, data, blocking=True, context=context
+    )
 
 
 async def async_call_action_from_config(
     hass: HomeAssistant, config: ConfigType, variables: dict[str, Any], context: Any
 ) -> None:
-    if "type" not in config or "device_id" not in config:
+    """Execute a device action based on the provided config."""
+    if CONF_TYPE not in config or CONF_DEVICE_ID not in config:
         raise InvalidDeviceAutomationConfig("Missing required keys")
 
     action_type: str = config[CONF_TYPE]
@@ -76,47 +89,41 @@ async def async_call_action_from_config(
     if not dog_id:
         raise InvalidDeviceAutomationConfig("Device has no Paw Control dog identifier")
 
-    if action_type in SIMPLE_ACTION_SERVICES:
-        await hass.services.async_call(
-            DOMAIN,
-            SIMPLE_ACTION_SERVICES[action_type],
-            {"dog_id": dog_id},
-            blocking=True,
-            context=context,
-        )
-        return
-    if action_type == "toggle_geofence_alerts":
-        enabled = bool(config.get("enabled", True))
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_TOGGLE_GEOFENCE_ALERTS,
-            {"dog_id": dog_id, "enabled": enabled},
-            blocking=True,
-            context=context,
-        )
-        return
+    match action_type:
+        case t if t in SIMPLE_ACTION_SERVICES:
+            await _call_service(
+                hass,
+                SIMPLE_ACTION_SERVICES[t],
+                {"dog_id": dog_id},
+                context,
+            )
+            return
+        case "toggle_geofence_alerts":
+            enabled = bool(config.get("enabled", True))
+            await _call_service(
+                hass,
+                SERVICE_TOGGLE_GEOFENCE_ALERTS,
+                {"dog_id": dog_id, "enabled": enabled},
+                context,
+            )
+            return
+        case "post_location":
+            if "latitude" not in config or "longitude" not in config:
+                raise InvalidDeviceAutomationConfig("Missing required coordinates")
 
-    if action_type == "post_location":
-        if "latitude" not in config or "longitude" not in config:
-            raise InvalidDeviceAutomationConfig("Missing required coordinates")
-        data: dict[str, Any] = {
-            "dog_id": dog_id,
-            "latitude": config["latitude"],
-            "longitude": config["longitude"],
-        }
-        if "accuracy_m" in config:
-            data["accuracy_m"] = config["accuracy_m"]
-        if "speed_m_s" in config:
-            data["speed_m_s"] = config["speed_m_s"]
-        if "timestamp" in config:
-            data["timestamp"] = config["timestamp"]
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_GPS_POST_LOCATION,
-            data,
-            blocking=True,
-            context=context,
-        )
-        return
+            data: dict[str, Any] = {
+                "dog_id": dog_id,
+                "latitude": config["latitude"],
+                "longitude": config["longitude"],
+            }
 
-    raise InvalidDeviceAutomationConfig(f"Unsupported action type: {action_type}")
+            for optional in ("accuracy_m", "speed_m_s", "timestamp"):
+                if optional in config:
+                    data[optional] = config[optional]
+
+            await _call_service(hass, SERVICE_GPS_POST_LOCATION, data, context)
+            return
+        case _:
+            raise InvalidDeviceAutomationConfig(
+                f"Unsupported action type: {action_type}"
+            )
