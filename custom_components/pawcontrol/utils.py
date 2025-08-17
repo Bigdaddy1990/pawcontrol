@@ -5,6 +5,8 @@ from __future__ import annotations
 from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
+import logging
+
 from .const import EARTH_RADIUS_M
 
 if TYPE_CHECKING:
@@ -50,7 +52,7 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
     """Return speed in km/h given distance in meters and duration in seconds."""
     if not isfinite(duration_s) or duration_s <= _EPS_TIME_S:
         return 0.0
-    if not isfinite(distance_m):
+    if not isfinite(distance_m) or distance_m < 0.0:
         return 0.0
     # Convert m/s to km/h
     return (distance_m / duration_s) * 3.6
@@ -94,5 +96,8 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except Exception:
+    except Exception as err:  # pragma: no cover - broad for safety
+        logging.getLogger(__name__).debug(
+            "Service call %s.%s failed: %s", domain, service, err
+        )
         return False

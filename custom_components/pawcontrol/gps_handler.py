@@ -67,7 +67,7 @@ async def async_update_location(hass: HomeAssistant, call: ServiceCall) -> None:
     dog = _get_dog_id(entry, call)
     lat = float(call.data.get("latitude"))
     lon = float(call.data.get("longitude"))
-    acc = call.data.get("accuracy_m")  # Konsistent mit schema
+    acc = call.data.get("accuracy_m")  # Consistent with schema
     acc = float(acc) if acc is not None else None
 
     # Update safe-zone and live distance via coordinator

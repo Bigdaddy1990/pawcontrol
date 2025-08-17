@@ -203,7 +203,7 @@ SERVICE_SCHEMA_GPS_POST_LOCATION = vol.Schema(
         vol.Required("longitude"): vol.All(
             vol.Coerce(float), vol.Range(min=-180.0, max=180.0)
         ),
-        vol.Optional("accuracy"): vol.All(
+        vol.Optional("accuracy_m"): vol.All(
             vol.Coerce(float), vol.Range(min=0.0, max=10000.0)
         ),
         vol.Optional("source", default="manual"): cv.string,
@@ -852,7 +852,7 @@ class ServiceManager:
         dog_id = call.data[CONF_DOG_ID]
         latitude = call.data["latitude"]
         longitude = call.data["longitude"]
-        accuracy = call.data.get("accuracy")
+        accuracy = call.data.get("accuracy_m")
 
         try:
             self._validate_dog_exists(dog_id)
@@ -865,7 +865,7 @@ class ServiceManager:
 
             self.coordinator.update_gps(dog_id, latitude, longitude, accuracy)
             _LOGGER.debug(
-                "Updated GPS for dog %s: %f, %f (accuracy: %s)",
+                "Updated GPS for dog %s: %f, %f (accuracy_m: %s)",
                 dog_id,
                 latitude,
                 longitude,

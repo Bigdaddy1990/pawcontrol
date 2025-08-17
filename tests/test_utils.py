@@ -84,6 +84,10 @@ def test_calculate_speed_kmh_non_finite_distance():
     assert calculate_speed_kmh(float("nan"), 10.0) == 0.0
 
 
+def test_calculate_speed_kmh_negative_distance():
+    assert calculate_speed_kmh(-100.0, 10.0) == 0.0
+
+
 # --------------------------
 # validate_coordinates tests
 # --------------------------

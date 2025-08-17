@@ -90,6 +90,7 @@ def mock_config_entry():
 def mock_hass():
     """Return a mock Home Assistant instance."""
     hass = Mock(spec=HomeAssistant)
+    hass.config = Mock()
     hass.config.latitude = 52.52
     hass.config.longitude = 13.405
     hass.config.path = Mock(return_value="/config/test_backup.json")

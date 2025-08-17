@@ -16,7 +16,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, CONF_SOURCES
+from .const import CONF_SOURCES, DOMAIN
 
 # Some tests use ``Mock(spec=HomeAssistant)`` and expect the ``config`` attribute
 # to exist on the class.  In the real Home Assistant implementation this
@@ -25,6 +25,7 @@ from .const import DOMAIN, CONF_SOURCES
 # keeps those mocks functional in the lightweight test environment.
 if not hasattr(HomeAssistant, "config"):
     HomeAssistant.config = None  # type: ignore[assignment]
+
 
 DEFAULT_TITLE: Final = "Paw Control"
 
@@ -215,6 +216,62 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title=defaults[CONF_NAME], data=defaults)
+
+
+class PawControlConfigFlow(ConfigFlow):
+    """Backward compatibility alias for tests."""
+
+
+# --- OPTIONS FLOW (legacy & comprehensive) ---
+
+
+class PawControlOptionsFlow(config_entries.OptionsFlow):
+    """Backward-compatible minimal options flow used in tests."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Store config entry and copy options for isolated mutation."""
+        self._config_entry = config_entry
+        self._options: dict[str, Any] = dict(config_entry.options)
+
+    @property
+    def config_entry(
+        self,
+    ) -> config_entries.ConfigEntry:  # pragma: no cover - simple prop
+        """Expose the associated config entry (read-only)."""
+        return self._config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Present a simple menu or handle direct option updates."""
+        if user_input is not None:
+            self._options.update(user_input)
+            return self.async_create_entry(title="", data=self._options)
+
+        menu_options = [
+            "medications",
+            "reminders",
+            "safe_zones",
+            "advanced",
+            "schedule",
+            "modules",
+            "dogs",
+            "medication_mapping",
+            "sources",
+            "notifications",
+            "system",
+        ]
+        return {"type": "menu", "step_id": "init", "menu_options": menu_options}
+
+    async def async_step_sources(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Store source configuration provided by the user."""
+        if user_input is None:
+            return self.async_show_form(step_id="sources", data_schema=vol.Schema({}))
+
+        self._options[CONF_SOURCES] = user_input
+        return self.async_create_entry(title="", data=self._options)
 
 
 # --- OPTIONS FLOW (comprehensive, user-friendly) ---
