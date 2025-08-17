@@ -33,7 +33,6 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
-    OptionsFlowWithConfigEntry,
 )
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -54,6 +53,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    CONF_SOURCES,
     DEFAULT_EXPORT_FORMAT,
     DEFAULT_NOTIFICATION_SERVICE,
     DEFAULT_RESET_TIME,
@@ -67,8 +67,8 @@ from .const import (
 )
 from .discovery import can_connect_pawtracker
 from .exceptions import (
-    PawControlConfigError,
-    PawControlValidationError,
+    ConfigurationError,
+    DataValidationError,
 )
 
 if TYPE_CHECKING:
@@ -175,7 +175,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         except (ValueError, TypeError) as err:
             _LOGGER.error("Validation errors in user step: %s", err)
             return self._show_setup_form({"base": "invalid_input"})
-        except (PawControlConfigError, PawControlValidationError) as err:
+        except (ConfigurationError, DataValidationError) as err:
             _LOGGER.error("Config errors in user step: %s", err)
             return self._show_setup_form({"base": "config_error"})
 
@@ -273,7 +273,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 options=config,
             )
 
-        except PawControlValidationError as err:
+        except DataValidationError as err:
             errors = {"base": str(err)}
             return self.async_show_form(
                 step_id="quick_setup", data_schema=schema, errors=errors
@@ -300,7 +300,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 return await self.async_step_sources()
 
-            except PawControlValidationError as err:
+            except DataValidationError as err:
                 errors["base"] = str(err)
 
         # Dynamic schema based on current dog being configured
@@ -543,7 +543,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     options=config,
                 )
 
-            except PawControlConfigError:
+            except ConfigurationError:
                 errors = {"base": "config_error"}
                 return self.async_show_form(
                     step_id="advanced",
@@ -603,12 +603,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle reauth flow."""
         self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
-        return await self.async_step_reauth_confirm()
+        return await self.async_step_reauth_confirm(user_input)
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -618,9 +620,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id="reauth_confirm")
 
         if self._reauth_entry:
+            new_data = {**self._reauth_entry.data, **user_input}
             self.hass.config_entries.async_update_entry(
                 self._reauth_entry,
-                data=self._reauth_entry.data,
+                data=new_data,
                 options=self._reauth_entry.options,
             )
             await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
@@ -663,7 +666,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             # Generate unique dog ID
             dog_name = user_input[CONF_DOG_NAME].strip()
             if not dog_name:
-                raise PawControlValidationError("Dog name cannot be empty")
+                raise DataValidationError("Dog name cannot be empty")
 
             # Create safe dog ID from name
             dog_id = re.sub(r"[^a-z0-9_]", "_", dog_name.lower())
@@ -683,12 +686,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             age = int(user_input.get("dog_age", 5))
 
             if not (MIN_DOG_WEIGHT_KG <= weight <= MAX_DOG_WEIGHT_KG):
-                raise PawControlValidationError(
+                raise DataValidationError(
                     f"Dog weight must be between {MIN_DOG_WEIGHT_KG} and {MAX_DOG_WEIGHT_KG} kg"
                 )
 
             if not (MIN_DOG_AGE_YEARS <= age <= MAX_DOG_AGE_YEARS):
-                raise PawControlValidationError(
+                raise DataValidationError(
                     f"Dog age must be between {MIN_DOG_AGE_YEARS} and {MAX_DOG_AGE_YEARS} years"
                 )
 
@@ -717,14 +720,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             return dog_config
 
         except (ValueError, TypeError) as err:
-            raise PawControlValidationError(f"Invalid input: {err}") from err
+            raise DataValidationError(f"Invalid input: {err}") from err
 
     async def _build_final_config(
         self, advanced_input: dict[str, Any]
     ) -> IntegrationConfig:
         """Build final integration configuration from all steps."""
         if not self._dogs:
-            raise PawControlConfigError("No dogs configured")
+            raise ConfigurationError("No dogs configured")
 
         config: IntegrationConfig = {
             "dogs": self._dogs,
@@ -795,10 +798,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Create the options flow."""
-        return PawControlOptionsFlowHandler(config_entry)
+        return PawControlOptionsFlow(config_entry)
 
 
-class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
+class PawControlOptionsFlow(OptionsFlow):
     """Handle options flow for Paw Control integration.
 
     Provides comprehensive options management with Python 3.12+ features
@@ -807,8 +810,14 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize options flow."""
-        super().__init__(config_entry)
-        self._current_options = dict(config_entry.options)
+        super().__init__()
+        self._config_entry = config_entry
+        self._options = dict(config_entry.options)
+
+    @property
+    def config_entry(self) -> ConfigEntry:
+        """Return the config entry associated with this flow."""
+        return self._config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -817,12 +826,17 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
         return self.async_show_menu(
             step_id="init",
             menu_options=[
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
                 "dogs",
+                "medication_mapping",
                 "sources",
                 "notifications",
-                "geofence",
-                "advanced",
-                "export_import",
+                "system",
             ],
         )
 
@@ -831,10 +845,10 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
     ) -> FlowResult:
         """Configure dogs."""
         if user_input is not None:
-            self._current_options.update(user_input)
-            return self.async_create_entry(title="", data=self._current_options)
+            self._options.update(user_input)
+            return self.async_create_entry(title="", data=self._options)
 
-        current_dogs = self._current_options.get(CONF_DOGS, [])
+        current_dogs = self._options.get(CONF_DOGS, [])
 
         # Create options for each dog
         dog_options = []
@@ -882,11 +896,11 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
                 "enable_alerts": user_input.get("enable_alerts", True),
             }
 
-            self._current_options["geofence"] = geofence_config
-            return self.async_create_entry(title="", data=self._current_options)
+            self._options["geofence"] = geofence_config
+            return self.async_create_entry(title="", data=self._options)
 
         # Get current geofence settings
-        current_geofence = self._current_options.get("geofence", {})
+        current_geofence = self._options.get("geofence", {})
 
         schema = vol.Schema(
             {
@@ -939,18 +953,18 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
     ) -> FlowResult:
         """Configure advanced options."""
         if user_input is not None:
-            self._current_options.update(user_input)
-            return self.async_create_entry(title="", data=self._current_options)
+            self._options.update(user_input)
+            return self.async_create_entry(title="", data=self._options)
 
         schema = vol.Schema(
             {
                 vol.Optional(
                     "auto_prune_devices",
-                    default=self._current_options.get("auto_prune_devices", False),
+                    default=self._options.get("auto_prune_devices", False),
                 ): cv.boolean,
                 vol.Optional(
                     "route_history_limit",
-                    default=self._current_options.get("route_history_limit", 1000),
+                    default=self._options.get("route_history_limit", 1000),
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=100,
@@ -961,15 +975,15 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
                 ),
                 vol.Optional(
                     "diagnostic_sensors",
-                    default=self._current_options.get("diagnostic_sensors", True),
+                    default=self._options.get("diagnostic_sensors", True),
                 ): cv.boolean,
                 vol.Optional(
                     "debug_logging",
-                    default=self._current_options.get("debug_logging", False),
+                    default=self._options.get("debug_logging", False),
                 ): cv.boolean,
                 vol.Optional(
                     "api_timeout_seconds",
-                    default=self._current_options.get("api_timeout_seconds", 30),
+                    default=self._options.get("api_timeout_seconds", 30),
                 ): NumberSelector(
                     NumberSelectorConfig(
                         min=5,
@@ -992,8 +1006,8 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
     ) -> FlowResult:
         """Configure data sources."""
         if user_input is not None:
-            self._current_options["sources"] = user_input
-            return self.async_create_entry(title="", data=self._current_options)
+            self._options[CONF_SOURCES] = user_input
+            return self.async_create_entry(title="", data=self._options)
 
         # Implementation similar to config flow sources step
         return self.async_show_form(step_id="sources")
@@ -1003,8 +1017,8 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
     ) -> FlowResult:
         """Configure notification settings."""
         if user_input is not None:
-            self._current_options["notifications"] = user_input
-            return self.async_create_entry(title="", data=self._current_options)
+            self._options["notifications"] = user_input
+            return self.async_create_entry(title="", data=self._options)
 
         # Implementation similar to config flow notifications step
         return self.async_show_form(step_id="notifications")
@@ -1046,10 +1060,18 @@ class PawControlOptionsFlowHandler(OptionsFlowWithConfigEntry):
         # Implementation for config export
         return self.async_show_form(
             step_id="export_success",
-            description_placeholders={"export_data": str(self._current_options)},
+            description_placeholders={"export_data": str(self._options)},
         )
 
     async def _handle_import_config(self, user_input: dict[str, Any]) -> FlowResult:
         """Import configuration from user input."""
         # Implementation for config import
-        return self.async_create_entry(title="", data=self._current_options)
+        return self.async_create_entry(title="", data=self._options)
+
+
+# Backwards compatibility alias
+OptionsFlowHandler = PawControlOptionsFlow
+
+
+# Backwards compatibility for config flow
+ConfigFlow = PawControlConfigFlow
