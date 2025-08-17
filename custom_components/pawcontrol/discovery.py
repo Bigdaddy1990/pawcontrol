@@ -14,6 +14,7 @@ from typing import Any, Final
 
 DOMAIN: Final = "pawcontrol"
 
+
 def _mod(name: str):
     """Best-effort importer that returns None if the module is missing."""
     try:
@@ -69,9 +70,7 @@ async def can_connect_pawtracker(hass, data: dict[str, Any]) -> bool:
     host = data.get("host") or props.get("host")
     port = data.get("port") or props.get("port")
     if host and str(port or "").isdigit():
-        if await _probe_socket(host, int(port)):
-            return True
-        return False
+        return bool(await _probe_socket(host, int(port)))
 
     # DHCP discovery commonly provides MAC/IP; again, don't hard fail here.
     if data.get("mac") or data.get("ip"):

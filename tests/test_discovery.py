@@ -1,13 +1,12 @@
 import asyncio
-import pytest
 
+import pytest
 from custom_components.pawcontrol.discovery import (
     can_connect_pawtracker,
     normalize_dhcp_info,
-    normalize_zeroconf_info,
     normalize_usb_info,
+    normalize_zeroconf_info,
 )
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -51,7 +50,12 @@ def test_normalize_dhcp_info():
 
 
 def test_normalize_zeroconf_info():
-    info = {"name": "Test._tcp.local.", "host": "test.local", "port": "80", "properties": {}}
+    info = {
+        "name": "Test._tcp.local.",
+        "host": "test.local",
+        "port": "80",
+        "properties": {},
+    }
     assert normalize_zeroconf_info(info) == {
         "name": "Test._tcp.local",
         "host": "test.local",
@@ -61,7 +65,13 @@ def test_normalize_zeroconf_info():
 
 
 def test_normalize_usb_info():
-    info = {"vid": "10c4", "pid": "ea60", "serial_number": "123", "manufacturer": "ACME", "description": "USB"}
+    info = {
+        "vid": "10c4",
+        "pid": "ea60",
+        "serial_number": "123",
+        "manufacturer": "ACME",
+        "description": "USB",
+    }
     norm = normalize_usb_info(info)
     assert norm["device_id"] == "usb:VID_10C4&PID_EA60"
     assert norm["vid"] == "10c4"
