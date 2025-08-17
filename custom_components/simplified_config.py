@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
@@ -23,7 +21,7 @@ CONFIG_PROFILES = {
         "entities_per_dog": 8,
     },
     "advanced": {
-        "name": "Advanced Pet Management", 
+        "name": "Advanced Pet Management",
         "description": "Full feature set including health, grooming, training",
         "modules": ["location", "walks", "feeding", "health", "grooming", "training"],
         "entities_per_dog": 15,
@@ -44,7 +42,14 @@ CONFIG_PROFILES = {
 
 # Essential vs Optional modules
 ESSENTIAL_MODULES = ["location", "walks"]
-OPTIONAL_MODULES = ["feeding", "health", "grooming", "training", "medication", "automation"]
+OPTIONAL_MODULES = [
+    "feeding",
+    "health",
+    "grooming",
+    "training",
+    "medication",
+    "automation",
+]
 
 
 class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -67,19 +72,22 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context["profile"] = user_input["profile"]
         self.context["dogs_count"] = user_input["dogs_count"]
         self.context["current_dog"] = 1
-        
+
         return await self.async_step_dog_setup()
 
     def _get_profile_schema(self) -> vol.Schema:
         """Get schema for profile selection."""
         profile_options = {key: info["name"] for key, info in CONFIG_PROFILES.items()}
-        
-        return vol.Schema({
-            vol.Required("profile", default="basic"): vol.In(profile_options),
-            vol.Required("dogs_count", default=1): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=3)  # Limit to 3 dogs for simplicity
-            ),
-        })
+
+        return vol.Schema(
+            {
+                vol.Required("profile", default="basic"): vol.In(profile_options),
+                vol.Required("dogs_count", default=1): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=1, max=3),  # Limit to 3 dogs for simplicity
+                ),
+            }
+        )
 
     def _get_profiles_description(self) -> str:
         """Get description of available profiles."""
@@ -106,7 +114,7 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Store dog configuration
         if "dogs" not in self.context:
             self.context["dogs"] = []
-        
+
         # Validate dog configuration
         dog_config = self._validate_dog_config(user_input)
         self.context["dogs"].append(dog_config)
@@ -121,17 +129,19 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _get_dog_schema(self) -> vol.Schema:
         """Get schema for dog configuration."""
-        return vol.Schema({
-            vol.Required("dog_id"): vol.All(str, vol.Length(min=1, max=20)),
-            vol.Required("dog_name"): vol.All(str, vol.Length(min=1, max=50)),
-            vol.Optional("dog_breed", default=""): str,
-            vol.Optional("dog_weight", default=20.0): vol.All(
-                vol.Coerce(float), vol.Range(min=0.5, max=100.0)
-            ),
-            vol.Optional("dog_age", default=5): vol.All(
-                vol.Coerce(int), vol.Range(min=0, max=25)
-            ),
-        })
+        return vol.Schema(
+            {
+                vol.Required("dog_id"): vol.All(str, vol.Length(min=1, max=20)),
+                vol.Required("dog_name"): vol.All(str, vol.Length(min=1, max=50)),
+                vol.Optional("dog_breed", default=""): str,
+                vol.Optional("dog_weight", default=20.0): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.5, max=100.0)
+                ),
+                vol.Optional("dog_age", default=5): vol.All(
+                    vol.Coerce(int), vol.Range(min=0, max=25)
+                ),
+            }
+        )
 
     def _validate_dog_config(self, user_input: dict) -> dict:
         """Validate and normalize dog configuration."""
@@ -150,7 +160,9 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "dog_age": int(user_input.get("dog_age", 5)),
         }
 
-    async def async_step_optional_settings(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_optional_settings(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
         """Handle optional settings configuration."""
         if user_input is None:
             return self.async_show_form(
@@ -160,7 +172,7 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Create final configuration
         profile = CONFIG_PROFILES[self.context["profile"]]
-        
+
         config_data = {
             "name": user_input.get("integration_name", "Paw Control"),
             "profile": self.context["profile"],
@@ -181,14 +193,16 @@ class SimplifiedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _get_optional_settings_schema(self) -> vol.Schema:
         """Get schema for optional settings."""
-        return vol.Schema({
-            vol.Optional("integration_name", default="Paw Control"): str,
-            vol.Optional("notifications_enabled", default=True): bool,
-            vol.Optional("geofencing_enabled", default=True): bool,
-            vol.Optional("data_retention_days", default=90): vol.All(
-                vol.Coerce(int), vol.Range(min=7, max=365)
-            ),
-        })
+        return vol.Schema(
+            {
+                vol.Optional("integration_name", default="Paw Control"): str,
+                vol.Optional("notifications_enabled", default=True): bool,
+                vol.Optional("geofencing_enabled", default=True): bool,
+                vol.Optional("data_retention_days", default=90): vol.All(
+                    vol.Coerce(int), vol.Range(min=7, max=365)
+                ),
+            }
+        )
 
 
 class SimplifiedOptionsFlow(config_entries.OptionsFlow):
@@ -204,35 +218,39 @@ class SimplifiedOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             menu_options={
                 "basic_settings": "Basic Settings",
-                "modules": "Enable/Disable Modules", 
+                "modules": "Enable/Disable Modules",
                 "notifications": "Notifications",
                 "performance": "Performance Settings",
             },
         )
 
-    async def async_step_basic_settings(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_basic_settings(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
         """Configure basic settings."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
         current_options = self.config_entry.options
-        
+
         return self.async_show_form(
             step_id="basic_settings",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    "geofencing_enabled",
-                    default=current_options.get("geofencing_enabled", True),
-                ): bool,
-                vol.Optional(
-                    "data_retention_days",
-                    default=current_options.get("data_retention_days", 90),
-                ): vol.All(vol.Coerce(int), vol.Range(min=7, max=365)),
-                vol.Optional(
-                    "update_interval_minutes",
-                    default=current_options.get("update_interval_minutes", 5),
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "geofencing_enabled",
+                        default=current_options.get("geofencing_enabled", True),
+                    ): bool,
+                    vol.Optional(
+                        "data_retention_days",
+                        default=current_options.get("data_retention_days", 90),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=7, max=365)),
+                    vol.Optional(
+                        "update_interval_minutes",
+                        default=current_options.get("update_interval_minutes", 5),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                }
+            ),
         )
 
     async def async_step_modules(self, user_input: dict | None = None) -> FlowResult:
@@ -241,23 +259,28 @@ class SimplifiedOptionsFlow(config_entries.OptionsFlow):
             # Update modules in config
             new_options = dict(self.config_entry.options)
             new_options["modules"] = [
-                module for module in ESSENTIAL_MODULES + OPTIONAL_MODULES
+                module
+                for module in ESSENTIAL_MODULES + OPTIONAL_MODULES
                 if user_input.get(f"module_{module}", module in ESSENTIAL_MODULES)
             ]
             return self.async_create_entry(title="", data=new_options)
 
-        current_modules = self.config_entry.options.get("modules", ["location", "walks"])
-        
+        current_modules = self.config_entry.options.get(
+            "modules", ["location", "walks"]
+        )
+
         schema_dict = {}
-        
+
         # Essential modules (always enabled)
         for module in ESSENTIAL_MODULES:
             schema_dict[vol.Optional(f"module_{module}", default=True)] = bool
-        
+
         # Optional modules
         for module in OPTIONAL_MODULES:
             default_enabled = module in current_modules
-            schema_dict[vol.Optional(f"module_{module}", default=default_enabled)] = bool
+            schema_dict[vol.Optional(f"module_{module}", default=default_enabled)] = (
+                bool
+            )
 
         return self.async_show_form(
             step_id="modules",
@@ -268,7 +291,9 @@ class SimplifiedOptionsFlow(config_entries.OptionsFlow):
             },
         )
 
-    async def async_step_notifications(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_notifications(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
         """Configure notification settings."""
         if user_input is not None:
             new_options = dict(self.config_entry.options)
@@ -279,31 +304,35 @@ class SimplifiedOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="notifications",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    "enabled",
-                    default=current_notifications.get("enabled", True),
-                ): bool,
-                vol.Optional(
-                    "walk_reminders",
-                    default=current_notifications.get("walk_reminders", True),
-                ): bool,
-                vol.Optional(
-                    "feeding_reminders", 
-                    default=current_notifications.get("feeding_reminders", True),
-                ): bool,
-                vol.Optional(
-                    "quiet_hours_start",
-                    default=current_notifications.get("quiet_hours_start", "22:00"),
-                ): str,
-                vol.Optional(
-                    "quiet_hours_end",
-                    default=current_notifications.get("quiet_hours_end", "07:00"),
-                ): str,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "enabled",
+                        default=current_notifications.get("enabled", True),
+                    ): bool,
+                    vol.Optional(
+                        "walk_reminders",
+                        default=current_notifications.get("walk_reminders", True),
+                    ): bool,
+                    vol.Optional(
+                        "feeding_reminders",
+                        default=current_notifications.get("feeding_reminders", True),
+                    ): bool,
+                    vol.Optional(
+                        "quiet_hours_start",
+                        default=current_notifications.get("quiet_hours_start", "22:00"),
+                    ): str,
+                    vol.Optional(
+                        "quiet_hours_end",
+                        default=current_notifications.get("quiet_hours_end", "07:00"),
+                    ): str,
+                }
+            ),
         )
 
-    async def async_step_performance(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_performance(
+        self, user_input: dict | None = None
+    ) -> FlowResult:
         """Configure performance settings."""
         if user_input is not None:
             new_options = dict(self.config_entry.options)
@@ -314,24 +343,26 @@ class SimplifiedOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="performance",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    "max_entities_per_dog",
-                    default=current_performance.get("max_entities_per_dog", 10),
-                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=20)),
-                vol.Optional(
-                    "enable_caching",
-                    default=current_performance.get("enable_caching", True),
-                ): bool,
-                vol.Optional(
-                    "batch_updates",
-                    default=current_performance.get("batch_updates", True),
-                ): bool,
-                vol.Optional(
-                    "debug_mode",
-                    default=current_performance.get("debug_mode", False),
-                ): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "max_entities_per_dog",
+                        default=current_performance.get("max_entities_per_dog", 10),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=5, max=20)),
+                    vol.Optional(
+                        "enable_caching",
+                        default=current_performance.get("enable_caching", True),
+                    ): bool,
+                    vol.Optional(
+                        "batch_updates",
+                        default=current_performance.get("batch_updates", True),
+                    ): bool,
+                    vol.Optional(
+                        "debug_mode",
+                        default=current_performance.get("debug_mode", False),
+                    ): bool,
+                }
+            ),
         )
 
 
@@ -373,7 +404,7 @@ def get_module_entities(module: str, dog_id: str) -> list[str]:
             f"button.{dog_id}_start_training",
         ],
     }
-    
+
     return entity_map.get(module, [])
 
 
@@ -389,24 +420,28 @@ def calculate_total_entities(dogs: list[dict], modules: list[str]) -> int:
 def validate_configuration(config: dict) -> tuple[bool, list[str]]:
     """Validate the complete configuration and return any warnings."""
     warnings = []
-    
+
     # Check entity count
     total_entities = calculate_total_entities(config["dogs"], config["modules"])
     if total_entities > 50:
-        warnings.append(f"High entity count ({total_entities}). Consider reducing modules or dogs.")
-    
+        warnings.append(
+            f"High entity count ({total_entities}). Consider reducing modules or dogs."
+        )
+
     # Check dog names for conflicts
     dog_names = [dog["dog_name"] for dog in config["dogs"]]
     if len(dog_names) != len(set(dog_names)):
         warnings.append("Duplicate dog names detected. This may cause confusion.")
-    
+
     # Check module combinations
     if "health" in config["modules"] and len(config["dogs"]) > 2:
         warnings.append("Health module with multiple dogs may create many entities.")
-    
+
     return len(warnings) == 0, warnings
 
 
-async def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> SimplifiedOptionsFlow:
+async def async_get_options_flow(
+    config_entry: config_entries.ConfigEntry,
+) -> SimplifiedOptionsFlow:
     """Return the options flow handler."""
     return SimplifiedOptionsFlow(config_entry)

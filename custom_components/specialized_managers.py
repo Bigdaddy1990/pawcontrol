@@ -20,7 +20,6 @@ from .const import (
     MIN_DOG_WEIGHT_KG,
     EVENT_WALK_STARTED,
     EVENT_WALK_ENDED,
-    EVENT_DOG_FED,
     ATTR_DOG_ID,
 )
 from .utils import validate_coordinates, calculate_distance
@@ -34,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class DogDataManager:
     """Manages dog data storage and initialization.
-    
+
     Handles the core data structures for all dogs and ensures
     proper initialization and data consistency.
     """
@@ -55,15 +54,19 @@ class DogDataManager:
                 _LOGGER.warning("Skipping dog with missing ID: %s", dog)
                 continue
 
-            dog_weight = max(MIN_DOG_WEIGHT_KG, float(dog.get("weight", DEFAULT_DOG_WEIGHT_KG)))
+            dog_weight = max(
+                MIN_DOG_WEIGHT_KG, float(dog.get("weight", DEFAULT_DOG_WEIGHT_KG))
+            )
             dog_age = max(0, int(dog.get("age", 0)))
 
-            self._dog_data[dog_id] = self._create_dog_data_structure(dog, dog_weight, dog_age)
+            self._dog_data[dog_id] = self._create_dog_data_structure(
+                dog, dog_weight, dog_age
+            )
 
     def _create_dog_data_structure(self, dog: dict, weight: float, age: int) -> DogData:
         """Create a complete dog data structure."""
         current_time = dt_util.now().isoformat()
-        
+
         return {
             "info": {
                 "name": str(dog.get("name", dog.get("dog_id", "Unknown"))),
@@ -170,7 +173,7 @@ class DogDataManager:
 
 class WalkManager:
     """Manages walk-related operations and GPS tracking.
-    
+
     Handles walk start/end, GPS updates, distance calculations,
     and walk-related status determinations.
     """
@@ -221,7 +224,9 @@ class WalkManager:
         data["statistics"]["last_action_type"] = "walk_started"
 
         # Fire event
-        self.hass.bus.async_fire(EVENT_WALK_STARTED, {ATTR_DOG_ID: dog_id, "source": source})
+        self.hass.bus.async_fire(
+            EVENT_WALK_STARTED, {ATTR_DOG_ID: dog_id, "source": source}
+        )
         _LOGGER.info("Started walk for dog %s (source: %s)", dog_id, source)
 
     async def end_walk(self, dog_id: str, reason: str = "manual") -> None:
@@ -251,7 +256,9 @@ class WalkManager:
 
         # Add distance to daily total
         walk_distance = walk_data.get("walk_distance_m", 0)
-        walk_data["total_distance_today"] = walk_data.get("total_distance_today", 0) + walk_distance
+        walk_data["total_distance_today"] = (
+            walk_data.get("total_distance_today", 0) + walk_distance
+        )
 
         # Update statistics
         data["statistics"]["last_action"] = current_time.isoformat()
@@ -267,9 +274,20 @@ class WalkManager:
                 "distance_m": walk_distance,
             },
         )
-        _LOGGER.info("Ended walk for dog %s: %.1f min, %.1f m", dog_id, walk_data.get("walk_duration_min", 0), walk_distance)
+        _LOGGER.info(
+            "Ended walk for dog %s: %.1f min, %.1f m",
+            dog_id,
+            walk_data.get("walk_duration_min", 0),
+            walk_distance,
+        )
 
-    def update_gps(self, dog_id: str, latitude: float, longitude: float, accuracy: float | None = None) -> None:
+    def update_gps(
+        self,
+        dog_id: str,
+        latitude: float,
+        longitude: float,
+        accuracy: float | None = None,
+    ) -> None:
         """Update GPS location for a dog."""
         if not self.dog_data_manager.dog_exists(dog_id):
             raise ValueError(f"Dog not found: {dog_id}")
@@ -280,7 +298,7 @@ class WalkManager:
         data = self.dog_data_manager.get_dog_data(dog_id)
         loc = data["location"]
         current_time = dt_util.utcnow()
-        
+
         loc["last_gps_update"] = current_time.isoformat()
 
         # Calculate distance and geofence status if home coordinates are available
@@ -290,15 +308,19 @@ class WalkManager:
 
         if isinstance(home_lat, (int, float)) and isinstance(home_lon, (int, float)):
             try:
-                distance = calculate_distance(float(home_lat), float(home_lon), latitude, longitude)
+                distance = calculate_distance(
+                    float(home_lat), float(home_lon), latitude, longitude
+                )
                 loc["distance_from_home"] = round(distance, 1)
-                
+
                 if radius_m and radius_m > 0:
                     inside = distance <= float(radius_m)
                     loc["is_home"] = inside
                     loc["current_location"] = "home" if inside else "away"
             except (ValueError, TypeError) as err:
-                _LOGGER.warning("Failed to calculate distance for dog %s: %s", dog_id, err)
+                _LOGGER.warning(
+                    "Failed to calculate distance for dog %s: %s", dog_id, err
+                )
 
         # Update last action
         data["statistics"]["last_action"] = current_time.isoformat()
@@ -321,7 +343,7 @@ class WalkManager:
 
 class FeedingManager:
     """Manages feeding-related operations and calculations.
-    
+
     Handles feeding events, hunger calculations, and meal scheduling.
     """
 
@@ -338,13 +360,19 @@ class FeedingManager:
         current_hour = dt_util.now().hour
 
         # Check feeding schedule against current time
-        is_breakfast_time = 6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0
+        is_breakfast_time = (
+            6 <= current_hour < 9 and data["feedings_today"]["breakfast"] == 0
+        )
         is_lunch_time = 11 <= current_hour < 14 and data["feedings_today"]["lunch"] == 0
-        is_dinner_time = 17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0
+        is_dinner_time = (
+            17 <= current_hour < 20 and data["feedings_today"]["dinner"] == 0
+        )
 
         return bool(is_breakfast_time or is_lunch_time or is_dinner_time)
 
-    async def feed_dog(self, dog_id: str, meal_type: str, portion_g: int, food_type: str) -> None:
+    async def feed_dog(
+        self, dog_id: str, meal_type: str, portion_g: int, food_type: str
+    ) -> None:
         """Record feeding for a dog."""
         if not self.dog_data_manager.dog_exists(dog_id):
             raise ValueError(f"Unknown dog: {dog_id}")
@@ -372,33 +400,37 @@ class FeedingManager:
         data["statistics"]["last_action"] = current_time.isoformat()
         data["statistics"]["last_action_type"] = "fed"
 
-        _LOGGER.info("Fed dog %s: %s, %d g of %s", dog_id, meal_type, portion_g, food_type)
+        _LOGGER.info(
+            "Fed dog %s: %s, %d g of %s", dog_id, meal_type, portion_g, food_type
+        )
 
 
 class HealthCalculator:
     """Calculates health-related metrics and status.
-    
+
     Handles health calculations, medication scheduling,
     and grooming requirements.
     """
 
-    async def calculate_health_metrics(self, dog_id: str, data: DogData) -> dict[str, Any]:
+    async def calculate_health_metrics(
+        self, dog_id: str, data: DogData
+    ) -> dict[str, Any]:
         """Calculate health-related metrics for a dog."""
         results = {}
-        
+
         # Calculate next medication due
         results["next_medication_due"] = await self._calculate_next_medication(data)
-        
+
         # Calculate grooming needs
         results["needs_grooming"] = self._calculate_needs_grooming(data)
-        
+
         return results
 
     async def _calculate_next_medication(self, data: DogData) -> datetime | None:
         """Calculate next medication due time."""
         health_data = data["health"]
         last_med_str = health_data.get("last_medication")
-        
+
         if not last_med_str:
             return None
 
@@ -406,11 +438,11 @@ class HealthCalculator:
             last_med_dt = datetime.fromisoformat(last_med_str)
             if last_med_dt.tzinfo is None:
                 last_med_dt = dt_util.as_local(last_med_dt)
-            
+
             # Default 12 hour interval
             reminder_hours = 12
             return last_med_dt + timedelta(hours=reminder_hours)
-            
+
         except (ValueError, TypeError):
             return None
 
@@ -418,7 +450,7 @@ class HealthCalculator:
         """Calculate if dog needs grooming."""
         grooming_data = data["grooming"]
         last_grooming_str = grooming_data.get("last_grooming")
-        
+
         if not last_grooming_str:
             return True
 
@@ -426,11 +458,11 @@ class HealthCalculator:
             last_grooming_dt = datetime.fromisoformat(last_grooming_str)
             if last_grooming_dt.tzinfo is None:
                 last_grooming_dt = dt_util.as_local(last_grooming_dt)
-            
+
             days_since = (dt_util.now() - last_grooming_dt).days
             interval_days = max(1, grooming_data.get("grooming_interval_days", 30))
-            
+
             return days_since >= interval_days
-            
+
         except (ValueError, TypeError):
             return True

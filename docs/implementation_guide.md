@@ -109,7 +109,7 @@ Für bestehende Installationen sollten Sie eine Migrationsfunktion implementiere
 async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
     """Migrate existing options to new extended format."""
     old_options = self._options
-    
+
     # Migrate old format to new structure
     new_options = {
         "gps": {
@@ -122,7 +122,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
             # ... weitere Migrationen
         }
     }
-    
+
     return new_options
 ```
 

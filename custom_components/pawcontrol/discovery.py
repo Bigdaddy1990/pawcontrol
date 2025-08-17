@@ -34,7 +34,9 @@ async def can_connect_pawtracker(hass, data: dict[str, Any]) -> bool:
         * For BLE: delegate to BLE integration APIs.
     """
     # Example heuristics without importing optional libs:
-    dev = str(data.get("device_id") or data.get("serial") or data.get("mac") or "").lower()
+    dev = str(
+        data.get("device_id") or data.get("serial") or data.get("mac") or ""
+    ).lower()
     if dev.startswith("usb:"):
         # We assume it's connectable; real-world: attempt a quick port open with a timeout.
         return True
@@ -56,6 +58,7 @@ async def can_connect_pawtracker(hass, data: dict[str, Any]) -> bool:
 
 
 # Optional helpers (kept flexible for tests; they don't import optional HA modules)
+
 
 def normalize_dhcp_info(info: dict[str, Any]) -> dict[str, Any]:
     """Normalize a DHCP discovery dict into a compact data mapping we can store."""
@@ -82,7 +85,11 @@ def normalize_usb_info(info: dict[str, Any]) -> dict[str, Any]:
     serial = info.get("serial_number") or info.get("serial")
     manufacturer = info.get("manufacturer")
     description = info.get("description")
-    device_id = f"usb:VID_{str(vid).upper()}&PID_{str(pid).upper()}" if vid and pid else "usb:unknown"
+    device_id = (
+        f"usb:VID_{str(vid).upper()}&PID_{str(pid).upper()}"
+        if vid and pid
+        else "usb:unknown"
+    )
     return {
         "vid": vid,
         "pid": pid,

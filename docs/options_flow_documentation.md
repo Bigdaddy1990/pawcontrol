@@ -126,7 +126,7 @@ system_config = {
 ```python
 class OptionsFlowHandler(config_entries.OptionsFlow):
     \"\"\"Enhanced options flow with comprehensive configuration options.\"\"\"
-    
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         \"\"\"Initialize options flow.\"\"\"
         self._entry = config_entry
@@ -139,7 +139,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         \"\"\"Return current options with defaults.\"\"\"
         return self._entry.options
 
-    @property  
+    @property
     def _data(self) -> dict[str, Any]:
         \"\"\"Return current config data.\"\"\"
         return self._entry.data

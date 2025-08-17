@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import lru_cache, wraps
 from typing import TYPE_CHECKING, Any
 
@@ -33,7 +33,7 @@ BATCH_UPDATE_SIZE = 10  # Process entities in batches
 
 class PerformanceMonitor:
     """Monitor and track performance metrics for the integration."""
-    
+
     def __init__(self) -> None:
         """Initialize performance monitor."""
         self.update_times: list[float] = []
@@ -48,7 +48,7 @@ class PerformanceMonitor:
         # Keep only last 100 measurements
         if len(self.update_times) > 100:
             self.update_times.pop(0)
-        
+
         # Track slow updates (>1 second)
         if duration > 1.0:
             self.slow_updates += 1
@@ -70,43 +70,46 @@ class PerformanceMonitor:
         """Calculate performance score (0-100)."""
         if not self.update_times:
             return 100.0
-        
+
         avg_time = self.average_update_time
         slow_ratio = self.slow_updates / max(len(self.update_times), 1)
         fail_ratio = self.failed_updates / max(len(self.update_times), 1)
-        
+
         # Score based on speed and reliability
         speed_score = max(0, 100 - (avg_time * 100))
         reliability_score = max(0, 100 - (slow_ratio * 50) - (fail_ratio * 100))
-        
+
         return (speed_score + reliability_score) / 2
 
 
 def performance_timer(func: Callable) -> Callable:
     """Decorator to time function execution."""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         start_time = dt_util.utcnow()
         try:
             result = await func(*args, **kwargs)
             duration = (dt_util.utcnow() - start_time).total_seconds()
-            
+
             # Log slow functions
             if duration > 0.5:
                 _LOGGER.debug("Slow function %s took %.2fs", func.__name__, duration)
-            
+
             return result
         except Exception as err:
             duration = (dt_util.utcnow() - start_time).total_seconds()
-            _LOGGER.error("Function %s failed after %.2fs: %s", func.__name__, duration, err)
+            _LOGGER.error(
+                "Function %s failed after %.2fs: %s", func.__name__, duration, err
+            )
             raise
-    
+
     return wrapper
 
 
 class CacheManager:
     """Manage caching for expensive calculations."""
-    
+
     def __init__(self, ttl_seconds: int = CACHE_TTL_SECONDS) -> None:
         """Initialize cache manager."""
         self.ttl_seconds = ttl_seconds
@@ -117,19 +120,19 @@ class CacheManager:
         """Get cached value or calculate and cache it."""
         async with self._lock:
             now = dt_util.utcnow()
-            
+
             # Check if cached value exists and is fresh
             if key in self._cache:
                 value, timestamp = self._cache[key]
                 if (now - timestamp).total_seconds() < self.ttl_seconds:
                     return value
-            
+
             # Calculate new value
             if asyncio.iscoroutinefunction(factory):
                 value = await factory(*args, **kwargs)
             else:
                 value = factory(*args, **kwargs)
-            
+
             # Cache the new value
             self._cache[key] = (value, now)
             return value
@@ -146,7 +149,8 @@ class CacheManager:
         """Remove expired cache entries."""
         now = dt_util.utcnow()
         expired_keys = [
-            key for key, (_, timestamp) in self._cache.items()
+            key
+            for key, (_, timestamp) in self._cache.items()
             if (now - timestamp).total_seconds() >= self.ttl_seconds
         ]
         for key in expired_keys:
@@ -155,7 +159,7 @@ class CacheManager:
 
 class OptimizedEntity(CoordinatorEntity):
     """Base entity class with performance optimizations."""
-    
+
     def __init__(
         self,
         coordinator: PawControlCoordinator,
@@ -170,7 +174,7 @@ class OptimizedEntity(CoordinatorEntity):
         self._last_state = None
         self._last_update_time: datetime | None = None
         self._update_count = 0
-        
+
         # Debouncer for updates
         self._update_debouncer = Debouncer(
             coordinator.hass,
@@ -189,7 +193,7 @@ class OptimizedEntity(CoordinatorEntity):
             self._last_state = current_state
             self._last_update_time = dt_util.utcnow()
             self._update_count += 1
-            
+
             # Use debouncer to prevent rapid updates
             self._update_debouncer.async_schedule_update()
 
@@ -210,17 +214,17 @@ class OptimizedEntity(CoordinatorEntity):
             "dog_id": self.dog_id,
             "update_count": self._update_count,
         }
-        
+
         # Add last update time if available
         if self._last_update_time:
             attributes["last_updated"] = self._last_update_time.isoformat()
-        
+
         return attributes
 
 
 class EntityManager:
     """Manage entity creation and lifecycle with performance optimizations."""
-    
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize entity manager."""
         self.hass = hass
@@ -233,7 +237,7 @@ class EntityManager:
         """Register an entity for a dog."""
         if dog_id not in self._entity_registry:
             self._entity_registry[dog_id] = set()
-        
+
         self._entity_registry[dog_id].add(entity_id)
         self.performance_monitor.entity_count = sum(
             len(entities) for entities in self._entity_registry.values()
@@ -246,46 +250,58 @@ class EntityManager:
     def should_create_entity(self, dog_id: str, entity_type: str) -> bool:
         """Determine if an entity should be created based on performance limits."""
         current_count = self.get_entity_count_for_dog(dog_id)
-        
+
         # Enforce entity limits per dog
         if current_count >= MAX_ENTITIES_PER_DOG:
             _LOGGER.warning(
                 "Entity limit reached for dog %s (%d entities). Skipping %s",
-                dog_id, current_count, entity_type
+                dog_id,
+                current_count,
+                entity_type,
             )
             return False
-        
+
         # Check if this entity type is essential
         essential_entities = {
-            "walk_in_progress", "is_home", "needs_walk", "last_walk",
-            "walk_distance_today", "location", "battery_level"
+            "walk_in_progress",
+            "is_home",
+            "needs_walk",
+            "last_walk",
+            "walk_distance_today",
+            "location",
+            "battery_level",
         }
-        
-        return entity_type in essential_entities or current_count < MAX_ENTITIES_PER_DOG // 2
+
+        return (
+            entity_type in essential_entities
+            or current_count < MAX_ENTITIES_PER_DOG // 2
+        )
 
     @performance_timer
-    async def batch_update_entities(self, entity_updates: list[tuple[str, dict]]) -> None:
+    async def batch_update_entities(
+        self, entity_updates: list[tuple[str, dict]]
+    ) -> None:
         """Update multiple entities in batches for better performance."""
         if not entity_updates:
             return
-        
+
         # Process updates in batches
         for i in range(0, len(entity_updates), BATCH_UPDATE_SIZE):
-            batch = entity_updates[i:i + BATCH_UPDATE_SIZE]
-            
+            batch = entity_updates[i : i + BATCH_UPDATE_SIZE]
+
             # Create update tasks for this batch
             update_tasks = []
             for entity_id, update_data in batch:
                 task = self._update_single_entity(entity_id, update_data)
                 update_tasks.append(task)
-            
+
             # Execute batch updates
             try:
                 await asyncio.gather(*update_tasks, return_exceptions=True)
             except Exception as err:
                 _LOGGER.error("Batch update failed: %s", err)
                 self.performance_monitor.record_failed_update()
-            
+
             # Small delay between batches to prevent overwhelming
             if i + BATCH_UPDATE_SIZE < len(entity_updates):
                 await asyncio.sleep(0.1)
@@ -296,11 +312,15 @@ class EntityManager:
             # Get entity from registry
             entity_registry = self.hass.helpers.entity_registry.async_get()
             entity_entry = entity_registry.async_get(entity_id)
-            
+
             if entity_entry:
                 # Trigger entity update
                 self.hass.async_create_task(
-                    self.hass.states.async_set(entity_id, update_data.get("state"), update_data.get("attributes"))
+                    self.hass.states.async_set(
+                        entity_id,
+                        update_data.get("state"),
+                        update_data.get("attributes"),
+                    )
                 )
         except Exception as err:
             _LOGGER.debug("Failed to update entity %s: %s", entity_id, err)
@@ -308,22 +328,27 @@ class EntityManager:
 
 class DataCompressor:
     """Compress and optimize data structures for better performance."""
-    
+
     @staticmethod
     def compress_dog_data(dog_data: dict[str, Any]) -> dict[str, Any]:
         """Compress dog data by removing unnecessary fields."""
         compressed = {}
-        
+
         # Only include essential fields
         essential_fields = {
             "info": ["name", "weight"],
-            "walk": ["walk_in_progress", "needs_walk", "walk_distance_m", "walks_today"],
+            "walk": [
+                "walk_in_progress",
+                "needs_walk",
+                "walk_distance_m",
+                "walks_today",
+            ],
             "feeding": ["is_hungry", "last_feeding", "feedings_today"],
             "health": ["weight_kg", "medications_today"],
             "location": ["is_home", "distance_from_home", "last_gps_update"],
             "statistics": ["last_action_type"],
         }
-        
+
         for category, fields in essential_fields.items():
             if category in dog_data:
                 compressed[category] = {
@@ -331,7 +356,7 @@ class DataCompressor:
                     for field in fields
                     if field in dog_data[category]
                 }
-        
+
         return compressed
 
     @staticmethod
@@ -339,55 +364,58 @@ class DataCompressor:
     def calculate_hash(data_str: str) -> str:
         """Calculate hash for data comparison (cached)."""
         import hashlib
+
         return hashlib.md5(data_str.encode()).hexdigest()
 
     @staticmethod
     def data_changed(old_data: dict, new_data: dict) -> bool:
         """Efficiently check if data has changed."""
         import json
-        
+
         old_hash = DataCompressor.calculate_hash(json.dumps(old_data, sort_keys=True))
         new_hash = DataCompressor.calculate_hash(json.dumps(new_data, sort_keys=True))
-        
+
         return old_hash != new_hash
 
 
 class SmartUpdateCoordinator:
     """Smart coordinator that only updates when necessary."""
-    
+
     def __init__(self, coordinator: PawControlCoordinator) -> None:
         """Initialize smart update coordinator."""
         self.coordinator = coordinator
         self.last_data_hashes: dict[str, str] = {}
         self.update_frequencies: dict[str, int] = {}  # Track update frequency per dog
-        
+
     async def smart_update(self, dog_id: str, new_data: dict[str, Any]) -> bool:
         """Perform smart update that only processes changed data."""
         # Compress data for comparison
         compressed_data = DataCompressor.compress_dog_data(new_data)
-        
+
         # Calculate hash
         import json
+
         data_str = json.dumps(compressed_data, sort_keys=True)
         new_hash = DataCompressor.calculate_hash(data_str)
-        
+
         # Check if data actually changed
         old_hash = self.last_data_hashes.get(dog_id)
         if old_hash == new_hash:
             # Data hasn't changed, skip update
             return False
-        
+
         # Data changed, perform update
         self.last_data_hashes[dog_id] = new_hash
         self.update_frequencies[dog_id] = self.update_frequencies.get(dog_id, 0) + 1
-        
+
         # Log high-frequency updates
         if self.update_frequencies[dog_id] % 100 == 0:
             _LOGGER.debug(
                 "Dog %s has been updated %d times",
-                dog_id, self.update_frequencies[dog_id]
+                dog_id,
+                self.update_frequencies[dog_id],
             )
-        
+
         return True
 
     def get_update_frequency(self, dog_id: str) -> int:
@@ -406,6 +434,7 @@ def memory_usage() -> float:
     try:
         import psutil
         import os
+
         process = psutil.Process(os.getpid())
         return process.memory_info().rss / 1024 / 1024
     except ImportError:
@@ -419,5 +448,5 @@ def log_performance_metrics(performance_monitor: PerformanceMonitor) -> None:
         performance_monitor.entity_count,
         performance_monitor.average_update_time,
         performance_monitor.performance_score,
-        memory_usage()
+        memory_usage(),
     )

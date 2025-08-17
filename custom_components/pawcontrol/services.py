@@ -492,8 +492,6 @@ class ServiceManager:
         if errors:
             raise ServiceErrors(f"Failed to register {category} services", errors)
 
-
-
     async def _register_service(
         self, service_name: str, handler: Any, schema: vol.Schema
     ) -> None:
@@ -799,14 +797,12 @@ class ServiceManager:
         dog_id = call.data[CONF_DOG_ID]
         topic = call.data["topic"]
         duration_min = call.data["duration_min"]
-        intensity = call.data.get("intensity", "medium")
+        call.data.get("intensity", "medium")
         notes = call.data.get("notes", "")
 
         try:
             self._validate_dog_exists(dog_id)
-            await self.coordinator.log_training(
-                dog_id, topic, duration_min, notes
-            )
+            await self.coordinator.log_training(dog_id, topic, duration_min, notes)
             _LOGGER.info(
                 "Logged training session for dog %s: %s for %d min",
                 dog_id,

@@ -63,7 +63,7 @@ smart_walk_detection:
                       title: "Start Walk"
                     - action: "NOT_WALK"
                       title: "Not a Walk"
-        
+
         # Time-based walk reminders
         - conditions:
             - condition: template
@@ -83,7 +83,7 @@ smart_walk_detection:
                       title: "Start Walk"
                     - action: "SNOOZE_30"
                       title: "Snooze 30min"
-        
+
         # Long overdue walk alert
         - conditions:
             - condition: numeric_state
@@ -155,7 +155,7 @@ feeding_schedule:
                       title: "Mark as Fed"
                     - action: "SNOOZE_FEEDING"
                       title: "Snooze 15min"
-            
+
             # Auto-turn on smart feeder if available
             - if:
                 - condition: state
@@ -165,7 +165,7 @@ feeding_schedule:
                 - service: switch.turn_on
                   target:
                     entity_id: switch.smart_feeder
-        
+
         # Overdue feeding alert
         - conditions:
             - condition: template
@@ -227,7 +227,7 @@ gps_tracking_automation:
                 message: "{{ states('sensor.buddy_name') }} left home. Walk tracking started automatically."
                 data:
                   tag: "walk_status"
-            
+
             # Set home to away mode if configured
             - if:
                 - condition: state
@@ -237,7 +237,7 @@ gps_tracking_automation:
                 - service: alarm_control_panel.alarm_arm_away
                   target:
                     entity_id: alarm_control_panel.home_security
-        
+
         # Dog arrived home - end walk tracking
         - conditions:
             - condition: template
@@ -247,19 +247,19 @@ gps_tracking_automation:
               data:
                 dog_id: "buddy"
                 notes: "Auto-ended on arrival home"
-            
+
             - delay: "00:00:05"  # Wait for walk data to update
-            
+
             - service: notify.mobile_app_phone
               data:
                 title: "🏠 Walk Completed"
                 message: >
-                  {{ states('sensor.buddy_name') }} is home! 
+                  {{ states('sensor.buddy_name') }} is home!
                   Walk distance: {{ states('sensor.buddy_walk_distance_last') }}m
                   Duration: {{ states('sensor.buddy_walk_duration_last') }}min
                 data:
                   tag: "walk_status"
-            
+
             # Disarm alarm if configured
             - if:
                 - condition: state
@@ -271,7 +271,7 @@ gps_tracking_automation:
                     entity_id: alarm_control_panel.home_security
                   data:
                     code: !secret alarm_code
-        
+
         # Dog is far from home - alert
         - conditions:
             - condition: template
@@ -293,7 +293,7 @@ gps_tracking_automation:
                       title: "View on Map"
                     - action: "CALL_DOG"
                       title: "Call Dog"
-        
+
         # Left safe zone - security alert
         - conditions:
             - condition: template
@@ -355,7 +355,7 @@ health_monitoring:
               data:
                 dog_id: "buddy"
                 medication: "{{ trigger.id }}"
-            
+
             - service: notify.mobile_app_phone
               data:
                 title: "💊 Medication Reminder"
@@ -367,7 +367,7 @@ health_monitoring:
                       title: "Given"
                     - action: "SNOOZE_MEDICATION"
                       title: "Snooze 1h"
-        
+
         # Weight change alert
         - conditions:
             - condition: template
@@ -382,11 +382,11 @@ health_monitoring:
               data:
                 title: "⚖️ Weight Change Alert"
                 message: >
-                  {{ states('sensor.buddy_name') }}'s weight changed from 
+                  {{ states('sensor.buddy_name') }}'s weight changed from
                   {{ trigger.from_state.state }}kg to {{ trigger.to_state.state }}kg
                 data:
                   tag: "health_alert"
-        
+
         # Grooming reminder
         - conditions:
             - condition: template
@@ -402,7 +402,7 @@ health_monitoring:
                       title: "Book Appointment"
                     - action: "GROOMING_DONE"
                       title: "Mark as Done"
-        
+
         # Vet checkup reminder
         - conditions:
             - condition: template
@@ -441,7 +441,7 @@ weather_walk_planning:
         temperature: "{{ state_attr('weather.home', 'temperature') | float }}"
         condition: "{{ states('weather.home') }}"
         feels_like: "{{ state_attr('weather.home', 'apparent_temperature') | float }}"
-        
+
     - choose:
         # Too hot for walks
         - conditions:
@@ -453,7 +453,7 @@ weather_walk_planning:
                 entity_id: input_text.walk_weather_advice
               data:
                 value: "🌡️ Too hot for walks! Wait for cooler weather or find shaded areas."
-            
+
             - if:
                 - condition: numeric_state
                   entity_id: sensor.buddy_last_walk_hours
@@ -463,7 +463,7 @@ weather_walk_planning:
                   data:
                     title: "🌡️ Hot Weather Alert"
                     message: "It's too hot for {{ states('sensor.buddy_name') }}'s walk. Consider waiting until evening."
-        
+
         # Too cold for walks
         - conditions:
             - condition: template
@@ -474,7 +474,7 @@ weather_walk_planning:
                 entity_id: input_text.walk_weather_advice
               data:
                 value: "🥶 Very cold! Consider shorter walks or indoor activities."
-        
+
         # Rainy weather
         - conditions:
             - condition: template
@@ -485,7 +485,7 @@ weather_walk_planning:
                 entity_id: input_text.walk_weather_advice
               data:
                 value: "🌧️ Weather not ideal for walks. Have rain gear ready or wait for clearing."
-        
+
         # Perfect weather
         - conditions:
             - condition: template
@@ -496,7 +496,7 @@ weather_walk_planning:
                 entity_id: input_text.walk_weather_advice
               data:
                 value: "☀️ Perfect weather for walks!"
-            
+
             - if:
                 - condition: numeric_state
                   entity_id: sensor.buddy_last_walk_hours
@@ -529,7 +529,7 @@ paw_control_dashboard:
     - type: custom:mushroom-title-card
       title: "Paw Control Dashboard"
       subtitle: "Smart Dog Management System"
-    
+
     # Quick Status Overview
     - type: horizontal-stack
       cards:
@@ -540,7 +540,7 @@ paw_control_dashboard:
           tap_action:
             action: navigate
             navigation_path: "/lovelace/dog-buddy"
-        
+
         - type: custom:mushroom-entity-card
           entity: binary_sensor.buddy_walk_in_progress
           name: "Walk Status"
@@ -554,7 +554,7 @@ paw_control_dashboard:
                   rgba(158, 158, 158, 0.1)
                 {% endif %};
               }
-        
+
         - type: custom:mushroom-entity-card
           entity: sensor.buddy_last_walk_hours
           name: "Last Walk"
@@ -570,7 +570,7 @@ paw_control_dashboard:
                   rgba(76, 175, 80, 0.1)
                 {% endif %};
               }
-        
+
         - type: custom:mushroom-entity-card
           entity: sensor.buddy_last_feeding_hours
           name: "Last Fed"
@@ -586,11 +586,11 @@ paw_control_dashboard:
                   rgba(76, 175, 80, 0.1)
                 {% endif %};
               }
-    
+
     # Quick Actions
     - type: custom:mushroom-title-card
       title: "Quick Actions"
-    
+
     - type: horizontal-stack
       cards:
         - type: custom:mushroom-entity-card
@@ -607,7 +607,7 @@ paw_control_dashboard:
               ha-card {
                 background: rgba(33, 150, 243, 0.1);
               }
-        
+
         - type: custom:mushroom-entity-card
           entity: button.buddy_end_walk
           name: "End Walk"
@@ -622,7 +622,7 @@ paw_control_dashboard:
               ha-card {
                 background: rgba(255, 87, 34, 0.1);
               }
-        
+
         - type: custom:mushroom-entity-card
           entity: button.buddy_feed
           name: "Mark Fed"
@@ -638,7 +638,7 @@ paw_control_dashboard:
               ha-card {
                 background: rgba(76, 175, 80, 0.1);
               }
-        
+
         - type: custom:mushroom-entity-card
           entity: button.buddy_grooming
           name: "Grooming"
@@ -649,7 +649,7 @@ paw_control_dashboard:
             service_data:
               dog_id: "buddy"
               type: "brush"
-    
+
     # Current Walk Information
     - type: conditional
       conditions:
@@ -658,7 +658,7 @@ paw_control_dashboard:
       card:
         type: custom:mushroom-title-card
         title: "🚶 Current Walk"
-    
+
     - type: conditional
       conditions:
         - entity: binary_sensor.buddy_walk_in_progress
@@ -687,11 +687,11 @@ paw_control_dashboard:
               background: rgba(33, 150, 243, 0.1);
               border: 2px solid rgba(33, 150, 243, 0.3);
             }
-    
+
     # Daily Statistics
     - type: custom:mushroom-title-card
       title: "📊 Today's Statistics"
-    
+
     - type: horizontal-stack
       cards:
         - type: statistic
@@ -700,25 +700,25 @@ paw_control_dashboard:
           stat_type: state
           period:
             hour: 24
-        
+
         - type: statistic
           entity: sensor.buddy_calories_burned_today
           name: "Calories Burned"
           stat_type: state
           period:
             hour: 24
-        
+
         - type: statistic
           entity: sensor.buddy_poop_count_today
           name: "Bathroom Breaks"
           stat_type: state
           period:
             hour: 24
-    
+
     # Health Monitoring
     - type: custom:mushroom-title-card
       title: "🏥 Health Monitoring"
-    
+
     - type: entities
       entities:
         - entity: sensor.buddy_weight
@@ -736,11 +736,11 @@ paw_control_dashboard:
         - entity: sensor.buddy_last_vet_visit
           name: "Last Vet Visit"
           icon: "mdi:medical-bag"
-    
+
     # GPS Tracking Map
     - type: custom:mushroom-title-card
       title: "🗺️ GPS Tracking"
-    
+
     - type: map
       entities:
         - device_tracker.buddy_gps
@@ -751,27 +751,27 @@ paw_control_dashboard:
           ha-card {
             height: 300px;
           }
-    
+
     # Weather Information for Walks
     - type: custom:mushroom-title-card
       title: "🌤️ Walk Weather"
-    
+
     - type: weather-forecast
       entity: weather.home
       name: "Current Weather"
       show_forecast: true
       forecast_type: hourly
-    
+
     - type: entities
       entities:
         - entity: input_text.walk_weather_advice
           name: "Walk Advice"
           icon: "mdi:weather-partly-cloudy"
-    
+
     # System Status
     - type: custom:mushroom-title-card
       title: "⚙️ System Status"
-    
+
     - type: entities
       entities:
         - entity: binary_sensor.paw_control_system_healthy
@@ -809,7 +809,7 @@ dog_buddy_dashboard:
       show_state: false
       tap_action:
         action: none
-    
+
     # Activity Summary
     - type: custom:apexcharts-card
       header:
@@ -841,11 +841,11 @@ dog_buddy_dashboard:
           apex_config:
             title:
               text: "Calories"
-    
+
     # Recent Walks
     - type: custom:mushroom-title-card
       title: "Recent Walks"
-    
+
     - type: custom:auto-entities
       card:
         type: entities
@@ -860,7 +860,7 @@ dog_buddy_dashboard:
         method: last_changed
         reverse: true
         count: 5
-    
+
     # Health Trends
     - type: custom:apexcharts-card
       header:
@@ -875,11 +875,11 @@ dog_buddy_dashboard:
         - min: ~15
           max: ~35
           decimals: 1
-    
+
     # Module Settings
     - type: custom:mushroom-title-card
       title: "Module Settings"
-    
+
     - type: entities
       entities:
         - entity: input_boolean.buddy_module_gps
@@ -905,40 +905,40 @@ input_boolean:
   paw_control_notifications:
     name: "Paw Control Notifications"
     icon: "mdi:bell"
-  
+
   feeding_reminders:
     name: "Feeding Reminders"
     icon: "mdi:food-drumstick"
-  
+
   medication_reminders:
     name: "Medication Reminders"
     icon: "mdi:pill"
-  
+
   weather_based_walks:
     name: "Weather-Based Walk Planning"
     icon: "mdi:weather-partly-cloudy"
-  
+
   auto_away_mode:
     name: "Auto Away Mode"
     icon: "mdi:shield-home"
-  
+
   visitor_mode:
     name: "Visitor Mode"
     icon: "mdi:account-group"
-  
+
   # Per-Dog Module Settings
   buddy_module_gps:
     name: "Buddy GPS Module"
     icon: "mdi:crosshairs-gps"
-  
+
   buddy_module_feeding:
     name: "Buddy Feeding Module"
     icon: "mdi:food-drumstick"
-  
+
   buddy_module_health:
     name: "Buddy Health Module"
     icon: "mdi:medical-bag"
-  
+
   buddy_module_notifications:
     name: "Buddy Notifications"
     icon: "mdi:bell"
@@ -950,25 +950,25 @@ input_datetime:
     has_time: true
     has_date: false
     initial: "22:00:00"
-  
+
   quiet_hours_end:
     name: "Quiet Hours End"
     has_time: true
     has_date: false
     initial: "07:00:00"
-  
+
   breakfast_time:
     name: "Breakfast Time"
     has_time: true
     has_date: false
     initial: "07:30:00"
-  
+
   lunch_time:
     name: "Lunch Time"
     has_time: true
     has_date: false
     initial: "12:00:00"
-  
+
   dinner_time:
     name: "Dinner Time"
     has_time: true
@@ -991,7 +991,7 @@ input_number:
     step: 1
     initial: 8
     unit_of_measurement: "hours"
-  
+
   feeding_reminder_hours:
     name: "Feeding Reminder Hours"
     min: 1
@@ -999,7 +999,7 @@ input_number:
     step: 1
     initial: 10
     unit_of_measurement: "hours"
-  
+
   grooming_reminder_days:
     name: "Grooming Reminder Days"
     min: 1
@@ -1023,7 +1023,7 @@ notification_action_handlers:
       event_type: mobile_app_notification_action
   condition:
     - condition: template
-      value_template: "{{ trigger.event.data.action.startswith('START_WALK') or 
+      value_template: "{{ trigger.event.data.action.startswith('START_WALK') or
                          trigger.event.data.action.startswith('FEED_') or
                          trigger.event.data.action.startswith('MEDICATION_') or
                          trigger.event.data.action.startswith('GROOMING_') }}"
@@ -1043,7 +1043,7 @@ notification_action_handlers:
                 message: "clear_notification"
                 data:
                   tag: "walk_reminder"
-        
+
         - conditions:
             - condition: template
               value_template: "{{ trigger.event.data.action == 'START_WALK_NOW' }}"
@@ -1057,7 +1057,7 @@ notification_action_handlers:
                 message: "clear_notification"
                 data:
                   tag: "walk_overdue"
-        
+
         # Feeding actions
         - conditions:
             - condition: template
@@ -1072,7 +1072,7 @@ notification_action_handlers:
                 message: "clear_notification"
                 data:
                   tag: "feeding_{{ trigger.event.data.action.split('_')[1].lower() }}"
-        
+
         # Medication actions
         - conditions:
             - condition: template
@@ -1088,7 +1088,7 @@ notification_action_handlers:
                 message: "clear_notification"
                 data:
                   tag: "medication_morning_meds"
-        
+
         # Snooze actions
         - conditions:
             - condition: template
