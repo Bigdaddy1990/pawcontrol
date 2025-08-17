@@ -665,9 +665,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not data:
             _LOGGER.warning("GPS update for unknown dog_id: %s", dog_id)
             # Fire error event for monitoring
-            self.hass.bus.async_fire(
+            self._fire_event(
                 f"{DOMAIN}_error",
-                {"error_type": ERROR_DOG_NOT_FOUND, "dog_id": dog_id},
+                dog_id,
+                {"error_type": ERROR_DOG_NOT_FOUND},
             )
             raise ValueError(f"Dog not found: {dog_id}")
 
@@ -695,9 +696,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     longitude,
                 )
                 # Fire error event for monitoring
-                self.hass.bus.async_fire(
+                self._fire_event(
                     f"{DOMAIN}_error",
-                    {"error_type": ERROR_INVALID_COORDINATES, "dog_id": dog_id},
+                    dog_id,
+                    {"error_type": ERROR_INVALID_COORDINATES},
                 )
                 raise ValueError(
                     f"Invalid coordinates: lat={latitude}, lon={longitude}"
@@ -1003,11 +1005,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if self._error_count >= 3:
                     self._status = ERROR_COORDINATOR_UNAVAILABLE
                     # Fire error event for monitoring
-                    self.hass.bus.async_fire(
+                    self._fire_event(
                         f"{DOMAIN}_coordinator_error",
-                        {"error_count": self._error_count, "status": self._status},
+                        details={
+                            "error_count": self._error_count,
+                            "status": self._status,
+                        },
                     )
                 raise
+
+    def _fire_event(
+        self,
+        event: str,
+        dog_id: str | None = None,
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        """Fire an integration event with optional dog context."""
+        payload: dict[str, Any] = {}
+        if dog_id is not None:
+            payload[ATTR_DOG_ID] = dog_id
+        if details:
+            payload.update(details)
+        self.hass.bus.async_fire(event, payload)
 
     @property
     def coordinator_status(self) -> str:
@@ -1063,8 +1082,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_started"
 
             # Fire event for other components
-            self.hass.bus.async_fire(
-                EVENT_WALK_STARTED, {ATTR_DOG_ID: dog_id, "source": source}
+            self._fire_event(
+                EVENT_WALK_STARTED,
+                dog_id,
+                {"source": source},
             )
 
             await self._safe_request_refresh()
@@ -1125,10 +1146,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "walk_ended"
 
             # Fire completion event with summary
-            self.hass.bus.async_fire(
+            self._fire_event(
                 EVENT_WALK_ENDED,
+                dog_id,
                 {
-                    ATTR_DOG_ID: dog_id,
                     "reason": reason,
                     "duration_min": walk_data.get("walk_duration_min", 0),
                     "distance_m": walk_distance,
@@ -1241,10 +1262,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "fed"
 
             # Fire feeding event
-            self.hass.bus.async_fire(
+            self._fire_event(
                 EVENT_DOG_FED,
+                dog_id,
                 {
-                    ATTR_DOG_ID: dog_id,
                     "meal_type": meal_type,
                     "portion_g": portion_g,
                     "food_type": food_type,
@@ -1363,10 +1384,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
             # Fire medication event
-            self.hass.bus.async_fire(
+            self._fire_event(
                 EVENT_MEDICATION_GIVEN,
+                dog_id,
                 {
-                    ATTR_DOG_ID: dog_id,
                     "medication": medication_name,
                     "dose": dose,
                 },
@@ -1423,12 +1444,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._dog_data[dog_id]["statistics"]["last_action_type"] = "groomed"
 
             # Fire grooming event
-            self.hass.bus.async_fire(
+            self._fire_event(
                 EVENT_GROOMING_DONE,
-                {
-                    ATTR_DOG_ID: dog_id,
-                    "type": grooming_type,
-                },
+                dog_id,
+                {"type": grooming_type},
             )
 
             await self._safe_request_refresh()
