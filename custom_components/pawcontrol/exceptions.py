@@ -54,6 +54,16 @@ class PawControlError(Exception):
             result = f"[{self.error_code}] {result}"
         return result
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return a dictionary representation of the error."""
+        return {
+            "type": self.__class__.__name__,
+            "message": self.args[0] if self.args else "",
+            "error_code": self.error_code,
+            "details": self.details,
+            "recoverable": self.recoverable,
+        }
+
 
 class ConfigurationError(PawControlError):
     """Raised when there are configuration-related errors.
@@ -669,13 +679,14 @@ def wrap_exception(
     details = {"original_exception": str(original_exception)}
     if additional_details:
         details.update(additional_details)
-
-    return PawControlError(
+    error = PawControlError(
         message,
         error_code=error_code or "WRAPPED_EXCEPTION",
         details=details,
         recoverable=recoverable,
     )
+    error.__cause__ = original_exception
+    return error
 
 
 def create_validation_error(
