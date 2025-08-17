@@ -490,7 +490,7 @@ class _LegacyOptionsFlowHandler(config_entries.OptionsFlow):
 # The integration now exposes a more feature rich options flow implementation
 # that lives in ``pawcontrol_extended_options.py``.  Import it here and export
 # under the canonical name so existing imports continue to function.
-from .pawcontrol_extended_options import OptionsFlowHandler  # type: ignore[wrong-import-position]
+from .pawcontrol_extended_options import OptionsFlowHandler  # type: ignore[wrong-import-position]  # noqa: E402
 
 
 async def async_get_options_flow(
@@ -500,7 +500,7 @@ async def async_get_options_flow(
     return OptionsFlowHandler(config_entry)
 
 
-class PawControlOptionsFlow(config_entries.OptionsFlow):
+class PawControlOptionsFlow(config_entries.OptionsFlow):  # noqa: F811
     """Backward compatible options flow used in basic tests.
 
     The full integration ships a much more feature rich options flow (see
@@ -555,4 +555,4 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
 
 
 # Backwards compatibility: expose historical class names expected by tests
-PawControlConfigFlow = ConfigFlow
+PawControlConfigFlow = ConfigFlow  # noqa: F811
