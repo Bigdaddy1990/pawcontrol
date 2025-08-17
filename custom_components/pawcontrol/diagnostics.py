@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -29,6 +30,34 @@ TO_REDACT = {
 }
 
 
+def _sanitize_dog_data(dog_data: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of dog data with sensitive fields redacted."""
+    data = deepcopy(dog_data)
+
+    if "location" in data:
+        data["location"] = {
+            "is_home": data["location"].get("is_home", True),
+            "current_location": "REDACTED",
+        }
+
+    if "health" in data and "health_notes" in data["health"]:
+        data["health"]["health_notes"] = (
+            f"[{len(data['health']['health_notes'])} notes]"
+        )
+
+    if "training" in data and "training_history" in data["training"]:
+        data["training"]["training_history"] = (
+            f"[{len(data['training']['training_history'])} sessions]"
+        )
+
+    if "grooming" in data and "grooming_history" in data["grooming"]:
+        data["grooming"]["grooming_history"] = (
+            f"[{len(data['grooming']['grooming_history'])} sessions]"
+        )
+
+    return data
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -39,35 +68,9 @@ async def async_get_config_entry_diagnostics(
         hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator"),
     )
 
-    # Get all dog data but redact sensitive information
     dogs_data = {}
-    for dog_id in coordinator._dog_data:
-        dog_data = coordinator.get_dog_data(dog_id).copy()
-
-        # Remove location data
-        if "location" in dog_data:
-            dog_data["location"] = {
-                "is_home": dog_data["location"].get("is_home", True),
-                "current_location": "REDACTED",
-            }
-
-        # Remove any notes that might contain personal info
-        if "health" in dog_data and "health_notes" in dog_data["health"]:
-            dog_data["health"]["health_notes"] = (
-                f"[{len(dog_data['health']['health_notes'])} notes]"
-            )
-
-        if "training" in dog_data and "training_history" in dog_data["training"]:
-            dog_data["training"]["training_history"] = (
-                f"[{len(dog_data['training']['training_history'])} sessions]"
-            )
-
-        if "grooming" in dog_data and "grooming_history" in dog_data["grooming"]:
-            dog_data["grooming"]["grooming_history"] = (
-                f"[{len(dog_data['grooming']['grooming_history'])} sessions]"
-            )
-
-        dogs_data[dog_id] = dog_data
+    for dog_id in getattr(coordinator, "_dog_data", {}):
+        dogs_data[dog_id] = _sanitize_dog_data(coordinator.get_dog_data(dog_id))
 
     return async_redact_data(
         {
