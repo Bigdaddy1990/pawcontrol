@@ -602,7 +602,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         multiple=True,
                         mode=SelectSelectorMode.LIST,
                     )
-                ) if person_entities else SelectSelector(
+                )
+                if person_entities
+                else SelectSelector(
                     SelectSelectorConfig(
                         options=[],
                         multiple=True,
@@ -618,7 +620,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         multiple=True,
                         mode=SelectSelectorMode.LIST,
                     )
-                ) if device_tracker_entities else SelectSelector(
+                )
+                if device_tracker_entities
+                else SelectSelector(
                     SelectSelectorConfig(
                         options=[],
                         multiple=True,
@@ -669,7 +673,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     SelectSelectorConfig(
                         options=[
                             {"value": "save_settings", "label": "Save Settings"},
-                            {"value": "backup_config", "label": "Backup Configuration Now"},
+                            {
+                                "value": "backup_config",
+                                "label": "Backup Configuration Now",
+                            },
                             {"value": "cleanup", "label": "Cleanup Old Data"},
                         ],
                         mode=SelectSelectorMode.LIST,
@@ -999,7 +1006,7 @@ class PawControlOptionsFlow(OptionsFlow):
             menu_options=[
                 "dogs",  # Dog Management
                 "gps",  # GPS & Tracking
-                "geofence",  # Geofence Settings  
+                "geofence",  # Geofence Settings
                 "notifications",  # Notifications
                 "data_sources",  # Data Sources
                 "modules",  # Feature Modules
@@ -1262,15 +1269,11 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "quiet_start",
                     default=current_notifications.get("quiet_start", "22:00"),
-                ): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.TIME)
-                ),
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TIME)),
                 vol.Optional(
                     "quiet_end",
                     default=current_notifications.get("quiet_end", "07:00"),
-                ): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.TIME)
-                ),
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TIME)),
                 vol.Optional(
                     "reminder_repeat_min",
                     default=current_notifications.get("reminder_repeat_min", 30),
@@ -1327,9 +1330,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "reset_time",
                     default=self._options.get("reset_time", "23:59:00"),
-                ): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.TIME)
-                ),
+                ): TextSelector(TextSelectorConfig(type=TextSelectorType.TIME)),
                 vol.Optional(
                     "visitor_mode",
                     default=self._options.get("visitor_mode", False),
