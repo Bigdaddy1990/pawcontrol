@@ -143,7 +143,10 @@ async def async_setup_entry(
 
             # Get enabled modules for this dog
             dog_modules = dog.get(CONF_DOG_MODULES, {})
-            dog_stored = stored_values.get(dog_id, {})
+
+            # Ensure a storage bucket exists for this dog and reuse the same
+            # dictionary instance across entities so updates stay in sync
+            dog_stored = stored_values.setdefault(dog_id, {})
 
             _LOGGER.debug(
                 "Creating number entities for dog %s (%s) with modules: %s",
@@ -554,6 +557,10 @@ class PawControlNumberWithStorage(PawControlNumberEntity, NumberEntity):
             if self.dog_id not in all_stored:
                 all_stored[self.dog_id] = {}
             all_stored[self.dog_id][self.entity_key] = value
+
+            # Keep in-memory cache updated so subsequent reads during this
+            # session use the freshly stored value without another disk load
+            self._stored_values[self.entity_key] = value
 
             # Save to storage
             await self._store.async_save(all_stored)
