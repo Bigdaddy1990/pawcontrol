@@ -1,0 +1,1107 @@
+# Comprehensive Automation Templates and Dashboard Configurations for Paw Control
+# This file contains ready-to-use automation templates and dashboard configurations
+# that users can copy and adapt for their specific needs.
+
+# =====================================================================
+# AUTOMATION TEMPLATES
+# =====================================================================
+
+# Template 1: Smart Walk Detection and Notification
+smart_walk_detection:
+  alias: "Smart Walk Detection"
+  description: "Automatically detect when dogs need walks and send notifications"
+  mode: single
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.buddy_last_walk_hours
+      above: 8
+    - platform: state
+      entity_id: binary_sensor.front_door
+      to: "on"
+      for: "00:01:00"
+    - platform: time
+      at: "07:00:00"  # Morning walk reminder
+    - platform: time
+      at: "18:00:00"  # Evening walk reminder
+  condition:
+    - condition: state
+      entity_id: input_boolean.paw_control_notifications
+      state: "on"
+    - condition: template
+      value_template: >
+        {% set quiet_start = states('input_datetime.quiet_hours_start') %}
+        {% set quiet_end = states('input_datetime.quiet_hours_end') %}
+        {% set current_time = now().time() %}
+        {% if quiet_start and quiet_end %}
+          {% set start_time = strptime(quiet_start, '%H:%M:%S').time() %}
+          {% set end_time = strptime(quiet_end, '%H:%M:%S').time() %}
+          {% if start_time < end_time %}
+            {{ not (start_time <= current_time <= end_time) }}
+          {% else %}
+            {{ not (current_time >= start_time or current_time <= end_time) }}
+          {% endif %}
+        {% else %}
+          true
+        {% endif %}
+  action:
+    - choose:
+        # Door sensor triggered - check if it's walk time
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.entity_id == 'binary_sensor.front_door' }}"
+            - condition: numeric_state
+              entity_id: sensor.buddy_last_walk_hours
+              above: 4
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "🐕 Walk Time?"
+                message: "{{ states('sensor.buddy_name') }} might be going for a walk! Last walk was {{ states('sensor.buddy_last_walk_hours') }} hours ago."
+                data:
+                  actions:
+                    - action: "START_WALK"
+                      title: "Start Walk"
+                    - action: "NOT_WALK"
+                      title: "Not a Walk"
+        
+        # Time-based walk reminders
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.platform == 'time' }}"
+            - condition: numeric_state
+              entity_id: sensor.buddy_last_walk_hours
+              above: 6
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "🚶‍♂️ Walk Reminder"
+                message: "{{ states('sensor.buddy_name') }} needs a walk! Last walk was {{ states('sensor.buddy_last_walk_hours') }} hours ago."
+                data:
+                  tag: "walk_reminder"
+                  actions:
+                    - action: "START_WALK"
+                      title: "Start Walk"
+                    - action: "SNOOZE_30"
+                      title: "Snooze 30min"
+        
+        # Long overdue walk alert
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.buddy_last_walk_hours
+              above: 8
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "⚠️ Walk Overdue!"
+                message: "{{ states('sensor.buddy_name') }} really needs a walk! It's been {{ states('sensor.buddy_last_walk_hours') }} hours!"
+                data:
+                  tag: "walk_overdue"
+                  channel: "High Priority"
+                  importance: high
+                  actions:
+                    - action: "START_WALK_NOW"
+                      title: "Start Walk Now"
+            - service: light.turn_on
+              target:
+                entity_id: light.living_room
+              data:
+                flash: long
+                color_name: orange
+
+# Template 2: Feeding Schedule Automation
+feeding_schedule:
+  alias: "Smart Feeding Schedule"
+  description: "Automated feeding reminders and tracking"
+  mode: parallel
+  max: 5
+  trigger:
+    - platform: time
+      at: "07:30:00"  # Breakfast
+      id: "breakfast"
+    - platform: time
+      at: "12:00:00"  # Lunch
+      id: "lunch"
+    - platform: time
+      at: "18:30:00"  # Dinner
+      id: "dinner"
+    - platform: state
+      entity_id: sensor.buddy_last_feeding_hours
+      to: unknown
+      for: "00:01:00"
+      id: "missed_feeding"
+    - platform: numeric_state
+      entity_id: sensor.buddy_last_feeding_hours
+      above: 10
+      id: "overdue_feeding"
+  condition:
+    - condition: state
+      entity_id: input_boolean.feeding_reminders
+      state: "on"
+  action:
+    - choose:
+        # Regular meal times
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id in ['breakfast', 'lunch', 'dinner'] }}"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "🍽️ Feeding Time"
+                message: "Time for {{ trigger.id }} for {{ states('sensor.buddy_name') }}!"
+                data:
+                  tag: "feeding_{{ trigger.id }}"
+                  actions:
+                    - action: "FEED_{{ trigger.id | upper }}"
+                      title: "Mark as Fed"
+                    - action: "SNOOZE_FEEDING"
+                      title: "Snooze 15min"
+            
+            # Auto-turn on smart feeder if available
+            - if:
+                - condition: state
+                  entity_id: switch.smart_feeder
+                  state: "off"
+              then:
+                - service: switch.turn_on
+                  target:
+                    entity_id: switch.smart_feeder
+        
+        # Overdue feeding alert
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'overdue_feeding' }}"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "🚨 Feeding Overdue!"
+                message: "{{ states('sensor.buddy_name') }} hasn't been fed in {{ states('sensor.buddy_last_feeding_hours') }} hours!"
+                data:
+                  channel: "High Priority"
+                  importance: high
+                  actions:
+                    - action: "FEED_NOW"
+                      title: "Feed Now"
+
+# Template 3: GPS Tracking and Geofencing
+gps_tracking_automation:
+  alias: "GPS Tracking and Geofencing"
+  description: "Monitor dog location and send alerts for geofence events"
+  mode: parallel
+  max: 10
+  trigger:
+    - platform: state
+      entity_id: device_tracker.buddy_gps
+      from: "home"
+      id: "left_home"
+    - platform: state
+      entity_id: device_tracker.buddy_gps
+      to: "home"
+      id: "arrived_home"
+    - platform: numeric_state
+      entity_id: sensor.buddy_distance_from_home
+      above: 500  # 500 meters
+      id: "far_from_home"
+    - platform: state
+      entity_id: binary_sensor.buddy_in_safe_zone
+      to: "off"
+      for: "00:05:00"
+      id: "left_safe_zone"
+    - platform: state
+      entity_id: sensor.buddy_gps_accuracy
+      id: "gps_update"
+  condition: []
+  action:
+    - choose:
+        # Dog left home - start walk tracking
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'left_home' }}"
+          sequence:
+            - service: pawcontrol.gps_start_walk
+              data:
+                dog_id: "buddy"
+                label: "Auto-detected walk"
+            - service: notify.mobile_app_phone
+              data:
+                title: "🚶 Walk Started"
+                message: "{{ states('sensor.buddy_name') }} left home. Walk tracking started automatically."
+                data:
+                  tag: "walk_status"
+            
+            # Set home to away mode if configured
+            - if:
+                - condition: state
+                  entity_id: input_boolean.auto_away_mode
+                  state: "on"
+              then:
+                - service: alarm_control_panel.alarm_arm_away
+                  target:
+                    entity_id: alarm_control_panel.home_security
+        
+        # Dog arrived home - end walk tracking
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'arrived_home' }}"
+          sequence:
+            - service: pawcontrol.gps_end_walk
+              data:
+                dog_id: "buddy"
+                notes: "Auto-ended on arrival home"
+            
+            - delay: "00:00:05"  # Wait for walk data to update
+            
+            - service: notify.mobile_app_phone
+              data:
+                title: "🏠 Walk Completed"
+                message: >
+                  {{ states('sensor.buddy_name') }} is home! 
+                  Walk distance: {{ states('sensor.buddy_walk_distance_last') }}m
+                  Duration: {{ states('sensor.buddy_walk_duration_last') }}min
+                data:
+                  tag: "walk_status"
+            
+            # Disarm alarm if configured
+            - if:
+                - condition: state
+                  entity_id: alarm_control_panel.home_security
+                  state: "armed_away"
+              then:
+                - service: alarm_control_panel.alarm_disarm
+                  target:
+                    entity_id: alarm_control_panel.home_security
+                  data:
+                    code: !secret alarm_code
+        
+        # Dog is far from home - alert
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'far_from_home' }}"
+            - condition: state
+              entity_id: binary_sensor.buddy_walk_in_progress
+              state: "on"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "📍 Dog Far From Home"
+                message: >
+                  {{ states('sensor.buddy_name') }} is {{ states('sensor.buddy_distance_from_home') }}m from home.
+                  Current location: {{ state_attr('device_tracker.buddy_gps', 'latitude') }}, {{ state_attr('device_tracker.buddy_gps', 'longitude') }}
+                data:
+                  tag: "location_alert"
+                  actions:
+                    - action: "VIEW_LOCATION"
+                      title: "View on Map"
+                    - action: "CALL_DOG"
+                      title: "Call Dog"
+        
+        # Left safe zone - security alert
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'left_safe_zone' }}"
+            - condition: state
+              entity_id: binary_sensor.buddy_walk_in_progress
+              state: "off"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "⚠️ Safe Zone Alert"
+                message: "{{ states('sensor.buddy_name') }} has left the safe zone without an active walk!"
+                data:
+                  channel: "Security"
+                  importance: high
+                  tag: "security_alert"
+                  actions:
+                    - action: "START_EMERGENCY_WALK"
+                      title: "Start Walk"
+                    - action: "VIEW_LOCATION"
+                      title: "View Location"
+
+# Template 4: Health Monitoring
+health_monitoring:
+  alias: "Health Monitoring and Reminders"
+  description: "Monitor dog health metrics and send medication reminders"
+  mode: parallel
+  max: 5
+  trigger:
+    - platform: time
+      at: "09:00:00"  # Morning medication
+      id: "morning_meds"
+    - platform: time
+      at: "21:00:00"  # Evening medication
+      id: "evening_meds"
+    - platform: state
+      entity_id: sensor.buddy_weight
+      id: "weight_change"
+    - platform: numeric_state
+      entity_id: sensor.buddy_days_since_grooming
+      above: 30
+      id: "grooming_due"
+    - platform: template
+      value_template: >
+        {{ as_timestamp(now()) - as_timestamp(states.sensor.buddy_last_vet_visit.last_changed) > 86400 * 365 }}
+      id: "vet_checkup_due"
+  condition: []
+  action:
+    - choose:
+        # Medication reminders
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id in ['morning_meds', 'evening_meds'] }}"
+            - condition: state
+              entity_id: input_boolean.medication_reminders
+              state: "on"
+          sequence:
+            - service: pawcontrol.send_medication_reminder
+              data:
+                dog_id: "buddy"
+                medication: "{{ trigger.id }}"
+            
+            - service: notify.mobile_app_phone
+              data:
+                title: "💊 Medication Reminder"
+                message: "Time for {{ states('sensor.buddy_name') }}'s {{ trigger.id.replace('_', ' ') }}!"
+                data:
+                  tag: "medication_{{ trigger.id }}"
+                  actions:
+                    - action: "MEDICATION_GIVEN"
+                      title: "Given"
+                    - action: "SNOOZE_MEDICATION"
+                      title: "Snooze 1h"
+        
+        # Weight change alert
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'weight_change' }}"
+            - condition: template
+              value_template: >
+                {% set old_weight = trigger.from_state.state | float %}
+                {% set new_weight = trigger.to_state.state | float %}
+                {{ (new_weight - old_weight) | abs > 0.5 }}
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "⚖️ Weight Change Alert"
+                message: >
+                  {{ states('sensor.buddy_name') }}'s weight changed from 
+                  {{ trigger.from_state.state }}kg to {{ trigger.to_state.state }}kg
+                data:
+                  tag: "health_alert"
+        
+        # Grooming reminder
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'grooming_due' }}"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "✂️ Grooming Due"
+                message: "{{ states('sensor.buddy_name') }} needs grooming! Last groomed {{ states('sensor.buddy_days_since_grooming') }} days ago."
+                data:
+                  actions:
+                    - action: "BOOK_GROOMING"
+                      title: "Book Appointment"
+                    - action: "GROOMING_DONE"
+                      title: "Mark as Done"
+        
+        # Vet checkup reminder
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.id == 'vet_checkup_due' }}"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                title: "🏥 Vet Checkup Due"
+                message: "{{ states('sensor.buddy_name') }} is due for annual vet checkup!"
+                data:
+                  channel: "Health"
+                  actions:
+                    - action: "BOOK_VET"
+                      title: "Book Appointment"
+
+# Template 5: Weather-Based Walk Planning
+weather_walk_planning:
+  alias: "Weather-Based Walk Planning"
+  description: "Adjust walk recommendations based on weather conditions"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      attribute: temperature
+    - platform: state
+      entity_id: weather.home
+      attribute: condition
+    - platform: time_pattern
+      hours: "/1"  # Check every hour
+  condition:
+    - condition: state
+      entity_id: input_boolean.weather_based_walks
+      state: "on"
+  action:
+    - variables:
+        temperature: "{{ state_attr('weather.home', 'temperature') | float }}"
+        condition: "{{ states('weather.home') }}"
+        feels_like: "{{ state_attr('weather.home', 'apparent_temperature') | float }}"
+        
+    - choose:
+        # Too hot for walks
+        - conditions:
+            - condition: template
+              value_template: "{{ temperature > 25 or feels_like > 27 }}"
+          sequence:
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.walk_weather_advice
+              data:
+                value: "🌡️ Too hot for walks! Wait for cooler weather or find shaded areas."
+            
+            - if:
+                - condition: numeric_state
+                  entity_id: sensor.buddy_last_walk_hours
+                  above: 6
+              then:
+                - service: notify.mobile_app_phone
+                  data:
+                    title: "🌡️ Hot Weather Alert"
+                    message: "It's too hot for {{ states('sensor.buddy_name') }}'s walk. Consider waiting until evening."
+        
+        # Too cold for walks
+        - conditions:
+            - condition: template
+              value_template: "{{ temperature < -5 or feels_like < -8 }}"
+          sequence:
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.walk_weather_advice
+              data:
+                value: "🥶 Very cold! Consider shorter walks or indoor activities."
+        
+        # Rainy weather
+        - conditions:
+            - condition: template
+              value_template: "{{ condition in ['rainy', 'pouring', 'snowy'] }}"
+          sequence:
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.walk_weather_advice
+              data:
+                value: "🌧️ Weather not ideal for walks. Have rain gear ready or wait for clearing."
+        
+        # Perfect weather
+        - conditions:
+            - condition: template
+              value_template: "{{ 5 <= temperature <= 25 and condition in ['sunny', 'clear-night', 'partlycloudy'] }}"
+          sequence:
+            - service: input_text.set_value
+              target:
+                entity_id: input_text.walk_weather_advice
+              data:
+                value: "☀️ Perfect weather for walks!"
+            
+            - if:
+                - condition: numeric_state
+                  entity_id: sensor.buddy_last_walk_hours
+                  above: 4
+                - condition: time
+                  after: "06:00:00"
+                  before: "22:00:00"
+              then:
+                - service: notify.mobile_app_phone
+                  data:
+                    title: "☀️ Perfect Walk Weather"
+                    message: "Great weather for {{ states('sensor.buddy_name') }}'s walk!"
+                    data:
+                      actions:
+                        - action: "START_WALK"
+                          title: "Start Walk"
+
+# =====================================================================
+# DASHBOARD CONFIGURATIONS
+# =====================================================================
+
+# Complete Dashboard Configuration for Paw Control
+paw_control_dashboard:
+  title: "🐕 Paw Control Dashboard"
+  path: "paw-control"
+  icon: "mdi:dog"
+  badges: []
+  cards:
+    # Header Card with Dog Overview
+    - type: custom:mushroom-title-card
+      title: "Paw Control Dashboard"
+      subtitle: "Smart Dog Management System"
+    
+    # Quick Status Overview
+    - type: horizontal-stack
+      cards:
+        - type: custom:mushroom-entity-card
+          entity: sensor.buddy_name
+          name: "Active Dog"
+          icon: "mdi:dog"
+          tap_action:
+            action: navigate
+            navigation_path: "/lovelace/dog-buddy"
+        
+        - type: custom:mushroom-entity-card
+          entity: binary_sensor.buddy_walk_in_progress
+          name: "Walk Status"
+          icon: "mdi:walk"
+          card_mod:
+            style: |
+              ha-card {
+                background: {% if is_state('binary_sensor.buddy_walk_in_progress', 'on') %}
+                  rgba(76, 175, 80, 0.1)
+                {% else %}
+                  rgba(158, 158, 158, 0.1)
+                {% endif %};
+              }
+        
+        - type: custom:mushroom-entity-card
+          entity: sensor.buddy_last_walk_hours
+          name: "Last Walk"
+          icon: "mdi:clock"
+          card_mod:
+            style: |
+              ha-card {
+                background: {% if states('sensor.buddy_last_walk_hours') | float > 8 %}
+                  rgba(244, 67, 54, 0.1)
+                {% elif states('sensor.buddy_last_walk_hours') | float > 6 %}
+                  rgba(255, 152, 0, 0.1)
+                {% else %}
+                  rgba(76, 175, 80, 0.1)
+                {% endif %};
+              }
+        
+        - type: custom:mushroom-entity-card
+          entity: sensor.buddy_last_feeding_hours
+          name: "Last Fed"
+          icon: "mdi:food-drumstick"
+          card_mod:
+            style: |
+              ha-card {
+                background: {% if states('sensor.buddy_last_feeding_hours') | float > 10 %}
+                  rgba(244, 67, 54, 0.1)
+                {% elif states('sensor.buddy_last_feeding_hours') | float > 8 %}
+                  rgba(255, 152, 0, 0.1)
+                {% else %}
+                  rgba(76, 175, 80, 0.1)
+                {% endif %};
+              }
+    
+    # Quick Actions
+    - type: custom:mushroom-title-card
+      title: "Quick Actions"
+    
+    - type: horizontal-stack
+      cards:
+        - type: custom:mushroom-entity-card
+          entity: button.buddy_start_walk
+          name: "Start Walk"
+          icon: "mdi:walk"
+          tap_action:
+            action: call-service
+            service: pawcontrol.gps_start_walk
+            service_data:
+              dog_id: "buddy"
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(33, 150, 243, 0.1);
+              }
+        
+        - type: custom:mushroom-entity-card
+          entity: button.buddy_end_walk
+          name: "End Walk"
+          icon: "mdi:stop"
+          tap_action:
+            action: call-service
+            service: pawcontrol.gps_end_walk
+            service_data:
+              dog_id: "buddy"
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(255, 87, 34, 0.1);
+              }
+        
+        - type: custom:mushroom-entity-card
+          entity: button.buddy_feed
+          name: "Mark Fed"
+          icon: "mdi:food-drumstick"
+          tap_action:
+            action: call-service
+            service: pawcontrol.feed_dog
+            service_data:
+              dog_id: "buddy"
+              meal_type: "snack"
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(76, 175, 80, 0.1);
+              }
+        
+        - type: custom:mushroom-entity-card
+          entity: button.buddy_grooming
+          name: "Grooming"
+          icon: "mdi:content-cut"
+          tap_action:
+            action: call-service
+            service: pawcontrol.start_grooming
+            service_data:
+              dog_id: "buddy"
+              type: "brush"
+    
+    # Current Walk Information
+    - type: conditional
+      conditions:
+        - entity: binary_sensor.buddy_walk_in_progress
+          state: "on"
+      card:
+        type: custom:mushroom-title-card
+        title: "🚶 Current Walk"
+    
+    - type: conditional
+      conditions:
+        - entity: binary_sensor.buddy_walk_in_progress
+          state: "on"
+      card:
+        type: entities
+        entities:
+          - entity: sensor.buddy_walk_distance_current
+            name: "Distance"
+            icon: "mdi:map-marker-distance"
+          - entity: sensor.buddy_walk_duration_current
+            name: "Duration"
+            icon: "mdi:timer"
+          - entity: sensor.buddy_current_speed
+            name: "Speed"
+            icon: "mdi:speedometer"
+          - entity: device_tracker.buddy_gps
+            name: "Location"
+            icon: "mdi:crosshairs-gps"
+          - entity: sensor.buddy_distance_from_home
+            name: "Distance from Home"
+            icon: "mdi:home-map-marker"
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(33, 150, 243, 0.1);
+              border: 2px solid rgba(33, 150, 243, 0.3);
+            }
+    
+    # Daily Statistics
+    - type: custom:mushroom-title-card
+      title: "📊 Today's Statistics"
+    
+    - type: horizontal-stack
+      cards:
+        - type: statistic
+          entity: sensor.buddy_walk_distance_today
+          name: "Distance Today"
+          stat_type: state
+          period:
+            hour: 24
+        
+        - type: statistic
+          entity: sensor.buddy_calories_burned_today
+          name: "Calories Burned"
+          stat_type: state
+          period:
+            hour: 24
+        
+        - type: statistic
+          entity: sensor.buddy_poop_count_today
+          name: "Bathroom Breaks"
+          stat_type: state
+          period:
+            hour: 24
+    
+    # Health Monitoring
+    - type: custom:mushroom-title-card
+      title: "🏥 Health Monitoring"
+    
+    - type: entities
+      entities:
+        - entity: sensor.buddy_weight
+          name: "Weight"
+          icon: "mdi:scale"
+        - entity: sensor.buddy_activity_level
+          name: "Activity Level"
+          icon: "mdi:chart-line"
+        - entity: sensor.buddy_days_since_grooming
+          name: "Days Since Grooming"
+          icon: "mdi:content-cut"
+        - entity: binary_sensor.buddy_needs_grooming
+          name: "Needs Grooming"
+          icon: "mdi:alert-circle"
+        - entity: sensor.buddy_last_vet_visit
+          name: "Last Vet Visit"
+          icon: "mdi:medical-bag"
+    
+    # GPS Tracking Map
+    - type: custom:mushroom-title-card
+      title: "🗺️ GPS Tracking"
+    
+    - type: map
+      entities:
+        - device_tracker.buddy_gps
+      hours_to_show: 24
+      default_zoom: 15
+      card_mod:
+        style: |
+          ha-card {
+            height: 300px;
+          }
+    
+    # Weather Information for Walks
+    - type: custom:mushroom-title-card
+      title: "🌤️ Walk Weather"
+    
+    - type: weather-forecast
+      entity: weather.home
+      name: "Current Weather"
+      show_forecast: true
+      forecast_type: hourly
+    
+    - type: entities
+      entities:
+        - entity: input_text.walk_weather_advice
+          name: "Walk Advice"
+          icon: "mdi:weather-partly-cloudy"
+    
+    # System Status
+    - type: custom:mushroom-title-card
+      title: "⚙️ System Status"
+    
+    - type: entities
+      entities:
+        - entity: binary_sensor.paw_control_system_healthy
+          name: "System Health"
+          icon: "mdi:check-circle"
+        - entity: sensor.paw_control_entities_count
+          name: "Entities"
+          icon: "mdi:counter"
+        - entity: sensor.paw_control_gps_points_total
+          name: "GPS Points Collected"
+          icon: "mdi:map-marker-multiple"
+        - entity: binary_sensor.paw_control_notifications
+          name: "Notifications"
+          icon: "mdi:bell"
+        - entity: input_boolean.visitor_mode
+          name: "Visitor Mode"
+          icon: "mdi:account-group"
+
+# Individual Dog Dashboard
+dog_buddy_dashboard:
+  title: "🐕 Buddy"
+  path: "dog-buddy"
+  icon: "mdi:dog"
+  badges:
+    - entity: sensor.buddy_name
+    - entity: binary_sensor.buddy_walk_in_progress
+    - entity: sensor.buddy_weight
+  cards:
+    # Dog Profile
+    - type: picture-entity
+      entity: sensor.buddy_name
+      image: "/local/images/buddy.jpg"  # User should add dog photo
+      name: "Buddy"
+      show_name: true
+      show_state: false
+      tap_action:
+        action: none
+    
+    # Activity Summary
+    - type: custom:apexcharts-card
+      header:
+        title: "Weekly Activity"
+        show: true
+      now:
+        show: true
+        label: Now
+      graph_span: 7d
+      span:
+        end: day
+      series:
+        - entity: sensor.buddy_walk_distance_today
+          name: "Distance (m)"
+          type: column
+        - entity: sensor.buddy_calories_burned_today
+          name: "Calories"
+          type: line
+          yaxis_id: calories
+      yaxis:
+        - id: distance
+          decimals: 0
+          apex_config:
+            title:
+              text: "Distance (m)"
+        - id: calories
+          opposite: true
+          decimals: 0
+          apex_config:
+            title:
+              text: "Calories"
+    
+    # Recent Walks
+    - type: custom:mushroom-title-card
+      title: "Recent Walks"
+    
+    - type: custom:auto-entities
+      card:
+        type: entities
+        title: "Walk History"
+      filter:
+        include:
+          - entity_id: "sensor.buddy_walk_*"
+            attributes:
+              device_class: "timestamp"
+        exclude: []
+      sort:
+        method: last_changed
+        reverse: true
+        count: 5
+    
+    # Health Trends
+    - type: custom:apexcharts-card
+      header:
+        title: "Weight Trend"
+        show: true
+      graph_span: 30d
+      series:
+        - entity: sensor.buddy_weight
+          name: "Weight (kg)"
+          stroke_width: 3
+      yaxis:
+        - min: ~15
+          max: ~35
+          decimals: 1
+    
+    # Module Settings
+    - type: custom:mushroom-title-card
+      title: "Module Settings"
+    
+    - type: entities
+      entities:
+        - entity: input_boolean.buddy_module_gps
+          name: "GPS Tracking"
+          icon: "mdi:crosshairs-gps"
+        - entity: input_boolean.buddy_module_feeding
+          name: "Feeding Management"
+          icon: "mdi:food-drumstick"
+        - entity: input_boolean.buddy_module_health
+          name: "Health Monitoring"
+          icon: "mdi:medical-bag"
+        - entity: input_boolean.buddy_module_notifications
+          name: "Notifications"
+          icon: "mdi:bell"
+
+# =====================================================================
+# HELPER ENTITIES CONFIGURATION
+# =====================================================================
+
+# Input Booleans for Settings
+input_boolean:
+  # Global Settings
+  paw_control_notifications:
+    name: "Paw Control Notifications"
+    icon: "mdi:bell"
+  
+  feeding_reminders:
+    name: "Feeding Reminders"
+    icon: "mdi:food-drumstick"
+  
+  medication_reminders:
+    name: "Medication Reminders"
+    icon: "mdi:pill"
+  
+  weather_based_walks:
+    name: "Weather-Based Walk Planning"
+    icon: "mdi:weather-partly-cloudy"
+  
+  auto_away_mode:
+    name: "Auto Away Mode"
+    icon: "mdi:shield-home"
+  
+  visitor_mode:
+    name: "Visitor Mode"
+    icon: "mdi:account-group"
+  
+  # Per-Dog Module Settings
+  buddy_module_gps:
+    name: "Buddy GPS Module"
+    icon: "mdi:crosshairs-gps"
+  
+  buddy_module_feeding:
+    name: "Buddy Feeding Module"
+    icon: "mdi:food-drumstick"
+  
+  buddy_module_health:
+    name: "Buddy Health Module"
+    icon: "mdi:medical-bag"
+  
+  buddy_module_notifications:
+    name: "Buddy Notifications"
+    icon: "mdi:bell"
+
+# Input DateTimes for Schedules
+input_datetime:
+  quiet_hours_start:
+    name: "Quiet Hours Start"
+    has_time: true
+    has_date: false
+    initial: "22:00:00"
+  
+  quiet_hours_end:
+    name: "Quiet Hours End"
+    has_time: true
+    has_date: false
+    initial: "07:00:00"
+  
+  breakfast_time:
+    name: "Breakfast Time"
+    has_time: true
+    has_date: false
+    initial: "07:30:00"
+  
+  lunch_time:
+    name: "Lunch Time"
+    has_time: true
+    has_date: false
+    initial: "12:00:00"
+  
+  dinner_time:
+    name: "Dinner Time"
+    has_time: true
+    has_date: false
+    initial: "18:30:00"
+
+# Input Texts for Dynamic Content
+input_text:
+  walk_weather_advice:
+    name: "Walk Weather Advice"
+    max: 255
+    initial: "Check weather before walking"
+
+# Input Numbers for Thresholds
+input_number:
+  walk_reminder_hours:
+    name: "Walk Reminder Hours"
+    min: 1
+    max: 24
+    step: 1
+    initial: 8
+    unit_of_measurement: "hours"
+  
+  feeding_reminder_hours:
+    name: "Feeding Reminder Hours"
+    min: 1
+    max: 24
+    step: 1
+    initial: 10
+    unit_of_measurement: "hours"
+  
+  grooming_reminder_days:
+    name: "Grooming Reminder Days"
+    min: 1
+    max: 90
+    step: 1
+    initial: 30
+    unit_of_measurement: "days"
+
+# =====================================================================
+# NOTIFICATION ACTION HANDLERS
+# =====================================================================
+
+# Automation to handle notification actions
+notification_action_handlers:
+  alias: "Notification Action Handlers"
+  description: "Handle actions from Paw Control notifications"
+  mode: parallel
+  max: 10
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+  condition:
+    - condition: template
+      value_template: "{{ trigger.event.data.action.startswith('START_WALK') or 
+                         trigger.event.data.action.startswith('FEED_') or
+                         trigger.event.data.action.startswith('MEDICATION_') or
+                         trigger.event.data.action.startswith('GROOMING_') }}"
+  action:
+    - choose:
+        # Walk actions
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.action == 'START_WALK' }}"
+          sequence:
+            - service: pawcontrol.gps_start_walk
+              data:
+                dog_id: "buddy"
+                label: "Started from notification"
+            - service: notify.mobile_app_phone
+              data:
+                message: "clear_notification"
+                data:
+                  tag: "walk_reminder"
+        
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.action == 'START_WALK_NOW' }}"
+          sequence:
+            - service: pawcontrol.gps_start_walk
+              data:
+                dog_id: "buddy"
+                label: "Emergency walk"
+            - service: notify.mobile_app_phone
+              data:
+                message: "clear_notification"
+                data:
+                  tag: "walk_overdue"
+        
+        # Feeding actions
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.action.startswith('FEED_') }}"
+          sequence:
+            - service: pawcontrol.feed_dog
+              data:
+                dog_id: "buddy"
+                meal_type: "{{ trigger.event.data.action.split('_')[1].lower() }}"
+            - service: notify.mobile_app_phone
+              data:
+                message: "clear_notification"
+                data:
+                  tag: "feeding_{{ trigger.event.data.action.split('_')[1].lower() }}"
+        
+        # Medication actions
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.action == 'MEDICATION_GIVEN' }}"
+          sequence:
+            - service: pawcontrol.log_medication
+              data:
+                dog_id: "buddy"
+                medication_name: "Daily medication"
+                dose: "As prescribed"
+            - service: notify.mobile_app_phone
+              data:
+                message: "clear_notification"
+                data:
+                  tag: "medication_morning_meds"
+        
+        # Snooze actions
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.action.startswith('SNOOZE_') }}"
+          sequence:
+            - service: notify.mobile_app_phone
+              data:
+                message: "clear_notification"
+                data:
+                  tag: "{{ trigger.event.data.tag }}"
+            # Re-trigger notification after snooze period
+            - delay: "{{ '00:30:00' if '30' in trigger.event.data.action else '00:15:00' }}"
+            - service: notify.mobile_app_phone
+              data:
+                title: "🔔 Reminder (Snoozed)"
+                message: "Your snoozed reminder for {{ states('sensor.buddy_name') }}"
