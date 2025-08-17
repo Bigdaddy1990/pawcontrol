@@ -112,30 +112,25 @@ class PawControlGPSHandler:
         self.options = options or {}
         self.entry_id: str | None = None  # Will be set by async_setup_entry
 
-    async def async_update_location(
-        self, hass: HomeAssistant, call: ServiceCall
-    ) -> None:
-        await async_update_location(hass, call)
+    async def async_update_location(self, call: ServiceCall) -> None:
+        """Update GPS location via shared helper."""
+        await async_update_location(self.hass, call)
 
     async def async_setup(self) -> None:
         """Set up GPS handler (placeholder for future enhancements)."""
         return
 
-    async def async_start_walk(self, hass: HomeAssistant, call: ServiceCall) -> None:
-        await async_start_walk(hass, call)
+    async def async_start_walk(self, call: ServiceCall) -> None:
+        await async_start_walk(self.hass, call)
 
-    async def async_end_walk(self, hass: HomeAssistant, call: ServiceCall) -> None:
-        await async_end_walk(hass, call)
+    async def async_end_walk(self, call: ServiceCall) -> None:
+        await async_end_walk(self.hass, call)
 
-    async def async_pause_tracking(
-        self, hass: HomeAssistant, call: ServiceCall
-    ) -> None:
-        await async_pause_tracking(hass, call)
+    async def async_pause_tracking(self, call: ServiceCall) -> None:
+        await async_pause_tracking(self.hass, call)
 
-    async def async_resume_tracking(
-        self, hass: HomeAssistant, call: ServiceCall
-    ) -> None:
-        await async_resume_tracking(hass, call)
+    async def async_resume_tracking(self, call: ServiceCall) -> None:
+        await async_resume_tracking(self.hass, call)
 
     async def async_generate_diagnostics(self) -> dict[str, Any]:
         """Generate GPS diagnostics data."""
