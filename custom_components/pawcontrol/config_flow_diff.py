@@ -62,8 +62,8 @@ async def async_step_gps(
 
     current_gps = self._options.get("gps", {})
 
-    schema = vol.Schema(
-        {  # noqa: F821
+    schema = vol.Schema(  # noqa: F821
+        {
             vol.Optional(  # noqa: F821
                 "gps_enabled",
                 default=current_gps.get("enabled", True),
@@ -124,18 +124,18 @@ async def async_step_data_sources(
         if entity.domain == "device_tracker"
     ]
 
-    schema = vol.Schema(
-        {  # noqa: F821
+    schema = vol.Schema(  # noqa: F821
+        {
             vol.Optional(  # noqa: F821
                 "person_entities",
                 default=current_sources.get("person_entities", []),
-            ): cv.multi_select(person_entities)
+            ): cv.multi_select(person_entities)  # noqa: F821
             if person_entities
             else cv.multi_select([]),  # noqa: F821
             vol.Optional(  # noqa: F821
                 "device_trackers",
                 default=current_sources.get("device_trackers", []),
-            ): cv.multi_select(device_tracker_entities)
+            ): cv.multi_select(device_tracker_entities)  # noqa: F821
             if device_tracker_entities
             else cv.multi_select([]),  # noqa: F821
             vol.Optional(  # noqa: F821
@@ -168,8 +168,8 @@ async def async_step_maintenance(
 
     current_maintenance = self._options.get("maintenance", {})
 
-    schema = vol.Schema(
-        {  # noqa: F821
+    schema = vol.Schema(  # noqa: F821
+        {
             vol.Optional(  # noqa: F821
                 "auto_backup_enabled",
                 default=current_maintenance.get("auto_backup_enabled", True),
@@ -181,8 +181,8 @@ async def async_step_maintenance(
             vol.Optional(  # noqa: F821
                 "action",
                 default="save_settings",
-            ): vol.In(
-                {  # noqa: F821
+            ): vol.In(  # noqa: F821
+                {
                     "save_settings": "Save Settings",
                     "backup_config": "Backup Configuration Now",
                     "cleanup": "Cleanup Old Data",
@@ -269,8 +269,8 @@ async def async_step_notifications(
     current_notifications = self._options.get("notifications", {})
 
     # ERWEITERTE SCHEMA - bestehende Schema erweitern:
-    schema = vol.Schema(
-        {  # noqa: F821
+    schema = vol.Schema(  # noqa: F821
+        {
             vol.Optional(  # noqa: F821
                 "notifications_enabled",
                 default=current_notifications.get("enabled", True),
@@ -305,8 +305,8 @@ async def async_step_notifications(
                 default=current_notifications.get(
                     "notification_channels", ["mobile", "persistent"]
                 ),
-            ): cv.multi_select(
-                {  # noqa: F821
+            ): cv.multi_select(  # noqa: F821
+                {
                     "mobile": "Mobile App",
                     "persistent": "Persistent Notification",
                     "email": "Email",
@@ -331,8 +331,8 @@ async def async_step_system(
         return self.async_create_entry(title="", data=new_options)
 
     # ERWEITERTE SCHEMA - bestehende Schema erweitern:
-    schema = vol.Schema(
-        {  # noqa: F821
+    schema = vol.Schema(  # noqa: F821
+        {
             vol.Optional(  # noqa: F821
                 "reset_time",
                 default=self._options.get("reset_time", "23:59:00"),
