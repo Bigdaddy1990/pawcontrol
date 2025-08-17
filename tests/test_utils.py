@@ -38,6 +38,9 @@ format_coordinates = _mod.format_coordinates
 safe_service_call = _mod.safe_service_call
 validate_coordinates = _mod.validate_coordinates
 
+# Remove temporary modules to avoid polluting sys.modules for other tests
+sys.modules.pop("custom_components.pawcontrol", None)
+
 # --------------------------
 # calculate_distance tests
 # --------------------------

@@ -656,7 +656,7 @@ class PawControlDateTimeWithStorage(PawControlDateTimeEntity, DateTimeEntity):
                     {
                         "is_future": self._current_value > now,
                         "is_today": self._current_value.date() == now.date(),
-                        "days_until": diff.days if diff.days > 0 else 0,
+                        "days_until": max(0, diff.days),
                         "hours_until": diff.total_seconds() / 3600
                         if diff.total_seconds() > 0
                         else 0,

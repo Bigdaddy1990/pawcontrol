@@ -35,7 +35,7 @@ except ModuleNotFoundError:  # pragma: no cover - minimal stubs for tests
             self.data = data or {}
             self.options = options or {}
 
-        def add_to_hass(self, hass):  # noqa: D401 - stub method
+        def add_to_hass(self, hass):
             return None
 
 

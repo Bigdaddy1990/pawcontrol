@@ -934,7 +934,7 @@ class ServiceManager:
             if not (-180 <= longitude <= 180):
                 raise ServiceValidationError(f"Invalid longitude: {longitude}")
 
-            await gps_handler.async_update_location(call)
+            await gps_handler.async_update_location(self.hass, call)
             _LOGGER.debug(
                 "Updated GPS for dog %s: %f, %f (accuracy_m: %s)",
                 dog_id,

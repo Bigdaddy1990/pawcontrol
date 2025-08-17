@@ -10,6 +10,6 @@ __all__ = [
     "NotificationRouter",
     "PawControlScheduler",
     "SetupSync",
-    "setup_schedulers",
     "cleanup_schedulers",
+    "setup_schedulers",
 ]
