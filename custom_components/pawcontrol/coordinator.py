@@ -734,9 +734,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             distance = None
             inside = None
 
-            if isinstance(home_lat, int | float) and isinstance(
-                home_lon, int | float
-            ):
+            if isinstance(home_lat, int | float) and isinstance(home_lon, int | float):
                 try:
                     if validate_coordinates(
                         float(home_lat), float(home_lon)

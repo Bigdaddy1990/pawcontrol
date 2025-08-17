@@ -12,7 +12,6 @@ DOMAIN = "pawcontrol"
 async def test_route_history_list_emits_event(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-
     entry = init_integration
 
     with patch(
@@ -41,7 +40,6 @@ async def test_route_history_list_emits_event(
 async def test_gps_post_location_calls_handler(
     hass: HomeAssistant, init_integration: MockConfigEntry
 ) -> None:
-
     called = {}
 
     async def fake_update_location(hass, call):
