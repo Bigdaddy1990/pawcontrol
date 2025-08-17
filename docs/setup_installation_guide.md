@@ -19,7 +19,7 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 ### Mindestanforderungen
 
 - **Home Assistant:** Version 2025.8.0 oder höher
-- **Python:** Version 3.12 oder höher  
+- **Python:** Version 3.12 oder höher
 - **Speicherplatz:** Mindestens 100 MB freier Speicher
 - **RAM:** Mindestens 2 GB verfügbarer Arbeitsspeicher
 - **Internetverbindung:** Für GPS-Funktionen und Updates
@@ -188,14 +188,14 @@ services:
     data:
       dog_id: "buddy"
       label: "Morgenspaziergang"
-  
+
   # Walk beenden
   - service: pawcontrol.gps_end_walk
     data:
       dog_id: "buddy"
       notes: "Schöner Spaziergang im Park"
       rating: 5
-  
+
   # Position manuell setzen
   - service: pawcontrol.gps_post_location
     data:
@@ -294,7 +294,7 @@ automation:
         data:
           title: "⚖️ Gewichtsänderung erkannt"
           message: >
-            Buddy's Gewicht hat sich von {{ trigger.from_state.state }}kg 
+            Buddy's Gewicht hat sich von {{ trigger.from_state.state }}kg
             auf {{ trigger.to_state.state }}kg geändert.
 ```
 
@@ -308,7 +308,7 @@ input_datetime:
     has_time: true
     has_date: false
     initial: "08:00:00"
-  
+
   buddy_evening_meds:
     name: "Buddy Abend Medikation"
     has_time: true
@@ -420,7 +420,7 @@ Kopieren Sie die Automatisierungs-Templates in Ihre `automations.yaml`:
 # automations.yaml - Fügen Sie die Automatisierungen aus den Templates hinzu
 # Wichtige Automatisierungen:
 # - smart_walk_detection
-# - feeding_schedule  
+# - feeding_schedule
 # - gps_tracking_automation
 # - health_monitoring
 # - weather_walk_planning
@@ -472,14 +472,14 @@ template:
           {% set time_ok = now().hour >= 6 and now().hour <= 22 %}
           {% set last_walk = states('sensor.buddy_last_walk_hours') | float %}
           {% set weather_ok = not is_state('weather.home', 'rainy') %}
-          
+
           {% set probability = 0 %}
           {% if door_open %}{% set probability = probability + 30 %}{% endif %}
           {% if owner_away %}{% set probability = probability + 25 %}{% endif %}
           {% if time_ok %}{% set probability = probability + 20 %}{% endif %}
           {% if last_walk > 4 %}{% set probability = probability + 15 %}{% endif %}
           {% if weather_ok %}{% set probability = probability + 10 %}{% endif %}
-          
+
           {{ probability }}
         unit_of_measurement: "%"
 ```
@@ -508,7 +508,7 @@ ios: # oder android:
             title: "30min später"
             activationMode: background
             authenticationRequired: false
-      
+
       - name: feeding_reminder
         identifier: feeding_reminder
         actions:
@@ -536,7 +536,7 @@ zone:
     longitude: 13.410
     radius: 100
     icon: mdi:pine-tree
-  
+
   - name: Tierarzt
     latitude: 52.515
     longitude: 13.400

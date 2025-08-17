@@ -184,7 +184,7 @@ pawcontrol.gps_start_walk:
 pawcontrol.gps_end_walk:
   description: "Beendet GPS-Tracking und berechnet Statistiken"
   fields:
-    dog_id: "Hund-ID" 
+    dog_id: "Hund-ID"
     notes: "Optional: Notizen zum Walk"
     rating: "Optional: Bewertung 1-5"
 
@@ -273,7 +273,7 @@ high_precision_gps:
   route_recording: true        # Vollständige Routen
   route_history_days: 365      # 1 Jahr Historien
 
-# Batterie-schonende Konfiguration  
+# Batterie-schonende Konfiguration
 battery_saving_gps:
   gps_accuracy_filter: 100     # Weniger streng
   gps_distance_filter: 20      # Größere Abstände
@@ -306,7 +306,7 @@ multi_dog_config:
         feeding: true
         health: true
         grooming: true
-    
+
     - dog_id: "luna"
       dog_name: "Luna"
       dog_breed: "Border Collie"
@@ -336,20 +336,20 @@ notifications:
     - persistent          # Persistent Notifications
     - email              # E-Mail (falls konfiguriert)
     - slack              # Slack (falls konfiguriert)
-  
+
   # Spezifische Einstellungen
   walk_reminders:
     enabled: true
     threshold_hours: 8
     urgent_threshold_hours: 12
-  
+
   feeding_reminders:
     enabled: true
     threshold_hours: 10
     meal_times:
       breakfast: "07:30"
       dinner: "18:30"
-  
+
   health_alerts:
     weight_change_threshold: 1.0    # kg
     medication_reminders: true
@@ -386,7 +386,7 @@ automation:
                 title: "Walk starten"
               - action: "NOT_WALK"
                 title: "Kein Walk"
-      
+
       # Auto-start nach 2 Minuten ohne Antwort
       - delay: "00:02:00"
       - condition: state
@@ -424,7 +424,7 @@ automation:
                 below: 25
               - condition: state
                 entity_id: weather.home
-                state: 
+                state:
                   - "sunny"
                   - "clear-night"
                   - "partlycloudy"
@@ -433,7 +433,7 @@ automation:
                 data:
                   title: "☀️ Perfektes Walk-Wetter"
                   message: "Ideales Wetter für Buddy's Spaziergang!"
-          
+
           # Zu heiß
           - conditions:
               - condition: numeric_state
@@ -479,7 +479,7 @@ automation:
                     actions:
                       - action: "LOG_HEALTH"
                         title: "Gesundheit protokollieren"
-          
+
           # Täglicher Health Check
           - conditions:
               - condition: template
@@ -514,7 +514,7 @@ cards:
         entity: sensor.buddy_last_feeding_hours
         name: "Letzte Fütterung"
         icon: "mdi:food-drumstick"
-  
+
   # Quick Actions
   - type: horizontal-stack
     cards:
@@ -533,7 +533,7 @@ cards:
           service_data:
             dog_id: "buddy"
             meal_type: "snack"
-  
+
   # Current Walk Info (conditional)
   - type: conditional
     conditions:
@@ -547,7 +547,7 @@ cards:
         - sensor.buddy_walk_duration_current
         - sensor.buddy_current_speed
         - device_tracker.buddy_gps
-  
+
   # Statistics
   - type: custom:apexcharts-card
     header:
@@ -560,7 +560,7 @@ cards:
       - entity: sensor.buddy_calories_burned_today
         name: "Kalorien"
         type: line
-  
+
   # Map
   - type: map
     entities:
@@ -578,12 +578,12 @@ widget_entities:
     - sensor.buddy_name
     - binary_sensor.buddy_walk_in_progress
     - sensor.buddy_last_walk_hours
-  
+
   actions:
     - button.buddy_start_walk
     - button.buddy_end_walk
     - button.buddy_mark_fed
-  
+
   complications:
     - sensor.buddy_distance_from_home
     - sensor.buddy_walk_distance_today
@@ -675,7 +675,7 @@ mypy custom_components/pawcontrol/
 ## 📖 Dokumentation
 
 - **[Setup Guide](docs/SETUP.md)**: Detaillierte Installation
-- **[API Reference](docs/API.md)**: Service und Entity Dokumentation  
+- **[API Reference](docs/API.md)**: Service und Entity Dokumentation
 - **[Automation Examples](docs/AUTOMATIONS.md)**: Fertige Automatisierungen
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Problembehebung
 - **[Development](docs/DEVELOPMENT.md)**: Entwickler-Dokumentation

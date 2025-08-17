@@ -66,9 +66,9 @@ def mock_config_entry():
                         MODULE_FEEDING: True,
                         MODULE_HEALTH: True,
                         MODULE_GPS: True,
-                    }
+                    },
                 }
-            ]
+            ],
         },
         options={
             "geofencing_enabled": True,
@@ -81,8 +81,8 @@ def mock_config_entry():
                 "feeding": True,
                 "gps": True,
                 "health": True,
-            }
-        }
+            },
+        },
     )
 
 
@@ -112,23 +112,29 @@ class TestOptionsFlowInit:
     async def test_init_shows_menu(self, options_flow):
         """Test that init step shows the comprehensive menu."""
         result = await options_flow.async_step_init()
-        
+
         assert result["type"] == FlowResultType.MENU
         assert result["step_id"] == "init"
-        
+
         menu_options = result["menu_options"]
         expected_options = {
-            "dogs", "gps", "geofence", "notifications", 
-            "data_sources", "modules", "system", "maintenance"
+            "dogs",
+            "gps",
+            "geofence",
+            "notifications",
+            "data_sources",
+            "modules",
+            "system",
+            "maintenance",
         }
         assert set(menu_options.keys()) == expected_options
 
     async def test_init_backward_compatibility(self, options_flow):
         """Test backward compatibility with direct option updates."""
         user_input = {"geofencing_enabled": False}
-        
+
         result = await options_flow.async_step_init(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"] == user_input
 
@@ -139,17 +145,20 @@ class TestDogManagement:
     async def test_dogs_step_shows_current_dogs(self, options_flow):
         """Test that dogs step shows current dog information."""
         result = await options_flow.async_step_dogs()
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "dogs"
-        assert "Currently configured dogs: 1" in result["description_placeholders"]["dogs_info"]
+        assert (
+            "Currently configured dogs: 1"
+            in result["description_placeholders"]["dogs_info"]
+        )
         assert "Buddy (buddy)" in result["description_placeholders"]["dogs_info"]
 
     async def test_dogs_step_add_action(self, options_flow):
         """Test add dog action from dogs step."""
         user_input = {"action": "add_dog"}
-        
-        with patch.object(options_flow, 'async_step_add_dog') as mock_add:
+
+        with patch.object(options_flow, "async_step_add_dog") as mock_add:
             mock_add.return_value = {"type": FlowResultType.FORM}
             await options_flow.async_step_dogs(user_input)
             mock_add.assert_called_once()
@@ -157,7 +166,7 @@ class TestDogManagement:
     async def test_add_dog_success(self, options_flow, mock_hass):
         """Test successfully adding a new dog."""
         options_flow.hass = mock_hass
-        
+
         user_input = {
             CONF_DOG_ID: "max",
             CONF_DOG_NAME: "Max",
@@ -170,9 +179,9 @@ class TestDogManagement:
             f"module_{MODULE_HEALTH}": False,
             f"module_{MODULE_GPS}": True,
         }
-        
+
         result = await options_flow.async_step_add_dog(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         mock_hass.config_entries.async_update_entry.assert_called_once()
 
@@ -182,9 +191,9 @@ class TestDogManagement:
             CONF_DOG_ID: "buddy",  # Already exists
             CONF_DOG_NAME: "Another Buddy",
         }
-        
+
         result = await options_flow.async_step_add_dog(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["errors"][CONF_DOG_ID] == "duplicate_dog_id"
 
@@ -194,17 +203,17 @@ class TestDogManagement:
             CONF_DOG_ID: "newdog",
             CONF_DOG_NAME: "",  # Empty name
         }
-        
+
         result = await options_flow.async_step_add_dog(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["errors"][CONF_DOG_NAME] == "invalid_dog_name"
 
     async def test_select_dog_edit(self, options_flow):
         """Test selecting a dog for editing."""
         user_input = {"dog_to_edit": "buddy"}
-        
-        with patch.object(options_flow, 'async_step_edit_dog') as mock_edit:
+
+        with patch.object(options_flow, "async_step_edit_dog") as mock_edit:
             mock_edit.return_value = {"type": FlowResultType.FORM}
             await options_flow.async_step_select_dog_edit(user_input)
             assert options_flow._editing_dog_id == "buddy"
@@ -214,7 +223,7 @@ class TestDogManagement:
         """Test successfully editing a dog."""
         options_flow.hass = mock_hass
         options_flow._editing_dog_id = "buddy"
-        
+
         user_input = {
             CONF_DOG_NAME: "Buddy Updated",
             CONF_DOG_BREED: "Golden Retriever Mix",
@@ -222,9 +231,9 @@ class TestDogManagement:
             CONF_DOG_WEIGHT: 32.0,
             f"module_{MODULE_HEALTH}": False,  # Disable health module
         }
-        
+
         result = await options_flow.async_step_edit_dog(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         mock_hass.config_entries.async_update_entry.assert_called_once()
 
@@ -232,9 +241,9 @@ class TestDogManagement:
         """Test removing a dog."""
         options_flow.hass = mock_hass
         user_input = {"dog_to_remove": "buddy"}
-        
+
         result = await options_flow.async_step_select_dog_remove(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         mock_hass.config_entries.async_update_entry.assert_called_once()
 
@@ -245,16 +254,21 @@ class TestGPSConfiguration:
     async def test_gps_step_shows_form(self, options_flow):
         """Test GPS step shows configuration form."""
         result = await options_flow.async_step_gps()
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "gps"
-        
+
         # Check that schema has expected fields
         schema_keys = list(result["data_schema"].schema.keys())
         expected_keys = [
-            "gps_enabled", "gps_accuracy_filter", "gps_distance_filter",
-            "gps_update_interval", "auto_start_walk", "auto_end_walk",
-            "route_recording", "route_history_days"
+            "gps_enabled",
+            "gps_accuracy_filter",
+            "gps_distance_filter",
+            "gps_update_interval",
+            "auto_start_walk",
+            "auto_end_walk",
+            "route_recording",
+            "route_history_days",
         ]
         for key in expected_keys:
             assert any(str(k).endswith(key) for k in schema_keys)
@@ -269,9 +283,9 @@ class TestGPSConfiguration:
             "route_recording": True,
             "route_history_days": 60,
         }
-        
+
         result = await options_flow.async_step_gps(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         expected_options = dict(options_flow._options)
         expected_options["gps"] = user_input
@@ -287,9 +301,9 @@ class TestGPSConfiguration:
                 "auto_start_walk": False,
             }
         }
-        
+
         result = await options_flow.async_step_gps()
-        
+
         assert result["type"] == FlowResultType.FORM
         # Verify default values come from existing config
         # This would require inspecting the form schema defaults
@@ -301,9 +315,9 @@ class TestGeofenceConfiguration:
     async def test_geofence_step_shows_form(self, options_flow, mock_hass):
         """Test geofence step shows configuration form."""
         options_flow.hass = mock_hass
-        
+
         result = await options_flow.async_step_geofence()
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "geofence"
         assert "current_lat" in result["description_placeholders"]
@@ -320,9 +334,9 @@ class TestGeofenceConfiguration:
             "multiple_zones": True,
             "zone_detection_mode": "both",
         }
-        
+
         result = await options_flow.async_step_geofence(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         for key, value in user_input.items():
             assert result["data"][key] == value
@@ -331,11 +345,11 @@ class TestGeofenceConfiguration:
 class TestDataSources:
     """Test data sources configuration."""
 
-    @patch('custom_components.pawcontrol.config_flow.er.async_get')
+    @patch("custom_components.pawcontrol.config_flow.er.async_get")
     async def test_data_sources_step(self, mock_entity_reg, options_flow, mock_hass):
         """Test data sources configuration step."""
         options_flow.hass = mock_hass
-        
+
         # Mock entity registry
         mock_entities = [
             Mock(entity_id="person.john", domain="person"),
@@ -348,9 +362,9 @@ class TestDataSources:
         mock_registry = Mock()
         mock_registry.entities.values.return_value = mock_entities
         mock_entity_reg.return_value = mock_registry
-        
+
         result = await options_flow.async_step_data_sources()
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "data_sources"
 
@@ -363,9 +377,9 @@ class TestDataSources:
             "auto_discovery": True,
             "fallback_tracking": False,
         }
-        
+
         result = await options_flow.async_step_data_sources(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"]["data_sources"] == user_input
 
@@ -386,9 +400,9 @@ class TestNotifications:
             "summary_notifications": False,
             "notification_channels": ["mobile", "slack"],
         }
-        
+
         result = await options_flow.async_step_notifications(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"]["notifications"] == user_input
 
@@ -397,9 +411,9 @@ class TestNotifications:
         # Test with valid range values
         user_input = {
             "reminder_repeat_min": 5,  # Minimum value
-            "snooze_min": 60,          # Maximum value
+            "snooze_min": 60,  # Maximum value
         }
-        
+
         result = await options_flow.async_step_notifications(user_input)
         assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -419,9 +433,9 @@ class TestSystemSettings:
             "log_level": "debug",
             "data_retention_days": 180,
         }
-        
+
         result = await options_flow.async_step_system(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         for key, value in user_input.items():
             assert result["data"][key] == value
@@ -431,7 +445,7 @@ class TestSystemSettings:
         user_input = {
             "data_retention_days": 30,  # Minimum value
         }
-        
+
         result = await options_flow.async_step_system(user_input)
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"]["data_retention_days"] == 30
@@ -443,7 +457,7 @@ class TestMaintenance:
     async def test_maintenance_step_shows_form(self, options_flow):
         """Test maintenance step shows configuration form."""
         result = await options_flow.async_step_maintenance()
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "maintenance"
 
@@ -456,37 +470,37 @@ class TestMaintenance:
             "cleanup_interval_days": 60,
             "action": "save_settings",
         }
-        
+
         result = await options_flow.async_step_maintenance(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         expected_maintenance = {k: v for k, v in user_input.items() if k != "action"}
         assert result["data"]["maintenance"] == expected_maintenance
 
-    @patch('builtins.open', create=True)
+    @patch("builtins.open", create=True)
     async def test_maintenance_backup_success(self, mock_open, options_flow, mock_hass):
         """Test successful configuration backup."""
         options_flow.hass = mock_hass
         mock_file = Mock()
         mock_open.return_value.__enter__.return_value = mock_file
-        
+
         user_input = {"action": "backup_config"}
-        
+
         result = await options_flow.async_step_maintenance(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "backup_success"
         mock_open.assert_called_once()
 
-    @patch('builtins.open', side_effect=Exception("File error"))
+    @patch("builtins.open", side_effect=Exception("File error"))
     async def test_maintenance_backup_failure(self, mock_open, options_flow, mock_hass):
         """Test backup failure handling."""
         options_flow.hass = mock_hass
-        
+
         user_input = {"action": "backup_config"}
-        
+
         result = await options_flow.async_step_maintenance(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "backup_error"
         assert result["errors"]["base"] == "backup_failed"
@@ -494,11 +508,11 @@ class TestMaintenance:
     async def test_maintenance_cleanup_success(self, options_flow, mock_hass):
         """Test successful data cleanup."""
         options_flow.hass = mock_hass
-        
+
         user_input = {"action": "cleanup"}
-        
+
         result = await options_flow.async_step_maintenance(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "cleanup_success"
         mock_hass.services.async_call.assert_called_once_with(
@@ -511,11 +525,11 @@ class TestMaintenance:
         """Test cleanup failure handling."""
         options_flow.hass = mock_hass
         mock_hass.services.async_call.side_effect = Exception("Service error")
-        
+
         user_input = {"action": "cleanup"}
-        
+
         result = await options_flow.async_step_maintenance(user_input)
-        
+
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "cleanup_error"
         assert result["errors"]["base"] == "cleanup_failed"
@@ -537,9 +551,9 @@ class TestModulesConfiguration:
             "module_analytics": False,
             "module_automation": True,
         }
-        
+
         result = await options_flow.async_step_modules(user_input)
-        
+
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"]["modules"] == user_input
 
@@ -559,9 +573,9 @@ class TestHelperMethods:
             f"module_{MODULE_WALK}": True,
             f"module_{MODULE_FEEDING}": False,
         }
-        
+
         config = options_flow._create_dog_config(user_input)
-        
+
         assert config[CONF_DOG_ID] == "test_dog"
         assert config[CONF_DOG_NAME] == "Test Dog"
         assert config[CONF_DOG_MODULES][MODULE_WALK] is True
@@ -572,28 +586,28 @@ class TestHelperMethods:
         existing_dog = {
             CONF_DOG_ID: "existing",
             CONF_DOG_NAME: "Old Name",
-            CONF_DOG_MODULES: {MODULE_WALK: True, MODULE_FEEDING: True}
+            CONF_DOG_MODULES: {MODULE_WALK: True, MODULE_FEEDING: True},
         }
-        
+
         user_input = {
             CONF_DOG_NAME: "New Name",
             CONF_DOG_AGE: 5,
             f"module_{MODULE_WALK}": False,
             f"module_{MODULE_FEEDING}": True,
         }
-        
+
         options_flow._update_dog_config(existing_dog, user_input)
-        
+
         assert existing_dog[CONF_DOG_NAME] == "New Name"
         assert existing_dog[CONF_DOG_AGE] == 5
         assert existing_dog[CONF_DOG_MODULES][MODULE_WALK] is False
         assert existing_dog[CONF_DOG_MODULES][MODULE_FEEDING] is True
 
-    @patch('custom_components.pawcontrol.config_flow.er.async_get')
+    @patch("custom_components.pawcontrol.config_flow.er.async_get")
     def test_get_available_entities(self, mock_entity_reg, options_flow, mock_hass):
         """Test getting available entities by domain."""
         options_flow.hass = mock_hass
-        
+
         # Mock entity registry
         mock_entities = [
             Mock(entity_id="person.john", domain="person"),
@@ -604,9 +618,9 @@ class TestHelperMethods:
         ]
         mock_registry = Mock()
         mock_registry.entities.values.return_value = mock_entities
-        
+
         entities = options_flow._get_available_entities(mock_registry)
-        
+
         assert "person.john" in entities["person"]
         assert "device_tracker.phone" in entities["device_tracker"]
         assert "binary_sensor.front_door" in entities["door_sensor"]
@@ -620,7 +634,7 @@ class TestErrorHandling:
     async def test_dog_config_schema_validation(self, options_flow):
         """Test dog configuration schema validation."""
         schema = options_flow._get_dog_config_schema()
-        
+
         # Test valid data
         valid_data = {
             CONF_DOG_ID: "valid_id",
@@ -628,7 +642,7 @@ class TestErrorHandling:
             CONF_DOG_AGE: 5,
             CONF_DOG_WEIGHT: 25.0,
         }
-        
+
         # This should not raise an exception
         validated = schema(valid_data)
         assert validated[CONF_DOG_ID] == "valid_id"
@@ -637,9 +651,9 @@ class TestErrorHandling:
         """Test handling of empty dogs list."""
         # Set empty dogs list
         options_flow._entry.data = {CONF_DOGS: []}
-        
+
         await options_flow.async_step_select_dog_edit()
-        
+
         # Should redirect back to dogs management
         # The exact behavior depends on implementation
 
@@ -651,19 +665,19 @@ class TestFullOptionsFlow:
     async def test_complete_dog_management_flow(self, options_flow, mock_hass):
         """Test complete dog management flow from start to finish."""
         options_flow.hass = mock_hass
-        
+
         # 1. Start from init
         result = await options_flow.async_step_init()
         assert result["type"] == FlowResultType.MENU
-        
+
         # 2. Navigate to dogs
         result = await options_flow.async_step_dogs()
         assert result["type"] == FlowResultType.FORM
-        
+
         # 3. Choose to add dog
         result = await options_flow.async_step_dogs({"action": "add_dog"})
         # This would typically call async_step_add_dog()
-        
+
         # 4. Add new dog
         new_dog_data = {
             CONF_DOG_ID: "newdog",
@@ -675,17 +689,17 @@ class TestFullOptionsFlow:
             f"module_{MODULE_WALK}": True,
             f"module_{MODULE_FEEDING}": True,
         }
-        
+
         result = await options_flow.async_step_add_dog(new_dog_data)
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        
+
         # Verify the config entry was updated
         mock_hass.config_entries.async_update_entry.assert_called()
 
     async def test_complete_configuration_flow(self, options_flow, mock_hass):
         """Test configuring multiple sections in sequence."""
         options_flow.hass = mock_hass
-        
+
         # Configure GPS settings
         gps_config = {
             "gps_enabled": True,
@@ -694,7 +708,7 @@ class TestFullOptionsFlow:
         }
         result = await options_flow.async_step_gps(gps_config)
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        
+
         # Configure geofence settings
         geofence_config = {
             "geofencing_enabled": True,
@@ -703,7 +717,7 @@ class TestFullOptionsFlow:
         }
         result = await options_flow.async_step_geofence(geofence_config)
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        
+
         # Configure notifications
         notification_config = {
             "notifications_enabled": True,

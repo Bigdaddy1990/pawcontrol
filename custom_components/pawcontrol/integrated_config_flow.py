@@ -22,7 +22,11 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv, entity_registry as er, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    entity_registry as er,
+    device_registry as dr,
+)
 from homeassistant.loader import async_get_integration
 
 from .const import (
@@ -123,7 +127,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_NAME, default=d.get(CONF_NAME, DEFAULT_TITLE)): str,
                 vol.Optional(
-                    CONF_ENABLE_DASHBOARD, default=bool(d.get(CONF_ENABLE_DASHBOARD, True))
+                    CONF_ENABLE_DASHBOARD,
+                    default=bool(d.get(CONF_ENABLE_DASHBOARD, True)),
                 ): bool,
                 # Optional device hint (e.g. "usb:VID_10C4&PID_EA60" or a MAC/serial)
                 vol.Optional(CONF_DEVICE_ID, default=d.get(CONF_DEVICE_ID, "")): str,
@@ -165,7 +170,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Common discovery handler with lazy connectivity check and dedupe."""
         # Normalize discovery dict into data we persist.
-        data = {"discovery": discovery_info, CONF_SOURCE: source, "config_version": CONFIG_VERSION}
+        data = {
+            "discovery": discovery_info,
+            CONF_SOURCE: source,
+            "config_version": CONFIG_VERSION,
+        }
 
         # Pre-calc a unique id from typical fields (mac, serial, properties)
         unique_id = _pick_unique_id(discovery_info)
@@ -217,7 +226,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle reauthentication confirmation."""
         if user_input is None:
-            return self.async_show_form(step_id="reauth_confirm", data_schema=vol.Schema({}))
+            return self.async_show_form(
+                step_id="reauth_confirm", data_schema=vol.Schema({})
+            )
 
         if self._reauth_entry:
             self.hass.config_entries.async_update_entry(
@@ -244,6 +255,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 # --- ENHANCED OPTIONS FLOW WITH VALIDATION ---
+
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Enhanced options flow with comprehensive configuration options and validation."""
@@ -295,7 +307,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             "maintenance": "Maintenance & Backup",
             "advanced": "Advanced Settings",
         }
-        
+
         return self.async_show_menu(
             step_id="init",
             menu_options=menu_options,
@@ -321,9 +333,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="migrate",
-            data_schema=vol.Schema({
-                vol.Required("confirm_migration", default=True): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm_migration", default=True): bool,
+                }
+            ),
             description_placeholders={
                 "current_version": str(self._data.get("config_version", 1)),
                 "target_version": str(CONFIG_VERSION),
@@ -332,21 +346,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _perform_migration(self) -> None:
         """Perform configuration migration."""
-        _LOGGER.info("Migrating Paw Control configuration from version %s to %s", 
-                    self._data.get("config_version", 1), CONFIG_VERSION)
-        
+        _LOGGER.info(
+            "Migrating Paw Control configuration from version %s to %s",
+            self._data.get("config_version", 1),
+            CONFIG_VERSION,
+        )
+
         try:
             new_data = await self._migrate_data(dict(self._data))
             new_options = await self._migrate_options(dict(self._options))
-            
+
             self.hass.config_entries.async_update_entry(
                 self._entry,
                 data=new_data,
                 options=new_options,
             )
-            
+
             _LOGGER.info("Configuration migration completed successfully")
-            
+
         except Exception as err:
             _LOGGER.error("Configuration migration failed: %s", err)
             raise
@@ -354,15 +371,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _migrate_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Migrate config entry data."""
         data["config_version"] = CONFIG_VERSION
-        
+
         # Add any data migrations here based on version
         current_version = data.get("config_version", 1)
-        
+
         if current_version < 2:
             # Example migration for version 2
             if CONF_DOGS not in data:
                 data[CONF_DOGS] = []
-        
+
         return data
 
     async def _migrate_options(self, options: dict[str, Any]) -> dict[str, Any]:
@@ -391,22 +408,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Get current dogs from data
         current_dogs = self._data.get(CONF_DOGS, [])
         dogs_info = f"Currently configured dogs: {len(current_dogs)}\n"
-        
+
         for i, dog in enumerate(current_dogs, 1):
             dogs_info += f"{i}. {dog.get(CONF_DOG_NAME, 'Unnamed')} (ID: {dog.get(CONF_DOG_ID, 'unknown')})\n"
 
         if not current_dogs:
             dogs_info += "No dogs configured yet.\n"
 
-        schema = vol.Schema({
-            vol.Required("action"): vol.In({
-                "add_dog": "Add New Dog",
-                "edit_dog": "Edit Existing Dog", 
-                "remove_dog": "Remove Dog",
-                "import_dogs": "Import Dogs from File",
-                "back": "Back to Main Menu"
-            })
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("action"): vol.In(
+                    {
+                        "add_dog": "Add New Dog",
+                        "edit_dog": "Edit Existing Dog",
+                        "remove_dog": "Remove Dog",
+                        "import_dogs": "Import Dogs from File",
+                        "back": "Back to Main Menu",
+                    }
+                )
+            }
+        )
 
         return self.async_show_form(
             step_id="dogs",
@@ -427,7 +448,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Validate and sanitize input
         validated_data, errors = self._validator(user_input, "dog")
-        
+
         if errors:
             schema = SchemaBuilder.dog_config_schema()
             return self.async_show_form(
@@ -439,7 +460,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Check for duplicate dog ID
         current_dogs = self._data.get(CONF_DOGS, [])
         dog_id = validated_data.get(CONF_DOG_ID)
-        
+
         if any(dog.get(CONF_DOG_ID) == dog_id for dog in current_dogs):
             schema = SchemaBuilder.dog_config_schema()
             return self.async_show_form(
@@ -450,17 +471,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Create new dog configuration
         new_dog = self._create_dog_config(validated_data)
-        
+
         # Update entry data
         new_data = dict(self._data)
         new_data.setdefault(CONF_DOGS, []).append(new_dog)
-        
-        self.hass.config_entries.async_update_entry(
-            self._entry, data=new_data
+
+        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+
+        _LOGGER.info(
+            "Added new dog: %s (%s)", new_dog[CONF_DOG_NAME], new_dog[CONF_DOG_ID]
         )
-        
-        _LOGGER.info("Added new dog: %s (%s)", new_dog[CONF_DOG_NAME], new_dog[CONF_DOG_ID])
-        
+
         return self.async_create_entry(title="", data=self._options)
 
     async def async_step_import_dogs(
@@ -470,68 +491,81 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is None:
             return self.async_show_form(
                 step_id="import_dogs",
-                data_schema=vol.Schema({
-                    vol.Required("import_file_path"): str,
-                    vol.Optional("overwrite_existing", default=False): bool,
-                }),
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("import_file_path"): str,
+                        vol.Optional("overwrite_existing", default=False): bool,
+                    }
+                ),
             )
 
         try:
             import_path = user_input["import_file_path"]
             overwrite = user_input.get("overwrite_existing", False)
-            
+
             imported_dogs = await self._import_dogs_from_file(import_path)
-            
+
             if not imported_dogs:
                 return self.async_show_form(
                     step_id="import_dogs",
-                    data_schema=vol.Schema({
-                        vol.Required("import_file_path"): str,
-                        vol.Optional("overwrite_existing", default=False): bool,
-                    }),
+                    data_schema=vol.Schema(
+                        {
+                            vol.Required("import_file_path"): str,
+                            vol.Optional("overwrite_existing", default=False): bool,
+                        }
+                    ),
                     errors={"import_file_path": "no_dogs_found"},
                 )
 
             # Process imported dogs
             new_data = dict(self._data)
             current_dogs = new_data.get(CONF_DOGS, [])
-            
+
             if overwrite:
                 new_data[CONF_DOGS] = imported_dogs
-                _LOGGER.info("Replaced all dogs with %d imported dogs", len(imported_dogs))
+                _LOGGER.info(
+                    "Replaced all dogs with %d imported dogs", len(imported_dogs)
+                )
             else:
                 # Merge dogs, avoiding duplicates
                 existing_ids = {dog.get(CONF_DOG_ID) for dog in current_dogs}
-                new_dogs = [dog for dog in imported_dogs if dog.get(CONF_DOG_ID) not in existing_ids]
+                new_dogs = [
+                    dog
+                    for dog in imported_dogs
+                    if dog.get(CONF_DOG_ID) not in existing_ids
+                ]
                 new_data[CONF_DOGS] = current_dogs + new_dogs
-                _LOGGER.info("Added %d new dogs, skipped %d duplicates", 
-                           len(new_dogs), len(imported_dogs) - len(new_dogs))
-            
-            self.hass.config_entries.async_update_entry(
-                self._entry, data=new_data
-            )
-            
+                _LOGGER.info(
+                    "Added %d new dogs, skipped %d duplicates",
+                    len(new_dogs),
+                    len(imported_dogs) - len(new_dogs),
+                )
+
+            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+
             return self.async_create_entry(title="", data=self._options)
 
         except Exception as err:
             _LOGGER.error("Failed to import dogs: %s", err)
             return self.async_show_form(
                 step_id="import_dogs",
-                data_schema=vol.Schema({
-                    vol.Required("import_file_path"): str,
-                    vol.Optional("overwrite_existing", default=False): bool,
-                }),
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("import_file_path"): str,
+                        vol.Optional("overwrite_existing", default=False): bool,
+                    }
+                ),
                 errors={"base": "import_failed"},
             )
 
     async def _import_dogs_from_file(self, file_path: str) -> list[dict[str, Any]]:
         """Import dogs from backup file."""
         import json
-        
+
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 data = json.load(f)
-            
+
             # Extract dogs from different possible formats
             if isinstance(data, dict):
                 if "dogs" in data:
@@ -544,7 +578,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 dogs_data = data
             else:
                 return []
-            
+
             # Validate each dog
             validated_dogs = []
             for dog_data in dogs_data:
@@ -554,9 +588,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         validated_dogs.append(validated_dog)
                 except Exception:
                     continue  # Skip invalid dogs
-            
+
             return validated_dogs
-            
+
         except (FileNotFoundError, json.JSONDecodeError, PermissionError) as err:
             _LOGGER.error("Failed to read import file %s: %s", file_path, err)
             raise
@@ -577,7 +611,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Validate input
         validated_data, errors = self._validator(user_input, "gps")
-        
+
         if errors:
             current_gps = self._options.get("gps", {})
             schema = SchemaBuilder.gps_config_schema(current_gps)
@@ -600,8 +634,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is None:
             current_lat = self._options.get("geofence_lat", self.hass.config.latitude)
             current_lon = self._options.get("geofence_lon", self.hass.config.longitude)
-            schema = SchemaBuilder.geofence_config_schema(self._options, current_lat, current_lon)
-            
+            schema = SchemaBuilder.geofence_config_schema(
+                self._options, current_lat, current_lon
+            )
+
             return self.async_show_form(
                 step_id="geofence",
                 data_schema=schema,
@@ -613,12 +649,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Validate input
         validated_data, errors = self._validator(user_input, "geofence")
-        
+
         if errors:
             current_lat = self._options.get("geofence_lat", self.hass.config.latitude)
             current_lon = self._options.get("geofence_lon", self.hass.config.longitude)
-            schema = SchemaBuilder.geofence_config_schema(self._options, current_lat, current_lon)
-            
+            schema = SchemaBuilder.geofence_config_schema(
+                self._options, current_lat, current_lon
+            )
+
             return self.async_show_form(
                 step_id="geofence",
                 data_schema=schema,
@@ -644,42 +682,48 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             entity_lists = await self._get_available_entities_cached()
             current_sources = self._options.get("data_sources", {})
 
-            schema = vol.Schema({
-                vol.Optional(
-                    CONF_PERSON_ENTITIES,
-                    default=current_sources.get(CONF_PERSON_ENTITIES, []),
-                ): cv.multi_select(entity_lists["person"]) if entity_lists["person"] else cv.multi_select([]),
-                vol.Optional(
-                    CONF_DEVICE_TRACKERS,
-                    default=current_sources.get(CONF_DEVICE_TRACKERS, []),
-                ): cv.multi_select(entity_lists["device_tracker"]) if entity_lists["device_tracker"] else cv.multi_select([]),
-                vol.Optional(
-                    CONF_DOOR_SENSOR,
-                    default=current_sources.get(CONF_DOOR_SENSOR, ""),
-                ): vol.In([""] + entity_lists["door_sensor"]),
-                vol.Optional(
-                    CONF_WEATHER,
-                    default=current_sources.get(CONF_WEATHER, ""),
-                ): vol.In([""] + entity_lists["weather"]),
-                vol.Optional(
-                    CONF_CALENDAR,
-                    default=current_sources.get(CONF_CALENDAR, ""),
-                ): vol.In([""] + entity_lists["calendar"]),
-                vol.Optional(
-                    "auto_discovery",
-                    default=current_sources.get("auto_discovery", True),
-                ): bool,
-                vol.Optional(
-                    "fallback_tracking",
-                    default=current_sources.get("fallback_tracking", True),
-                ): bool,
-            })
-            
+            schema = vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_PERSON_ENTITIES,
+                        default=current_sources.get(CONF_PERSON_ENTITIES, []),
+                    ): cv.multi_select(entity_lists["person"])
+                    if entity_lists["person"]
+                    else cv.multi_select([]),
+                    vol.Optional(
+                        CONF_DEVICE_TRACKERS,
+                        default=current_sources.get(CONF_DEVICE_TRACKERS, []),
+                    ): cv.multi_select(entity_lists["device_tracker"])
+                    if entity_lists["device_tracker"]
+                    else cv.multi_select([]),
+                    vol.Optional(
+                        CONF_DOOR_SENSOR,
+                        default=current_sources.get(CONF_DOOR_SENSOR, ""),
+                    ): vol.In([""] + entity_lists["door_sensor"]),
+                    vol.Optional(
+                        CONF_WEATHER,
+                        default=current_sources.get(CONF_WEATHER, ""),
+                    ): vol.In([""] + entity_lists["weather"]),
+                    vol.Optional(
+                        CONF_CALENDAR,
+                        default=current_sources.get(CONF_CALENDAR, ""),
+                    ): vol.In([""] + entity_lists["calendar"]),
+                    vol.Optional(
+                        "auto_discovery",
+                        default=current_sources.get("auto_discovery", True),
+                    ): bool,
+                    vol.Optional(
+                        "fallback_tracking",
+                        default=current_sources.get("fallback_tracking", True),
+                    ): bool,
+                }
+            )
+
             return self.async_show_form(step_id="data_sources", data_schema=schema)
 
         # Validate input
         validated_data, errors = self._validator(user_input, "data_sources")
-        
+
         if errors:
             entity_lists = await self._get_available_entities_cached()
             # Rebuild schema with errors...
@@ -693,18 +737,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _get_available_entities_cached(self) -> dict[str, list[str]]:
         """Get available entities with caching."""
         now = datetime.now()
-        
+
         # Cache for 5 minutes
-        if (self._cache_timestamp and 
-            (now - self._cache_timestamp).total_seconds() < 300 and
-            self._entity_cache):
+        if (
+            self._cache_timestamp
+            and (now - self._cache_timestamp).total_seconds() < 300
+            and self._entity_cache
+        ):
             return self._entity_cache
-        
+
         # Refresh cache
         ent_reg = er.async_get(self.hass)
         self._entity_cache = self._get_available_entities(ent_reg)
         self._cache_timestamp = now
-        
+
         return self._entity_cache
 
     # === NOTIFICATIONS ===
@@ -720,7 +766,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Validate input
         validated_data, errors = self._validator(user_input, "notifications")
-        
+
         if errors:
             current_notifications = self._options.get("notifications", {})
             schema = SchemaBuilder.notification_config_schema(current_notifications)
@@ -750,36 +796,39 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             else:
                 new_options = dict(self._options)
                 new_options["advanced"] = {
-                    k: v for k, v in user_input.items() 
-                    if k != "action"
+                    k: v for k, v in user_input.items() if k != "action"
                 }
                 return self.async_create_entry(title="", data=new_options)
 
         current_advanced = self._options.get("advanced", {})
 
-        schema = vol.Schema({
-            vol.Optional(
-                "debug_mode",
-                default=current_advanced.get("debug_mode", False),
-            ): bool,
-            vol.Optional(
-                "telemetry_enabled",
-                default=current_advanced.get("telemetry_enabled", True),
-            ): bool,
-            vol.Optional(
-                "experimental_features",
-                default=current_advanced.get("experimental_features", False),
-            ): bool,
-            vol.Optional(
-                "action",
-                default="save_settings",
-            ): vol.In({
-                "save_settings": "Save Settings",
-                "export_config": "Export Complete Configuration",
-                "debug_info": "Generate Debug Information",
-                "reset_cache": "Reset All Caches",
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "debug_mode",
+                    default=current_advanced.get("debug_mode", False),
+                ): bool,
+                vol.Optional(
+                    "telemetry_enabled",
+                    default=current_advanced.get("telemetry_enabled", True),
+                ): bool,
+                vol.Optional(
+                    "experimental_features",
+                    default=current_advanced.get("experimental_features", False),
+                ): bool,
+                vol.Optional(
+                    "action",
+                    default="save_settings",
+                ): vol.In(
+                    {
+                        "save_settings": "Save Settings",
+                        "export_config": "Export Complete Configuration",
+                        "debug_info": "Generate Debug Information",
+                        "reset_cache": "Reset All Caches",
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(step_id="advanced", data_schema=schema)
 
@@ -789,21 +838,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Generate debug information."""
         try:
             debug_info = await self._generate_debug_info()
-            
+
             debug_path = self.hass.config.path(
                 f"pawcontrol_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
-            
+
             import json
+
             with open(debug_path, "w") as f:
                 json.dump(debug_info, f, indent=2, default=str)
-            
+
             return self.async_show_form(
                 step_id="debug_success",
                 data_schema=vol.Schema({}),
                 description_placeholders={"debug_path": debug_path},
             )
-            
+
         except Exception as err:
             _LOGGER.error("Failed to generate debug info: %s", err)
             return self.async_show_form(
@@ -827,17 +877,23 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Get entity registry info
         ent_reg = er.async_get(self.hass)
-        entity_count = len([
-            entity for entity in ent_reg.entities.values()
-            if entity.platform == DOMAIN
-        ])
+        entity_count = len(
+            [
+                entity
+                for entity in ent_reg.entities.values()
+                if entity.platform == DOMAIN
+            ]
+        )
 
         # Get device registry info
         dev_reg = dr.async_get(self.hass)
-        device_count = len([
-            device for device in dev_reg.devices.values()
-            if DOMAIN in device.config_entries
-        ])
+        device_count = len(
+            [
+                device
+                for device in dev_reg.devices.values()
+                if DOMAIN in device.config_entries
+            ]
+        )
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -878,36 +934,52 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 MODULE_FEEDING: validated_data.get(f"module_{MODULE_FEEDING}", True),
                 MODULE_HEALTH: validated_data.get(f"module_{MODULE_HEALTH}", True),
                 MODULE_GPS: validated_data.get(f"module_{MODULE_GPS}", True),
-                MODULE_NOTIFICATIONS: validated_data.get(f"module_{MODULE_NOTIFICATIONS}", True),
-                MODULE_DASHBOARD: validated_data.get(f"module_{MODULE_DASHBOARD}", True),
+                MODULE_NOTIFICATIONS: validated_data.get(
+                    f"module_{MODULE_NOTIFICATIONS}", True
+                ),
+                MODULE_DASHBOARD: validated_data.get(
+                    f"module_{MODULE_DASHBOARD}", True
+                ),
                 MODULE_GROOMING: validated_data.get(f"module_{MODULE_GROOMING}", True),
-                MODULE_MEDICATION: validated_data.get(f"module_{MODULE_MEDICATION}", True),
+                MODULE_MEDICATION: validated_data.get(
+                    f"module_{MODULE_MEDICATION}", True
+                ),
                 MODULE_TRAINING: validated_data.get(f"module_{MODULE_TRAINING}", True),
-            }
+            },
         }
 
-    def _get_available_entities(self, ent_reg: er.EntityRegistry) -> dict[str, list[str]]:
+    def _get_available_entities(
+        self, ent_reg: er.EntityRegistry
+    ) -> dict[str, list[str]]:
         """Get available entities by domain."""
         return {
             "person": [
-                entity.entity_id for entity in ent_reg.entities.values()
+                entity.entity_id
+                for entity in ent_reg.entities.values()
                 if entity.domain == "person"
             ],
             "device_tracker": [
-                entity.entity_id for entity in ent_reg.entities.values()
+                entity.entity_id
+                for entity in ent_reg.entities.values()
                 if entity.domain == "device_tracker"
             ],
             "door_sensor": [
-                entity.entity_id for entity in ent_reg.entities.values()
-                if entity.domain == "binary_sensor" and 
-                ("door" in entity.entity_id.lower() or "entrance" in entity.entity_id.lower())
+                entity.entity_id
+                for entity in ent_reg.entities.values()
+                if entity.domain == "binary_sensor"
+                and (
+                    "door" in entity.entity_id.lower()
+                    or "entrance" in entity.entity_id.lower()
+                )
             ],
             "weather": [
-                entity.entity_id for entity in ent_reg.entities.values()
+                entity.entity_id
+                for entity in ent_reg.entities.values()
                 if entity.domain == "weather"
             ],
             "calendar": [
-                entity.entity_id for entity in ent_reg.entities.values()
+                entity.entity_id
+                for entity in ent_reg.entities.values()
                 if entity.domain == "calendar"
             ],
         }
@@ -923,21 +995,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 "options": self._options,
                 "export_type": "complete_config",
             }
-            
+
             export_path = self.hass.config.path(
                 f"pawcontrol_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
-            
+
             import json
+
             with open(export_path, "w") as f:
                 json.dump(export_data, f, indent=2, default=str)
-            
+
             return self.async_show_form(
                 step_id="export_success",
                 data_schema=vol.Schema({}),
                 description_placeholders={"export_path": export_path},
             )
-            
+
         except Exception as err:
             _LOGGER.error("Failed to export configuration: %s", err)
             return self.async_show_form(
@@ -951,12 +1024,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         try:
             self._entity_cache.clear()
             self._cache_timestamp = None
-            
+
             return self.async_show_form(
                 step_id="cache_reset_success",
                 data_schema=vol.Schema({}),
             )
-            
+
         except Exception as err:
             _LOGGER.error("Failed to reset cache: %s", err)
             return self.async_show_form(
@@ -979,39 +1052,42 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             else:
                 new_options = dict(self._options)
                 new_options["maintenance"] = {
-                    k: v for k, v in user_input.items() 
-                    if k != "action"
+                    k: v for k, v in user_input.items() if k != "action"
                 }
                 return self.async_create_entry(title="", data=new_options)
 
         current_maintenance = self._options.get("maintenance", {})
 
-        schema = vol.Schema({
-            vol.Optional(
-                "auto_backup_enabled",
-                default=current_maintenance.get("auto_backup_enabled", True),
-            ): bool,
-            vol.Optional(
-                "backup_interval_days",
-                default=current_maintenance.get("backup_interval_days", 7),
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
-            vol.Optional(
-                "auto_cleanup_enabled",
-                default=current_maintenance.get("auto_cleanup_enabled", True),
-            ): bool,
-            vol.Optional(
-                "cleanup_interval_days",
-                default=current_maintenance.get("cleanup_interval_days", 30),
-            ): vol.All(vol.Coerce(int), vol.Range(min=7, max=90)),
-            vol.Optional(
-                "action",
-                default="save_settings",
-            ): vol.In({
-                "save_settings": "Save Settings",
-                "backup_config": "Backup Configuration Now",
-                "cleanup": "Cleanup Old Data",
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "auto_backup_enabled",
+                    default=current_maintenance.get("auto_backup_enabled", True),
+                ): bool,
+                vol.Optional(
+                    "backup_interval_days",
+                    default=current_maintenance.get("backup_interval_days", 7),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+                vol.Optional(
+                    "auto_cleanup_enabled",
+                    default=current_maintenance.get("auto_cleanup_enabled", True),
+                ): bool,
+                vol.Optional(
+                    "cleanup_interval_days",
+                    default=current_maintenance.get("cleanup_interval_days", 30),
+                ): vol.All(vol.Coerce(int), vol.Range(min=7, max=90)),
+                vol.Optional(
+                    "action",
+                    default="save_settings",
+                ): vol.In(
+                    {
+                        "save_settings": "Save Settings",
+                        "backup_config": "Backup Configuration Now",
+                        "cleanup": "Cleanup Old Data",
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(step_id="maintenance", data_schema=schema)
 
@@ -1019,7 +1095,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Backup current configuration."""
         try:
             import json
-            
+
             backup_data = {
                 "timestamp": datetime.now().isoformat(),
                 "version": CONFIG_VERSION,
@@ -1028,22 +1104,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 "options": self._options,
                 "backup_type": "manual",
             }
-            
+
             backup_path = self.hass.config.path(
                 f"pawcontrol_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             )
-            
+
             with open(backup_path, "w") as f:
                 json.dump(backup_data, f, indent=2, default=str)
-            
+
             _LOGGER.info("Configuration backup created: %s", backup_path)
-            
+
             return self.async_show_form(
                 step_id="backup_success",
                 data_schema=vol.Schema({}),
                 description_placeholders={"backup_path": backup_path},
             )
-            
+
         except Exception as err:
             _LOGGER.error("Failed to backup configuration: %s", err)
             return self.async_show_form(
@@ -1060,18 +1136,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 "purge_all_storage",
                 {"config_entry_id": self._entry.entry_id},
             )
-            
+
             _LOGGER.info("Data cleanup completed")
-            
+
             return self.async_show_form(
                 step_id="cleanup_success",
                 data_schema=vol.Schema({}),
             )
-            
+
         except Exception as err:
             _LOGGER.error("Failed to cleanup data: %s", err)
             return self.async_show_form(
-                step_id="cleanup_error", 
+                step_id="cleanup_error",
                 data_schema=vol.Schema({}),
                 errors={"base": "cleanup_failed"},
             )
