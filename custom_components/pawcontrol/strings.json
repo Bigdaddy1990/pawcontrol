@@ -610,8 +610,8 @@
         "gps_post_location": {
             "name": "Gps Post Location",
             "fields": {
-                "accuracy": {
-                    "name": "Accuracy",
+                "accuracy_m": {
+                    "name": "Accuracy (m)",
                     "description": "No description provided"
                 },
                 "selector": {
