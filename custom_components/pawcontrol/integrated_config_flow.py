@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import Any, Final
 import logging
-import asyncio
 from datetime import datetime
 
 import voluptuous as vol
@@ -39,12 +38,7 @@ from .const import (
     MODULE_DASHBOARD,
     MODULE_MEDICATION,
     # Dog size constants
-    SIZE_SMALL,
     SIZE_MEDIUM,
-    SIZE_LARGE,
-    SIZE_XLARGE,
-    DOG_SIZES,
-    # Configuration keys
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -58,31 +52,11 @@ from .const import (
     CONF_DOOR_SENSOR,
     CONF_WEATHER,
     CONF_CALENDAR,
-    # GPS Constants
-    GPS_MIN_ACCURACY,
-    GPS_POINT_FILTER_DISTANCE,
-    DEFAULT_SAFE_ZONE_RADIUS,
-    MAX_SAFE_ZONE_RADIUS,
-    MIN_SAFE_ZONE_RADIUS,
-    # Defaults
-    DEFAULT_RESET_TIME,
-    DEFAULT_EXPORT_FORMAT,
-    DEFAULT_REMINDER_REPEAT,
-    DEFAULT_SNOOZE_MIN,
-    # Limits
-    MIN_DOG_AGE_YEARS,
-    MAX_DOG_AGE_YEARS,
-    MIN_DOG_WEIGHT_KG,
-    MAX_DOG_WEIGHT_KG,
 )
 
 # Import validation system
 from .validation import (
-    ConfigValidator,
     SchemaBuilder,
-    ErrorHandler,
-    DataSanitizer,
-    ValidationError,
     create_comprehensive_validator,
 )
 

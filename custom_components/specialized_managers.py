@@ -20,7 +20,6 @@ from .const import (
     MIN_DOG_WEIGHT_KG,
     EVENT_WALK_STARTED,
     EVENT_WALK_ENDED,
-    EVENT_DOG_FED,
     ATTR_DOG_ID,
 )
 from .utils import validate_coordinates, calculate_distance

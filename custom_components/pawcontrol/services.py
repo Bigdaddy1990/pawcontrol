@@ -799,7 +799,7 @@ class ServiceManager:
         dog_id = call.data[CONF_DOG_ID]
         topic = call.data["topic"]
         duration_min = call.data["duration_min"]
-        intensity = call.data.get("intensity", "medium")
+        call.data.get("intensity", "medium")
         notes = call.data.get("notes", "")
 
         try:

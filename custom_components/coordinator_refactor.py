@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, INTEGRATION_VERSION
+from .const import DOMAIN
 from .dog_data_manager import DogDataManager
 from .health_calculator import HealthCalculator
 from .walk_manager import WalkManager

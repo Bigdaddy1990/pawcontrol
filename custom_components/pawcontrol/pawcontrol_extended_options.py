@@ -10,15 +10,13 @@ proper error handling, and extensive validation.
 
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import Any
 import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv, entity_registry as er, device_registry as dr
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
     DOMAIN,
@@ -37,8 +35,6 @@ from .const import (
     SIZE_MEDIUM,
     SIZE_LARGE,
     SIZE_XLARGE,
-    DOG_SIZES,
-    # Configuration keys
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -52,13 +48,6 @@ from .const import (
     CONF_DOOR_SENSOR,
     CONF_WEATHER,
     CONF_CALENDAR,
-    CONF_NOTIFY_BACKENDS,
-    CONF_NOTIFY_FALLBACK,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
-    CONF_QUIET_END,
-    CONF_REMINDER_REPEAT,
-    CONF_SNOOZE_MIN,
     CONF_RESET_TIME,
     CONF_EXPORT_FORMAT,
     CONF_EXPORT_PATH,

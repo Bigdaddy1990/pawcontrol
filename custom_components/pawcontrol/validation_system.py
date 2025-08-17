@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, time
-from typing import Any, Dict, List, Optional, Union, Callable
+from datetime import time
+from typing import Any, Dict, List, Union, Callable
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 

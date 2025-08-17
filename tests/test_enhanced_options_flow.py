@@ -151,7 +151,7 @@ class TestDogManagement:
         
         with patch.object(options_flow, 'async_step_add_dog') as mock_add:
             mock_add.return_value = {"type": FlowResultType.FORM}
-            result = await options_flow.async_step_dogs(user_input)
+            await options_flow.async_step_dogs(user_input)
             mock_add.assert_called_once()
 
     async def test_add_dog_success(self, options_flow, mock_hass):
@@ -206,7 +206,7 @@ class TestDogManagement:
         
         with patch.object(options_flow, 'async_step_edit_dog') as mock_edit:
             mock_edit.return_value = {"type": FlowResultType.FORM}
-            result = await options_flow.async_step_select_dog_edit(user_input)
+            await options_flow.async_step_select_dog_edit(user_input)
             assert options_flow._editing_dog_id == "buddy"
             mock_edit.assert_called_once()
 
@@ -638,7 +638,7 @@ class TestErrorHandling:
         # Set empty dogs list
         options_flow._entry.data = {CONF_DOGS: []}
         
-        result = await options_flow.async_step_select_dog_edit()
+        await options_flow.async_step_select_dog_edit()
         
         # Should redirect back to dogs management
         # The exact behavior depends on implementation

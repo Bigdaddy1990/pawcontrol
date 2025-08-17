@@ -20,20 +20,10 @@ from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_NAME,
-    CONF_RADIUS,
-    CONF_TIME_ZONE,
-)
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.selector import (
     BooleanSelector,
-    DeviceSelector,
-    DeviceSelectorConfig,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -53,7 +43,6 @@ from .const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
-    CONF_DOG_MODULES,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
@@ -63,7 +52,6 @@ from .const import (
     CONF_NOTIFICATIONS,
     CONF_NOTIFY_FALLBACK,
     CONF_QUIET_END,
-    CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT,
     CONF_RESET_TIME,
@@ -79,16 +67,12 @@ from .const import (
     DEFAULT_SNOOZE_MIN,
     DOMAIN,
     DOG_SIZES,
-    FEEDING_TYPES,
-    GROOMING_TYPES,
-    INTENSITY_TYPES,
     MAX_DOG_AGE_YEARS,
     MAX_DOG_WEIGHT_KG,
     MAX_SAFE_ZONE_RADIUS,
     MIN_DOG_AGE_YEARS,
     MIN_DOG_WEIGHT_KG,
     MIN_SAFE_ZONE_RADIUS,
-    TRAINING_TYPES,
 )
 
 _LOGGER = logging.getLogger(__name__)

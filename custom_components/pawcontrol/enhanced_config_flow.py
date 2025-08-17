@@ -17,7 +17,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv, entity_registry as er, device_registry as dr
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
     DOMAIN,
@@ -36,8 +36,6 @@ from .const import (
     SIZE_MEDIUM,
     SIZE_LARGE,
     SIZE_XLARGE,
-    DOG_SIZES,
-    # Configuration keys
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
