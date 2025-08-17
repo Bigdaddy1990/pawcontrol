@@ -87,19 +87,19 @@ class RouteHistoryStore:
         else:
             cutoff = dt_util.utcnow() - timedelta(days=older_than_days)
 
-            for dog_id, routes in self._data.get("dogs", {}).items():
-                filtered_routes = []
-                for route in routes:
-                    try:
-                        route_time = dt_util.parse_datetime(
-                            route.get("created") or route.get("end")
-                        )
-                        if route_time and route_time > cutoff:
-                            filtered_routes.append(route)
-                    except (TypeError, ValueError):
-                        # Keep if we can't parse the date
-                        filtered_routes.append(route)
+            def _keep_route(route: dict[str, Any]) -> bool:
+                """Return True if the route should be retained."""
+                try:
+                    route_time = dt_util.parse_datetime(
+                        route.get("created") or route.get("end")
+                    )
+                except (TypeError, ValueError):
+                    # Keep routes with invalid timestamps
+                    return True
+                return route_time is None or route_time > cutoff
 
-                self._data["dogs"][dog_id] = filtered_routes
+            dogs = self._data.get("dogs", {})
+            for dog_id, routes in dogs.items():
+                dogs[dog_id] = [route for route in routes if _keep_route(route)]
 
         await self.async_save(self._data)
