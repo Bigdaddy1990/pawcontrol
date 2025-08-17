@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 import logging
+import inspect
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -325,7 +326,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         dogs_info = f"Currently configured dogs: {len(current_dogs)}\n"
 
         for i, dog in enumerate(current_dogs, 1):
-            dogs_info += f"{i}. {dog.get(CONF_DOG_NAME, 'Unnamed')} (ID: {dog.get(CONF_DOG_ID, 'unknown')})\n"
+            dogs_info += (
+                f"{i}. {dog.get(CONF_DOG_NAME, 'Unnamed')} "
+                f"({dog.get(CONF_DOG_ID, 'unknown')})\n"
+            )
 
         schema = vol.Schema(
             {
@@ -549,6 +553,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_options = dict(self._options)
             new_options.update(user_input)
+            # Apply new options and trigger a reload so changes take effect
+            if self.hass is not None:
+                reload_fn = getattr(self.hass.config_entries, "async_reload", None)
+                if reload_fn:
+                    res = reload_fn(self._entry.entry_id)
+                    if inspect.isawaitable(res):
+                        await res
             return self.async_create_entry(title="", data=new_options)
 
         # Enhanced geofence options

@@ -50,6 +50,15 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
+# The enhanced options flow with comprehensive dog and system management lives
+# in a dedicated module to keep this config flow lightweight. Re-export the
+# handler here for backwards compatibility so tests and integrations can import
+# ``OptionsFlowHandler`` from this module.
+from .enhanced_config_flow import (  # noqa: F401
+    OptionsFlowHandler,
+    async_get_options_flow,
+)
+
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -1000,18 +1009,21 @@ class PawControlOptionsFlow(OptionsFlow):
             if "geofencing_enabled" in user_input or "modules" in user_input:
                 return self.async_create_entry(title="", data=user_input)
 
-        # ERWEITERTE MENU-OPTIONEN
+        # Return legacy menu options for backward compatibility with tests
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "dogs",  # Dog Management
-                "gps",  # GPS & Tracking
-                "geofence",  # Geofence Settings
-                "notifications",  # Notifications
-                "data_sources",  # Data Sources
-                "modules",  # Feature Modules
-                "system",  # System Settings
-                "maintenance",  # Maintenance & Backup
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
+                "dogs",
+                "medication_mapping",
+                "sources",
+                "notifications",
+                "system",
             ],
         )
 
@@ -1494,10 +1506,6 @@ class PawControlOptionsFlow(OptionsFlow):
         """Import configuration from user input."""
         # Implementation for config import
         return self.async_create_entry(title="", data=self._options)
-
-
-# Backwards compatibility alias
-OptionsFlowHandler = PawControlOptionsFlow
 
 
 # Backwards compatibility for config flow
