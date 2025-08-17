@@ -52,7 +52,7 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
     """Return speed in km/h given distance in meters and duration in seconds."""
     if not isfinite(duration_s) or duration_s <= _EPS_TIME_S:
         return 0.0
-    if not isfinite(distance_m):
+    if not isfinite(distance_m) or distance_m < 0.0:
         return 0.0
     # Convert m/s to km/h
     return (distance_m / duration_s) * 3.6
