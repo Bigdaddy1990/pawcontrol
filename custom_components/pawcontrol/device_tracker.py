@@ -203,15 +203,12 @@ class PawDeviceTracker(PawControlDeviceTrackerEntity, TrackerEntity):
     # DEVICE TRACKER PROPERTIES
     # ==========================================================================
 
-    @property
-    def latitude(self) -> float | None:
-        """Return the latitude value of the dog's current location.
+    def _get_coordinate(self, coord_type: str) -> float | None:
+        """Return a rounded coordinate value for the given type.
 
-        Gets the current GPS latitude from the coordinator data. Returns None
-        if no valid GPS coordinates are available or if GPS accuracy is too low.
-
-        Returns:
-            Latitude coordinate or None if unavailable
+        Shared helper for latitude and longitude properties. It checks the
+        current GPS coordinate, falls back to the last known value or home
+        location, and validates the coordinate range.
         """
         try:
             location_data = self._get_location_data()
@@ -222,29 +219,42 @@ class PawDeviceTracker(PawControlDeviceTrackerEntity, TrackerEntity):
             if not gps_data:
                 return None
 
-            # Check if we have current GPS coordinates
-            latitude = gps_data.get("current_latitude")
-            if latitude is not None and self._is_coordinate_valid(latitude, "latitude"):
-                return round(float(latitude), COORDINATE_PRECISION)
+            current_key = f"current_{coord_type}"
+            last_key = f"last_known_{coord_type}"
+            home_key = f"home_{coord_type}"
 
-            # Fall back to last known coordinates if current not available
-            last_latitude = gps_data.get("last_known_latitude")
-            if last_latitude is not None and self._is_coordinate_valid(
-                last_latitude, "latitude"
+            if (
+                value := gps_data.get(current_key)
+            ) is not None and self._is_coordinate_valid(float(value), coord_type):
+                return round(float(value), COORDINATE_PRECISION)
+
+            if (
+                value := gps_data.get(last_key)
+            ) is not None and self._is_coordinate_valid(float(value), coord_type):
+                return round(float(value), COORDINATE_PRECISION)
+
+            if (
+                location_data.get("is_home", False)
+                and (home_value := location_data.get(home_key)) is not None
             ):
-                return round(float(last_latitude), COORDINATE_PRECISION)
-
-            # If no GPS coordinates, check if at home location
-            if location_data.get("is_home", False):
-                home_lat = location_data.get("home_latitude")
-                if home_lat is not None:
-                    return round(float(home_lat), COORDINATE_PRECISION)
+                return round(float(home_value), COORDINATE_PRECISION)
 
             return None
-
         except (ValueError, TypeError) as err:
-            _LOGGER.debug("Error getting latitude for %s: %s", self.dog_id, err)
+            _LOGGER.debug("Error getting %s for %s: %s", coord_type, self.dog_id, err)
             return None
+
+    @property
+    def latitude(self) -> float | None:
+        """Return the latitude value of the dog's current location.
+
+        Gets the current GPS latitude from the coordinator data. Returns None
+        if no valid GPS coordinates are available or if GPS accuracy is too low.
+
+        Returns:
+            Latitude coordinate or None if unavailable
+        """
+        return self._get_coordinate("latitude")
 
     @property
     def longitude(self) -> float | None:
@@ -256,40 +266,7 @@ class PawDeviceTracker(PawControlDeviceTrackerEntity, TrackerEntity):
         Returns:
             Longitude coordinate or None if unavailable
         """
-        try:
-            location_data = self._get_location_data()
-            if not location_data:
-                return None
-
-            gps_data = self._get_gps_data(location_data)
-            if not gps_data:
-                return None
-
-            # Check if we have current GPS coordinates
-            longitude = gps_data.get("current_longitude")
-            if longitude is not None and self._is_coordinate_valid(
-                longitude, "longitude"
-            ):
-                return round(float(longitude), COORDINATE_PRECISION)
-
-            # Fall back to last known coordinates if current not available
-            last_longitude = gps_data.get("last_known_longitude")
-            if last_longitude is not None and self._is_coordinate_valid(
-                last_longitude, "longitude"
-            ):
-                return round(float(last_longitude), COORDINATE_PRECISION)
-
-            # If no GPS coordinates, check if at home location
-            if location_data.get("is_home", False):
-                home_lon = location_data.get("home_longitude")
-                if home_lon is not None:
-                    return round(float(home_lon), COORDINATE_PRECISION)
-
-            return None
-
-        except (ValueError, TypeError) as err:
-            _LOGGER.debug("Error getting longitude for %s: %s", self.dog_id, err)
-            return None
+        return self._get_coordinate("longitude")
 
     @property
     def location_accuracy(self) -> int | None:
