@@ -72,6 +72,24 @@ DEFAULT_TRAINING_DURATION_MIN = 15
 DEFAULT_PLAY_DURATION_MIN = 20
 
 
+async def _call_service(
+    hass: HomeAssistant,
+    service: str,
+    data: dict[str, Any],
+    success_log: str,
+    action_log: str,
+    domain: str = DOMAIN,
+) -> None:
+    """Call a Home Assistant service with standardized logging."""
+    try:
+        await hass.services.async_call(domain, service, data, blocking=False)
+        _LOGGER.info(success_log)
+    except ServiceValidationError as err:
+        _LOGGER.error("Failed to %s: %s", action_log, err)
+    except Exception as err:  # pragma: no cover - unexpected error path
+        _LOGGER.error("Unexpected error trying to %s: %s", action_log, err)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -402,20 +420,13 @@ class StartWalkButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to start walk."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_WALK,
-                {"dog_id": self.dog_id, "source": "manual"},
-                blocking=False,
-            )
-            _LOGGER.info("Walk started for dog %s via button", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to start walk for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error starting walk for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_WALK,
+            {"dog_id": self.dog_id, "source": "manual"},
+            f"Walk started for dog {self.dog_name} via button",
+            f"start walk for dog {self.dog_name}",
+        )
 
 
 class EndWalkButton(PawControlButtonEntity, ButtonEntity):
@@ -452,20 +463,13 @@ class EndWalkButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to end walk."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_END_WALK,
-                {"dog_id": self.dog_id, "reason": "manual"},
-                blocking=False,
-            )
-            _LOGGER.info("Walk ended for dog %s via button", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to end walk for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error ending walk for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_END_WALK,
+            {"dog_id": self.dog_id, "reason": "manual"},
+            f"Walk ended for dog {self.dog_name} via button",
+            f"end walk for dog {self.dog_name}",
+        )
 
 
 class QuickWalkButton(PawControlButtonEntity, ButtonEntity):
@@ -494,29 +498,20 @@ class QuickWalkButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log quick walk."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_WALK_DOG,
-                {
-                    "dog_id": self.dog_id,
-                    "duration_min": DEFAULT_WALK_DURATION_MIN,
-                    "distance_m": DEFAULT_WALK_DISTANCE_M,
-                },
-                blocking=False,
-            )
-            _LOGGER.info(
-                "Quick walk logged for dog %s: %d min, %d m",
-                self.dog_name,
-                DEFAULT_WALK_DURATION_MIN,
-                DEFAULT_WALK_DISTANCE_M,
-            )
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log quick walk for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging quick walk for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_WALK_DOG,
+            {
+                "dog_id": self.dog_id,
+                "duration_min": DEFAULT_WALK_DURATION_MIN,
+                "distance_m": DEFAULT_WALK_DISTANCE_M,
+            },
+            (
+                f"Quick walk logged for dog {self.dog_name}: "
+                f"{DEFAULT_WALK_DURATION_MIN} min, {DEFAULT_WALK_DISTANCE_M} m"
+            ),
+            f"log quick walk for dog {self.dog_name}",
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -563,25 +558,18 @@ class FeedBreakfastButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log breakfast."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_FEED_DOG,
-                {
-                    "dog_id": self.dog_id,
-                    "meal_type": "breakfast",
-                    "portion_g": DEFAULT_BREAKFAST_PORTION_G,
-                    "food_type": "dry",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Breakfast logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log breakfast for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging breakfast for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": self.dog_id,
+                "meal_type": "breakfast",
+                "portion_g": DEFAULT_BREAKFAST_PORTION_G,
+                "food_type": "dry",
+            },
+            f"Breakfast logged for dog {self.dog_name}",
+            f"log breakfast for dog {self.dog_name}",
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -627,25 +615,18 @@ class FeedLunchButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log lunch."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_FEED_DOG,
-                {
-                    "dog_id": self.dog_id,
-                    "meal_type": "lunch",
-                    "portion_g": DEFAULT_LUNCH_PORTION_G,
-                    "food_type": "wet",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Lunch logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log lunch for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging lunch for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": self.dog_id,
+                "meal_type": "lunch",
+                "portion_g": DEFAULT_LUNCH_PORTION_G,
+                "food_type": "wet",
+            },
+            f"Lunch logged for dog {self.dog_name}",
+            f"log lunch for dog {self.dog_name}",
+        )
 
 
 class FeedDinnerButton(PawControlButtonEntity, ButtonEntity):
@@ -671,25 +652,18 @@ class FeedDinnerButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log dinner."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_FEED_DOG,
-                {
-                    "dog_id": self.dog_id,
-                    "meal_type": "dinner",
-                    "portion_g": DEFAULT_DINNER_PORTION_G,
-                    "food_type": "dry",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Dinner logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log dinner for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging dinner for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": self.dog_id,
+                "meal_type": "dinner",
+                "portion_g": DEFAULT_DINNER_PORTION_G,
+                "food_type": "dry",
+            },
+            f"Dinner logged for dog {self.dog_name}",
+            f"log dinner for dog {self.dog_name}",
+        )
 
 
 class FeedSnackButton(PawControlButtonEntity, ButtonEntity):
@@ -715,25 +689,18 @@ class FeedSnackButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log snack."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_FEED_DOG,
-                {
-                    "dog_id": self.dog_id,
-                    "meal_type": "snack",
-                    "portion_g": DEFAULT_SNACK_PORTION_G,
-                    "food_type": "treat",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Snack logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log snack for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging snack for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_FEED_DOG,
+            {
+                "dog_id": self.dog_id,
+                "meal_type": "snack",
+                "portion_g": DEFAULT_SNACK_PORTION_G,
+                "food_type": "treat",
+            },
+            f"Snack logged for dog {self.dog_name}",
+            f"log snack for dog {self.dog_name}",
+        )
 
 
 # ==============================================================================
@@ -768,21 +735,15 @@ class LogWeightButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to initiate weight logging."""
-        try:
-            # In a complete implementation, this would trigger a dialog or input form
-            _LOGGER.info("Weight logging initiated for dog %s", self.dog_name)
-
-            # For demonstration, we could call a script or automation
-            await self.hass.services.async_call(
-                "script",
-                "paw_control_log_weight_dialog",
-                {"dog_id": self.dog_id},
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.info(
-                "Weight logging button pressed for dog %s: %s", self.dog_name, err
-            )
+        # In a complete implementation, this could open a dialog or form.
+        await _call_service(
+            self.hass,
+            "paw_control_log_weight_dialog",
+            {"dog_id": self.dog_id},
+            f"Weight logging initiated for dog {self.dog_name}",
+            f"log weight for dog {self.dog_name}",
+            domain="script",
+        )
 
 
 class GiveMedicationButton(PawControlButtonEntity, ButtonEntity):
@@ -808,24 +769,17 @@ class GiveMedicationButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log medication."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_LOG_MEDICATION,
-                {
-                    "dog_id": self.dog_id,
-                    "medication_name": "Daily Supplement",
-                    "dose": "1 tablet",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Medication logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log medication for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging medication for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_LOG_MEDICATION,
+            {
+                "dog_id": self.dog_id,
+                "medication_name": "Daily Supplement",
+                "dose": "1 tablet",
+            },
+            f"Medication logged for dog {self.dog_name}",
+            f"log medication for dog {self.dog_name}",
+        )
 
 
 class LogHealthNoteButton(PawControlButtonEntity, ButtonEntity):
@@ -889,28 +843,17 @@ class GroomBathButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log bath grooming."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_GROOMING,
-                {
-                    "dog_id": self.dog_id,
-                    "grooming_type": "bath",
-                    "notes": "Full bath with shampoo",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Bath grooming logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log bath grooming for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging bath grooming for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": self.dog_id,
+                "grooming_type": "bath",
+                "notes": "Full bath with shampoo",
+            },
+            f"Bath grooming logged for dog {self.dog_name}",
+            f"log bath grooming for dog {self.dog_name}",
+        )
 
 
 class GroomBrushButton(PawControlButtonEntity, ButtonEntity):
@@ -936,28 +879,17 @@ class GroomBrushButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log brush grooming."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_GROOMING,
-                {
-                    "dog_id": self.dog_id,
-                    "grooming_type": "brush",
-                    "notes": "Regular brushing session",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Brush grooming logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log brush grooming for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging brush grooming for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": self.dog_id,
+                "grooming_type": "brush",
+                "notes": "Regular brushing session",
+            },
+            f"Brush grooming logged for dog {self.dog_name}",
+            f"log brush grooming for dog {self.dog_name}",
+        )
 
 
 class GroomNailsButton(PawControlButtonEntity, ButtonEntity):
@@ -983,28 +915,17 @@ class GroomNailsButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log nail trimming."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_GROOMING,
-                {
-                    "dog_id": self.dog_id,
-                    "grooming_type": "nails",
-                    "notes": "Nail trimming session",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Nail grooming logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log nail grooming for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging nail grooming for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": self.dog_id,
+                "grooming_type": "nails",
+                "notes": "Nail trimming session",
+            },
+            f"Nail grooming logged for dog {self.dog_name}",
+            f"log nail grooming for dog {self.dog_name}",
+        )
 
 
 class GroomTeethButton(PawControlButtonEntity, ButtonEntity):
@@ -1030,28 +951,17 @@ class GroomTeethButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log teeth cleaning."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_GROOMING,
-                {
-                    "dog_id": self.dog_id,
-                    "grooming_type": "teeth",
-                    "notes": "Teeth cleaning session",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Teeth grooming logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log teeth grooming for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging teeth grooming for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": self.dog_id,
+                "grooming_type": "teeth",
+                "notes": "Teeth cleaning session",
+            },
+            f"Teeth grooming logged for dog {self.dog_name}",
+            f"log teeth grooming for dog {self.dog_name}",
+        )
 
 
 class GroomEarsButton(PawControlButtonEntity, ButtonEntity):
@@ -1077,28 +987,17 @@ class GroomEarsButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log ear cleaning."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_START_GROOMING,
-                {
-                    "dog_id": self.dog_id,
-                    "grooming_type": "ears",
-                    "notes": "Ear cleaning session",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Ear grooming logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log ear grooming for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging ear grooming for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_START_GROOMING,
+            {
+                "dog_id": self.dog_id,
+                "grooming_type": "ears",
+                "notes": "Ear cleaning session",
+            },
+            f"Ear grooming logged for dog {self.dog_name}",
+            f"log ear grooming for dog {self.dog_name}",
+        )
 
 
 # ==============================================================================
@@ -1129,25 +1028,18 @@ class StartTrainingButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to start training."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_TRAINING_SESSION,
-                {
-                    "dog_id": self.dog_id,
-                    "topic": "Basic Commands",
-                    "duration_min": DEFAULT_TRAINING_DURATION_MIN,
-                    "notes": "Sit, stay, come practice",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Training session logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to log training for dog %s: %s", self.dog_name, err)
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging training for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_TRAINING_SESSION,
+            {
+                "dog_id": self.dog_id,
+                "topic": "Basic Commands",
+                "duration_min": DEFAULT_TRAINING_DURATION_MIN,
+                "notes": "Sit, stay, come practice",
+            },
+            f"Training session logged for dog {self.dog_name}",
+            f"log training for dog {self.dog_name}",
+        )
 
 
 class LogPlaySessionButton(PawControlButtonEntity, ButtonEntity):
@@ -1173,28 +1065,17 @@ class LogPlaySessionButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to log play session."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_PLAY_SESSION,
-                {
-                    "dog_id": self.dog_id,
-                    "duration_min": DEFAULT_PLAY_DURATION_MIN,
-                    "intensity": "medium",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Play session logged for dog %s", self.dog_name)
-        except ServiceValidationError as err:
-            _LOGGER.error(
-                "Failed to log play session for dog %s: %s", self.dog_name, err
-            )
-        except Exception as err:
-            _LOGGER.error(
-                "Unexpected error logging play session for dog %s: %s",
-                self.dog_name,
-                err,
-            )
+        await _call_service(
+            self.hass,
+            SERVICE_PLAY_SESSION,
+            {
+                "dog_id": self.dog_id,
+                "duration_min": DEFAULT_PLAY_DURATION_MIN,
+                "intensity": "medium",
+            },
+            f"Play session logged for dog {self.dog_name}",
+            f"log play session for dog {self.dog_name}",
+        )
 
 
 # ==============================================================================
@@ -1295,21 +1176,17 @@ class NotifyTestButton(PawControlButtonEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to test notifications."""
-        try:
-            await self.hass.services.async_call(
-                "notify",
-                "notify",
-                {
-                    "title": "Paw Control Test",
-                    "message": f"Test notification for {self.dog_name} - {dt_util.now().strftime('%H:%M:%S')}",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Test notification sent for dog %s", self.dog_name)
-        except Exception as err:
-            _LOGGER.error(
-                "Failed to send test notification for dog %s: %s", self.dog_name, err
-            )
+        await _call_service(
+            self.hass,
+            "notify",
+            {
+                "title": "Paw Control Test",
+                "message": f"Test notification for {self.dog_name} - {dt_util.now().strftime('%H:%M:%S')}",
+            },
+            f"Test notification sent for dog {self.dog_name}",
+            f"send test notification for dog {self.dog_name}",
+            domain="notify",
+        )
 
 
 # ==============================================================================
@@ -1352,18 +1229,13 @@ class DailyResetButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to reset daily counters."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_DAILY_RESET,
-                {},
-                blocking=False,
-            )
-            _LOGGER.info("Daily reset triggered via button")
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to trigger daily reset: %s", err)
-        except Exception as err:
-            _LOGGER.error("Unexpected error triggering daily reset: %s", err)
+        await _call_service(
+            self.hass,
+            SERVICE_DAILY_RESET,
+            {},
+            "Daily reset triggered via button",
+            "trigger daily reset",
+        )
 
 
 class GenerateReportButton(ButtonEntity):
@@ -1401,22 +1273,17 @@ class GenerateReportButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to generate report."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_GENERATE_REPORT,
-                {
-                    "scope": "daily",
-                    "target": "notification",
-                    "format": "text",
-                },
-                blocking=False,
-            )
-            _LOGGER.info("Report generation triggered via button")
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to generate report: %s", err)
-        except Exception as err:
-            _LOGGER.error("Unexpected error generating report: %s", err)
+        await _call_service(
+            self.hass,
+            SERVICE_GENERATE_REPORT,
+            {
+                "scope": "daily",
+                "target": "notification",
+                "format": "text",
+            },
+            "Report generation triggered via button",
+            "generate report",
+        )
 
 
 class SyncSetupButton(ButtonEntity):
@@ -1454,18 +1321,13 @@ class SyncSetupButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle button press to sync setup."""
-        try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                SERVICE_SYNC_SETUP,
-                {},
-                blocking=False,
-            )
-            _LOGGER.info("Setup sync triggered via button")
-        except ServiceValidationError as err:
-            _LOGGER.error("Failed to sync setup: %s", err)
-        except Exception as err:
-            _LOGGER.error("Unexpected error syncing setup: %s", err)
+        await _call_service(
+            self.hass,
+            SERVICE_SYNC_SETUP,
+            {},
+            "Setup sync triggered via button",
+            "sync setup",
+        )
 
 
 class ToggleVisitorModeButton(ButtonEntity):
