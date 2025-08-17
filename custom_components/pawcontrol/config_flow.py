@@ -16,7 +16,8 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
-DOMAIN: Final = "pawcontrol"
+from .const import DOMAIN
+
 DEFAULT_TITLE: Final = "Paw Control"
 
 # Keys used in the config entry data/options
@@ -198,34 +199,208 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(title=defaults[CONF_NAME], data=defaults)
 
 
-# --- OPTIONS FLOW (minimal, safe default) ---
+# --- OPTIONS FLOW (comprehensive, user-friendly) ---
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Provide a minimal options flow to satisfy tests and keep UX cohesive."""
+    """Enhanced options flow with comprehensive configuration options."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
         self._entry = config_entry
+        self._dogs_data: dict[str, Any] = {}
+        self._current_dog_index = 0
+        self._total_dogs = 0
+
+    @property
+    def _options(self) -> dict[str, Any]:
+        """Return current options with defaults."""
+        return self._entry.options
+
+    @property
+    def _data(self) -> dict[str, Any]:
+        """Return current config data."""
+        return self._entry.data
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        """Manage the options with a menu-based approach."""
         if user_input is not None:
+            # Handle direct option updates (backward compatibility)
             return self.async_create_entry(title="", data=user_input)
 
-        # Keep it minimal but future-proof; geofence-related options are common for this domain.
-        options = {
-            "geofencing_enabled": bool(self._entry.options.get("geofencing_enabled", True)),
-            "home_zone": str(self._entry.options.get("home_zone", "home")),
-            "radius_m": int(self._entry.options.get("radius_m", 150)),
+        # Show menu for comprehensive options
+        menu_options = {
+            "geofence": "Geofence Settings",
+            "notifications": "Notifications", 
+            "modules": "Feature Modules",
+            "system": "System Settings",
         }
-        schema = vol.Schema(
-            {
-                vol.Required("geofencing_enabled", default=options["geofencing_enabled"]): bool,
-                vol.Optional("home_zone", default=options["home_zone"]): str,
-                vol.Optional("radius_m", default=options["radius_m"]): int,
-            }
+        
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=menu_options,
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def async_step_geofence(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure geofence settings."""
+        if user_input is not None:
+            new_options = dict(self._options)
+            new_options.update(user_input)
+            return self.async_create_entry(title="", data=new_options)
+
+        # Enhanced geofence options
+        current_lat = self._options.get("geofence_lat", self.hass.config.latitude)
+        current_lon = self._options.get("geofence_lon", self.hass.config.longitude)
+        current_radius = self._options.get("geofence_radius_m", 150)
+        
+        schema = vol.Schema({
+            vol.Required(
+                "geofencing_enabled",
+                default=self._options.get("geofencing_enabled", True),
+            ): bool,
+            vol.Optional(
+                "geofence_lat",
+                default=current_lat,
+            ): vol.Coerce(float),
+            vol.Optional(
+                "geofence_lon", 
+                default=current_lon,
+            ): vol.Coerce(float),
+            vol.Optional(
+                "geofence_radius_m",
+                default=current_radius,
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=2000)),
+            vol.Optional(
+                "geofence_alerts_enabled",
+                default=self._options.get("geofence_alerts_enabled", True),
+            ): bool,
+            vol.Optional(
+                "use_home_location",
+                default=False,
+            ): bool,
+        })
+        
+        return self.async_show_form(
+            step_id="geofence",
+            data_schema=schema,
+            description_placeholders={
+                "current_lat": str(current_lat),
+                "current_lon": str(current_lon),
+            },
+        )
+
+    async def async_step_notifications(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure notification settings."""
+        if user_input is not None:
+            new_options = dict(self._options)
+            new_options["notifications"] = user_input
+            return self.async_create_entry(title="", data=new_options)
+
+        current_notifications = self._options.get("notifications", {})
+        
+        schema = vol.Schema({
+            vol.Optional(
+                "notifications_enabled",
+                default=current_notifications.get("enabled", True),
+            ): bool,
+            vol.Optional(
+                "quiet_hours_enabled",
+                default=current_notifications.get("quiet_hours_enabled", False),
+            ): bool,
+            vol.Optional(
+                "quiet_start",
+                default=current_notifications.get("quiet_start", "22:00"),
+            ): str,
+            vol.Optional(
+                "quiet_end",
+                default=current_notifications.get("quiet_end", "07:00"),
+            ): str,
+            vol.Optional(
+                "reminder_repeat_min",
+                default=current_notifications.get("reminder_repeat_min", 30),
+            ): vol.All(vol.Coerce(int), vol.Range(min=5, max=120)),
+        })
+        
+        return self.async_show_form(step_id="notifications", data_schema=schema)
+
+    async def async_step_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure feature modules."""
+        if user_input is not None:
+            new_options = dict(self._options)
+            new_options["modules"] = user_input
+            return self.async_create_entry(title="", data=new_options)
+
+        current_modules = self._options.get("modules", {})
+        
+        schema = vol.Schema({
+            vol.Optional(
+                "module_feeding",
+                default=current_modules.get("feeding", True),
+            ): bool,
+            vol.Optional(
+                "module_gps",
+                default=current_modules.get("gps", True),
+            ): bool,
+            vol.Optional(
+                "module_health",
+                default=current_modules.get("health", True),
+            ): bool,
+            vol.Optional(
+                "module_walk", 
+                default=current_modules.get("walk", True),
+            ): bool,
+            vol.Optional(
+                "module_grooming",
+                default=current_modules.get("grooming", True),
+            ): bool,
+            vol.Optional(
+                "module_training",
+                default=current_modules.get("training", True),
+            ): bool,
+            vol.Optional(
+                "module_medication",
+                default=current_modules.get("medication", True),
+            ): bool,
+        })
+        
+        return self.async_show_form(step_id="modules", data_schema=schema)
+
+    async def async_step_system(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure system settings."""
+        if user_input is not None:
+            new_options = dict(self._options)
+            new_options.update(user_input)
+            return self.async_create_entry(title="", data=new_options)
+
+        schema = vol.Schema({
+            vol.Optional(
+                "reset_time",
+                default=self._options.get("reset_time", "23:59:00"),
+            ): str,
+            vol.Optional(
+                "visitor_mode",
+                default=self._options.get("visitor_mode", False),
+            ): bool,
+            vol.Optional(
+                "export_format",
+                default=self._options.get("export_format", "csv"),
+            ): vol.In(["csv", "json", "pdf"]),
+            vol.Optional(
+                "auto_prune_devices",
+                default=self._options.get("auto_prune_devices", True),
+            ): bool,
+        })
+        
+        return self.async_show_form(step_id="system", data_schema=schema)
 
 
 async def async_get_options_flow(

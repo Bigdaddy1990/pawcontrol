@@ -38,6 +38,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    INTEGRATION_VERSION,
     PLATFORMS,
 )
 from .const import (
@@ -558,7 +559,7 @@ async def _register_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 name=f"🐕 {dog_name}",
                 manufacturer="Paw Control",
                 model="Smart Dog Manager",
-                sw_version="1.3.0",
+                sw_version=INTEGRATION_VERSION,
             )
             _LOGGER.debug("Registered device for dog %s (%s)", dog_name, dog_id)
         except Exception as err:

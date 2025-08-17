@@ -93,11 +93,23 @@
                 "title": "Paw Control Options",
                 "description": "Choose what you'd like to configure.",
                 "menu_options": {
-                    "dogs": "Manage Dogs",
-                    "sources": "Data Sources",
+                    "geofence": "Geofence Settings",
                     "notifications": "Notifications",
-                    "system": "System Settings",
-                    "geofence": "Geofence"
+                    "modules": "Feature Modules",
+                    "system": "System Settings"
+                }
+            },
+            "modules": {
+                "title": "Feature Modules",
+                "description": "Enable or disable specific features for your dogs.",
+                "data": {
+                    "module_feeding": "Feeding Management",
+                    "module_gps": "GPS Tracking",
+                    "module_health": "Health Monitoring",
+                    "module_walk": "Walk Tracking",
+                    "module_grooming": "Grooming Management",
+                    "module_training": "Training Sessions",
+                    "module_medication": "Medication Reminders"
                 }
             },
             "dogs": {
@@ -117,36 +129,36 @@
                 }
             },
             "notifications": {
-                "title": "Configure Notifications",
-                "description": "Adjust notification settings.",
+                "title": "Notification Settings",
+                "description": "Configure how and when you receive notifications.",
                 "data": {
-                    "notify_fallback": "Fallback Notification Service",
-                    "quiet_hours_start": "Quiet Hours Start",
-                    "quiet_hours_end": "Quiet Hours End",
-                    "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
-                    "snooze_min": "Snooze Duration (minutes)"
+                    "notifications_enabled": "Enable Notifications",
+                    "quiet_hours_enabled": "Enable Quiet Hours",
+                    "quiet_start": "Quiet Hours Start Time",
+                    "quiet_end": "Quiet Hours End Time",
+                    "reminder_repeat_min": "Reminder Repeat Interval (minutes)"
                 }
             },
             "system": {
                 "title": "System Settings",
-                "description": "Configure system settings.",
+                "description": "Configure general system options and maintenance.",
                 "data": {
                     "reset_time": "Daily Reset Time",
-                    "export_path": "Export Path",
-                    "export_format": "Export Format",
-                    "visitor_mode": "Visitor Mode"
+                    "visitor_mode": "Enable Visitor Mode",
+                    "export_format": "Default Export Format",
+                    "auto_prune_devices": "Auto Remove Stale Devices"
                 }
             },
             "geofence": {
-                "title": "Geofence",
-                "description": "Configure home center and radius for presence detection.",
+                "title": "Geofence Settings",
+                "description": "Configure home location and geofencing options for your dogs.",
                 "data": {
-                    "lat": "Home latitude",
-                    "lon": "Home longitude",
-                    "radius_m": "Home radius (m)",
-                    "enable_alerts": "Enable geofence alerts",
-                    "home_from_entity": "Set home from entity",
-                    "use_current_state": "Use current entity location"
+                    "geofencing_enabled": "Enable Geofencing",
+                    "geofence_lat": "Home Latitude",
+                    "geofence_lon": "Home Longitude",
+                    "geofence_radius_m": "Home Radius (meters)",
+                    "geofence_alerts_enabled": "Enable Geofence Alerts",
+                    "use_home_location": "Use Home Assistant Location"
                 }
             }
         }

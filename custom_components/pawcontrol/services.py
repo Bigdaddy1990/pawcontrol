@@ -492,139 +492,7 @@ class ServiceManager:
         if errors:
             raise ServiceErrors(f"Failed to register {category} services", errors)
 
-    async def _original_async_register_services(self) -> None:
-        """Register all Paw Control services.
 
-        Registers services with Home Assistant's service registry, ensuring
-        proper schema validation and error handling for each service.
-        """
-        if self._is_registering:
-            _LOGGER.warning("Service registration already in progress")
-            return
-
-        self._is_registering = True
-        try:
-            _LOGGER.debug("Registering Paw Control services")
-
-            # Core dog management services
-            await self._register_service(
-                SERVICE_WALK_DOG, self._handle_walk_dog, SERVICE_SCHEMA_WALK_DOG
-            )
-            await self._register_service(
-                SERVICE_START_WALK, self._handle_start_walk, SERVICE_SCHEMA_START_WALK
-            )
-            await self._register_service(
-                SERVICE_END_WALK, self._handle_end_walk, SERVICE_SCHEMA_END_WALK
-            )
-            await self._register_service(
-                SERVICE_FEED_DOG, self._handle_feed_dog, SERVICE_SCHEMA_FEED_DOG
-            )
-            await self._register_service(
-                SERVICE_LOG_HEALTH, self._handle_log_health, SERVICE_SCHEMA_LOG_HEALTH
-            )
-            await self._register_service(
-                SERVICE_LOG_MEDICATION,
-                self._handle_log_medication,
-                SERVICE_SCHEMA_LOG_MEDICATION,
-            )
-            await self._register_service(
-                SERVICE_START_GROOMING,
-                self._handle_start_grooming,
-                SERVICE_SCHEMA_START_GROOMING,
-            )
-            await self._register_service(
-                SERVICE_PLAY_SESSION,
-                self._handle_play_session,
-                SERVICE_SCHEMA_PLAY_SESSION,
-            )
-            await self._register_service(
-                SERVICE_TRAINING_SESSION,
-                self._handle_training_session,
-                SERVICE_SCHEMA_TRAINING_SESSION,
-            )
-
-            # GPS and tracking services
-            await self._register_service(
-                SERVICE_GPS_POST_LOCATION,
-                self._handle_gps_post_location,
-                SERVICE_SCHEMA_GPS_POST_LOCATION,
-            )
-            await self._register_service(
-                SERVICE_GPS_PAUSE_TRACKING,
-                self._handle_gps_pause_tracking,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-            await self._register_service(
-                SERVICE_GPS_RESUME_TRACKING,
-                self._handle_gps_resume_tracking,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-            await self._register_service(
-                SERVICE_GPS_GENERATE_DIAGNOSTICS,
-                self._handle_gps_generate_diagnostics,
-                SERVICE_SCHEMA_GPS_DIAGNOSTICS,
-            )
-            await self._register_service(
-                SERVICE_GPS_RESET_STATS,
-                self._handle_gps_reset_stats,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-            await self._register_service(
-                SERVICE_GPS_EXPORT_LAST_ROUTE,
-                self._handle_gps_export_last_route,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-            await self._register_service(
-                SERVICE_GPS_LIST_WEBHOOKS,
-                self._handle_gps_list_webhooks,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-            await self._register_service(
-                SERVICE_GPS_REGENERATE_WEBHOOKS,
-                self._handle_gps_regenerate_webhooks,
-                SERVICE_SCHEMA_GPS_BASIC,
-            )
-
-            # System and utility services
-            await self._register_service(
-                SERVICE_DAILY_RESET, self._handle_daily_reset, vol.Schema({})
-            )
-            await self._register_service(
-                SERVICE_SYNC_SETUP, self._handle_sync_setup, vol.Schema({})
-            )
-            await self._register_service(
-                SERVICE_TOGGLE_VISITOR, self._handle_toggle_visitor, vol.Schema({})
-            )
-            await self._register_service(
-                SERVICE_GENERATE_REPORT,
-                self._handle_generate_report,
-                SERVICE_SCHEMA_GENERATE_REPORT,
-            )
-            await self._register_service(
-                SERVICE_EXPORT_DATA,
-                self._handle_export_data,
-                SERVICE_SCHEMA_EXPORT_DATA,
-            )
-            await self._register_service(
-                SERVICE_NOTIFY_TEST,
-                self._handle_notify_test,
-                SERVICE_SCHEMA_NOTIFY_TEST,
-            )
-            await self._register_service(
-                SERVICE_PRUNE_STALE_DEVICES,
-                self._handle_prune_stale_devices,
-                SERVICE_SCHEMA_PRUNE_STALE_DEVICES,
-            )
-
-            _LOGGER.info(
-                "Registered %d Paw Control services", len(self._registered_services)
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to register services: %s", err)
-            raise
-        finally:
-            self._is_registering = False
 
     async def _register_service(
         self, service_name: str, handler: Any, schema: vol.Schema
@@ -936,8 +804,8 @@ class ServiceManager:
 
         try:
             self._validate_dog_exists(dog_id)
-            await self.coordinator.log_training_session(
-                dog_id, topic, duration_min, intensity, notes
+            await self.coordinator.log_training(
+                dog_id, topic, duration_min, notes
             )
             _LOGGER.info(
                 "Logged training session for dog %s: %s for %d min",

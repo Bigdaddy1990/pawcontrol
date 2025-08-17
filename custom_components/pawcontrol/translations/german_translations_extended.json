@@ -1,0 +1,365 @@
+{
+    "title": "Paw Control",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Willkommen bei Paw Control",
+                "description": "Lassen Sie uns Ihr intelligentes Hundeverwaltungssystem einrichten. Wie viele Hunde haben Sie?",
+                "data": {
+                    "num_dogs": "Anzahl der Hunde"
+                }
+            },
+            "dog_config": {
+                "title": "Hund {dog_num} von {total_dogs} konfigurieren",
+                "description": "Geben Sie die Details für Ihren Hund ein und wählen Sie aus, welche Module aktiviert werden sollen.",
+                "data": {
+                    "dog_id": "Hund-ID (eindeutige Kennung)",
+                    "name": "Hundename",
+                    "breed": "Rasse",
+                    "age": "Alter (Jahre)",
+                    "weight": "Gewicht (kg)",
+                    "size": "Größe",
+                    "module_walk": "Gassi-Verfolgung aktivieren",
+                    "module_feeding": "Fütterungsmanagement aktivieren",
+                    "module_health": "Gesundheitsverfolgung aktivieren",
+                    "module_gps": "GPS-Verfolgung aktivieren",
+                    "module_notifications": "Benachrichtigungen aktivieren",
+                    "module_dashboard": "Dashboard aktivieren",
+                    "module_grooming": "Pflege-Verfolgung aktivieren",
+                    "module_medication": "Medikamentenerinnerungen aktivieren",
+                    "module_training": "Training-Verfolgung aktivieren"
+                }
+            },
+            "sources": {
+                "title": "Datenquellen konfigurieren",
+                "description": "Wählen Sie optionale Datenquellen für erweiterte Funktionen. Leer lassen zum Überspringen.",
+                "data": {
+                    "door_sensor": "Türsensor (für Gassi-Erkennung)",
+                    "person_entities": "Personen-Entitäten (für Anwesenheit)",
+                    "device_trackers": "Geräte-Tracker (für GPS)",
+                    "calendar": "Kalender (für Termine)",
+                    "weather": "Wetter-Anbieter"
+                }
+            },
+            "notifications": {
+                "title": "Benachrichtigungen konfigurieren",
+                "description": "Stellen Sie ein, wie und wann Sie Benachrichtigungen erhalten möchten.",
+                "data": {
+                    "notify_fallback": "Fallback-Benachrichtigungsdienst",
+                    "quiet_hours_start": "Ruhezeiten Beginn",
+                    "quiet_hours_end": "Ruhezeiten Ende",
+                    "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
+                    "snooze_min": "Schlummerdauer (Minuten)"
+                }
+            },
+            "system": {
+                "title": "Systemeinstellungen",
+                "description": "Konfigurieren Sie systemweite Einstellungen und Wartungsoptionen.",
+                "data": {
+                    "reset_time": "Tägliche Zurücksetzungszeit",
+                    "export_path": "Export-Pfad (optional)",
+                    "export_format": "Export-Format",
+                    "visitor_mode": "Besuchermodus aktivieren"
+                }
+            }
+        },
+        "error": {
+            "duplicate_dog_id": "Diese Hund-ID existiert bereits. Bitte wählen Sie eine eindeutige Kennung.",
+            "invalid_path": "Ungültiger Export-Pfad",
+            "invalid_time": "Ungültiges Zeitformat",
+            "invalid_auth": "Ungültige Anmeldedaten",
+            "invalid_geofence": "Ungültige Geofence-Einstellungen",
+            "invalid_dog_name": "Hundename darf nicht leer sein",
+            "invalid_dog_data": "Ungültige Hundekonfigurationsdaten",
+            "invalid_weight": "Gewicht muss zwischen 0,1 und 200 kg liegen",
+            "invalid_age": "Alter muss zwischen 0 und 30 Jahren liegen",
+            "invalid_dog_count": "Anzahl der Hunde muss zwischen 1 und 10 liegen",
+            "invalid_sources": "Ungültige Datenquellenkonfiguration",
+            "invalid_notifications": "Ungültige Benachrichtigungseinstellungen",
+            "invalid_system_config": "Ungültige Systemkonfiguration",
+            "coordinator_unavailable": "Coordinator ist nicht verfügbar",
+            "device_not_ready": "Gerät ist nicht bereit",
+            "backup_failed": "Backup konnte nicht erstellt werden",
+            "restore_failed": "Konfiguration konnte nicht wiederhergestellt werden",
+            "cleanup_failed": "Datenbereinigung fehlgeschlagen",
+            "invalid_dog_id": "Hund-ID darf nicht leer sein"
+        },
+        "abort": {
+            "single_instance_allowed": "Nur eine Instanz von Paw Control ist erlaubt.",
+            "reauth_successful": "Anmeldedaten aktualisiert",
+            "reconfigure_successful": "Neukonfiguration erfolgreich abgeschlossen",
+            "reconfigure_failed": "Neukonfiguration fehlgeschlagen - bitte erneut versuchen"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Paw Control Optionen",
+                "description": "Wählen Sie aus, was Sie konfigurieren möchten.",
+                "menu_options": {
+                    "dogs": "Hundeverwaltung",
+                    "gps": "GPS & Tracking",
+                    "geofence": "Geofence-Einstellungen",
+                    "notifications": "Benachrichtigungen",
+                    "data_sources": "Datenquellen",
+                    "modules": "Feature-Module",
+                    "system": "Systemeinstellungen",
+                    "maintenance": "Wartung & Backup"
+                }
+            },
+            "dogs": {
+                "title": "Hundeverwaltung",
+                "description": "Verwalten Sie Ihre Hunde und deren individuelle Einstellungen.\n\n{dogs_info}",
+                "data": {
+                    "action": "Auszuführende Aktion"
+                }
+            },
+            "add_dog": {
+                "title": "Neuen Hund hinzufügen",
+                "description": "Konfigurieren Sie einen neuen Hund mit individuellen Einstellungen und Modulen.",
+                "data": {
+                    "dog_id": "Hund-ID (eindeutige Kennung)",
+                    "dog_name": "Hundename",
+                    "dog_breed": "Rasse (optional)",
+                    "dog_age": "Alter (Jahre)",
+                    "dog_weight": "Gewicht (kg)",
+                    "dog_size": "Größenkategorie",
+                    "module_walk": "Gassi-Verfolgung aktivieren",
+                    "module_feeding": "Fütterungsmanagement aktivieren",
+                    "module_health": "Gesundheitsverfolgung aktivieren",
+                    "module_gps": "GPS-Verfolgung aktivieren",
+                    "module_notifications": "Benachrichtigungen aktivieren",
+                    "module_dashboard": "Dashboard aktivieren",
+                    "module_grooming": "Pflege-Verfolgung aktivieren",
+                    "module_medication": "Medikamentenerinnerungen aktivieren",
+                    "module_training": "Training-Verfolgung aktivieren"
+                }
+            },
+            "select_dog_edit": {
+                "title": "Hund zum Bearbeiten auswählen",
+                "description": "Wählen Sie aus, welchen Hund Sie bearbeiten möchten.",
+                "data": {
+                    "dog_to_edit": "Zu bearbeitender Hund"
+                }
+            },
+            "edit_dog": {
+                "title": "Hund bearbeiten: {dog_name}",
+                "description": "Ändern Sie die Einstellungen für {dog_name}.",
+                "data": {
+                    "dog_name": "Hundename",
+                    "dog_breed": "Rasse (optional)",
+                    "dog_age": "Alter (Jahre)",
+                    "dog_weight": "Gewicht (kg)",
+                    "dog_size": "Größenkategorie",
+                    "module_walk": "Gassi-Verfolgung aktivieren",
+                    "module_feeding": "Fütterungsmanagement aktivieren",
+                    "module_health": "Gesundheitsverfolgung aktivieren",
+                    "module_gps": "GPS-Verfolgung aktivieren",
+                    "module_notifications": "Benachrichtigungen aktivieren",
+                    "module_dashboard": "Dashboard aktivieren",
+                    "module_grooming": "Pflege-Verfolgung aktivieren",
+                    "module_medication": "Medikamentenerinnerungen aktivieren",
+                    "module_training": "Training-Verfolgung aktivieren"
+                }
+            },
+            "gps": {
+                "title": "GPS & Tracking-Einstellungen",
+                "description": "Konfigurieren Sie das GPS-Tracking-Verhalten und Aufzeichnungseinstellungen.",
+                "data": {
+                    "gps_enabled": "GPS-Tracking aktivieren",
+                    "gps_accuracy_filter": "Minimale GPS-Genauigkeit (Meter)",
+                    "gps_distance_filter": "Mindestabstand zwischen Punkten (Meter)",
+                    "gps_update_interval": "GPS-Update-Intervall (Sekunden)",
+                    "auto_start_walk": "Gassi automatisch bei Bewegung starten",
+                    "auto_end_walk": "Gassi automatisch zu Hause beenden",
+                    "route_recording": "Spazierwege aufzeichnen",
+                    "route_history_days": "Routenverlauf aufbewahren (Tage)"
+                }
+            },
+            "geofence": {
+                "title": "Geofence-Einstellungen",
+                "description": "Konfigurieren Sie die Heimposition und Geofencing-Optionen.\nAktuelle Position: {current_lat}, {current_lon}",
+                "data": {
+                    "geofencing_enabled": "Geofencing aktivieren",
+                    "geofence_lat": "Heim-Breitengrad",
+                    "geofence_lon": "Heim-Längengrad",
+                    "geofence_radius_m": "Heim-Radius (Meter)",
+                    "geofence_alerts_enabled": "Geofence-Warnungen aktivieren",
+                    "use_home_location": "Home Assistant Standort verwenden",
+                    "multiple_zones": "Mehrere Zonen aktivieren",
+                    "zone_detection_mode": "Zonenerkennungsmodus"
+                }
+            },
+            "notifications": {
+                "title": "Benachrichtigungseinstellungen",
+                "description": "Konfigurieren Sie umfassendes Benachrichtigungsverhalten und Timing.",
+                "data": {
+                    "notifications_enabled": "Benachrichtigungen aktivieren",
+                    "quiet_hours_enabled": "Ruhezeiten aktivieren",
+                    "quiet_start": "Ruhezeiten Startzeit",
+                    "quiet_end": "Ruhezeiten Endzeit",
+                    "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
+                    "snooze_min": "Schlummerdauer (Minuten)",
+                    "priority_notifications": "Prioritäts-Benachrichtigungen aktivieren",
+                    "summary_notifications": "Tägliche Zusammenfassung aktivieren",
+                    "notification_channels": "Benachrichtigungskanäle"
+                }
+            },
+            "data_sources": {
+                "title": "Datenquellen",
+                "description": "Konfigurieren Sie Verbindungen zu Home Assistant Entitäten für erweiterte Funktionen.",
+                "data": {
+                    "person_entities": "Personen-Entitäten",
+                    "device_trackers": "Geräte-Tracker",
+                    "door_sensor": "Türsensor",
+                    "weather": "Wetter-Entität",
+                    "calendar": "Kalender-Entität",
+                    "auto_discovery": "Entitäten automatisch erkennen",
+                    "fallback_tracking": "Fallback-Tracking verwenden"
+                }
+            },
+            "modules": {
+                "title": "Feature-Module",
+                "description": "Aktivieren oder deaktivieren Sie spezifische Funktionen global für alle Hunde.",
+                "data": {
+                    "module_feeding": "Fütterungsmanagement",
+                    "module_gps": "GPS-Verfolgung",
+                    "module_health": "Gesundheitsüberwachung",
+                    "module_walk": "Gassi-Verfolgung",
+                    "module_grooming": "Pflegemanagement",
+                    "module_training": "Trainingssitzungen",
+                    "module_medication": "Medikamentenerinnerungen",
+                    "module_analytics": "Erweiterte Analytik",
+                    "module_automation": "Intelligente Automatisierung"
+                }
+            },
+            "system": {
+                "title": "Systemeinstellungen",
+                "description": "Konfigurieren Sie systemweites Verhalten und Performance-Optionen.",
+                "data": {
+                    "reset_time": "Tägliche Zurücksetzungszeit",
+                    "visitor_mode": "Besuchermodus aktivieren",
+                    "export_format": "Standard-Exportformat",
+                    "export_path": "Export-Pfad (optional)",
+                    "auto_prune_devices": "Alte Geräte automatisch entfernen",
+                    "performance_mode": "Performance-Modus",
+                    "log_level": "Protokollierungsebene",
+                    "data_retention_days": "Datenaufbewahrung (Tage)"
+                }
+            },
+            "maintenance": {
+                "title": "Wartung & Backup",
+                "description": "Konfigurieren Sie Backup-Einstellungen und führen Sie Wartungsvorgänge durch.",
+                "data": {
+                    "auto_backup_enabled": "Automatische Backups aktivieren",
+                    "backup_interval_days": "Backup-Intervall (Tage)",
+                    "auto_cleanup_enabled": "Automatische Bereinigung aktivieren",
+                    "cleanup_interval_days": "Bereinigungs-Intervall (Tage)",
+                    "action": "Wartungsaktion"
+                }
+            },
+            "backup_success": {
+                "title": "Backup erfolgreich erstellt",
+                "description": "Das Konfigurations-Backup wurde gespeichert unter:\n{backup_path}",
+                "data": {}
+            },
+            "backup_error": {
+                "title": "Backup fehlgeschlagen",
+                "description": "Ein Fehler ist beim Erstellen des Backups aufgetreten. Bitte prüfen Sie die Protokolle.",
+                "data": {}
+            },
+            "cleanup_success": {
+                "title": "Bereinigung abgeschlossen",
+                "description": "Alte Daten wurden erfolgreich bereinigt.",
+                "data": {}
+            },
+            "cleanup_error": {
+                "title": "Bereinigung fehlgeschlagen",
+                "description": "Ein Fehler ist während der Bereinigung aufgetreten. Bitte prüfen Sie die Protokolle.",
+                "data": {}
+            }
+        }
+    },
+    "selector": {
+        "dog_size": {
+            "options": {
+                "small": "Klein (< 10kg)",
+                "medium": "Mittel (10-25kg)",
+                "large": "Groß (25-45kg)",
+                "xlarge": "Sehr groß (> 45kg)"
+            }
+        },
+        "export_format": {
+            "options": {
+                "csv": "CSV",
+                "json": "JSON",
+                "pdf": "PDF"
+            }
+        },
+        "performance_mode": {
+            "options": {
+                "minimal": "Minimal (nur Grundfunktionen)",
+                "balanced": "Ausgewogen (empfohlen)",
+                "full": "Vollständig (alle Funktionen)"
+            }
+        },
+        "log_level": {
+            "options": {
+                "debug": "Debug (sehr detailliert)",
+                "info": "Info (normal)",
+                "warning": "Warnung (nur wichtiges)",
+                "error": "Fehler (nur kritisches)"
+            }
+        },
+        "zone_detection_mode": {
+            "options": {
+                "home_assistant": "Home Assistant Zonen",
+                "custom": "Benutzerdefinierte Geofences",
+                "both": "Beide Methoden"
+            }
+        },
+        "notification_channels": {
+            "options": {
+                "mobile": "Mobile App",
+                "persistent": "Persistente Benachrichtigung",
+                "email": "E-Mail",
+                "slack": "Slack",
+                "discord": "Discord"
+            }
+        },
+        "dog_action": {
+            "options": {
+                "add_dog": "Neuen Hund hinzufügen",
+                "edit_dog": "Vorhandenen Hund bearbeiten",
+                "remove_dog": "Hund entfernen",
+                "back": "Zurück zum Hauptmenü"
+            }
+        },
+        "maintenance_action": {
+            "options": {
+                "save_settings": "Einstellungen speichern",
+                "backup_config": "Konfiguration jetzt sichern",
+                "restore_config": "Konfiguration wiederherstellen",
+                "reset_config": "Auf Standard zurücksetzen",
+                "cleanup": "Alte Daten bereinigen"
+            }
+        }
+    },
+    "exceptions": {
+        "entry_not_found": {
+            "message": "Konfigurationseintrag nicht gefunden"
+        },
+        "entry_not_loaded": {
+            "message": "Konfigurationseintrag nicht geladen"
+        },
+        "no_entries": {
+            "message": "Keine Konfigurationseinträge gefunden"
+        },
+        "dog_not_found": {
+            "message": "Hund in Konfiguration nicht gefunden"
+        },
+        "invalid_dog_config": {
+            "message": "Ungültige Hundekonfiguration"
+        }
+    }
+}

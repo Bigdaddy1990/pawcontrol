@@ -1,0 +1,365 @@
+{
+    "title": "Paw Control",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Welcome to Paw Control",
+                "description": "Let's set up your smart dog management system. How many dogs do you have?",
+                "data": {
+                    "num_dogs": "Number of dogs"
+                }
+            },
+            "dog_config": {
+                "title": "Configure Dog {dog_num} of {total_dogs}",
+                "description": "Enter the details for your dog and select which modules to enable.",
+                "data": {
+                    "dog_id": "Dog ID (unique identifier)",
+                    "name": "Dog Name",
+                    "breed": "Breed",
+                    "age": "Age (years)",
+                    "weight": "Weight (kg)",
+                    "size": "Size",
+                    "module_walk": "Enable Walk Tracking",
+                    "module_feeding": "Enable Feeding Management",
+                    "module_health": "Enable Health Tracking",
+                    "module_gps": "Enable GPS Tracking",
+                    "module_notifications": "Enable Notifications",
+                    "module_dashboard": "Enable Dashboard",
+                    "module_grooming": "Enable Grooming Tracking",
+                    "module_medication": "Enable Medication Reminders",
+                    "module_training": "Enable Training Tracking"
+                }
+            },
+            "sources": {
+                "title": "Configure Data Sources",
+                "description": "Select optional data sources for enhanced functionality. Leave empty to skip.",
+                "data": {
+                    "door_sensor": "Door Sensor (for walk detection)",
+                    "person_entities": "Person Entities (for presence)",
+                    "device_trackers": "Device Trackers (for GPS)",
+                    "calendar": "Calendar (for events)",
+                    "weather": "Weather Provider"
+                }
+            },
+            "notifications": {
+                "title": "Configure Notifications",
+                "description": "Set up how and when you want to receive notifications.",
+                "data": {
+                    "notify_fallback": "Fallback Notification Service",
+                    "quiet_hours_start": "Quiet Hours Start",
+                    "quiet_hours_end": "Quiet Hours End",
+                    "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+                    "snooze_min": "Snooze Duration (minutes)"
+                }
+            },
+            "system": {
+                "title": "System Settings",
+                "description": "Configure system-wide settings and maintenance options.",
+                "data": {
+                    "reset_time": "Daily Reset Time",
+                    "export_path": "Export Path (optional)",
+                    "export_format": "Export Format",
+                    "visitor_mode": "Enable Visitor Mode"
+                }
+            }
+        },
+        "error": {
+            "duplicate_dog_id": "This Dog ID already exists. Please choose a unique identifier.",
+            "invalid_path": "Invalid export path",
+            "invalid_time": "Invalid time format",
+            "invalid_auth": "Invalid credentials",
+            "invalid_geofence": "Invalid geofence settings",
+            "invalid_dog_name": "Dog name cannot be empty",
+            "invalid_dog_data": "Invalid dog configuration data",
+            "invalid_weight": "Weight must be between 0.1 and 200 kg",
+            "invalid_age": "Age must be between 0 and 30 years",
+            "invalid_dog_count": "Number of dogs must be between 1 and 10",
+            "invalid_sources": "Invalid data source configuration",
+            "invalid_notifications": "Invalid notification settings",
+            "invalid_system_config": "Invalid system configuration",
+            "coordinator_unavailable": "Coordinator is not available",
+            "device_not_ready": "Device is not ready",
+            "backup_failed": "Failed to create backup",
+            "restore_failed": "Failed to restore configuration",
+            "cleanup_failed": "Failed to cleanup data",
+            "invalid_dog_id": "Dog ID cannot be empty"
+        },
+        "abort": {
+            "single_instance_allowed": "Only one instance of Paw Control is allowed.",
+            "reauth_successful": "Authentication credentials updated",
+            "reconfigure_successful": "Reconfiguration completed successfully",
+            "reconfigure_failed": "Reconfiguration failed - please try again"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Paw Control Options",
+                "description": "Choose what you'd like to configure.",
+                "menu_options": {
+                    "dogs": "Dog Management",
+                    "gps": "GPS & Tracking",
+                    "geofence": "Geofence Settings",
+                    "notifications": "Notifications",
+                    "data_sources": "Data Sources",
+                    "modules": "Feature Modules",
+                    "system": "System Settings",
+                    "maintenance": "Maintenance & Backup"
+                }
+            },
+            "dogs": {
+                "title": "Dog Management",
+                "description": "Manage your dogs and their individual settings.\n\n{dogs_info}",
+                "data": {
+                    "action": "Action to perform"
+                }
+            },
+            "add_dog": {
+                "title": "Add New Dog",
+                "description": "Configure a new dog with individual settings and modules.",
+                "data": {
+                    "dog_id": "Dog ID (unique identifier)",
+                    "dog_name": "Dog Name",
+                    "dog_breed": "Breed (optional)",
+                    "dog_age": "Age (years)",
+                    "dog_weight": "Weight (kg)",
+                    "dog_size": "Size Category",
+                    "module_walk": "Enable Walk Tracking",
+                    "module_feeding": "Enable Feeding Management",
+                    "module_health": "Enable Health Tracking",
+                    "module_gps": "Enable GPS Tracking",
+                    "module_notifications": "Enable Notifications",
+                    "module_dashboard": "Enable Dashboard",
+                    "module_grooming": "Enable Grooming Tracking",
+                    "module_medication": "Enable Medication Reminders",
+                    "module_training": "Enable Training Tracking"
+                }
+            },
+            "select_dog_edit": {
+                "title": "Select Dog to Edit",
+                "description": "Choose which dog you want to edit.",
+                "data": {
+                    "dog_to_edit": "Dog to edit"
+                }
+            },
+            "edit_dog": {
+                "title": "Edit Dog: {dog_name}",
+                "description": "Modify the settings for {dog_name}.",
+                "data": {
+                    "dog_name": "Dog Name",
+                    "dog_breed": "Breed (optional)",
+                    "dog_age": "Age (years)",
+                    "dog_weight": "Weight (kg)",
+                    "dog_size": "Size Category",
+                    "module_walk": "Enable Walk Tracking",
+                    "module_feeding": "Enable Feeding Management",
+                    "module_health": "Enable Health Tracking",
+                    "module_gps": "Enable GPS Tracking",
+                    "module_notifications": "Enable Notifications",
+                    "module_dashboard": "Enable Dashboard",
+                    "module_grooming": "Enable Grooming Tracking",
+                    "module_medication": "Enable Medication Reminders",
+                    "module_training": "Enable Training Tracking"
+                }
+            },
+            "gps": {
+                "title": "GPS & Tracking Settings",
+                "description": "Configure GPS tracking behavior and recording settings.",
+                "data": {
+                    "gps_enabled": "Enable GPS Tracking",
+                    "gps_accuracy_filter": "Minimum GPS Accuracy (meters)",
+                    "gps_distance_filter": "Minimum Distance Between Points (meters)",
+                    "gps_update_interval": "GPS Update Interval (seconds)",
+                    "auto_start_walk": "Auto-start Walk on Movement",
+                    "auto_end_walk": "Auto-end Walk at Home",
+                    "route_recording": "Record Walking Routes",
+                    "route_history_days": "Route History Retention (days)"
+                }
+            },
+            "geofence": {
+                "title": "Geofence Settings",
+                "description": "Configure home location and geofencing options.\nCurrent location: {current_lat}, {current_lon}",
+                "data": {
+                    "geofencing_enabled": "Enable Geofencing",
+                    "geofence_lat": "Home Latitude",
+                    "geofence_lon": "Home Longitude",
+                    "geofence_radius_m": "Home Radius (meters)",
+                    "geofence_alerts_enabled": "Enable Geofence Alerts",
+                    "use_home_location": "Use Home Assistant Location",
+                    "multiple_zones": "Enable Multiple Zones",
+                    "zone_detection_mode": "Zone Detection Mode"
+                }
+            },
+            "notifications": {
+                "title": "Notification Settings",
+                "description": "Configure comprehensive notification behavior and timing.",
+                "data": {
+                    "notifications_enabled": "Enable Notifications",
+                    "quiet_hours_enabled": "Enable Quiet Hours",
+                    "quiet_start": "Quiet Hours Start Time",
+                    "quiet_end": "Quiet Hours End Time",
+                    "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+                    "snooze_min": "Snooze Duration (minutes)",
+                    "priority_notifications": "Enable Priority Notifications",
+                    "summary_notifications": "Enable Daily Summary",
+                    "notification_channels": "Notification Channels"
+                }
+            },
+            "data_sources": {
+                "title": "Data Sources",
+                "description": "Configure connections to Home Assistant entities for enhanced functionality.",
+                "data": {
+                    "person_entities": "Person Entities",
+                    "device_trackers": "Device Trackers",
+                    "door_sensor": "Door Sensor",
+                    "weather": "Weather Entity",
+                    "calendar": "Calendar Entity",
+                    "auto_discovery": "Auto-discover Entities",
+                    "fallback_tracking": "Use Fallback Tracking"
+                }
+            },
+            "modules": {
+                "title": "Feature Modules",
+                "description": "Enable or disable specific features globally across all dogs.",
+                "data": {
+                    "module_feeding": "Feeding Management",
+                    "module_gps": "GPS Tracking",
+                    "module_health": "Health Monitoring",
+                    "module_walk": "Walk Tracking",
+                    "module_grooming": "Grooming Management",
+                    "module_training": "Training Sessions",
+                    "module_medication": "Medication Reminders",
+                    "module_analytics": "Advanced Analytics",
+                    "module_automation": "Smart Automation"
+                }
+            },
+            "system": {
+                "title": "System Settings",
+                "description": "Configure system-wide behavior and performance options.",
+                "data": {
+                    "reset_time": "Daily Reset Time",
+                    "visitor_mode": "Enable Visitor Mode",
+                    "export_format": "Default Export Format",
+                    "export_path": "Export Path (optional)",
+                    "auto_prune_devices": "Auto Remove Stale Devices",
+                    "performance_mode": "Performance Mode",
+                    "log_level": "Logging Level",
+                    "data_retention_days": "Data Retention (days)"
+                }
+            },
+            "maintenance": {
+                "title": "Maintenance & Backup",
+                "description": "Configure backup settings and perform maintenance operations.",
+                "data": {
+                    "auto_backup_enabled": "Enable Automatic Backups",
+                    "backup_interval_days": "Backup Interval (days)",
+                    "auto_cleanup_enabled": "Enable Automatic Cleanup",
+                    "cleanup_interval_days": "Cleanup Interval (days)",
+                    "action": "Maintenance Action"
+                }
+            },
+            "backup_success": {
+                "title": "Backup Created Successfully",
+                "description": "Configuration backup has been saved to:\n{backup_path}",
+                "data": {}
+            },
+            "backup_error": {
+                "title": "Backup Failed",
+                "description": "An error occurred while creating the backup. Please check the logs.",
+                "data": {}
+            },
+            "cleanup_success": {
+                "title": "Cleanup Completed",
+                "description": "Old data has been successfully cleaned up.",
+                "data": {}
+            },
+            "cleanup_error": {
+                "title": "Cleanup Failed",
+                "description": "An error occurred during cleanup. Please check the logs.",
+                "data": {}
+            }
+        }
+    },
+    "selector": {
+        "dog_size": {
+            "options": {
+                "small": "Small (< 10kg)",
+                "medium": "Medium (10-25kg)",
+                "large": "Large (25-45kg)",
+                "xlarge": "Extra Large (> 45kg)"
+            }
+        },
+        "export_format": {
+            "options": {
+                "csv": "CSV",
+                "json": "JSON",
+                "pdf": "PDF"
+            }
+        },
+        "performance_mode": {
+            "options": {
+                "minimal": "Minimal (basic features only)",
+                "balanced": "Balanced (recommended)",
+                "full": "Full (all features enabled)"
+            }
+        },
+        "log_level": {
+            "options": {
+                "debug": "Debug (very detailed)",
+                "info": "Info (normal)",
+                "warning": "Warning (important only)",
+                "error": "Error (critical only)"
+            }
+        },
+        "zone_detection_mode": {
+            "options": {
+                "home_assistant": "Home Assistant Zones",
+                "custom": "Custom Geofences",
+                "both": "Both Methods"
+            }
+        },
+        "notification_channels": {
+            "options": {
+                "mobile": "Mobile App",
+                "persistent": "Persistent Notification",
+                "email": "Email",
+                "slack": "Slack",
+                "discord": "Discord"
+            }
+        },
+        "dog_action": {
+            "options": {
+                "add_dog": "Add New Dog",
+                "edit_dog": "Edit Existing Dog",
+                "remove_dog": "Remove Dog",
+                "back": "Back to Main Menu"
+            }
+        },
+        "maintenance_action": {
+            "options": {
+                "save_settings": "Save Settings",
+                "backup_config": "Backup Configuration Now",
+                "restore_config": "Restore Configuration",
+                "reset_config": "Reset to Defaults",
+                "cleanup": "Cleanup Old Data"
+            }
+        }
+    },
+    "exceptions": {
+        "entry_not_found": {
+            "message": "Config entry not found"
+        },
+        "entry_not_loaded": {
+            "message": "Config entry not loaded"
+        },
+        "no_entries": {
+            "message": "No configuration entries found"
+        },
+        "dog_not_found": {
+            "message": "Dog not found in configuration"
+        },
+        "invalid_dog_config": {
+            "message": "Invalid dog configuration"
+        }
+    }
+}

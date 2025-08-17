@@ -27,7 +27,7 @@
     "custom_components.pawcontrol",
     "pawcontrol"
   ],
-  "quality_scale": "custom",
+  "quality_scale": "platinum",
   "requirements": [],
   "version": "1.0.0"
 }

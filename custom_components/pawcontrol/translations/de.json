@@ -81,11 +81,23 @@
                 "title": "Paw Control Optionen",
                 "description": "Wählen Sie aus, was Sie konfigurieren möchten.",
                 "menu_options": {
-                    "dogs": "Hunde verwalten",
-                    "sources": "Datenquellen",
+                    "geofence": "Geofence-Einstellungen",
                     "notifications": "Benachrichtigungen",
-                    "system": "Systemeinstellungen",
-                    "geofence": "Geofence"
+                    "modules": "Feature-Module",
+                    "system": "Systemeinstellungen"
+                }
+            },
+            "modules": {
+                "title": "Feature-Module",
+                "description": "Aktivieren oder deaktivieren Sie spezifische Funktionen für Ihre Hunde.",
+                "data": {
+                    "module_feeding": "Fütterungsmanagement",
+                    "module_gps": "GPS-Verfolgung",
+                    "module_health": "Gesundheitsüberwachung",
+                    "module_walk": "Gassi-Verfolgung",
+                    "module_grooming": "Pflegemanagement",
+                    "module_training": "Trainingssitzungen",
+                    "module_medication": "Medikamentenerinnerungen"
                 }
             },
             "dogs": {
@@ -105,36 +117,36 @@
                 }
             },
             "notifications": {
-                "title": "Benachrichtigungen konfigurieren",
-                "description": "Benachrichtigungseinstellungen anpassen.",
+                "title": "Benachrichtigungseinstellungen",
+                "description": "Konfigurieren Sie, wie und wann Sie Benachrichtigungen erhalten.",
                 "data": {
-                    "notify_fallback": "Fallback-Benachrichtigungsdienst",
-                    "quiet_hours_start": "Ruhezeiten Beginn",
-                    "quiet_hours_end": "Ruhezeiten Ende",
-                    "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
-                    "snooze_min": "Schlummerdauer (Minuten)"
+                    "notifications_enabled": "Benachrichtigungen aktivieren",
+                    "quiet_hours_enabled": "Ruhezeiten aktivieren",
+                    "quiet_start": "Ruhezeiten Startzeit",
+                    "quiet_end": "Ruhezeiten Endzeit",
+                    "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)"
                 }
             },
             "system": {
                 "title": "Systemeinstellungen",
-                "description": "Systemeinstellungen konfigurieren.",
+                "description": "Konfigurieren Sie allgemeine Systemoptionen und Wartung.",
                 "data": {
                     "reset_time": "Tägliche Zurücksetzungszeit",
-                    "export_path": "Export-Pfad",
-                    "export_format": "Export-Format",
-                    "visitor_mode": "Besuchermodus"
+                    "visitor_mode": "Besuchermodus aktivieren",
+                    "export_format": "Standard-Exportformat",
+                    "auto_prune_devices": "Alte Geräte automatisch entfernen"
                 }
             },
             "geofence": {
-                "title": "Geofence",
-                "description": "Heimzentrum und Radius für Anwesenheitserkennung konfigurieren.",
+                "title": "Geofence-Einstellungen",
+                "description": "Konfigurieren Sie die Heimposition und Geofencing-Optionen für Ihre Hunde.",
                 "data": {
-                    "lat": "Heim-Breitengrad",
-                    "lon": "Heim-Längengrad",
-                    "radius_m": "Heim-Radius (m)",
-                    "enable_alerts": "Geofence-Warnungen aktivieren",
-                    "home_from_entity": "Heim von Entität setzen",
-                    "use_current_state": "Aktuelle Entitätsposition verwenden"
+                    "geofencing_enabled": "Geofencing aktivieren",
+                    "geofence_lat": "Heim-Breitengrad",
+                    "geofence_lon": "Heim-Längengrad",
+                    "geofence_radius_m": "Heim-Radius (Meter)",
+                    "geofence_alerts_enabled": "Geofence-Warnungen aktivieren",
+                    "use_home_location": "Home Assistant Standort verwenden"
                 }
             }
         }
