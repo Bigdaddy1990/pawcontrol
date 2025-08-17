@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Optimal parallel updates for binary sensors (Platinum optimization)
-PARALLEL_UPDATES = 1
+PARALLEL_UPDATES = 0  # Serial execution for consistency
 
 # Constants for state evaluation
 WALK_OVERDUE_HOURS = 8

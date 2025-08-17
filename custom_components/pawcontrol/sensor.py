@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Limit parallel updates to prevent coordinator overload (Platinum optimization)
-PARALLEL_UPDATES = MAX_CONCURRENT_UPDATES
+PARALLEL_UPDATES = 0  # Serial execution for data integrity
 
 # Sensor configuration constants (Platinum optimization)
 SENSOR_UPDATE_THRESHOLD = 0.1  # Minimum change to trigger state update

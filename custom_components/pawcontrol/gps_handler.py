@@ -136,3 +136,36 @@ class PawControlGPSHandler:
         self, hass: HomeAssistant, call: ServiceCall
     ) -> None:
         await async_resume_tracking(hass, call)
+
+    async def async_generate_diagnostics(self) -> dict[str, Any]:
+        """Generate GPS diagnostics data."""
+        return {
+            "gps_handler_status": "active",
+            "last_update": dt_util.now().isoformat(),
+            "entry_id": self.entry_id,
+            "options": self.options,
+        }
+
+    async def async_reset_stats(self) -> None:
+        """Reset GPS statistics."""
+        # Placeholder for GPS stats reset
+        pass
+
+    async def async_export_last_route(self) -> dict[str, Any]:
+        """Export last route data."""
+        return {
+            "route_id": "last",
+            "timestamp": dt_util.now().isoformat(),
+            "points": [],
+            "total_distance": 0,
+            "duration": 0,
+        }
+
+    async def async_list_webhooks(self) -> list[dict[str, Any]]:
+        """List configured GPS webhooks."""
+        return []
+
+    async def async_regenerate_webhooks(self) -> None:
+        """Regenerate GPS webhooks."""
+        # Placeholder for webhook regeneration
+        pass
