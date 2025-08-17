@@ -2,14 +2,14 @@
 Minimal erforderliche Änderungen an der bestehenden config_flow.py
 
 Diese Datei zeigt, wie Sie die bestehende OptionsFlowHandler minimal erweitern können,
-ohne die gesamte Struktur zu ändern. Fügen Sie diese Methoden zur bestehenden
+ohne die gesamte Struktur zu ändern. Fügen Sie diese Methods zur bestehenden
 OptionsFlowHandler-Klasse hinzu.
 """
 
 # === HINZUFÜGUNGEN FÜR DIE BESTEHENDE OptionsFlowHandler KLASSE ===
 
 
-# 1. Erweitern Sie das __init__ um neue Variablen:
+# 1. Erweitern Sie das __init__ um neue Variable:
 def __init__(self, config_entry: config_entries.ConfigEntry) -> None:  # noqa: F821
     """Initialize options flow."""
     self._entry = config_entry
@@ -49,7 +49,7 @@ async def async_step_init(
     )
 
 
-# 3. Neue GPS-Einstellungen Methode hinzufügen:
+# 3. Neue GPS-Einstellungen Method hinzufügen:
 async def async_step_gps(
     self,
     user_input: dict[str, Any] | None = None,  # noqa: F821
@@ -194,7 +194,7 @@ async def async_step_maintenance(
     return self.async_show_form(step_id="maintenance", data_schema=schema)
 
 
-# 6. Backup-Hilfsmethoden hinzufügen:
+# 6. Backup-Hilfsmethodsoden hinzufügen:
 async def _async_backup_configuration(self) -> FlowResult:  # noqa: F821
     """Backup current configuration."""
     try:
@@ -381,9 +381,9 @@ Um diese Erweiterungen zu implementieren:
 2. Fügen Sie die neuen Imports am Anfang hinzu
 3. Erweitern Sie das __init__ der OptionsFlowHandler
 4. Ersetzen Sie async_step_init mit der erweiterten Version
-5. Fügen Sie die neuen Methoden (gps, data_sources, maintenance) hinzu
-6. Erweitern Sie die bestehenden Methoden (notifications, system)
-7. Fügen Sie die Hilfsmethoden (_async_backup_configuration, etc.) hinzu
+5. Fügen Sie die neuen Methods (gps, data_sources, maintenance) hinzu
+6. Erweitern Sie die bestehenden Methods (notifications, system)
+7. Fügen Sie die Hilfsmethods (_async_backup_configuration, etc.) hinzu
 8. Aktualisieren Sie die Übersetzungsdateien
 
 Diese minimale Erweiterung bewahrt die bestehende Funktionalität und fügt
