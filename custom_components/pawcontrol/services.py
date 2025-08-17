@@ -54,11 +54,13 @@ from .const import (
     SERVICE_LOG_HEALTH,
     SERVICE_LOG_MEDICATION,
     SERVICE_NOTIFY_TEST,
+    SERVICE_PURGE_ALL_STORAGE,
     SERVICE_PLAY_SESSION,
     SERVICE_PRUNE_STALE_DEVICES,
     SERVICE_START_GROOMING,
     SERVICE_START_WALK,
     SERVICE_SYNC_SETUP,
+    SERVICE_TOGGLE_GEOFENCE_ALERTS,
     SERVICE_TOGGLE_VISITOR,
     SERVICE_TRAINING_SESSION,
     SERVICE_WALK_DOG,
@@ -249,7 +251,19 @@ SERVICE_SCHEMA_PRUNE_STALE_DEVICES = vol.Schema(
         vol.Optional("older_than_days", default=30): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=365)
         ),
+        vol.Optional("auto", default=False): cv.boolean,
     }
+)
+
+SERVICE_SCHEMA_TOGGLE_GEOFENCE_ALERTS = vol.Schema(
+    {
+        vol.Required("enabled"): cv.boolean,
+        vol.Required("config_entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_PURGE_ALL_STORAGE = vol.Schema(
+    {vol.Required("config_entry_id"): cv.string}
 )
 
 # GPS service schemas
@@ -447,6 +461,16 @@ class ServiceManager:
                         SERVICE_NOTIFY_TEST,
                         self._handle_notify_test,
                         SERVICE_SCHEMA_NOTIFY_TEST,
+                    ),
+                    (
+                        SERVICE_TOGGLE_GEOFENCE_ALERTS,
+                        self._handle_toggle_geofence_alerts,
+                        SERVICE_SCHEMA_TOGGLE_GEOFENCE_ALERTS,
+                    ),
+                    (
+                        SERVICE_PURGE_ALL_STORAGE,
+                        self._handle_purge_all_storage,
+                        SERVICE_SCHEMA_PURGE_ALL_STORAGE,
                     ),
                     (
                         SERVICE_PRUNE_STALE_DEVICES,
@@ -1082,18 +1106,47 @@ class ServiceManager:
                 f"Failed to send test notification: {err}"
             ) from err
 
+    async def _handle_toggle_geofence_alerts(self, call: ServiceCall) -> None:
+        """Handle toggle_geofence_alerts service call."""
+        self._log_service_call("toggle_geofence_alerts", call.data)
+        try:
+            from .gps_settings import GPSSettingsStore
+
+            store = GPSSettingsStore(self.hass, call.data["config_entry_id"], DOMAIN)
+            data = await store.async_load()
+            data["alerts_enabled"] = call.data["enabled"]
+            await store.async_save(data)
+        except Exception as err:
+            _LOGGER.error("Failed to toggle geofence alerts: %s", err)
+            raise HomeAssistantError(
+                f"Failed to toggle geofence alerts: {err}"
+            ) from err
+
+    async def _handle_purge_all_storage(self, call: ServiceCall) -> None:
+        """Handle purge_all_storage service call."""
+        self._log_service_call("purge_all_storage", call.data)
+        try:
+            from .route_store import RouteHistoryStore
+
+            store = RouteHistoryStore(self.hass, call.data["config_entry_id"], DOMAIN)
+            await store.async_purge()
+        except Exception as err:
+            _LOGGER.error("Failed to purge storage: %s", err)
+            raise HomeAssistantError(f"Failed to purge storage: {err}") from err
+
     async def _handle_prune_stale_devices(self, call: ServiceCall) -> None:
         """Handle prune_stale_devices service call."""
         self._log_service_call("prune_stale_devices", call.data)
 
         try:
             dry_run = call.data.get("dry_run", False)
+            auto_mode = call.data.get("auto", not dry_run)
 
             # Import the prune function from __init__.py
             from . import _auto_prune_devices
 
             removed_count = await _auto_prune_devices(
-                self.hass, self.entry, auto=not dry_run
+                self.hass, self.entry, auto=auto_mode
             )
 
             action = "would remove" if dry_run else "removed"
