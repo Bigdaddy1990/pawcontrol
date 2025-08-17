@@ -130,6 +130,14 @@ DEFAULT_SCHEDULE_TIMES = {
 }
 
 
+def _default_schedule_datetime(key: str) -> datetime:
+    """Return default schedule datetime for today for a given configuration key."""
+    now = dt_util.now()
+    time_str = DEFAULT_SCHEDULE_TIMES.get(key, "00:00")
+    hour, minute = map(int, time_str.split(":"))
+    return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
 class _FallbackNextMedicationDateTime(DateTimeEntity):
     """Simple datetime entity used during tests when coordinator is absent."""
 
@@ -1030,9 +1038,7 @@ class BreakfastTimeDateTime(PawControlDateTimeWithStorage):
         stored_values: dict[str, str],
     ) -> None:
         """Initialize the breakfast time datetime entity."""
-        # Create default breakfast time for today
-        now = dt_util.now()
-        default_time = now.replace(hour=7, minute=0, second=0, microsecond=0)
+        default_time = _default_schedule_datetime("breakfast_time")
 
         super().__init__(
             hass=hass,
@@ -1061,9 +1067,7 @@ class LunchTimeDateTime(PawControlDateTimeWithStorage):
         stored_values: dict[str, str],
     ) -> None:
         """Initialize the lunch time datetime entity."""
-        # Create default lunch time for today
-        now = dt_util.now()
-        default_time = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        default_time = _default_schedule_datetime("lunch_time")
 
         super().__init__(
             hass=hass,
@@ -1092,9 +1096,7 @@ class DinnerTimeDateTime(PawControlDateTimeWithStorage):
         stored_values: dict[str, str],
     ) -> None:
         """Initialize the dinner time datetime entity."""
-        # Create default dinner time for today
-        now = dt_util.now()
-        default_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        default_time = _default_schedule_datetime("dinner_time")
 
         super().__init__(
             hass=hass,
@@ -1267,7 +1269,9 @@ class DailyResetDateTime(DateTimeEntity):
     def native_value(self) -> datetime | None:
         """Return the daily reset time."""
         try:
-            reset_time_str = self.entry.options.get("reset_time", "00:00")
+            reset_time_str = self.entry.options.get(
+                "reset_time", DEFAULT_SCHEDULE_TIMES["daily_reset_time"]
+            )
             hour, minute = map(int, reset_time_str.split(":"))
 
             now = dt_util.now()
@@ -1385,8 +1389,11 @@ class WeeklyReportDateTime(DateTimeEntity):
                 days_ahead += 7
 
             report_time = now + timedelta(days=days_ahead)
+            hour, minute = map(
+                int, DEFAULT_SCHEDULE_TIMES["weekly_report_time"].split(":")
+            )
             report_time = report_time.replace(
-                hour=20, minute=0, second=0, microsecond=0
+                hour=hour, minute=minute, second=0, microsecond=0
             )
             return report_time
         except Exception:

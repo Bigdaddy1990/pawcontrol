@@ -33,6 +33,7 @@ ha_config_entries = types.ModuleType("homeassistant.config_entries")
 class ConfigEntry:
     def __init__(self, *, options=None):
         self.options = options or {}
+        self.entry_id = "test_entry"
 
 
 class ConfigEntryState(Enum):
@@ -114,6 +115,10 @@ paw_datetime = importlib.import_module("custom_components.pawcontrol.datetime")
 NextMedicationDateTime = paw_datetime.NextMedicationDateTime
 async_setup_entry = paw_datetime.async_setup_entry
 DOMAIN = paw_datetime.DOMAIN
+BreakfastTimeDateTime = paw_datetime.BreakfastTimeDateTime
+LunchTimeDateTime = paw_datetime.LunchTimeDateTime
+DinnerTimeDateTime = paw_datetime.DinnerTimeDateTime
+DEFAULT_SCHEDULE_TIMES = paw_datetime.DEFAULT_SCHEDULE_TIMES
 
 # Clean up stub package to avoid interfering with other tests
 sys.modules.pop("custom_components.pawcontrol", None)
@@ -158,3 +163,28 @@ async def test_async_setup_entry_creates_entities_for_dogs() -> None:
 
     assert added["update_before_add"] is False
     assert added["entities"]
+
+
+def _make_coordinator() -> MagicMock:
+    coordinator = MagicMock()
+    coordinator._dog_data = {"abc": {}}
+    return coordinator
+
+
+@pytest.mark.parametrize(
+    "cls,key",
+    [
+        (BreakfastTimeDateTime, "breakfast_time"),
+        (LunchTimeDateTime, "lunch_time"),
+        (DinnerTimeDateTime, "dinner_time"),
+    ],
+)
+def test_default_schedule_times(cls, key) -> None:
+    hass = MagicMock()
+    entry = ConfigEntry(options={"dogs": [{"dog_id": "abc"}]})
+    store = MagicMock()
+    entity = cls(hass, _make_coordinator(), entry, "abc", store, {})
+    native = entity.native_value
+    expected_hour, expected_minute = map(int, DEFAULT_SCHEDULE_TIMES[key].split(":"))
+    assert native.hour == expected_hour
+    assert native.minute == expected_minute
