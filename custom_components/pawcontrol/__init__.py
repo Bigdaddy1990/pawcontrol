@@ -1,24 +1,17 @@
-"""The Paw Control integration for Home Assistant.
+"""Paw Control integration for smart dog management.
 
-This integration provides comprehensive smart dog management capabilities including:
-- GPS tracking and geofencing
-- Activity monitoring (walks, feeding, health)
-- Automated notifications and reminders
-- Device discovery and health monitoring
-- Comprehensive reporting and analytics
-
-The integration follows Home Assistant's Platinum quality standards with:
-- Full asynchronous operation
-- Complete type annotations
-- Robust error handling
-- Efficient data management
+Provides GPS tracking, activity monitoring, notifications and reporting.
+Follows Home Assistant's Platinum quality standards with full async
+operation, complete type annotations, robust error handling and efficient
+data management.
 """
 
 from __future__ import annotations
 
 import inspect
 import logging
-from typing import TYPE_CHECKING
+from collections.abc import Awaitable
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -68,19 +61,22 @@ if not hasattr(HomeAssistant, "config"):
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
-async def _maybe_await(result):
-    """Await ``result`` if it's awaitable.
+T = TypeVar("T")
+
+
+async def _maybe_await(result: Awaitable[T] | T) -> T:
+    """Return ``result`` awaiting if necessary.
 
     This helper allows tests to patch asynchronous functions with regular
-    ``MagicMock`` instances without having to configure ``AsyncMock``.
-    ``unittest.mock`` will return a plain ``MagicMock`` by default which isn't
-    awaitable and would otherwise raise a ``TypeError`` when awaited.  Using
-    this helper makes the integration tolerant to such patches by awaiting the
-    result only when necessary.
+    ``MagicMock`` instances without needing to configure ``AsyncMock``.
+    ``unittest.mock`` will return a plain ``MagicMock`` by default which
+    isn't awaitable and would otherwise raise a ``TypeError`` when awaited.
+    Using this helper makes the integration tolerant to such patches by
+    awaiting the result only when necessary.
     """
     if inspect.isawaitable(result):
-        return await result
-    return result
+        return await cast(Awaitable[T], result)
+    return cast(T, result)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -789,6 +785,10 @@ async def _force_unload_platforms(hass: HomeAssistant, entry: ConfigEntry) -> bo
 
 
 async def handle_gps_post_location(call: ServiceCall) -> None:
-    """Validate GPS post location service calls have a target dog."""
+    """Validate GPS post location service calls have a target dog.
+
+    Raises:
+        HomeAssistantError: If ``dog_id`` is missing from the call data.
+    """
     if "dog_id" not in call.data:
         raise HomeAssistantError("dog_id is required for gps_post_location")
