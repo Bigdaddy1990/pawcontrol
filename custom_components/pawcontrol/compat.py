@@ -16,6 +16,7 @@ except Exception:  # pragma: no cover - Python <3.11 fallback
 
         pass
 
+
 from typing import Any
 
 # EntityCategory -------------------------------------------------------------------------
@@ -98,7 +99,9 @@ _STRING_CONSTS: dict[str, StrEnum | str] = {
     "EVENT_STATE_REPORTED": "state_reported",
 }
 
-globals().update({name: _ensure_const(name, value) for name, value in _STRING_CONSTS.items()})
+globals().update(
+    {name: _ensure_const(name, value) for name, value in _STRING_CONSTS.items()}
+)
 
 __all__ = [
     "EntityCategory",
