@@ -69,6 +69,8 @@ PARALLEL_UPDATES = 0
 # Storage configuration
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_select_settings"
+# Special key for system-wide values in storage
+SYSTEM_STORAGE_KEY = "system"
 
 # Option lists for various select entities
 FOOD_TYPE_OPTIONS = [FOOD_DRY, FOOD_WET, FOOD_BARF, FOOD_TREAT]
@@ -208,7 +210,10 @@ async def async_setup_entry(
                 )
 
         # System-wide select entities
-        entities.extend(_create_system_selects(hass, coordinator, entry, store))
+        system_stored = stored_values.get(SYSTEM_STORAGE_KEY, {})
+        entities.extend(
+            _create_system_selects(hass, coordinator, entry, store, system_stored)
+        )
 
         _LOGGER.info("Created %d select entities", len(entities))
 
@@ -379,6 +384,7 @@ def _create_system_selects(
     coordinator: PawControlCoordinator,
     entry: ConfigEntry,
     store: Store,
+    stored_values: dict[str, str],
 ) -> list[SelectEntity]:
     """Create system-wide select entities.
 
@@ -392,8 +398,8 @@ def _create_system_selects(
         List of system select entities
     """
     return [
-        ExportFormatSelect(hass, coordinator, entry, store),
-        NotificationPrioritySelect(hass, coordinator, entry, store),
+        ExportFormatSelect(hass, coordinator, entry, store, stored_values),
+        NotificationPrioritySelect(hass, coordinator, entry, store, stored_values),
     ]
 
 
@@ -1134,12 +1140,8 @@ class VeterinarianSelect(PawControlSelectWithStorage):
 # ==============================================================================
 
 
-class ExportFormatSelect(SelectEntity):
-    """Select entity for configuring data export format.
-
-    System-wide setting that determines the format used when exporting
-    dog data and reports.
-    """
+class PawControlSystemSelectWithStorage(SelectEntity):
+    """Base class for system-wide select entities with storage."""
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -1150,16 +1152,30 @@ class ExportFormatSelect(SelectEntity):
         coordinator: PawControlCoordinator,
         entry: ConfigEntry,
         store: Store,
+        stored_values: dict[str, str],
+        entity_key: str,
+        translation_key: str,
+        options: list[str],
+        icon: str,
+        default_option: str,
     ) -> None:
-        """Initialize the export format select entity."""
+        """Initialize the system-wide select entity."""
         self.hass = hass
         self.coordinator = coordinator
         self.entry = entry
         self._store = store
-        self._attr_unique_id = f"{entry.entry_id}_global_export_format"
-        self._attr_translation_key = "export_format"
-        self._attr_options = EXPORT_FORMAT_OPTIONS
-        self._attr_icon = ICONS.get("export", "mdi:file-export")
+        self.entity_key = entity_key
+        self._attr_unique_id = f"{entry.entry_id}_global_{entity_key}"
+        self._attr_translation_key = translation_key
+        self._attr_options = options
+        self._attr_icon = icon
+        self._default_option = default_option
+
+        stored_option = stored_values.get(entity_key)
+        self._current_option = (
+            stored_option if stored_option in self._attr_options else default_option
+        )
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "global")},
             name="Paw Control System",
@@ -1170,34 +1186,77 @@ class ExportFormatSelect(SelectEntity):
         )
 
     @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self._current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Update the selected option and persist it."""
+        try:
+            if option not in self._attr_options:
+                _LOGGER.warning("Invalid option %s for %s", option, self.entity_id)
+                return
+
+            self._current_option = option
+            await self._save_option_to_storage(option)
+            await self._apply_option_to_coordinator(option)
+            self.async_write_ha_state()
+        except Exception as err:  # pragma: no cover - unexpected errors
+            _LOGGER.error(
+                "Failed to set option %s for %s: %s", option, self.entity_id, err
+            )
+
+    async def _save_option_to_storage(self, option: str) -> None:
+        """Save option to persistent storage."""
+        try:
+            all_stored = await self._store.async_load() or {}
+            system_stored = all_stored.setdefault(SYSTEM_STORAGE_KEY, {})
+            system_stored[self.entity_key] = option
+            await self._store.async_save(all_stored)
+        except Exception as err:
+            _LOGGER.error("Failed to save option to storage: %s", err)
+
+    async def _apply_option_to_coordinator(self, option: str) -> None:
+        """Apply option to coordinator if needed."""
+
+
+class ExportFormatSelect(PawControlSystemSelectWithStorage):
+    """Select entity for configuring data export format.
+
+    System-wide setting that determines the format used when exporting
+    dog data and reports.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: PawControlCoordinator,
+        entry: ConfigEntry,
+        store: Store,
+        stored_values: dict[str, str],
+    ) -> None:
+        """Initialize the export format select entity."""
+        super().__init__(
+            hass=hass,
+            coordinator=coordinator,
+            entry=entry,
+            store=store,
+            stored_values=stored_values,
+            entity_key="export_format",
+            translation_key="export_format",
+            options=EXPORT_FORMAT_OPTIONS,
+            icon=ICONS.get("export", "mdi:file-export"),
+            default_option=DEFAULT_VALUES["export_format"],
+        )
+
+    @property
     def name(self) -> str:
         """Return the name of the entity."""
         return "Export Format"
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        return self.entry.options.get("export_format", DEFAULT_VALUES["export_format"])
-
-    async def async_select_option(self, option: str) -> None:
-        """Update the selected option.
-
-        Args:
-            option: New export format to select
-        """
-        try:
-            if option not in self._attr_options:
-                _LOGGER.warning("Invalid export format option: %s", option)
-                return
-
-            _LOGGER.info("Export format set to %s", option)
-
-            # In a production environment, this would update the config entry
-            # For now, we just log the change
-            self.async_write_ha_state()
-
-        except Exception as err:
-            _LOGGER.error("Failed to set export format: %s", err)
+    async def _apply_option_to_coordinator(self, option: str) -> None:
+        """Log export format changes."""
+        _LOGGER.info("Export format set to %s", option)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -1212,11 +1271,8 @@ class ExportFormatSelect(SelectEntity):
             return {}
 
 
-class NotificationPrioritySelect(SelectEntity):
+class NotificationPrioritySelect(PawControlSystemSelectWithStorage):
     """Select entity for configuring default notification priority."""
-
-    _attr_has_entity_name = True
-    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
@@ -1224,23 +1280,20 @@ class NotificationPrioritySelect(SelectEntity):
         coordinator: PawControlCoordinator,
         entry: ConfigEntry,
         store: Store,
+        stored_values: dict[str, str],
     ) -> None:
         """Initialize the notification priority select entity."""
-        self.hass = hass
-        self.coordinator = coordinator
-        self.entry = entry
-        self._store = store
-        self._attr_unique_id = f"{entry.entry_id}_global_notification_priority"
-        self._attr_translation_key = "notification_priority"
-        self._attr_options = NOTIFICATION_PRIORITY_OPTIONS
-        self._attr_icon = ICONS.get("notifications", "mdi:bell-ring")
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, "global")},
-            name="Paw Control System",
-            manufacturer="Paw Control",
-            model="Smart Dog Manager",
-            sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+        super().__init__(
+            hass=hass,
+            coordinator=coordinator,
+            entry=entry,
+            store=store,
+            stored_values=stored_values,
+            entity_key="notification_priority",
+            translation_key="notification_priority",
+            options=NOTIFICATION_PRIORITY_OPTIONS,
+            icon=ICONS.get("notifications", "mdi:bell-ring"),
+            default_option=DEFAULT_VALUES["notification_priority"],
         )
 
     @property
@@ -1248,33 +1301,10 @@ class NotificationPrioritySelect(SelectEntity):
         """Return the name of the entity."""
         return "Notification Priority"
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
-        return self.entry.options.get(
-            "notification_priority", DEFAULT_VALUES["notification_priority"]
-        )
-
-    async def async_select_option(self, option: str) -> None:
-        """Update the selected option.
-
-        Args:
-            option: New notification priority to select
-        """
-        try:
-            if option not in self._attr_options:
-                _LOGGER.warning("Invalid notification priority option: %s", option)
-                return
-
-            _LOGGER.info("Notification priority set to %s", option)
-
-            # Apply to coordinator for immediate effect
-            self.coordinator.notification_priority = option
-
-            self.async_write_ha_state()
-
-        except Exception as err:
-            _LOGGER.error("Failed to set notification priority: %s", err)
+    async def _apply_option_to_coordinator(self, option: str) -> None:
+        """Apply priority to coordinator data."""
+        self.coordinator.notification_priority = option
+        _LOGGER.info("Notification priority set to %s", option)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
