@@ -1063,9 +1063,7 @@ class ServiceManager:
             raise ServiceValidationError("config_entry_id is required")
         store = RouteHistoryStore(self.hass, entry_id, DOMAIN)
         result = await store.async_list(call.data.get(CONF_DOG_ID, ""))
-        self.hass.bus.async_fire(
-            f"{DOMAIN}_route_history_listed", {"result": result}
-        )
+        self.hass.bus.async_fire(f"{DOMAIN}_route_history_listed", {"result": result})
 
     async def _handle_route_history_purge(self, call: ServiceCall) -> None:
         """Handle route_history_purge service call."""

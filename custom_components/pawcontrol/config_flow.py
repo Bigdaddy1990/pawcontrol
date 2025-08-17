@@ -1163,9 +1163,7 @@ class PawControlOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Configure data sources for the integration."""
         if user_input is None:
-            return self.async_show_form(
-                step_id="sources", data_schema=vol.Schema({})
-            )
+            return self.async_show_form(step_id="sources", data_schema=vol.Schema({}))
 
         self._options[CONF_SOURCES] = user_input
         return self.async_create_entry(title="", data=self._options)
