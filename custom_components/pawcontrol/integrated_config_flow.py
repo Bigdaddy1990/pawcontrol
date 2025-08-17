@@ -13,9 +13,9 @@ Key features:
 
 from __future__ import annotations
 
-from typing import Any, Final
 import logging
 from datetime import datetime
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -24,38 +24,42 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import (
     config_validation as cv,
-    entity_registry as er,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
+    entity_registry as er,
 )
 from homeassistant.loader import async_get_integration
 
 from .const import (
+    CONF_CALENDAR,
+    CONF_DEVICE_TRACKERS,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_MODULES,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_DOOR_SENSOR,
+    CONF_PERSON_ENTITIES,
+    CONF_WEATHER,
     DOMAIN,
+    MODULE_DASHBOARD,
     # Module constants
     MODULE_FEEDING,
     MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
     MODULE_GROOMING,
-    MODULE_TRAINING,
-    MODULE_NOTIFICATIONS,
-    MODULE_DASHBOARD,
+    MODULE_HEALTH,
     MODULE_MEDICATION,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_WALK,
     # Dog size constants
     SIZE_MEDIUM,
-    CONF_DOGS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
-    CONF_DOG_SIZE,
-    CONF_DOG_BREED,
-    CONF_DOG_AGE,
-    CONF_DOG_MODULES,
-    CONF_DEVICE_TRACKERS,
-    CONF_PERSON_ENTITIES,
-    CONF_DOOR_SENSOR,
-    CONF_WEATHER,
-    CONF_CALENDAR,
 )
 
 # Import validation system
@@ -286,7 +290,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options with a comprehensive menu."""
-        if user_input is not None:
+        if user_input is not None:  # noqa: SIM102
             # Handle direct option updates for backward compatibility
             if "geofencing_enabled" in user_input or "modules" in user_input:
                 return self.async_create_entry(title="", data=user_input)
@@ -375,7 +379,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Add any data migrations here based on version
         current_version = data.get("config_version", 1)
 
-        if current_version < 2:
+        if current_version < 2:  # noqa: SIM102
             # Example migration for version 2
             if CONF_DOGS not in data:
                 data[CONF_DOGS] = []
@@ -563,7 +567,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         import json
 
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             # Extract dogs from different possible formats

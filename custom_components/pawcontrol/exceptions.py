@@ -195,11 +195,11 @@ class InvalidCoordinatesError(GPSError):
             **kwargs: Additional arguments passed to parent class
         """
         parts = []
-        if latitude is not None:
-            if not isinstance(latitude, (int, float)) or not -90 <= latitude <= 90:
+        if latitude is not None:  # noqa: SIM102
+            if not isinstance(latitude, int | float) or not -90 <= latitude <= 90:
                 parts.append(f"latitude {latitude} (must be -90 to 90)")
-        if longitude is not None:
-            if not isinstance(longitude, (int, float)) or not -180 <= longitude <= 180:
+        if longitude is not None:  # noqa: SIM102
+            if not isinstance(longitude, int | float) or not -180 <= longitude <= 180:
                 parts.append(f"longitude {longitude} (must be -180 to 180)")
 
         if parts:

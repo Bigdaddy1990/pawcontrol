@@ -5,11 +5,10 @@ from collections.abc import Generator
 from pathlib import Path
 from unittest import mock
 
-from homeassistant import config_entries
 import homeassistant.loader as loader
-
 import pytest
 from custom_components.pawcontrol.const import DOMAIN
+from homeassistant import config_entries
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 # Ensure the repository's custom_components path is discoverable by

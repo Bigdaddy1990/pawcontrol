@@ -55,7 +55,7 @@ class SetupSync:
 
         except Exception as err:
             _LOGGER.error(f"Error during synchronization: {err}")
-            raise HomeAssistantError(f"Failed to sync setup: {err}")
+            raise HomeAssistantError(f"Failed to sync setup: {err}")  # noqa: B904
 
     async def _sync_global_helpers(self) -> None:
         """Synchronize global helpers."""
@@ -346,7 +346,7 @@ class SetupSync:
                     remaining = entity_name[len(f"{DOMAIN}_") :]
                     parts = remaining.split("_")
 
-                    if parts and parts[0] not in current_dog_ids:
+                    if parts and parts[0] not in current_dog_ids:  # noqa: SIM102
                         # Check if this looks like a dog_id (not a global helper)
                         if parts[0] not in [
                             "visitor",

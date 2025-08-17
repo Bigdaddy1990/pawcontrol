@@ -141,6 +141,7 @@ except Exception:  # pragma: no cover - Home Assistant not available
 
 try:  # pragma: no cover - patch executor job helper when possible
     import asyncio
+
     from homeassistant.core import HomeAssistant
 
     if not hasattr(HomeAssistant, "_pawcontrol_executor_patch"):

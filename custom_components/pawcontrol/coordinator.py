@@ -19,11 +19,11 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
-from .utils import calculate_distance, validate_coordinates
 
 from .const import (
     ATTR_DOG_ID,
@@ -51,7 +51,7 @@ from .const import (
     STATUS_READY,
     WALK_DISTANCE_UPDATE_THRESHOLD_M,
 )
-
+from .utils import calculate_distance, validate_coordinates
 
 if TYPE_CHECKING:
     from .types import CoordinatorData, DogData
@@ -260,12 +260,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 try:
                     # Python 3.12+ Pattern matching for update types
                     updates = {
-                        "walk": lambda: self._calculate_needs_walk(dog_id),
-                        "feeding": lambda: self._calculate_is_hungry(dog_id),
-                        "grooming": lambda: self._calculate_needs_grooming(dog_id),
-                        "activity": lambda: self._calculate_activity_level(dog_id),
-                        "health": lambda: self._calculate_next_medication(dog_id),
-                        "calories": lambda: self._calculate_calories(dog_id),
+                        "walk": lambda: self._calculate_needs_walk(dog_id),  # noqa: B023
+                        "feeding": lambda: self._calculate_is_hungry(dog_id),  # noqa: B023
+                        "grooming": lambda: self._calculate_needs_grooming(dog_id),  # noqa: B023
+                        "activity": lambda: self._calculate_activity_level(dog_id),  # noqa: B023
+                        "health": lambda: self._calculate_next_medication(dog_id),  # noqa: B023
+                        "calories": lambda: self._calculate_calories(dog_id),  # noqa: B023
                     }
 
                     # Apply updates with error isolation
@@ -674,7 +674,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             # Validate GPS accuracy if provided (before coordinate validation)
             if accuracy is not None:
-                if not isinstance(accuracy, (int, float)) or accuracy < 0:
+                if not isinstance(accuracy, int | float) or accuracy < 0:
                     _LOGGER.warning(
                         "Invalid GPS accuracy for dog %s: %s, ignoring",
                         dog_id,
@@ -734,9 +734,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             distance = None
             inside = None
 
-            if isinstance(home_lat, (int, float)) and isinstance(
-                home_lon, (int, float)
-            ):
+            if isinstance(home_lat, int | float) and isinstance(home_lon, int | float):
                 try:
                     if validate_coordinates(
                         float(home_lat), float(home_lon)
