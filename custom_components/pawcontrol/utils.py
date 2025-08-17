@@ -5,6 +5,8 @@ from __future__ import annotations
 from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
+import logging
+
 from .const import EARTH_RADIUS_M
 
 if TYPE_CHECKING:
@@ -94,5 +96,8 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except Exception:
+    except Exception as err:  # pragma: no cover - broad for safety
+        logging.getLogger(__name__).debug(
+            "Service call %s.%s failed: %s", domain, service, err
+        )
         return False
