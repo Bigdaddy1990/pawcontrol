@@ -17,6 +17,7 @@ The switch entities follow Home Assistant's Platinum standards with:
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -72,43 +73,53 @@ _LOGGER = logging.getLogger(__name__)
 # This prevents race conditions when multiple switches modify the same dog configuration
 PARALLEL_UPDATES = 0
 
+
 # Module definitions with display names and icons
-MODULE_DEFINITIONS = {
-    MODULE_WALK: {
-        "name": "Walk Module",
-        "icon": ICONS.get("walk", "mdi:dog-side"),
-        "description": "Walk tracking and GPS functionality",
-    },
-    MODULE_FEEDING: {
-        "name": "Feeding Module",
-        "icon": ICONS.get("feeding", "mdi:food"),
-        "description": "Meal tracking and nutrition management",
-    },
-    MODULE_HEALTH: {
-        "name": "Health Module",
-        "icon": ICONS.get("health", "mdi:medical-bag"),
-        "description": "Health monitoring and medication tracking",
-    },
-    MODULE_GROOMING: {
-        "name": "Grooming Module",
-        "icon": ICONS.get("grooming", "mdi:content-cut"),
-        "description": "Grooming schedule and care tracking",
-    },
-    MODULE_TRAINING: {
-        "name": "Training Module",
-        "icon": ICONS.get("training", "mdi:school"),
-        "description": "Training sessions and progress tracking",
-    },
-    MODULE_NOTIFICATIONS: {
-        "name": "Notifications",
-        "icon": ICONS.get("notifications", "mdi:bell"),
-        "description": "Alert and reminder notifications",
-    },
-    MODULE_GPS: {
-        "name": "GPS Tracking",
-        "icon": ICONS.get("gps", "mdi:crosshairs-gps"),
-        "description": "Real-time location and geofencing",
-    },
+@dataclass(frozen=True, slots=True)
+class ModuleDefinition:
+    """Definition for a dog feature module."""
+
+    name: str
+    icon: str
+    description: str
+
+
+MODULE_DEFINITIONS: dict[str, ModuleDefinition] = {
+    MODULE_WALK: ModuleDefinition(
+        name="Walk Module",
+        icon=ICONS.get("walk", "mdi:dog-side"),
+        description="Walk tracking and GPS functionality",
+    ),
+    MODULE_FEEDING: ModuleDefinition(
+        name="Feeding Module",
+        icon=ICONS.get("feeding", "mdi:food"),
+        description="Meal tracking and nutrition management",
+    ),
+    MODULE_HEALTH: ModuleDefinition(
+        name="Health Module",
+        icon=ICONS.get("health", "mdi:medical-bag"),
+        description="Health monitoring and medication tracking",
+    ),
+    MODULE_GROOMING: ModuleDefinition(
+        name="Grooming Module",
+        icon=ICONS.get("grooming", "mdi:content-cut"),
+        description="Grooming schedule and care tracking",
+    ),
+    MODULE_TRAINING: ModuleDefinition(
+        name="Training Module",
+        icon=ICONS.get("training", "mdi:school"),
+        description="Training sessions and progress tracking",
+    ),
+    MODULE_NOTIFICATIONS: ModuleDefinition(
+        name="Notifications",
+        icon=ICONS.get("notifications", "mdi:bell"),
+        description="Alert and reminder notifications",
+    ),
+    MODULE_GPS: ModuleDefinition(
+        name="GPS Tracking",
+        icon=ICONS.get("gps", "mdi:crosshairs-gps"),
+        description="Real-time location and geofencing",
+    ),
 }
 
 
@@ -228,9 +239,9 @@ def _create_module_switches(
             entry=entry,
             dog_id=dog_id,
             module_id=module_id,
-            module_name=module_info["name"],
-            icon=module_info["icon"],
-            description=module_info["description"],
+            module_name=module_info.name,
+            icon=module_info.icon,
+            description=module_info.description,
             enabled=enabled,
         )
         switches.append(switch)
