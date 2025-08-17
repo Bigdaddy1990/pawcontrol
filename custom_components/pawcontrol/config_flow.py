@@ -191,24 +191,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         title = discovery_info.get("name") or DEFAULT_TITLE
         return self.async_create_entry(title=str(title), data=data)
 
+    async def _async_validate_and_handle_discovery(
+        self, source: str, discovery_info: Any
+    ) -> FlowResult:
+        """Validate discovery info type and delegate to handler."""
+        if not isinstance(discovery_info, dict):
+            return self.async_abort(reason="not_supported")
+        return await self._handle_discovery(source, discovery_info)
+
     async def async_step_dhcp(self, discovery_info: dict[str, Any]) -> FlowResult:
         """Handle DHCP discovery."""
         # We don't import homeassistant.components.dhcp at module time – tests stay clean.
-        if not isinstance(discovery_info, dict):
-            return self.async_abort(reason="not_supported")
-        return await self._handle_discovery("dhcp", discovery_info)
+        return await self._async_validate_and_handle_discovery("dhcp", discovery_info)
 
     async def async_step_zeroconf(self, discovery_info: dict[str, Any]) -> FlowResult:
         """Handle Zeroconf discovery."""
-        if not isinstance(discovery_info, dict):
-            return self.async_abort(reason="not_supported")
-        return await self._handle_discovery("zeroconf", discovery_info)
+        return await self._async_validate_and_handle_discovery(
+            "zeroconf", discovery_info
+        )
 
     async def async_step_usb(self, discovery_info: dict[str, Any]) -> FlowResult:
         """Handle USB discovery."""
-        if not isinstance(discovery_info, dict):
-            return self.async_abort(reason="not_supported")
-        return await self._handle_discovery("usb", discovery_info)
+        return await self._async_validate_and_handle_discovery("usb", discovery_info)
 
     # --- REAUTH FLOW ---
 
