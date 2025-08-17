@@ -71,6 +71,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_TITLE: Final = "Paw Control"
+CONFIG_VERSION: Final = 1
 
 # Keys used in the config entry data/options
 CONF_ENABLE_DASHBOARD: Final = "enable_dashboard"
@@ -116,7 +117,7 @@ async def _can_connect(hass: HomeAssistant, data: dict[str, Any]) -> bool:
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Paw Control."""
 
-    VERSION = 1
+    VERSION = CONFIG_VERSION
     _reauth_entry: config_entries.ConfigEntry | None = None
 
     # --- USER FLOW ---
@@ -126,7 +127,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         d = defaults or {}
         return vol.Schema(
             {
-                vol.Required(CONF_NAME, default=d.get(CONF_NAME, DEFAULT_TITLE)): str,
                 vol.Optional(
                     CONF_ENABLE_DASHBOARD,
                     default=bool(d.get(CONF_ENABLE_DASHBOARD, True)),
@@ -159,9 +159,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data = dict(user_input)
         data[CONF_SOURCE] = "user"
-        return self.async_create_entry(
-            title=user_input.get(CONF_NAME, DEFAULT_TITLE), data=data
-        )
+        data["config_version"] = CONFIG_VERSION
+        return self.async_create_entry(title=DEFAULT_TITLE, data=data)
 
     # --- DISCOVERY FLOWS (DHCP, ZEROCONF, USB) ---
 
@@ -171,6 +170,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Common discovery handler with lazy connectivity check and dedupe."""
         # Normalize discovery dict into data we persist.
         data = {"discovery": discovery_info, CONF_SOURCE: source}
+        data["config_version"] = CONFIG_VERSION
 
         # Pre-calc a unique id from typical fields (mac, serial, properties)
         unique_id = _pick_unique_id(discovery_info)
@@ -250,14 +250,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle import from YAML, mapping to a config entry."""
         # Map YAML-like data into our schema as far as possible.
         defaults = {
-            CONF_NAME: import_data.get(CONF_NAME, DEFAULT_TITLE),
             CONF_ENABLE_DASHBOARD: bool(import_data.get(CONF_ENABLE_DASHBOARD, True)),
             CONF_DEVICE_ID: str(import_data.get(CONF_DEVICE_ID, "")),
+            "config_version": CONFIG_VERSION,
         }
         unique_id = _pick_unique_id(import_data)
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured()
-        return self.async_create_entry(title=defaults[CONF_NAME], data=defaults)
+        title = import_data.get(CONF_NAME, DEFAULT_TITLE)
+        return self.async_create_entry(title=title, data=defaults)
 
 
 PawControlConfigFlow = ConfigFlow
