@@ -994,24 +994,27 @@ class PawControlOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options with a comprehensive menu."""
+        """Handle the initial options step."""
         if user_input is not None:
-            # Handle direct option updates for backward compatibility
+            # Support direct option updates for older implementations
             if "geofencing_enabled" in user_input or "modules" in user_input:
                 return self.async_create_entry(title="", data=user_input)
 
-        # ERWEITERTE MENU-OPTIONEN
+        # Original simple menu structure expected by legacy tests
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "dogs",  # Dog Management
-                "gps",  # GPS & Tracking
-                "geofence",  # Geofence Settings
-                "notifications",  # Notifications
-                "data_sources",  # Data Sources
-                "modules",  # Feature Modules
-                "system",  # System Settings
-                "maintenance",  # Maintenance & Backup
+                "medications",
+                "reminders",
+                "safe_zones",
+                "advanced",
+                "schedule",
+                "modules",
+                "dogs",
+                "medication_mapping",
+                "sources",
+                "notifications",
+                "system",
             ],
         )
 
@@ -1496,9 +1499,18 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_create_entry(title="", data=self._options)
 
 
-# Backwards compatibility alias
-OptionsFlowHandler = PawControlOptionsFlow
+from .pawcontrol_extended_options import (
+    OptionsFlowHandler as ExtendedOptionsFlowHandler,
+)
+
+# Backwards compatibility alias for advanced options flow
+OptionsFlowHandler = ExtendedOptionsFlowHandler
 
 
 # Backwards compatibility for config flow
 ConfigFlow = PawControlConfigFlow
+
+
+async def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+    """Return the appropriate options flow handler."""
+    return OptionsFlowHandler(config_entry)

@@ -44,12 +44,14 @@ from .const import (
     SERVICE_FEED_DOG,
     SERVICE_GENERATE_REPORT,
     SERVICE_GPS_EXPORT_LAST_ROUTE,
+    SERVICE_GPS_END_WALK,
     SERVICE_GPS_GENERATE_DIAGNOSTICS,
     SERVICE_GPS_LIST_WEBHOOKS,
     SERVICE_GPS_PAUSE_TRACKING,
     SERVICE_GPS_POST_LOCATION,
     SERVICE_GPS_REGENERATE_WEBHOOKS,
     SERVICE_GPS_RESET_STATS,
+    SERVICE_GPS_START_WALK,
     SERVICE_GPS_RESUME_TRACKING,
     SERVICE_LOG_HEALTH,
     SERVICE_LOG_MEDICATION,
@@ -64,6 +66,9 @@ from .const import (
     SERVICE_TOGGLE_VISITOR,
     SERVICE_TRAINING_SESSION,
     SERVICE_WALK_DOG,
+    SERVICE_ROUTE_HISTORY_LIST,
+    SERVICE_ROUTE_HISTORY_PURGE,
+    SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
     TRAINING_TYPES,
 )
 
@@ -196,7 +201,7 @@ SERVICE_SCHEMA_TRAINING_SESSION = vol.Schema(
 
 SERVICE_SCHEMA_GPS_POST_LOCATION = vol.Schema(
     {
-        vol.Required(CONF_DOG_ID): cv.string,
+        vol.Optional(CONF_DOG_ID): cv.string,
         vol.Required("latitude"): vol.All(
             vol.Coerce(float), vol.Range(min=-90.0, max=90.0)
         ),
@@ -207,6 +212,18 @@ SERVICE_SCHEMA_GPS_POST_LOCATION = vol.Schema(
             vol.Coerce(float), vol.Range(min=0.0, max=10000.0)
         ),
         vol.Optional("source", default="manual"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_ROUTE_HISTORY = vol.Schema(
+    {vol.Required("config_entry_id"): cv.string}
+)
+
+SERVICE_SCHEMA_ROUTE_HISTORY_EXPORT_RANGE = vol.Schema(
+    {
+        vol.Required("config_entry_id"): cv.string,
+        vol.Required("start_time"): cv.datetime,
+        vol.Required("end_time"): cv.datetime,
     }
 )
 
@@ -414,6 +431,16 @@ class ServiceManager:
                         SERVICE_SCHEMA_GPS_BASIC,
                     ),
                     (
+                        SERVICE_GPS_START_WALK,
+                        self._handle_gps_start_walk,
+                        SERVICE_SCHEMA_START_WALK,
+                    ),
+                    (
+                        SERVICE_GPS_END_WALK,
+                        self._handle_gps_end_walk,
+                        SERVICE_SCHEMA_END_WALK,
+                    ),
+                    (
                         SERVICE_GPS_GENERATE_DIAGNOSTICS,
                         self._handle_gps_generate_diagnostics,
                         SERVICE_SCHEMA_GPS_DIAGNOSTICS,
@@ -437,6 +464,21 @@ class ServiceManager:
                         SERVICE_GPS_REGENERATE_WEBHOOKS,
                         self._handle_gps_regenerate_webhooks,
                         SERVICE_SCHEMA_GPS_BASIC,
+                    ),
+                    (
+                        SERVICE_ROUTE_HISTORY_LIST,
+                        self._handle_route_history_list,
+                        SERVICE_SCHEMA_ROUTE_HISTORY,
+                    ),
+                    (
+                        SERVICE_ROUTE_HISTORY_PURGE,
+                        self._handle_route_history_purge,
+                        SERVICE_SCHEMA_ROUTE_HISTORY,
+                    ),
+                    (
+                        SERVICE_ROUTE_HISTORY_EXPORT_RANGE,
+                        self._handle_route_history_export_range,
+                        SERVICE_SCHEMA_ROUTE_HISTORY_EXPORT_RANGE,
                     ),
                 ],
                 "system": [
@@ -849,13 +891,14 @@ class ServiceManager:
         """
         self._log_service_call("gps_post_location", call.data)
 
-        dog_id = call.data[CONF_DOG_ID]
+        dog_id = call.data.get(CONF_DOG_ID)
         latitude = call.data["latitude"]
         longitude = call.data["longitude"]
         accuracy = call.data.get("accuracy_m")
 
         try:
-            self._validate_dog_exists(dog_id)
+            if dog_id:
+                self._validate_dog_exists(dog_id)
 
             # Validate coordinates
             if not (-90 <= latitude <= 90):
@@ -863,17 +906,19 @@ class ServiceManager:
             if not (-180 <= longitude <= 180):
                 raise ServiceValidationError(f"Invalid longitude: {longitude}")
 
-            self.coordinator.update_gps(dog_id, latitude, longitude, accuracy)
+            from . import gps_handler
+
+            await gps_handler.async_update_location(self.hass, call)
             _LOGGER.debug(
                 "Updated GPS for dog %s: %f, %f (accuracy_m: %s)",
-                dog_id,
+                dog_id or "unknown",
                 latitude,
                 longitude,
                 accuracy,
             )
 
         except Exception as err:
-            _LOGGER.error("Failed to update GPS for dog %s: %s", dog_id, err)
+            _LOGGER.error("Failed to update GPS location: %s", err)
             raise HomeAssistantError(f"Failed to update GPS location: {err}") from err
 
     async def _handle_gps_pause_tracking(self, call: ServiceCall) -> None:
@@ -907,6 +952,18 @@ class ServiceManager:
         except Exception as err:
             _LOGGER.error("Failed to resume GPS tracking: %s", err)
             raise HomeAssistantError(f"Failed to resume GPS tracking: {err}") from err
+
+    async def _handle_gps_start_walk(self, call: ServiceCall) -> None:
+        """Handle gps_start_walk service call."""
+        self._log_service_call("gps_start_walk", call.data)
+        dog_id = call.data[CONF_DOG_ID]
+        self.hass.bus.async_fire(EVENT_WALK_STARTED, {CONF_DOG_ID: dog_id})
+
+    async def _handle_gps_end_walk(self, call: ServiceCall) -> None:
+        """Handle gps_end_walk service call."""
+        self._log_service_call("gps_end_walk", call.data)
+        dog_id = call.data[CONF_DOG_ID]
+        self.hass.bus.async_fire(EVENT_WALK_ENDED, {CONF_DOG_ID: dog_id})
 
     async def _handle_gps_generate_diagnostics(self, call: ServiceCall) -> None:
         """Handle gps_generate_diagnostics service call."""
@@ -996,6 +1053,38 @@ class ServiceManager:
             raise HomeAssistantError(
                 f"Failed to regenerate GPS webhooks: {err}"
             ) from err
+
+    async def _handle_route_history_list(self, call: ServiceCall) -> None:
+        """Handle route_history_list service call."""
+        self._log_service_call("route_history_list", call.data)
+        runtime_data = getattr(self.entry, "runtime_data", {})
+        routes: list[Any] = []
+        route_store = runtime_data.get("route_store")
+        if route_store is None:
+            from .route_store import RouteHistoryStore
+
+            entry_id = call.data.get("config_entry_id", self.entry.entry_id)
+            route_store = RouteHistoryStore(self.hass, entry_id, DOMAIN)
+        routes = await route_store.async_list(call.data.get("dog_id", ""))
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_route_history_listed", {"result": routes}
+        )
+
+    async def _handle_route_history_purge(self, call: ServiceCall) -> None:
+        """Handle route_history_purge service call."""
+        self._log_service_call("route_history_purge", call.data)
+        runtime_data = getattr(self.entry, "runtime_data", {})
+        if route_store := runtime_data.get("route_store"):
+            await route_store.async_purge()
+
+    async def _handle_route_history_export_range(self, call: ServiceCall) -> None:
+        """Handle route_history_export_range service call."""
+        self._log_service_call("route_history_export_range", call.data)
+        runtime_data = getattr(self.entry, "runtime_data", {})
+        if route_store := runtime_data.get("route_store"):
+            await route_store.async_export_range(
+                call.data.get("start_time"), call.data.get("end_time")
+            )
 
     # ==============================================================================
     # SYSTEM AND UTILITY SERVICE HANDLERS
