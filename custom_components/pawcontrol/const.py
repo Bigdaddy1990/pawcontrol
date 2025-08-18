@@ -7,6 +7,7 @@ and various thresholds and limits.
 Constants are organized by category and follow Home Assistant's Platinum
 standards with complete type annotations and comprehensive documentation.
 """
+
 from typing import Final
 from homeassistant.const import Platform
 
