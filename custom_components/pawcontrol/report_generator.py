@@ -106,13 +106,22 @@ class ReportGenerator:
             "dogs": {},
         }
 
+        coordinator = self.coordinator
+        if coordinator is None:
+            _LOGGER.warning("No coordinator available when generating report")
+            return report_data
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
 
             dog_name = dog.get(CONF_DOG_NAME, dog_id)
-            dog_data = self.coordinator.get_dog_data(dog_id)
+            try:
+                dog_data = coordinator.get_dog_data(dog_id)
+            except AttributeError:
+                _LOGGER.debug("Coordinator missing get_dog_data when generating report")
+                continue
 
             # Compile statistics
             dog_report = {
