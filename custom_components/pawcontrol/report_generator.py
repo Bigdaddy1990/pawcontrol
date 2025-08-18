@@ -56,10 +56,10 @@ class ReportGenerator:
         # the config entry when accessed via the ``coordinator`` property.  This
         # ensures that the report generator still works when constructed before
         # ``runtime_data`` is attached to the config entry.
-        self._coordinator: PawControlCoordinator | None = coordinator
+        self._coordinator: PawControlCoordinator | None = coordinator  # noqa: F821
 
     @property
-    def coordinator(self) -> PawControlCoordinator | None:
+    def coordinator(self) -> PawControlCoordinator | None:  # noqa: F821
         """Return the data coordinator.
 
         When the report generator is created before ``runtime_data`` is
