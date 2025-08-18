@@ -33,6 +33,7 @@ from .const import (
     CONF_DOGS,
     DOMAIN,
     ICONS,
+    INTEGRATION_URL,
     MODULE_FEEDING,
     MODULE_GROOMING,
     MODULE_HEALTH,
@@ -1342,7 +1343,7 @@ class DailyResetButton(ButtonEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1391,7 +1392,7 @@ class GenerateReportButton(ButtonEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1444,7 +1445,7 @@ class SyncSetupButton(ButtonEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1492,7 +1493,7 @@ class ToggleVisitorModeButton(ButtonEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property

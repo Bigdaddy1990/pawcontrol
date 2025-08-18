@@ -48,6 +48,7 @@ from .const import (
     CONF_DOGS,
     DOMAIN,
     ICONS,
+    INTEGRATION_URL,
     MAX_NOTE_LENGTH,
     MAX_STRING_LENGTH,
     MODULE_GROOMING,
@@ -1046,7 +1047,7 @@ class ExportPathText(TextEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property

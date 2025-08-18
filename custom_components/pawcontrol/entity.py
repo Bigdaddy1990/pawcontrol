@@ -50,6 +50,7 @@ from .const import (
     DOMAIN,
     ENTITY_UPDATE_DEBOUNCE_SECONDS,
     ICONS,
+    INTEGRATION_URL,
     INTEGRATION_VERSION,
     STATUS_READY,
 )
@@ -162,7 +163,7 @@ class PawControlEntity(CoordinatorEntity["PawControlCoordinator"]):
                 manufacturer="Paw Control",
                 model="Smart Dog Manager",
                 sw_version=INTEGRATION_VERSION,
-                configuration_url=f"/config/integrations/integration/{DOMAIN}",
+                configuration_url=INTEGRATION_URL,
                 suggested_area="Pet Care",  # Platinum: suggested area
             )
         except Exception as err:
