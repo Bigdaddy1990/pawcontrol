@@ -963,7 +963,7 @@ class GeofenceAlertsActiveBinarySensor(
             entity_key="geofence_alerts_active",
             translation_key="geofence_alerts_active",
             device_class=BinarySensorDeviceClass.RUNNING,
-            entity_category=EntityCategory.CONFIG,
+            entity_category=EntityCategory.DIAGNOSTIC,
             icon=ICONS.get("notifications", "mdi:shield-alert"),
         )
 
@@ -1057,7 +1057,7 @@ class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.RUNNING
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: PawControlCoordinator, entry: ConfigEntry) -> None:
         """Initialize the visitor mode binary sensor."""
