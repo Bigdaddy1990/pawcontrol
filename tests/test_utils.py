@@ -11,6 +11,20 @@ homeassistant = types.ModuleType("homeassistant")
 ha_const = types.ModuleType("homeassistant.const")
 
 
+# Minimal homeassistant.util.logging stub for pytest plugin
+ha_util = types.ModuleType("homeassistant.util")
+ha_logging = types.ModuleType("homeassistant.util.logging")
+
+
+def _log_exception(format_err, *args):
+    """Dummy log_exception function for tests."""
+    return None
+
+
+ha_logging.log_exception = _log_exception
+ha_util.logging = ha_logging
+
+
 class Platform:
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
@@ -25,8 +39,11 @@ class Platform:
 
 ha_const.Platform = Platform
 homeassistant.const = ha_const
+homeassistant.util = ha_util
 sys.modules["homeassistant"] = homeassistant
 sys.modules["homeassistant.const"] = ha_const
+sys.modules["homeassistant.util"] = ha_util
+sys.modules["homeassistant.util.logging"] = ha_logging
 
 # Set up package stubs for custom_components.pawcontrol
 ROOT = pathlib.Path(__file__).resolve().parents[1]
