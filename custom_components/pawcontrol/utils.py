@@ -38,14 +38,14 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     a = s_dphi * s_dphi + cos(phi1) * cos(phi2) * s_dlam * s_dlam
 
-    # Clamp against numerical out-of-range values
-    if a <= 0.0:
+    # Clamp against numerical out-of-range values before processing
+    a = max(0.0, min(1.0, a))
+    if a == 0.0:
         return 0.0
-    if a >= 1.0:
+    if a == 1.0:
         # Antipodal case → half of Earth's circumference
         return pi * EARTH_RADIUS_M
 
-    a = min(1.0, max(0.0, a))
     c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
     return EARTH_RADIUS_M * c
 

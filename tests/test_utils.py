@@ -1,6 +1,7 @@
 import asyncio
 import importlib.util
 import logging
+import math
 import pathlib
 import types
 import sys
@@ -95,6 +96,10 @@ def test_calculate_speed_kmh_zero_duration():
 def test_calculate_distance_variants():
     assert calculate_distance(0.0, 0.0, 0.0, 0.0) == 0.0
     assert calculate_distance(50.0, 10.0, 50.0, 10.1) > 0.0
+    assert calculate_distance(0.0, 0.0, 0.0, 180.0) == pytest.approx(
+        math.pi * const_mod.EARTH_RADIUS_M
+    )
+    assert calculate_distance(80.0, 0.0, 100.0, 180.0) == 0.0
 
 
 @pytest.mark.parametrize(
@@ -104,6 +109,7 @@ def test_calculate_distance_variants():
         ("bad", 20.0, False),
         (True, 20.0, False),
         (100.0, 20.0, False),
+        (float("nan"), 20.0, False),
     ],
 )
 def test_validate_coordinates(lat, lon, expected):
