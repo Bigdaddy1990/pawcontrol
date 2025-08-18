@@ -79,11 +79,17 @@ def test_calculate_distance_variants():
     assert calculate_distance(50.0, 10.0, 50.0, 10.1) > 0.0
 
 
-def test_validate_coordinates():
-    assert validate_coordinates(10.0, 20.0)
-    assert not validate_coordinates("bad", 20.0)
-    assert not validate_coordinates(True, 20.0)
-    assert not validate_coordinates(100.0, 20.0)
+@pytest.mark.parametrize(
+    ("lat", "lon", "expected"),
+    [
+        (10.0, 20.0, True),
+        ("bad", 20.0, False),
+        (True, 20.0, False),
+        (100.0, 20.0, False),
+    ],
+)
+def test_validate_coordinates(lat, lon, expected):
+    assert validate_coordinates(lat, lon) is expected
 
 
 def test_format_coordinates():
