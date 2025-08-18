@@ -17,8 +17,6 @@ The integration follows Home Assistant's Platinum quality standards with:
 from __future__ import annotations
 
 import logging
-import sys
-from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -28,7 +26,6 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     ConfigEntryNotReady,
     HomeAssistantError,
-    ServiceValidationError,
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -42,7 +39,6 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
-    EVENT_DAILY_RESET,
     PLATFORMS,
 )
 
