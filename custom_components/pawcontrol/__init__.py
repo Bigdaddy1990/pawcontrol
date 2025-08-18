@@ -18,10 +18,7 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigEntryState,
-)
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     ConfigEntryNotReady,
@@ -284,7 +281,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
         )
 
-    entry.state = ConfigEntryState.LOADED
     return True
 
 
