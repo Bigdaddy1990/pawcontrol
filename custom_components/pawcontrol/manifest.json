@@ -1,0 +1,28 @@
+{
+  "domain": "pawcontrol",
+  "name": "Paw Control",
+  "after_dependencies": [
+    "mobile_app",
+    "person",
+    "zone",
+    "calendar",
+    "notify",
+    "device_tracker"
+  ],
+  "codeowners": [
+    "@BigDaddy1990"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/BigDaddy1990/pawcontrol",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "loggers": [
+    "custom_components.pawcontrol",
+    "pawcontrol"
+  ],
+
+  "requirements": [],
+  "version": "1.0.0"
+}
