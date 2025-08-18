@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+import logging
 import pathlib
 import types
 import sys
@@ -113,7 +114,7 @@ def test_format_coordinates():
     assert format_coordinates(1.23456789, 9.87654321) == "1.234568,9.876543"
 
 
-def test_safe_service_call():
+def test_safe_service_call(caplog):
     class DummyServices:
         def __init__(self):
             self.called = False
@@ -128,6 +129,8 @@ def test_safe_service_call():
             self.services = DummyServices()
 
     hass = DummyHass()
-    assert asyncio.run(safe_service_call(hass, "test", "service"))
-    assert hass.services.called
-    assert not asyncio.run(safe_service_call(hass, "fail", "service"))
+    with caplog.at_level(logging.DEBUG):
+        assert asyncio.run(safe_service_call(hass, "test", "service"))
+        assert hass.services.called
+        assert not asyncio.run(safe_service_call(hass, "fail", "service"))
+    assert "Service call failed for fail.service" in caplog.text

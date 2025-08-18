@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from math import atan2, cos, isfinite, pi, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Final
 
 from .const import EARTH_RADIUS_M
+
+
+_LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -94,5 +98,6 @@ async def safe_service_call(
     try:
         await hass.services.async_call(domain, service, data or {}, blocking=blocking)
         return True
-    except Exception:
+    except Exception as err:  # noqa: BLE001 intentionally broad
+        _LOGGER.debug("Service call failed for %s.%s: %s", domain, service, err)
         return False
