@@ -52,9 +52,26 @@ class ReportGenerator:
 
         self.hass = hass
         self.entry = entry
-        self.coordinator = coordinator or getattr(
-            getattr(entry, "runtime_data", None), "coordinator", None
-        )
+        # Store the coordinator if provided; otherwise lazily resolve it from
+        # the config entry when accessed via the ``coordinator`` property.  This
+        # ensures that the report generator still works when constructed before
+        # ``runtime_data`` is attached to the config entry.
+        self._coordinator: PawControlCoordinator | None = coordinator
+
+    @property
+    def coordinator(self) -> PawControlCoordinator | None:
+        """Return the data coordinator.
+
+        When the report generator is created before ``runtime_data`` is
+        attached to the config entry, the coordinator may not yet be available.
+        Accessing it via this property allows us to fall back to the coordinator
+        provided in ``runtime_data`` once it becomes available.
+        """
+
+        if self._coordinator is not None:
+            return self._coordinator
+
+        return getattr(getattr(self.entry, "runtime_data", None), "coordinator", None)
 
     async def generate_report(
         self,
@@ -89,13 +106,22 @@ class ReportGenerator:
             "dogs": {},
         }
 
+        coordinator = self.coordinator
+        if coordinator is None:
+            _LOGGER.warning("No coordinator available when generating report")
+            return report_data
+
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not dog_id:
                 continue
 
             dog_name = dog.get(CONF_DOG_NAME, dog_id)
-            dog_data = self.coordinator.get_dog_data(dog_id)
+            try:
+                dog_data = coordinator.get_dog_data(dog_id)
+            except AttributeError:
+                _LOGGER.debug("Coordinator missing get_dog_data when generating report")
+                continue
 
             # Compile statistics
             dog_report = {
