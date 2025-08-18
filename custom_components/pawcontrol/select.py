@@ -47,6 +47,7 @@ from .const import (
     GROOMING_TRIM,
     GROOMING_TYPES,
     ICONS,
+    INTEGRATION_URL,
     INTENSITY_HIGH,
     INTENSITY_LOW,
     INTENSITY_MEDIUM,
@@ -1166,7 +1167,7 @@ class ExportFormatSelect(SelectEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1240,7 +1241,7 @@ class NotificationPrioritySelect(SelectEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version="1.1.0",
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property

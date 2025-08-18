@@ -17,6 +17,11 @@ DOMAIN: Final[str] = "pawcontrol"
 # Integration version for internal tracking
 INTEGRATION_VERSION = "1.0.0"
 
+# Link to this integration's configuration page in Home Assistant
+INTEGRATION_URL: Final[str] = (
+    f"https://my.home-assistant.io/redirect/integration/?domain={DOMAIN}"
+)
+
 # ==============================================================================
 # PLATFORMS
 # ==============================================================================

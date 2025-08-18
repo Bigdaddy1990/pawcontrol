@@ -37,6 +37,7 @@ from .const import (
     CONF_DOGS,
     DOMAIN,
     ICONS,
+    INTEGRATION_URL,
     INTEGRATION_VERSION,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -1071,7 +1072,7 @@ class VisitorModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version=INTEGRATION_VERSION,
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1109,7 +1110,7 @@ class EmergencyModeBinarySensor(CoordinatorEntity, BinarySensorEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version=INTEGRATION_VERSION,
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
@@ -1160,7 +1161,7 @@ class SystemHealthyBinarySensor(CoordinatorEntity, BinarySensorEntity):
             manufacturer="Paw Control",
             model="Smart Dog Manager",
             sw_version=INTEGRATION_VERSION,
-            configuration_url=f"/config/integrations/integration/{DOMAIN}",
+            configuration_url=INTEGRATION_URL,
         )
 
     @property
