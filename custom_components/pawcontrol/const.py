@@ -46,7 +46,7 @@ EARTH_RADIUS_M: Final[float] = 6_371_000.0
 
 # GPS accuracy and movement thresholds
 GPS_MIN_ACCURACY = 100  # meters - minimum acceptable GPS accuracy
-GPS_MAX_POINTS_PER_ROUTE: [int] = 10_000  # maximum GPS points stored per route
+GPS_MAX_POINTS_PER_ROUTE: Final[int] = 10_000  # maximum GPS points stored per route
 GPS_POINT_FILTER_DISTANCE: Final[int] = (
     5  # meters - minimum distance between stored points
 )
