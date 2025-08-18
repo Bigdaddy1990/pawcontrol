@@ -53,7 +53,7 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
     if not isfinite(distance_m) or distance_m < 0:
         return 0.0
     # Convert m/s to km/h
-   return (distance_m / duration_s) * 3.6
+    return (distance_m / duration_s) * 3.6
 
 
 def validate_coordinates(lat: float, lon: float) -> bool:
