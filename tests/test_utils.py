@@ -114,6 +114,11 @@ def test_format_coordinates():
     assert format_coordinates(1.23456789, 9.87654321) == "1.234568,9.876543"
 
 
+def test_format_coordinates_invalid():
+    with pytest.raises(ValueError):
+        format_coordinates(91.0, 0.0)
+
+
 def test_safe_service_call(caplog):
     class DummyServices:
         def __init__(self):

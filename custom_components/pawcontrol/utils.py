@@ -79,8 +79,19 @@ def validate_coordinates(lat: float, lon: float) -> bool:
 
 
 def format_coordinates(lat: float, lon: float) -> str:
-    """Format coordinates for display."""
-    return f"{lat:.6f},{lon:.6f}"
+    """Format coordinates for display.
+
+    Validates the provided latitude and longitude and raises ``ValueError`` if
+    they fall outside the accepted ranges or cannot be converted to floating
+    point numbers.
+    """
+
+    if not validate_coordinates(lat, lon):
+        raise ValueError(f"Invalid coordinates: ({lat}, {lon})")
+
+    # Ensure consistent float formatting even if inputs are ``Decimal`` or
+    # other ``SupportsFloat`` instances.
+    return f"{float(lat):.6f},{float(lon):.6f}"
 
 
 async def safe_service_call(
