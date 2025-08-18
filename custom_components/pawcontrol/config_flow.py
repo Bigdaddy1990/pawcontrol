@@ -200,19 +200,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self._handle_discovery(source, discovery_info)
 
     async def async_step_dhcp(self, discovery_info: dict[str, Any]) -> FlowResult:
-        """Handle DHCP discovery."""
-        # We don't import homeassistant.components.dhcp at module time – tests stay clean.
-        return await self._async_validate_and_handle_discovery("dhcp", discovery_info)
+        """DHCP discovery disabled."""
+        return self.async_abort(reason="not_supported")
 
     async def async_step_zeroconf(self, discovery_info: dict[str, Any]) -> FlowResult:
-        """Handle Zeroconf discovery."""
-        return await self._async_validate_and_handle_discovery(
-            "zeroconf", discovery_info
-        )
-
-    async def async_step_usb(self, discovery_info: dict[str, Any]) -> FlowResult:
-        """Handle USB discovery."""
-        return await self._async_validate_and_handle_discovery("usb", discovery_info)
+        """Zeroconf discovery disabled."""
+        return self.async_abort(reason="not_supported")
 
     # --- REAUTH FLOW ---
 
