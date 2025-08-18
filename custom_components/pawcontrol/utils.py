@@ -46,7 +46,7 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return EARTH_RADIUS_M * c
 
 
-def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
+    def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
         """Return speed in km/h given distance in meters and duration in seconds.
 
         Args:
@@ -56,10 +56,12 @@ def calculate_speed_kmh(distance_m: float, duration_s: float) -> float:
         Returns:
             Speed in km/h (0.0 for invalid inputs)
         """
-      if not isfinite(duration_s) or duration_s <= _EPS_TIME_S: return 0.0
-      if not isfinite(distance_m) or distance_m < 0: return 0.0
+        if not isfinite(duration_s) or duration_s <= _EPS_TIME_S:
+            return 0.0
+        if not isfinite(distance_m) or distance_m < 0:
+            return 0.0
         # Convert m/s to km/h
-         return (distance_m / duration_s) * 3.6
+        return (distance_m / duration_s) * 3.6
 
 
 def validate_coordinates(lat: float, lon: float) -> bool:
