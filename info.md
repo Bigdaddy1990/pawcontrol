@@ -20,12 +20,161 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 
 **Paw Control** ist die erste **GPS-basierte Home Assistant Integration**, die speziell für Hundebesitzer entwickelt wurde. Mit **automatischer Spaziergang-Erkennung**, **Live-Route-Tracking** und vielem mehr haben Sie die komplette Kontrolle über das Wohlbefinden Ihres Hundes.
 
-### **🏆 GPS-Features:**
-- 🛰️ **GPS-Tracking** mit automatischer Spaziergang-Erkennung
-- 📏 **Live-Distanz & Geschwindigkeit** während Spaziergängen
-- 🎯 **Geofencing** mit Sicherheitszonen
-- 📱 **Alle GPS-Tracker** unterstützt (Fressnapf, Tractive, Smartphone)
-- 🤖 **Intelligente Automatisierungen** basierend auf GPS-Daten
+## 🎯 Hauptfeatures im Überblick
+
+| Kategorie                | Beschreibung |
+|--------------------------|--------------|
+| 🧠 **Setup per UI**      | Einfache Konfiguration pro Hund – inkl. Name, Türsensor, Push-Gerät |
+| 🚪 **Türsensor-Erkennung** | Automatische Erkennung, wenn Hund durch die Tür geht |
+| 📲 **Push-Rückfrage**     | Nachricht an gewähltes Gerät: „Hat er gemacht?" – Antwort mit ✅ / ❌ |
+| 🔄 **Quittierungs-Logik** | Antwort auf einem Gerät löscht die Nachricht auf allen anderen |
+| 📊 **Dashboard-Integration** | Lovelace-fertiges YAML-Layout enthalten |
+| 🔃 **Tagesreset**          | Alle Zähler (Fütterung, Draußen) werden täglich um 23:59 Uhr zurückgesetzt |
+| 🐾 **Mehrhundelogik**     | Unterstützung für mehrere Hunde mit eigenen Sensoren und Werten |
+| 🧪 **Besuchshund-Modus**  | Temporärer Hundebesuch? Kein Problem – einfach aktivieren |
+| 📦 **HACS-kompatibel**    | Installation als Custom Repository in HACS möglich |
+
+### 🔧 Funktionsübersicht
+
+| Feature | Beschreibung |
+|---------|--------------|
+| 🍽️ **Fütterung** | Erinnerungen für Frühstück, Mittag, Abend, Leckerli |
+| 🚪 **Türsensor-Tracking** | „Draußen"-Protokoll mit Rückfragen |
+| 📲 **Push-Logik** | Nachricht an anwesende Person(en) oder manuelle Geräte |
+| 📅 **Tagesstatistik** | Counter pro Aktion + automatischer Reset |
+| 🧍 **Besucherhunde** | Optionaler Besuchsmodus & Statusanzeige |
+| 🧠 **Adminpanel** | Zentrale Übersicht, manuelle Steuerung, Push-Test |
+| 📊 **Dashboard** | Mushroom-fähig, responsiv, Chip + Template-Karten |
+| 💬 **Rückfragen** | „Hund schon gefüttert?" via Notification |
+| 🔁 **Flexibel** | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
+
+## 🎯 Features im Detail
+
+### 🔔 Push & Benachrichtigungen
+- **Dynamische Personenerkennung**: Automatische Benachrichtigung via `person.*` Entitäten wenn `state == home`
+- **Fallback-System**: Statisch konfigurierte Geräte (`mobile_app_*`) als Backup
+- **Interaktive Rückfragen**: Benachrichtigungen mit Titel, Nachricht und Bestätigungsoptionen
+- **Multi-User Support**: Unterstützung für mehrere Haushaltsbenutzer
+- **Flexible Konfiguration**: Wählbar zwischen Personen-basiert oder Geräte-basiert
+- **Test-Funktion**: Benachrichtigungs-Test per Button oder Service
+
+### 🍽️ Fütterung & Rückfragen
+- **Vier Mahlzeiten**: Frühstück, Mittag, Abend, Snack – einzeln aktivierbar
+- **Intelligente Rückfragen**: Automatische Erinnerungen für jede Fütterung
+- **Status-Tracking**: Erkennung per `input_boolean`-Toggle pro Mahlzeit
+- **Zeitgesteuerte Erinnerungen**: `input_datetime` für geplante Benachrichtigungen (geplant)
+- **Fütterungs-Counter**: Separate Zähler für jede Mahlzeit
+- **Überfütterungs-Schutz**: Warnung bei zu häufiger Fütterung
+- **Tagesübersicht**: Vollständige Übersicht aller Fütterungen
+
+### 🚪 Gartengang & Aktivitäts-Tracking
+- **Türsensor-Integration**: Automatische Erkennung "Hund war draußen?"
+- **Manuelle Erfassung**
+- **Rückfrage-System**: Automatische Bestätigung via Push-Benachrichtigung
+- **Aktivitäts-Counter**
+- **Zeitstempel-Tracking** für Aktivitäten 
+- **Dauer-Messung** Aufenthaltszeit im Garten
+
+### 💩 Geschäfte & Gesundheits-Tracking
+- **Kot-Tracking**: Separater Counter für Geschäfte
+- **Gesundheits-Monitoring**: Unregelmäßigkeiten erkennen
+- **Tierarzt-Erinnerungen**: Automatische Benachrichtigungen bei Auffälligkeiten
+- **Wetter-Integration**: Berücksichtigung von Wetterbedingungen (geplant)
+
+### 📊 Statistik & Auswertung
+- **Umfassende Counter für**:
+  - Jede Fütterungsart (Frühstück, Mittag, Abend, Snack)
+  - Gassigang-Häufigkeit
+  - Kot-Zeiten und -Häufigkeit
+  - Besondere Ereignisse
+- **Automatischer Reset**: Täglicher Reset um benutzergewählte Zeit
+- **Historische Daten**: Langzeit-Statistiken für Gesundheits-Trends
+- **Sensor für letzte Aktivität**: Zeitstempel der letzten Aktion
+- **Wöchentliche/Monatliche Zusammenfassungen**: Trend-Analyse
+
+### 🧾 Automatisierung & Skripte
+- **Auto-generierte Skripte**:
+  - Rückfrage-Skripte mit `notify`-Service
+  - Individuelle Reset-Skripte pro Hund
+  - Push-Test-Skripte für jeden Hund
+- **Service-Integration**: Nahtlose Integration in Home Assistant Automationen
+- **Zeitgesteuerte Aktionen**: Automatische Erinnerungen basierend auf Uhrzeiten
+- **Bedingte Logik**: Intelligente Benachrichtigungen basierend auf Hundestatus
+
+### 🧩 Erweiterbarkeit & Flexibilität
+- **Multi-Hund Support**
+- **Besucherhund-Modus**: Temporärer Modus für Gäste-Hunde (Hunde-Sitting)
+- **Geräte-Flexibilität**: Wählbar zwischen Personen-basiert oder statischer Geräteliste
+- **Modularer Aufbau**: Einzelne Features aktivierbar/deaktivierbar
+- **Custom Entities**: Unterstützung für benutzerdefinierte Entitäten
+- **Integration Ready**: Vorbereitet für weitere Sensoren (Futterschale, Wasserspender, etc.)
+
+### 🖥️ Dashboard & Benutzeroberfläche
+- **Mushroom-Kompatibilität**: Optimiert für Mushroom-Cards (Chips, Templates)
+- **Lovelance Installationsanleitung*
+- **Automatisches Dashboard**: Alle Entitäten werden automatisch angezeigt
+- **Responsive Design**: Optimiert für Desktop und Mobile
+- **Konfigurationspanel**: Zentrale Übersicht und Schnellsteuerung
+- **Anpassbare Layouts**: Verschiedene Dashboard-Varianten
+- **Status-Indikatoren**: Visuelle Darstellung des Hundestatus
+- **Schnellaktionen**: Ein-Klick-Buttons für häufige Aktionen
+
+### 🔧 Technische Features
+- **Config Flow**: Benutzerfreundliche Einrichtung über UI
+- **Entity Registry**: Saubere Entitäts-Verwaltung
+- **Error Handling**: Robuste Fehlerbehandlung
+- **Logging**: Umfassendes Logging für Debugging
+- **Localization**: Mehrsprachige Unterstützung (DE/EN)
+- **Device Integration**: Proper Device-Gruppierung
+- **Service Schemas**: Validierte Service-Aufrufe
+
+### 🔧 Setup & Installation
+- **🐶 Automatische Setup-Skript-Erstellung**
+- **⏳ Verzögerter Start**: Vermeidet Race Conditions beim Skriptaufruf
+- **🧠 Robuste Fehlerbehandlung**
+- **🛠️ UI-basierte Konfiguration**
+- **📦 Integriertes Setup**
+
+### 🐕 Besuchshund-Modul
+- **Flexible Aktivierung**
+- **Separate Verwaltung**: Eigene Dashboard-Blöcke mit getrennter Statistik
+- **Isolierte Rückfragen**: Unabhängiges Tracking ohne Vermischung der Daten
+- **Gäste-optimiert**: Ideal für temporäre Hundebesuche mit vollständiger Funktionalität
+
+### 💬 Intelligente Rückfragen
+- **Türsensor-Integration**: Automatische Erkennung von Türbewegungen
+- **Kontextuelle Fragen**: „War der Hund draußen?" nach Türöffnung
+- **Geschäft-Tracking**: Optionale Nachfrage über erledigte Geschäfte
+- **Multi-Device-Synchronisation**: Antwort auf einem Gerät löscht Benachrichtigungen auf allen anderen
+- **Quittierungs-System**: Vollständige Rückmeldungslogik mit Status-Updates
+
+### 📱 Mobile-First Design
+- **Mushroom UI-Optimierung**: Perfekt abgestimmt auf moderne Card-Layouts
+- **Timeline-Integration**: Chronologische Darstellung aller Aktivitäten
+- **Responsive Statusanzeige**: Optimiert für verschiedene Bildschirmgrößen
+- **Touch-optimierte Buttons**: Große, gut erreichbare Bedienelemente
+- **Schnellzugriff-Panel**: Wichtigste Funktionen sofort verfügbar
+
+### 🐶 Erweiterte Mehrhundeverwaltung
+- **Skalierbare Architektur**
+- **Automatische Entitätserstellung**: Zähler, Fütterungszeiten, Statistiken pro Hund
+- **Individuelle Konfiguration**: Jeder Hund mit eigenen Einstellungen und Türsensoren
+- **Visuelle Unterscheidung**: Farben, Icons und Layouts pro Hund anpassbar
+- **Getrennte Historien**: Separate für Wochen-/Monatsstatistiken
+
+### 📊 Dashboard & Automatisierung
+- **Dynamische UI-Generierung**: Automatische Dashboard-Erstellung je Hund
+- **Besuchshund-Separation**: Separate Bereiche für temporäre Gäste
+- **Notification-Actions**: Interaktive Rückfragen direkt aus Benachrichtigungen
+- **Zeitgesteuerte Automationen**: Inkl. Reset-Automationen und Erinnerungen
+- **Anpassbare Layouts**: Verschiedene Dashboard-Varianten für unterschiedliche Bedürfnisse
+
+### ✅ Vollständige Setup-Integration
+- **UI-basiertes Onboarding**: Komplette Einrichtung über Home Assistant Interface
+- **Automatische Helper-Erstellung**: werden automatisch angelegt
+- **Intelligenter Tagesreset**: Konfigurierbare Reset-Zeit (Standard: 23:59 Uhr)
+- **Flexible Sensorkonfiguration**: Türsensor-Auswahl und -Konfiguration im Setup
+- **Erweiterbares System**
 
 ---
 
