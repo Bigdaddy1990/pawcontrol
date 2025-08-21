@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from typing import Final
 
+# Storage version for data persistence
+STORAGE_VERSION: Final = 1
+
 # Integration domain
 DOMAIN: Final = "pawcontrol"
 
@@ -262,3 +265,12 @@ ERROR_INVALID_CONFIG: Final = "invalid_config"
 ERROR_GPS_UNAVAILABLE: Final = "gps_unavailable"
 ERROR_NOTIFICATION_FAILED: Final = "notification_failed"
 ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
+
+# Validation constants (for compatibility with other modules)
+VALID_MEAL_TYPES: Final = MEAL_TYPES
+VALID_FOOD_TYPES: Final = FOOD_TYPES
+VALID_GPS_SOURCES: Final = GPS_SOURCES
+VALID_HEALTH_STATUS: Final = HEALTH_STATUS_OPTIONS
+VALID_MOOD_OPTIONS: Final = MOOD_OPTIONS
+VALID_ACTIVITY_LEVELS: Final = ACTIVITY_LEVELS
+VALID_DOG_SIZES: Final = DOG_SIZES

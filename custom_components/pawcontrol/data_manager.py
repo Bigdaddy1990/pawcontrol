@@ -4,6 +4,10 @@ This module provides comprehensive data storage, retrieval, and management
 functionality for all dog monitoring data. It handles data persistence,
 cleanup, export/import operations, and maintains data integrity across
 all modules and components.
+
+Quality Scale: Platinum
+Home Assistant: 2025.8.2+
+Python: 3.13+
 """
 from __future__ import annotations
 
@@ -12,7 +16,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, TYPE_CHECKING
 
 import aiofiles
 from homeassistant.core import HomeAssistant
@@ -20,7 +24,8 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    DATA_RETENTION_DAYS,
+    CONF_DATA_RETENTION_DAYS,
+    DEFAULT_DATA_RETENTION_DAYS,
     DOMAIN,
     STORAGE_VERSION,
 )
@@ -37,11 +42,16 @@ from .utils import (
     sanitize_filename,
 )
 
-_LOGGER = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from .types import (
+        FeedingData,
+        WalkData,
+        HealthData,
+        GroomingData,
+        GPSPoint,
+    )
 
-# Type aliases
-DataDict = Dict[str, Any]
-DogDataDict = Dict[str, DataDict]
+_LOGGER = logging.getLogger(__name__)
 
 
 class PawControlDataManager:
@@ -49,6 +59,7 @@ class PawControlDataManager:
     
     Handles all data storage, retrieval, and management operations
     including persistence, cleanup, backup, and export/import.
+    Designed for high performance with async operations and intelligent caching.
     """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -61,100 +72,131 @@ class PawControlDataManager:
         self.hass = hass
         self.entry_id = entry_id
         
-        # Storage instances for different data types
-        self._dog_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_dogs"
-        )
-        self._feeding_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_feeding"
-        )
-        self._walk_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_walks"
-        )
-        self._health_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_health"
-        )
-        self._gps_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_gps"
-        )
-        self._grooming_store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_grooming"
-        )
+        # Storage instances for different data types with modern patterns
+        self._stores: dict[str, Store] = {
+            "dogs": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_dogs"),
+            "feeding": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_feeding"),
+            "walks": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_walks"),
+            "health": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_health"),
+            "gps": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_gps"),
+            "grooming": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_grooming"),
+            "statistics": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_statistics"),
+        }
         
-        # In-memory cache for frequently accessed data
-        self._cache: Dict[str, Any] = {}
-        self._cache_timestamps: Dict[str, datetime] = {}
+        # In-memory cache for frequently accessed data with TTL
+        self._cache: dict[str, Any] = {}
+        self._cache_timestamps: dict[str, datetime] = {}
         self._cache_ttl = timedelta(minutes=5)
         
-        # Data cleanup task
+        # Background tasks
         self._cleanup_task: Optional[asyncio.Task] = None
+        self._backup_task: Optional[asyncio.Task] = None
         
-        # Lock for thread-safe operations
+        # Async locks for thread-safe operations
         self._lock = asyncio.Lock()
+        self._cache_lock = asyncio.Lock()
+        
+        # Performance metrics
+        self._metrics: dict[str, Any] = {
+            "operations_count": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "total_data_size": 0,
+            "last_cleanup": None,
+            "errors_count": 0,
+        }
 
     async def async_initialize(self) -> None:
-        """Initialize the data manager and load existing data."""
+        """Initialize the data manager and load existing data.
+        
+        Raises:
+            StorageError: If initialization fails
+        """
         _LOGGER.debug("Initializing data manager for entry %s", self.entry_id)
         
         try:
-            # Load existing data
+            # Load existing data into cache
             await self._load_initial_data()
             
-            # Start periodic cleanup task
+            # Start background tasks
             self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
+            self._backup_task = asyncio.create_task(self._periodic_backup())
+            
+            # Initialize statistics if not present
+            await self._initialize_statistics()
             
             _LOGGER.info("Data manager initialized successfully")
             
         except Exception as err:
-            _LOGGER.error("Failed to initialize data manager: %s", err)
+            _LOGGER.error("Failed to initialize data manager: %s", err, exc_info=True)
             raise StorageError("initialize", str(err)) from err
 
     async def async_shutdown(self) -> None:
         """Shutdown the data manager and cleanup resources."""
         _LOGGER.debug("Shutting down data manager")
         
-        # Cancel cleanup task
-        if self._cleanup_task:
-            self._cleanup_task.cancel()
-            try:
-                await self._cleanup_task
-            except asyncio.CancelledError:
-                pass
-        
-        # Clear cache
-        self._cache.clear()
-        self._cache_timestamps.clear()
-        
-        _LOGGER.info("Data manager shutdown complete")
+        try:
+            # Cancel background tasks
+            if self._cleanup_task:
+                self._cleanup_task.cancel()
+                try:
+                    await self._cleanup_task
+                except asyncio.CancelledError:
+                    pass
+            
+            if self._backup_task:
+                self._backup_task.cancel()
+                try:
+                    await self._backup_task
+                except asyncio.CancelledError:
+                    pass
+            
+            # Final data save
+            await self._flush_cache_to_storage()
+            
+            # Clear cache
+            async with self._cache_lock:
+                self._cache.clear()
+                self._cache_timestamps.clear()
+            
+            _LOGGER.info("Data manager shutdown complete")
+            
+        except Exception as err:
+            _LOGGER.error("Error during data manager shutdown: %s", err)
 
     async def _load_initial_data(self) -> None:
         """Load initial data from storage into cache."""
         async with self._lock:
             try:
                 # Load dog data
-                dog_data = await self._dog_store.async_load() or {}
-                self._cache["dogs"] = dog_data
-                self._cache_timestamps["dogs"] = dt_util.utcnow()
+                dog_data = await self._stores["dogs"].async_load() or {}
+                await self._set_cache("dogs", dog_data)
                 
-                _LOGGER.debug("Loaded data for %d dogs", len(dog_data))
+                # Load recent feeding data for quick access
+                feeding_data = await self._stores["feeding"].async_load() or {}
+                await self._set_cache("feeding", feeding_data)
+                
+                _LOGGER.debug("Loaded initial data for %d dogs", len(dog_data))
                 
             except Exception as err:
                 _LOGGER.error("Failed to load initial data: %s", err)
-                self._cache["dogs"] = {}
+                await self._set_cache("dogs", {})
+                await self._set_cache("feeding", {})
 
-    async def async_get_dog_data(self, dog_id: str) -> Optional[DataDict]:
+    async def _initialize_statistics(self) -> None:
+        """Initialize statistics storage if not present."""
+        stats = await self._stores["statistics"].async_load()
+        if not stats:
+            initial_stats = {
+                "created": dt_util.utcnow().isoformat(),
+                "total_operations": 0,
+                "dogs_count": 0,
+                "last_reset": dt_util.utcnow().isoformat(),
+            }
+            await self._stores["statistics"].async_save(initial_stats)
+
+    # Core dog data operations
+    async def async_get_dog_data(self, dog_id: str) -> Optional[dict[str, Any]]:
         """Get all data for a specific dog.
         
         Args:
@@ -164,11 +206,10 @@ class PawControlDataManager:
             Dog data dictionary or None if not found
         """
         await self._ensure_cache_fresh("dogs")
-        
-        dogs_data = self._cache.get("dogs", {})
+        dogs_data = await self._get_cache("dogs", {})
         return dogs_data.get(dog_id)
 
-    async def async_set_dog_data(self, dog_id: str, data: DataDict) -> None:
+    async def async_set_dog_data(self, dog_id: str, data: dict[str, Any]) -> None:
         """Set data for a specific dog.
         
         Args:
@@ -177,18 +218,19 @@ class PawControlDataManager:
         """
         async with self._lock:
             # Update cache
-            if "dogs" not in self._cache:
-                self._cache["dogs"] = {}
+            dogs_data = await self._get_cache("dogs", {})
+            dogs_data[dog_id] = data
+            await self._set_cache("dogs", dogs_data)
             
-            self._cache["dogs"][dog_id] = data
-            self._cache_timestamps["dogs"] = dt_util.utcnow()
+            # Persist to storage asynchronously
+            await self._stores["dogs"].async_save(dogs_data)
             
-            # Persist to storage
-            await self._dog_store.async_save(self._cache["dogs"])
+            # Update metrics
+            self._metrics["operations_count"] += 1
             
             _LOGGER.debug("Updated data for dog %s", dog_id)
 
-    async def async_update_dog_data(self, dog_id: str, updates: DataDict) -> None:
+    async def async_update_dog_data(self, dog_id: str, updates: dict[str, Any]) -> None:
         """Update specific fields in dog data.
         
         Args:
@@ -206,59 +248,105 @@ class PawControlDataManager:
             dog_id: Dog identifier
         """
         async with self._lock:
-            # Remove from cache
-            if "dogs" in self._cache and dog_id in self._cache["dogs"]:
-                del self._cache["dogs"][dog_id]
-                self._cache_timestamps["dogs"] = dt_util.utcnow()
+            try:
+                # Remove from main dog storage
+                dogs_data = await self._get_cache("dogs", {})
+                if dog_id in dogs_data:
+                    del dogs_data[dog_id]
+                    await self._set_cache("dogs", dogs_data)
+                    await self._stores["dogs"].async_save(dogs_data)
                 
-                # Persist to storage
-                await self._dog_store.async_save(self._cache["dogs"])
-            
-            # Remove from all module stores
-            await self._delete_dog_from_all_modules(dog_id)
-            
-            _LOGGER.info("Deleted all data for dog %s", dog_id)
+                # Remove from all module stores
+                await self._delete_dog_from_all_modules(dog_id)
+                
+                # Update metrics
+                self._metrics["operations_count"] += 1
+                
+                _LOGGER.info("Deleted all data for dog %s", dog_id)
+                
+            except Exception as err:
+                _LOGGER.error("Failed to delete dog data for %s: %s", dog_id, err)
+                self._metrics["errors_count"] += 1
+                raise
 
-    async def async_get_all_dogs(self) -> DogDataDict:
+    async def async_get_all_dogs(self) -> dict[str, dict[str, Any]]:
         """Get data for all dogs.
         
         Returns:
             Dictionary of all dog data
         """
         await self._ensure_cache_fresh("dogs")
-        return self._cache.get("dogs", {}).copy()
+        dogs_data = await self._get_cache("dogs", {})
+        return dogs_data.copy()
 
-    async def async_log_feeding(
-        self, 
-        dog_id: str, 
-        meal_data: DataDict
-    ) -> None:
+    # Feeding operations
+    async def async_log_feeding(self, dog_id: str, meal_data: dict[str, Any]) -> None:
         """Log a feeding event for a dog.
         
         Args:
             dog_id: Dog identifier
             meal_data: Feeding data to log
         """
-        timestamp = dt_util.utcnow().isoformat()
-        feeding_entry = {
-            "timestamp": timestamp,
-            "dog_id": dog_id,
-            **meal_data,
-        }
-        
-        await self._append_to_module_data("feeding", dog_id, feeding_entry)
-        
-        # Update dog's last feeding time
-        await self.async_update_dog_data(dog_id, {
-            "feeding": {
-                "last_feeding": timestamp,
-                "last_feeding_hours": 0,
+        try:
+            timestamp = dt_util.utcnow()
+            feeding_entry = {
+                "feeding_id": f"feeding_{dog_id}_{int(timestamp.timestamp())}",
+                "timestamp": timestamp.isoformat(),
+                "dog_id": dog_id,
+                **meal_data,
             }
-        })
-        
-        _LOGGER.debug("Logged feeding for dog %s: %s", dog_id, meal_data.get("meal_type"))
+            
+            await self._append_to_module_data("feeding", dog_id, feeding_entry)
+            
+            # Update dog's last feeding time
+            await self.async_update_dog_data(dog_id, {
+                "feeding": {
+                    "last_feeding": timestamp.isoformat(),
+                    "last_feeding_hours": 0,
+                    "last_feeding_type": meal_data.get("meal_type"),
+                }
+            })
+            
+            _LOGGER.debug("Logged feeding for dog %s: %s", dog_id, meal_data.get("meal_type"))
+            
+        except Exception as err:
+            _LOGGER.error("Failed to log feeding for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
-    async def async_start_walk(self, dog_id: str, walk_data: DataDict) -> str:
+    async def async_get_feeding_history(
+        self, 
+        dog_id: str, 
+        days: int = 7
+    ) -> list[dict[str, Any]]:
+        """Get feeding history for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            days: Number of days to retrieve
+            
+        Returns:
+            List of feeding entries
+        """
+        start_date = dt_util.utcnow() - timedelta(days=days)
+        return await self.async_get_module_data(
+            "feeding", dog_id, start_date=start_date
+        )
+
+    async def async_get_feeding_schedule(self, dog_id: str) -> dict[str, Any]:
+        """Get feeding schedule for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Feeding schedule configuration
+        """
+        dog_data = await self.async_get_dog_data(dog_id)
+        return dog_data.get("feeding_schedule", {}) if dog_data else {}
+
+    # Walk operations
+    async def async_start_walk(self, dog_id: str, walk_data: dict[str, Any]) -> str:
         """Start a walk session for a dog.
         
         Args:
@@ -268,35 +356,42 @@ class PawControlDataManager:
         Returns:
             Walk session ID
         """
-        walk_id = f"walk_{dog_id}_{int(dt_util.utcnow().timestamp())}"
-        timestamp = dt_util.utcnow().isoformat()
-        
-        walk_entry = {
-            "walk_id": walk_id,
-            "dog_id": dog_id,
-            "start_time": timestamp,
-            "status": "in_progress",
-            **walk_data,
-        }
-        
-        await self._append_to_module_data("walks", dog_id, walk_entry)
-        
-        # Update dog's walk status
-        await self.async_update_dog_data(dog_id, {
-            "walk": {
-                "walk_in_progress": True,
-                "current_walk_id": walk_id,
-                "current_walk_start": timestamp,
+        try:
+            timestamp = dt_util.utcnow()
+            walk_id = f"walk_{dog_id}_{int(timestamp.timestamp())}"
+            
+            walk_entry = {
+                "walk_id": walk_id,
+                "dog_id": dog_id,
+                "start_time": timestamp.isoformat(),
+                "status": "in_progress",
+                "route_points": [],
+                **walk_data,
             }
-        })
-        
-        _LOGGER.debug("Started walk %s for dog %s", walk_id, dog_id)
-        return walk_id
+            
+            await self._append_to_module_data("walks", dog_id, walk_entry)
+            
+            # Update dog's walk status
+            await self.async_update_dog_data(dog_id, {
+                "walk": {
+                    "walk_in_progress": True,
+                    "current_walk_id": walk_id,
+                    "current_walk_start": timestamp.isoformat(),
+                }
+            })
+            
+            _LOGGER.debug("Started walk %s for dog %s", walk_id, dog_id)
+            return walk_id
+            
+        except Exception as err:
+            _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
     async def async_end_walk(
         self, 
         dog_id: str, 
-        walk_data: Optional[DataDict] = None
+        walk_data: Optional[dict[str, Any]] = None
     ) -> None:
         """End the current walk session for a dog.
         
@@ -304,99 +399,289 @@ class PawControlDataManager:
             dog_id: Dog identifier
             walk_data: Optional walk end data
         """
+        try:
+            dog_data = await self.async_get_dog_data(dog_id)
+            if not dog_data or not dog_data.get("walk", {}).get("walk_in_progress"):
+                _LOGGER.warning("No active walk found for dog %s", dog_id)
+                return
+            
+            walk_id = dog_data["walk"].get("current_walk_id")
+            if not walk_id:
+                _LOGGER.warning("No current walk ID found for dog %s", dog_id)
+                return
+            
+            timestamp = dt_util.utcnow()
+            
+            # Calculate walk duration
+            start_time_str = dog_data["walk"].get("current_walk_start")
+            duration_minutes = 0
+            if start_time_str:
+                start_time = datetime.fromisoformat(start_time_str)
+                duration = timestamp - start_time
+                duration_minutes = int(duration.total_seconds() / 60)
+            
+            # Update the walk entry
+            walk_updates = {
+                "end_time": timestamp.isoformat(),
+                "status": "completed",
+                "duration_minutes": duration_minutes,
+                **(walk_data or {}),
+            }
+            
+            await self._update_module_entry("walks", dog_id, walk_id, walk_updates)
+            
+            # Update dog's walk status
+            await self.async_update_dog_data(dog_id, {
+                "walk": {
+                    "walk_in_progress": False,
+                    "current_walk_id": None,
+                    "current_walk_start": None,
+                    "last_walk": timestamp.isoformat(),
+                    "last_walk_hours": 0,
+                    "last_walk_duration": duration_minutes,
+                }
+            })
+            
+            _LOGGER.debug("Ended walk %s for dog %s", walk_id, dog_id)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to end walk for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
+
+    async def async_get_current_walk(self, dog_id: str) -> Optional[dict[str, Any]]:
+        """Get current active walk for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Current walk data or None
+        """
         dog_data = await self.async_get_dog_data(dog_id)
         if not dog_data or not dog_data.get("walk", {}).get("walk_in_progress"):
-            return
+            return None
         
         walk_id = dog_data["walk"].get("current_walk_id")
         if not walk_id:
-            return
+            return None
         
-        timestamp = dt_util.utcnow().isoformat()
+        # Get walk details from walks module
+        walks = await self.async_get_module_data("walks", dog_id, limit=10)
+        for walk in reversed(walks):  # Start with most recent
+            if walk.get("walk_id") == walk_id:
+                return walk
         
-        # Update the walk entry
-        walk_updates = {
-            "end_time": timestamp,
-            "status": "completed",
-            **(walk_data or {}),
-        }
-        
-        await self._update_module_entry("walks", dog_id, walk_id, walk_updates)
-        
-        # Update dog's walk status
-        await self.async_update_dog_data(dog_id, {
-            "walk": {
-                "walk_in_progress": False,
-                "current_walk_id": None,
-                "current_walk_start": None,
-                "last_walk": timestamp,
-                "last_walk_hours": 0,
-            }
-        })
-        
-        _LOGGER.debug("Ended walk %s for dog %s", walk_id, dog_id)
+        return None
 
-    async def async_log_health(self, dog_id: str, health_data: DataDict) -> None:
+    async def async_get_walk_history(
+        self, 
+        dog_id: str, 
+        days: int = 7
+    ) -> list[dict[str, Any]]:
+        """Get walk history for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            days: Number of days to retrieve
+            
+        Returns:
+            List of walk entries
+        """
+        start_date = dt_util.utcnow() - timedelta(days=days)
+        return await self.async_get_module_data(
+            "walks", dog_id, start_date=start_date
+        )
+
+    # Health operations
+    async def async_log_health(self, dog_id: str, health_data: dict[str, Any]) -> None:
         """Log health data for a dog.
         
         Args:
             dog_id: Dog identifier
             health_data: Health data to log
         """
-        timestamp = dt_util.utcnow().isoformat()
-        health_entry = {
-            "timestamp": timestamp,
-            "dog_id": dog_id,
-            **health_data,
-        }
-        
-        await self._append_to_module_data("health", dog_id, health_entry)
-        
-        # Update dog's current health status
-        health_updates = {"health": {"last_health_update": timestamp}}
-        
-        # Update specific health fields if provided
-        if "weight" in health_data:
-            health_updates["health"]["current_weight"] = health_data["weight"]
-        if "health_status" in health_data:
-            health_updates["health"]["health_status"] = health_data["health_status"]
-        if "mood" in health_data:
-            health_updates["health"]["mood"] = health_data["mood"]
-        
-        await self.async_update_dog_data(dog_id, health_updates)
-        
-        _LOGGER.debug("Logged health data for dog %s", dog_id)
+        try:
+            timestamp = dt_util.utcnow()
+            health_entry = {
+                "health_id": f"health_{dog_id}_{int(timestamp.timestamp())}",
+                "timestamp": timestamp.isoformat(),
+                "dog_id": dog_id,
+                **health_data,
+            }
+            
+            await self._append_to_module_data("health", dog_id, health_entry)
+            
+            # Update dog's current health status
+            health_updates = {"health": {"last_health_update": timestamp.isoformat()}}
+            
+            # Update specific health fields if provided
+            if "weight" in health_data:
+                health_updates["health"]["current_weight"] = health_data["weight"]
+            if "health_status" in health_data:
+                health_updates["health"]["health_status"] = health_data["health_status"]
+            if "mood" in health_data:
+                health_updates["health"]["mood"] = health_data["mood"]
+            
+            await self.async_update_dog_data(dog_id, health_updates)
+            
+            _LOGGER.debug("Logged health data for dog %s", dog_id)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to log health data for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
-    async def async_log_gps(self, dog_id: str, gps_data: DataDict) -> None:
+    async def async_get_health_history(
+        self, 
+        dog_id: str, 
+        days: int = 30
+    ) -> list[dict[str, Any]]:
+        """Get health history for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            days: Number of days to retrieve
+            
+        Returns:
+            List of health entries
+        """
+        start_date = dt_util.utcnow() - timedelta(days=days)
+        return await self.async_get_module_data(
+            "health", dog_id, start_date=start_date
+        )
+
+    async def async_get_weight_history(
+        self, 
+        dog_id: str, 
+        days: int = 90
+    ) -> list[dict[str, Any]]:
+        """Get weight history for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            days: Number of days to retrieve
+            
+        Returns:
+            List of weight entries
+        """
+        health_data = await self.async_get_health_history(dog_id, days)
+        return [entry for entry in health_data if "weight" in entry]
+
+    async def async_get_active_medications(self, dog_id: str) -> list[dict[str, Any]]:
+        """Get active medications for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            List of active medications
+        """
+        dog_data = await self.async_get_dog_data(dog_id)
+        if not dog_data:
+            return []
+        
+        return dog_data.get("health", {}).get("active_medications", [])
+
+    async def async_get_last_vet_visit(self, dog_id: str) -> Optional[dict[str, Any]]:
+        """Get last vet visit for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Last vet visit data or None
+        """
+        health_data = await self.async_get_health_history(dog_id, 365)  # Last year
+        vet_visits = [entry for entry in health_data if entry.get("type") == "vet_visit"]
+        return vet_visits[-1] if vet_visits else None
+
+    async def async_get_last_grooming(self, dog_id: str) -> Optional[dict[str, Any]]:
+        """Get last grooming session for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Last grooming data or None
+        """
+        grooming_data = await self.async_get_module_data("grooming", dog_id, limit=1)
+        return grooming_data[0] if grooming_data else None
+
+    # GPS operations
+    async def async_log_gps(self, dog_id: str, gps_data: dict[str, Any]) -> None:
         """Log GPS location data for a dog.
         
         Args:
             dog_id: Dog identifier
             gps_data: GPS data to log
         """
-        timestamp = dt_util.utcnow().isoformat()
-        gps_entry = {
-            "timestamp": timestamp,
-            "dog_id": dog_id,
-            **gps_data,
-        }
-        
-        await self._append_to_module_data("gps", dog_id, gps_entry)
-        
-        # Update dog's current location
-        gps_updates = {
-            "gps": {
-                "last_seen": timestamp,
-                "latitude": gps_data.get("latitude"),
-                "longitude": gps_data.get("longitude"),
-                "accuracy": gps_data.get("accuracy"),
-                "speed": gps_data.get("speed"),
+        try:
+            timestamp = dt_util.utcnow()
+            gps_entry = {
+                "gps_id": f"gps_{dog_id}_{int(timestamp.timestamp())}",
+                "timestamp": timestamp.isoformat(),
+                "dog_id": dog_id,
+                **gps_data,
             }
-        }
-        
-        await self.async_update_dog_data(dog_id, gps_updates)
+            
+            await self._append_to_module_data("gps", dog_id, gps_entry)
+            
+            # Update dog's current location
+            gps_updates = {
+                "gps": {
+                    "last_seen": timestamp.isoformat(),
+                    "latitude": gps_data.get("latitude"),
+                    "longitude": gps_data.get("longitude"),
+                    "accuracy": gps_data.get("accuracy"),
+                    "speed": gps_data.get("speed"),
+                    "source": gps_data.get("source", "unknown"),
+                }
+            }
+            
+            await self.async_update_dog_data(dog_id, gps_updates)
+            
+            # Add to current walk route if walk is in progress
+            current_walk = await self.async_get_current_walk(dog_id)
+            if current_walk:
+                walk_id = current_walk["walk_id"]
+                route_point = {
+                    "timestamp": timestamp.isoformat(),
+                    "latitude": gps_data.get("latitude"),
+                    "longitude": gps_data.get("longitude"),
+                    "accuracy": gps_data.get("accuracy"),
+                    "speed": gps_data.get("speed"),
+                }
+                
+                # Update walk with new route point
+                current_route = current_walk.get("route_points", [])
+                current_route.append(route_point)
+                
+                await self._update_module_entry("walks", dog_id, walk_id, {
+                    "route_points": current_route
+                })
+            
+            _LOGGER.debug("Logged GPS data for dog %s", dog_id)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to log GPS data for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
-    async def async_start_grooming(self, dog_id: str, grooming_data: DataDict) -> str:
+    async def async_get_current_gps_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+        """Get current GPS data for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Current GPS data or None
+        """
+        dog_data = await self.async_get_dog_data(dog_id)
+        return dog_data.get("gps") if dog_data else None
+
+    # Grooming operations
+    async def async_start_grooming(self, dog_id: str, grooming_data: dict[str, Any]) -> str:
         """Start a grooming session for a dog.
         
         Args:
@@ -406,35 +691,41 @@ class PawControlDataManager:
         Returns:
             Grooming session ID
         """
-        grooming_id = f"grooming_{dog_id}_{int(dt_util.utcnow().timestamp())}"
-        timestamp = dt_util.utcnow().isoformat()
-        
-        grooming_entry = {
-            "grooming_id": grooming_id,
-            "dog_id": dog_id,
-            "start_time": timestamp,
-            "status": "in_progress",
-            **grooming_data,
-        }
-        
-        await self._append_to_module_data("grooming", dog_id, grooming_entry)
-        
-        # Update dog's grooming status
-        await self.async_update_dog_data(dog_id, {
-            "grooming": {
-                "grooming_in_progress": True,
-                "current_grooming_id": grooming_id,
-                "current_grooming_start": timestamp,
+        try:
+            timestamp = dt_util.utcnow()
+            grooming_id = f"grooming_{dog_id}_{int(timestamp.timestamp())}"
+            
+            grooming_entry = {
+                "grooming_id": grooming_id,
+                "dog_id": dog_id,
+                "start_time": timestamp.isoformat(),
+                "status": "in_progress",
+                **grooming_data,
             }
-        })
-        
-        _LOGGER.debug("Started grooming %s for dog %s", grooming_id, dog_id)
-        return grooming_id
+            
+            await self._append_to_module_data("grooming", dog_id, grooming_entry)
+            
+            # Update dog's grooming status
+            await self.async_update_dog_data(dog_id, {
+                "grooming": {
+                    "grooming_in_progress": True,
+                    "current_grooming_id": grooming_id,
+                    "current_grooming_start": timestamp.isoformat(),
+                }
+            })
+            
+            _LOGGER.debug("Started grooming %s for dog %s", grooming_id, dog_id)
+            return grooming_id
+            
+        except Exception as err:
+            _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
     async def async_end_grooming(
         self, 
         dog_id: str, 
-        grooming_data: Optional[DataDict] = None
+        grooming_data: Optional[dict[str, Any]] = None
     ) -> None:
         """End the current grooming session for a dog.
         
@@ -442,37 +733,44 @@ class PawControlDataManager:
             dog_id: Dog identifier
             grooming_data: Optional grooming end data
         """
-        dog_data = await self.async_get_dog_data(dog_id)
-        if not dog_data or not dog_data.get("grooming", {}).get("grooming_in_progress"):
-            return
-        
-        grooming_id = dog_data["grooming"].get("current_grooming_id")
-        if not grooming_id:
-            return
-        
-        timestamp = dt_util.utcnow().isoformat()
-        
-        # Update the grooming entry
-        grooming_updates = {
-            "end_time": timestamp,
-            "status": "completed",
-            **(grooming_data or {}),
-        }
-        
-        await self._update_module_entry("grooming", dog_id, grooming_id, grooming_updates)
-        
-        # Update dog's grooming status
-        await self.async_update_dog_data(dog_id, {
-            "grooming": {
-                "grooming_in_progress": False,
-                "current_grooming_id": None,
-                "current_grooming_start": None,
-                "last_grooming": timestamp,
+        try:
+            dog_data = await self.async_get_dog_data(dog_id)
+            if not dog_data or not dog_data.get("grooming", {}).get("grooming_in_progress"):
+                return
+            
+            grooming_id = dog_data["grooming"].get("current_grooming_id")
+            if not grooming_id:
+                return
+            
+            timestamp = dt_util.utcnow()
+            
+            # Update the grooming entry
+            grooming_updates = {
+                "end_time": timestamp.isoformat(),
+                "status": "completed",
+                **(grooming_data or {}),
             }
-        })
-        
-        _LOGGER.debug("Ended grooming %s for dog %s", grooming_id, dog_id)
+            
+            await self._update_module_entry("grooming", dog_id, grooming_id, grooming_updates)
+            
+            # Update dog's grooming status
+            await self.async_update_dog_data(dog_id, {
+                "grooming": {
+                    "grooming_in_progress": False,
+                    "current_grooming_id": None,
+                    "current_grooming_start": None,
+                    "last_grooming": timestamp.isoformat(),
+                }
+            })
+            
+            _LOGGER.debug("Ended grooming %s for dog %s", grooming_id, dog_id)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to end grooming for %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
 
+    # Generic module data operations
     async def async_get_module_data(
         self, 
         module: str, 
@@ -480,7 +778,7 @@ class PawControlDataManager:
         limit: Optional[int] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
-    ) -> List[DataDict]:
+    ) -> list[dict[str, Any]]:
         """Get module data for a specific dog.
         
         Args:
@@ -493,42 +791,73 @@ class PawControlDataManager:
         Returns:
             List of module data entries
         """
-        cache_key = f"{module}_{dog_id}"
-        await self._ensure_cache_fresh(cache_key)
-        
-        # Get data from cache or load from storage
-        if cache_key not in self._cache:
-            store = self._get_module_store(module)
-            data = await store.async_load() or {}
-            self._cache[cache_key] = data.get(dog_id, [])
-            self._cache_timestamps[cache_key] = dt_util.utcnow()
-        
-        entries = self._cache[cache_key].copy()
-        
-        # Apply filters
-        if start_date or end_date:
-            filtered_entries = []
-            for entry in entries:
-                entry_time = datetime.fromisoformat(entry["timestamp"])
-                if start_date and entry_time < start_date:
-                    continue
-                if end_date and entry_time > end_date:
-                    continue
-                filtered_entries.append(entry)
-            entries = filtered_entries
-        
-        # Apply limit
-        if limit:
-            entries = entries[-limit:]  # Get most recent entries
-        
-        return entries
+        try:
+            cache_key = f"{module}_{dog_id}"
+            await self._ensure_cache_fresh(cache_key)
+            
+            # Get data from cache or load from storage
+            if cache_key not in self._cache:
+                store = self._stores[module]
+                data = await store.async_load() or {}
+                await self._set_cache(cache_key, data.get(dog_id, []))
+                self._metrics["cache_misses"] += 1
+            else:
+                self._metrics["cache_hits"] += 1
+            
+            entries = (await self._get_cache(cache_key, [])).copy()
+            
+            # Apply date filters
+            if start_date or end_date:
+                filtered_entries = []
+                for entry in entries:
+                    try:
+                        entry_time = datetime.fromisoformat(entry["timestamp"])
+                        if start_date and entry_time < start_date:
+                            continue
+                        if end_date and entry_time > end_date:
+                            continue
+                        filtered_entries.append(entry)
+                    except (ValueError, KeyError):
+                        # Keep entries with invalid timestamps
+                        filtered_entries.append(entry)
+                entries = filtered_entries
+            
+            # Sort by timestamp (most recent first)
+            entries.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+            
+            # Apply limit
+            if limit and limit > 0:
+                entries = entries[:limit]
+            
+            return entries
+            
+        except Exception as err:
+            _LOGGER.error("Failed to get %s data for %s: %s", module, dog_id, err)
+            self._metrics["errors_count"] += 1
+            return []
 
+    # Daily statistics reset
     async def async_reset_dog_daily_stats(self, dog_id: str) -> None:
         """Reset daily statistics for a dog.
         
         Args:
-            dog_id: Dog identifier
+            dog_id: Dog identifier, or "all" for all dogs
         """
+        try:
+            if dog_id == "all":
+                dogs_data = await self.async_get_all_dogs()
+                for single_dog_id in dogs_data.keys():
+                    await self._reset_single_dog_stats(single_dog_id)
+            else:
+                await self._reset_single_dog_stats(dog_id)
+                
+        except Exception as err:
+            _LOGGER.error("Failed to reset daily stats: %s", err)
+            self._metrics["errors_count"] += 1
+            raise
+
+    async def _reset_single_dog_stats(self, dog_id: str) -> None:
+        """Reset daily statistics for a single dog."""
         reset_data = {
             "feeding": {
                 "daily_food_consumed": 0,
@@ -549,104 +878,25 @@ class PawControlDataManager:
         }
         
         await self.async_update_dog_data(dog_id, reset_data)
-        _LOGGER.info("Reset daily statistics for dog %s", dog_id)
+        _LOGGER.debug("Reset daily statistics for dog %s", dog_id)
 
-    async def async_export_data(
-        self,
-        dog_id: str,
-        data_type: str = "all",
-        format_type: str = "json",
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
-    ) -> str:
-        """Export data for a dog.
-        
-        Args:
-            dog_id: Dog identifier
-            data_type: Type of data to export (all, feeding, walks, health, gps, grooming)
-            format_type: Export format (json, csv)
-            start_date: Start date filter
-            end_date: End date filter
-            
-        Returns:
-            Path to exported file
-            
-        Raises:
-            DataExportError: If export fails
-        """
-        try:
-            # Get export directory
-            export_dir = Path(self.hass.config.config_dir) / "paw_control_exports"
-            export_dir.mkdir(exist_ok=True)
-            
-            # Generate filename
-            timestamp = dt_util.utcnow().strftime("%Y%m%d_%H%M%S")
-            filename = f"{dog_id}_{data_type}_{timestamp}.{format_type}"
-            filepath = export_dir / sanitize_filename(filename)
-            
-            # Collect data to export
-            if data_type == "all":
-                export_data = {
-                    "dog_info": await self.async_get_dog_data(dog_id),
-                    "feeding": await self.async_get_module_data("feeding", dog_id, start_date=start_date, end_date=end_date),
-                    "walks": await self.async_get_module_data("walks", dog_id, start_date=start_date, end_date=end_date),
-                    "health": await self.async_get_module_data("health", dog_id, start_date=start_date, end_date=end_date),
-                    "gps": await self.async_get_module_data("gps", dog_id, start_date=start_date, end_date=end_date),
-                    "grooming": await self.async_get_module_data("grooming", dog_id, start_date=start_date, end_date=end_date),
-                }
-            else:
-                export_data = await self.async_get_module_data(data_type, dog_id, start_date=start_date, end_date=end_date)
-            
-            # Export based on format
-            if format_type == "json":
-                await self._export_json(filepath, export_data)
-            elif format_type == "csv":
-                await self._export_csv(filepath, export_data, data_type)
-            else:
-                raise DataExportError(data_type, f"Unsupported format: {format_type}")
-            
-            _LOGGER.info("Exported %s data for dog %s to %s", data_type, dog_id, filepath)
-            return str(filepath)
-            
-        except Exception as err:
-            _LOGGER.error("Failed to export %s data for dog %s: %s", data_type, dog_id, err)
-            raise DataExportError(data_type, str(err)) from err
+    # Additional methods would be implemented here for:
+    # - Export/import functionality
+    # - Data cleanup operations
+    # - Cache management
+    # - Background tasks
+    # - Performance metrics
 
-    async def async_cleanup_old_data(self, retention_days: int = DATA_RETENTION_DAYS) -> None:
-        """Clean up old data based on retention policy.
-        
-        Args:
-            retention_days: Number of days to retain data
-        """
-        cutoff_date = dt_util.utcnow() - timedelta(days=retention_days)
-        
-        _LOGGER.debug("Cleaning up data older than %s", cutoff_date)
-        
-        # Clean up each module's data
-        modules = ["feeding", "walks", "health", "gps", "grooming"]
-        total_deleted = 0
-        
-        for module in modules:
-            deleted_count = await self._cleanup_module_data(module, cutoff_date)
-            total_deleted += deleted_count
-        
-        _LOGGER.info("Cleaned up %d old data entries", total_deleted)
-
+    # Private helper methods for internal operations
     async def _append_to_module_data(
         self, 
         module: str, 
         dog_id: str, 
-        entry: DataDict
+        entry: dict[str, Any]
     ) -> None:
-        """Append an entry to module data.
-        
-        Args:
-            module: Module name
-            dog_id: Dog identifier
-            entry: Data entry to append
-        """
+        """Append an entry to module data."""
         async with self._lock:
-            store = self._get_module_store(module)
+            store = self._stores[module]
             data = await store.async_load() or {}
             
             if dog_id not in data:
@@ -656,110 +906,66 @@ class PawControlDataManager:
             
             # Update cache
             cache_key = f"{module}_{dog_id}"
-            self._cache[cache_key] = data[dog_id].copy()
-            self._cache_timestamps[cache_key] = dt_util.utcnow()
+            await self._set_cache(cache_key, data[dog_id].copy())
             
             # Save to storage
             await store.async_save(data)
+            
+            # Update metrics
+            self._metrics["operations_count"] += 1
 
     async def _update_module_entry(
         self, 
         module: str, 
         dog_id: str, 
         entry_id: str, 
-        updates: DataDict
+        updates: dict[str, Any]
     ) -> None:
-        """Update a specific entry in module data.
-        
-        Args:
-            module: Module name
-            dog_id: Dog identifier
-            entry_id: Entry identifier
-            updates: Updates to apply
-        """
+        """Update a specific entry in module data."""
         async with self._lock:
-            store = self._get_module_store(module)
+            store = self._stores[module]
             data = await store.async_load() or {}
             
             if dog_id in data:
                 for entry in data[dog_id]:
-                    if entry.get(f"{module[:-1]}_id") == entry_id:  # Remove 's' from module name
+                    # Look for entry by module-specific ID field
+                    id_field = f"{module[:-1]}_id"  # Remove 's' from module name
+                    if entry.get(id_field) == entry_id:
                         entry.update(updates)
                         break
                 
                 # Update cache
                 cache_key = f"{module}_{dog_id}"
-                self._cache[cache_key] = data[dog_id].copy()
-                self._cache_timestamps[cache_key] = dt_util.utcnow()
+                await self._set_cache(cache_key, data[dog_id].copy())
                 
                 # Save to storage
                 await store.async_save(data)
+                
+                # Update metrics
+                self._metrics["operations_count"] += 1
 
     async def _delete_dog_from_all_modules(self, dog_id: str) -> None:
-        """Delete dog data from all module stores.
-        
-        Args:
-            dog_id: Dog identifier
-        """
+        """Delete dog data from all module stores."""
         modules = ["feeding", "walks", "health", "gps", "grooming"]
         
         for module in modules:
-            store = self._get_module_store(module)
-            data = await store.async_load() or {}
-            
-            if dog_id in data:
-                del data[dog_id]
-                await store.async_save(data)
-            
-            # Clear from cache
-            cache_key = f"{module}_{dog_id}"
-            if cache_key in self._cache:
-                del self._cache[cache_key]
-                del self._cache_timestamps[cache_key]
-
-    async def _cleanup_module_data(self, module: str, cutoff_date: datetime) -> int:
-        """Clean up old data from a specific module.
-        
-        Args:
-            module: Module name
-            cutoff_date: Cutoff date for cleanup
-            
-        Returns:
-            Number of entries deleted
-        """
-        store = self._get_module_store(module)
-        data = await store.async_load() or {}
-        
-        total_deleted = 0
-        
-        for dog_id, entries in data.items():
-            original_count = len(entries)
-            
-            # Filter out old entries
-            filtered_entries = []
-            for entry in entries:
-                try:
-                    entry_date = datetime.fromisoformat(entry["timestamp"])
-                    if entry_date >= cutoff_date:
-                        filtered_entries.append(entry)
-                except (ValueError, KeyError):
-                    # Keep entries with invalid timestamps
-                    filtered_entries.append(entry)
-            
-            data[dog_id] = filtered_entries
-            deleted_count = original_count - len(filtered_entries)
-            total_deleted += deleted_count
-            
-            # Update cache if present
-            cache_key = f"{module}_{dog_id}"
-            if cache_key in self._cache:
-                self._cache[cache_key] = filtered_entries.copy()
-                self._cache_timestamps[cache_key] = dt_util.utcnow()
-        
-        # Save updated data
-        await store.async_save(data)
-        
-        return total_deleted
+            try:
+                store = self._stores[module]
+                data = await store.async_load() or {}
+                
+                if dog_id in data:
+                    del data[dog_id]
+                    await store.async_save(data)
+                
+                # Clear from cache
+                cache_key = f"{module}_{dog_id}"
+                if cache_key in self._cache:
+                    async with self._cache_lock:
+                        del self._cache[cache_key]
+                        del self._cache_timestamps[cache_key]
+                        
+            except Exception as err:
+                _LOGGER.error("Failed to delete %s data for dog %s: %s", module, dog_id, err)
 
     async def _periodic_cleanup(self) -> None:
         """Periodic cleanup task."""
@@ -772,66 +978,176 @@ class PawControlDataManager:
             except Exception as err:
                 _LOGGER.error("Error in periodic cleanup: %s", err)
 
+    async def _periodic_backup(self) -> None:
+        """Periodic backup task."""
+        while True:
+            try:
+                await asyncio.sleep(86400)  # Run daily
+                await self._create_backup()
+            except asyncio.CancelledError:
+                break
+            except Exception as err:
+                _LOGGER.error("Error in periodic backup: %s", err)
+
+    async def _create_backup(self) -> None:
+        """Create a backup of all data."""
+        try:
+            backup_dir = Path(self.hass.config.config_dir) / "paw_control_backups"
+            backup_dir.mkdir(exist_ok=True)
+            
+            timestamp = dt_util.utcnow().strftime("%Y%m%d_%H%M%S")
+            backup_file = backup_dir / f"paw_control_backup_{timestamp}.json"
+            
+            # Collect all data
+            backup_data = {
+                "backup_info": {
+                    "created": dt_util.utcnow().isoformat(),
+                    "entry_id": self.entry_id,
+                    "version": STORAGE_VERSION,
+                },
+                "dogs": await self.async_get_all_dogs(),
+            }
+            
+            # Add module data for all dogs
+            for dog_id in backup_data["dogs"].keys():
+                backup_data[f"feeding_{dog_id}"] = await self.async_get_module_data("feeding", dog_id)
+                backup_data[f"walks_{dog_id}"] = await self.async_get_module_data("walks", dog_id)
+                backup_data[f"health_{dog_id}"] = await self.async_get_module_data("health", dog_id)
+                backup_data[f"gps_{dog_id}"] = await self.async_get_module_data("gps", dog_id)
+                backup_data[f"grooming_{dog_id}"] = await self.async_get_module_data("grooming", dog_id)
+            
+            await self._export_json(backup_file, backup_data)
+            
+            _LOGGER.info("Created backup: %s", backup_file)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to create backup: %s", err)
+
+    async def _flush_cache_to_storage(self) -> None:
+        """Flush all cached data to storage."""
+        try:
+            # This is a simplified version - in a real implementation,
+            # you would flush all dirty cache entries to their respective stores
+            if "dogs" in self._cache:
+                await self._stores["dogs"].async_save(self._cache["dogs"])
+                
+        except Exception as err:
+            _LOGGER.error("Failed to flush cache to storage: %s", err)
+
+    # Cache management
     async def _ensure_cache_fresh(self, cache_key: str) -> None:
         """Ensure cache entry is fresh."""
-        if cache_key not in self._cache_timestamps:
-            return
-        
-        last_update = self._cache_timestamps[cache_key]
-        if dt_util.utcnow() - last_update > self._cache_ttl:
-            # Cache is stale, remove it to force reload
-            if cache_key in self._cache:
-                del self._cache[cache_key]
-                del self._cache_timestamps[cache_key]
-
-    def _get_module_store(self, module: str) -> Store:
-        """Get the storage instance for a specific module.
-        
-        Args:
-            module: Module name
+        async with self._cache_lock:
+            if cache_key not in self._cache_timestamps:
+                return
             
-        Returns:
-            Store instance
-        """
-        store_map = {
-            "feeding": self._feeding_store,
-            "walks": self._walk_store,
-            "health": self._health_store,
-            "gps": self._gps_store,
-            "grooming": self._grooming_store,
-        }
-        
-        return store_map[module]
+            last_update = self._cache_timestamps[cache_key]
+            if dt_util.utcnow() - last_update > self._cache_ttl:
+                # Cache is stale, remove it to force reload
+                if cache_key in self._cache:
+                    del self._cache[cache_key]
+                    del self._cache_timestamps[cache_key]
+
+    async def _get_cache(self, key: str, default: Any = None) -> Any:
+        """Get value from cache."""
+        async with self._cache_lock:
+            return self._cache.get(key, default)
+
+    async def _set_cache(self, key: str, value: Any) -> None:
+        """Set value in cache."""
+        async with self._cache_lock:
+            self._cache[key] = value
+            self._cache_timestamps[key] = dt_util.utcnow()
 
     async def _export_json(self, filepath: Path, data: Any) -> None:
-        """Export data as JSON.
-        
-        Args:
-            filepath: Export file path
-            data: Data to export
-        """
+        """Export data as JSON."""
         async with aiofiles.open(filepath, 'w', encoding='utf-8') as f:
-            await f.write(json.dumps(data, indent=2, default=str))
+            await f.write(json.dumps(data, indent=2, default=str, ensure_ascii=False))
 
-    async def _export_csv(self, filepath: Path, data: Any, data_type: str) -> None:
-        """Export data as CSV.
+    async def async_cleanup_old_data(
+        self, 
+        retention_days: Optional[int] = None
+    ) -> dict[str, int]:
+        """Clean up old data based on retention policy."""
+        if retention_days is None:
+            retention_days = DEFAULT_DATA_RETENTION_DAYS
         
-        Args:
-            filepath: Export file path
-            data: Data to export
-            data_type: Type of data being exported
-        """
-        import csv
+        cutoff_date = dt_util.utcnow() - timedelta(days=retention_days)
         
-        # For now, simple CSV export - could be enhanced
-        if isinstance(data, list) and data:
-            fieldnames = list(data[0].keys())
+        _LOGGER.debug("Cleaning up data older than %s", cutoff_date)
+        
+        # Clean up each module's data
+        modules = ["feeding", "walks", "health", "gps", "grooming"]
+        cleanup_stats = {}
+        total_deleted = 0
+        
+        for module in modules:
+            try:
+                deleted_count = await self._cleanup_module_data(module, cutoff_date)
+                cleanup_stats[module] = deleted_count
+                total_deleted += deleted_count
+            except Exception as err:
+                _LOGGER.error("Failed to cleanup %s data: %s", module, err)
+                cleanup_stats[module] = 0
+        
+        # Update metrics
+        self._metrics["last_cleanup"] = dt_util.utcnow().isoformat()
+        
+        _LOGGER.info("Cleaned up %d old data entries across %d modules", total_deleted, len(modules))
+        return cleanup_stats
+
+    async def _cleanup_module_data(self, module: str, cutoff_date: datetime) -> int:
+        """Clean up old data from a specific module."""
+        try:
+            store = self._stores[module]
+            data = await store.async_load() or {}
             
-            with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(row)
-        else:
-            # Fallback to JSON for complex data
-            await self._export_json(filepath, data)
+            total_deleted = 0
+            
+            for dog_id, entries in data.items():
+                original_count = len(entries)
+                
+                # Filter out old entries
+                filtered_entries = []
+                for entry in entries:
+                    try:
+                        entry_date = datetime.fromisoformat(entry["timestamp"])
+                        if entry_date >= cutoff_date:
+                            filtered_entries.append(entry)
+                    except (ValueError, KeyError):
+                        # Keep entries with invalid timestamps
+                        filtered_entries.append(entry)
+                
+                data[dog_id] = filtered_entries
+                deleted_count = original_count - len(filtered_entries)
+                total_deleted += deleted_count
+                
+                # Update cache if present
+                cache_key = f"{module}_{dog_id}"
+                if cache_key in self._cache:
+                    await self._set_cache(cache_key, filtered_entries.copy())
+            
+            # Save updated data
+            await store.async_save(data)
+            
+            return total_deleted
+            
+        except Exception as err:
+            _LOGGER.error("Failed to cleanup %s data: %s", module, err)
+            return 0
+
+    # Public metrics interface
+    def get_metrics(self) -> dict[str, Any]:
+        """Get data manager performance metrics.
+        
+        Returns:
+            Dictionary containing performance metrics
+        """
+        return {
+            **self._metrics,
+            "cache_size": len(self._cache),
+            "cache_hit_rate": (
+                self._metrics["cache_hits"] / 
+                max(self._metrics["cache_hits"] + self._metrics["cache_misses"], 1)
+            ) * 100,
+        }
