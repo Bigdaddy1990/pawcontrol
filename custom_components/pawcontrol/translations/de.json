@@ -1,0 +1,493 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Paw Control einrichten",
+        "description": "Willkommen bei Paw Control! Lass uns intelligentes Hundemanagement für dein Home Assistant einrichten.\n\nDiese Integration hilft dir beim Verfolgen von Fütterung, Spaziergängen, Gesundheit und GPS-Position deiner Hunde.",
+        "data": {
+          "name": "Name der Integration"
+        }
+      },
+      "add_dog": {
+        "title": "Hund hinzufügen",
+        "description": "Konfiguriere die Grundinformationen deines Hundes.\n\nHunde: {dog_count} konfiguriert",
+        "data": {
+          "dog_id": "Hunde-ID (eindeutige Kennung)",
+          "dog_name": "Name des Hundes",
+          "dog_breed": "Rasse (optional)",
+          "dog_age": "Alter in Jahren",
+          "dog_weight": "Gewicht in kg",
+          "dog_size": "Größenkategorie"
+        }
+      },
+      "add_another_dog": {
+        "title": "Weiteren Hund hinzufügen?",
+        "description": "Konfigurierte Hunde:\n{dogs_list}\n\nMöchtest du einen weiteren Hund hinzufügen?",
+        "data": {
+          "add_another": "Weiteren Hund hinzufügen"
+        }
+      },
+      "final_setup": {
+        "title": "Setup abschließen",
+        "description": "Setup-Zusammenfassung:\n{setup_summary}\n\nGesamtanzahl Hunde: {total_dogs}\n\nKlicke auf Übernehmen, um deine Paw Control Integration zu erstellen!"
+      }
+    },
+    "error": {
+      "dog_id_already_exists": "Ein Hund mit dieser ID existiert bereits",
+      "invalid_dog_name_length": "Der Hundename muss zwischen 2 und 30 Zeichen lang sein",
+      "invalid_config": "Ungültige Konfiguration",
+      "cannot_connect": "Verbindung fehlgeschlagen"
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert",
+      "single_instance_allowed": "Nur eine einzige Konfiguration von Paw Control ist erlaubt"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paw Control Einstellungen",
+        "description": "Konfiguriere deine Paw Control Integration",
+        "menu_options": {
+          "manage_dogs": "Hunde verwalten",
+          "gps_settings": "GPS & Tracking",
+          "notifications": "Benachrichtigungen",
+          "feeding_settings": "Fütterungseinstellungen",
+          "health_settings": "Gesundheitseinstellungen",
+          "system_settings": "Systemeinstellungen",
+          "dashboard_settings": "Dashboard-Einstellungen"
+        }
+      },
+      "manage_dogs": {
+        "title": "Hunde verwalten",
+        "description": "Hunde zu deiner Konfiguration hinzufügen, bearbeiten oder entfernen.\n\nAktuell konfigurierte Hunde:\n{dogs_info}\n\nGesamtanzahl Hunde: {dog_count}",
+        "data": {
+          "action": "Aktion"
+        }
+      },
+      "gps_settings": {
+        "title": "GPS & Tracking-Einstellungen",
+        "description": "Konfiguriere GPS-Tracking-Parameter für optimale Leistung und Akkulaufzeit.",
+        "data": {
+          "gps_update_interval": "GPS-Update-Intervall (Sekunden)",
+          "gps_accuracy_filter": "GPS-Genauigkeitsfilter (Meter)",
+          "gps_distance_filter": "GPS-Distanzfilter (Meter)",
+          "auto_walk_detection": "Automatische Spaziergang-Erkennung",
+          "geofencing_enabled": "Geofencing aktivieren"
+        }
+      },
+      "notifications": {
+        "title": "Benachrichtigungseinstellungen",
+        "description": "Konfiguriere wie und wann du Benachrichtigungen über deine Hunde erhältst.",
+        "data": {
+          "quiet_hours": "Ruhezeiten aktivieren",
+          "quiet_start": "Ruhezeiten Beginn",
+          "quiet_end": "Ruhezeiten Ende",
+          "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
+          "priority_notifications": "Prioritäts-Benachrichtigungen",
+          "summary_notifications": "Tägliche Zusammenfassungs-Benachrichtigungen"
+        }
+      },
+      "feeding_settings": {
+        "title": "Fütterungseinstellungen",
+        "description": "Konfiguriere Fütterungspläne und Erinnerungen.",
+        "data": {
+          "breakfast_enabled": "Frühstück aktivieren",
+          "breakfast_time": "Frühstückszeit",
+          "lunch_enabled": "Mittagessen aktivieren",
+          "lunch_time": "Mittagszeit",
+          "dinner_enabled": "Abendessen aktivieren",
+          "dinner_time": "Abendzeit",
+          "snacks_enabled": "Snacks aktivieren",
+          "feeding_reminders": "Fütterungserinnerungen"
+        }
+      },
+      "health_settings": {
+        "title": "Gesundheitseinstellungen",
+        "description": "Konfiguriere Gesundheitsüberwachung und Tierarzt-Erinnerungen.",
+        "data": {
+          "health_tracking": "Gesundheitsüberwachung aktivieren",
+          "weight_tracking": "Gewichtsverfolgung",
+          "medication_reminders": "Medikamenten-Erinnerungen",
+          "vet_reminders": "Tierarzt-Erinnerungen",
+          "grooming_interval": "Pflege-Intervall (Tage)"
+        }
+      },
+      "system_settings": {
+        "title": "Systemeinstellungen",
+        "description": "Konfiguriere systemweite Einstellungen und Leistungsoptionen.",
+        "data": {
+          "reset_time": "Tägliche Reset-Zeit",
+          "performance_mode": "Leistungsmodus",
+          "data_retention_days": "Datenaufbewahrung (Tage)",
+          "auto_backup": "Automatische Backups"
+        }
+      },
+      "dashboard_settings": {
+        "title": "Dashboard-Einstellungen",
+        "description": "Konfiguriere Dashboard-Erscheinungsbild und Layout.",
+        "data": {
+          "dashboard_mode": "Dashboard-Modus",
+          "auto_create_dashboard": "Dashboard automatisch erstellen",
+          "dashboard_name": "Dashboard-Name",
+          "include_charts": "Diagramme einbeziehen"
+        }
+      }
+    },
+    "error": {
+      "dog_id_already_exists": "Ein Hund mit dieser ID existiert bereits",
+      "invalid_dog_name_length": "Der Hundename muss zwischen 2 und 30 Zeichen lang sein",
+      "invalid_time_format": "Ungültiges Zeitformat",
+      "invalid_configuration": "Ungültige Konfiguration"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_action": {
+        "name": "Letzte Aktion"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline",
+          "unknown": "Unbekannt"
+        }
+      },
+      "last_feeding": {
+        "name": "Letzte Fütterung"
+      },
+      "last_feeding_hours": {
+        "name": "Stunden seit letzter Fütterung"
+      },
+      "feeding_count_today_breakfast": {
+        "name": "Frühstück Anzahl heute"
+      },
+      "feeding_count_today_lunch": {
+        "name": "Mittagessen Anzahl heute"
+      },
+      "feeding_count_today_dinner": {
+        "name": "Abendessen Anzahl heute"
+      },
+      "feeding_count_today_snack": {
+        "name": "Snack Anzahl heute"
+      },
+      "total_feedings_today": {
+        "name": "Gesamte Fütterungen heute"
+      },
+      "last_walk": {
+        "name": "Letzter Spaziergang"
+      },
+      "last_walk_hours": {
+        "name": "Stunden seit letztem Spaziergang"
+      },
+      "last_walk_duration": {
+        "name": "Letzte Spaziergang-Dauer"
+      },
+      "walk_count_today": {
+        "name": "Spaziergang Anzahl heute"
+      },
+      "total_walk_time_today": {
+        "name": "Gesamte Spaziergang-Zeit heute"
+      },
+      "current_speed": {
+        "name": "Aktuelle Geschwindigkeit"
+      },
+      "distance_from_home": {
+        "name": "Entfernung von Zuhause"
+      },
+      "gps_accuracy": {
+        "name": "GPS-Genauigkeit"
+      },
+      "last_walk_distance": {
+        "name": "Letzte Spaziergang-Distanz"
+      },
+      "total_distance_today": {
+        "name": "Gesamte Distanz heute"
+      },
+      "weight": {
+        "name": "Gewicht"
+      },
+      "activity_level": {
+        "name": "Aktivitätslevel",
+        "state": {
+          "very_low": "Sehr niedrig",
+          "low": "Niedrig",
+          "normal": "Normal",
+          "high": "Hoch",
+          "very_high": "Sehr hoch"
+        }
+      },
+      "last_vet_visit": {
+        "name": "Letzter Tierarztbesuch"
+      },
+      "days_since_grooming": {
+        "name": "Tage seit letzter Pflege"
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus",
+        "state": {
+          "excellent": "Ausgezeichnet",
+          "very_good": "Sehr gut",
+          "good": "Gut",
+          "normal": "Normal",
+          "unwell": "Unwohl",
+          "sick": "Krank"
+        }
+      }
+    },
+    "binary_sensor": {
+      "walk_in_progress": {
+        "name": "Spaziergang läuft"
+      },
+      "needs_walk": {
+        "name": "Braucht Spaziergang"
+      },
+      "is_hungry": {
+        "name": "Ist hungrig"
+      },
+      "feeding_overdue": {
+        "name": "Fütterung überfällig"
+      },
+      "is_home": {
+        "name": "Ist zu Hause"
+      },
+      "in_safe_zone": {
+        "name": "In Sicherheitszone"
+      },
+      "gps_signal": {
+        "name": "GPS-Signal"
+      },
+      "weight_alert": {
+        "name": "Gewichts-Warnung"
+      },
+      "medication_due": {
+        "name": "Medikation fällig"
+      },
+      "vet_checkup_due": {
+        "name": "Tierarzt-Untersuchung fällig"
+      },
+      "needs_grooming": {
+        "name": "Braucht Pflege"
+      },
+      "online": {
+        "name": "Online"
+      },
+      "visitor_mode": {
+        "name": "Besuchermodus"
+      }
+    },
+    "button": {
+      "start_walk": {
+        "name": "Spaziergang starten"
+      },
+      "end_walk": {
+        "name": "Spaziergang beenden"
+      },
+      "gps_start_walk": {
+        "name": "GPS-Spaziergang starten"
+      },
+      "gps_end_walk": {
+        "name": "GPS-Spaziergang beenden"
+      },
+      "mark_fed_breakfast": {
+        "name": "Als gefüttert markieren (Frühstück)"
+      },
+      "mark_fed_lunch": {
+        "name": "Als gefüttert markieren (Mittagessen)"
+      },
+      "mark_fed_dinner": {
+        "name": "Als gefüttert markieren (Abendessen)"
+      },
+      "mark_fed_snack": {
+        "name": "Als gefüttert markieren (Snack)"
+      },
+      "log_poop": {
+        "name": "Kot protokollieren"
+      },
+      "log_health": {
+        "name": "Gesundheit protokollieren"
+      },
+      "log_medication": {
+        "name": "Medikation protokollieren"
+      },
+      "start_grooming": {
+        "name": "Pflege starten"
+      },
+      "notify_test": {
+        "name": "Test-Benachrichtigung"
+      },
+      "toggle_visitor_mode": {
+        "name": "Besuchermodus umschalten"
+      },
+      "daily_reset": {
+        "name": "Täglicher Reset"
+      },
+      "export_data": {
+        "name": "Daten exportieren"
+      },
+      "emergency": {
+        "name": "Notfall"
+      }
+    },
+    "switch": {
+      "module_feeding": {
+        "name": "Fütterungsmodul"
+      },
+      "module_walk": {
+        "name": "Spaziergang-Modul"
+      },
+      "module_gps": {
+        "name": "GPS-Modul"
+      },
+      "module_health": {
+        "name": "Gesundheitsmodul"
+      },
+      "module_notifications": {
+        "name": "Benachrichtigungsmodul"
+      },
+      "module_visitor": {
+        "name": "Besuchermodus-Modul"
+      },
+      "notifications_enabled": {
+        "name": "Benachrichtigungen aktiviert"
+      },
+      "quiet_hours": {
+        "name": "Ruhezeiten"
+      },
+      "feeding_reminders": {
+        "name": "Fütterungserinnerungen"
+      },
+      "walk_reminders": {
+        "name": "Spaziergang-Erinnerungen"
+      },
+      "gps_tracking": {
+        "name": "GPS-Tracking"
+      },
+      "auto_walk_detection": {
+        "name": "Automatische Spaziergang-Erkennung"
+      },
+      "geofence_alerts": {
+        "name": "Geofence-Warnungen"
+      },
+      "health_tracking": {
+        "name": "Gesundheitsüberwachung"
+      },
+      "medication_reminders": {
+        "name": "Medikamenten-Erinnerungen"
+      },
+      "weight_alerts": {
+        "name": "Gewichts-Warnungen"
+      },
+      "breakfast_enabled": {
+        "name": "Frühstück aktiviert"
+      },
+      "lunch_enabled": {
+        "name": "Mittagessen aktiviert"
+      },
+      "dinner_enabled": {
+        "name": "Abendessen aktiviert"
+      },
+      "snacks_enabled": {
+        "name": "Snacks aktiviert"
+      },
+      "visitor_mode": {
+        "name": "Besuchermodus"
+      },
+      "data_collection": {
+        "name": "Datensammlung"
+      },
+      "system_enabled": {
+        "name": "System aktiviert"
+      },
+      "auto_backup": {
+        "name": "Automatisches Backup"
+      }
+    },
+    "select": {
+      "size": {
+        "name": "Größe",
+        "state": {
+          "toy": "Spielzeughund",
+          "small": "Klein",
+          "medium": "Mittel",
+          "large": "Groß",
+          "giant": "Riesig"
+        }
+      },
+      "activity_level": {
+        "name": "Aktivitätslevel",
+        "state": {
+          "very_low": "Sehr niedrig",
+          "low": "Niedrig",
+          "normal": "Normal",
+          "high": "Hoch",
+          "very_high": "Sehr hoch"
+        }
+      },
+      "food_type": {
+        "name": "Futtertyp",
+        "state": {
+          "dry_food": "Trockenfutter",
+          "wet_food": "Nassfutter",
+          "barf": "BARF",
+          "home_cooked": "Selbstgekocht",
+          "mixed": "Gemischt"
+        }
+      },
+      "mood": {
+        "name": "Stimmung",
+        "state": {
+          "happy": "Fröhlich",
+          "neutral": "Neutral",
+          "sad": "Traurig",
+          "angry": "Verärgert",
+          "anxious": "Ängstlich",
+          "tired": "Müde"
+        }
+      }
+    }
+  },
+  "services": {
+    "feed_dog": {
+      "name": "Hund füttern",
+      "description": "Eine Fütterung für einen Hund protokollieren"
+    },
+    "start_walk": {
+      "name": "Spaziergang starten",
+      "description": "Einen Spaziergang für einen Hund starten"
+    },
+    "end_walk": {
+      "name": "Spaziergang beenden",
+      "description": "Den aktuellen Spaziergang für einen Hund beenden"
+    },
+    "gps_start_walk": {
+      "name": "GPS-Spaziergang starten",
+      "description": "Einen GPS-verfolgten Spaziergang für einen Hund starten"
+    },
+    "gps_end_walk": {
+      "name": "GPS-Spaziergang beenden",
+      "description": "Den aktuellen GPS-verfolgten Spaziergang beenden"
+    },
+    "log_health_data": {
+      "name": "Gesundheitsdaten protokollieren",
+      "description": "Gesundheitsdaten für einen Hund protokollieren"
+    },
+    "log_medication": {
+      "name": "Medikation protokollieren",
+      "description": "Einem Hund gegebene Medikation protokollieren"
+    },
+    "start_grooming": {
+      "name": "Pflege starten",
+      "description": "Eine Pflegesitzung für einen Hund starten"
+    },
+    "notify_test": {
+      "name": "Test-Benachrichtigung",
+      "description": "Eine Test-Benachrichtigung für einen Hund senden"
+    },
+    "daily_reset": {
+      "name": "Täglicher Reset",
+      "description": "Täglichen Reset der Zähler für alle Hunde durchführen"
+    }
+  }
+}

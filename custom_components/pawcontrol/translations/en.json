@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Paw Control",
+        "description": "Welcome to Paw Control! Let's set up smart dog management for your Home Assistant.\n\nThis integration will help you track feeding, walks, health, and GPS location for your dogs.",
+        "data": {
+          "name": "Integration name"
+        }
+      },
+      "add_dog": {
+        "title": "Add Dog",
+        "description": "Configure your dog's basic information.\n\nDogs: {dog_count} configured",
+        "data": {
+          "dog_id": "Dog ID (unique identifier)",
+          "dog_name": "Dog name",
+          "dog_breed": "Breed (optional)",
+          "dog_age": "Age in years",
+          "dog_weight": "Weight in kg",
+          "dog_size": "Size category"
+        }
+      },
+      "add_another_dog": {
+        "title": "Add Another Dog?",
+        "description": "Dogs configured:\n{dogs_list}\n\nWould you like to add another dog?",
+        "data": {
+          "add_another": "Add another dog"
+        }
+      },
+      "final_setup": {
+        "title": "Complete Setup",
+        "description": "Setup Summary:\n{setup_summary}\n\nTotal dogs: {total_dogs}\n\nClick Submit to create your Paw Control integration!"
+      }
+    },
+    "error": {
+      "dog_id_already_exists": "A dog with this ID already exists",
+      "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
+      "invalid_config": "Invalid configuration",
+      "cannot_connect": "Failed to connect"
+    },
+    "abort": {
+      "already_configured": "Device is already configured",
+      "single_instance_allowed": "Only a single configuration of Paw Control is allowed"
+    }
+  },
+  "services": {
+    "feed_dog": {
+      "name": "Feed Dog",
+      "description": "Log a feeding event for a dog"
+    },
+    "start_walk": {
+      "name": "Start Walk", 
+      "description": "Start a walk for a dog"
+    },
+    "end_walk": {
+      "name": "End Walk",
+      "description": "End the current walk for a dog"
+    },
+    "gps_start_walk": {
+      "name": "GPS Start Walk",
+      "description": "Start a GPS-tracked walk for a dog"
+    },
+    "gps_end_walk": {
+      "name": "GPS End Walk", 
+      "description": "End the current GPS-tracked walk"
+    },
+    "log_health_data": {
+      "name": "Log Health Data",
+      "description": "Log health data for a dog"
+    },
+    "log_medication": {
+      "name": "Log Medication",
+      "description": "Log medication given to a dog"
+    },
+    "start_grooming": {
+      "name": "Start Grooming",
+      "description": "Start a grooming session for a dog"
+    },
+    "notify_test": {
+      "name": "Test Notification",
+      "description": "Send a test notification for a dog"
+    },
+    "daily_reset": {
+      "name": "Daily Reset",
+      "description": "Perform daily reset of counters for all dogs"
+    }
+  }
+}

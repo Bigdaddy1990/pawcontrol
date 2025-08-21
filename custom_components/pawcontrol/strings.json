@@ -1,0 +1,825 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Paw Control Setup",
+        "description": "Set up your Paw Control dog monitoring integration",
+        "data": {
+          "name": "Integration Name",
+          "update_interval": "Update Interval (minutes)"
+        }
+      },
+      "dogs": {
+        "title": "Add Dogs",
+        "description": "Configure the dogs you want to monitor. You can add multiple dogs and customize their settings individually.",
+        "data": {
+          "dog_name": "Dog Name",
+          "dog_id": "Dog ID (unique identifier)",
+          "dog_breed": "Breed",
+          "dog_age": "Age (years)",
+          "dog_weight": "Weight (kg)",
+          "dog_size": "Size Category"
+        }
+      },
+      "modules": {
+        "title": "Enable Modules",
+        "description": "Choose which monitoring modules to enable for {dog_name}. You can change these settings later.",
+        "data": {
+          "module_feeding": "Feeding Tracking",
+          "module_walk": "Walk Monitoring", 
+          "module_gps": "GPS Location Tracking",
+          "module_health": "Health Monitoring",
+          "module_notifications": "Smart Notifications"
+        }
+      },
+      "gps_setup": {
+        "title": "GPS Configuration",
+        "description": "Configure GPS tracking settings for {dog_name}. This module provides real-time location monitoring and geofencing.",
+        "data": {
+          "gps_source": "GPS Data Source",
+          "tracking_mode": "Tracking Mode",
+          "update_interval": "Update Interval (seconds)",
+          "accuracy_threshold": "Accuracy Threshold (meters)",
+          "geofence_radius": "Geofence Radius (meters)"
+        }
+      },
+      "feeding_setup": {
+        "title": "Feeding Configuration", 
+        "description": "Set up feeding tracking and reminders for {dog_name}. Configure meal schedules, portion sizes, and dietary preferences.",
+        "data": {
+          "daily_food_amount": "Daily Food Amount (grams)",
+          "meals_per_day": "Meals Per Day",
+          "food_type": "Primary Food Type",
+          "feeding_schedule": "Schedule Type",
+          "reminder_hours": "Reminder Interval (hours)"
+        }
+      },
+      "health_setup": {
+        "title": "Health Monitoring",
+        "description": "Configure health tracking settings for {dog_name}. Monitor weight, medications, vet appointments, and overall wellness.",
+        "data": {
+          "target_weight": "Target Weight (kg)",
+          "weight_alert_threshold": "Weight Alert Threshold (%)",
+          "vet_checkup_interval": "Vet Checkup Interval (months)",
+          "grooming_interval": "Grooming Interval (days)",
+          "activity_tracking": "Enable Activity Tracking"
+        }
+      },
+      "notification_setup": {
+        "title": "Notification Preferences",
+        "description": "Configure how and when you receive notifications about {dog_name}. Customize alert priorities and delivery methods.",
+        "data": {
+          "enable_notifications": "Enable Notifications",
+          "notification_priority": "Default Priority",
+          "feeding_alerts": "Feeding Reminders",
+          "walk_alerts": "Walk Reminders", 
+          "health_alerts": "Health Alerts",
+          "gps_alerts": "Location Alerts",
+          "quiet_hours_start": "Quiet Hours Start",
+          "quiet_hours_end": "Quiet Hours End"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "description": "Advanced configuration options for power users. These settings fine-tune the integration behavior.",
+        "data": {
+          "performance_mode": "Performance Mode",
+          "data_retention_days": "Data Retention (days)",
+          "export_enabled": "Enable Data Export",
+          "api_endpoint": "External API Endpoint",
+          "webhook_url": "Webhook URL",
+          "debug_logging": "Enable Debug Logging"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Paw Control service",
+      "invalid_dog_id": "Dog ID must be unique and contain only letters, numbers, and underscores",
+      "invalid_weight": "Weight must be between {min_weight} and {max_weight} kg",
+      "invalid_age": "Age must be between {min_age} and {max_age} years", 
+      "invalid_coordinates": "Invalid GPS coordinates provided",
+      "duplicate_dog": "A dog with this ID already exists",
+      "no_dogs_configured": "At least one dog must be configured",
+      "module_dependency": "GPS module is required for walk tracking",
+      "invalid_schedule": "Invalid feeding or walk schedule format"
+    },
+    "abort": {
+      "already_configured": "This integration is already configured",
+      "single_instance_allowed": "Only one instance of Paw Control is allowed"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paw Control Options",
+        "description": "Modify integration settings and dog configurations",
+        "menu_options": {
+          "general": "General Settings",
+          "dogs": "Dog Management", 
+          "notifications": "Notification Settings",
+          "data": "Data Management",
+          "advanced": "Advanced Options"
+        }
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Modify general integration settings",
+        "data": {
+          "update_interval": "Update Interval (minutes)",
+          "performance_mode": "Performance Mode",
+          "auto_backup": "Enable Automatic Backups"
+        }
+      },
+      "dogs": {
+        "title": "Dog Management",
+        "description": "Add, remove, or modify dog configurations",
+        "data": {
+          "action": "Action",
+          "selected_dog": "Select Dog"
+        }
+      },
+      "add_dog": {
+        "title": "Add New Dog",
+        "description": "Add a new dog to monitor",
+        "data": {
+          "dog_name": "Dog Name",
+          "dog_id": "Dog ID",
+          "dog_breed": "Breed", 
+          "dog_age": "Age (years)",
+          "dog_weight": "Weight (kg)",
+          "dog_size": "Size Category"
+        }
+      },
+      "edit_dog": {
+        "title": "Edit Dog: {dog_name}",
+        "description": "Modify settings for {dog_name}",
+        "data": {
+          "dog_name": "Dog Name",
+          "dog_breed": "Breed",
+          "dog_age": "Age (years)", 
+          "dog_weight": "Weight (kg)",
+          "dog_size": "Size Category"
+        }
+      },
+      "dog_modules": {
+        "title": "Modules for {dog_name}",
+        "description": "Enable or disable monitoring modules",
+        "data": {
+          "module_feeding": "Feeding Tracking",
+          "module_walk": "Walk Monitoring",
+          "module_gps": "GPS Location Tracking", 
+          "module_health": "Health Monitoring",
+          "module_notifications": "Smart Notifications"
+        }
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "description": "Configure notification preferences and delivery methods",
+        "data": {
+          "global_notifications": "Enable All Notifications",
+          "notification_service": "Notification Service",
+          "mobile_app": "Mobile App Notifications",
+          "email_notifications": "Email Notifications",
+          "webhook_notifications": "Webhook Notifications"
+        }
+      },
+      "data": {
+        "title": "Data Management",
+        "description": "Manage data storage, export, and cleanup options", 
+        "data": {
+          "data_retention_days": "Data Retention (days)",
+          "auto_cleanup": "Enable Automatic Cleanup",
+          "export_format": "Default Export Format",
+          "backup_location": "Backup Location"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Options",
+        "description": "Advanced configuration for expert users",
+        "data": {
+          "debug_logging": "Enable Debug Logging",
+          "api_timeout": "API Timeout (seconds)",
+          "max_retries": "Maximum Retries",
+          "external_integrations": "Enable External Integrations"
+        }
+      }
+    },
+    "error": {
+      "invalid_dog_selection": "Please select a valid dog",
+      "cannot_delete_last_dog": "Cannot delete the last configured dog",
+      "invalid_notification_service": "Selected notification service is not available"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_feeding": {
+        "name": "Last Feeding"
+      },
+      "last_feeding_hours": {
+        "name": "Last Feeding Hours"
+      },
+      "daily_food_consumed": {
+        "name": "Daily Food Consumed"
+      },
+      "feeding_schedule_adherence": {
+        "name": "Feeding Schedule Adherence"
+      },
+      "last_walk": {
+        "name": "Last Walk"
+      },
+      "last_walk_hours": {
+        "name": "Last Walk Hours"
+      },
+      "daily_walk_time": {
+        "name": "Daily Walk Time"
+      },
+      "daily_walk_distance": {
+        "name": "Daily Walk Distance"
+      },
+      "walk_goal_progress": {
+        "name": "Walk Goal Progress"
+      },
+      "current_location": {
+        "name": "Current Location"
+      },
+      "distance_from_home": {
+        "name": "Distance from Home"
+      },
+      "gps_accuracy": {
+        "name": "GPS Accuracy"
+      },
+      "current_speed": {
+        "name": "Current Speed"
+      },
+      "current_weight": {
+        "name": "Current Weight"
+      },
+      "weight_change": {
+        "name": "Weight Change"
+      },
+      "next_vet_appointment": {
+        "name": "Next Vet Appointment"
+      },
+      "health_score": {
+        "name": "Health Score"
+      },
+      "activity_level": {
+        "name": "Activity Level"
+      }
+    },
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      },
+      "attention_needed": {
+        "name": "Attention Needed"
+      },
+      "visitor_mode": {
+        "name": "Visitor Mode"
+      },
+      "is_hungry": {
+        "name": "Is Hungry"
+      },
+      "feeding_due": {
+        "name": "Feeding Due"
+      },
+      "feeding_schedule_on_track": {
+        "name": "Feeding Schedule On Track"
+      },
+      "daily_feeding_goal_met": {
+        "name": "Daily Feeding Goal Met"
+      },
+      "walk_in_progress": {
+        "name": "Walk in Progress"
+      },
+      "needs_walk": {
+        "name": "Needs Walk"
+      },
+      "walk_goal_met": {
+        "name": "Walk Goal Met"
+      },
+      "long_walk_overdue": {
+        "name": "Long Walk Overdue"
+      },
+      "is_home": {
+        "name": "Is Home"
+      },
+      "in_safe_zone": {
+        "name": "In Safe Zone"
+      },
+      "gps_accurately_tracked": {
+        "name": "GPS Accurately Tracked"
+      },
+      "moving": {
+        "name": "Moving"
+      },
+      "geofence_alert": {
+        "name": "Geofence Alert"
+      },
+      "gps_battery_low": {
+        "name": "GPS Battery Low"
+      },
+      "health_alert": {
+        "name": "Health Alert"
+      },
+      "weight_alert": {
+        "name": "Weight Alert"
+      },
+      "medication_due": {
+        "name": "Medication Due"
+      },
+      "vet_checkup_due": {
+        "name": "Vet Checkup Due"
+      },
+      "grooming_due": {
+        "name": "Grooming Due"
+      },
+      "activity_level_concern": {
+        "name": "Activity Level Concern"
+      }
+    },
+    "button": {
+      "test_notification": {
+        "name": "Test Notification"
+      },
+      "reset_daily_stats": {
+        "name": "Reset Daily Stats"
+      },
+      "toggle_visitor_mode": {
+        "name": "Toggle Visitor Mode"
+      },
+      "mark_fed": {
+        "name": "Mark Fed"
+      },
+      "feed_breakfast": {
+        "name": "Feed Breakfast"
+      },
+      "feed_lunch": {
+        "name": "Feed Lunch"
+      },
+      "feed_dinner": {
+        "name": "Feed Dinner"
+      },
+      "feed_snack": {
+        "name": "Feed Snack"
+      },
+      "log_custom_feeding": {
+        "name": "Log Custom Feeding"
+      },
+      "start_walk": {
+        "name": "Start Walk"
+      },
+      "end_walk": {
+        "name": "End Walk"
+      },
+      "quick_walk": {
+        "name": "Quick Walk"
+      },
+      "log_walk_manually": {
+        "name": "Log Walk Manually"
+      },
+      "refresh_location": {
+        "name": "Refresh Location"
+      },
+      "export_route": {
+        "name": "Export Route"
+      },
+      "center_map": {
+        "name": "Center Map"
+      },
+      "call_dog": {
+        "name": "Call Dog"
+      },
+      "log_weight": {
+        "name": "Log Weight"
+      },
+      "log_medication": {
+        "name": "Log Medication"
+      },
+      "start_grooming": {
+        "name": "Start Grooming"
+      },
+      "schedule_vet": {
+        "name": "Schedule Vet"
+      },
+      "health_check": {
+        "name": "Health Check"
+      }
+    },
+    "switch": {
+      "main_power": {
+        "name": "Main Power"
+      },
+      "visitor_mode": {
+        "name": "Visitor Mode"
+      },
+      "do_not_disturb": {
+        "name": "Do Not Disturb"
+      },
+      "module_feeding": {
+        "name": "Feeding Tracking"
+      },
+      "module_walk": {
+        "name": "Walk Tracking"
+      },
+      "module_gps": {
+        "name": "GPS Tracking"
+      },
+      "module_health": {
+        "name": "Health Monitoring"
+      },
+      "module_notifications": {
+        "name": "Notifications"
+      },
+      "module_visitor": {
+        "name": "Visitor Mode"
+      },
+      "auto_feeding_reminders": {
+        "name": "Auto Feeding Reminders"
+      },
+      "feeding_schedule": {
+        "name": "Feeding Schedule"
+      },
+      "portion_control": {
+        "name": "Portion Control"
+      },
+      "feeding_alerts": {
+        "name": "Feeding Alerts"
+      },
+      "gps_tracking": {
+        "name": "GPS Tracking"
+      },
+      "geofencing": {
+        "name": "Geofencing"
+      },
+      "route_recording": {
+        "name": "Route Recording"
+      },
+      "auto_walk_detection": {
+        "name": "Auto Walk Detection"
+      },
+      "location_sharing": {
+        "name": "Location Sharing"
+      },
+      "health_monitoring": {
+        "name": "Health Monitoring"
+      },
+      "weight_tracking": {
+        "name": "Weight Tracking"
+      },
+      "medication_reminders": {
+        "name": "Medication Reminders"
+      },
+      "vet_reminders": {
+        "name": "Vet Reminders"
+      },
+      "activity_tracking": {
+        "name": "Activity Tracking"
+      },
+      "notifications": {
+        "name": "Notifications"
+      },
+      "urgent_notifications": {
+        "name": "Urgent Notifications"
+      },
+      "daily_reports": {
+        "name": "Daily Reports"
+      },
+      "weekly_reports": {
+        "name": "Weekly Reports"
+      },
+      "sound_alerts": {
+        "name": "Sound Alerts"
+      }
+    },
+    "number": {
+      "weight": {
+        "name": "Weight"
+      },
+      "age": {
+        "name": "Age"
+      },
+      "activity_goal": {
+        "name": "Activity Goal"
+      },
+      "daily_food_amount": {
+        "name": "Daily Food Amount"
+      },
+      "feeding_reminder_hours": {
+        "name": "Feeding Reminder Hours"
+      },
+      "meals_per_day": {
+        "name": "Meals Per Day"
+      },
+      "portion_size": {
+        "name": "Portion Size"
+      },
+      "calorie_target": {
+        "name": "Calorie Target"
+      },
+      "daily_walk_target": {
+        "name": "Daily Walk Target"
+      },
+      "walk_duration_target": {
+        "name": "Walk Duration Target"
+      },
+      "walk_distance_target": {
+        "name": "Walk Distance Target"
+      },
+      "walk_reminder_hours": {
+        "name": "Walk Reminder Hours"
+      },
+      "max_walk_speed": {
+        "name": "Max Walk Speed"
+      },
+      "gps_accuracy_threshold": {
+        "name": "GPS Accuracy Threshold"
+      },
+      "gps_update_interval": {
+        "name": "GPS Update Interval"
+      },
+      "geofence_radius": {
+        "name": "Geofence Radius"
+      },
+      "location_update_distance": {
+        "name": "Location Update Distance"
+      },
+      "gps_battery_threshold": {
+        "name": "GPS Battery Threshold"
+      },
+      "target_weight": {
+        "name": "Target Weight"
+      },
+      "weight_change_threshold": {
+        "name": "Weight Change Threshold"
+      },
+      "grooming_interval": {
+        "name": "Grooming Interval"
+      },
+      "vet_checkup_interval": {
+        "name": "Vet Checkup Interval"
+      },
+      "health_score_threshold": {
+        "name": "Health Score Threshold"
+      }
+    },
+    "select": {
+      "size": {
+        "name": "Size",
+        "state": {
+          "toy": "Toy",
+          "small": "Small", 
+          "medium": "Medium",
+          "large": "Large",
+          "giant": "Giant"
+        }
+      },
+      "performance_mode": {
+        "name": "Performance Mode",
+        "state": {
+          "minimal": "Minimal",
+          "balanced": "Balanced",
+          "full": "Full"
+        }
+      },
+      "notification_priority": {
+        "name": "Notification Priority",
+        "state": {
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High",
+          "urgent": "Urgent"
+        }
+      },
+      "food_type": {
+        "name": "Food Type",
+        "state": {
+          "dry_food": "Dry Food",
+          "wet_food": "Wet Food",
+          "barf": "BARF",
+          "home_cooked": "Home Cooked",
+          "mixed": "Mixed"
+        }
+      },
+      "feeding_schedule": {
+        "name": "Feeding Schedule",
+        "state": {
+          "flexible": "Flexible",
+          "strict": "Strict",
+          "custom": "Custom"
+        }
+      },
+      "default_meal_type": {
+        "name": "Default Meal Type",
+        "state": {
+          "breakfast": "Breakfast",
+          "lunch": "Lunch",
+          "dinner": "Dinner",
+          "snack": "Snack",
+          "treat": "Treat"
+        }
+      },
+      "feeding_mode": {
+        "name": "Feeding Mode",
+        "state": {
+          "manual": "Manual",
+          "scheduled": "Scheduled",
+          "automatic": "Automatic"
+        }
+      },
+      "walk_mode": {
+        "name": "Walk Mode",
+        "state": {
+          "automatic": "Automatic",
+          "manual": "Manual",
+          "hybrid": "Hybrid"
+        }
+      },
+      "weather_preference": {
+        "name": "Weather Preference",
+        "state": {
+          "any": "Any Weather",
+          "sunny": "Sunny",
+          "cloudy": "Cloudy",
+          "light_rain": "Light Rain",
+          "no_rain": "No Rain",
+          "warm": "Warm",
+          "cool": "Cool"
+        }
+      },
+      "walk_intensity": {
+        "name": "Walk Intensity",
+        "state": {
+          "relaxed": "Relaxed",
+          "moderate": "Moderate",
+          "vigorous": "Vigorous",
+          "mixed": "Mixed"
+        }
+      },
+      "gps_source": {
+        "name": "GPS Source",
+        "state": {
+          "manual": "Manual",
+          "device_tracker": "Device Tracker",
+          "person_entity": "Person Entity",
+          "smartphone": "Smartphone",
+          "tractive": "Tractive",
+          "webhook": "Webhook",
+          "mqtt": "MQTT"
+        }
+      },
+      "tracking_mode": {
+        "name": "Tracking Mode",
+        "state": {
+          "continuous": "Continuous",
+          "interval": "Interval",
+          "on_demand": "On Demand",
+          "battery_saver": "Battery Saver"
+        }
+      },
+      "location_accuracy": {
+        "name": "Location Accuracy",
+        "state": {
+          "low": "Low",
+          "balanced": "Balanced",
+          "high": "High",
+          "best": "Best"
+        }
+      },
+      "health_status": {
+        "name": "Health Status",
+        "state": {
+          "excellent": "Excellent",
+          "good": "Good",
+          "fair": "Fair",
+          "poor": "Poor",
+          "critical": "Critical"
+        }
+      },
+      "activity_level": {
+        "name": "Activity Level",
+        "state": {
+          "very_low": "Very Low",
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High",
+          "very_high": "Very High"
+        }
+      },
+      "mood": {
+        "name": "Mood",
+        "state": {
+          "happy": "Happy",
+          "content": "Content",
+          "excited": "Excited",
+          "calm": "Calm",
+          "anxious": "Anxious",
+          "tired": "Tired",
+          "playful": "Playful",
+          "aggressive": "Aggressive",
+          "sad": "Sad"
+        }
+      },
+      "grooming_type": {
+        "name": "Grooming Type",
+        "state": {
+          "bath": "Bath",
+          "brush": "Brush",
+          "nails": "Nails",
+          "teeth": "Teeth",
+          "trim": "Trim",
+          "full_grooming": "Full Grooming"
+        }
+      }
+    },
+    "device_tracker": {
+      "gps": {
+        "name": "GPS"
+      }
+    }
+  },
+  "services": {
+    "feed_dog": {
+      "name": "Feed Dog",
+      "description": "Log feeding for a specific dog"
+    },
+    "start_walk": {
+      "name": "Start Walk", 
+      "description": "Begin tracking a walk for a specific dog"
+    },
+    "end_walk": {
+      "name": "End Walk",
+      "description": "End the current walk for a specific dog"
+    },
+    "log_health": {
+      "name": "Log Health Data",
+      "description": "Log health information for a specific dog"
+    },
+    "log_medication": {
+      "name": "Log Medication",
+      "description": "Log medication administration for a specific dog"
+    },
+    "start_grooming": {
+      "name": "Start Grooming",
+      "description": "Begin a grooming session for a specific dog"
+    },
+    "end_grooming": {
+      "name": "End Grooming",
+      "description": "End the current grooming session"
+    },
+    "update_location": {
+      "name": "Update Location",
+      "description": "Manually update the location of a specific dog"
+    },
+    "set_visitor_mode": {
+      "name": "Set Visitor Mode",
+      "description": "Enable or disable visitor mode for a specific dog"
+    },
+    "notify_test": {
+      "name": "Test Notification",
+      "description": "Send a test notification for a specific dog"
+    },
+    "reset_daily_stats": {
+      "name": "Reset Daily Statistics",
+      "description": "Reset daily statistics for a specific dog"
+    },
+    "export_data": {
+      "name": "Export Data",
+      "description": "Export historical data for a specific dog"
+    },
+    "import_data": {
+      "name": "Import Data",
+      "description": "Import historical data for a specific dog"
+    },
+    "set_feeding_schedule": {
+      "name": "Set Feeding Schedule",
+      "description": "Configure feeding schedule for a specific dog"
+    },
+    "set_walk_schedule": {
+      "name": "Set Walk Schedule",
+      "description": "Configure walk schedule for a specific dog"
+    },
+    "configure_alerts": {
+      "name": "Configure Alerts",
+      "description": "Configure alert settings for a specific dog"
+    },
+    "generate_report": {
+      "name": "Generate Report",
+      "description": "Generate a comprehensive report for a specific dog"
+    }
+  },
+  "exceptions": {
+    "dog_not_found": "Dog with ID '{dog_id}' not found",
+    "invalid_coordinates": "Invalid GPS coordinates provided",
+    "walk_not_in_progress": "No walk is currently in progress for this dog",
+    "walk_already_in_progress": "A walk is already in progress for this dog",
+    "invalid_meal_type": "Invalid meal type specified",
+    "invalid_weight": "Weight must be a positive number",
+    "grooming_not_in_progress": "No grooming session is currently in progress",
+    "invalid_date_range": "Invalid date range specified",
+    "data_export_failed": "Failed to export data",
+    "notification_send_failed": "Failed to send notification",
+    "gps_unavailable": "GPS data is not available for this dog",
+    "module_not_enabled": "The required module is not enabled for this dog"
+  }
+}

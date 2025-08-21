@@ -1,0 +1,550 @@
+# Paw Control Integration - Example Configuration
+
+# This file shows example configurations for the Paw Control integration.
+# Copy and modify these examples according to your specific setup.
+
+# =============================================================================
+# BASIC CONFIGURATION EXAMPLE
+# =============================================================================
+
+# Minimal setup for one dog with basic features
+pawcontrol:
+  name: "Family Dogs"
+  update_interval: 120  # seconds
+  dogs:
+    - dog_id: "buddy"
+      dog_name: "Buddy"
+      dog_breed: "Golden Retriever"
+      dog_age: 5
+      dog_weight: 30.5
+      dog_size: "large"
+      modules:
+        feeding: true
+        walk: true
+        health: true
+        notifications: true
+
+# =============================================================================
+# MULTI-DOG CONFIGURATION EXAMPLE
+# =============================================================================
+
+# Setup for multiple dogs with different configurations
+pawcontrol_multi:
+  name: "Dog Pack"
+  update_interval: 90
+  performance_mode: "balanced"
+  dogs:
+    # Large active dog with all features
+    - dog_id: "buddy"
+      dog_name: "Buddy"
+      dog_breed: "Golden Retriever"
+      dog_age: 5
+      dog_weight: 30.5
+      dog_size: "large"
+      modules:
+        feeding: true
+        walk: true
+        gps: true
+        health: true
+        notifications: true
+      
+    # Small indoor dog with limited GPS needs
+    - dog_id: "bella"
+      dog_name: "Bella"
+      dog_breed: "Chihuahua"
+      dog_age: 3
+      dog_weight: 2.8
+      dog_size: "toy"
+      modules:
+        feeding: true
+        walk: true
+        gps: false  # Indoor dog, no GPS needed
+        health: true
+        notifications: true
+    
+    # Senior dog with enhanced health monitoring
+    - dog_id: "max"
+      dog_name: "Max"
+      dog_breed: "Labrador Mix"
+      dog_age: 12
+      dog_weight: 28.0
+      dog_size: "large"
+      modules:
+        feeding: true
+        walk: true
+        gps: true
+        health: true  # Extra important for senior dog
+        notifications: true
+
+# =============================================================================
+# ADVANCED CONFIGURATION WITH MODULE SETTINGS
+# =============================================================================
+
+pawcontrol_advanced:
+  name: "Smart Dog Monitoring"
+  update_interval: 60
+  performance_mode: "full"
+  data_retention_days: 365
+  
+  dogs:
+    - dog_id: "buddy"
+      dog_name: "Buddy"
+      dog_breed: "Golden Retriever"
+      dog_age: 5
+      dog_weight: 30.5
+      dog_size: "large"
+      
+      modules:
+        feeding: true
+        walk: true
+        gps: true
+        health: true
+        notifications: true
+      
+      # Feeding configuration
+      feeding_config:
+        daily_food_amount: 400  # grams
+        meals_per_day: 2
+        food_type: "dry_food"
+        feeding_schedule: "strict"
+        reminder_hours: 8
+        calorie_target: 1200
+      
+      # Walk configuration
+      walk_config:
+        daily_walk_target: 3
+        walk_duration_target: 45  # minutes
+        walk_distance_target: 3000  # meters
+        walk_mode: "automatic"
+        reminder_hours: 6
+        weather_preference: "no_rain"
+      
+      # GPS configuration
+      gps_config:
+        gps_source: "device_tracker"
+        tracking_mode: "interval"
+        update_interval: 300  # seconds
+        accuracy_threshold: 50  # meters
+        geofence_radius: 100  # meters
+        battery_threshold: 20  # percent
+      
+      # Health configuration
+      health_config:
+        target_weight: 30.0
+        weight_change_threshold: 10  # percent
+        vet_checkup_interval: 12  # months
+        grooming_interval: 28  # days
+        activity_tracking: true
+      
+      # Notification configuration
+      notification_config:
+        notifications_enabled: true
+        feeding_alerts: true
+        walk_alerts: true
+        health_alerts: true
+        gps_alerts: true
+        priority: "normal"
+        delivery_methods: ["persistent", "mobile_app"]
+        quiet_hours_start: "22:00"
+        quiet_hours_end: "07:00"
+
+# =============================================================================
+# GPS SOURCE EXAMPLES
+# =============================================================================
+
+# Using smartphone as GPS source
+gps_smartphone_example:
+  gps_config:
+    gps_source: "person_entity"
+    person_entity: "person.dog_walker"
+    update_interval: 60
+
+# Using dedicated GPS collar
+gps_collar_example:
+  gps_config:
+    gps_source: "device_tracker"
+    device_tracker_entity: "device_tracker.buddy_gps_collar"
+    update_interval: 120
+
+# Using Tractive GPS collar
+gps_tractive_example:
+  gps_config:
+    gps_source: "tractive"
+    tractive_device_id: "12345"
+    update_interval: 300
+
+# Manual GPS updates via automation
+gps_manual_example:
+  gps_config:
+    gps_source: "manual"
+    # Location updated via pawcontrol.update_location service
+
+# Using MQTT for GPS data
+gps_mqtt_example:
+  gps_config:
+    gps_source: "mqtt"
+    mqtt_topic: "pawcontrol/buddy/location"
+    update_interval: 180
+
+# Using webhook for GPS data
+gps_webhook_example:
+  gps_config:
+    gps_source: "webhook"
+    webhook_id: "buddy_location"
+
+# =============================================================================
+# AUTOMATION INTEGRATION EXAMPLES
+# =============================================================================
+
+# Example automations to work with Paw Control
+
+automation:
+  # Automatic feeding reminder
+  - alias: "Smart Feeding Reminder"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_is_hungry
+        to: "on"
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: switch.buddy_visitor_mode
+            state: "on"
+    action:
+      - service: pawcontrol.notify_test
+        data:
+          dog_id: "buddy"
+          message: "Buddy is hungry! Last fed {{ states('sensor.buddy_last_feeding_hours') }} hours ago."
+          priority: "normal"
+
+  # Walk tracking with GPS
+  - alias: "Auto Start Walk Detection"
+    trigger:
+      - platform: state
+        entity_id: device_tracker.buddy_gps
+        from: "home"
+    condition:
+      - condition: state
+        entity_id: switch.buddy_auto_walk_detection
+        state: "on"
+    action:
+      - service: pawcontrol.start_walk
+        data:
+          dog_id: "buddy"
+          label: "Auto-detected walk"
+
+  # Health monitoring alert
+  - alias: "Weight Change Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.buddy_weight_change_percent
+        above: 10
+    action:
+      - service: pawcontrol.log_health
+        data:
+          dog_id: "buddy"
+          note: "Significant weight change detected - {{ trigger.to_state.state }}%"
+      - service: persistent_notification.create
+        data:
+          title: "Health Alert - Buddy"
+          message: "Buddy's weight has changed by {{ trigger.to_state.state }}%. Consider veterinary consultation."
+
+  # Daily report generation
+  - alias: "Generate Daily Dog Report"
+    trigger:
+      - platform: time
+        at: "20:00:00"
+    action:
+      - service: pawcontrol.generate_report
+        data:
+          dog_id: "buddy"
+          report_type: "daily"
+          format: "html"
+          send_notification: true
+
+# =============================================================================
+# LOVELACE DASHBOARD EXAMPLES
+# =============================================================================
+
+# Example Lovelace configuration for dog monitoring dashboard
+
+views:
+  - title: "Dog Monitoring"
+    path: "dogs"
+    cards:
+      # Dog overview card
+      - type: picture-elements
+        image: /local/images/buddy_photo.jpg
+        elements:
+          - type: state-label
+            entity: sensor.buddy_last_feeding
+            top: 10%
+            left: 10%
+            style:
+              color: white
+              background: rgba(0,0,0,0.5)
+              padding: 5px
+              border-radius: 5px
+
+      # Quick actions
+      - type: horizontal-stack
+        cards:
+          - type: button
+            entity: button.buddy_mark_fed
+            name: "Feed"
+            icon: mdi:food-drumstick
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.buddy_mark_fed
+          
+          - type: button
+            entity: button.buddy_start_walk
+            name: "Walk"
+            icon: mdi:walk
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.buddy_start_walk
+          
+          - type: button
+            entity: button.buddy_log_weight
+            name: "Weigh"
+            icon: mdi:scale
+
+      # Status overview
+      - type: entities
+        title: "Buddy Status"
+        entities:
+          - entity: sensor.buddy_last_feeding
+            name: "Last Fed"
+          - entity: sensor.buddy_last_walk
+            name: "Last Walk"
+          - entity: sensor.buddy_current_weight
+            name: "Weight"
+          - entity: binary_sensor.buddy_attention_needed
+            name: "Needs Attention"
+          - entity: device_tracker.buddy_gps
+            name: "Location"
+
+      # Health monitoring
+      - type: gauge
+        entity: sensor.buddy_health_score
+        name: "Health Score"
+        min: 0
+        max: 100
+        severity:
+          green: 80
+          yellow: 60
+          red: 0
+
+      # Activity chart
+      - type: history-graph
+        title: "Daily Activity"
+        entities:
+          - entity: sensor.buddy_daily_walk_distance
+          - entity: sensor.buddy_daily_walk_time
+
+# =============================================================================
+# NOTIFICATION CONFIGURATION EXAMPLES
+# =============================================================================
+
+# Mobile app notifications
+notify:
+  - name: "dog_alerts"
+    platform: group
+    services:
+      - service: mobile_app_iphone
+      - service: mobile_app_android
+
+# Email notifications for important alerts
+notify:
+  - name: "dog_email"
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: your-email@gmail.com
+    encryption: starttls
+    username: your-email@gmail.com
+    password: your-app-password
+    recipient: family@example.com
+    sender_name: "Paw Control"
+
+# TTS notifications for urgent alerts
+tts:
+  - platform: google_translate
+    service_name: google_say
+
+# =============================================================================
+# SENSOR TEMPLATE EXAMPLES
+# =============================================================================
+
+# Custom sensors based on Paw Control data
+template:
+  - sensor:
+      - name: "Buddy Feeding Status"
+        state: >
+          {% set hours = states('sensor.buddy_last_feeding_hours')|float %}
+          {% if hours < 6 %}
+            Recently Fed
+          {% elif hours < 10 %}
+            Due Soon
+          {% elif hours < 12 %}
+            Overdue
+          {% else %}
+            Very Overdue
+          {% endif %}
+        icon: >
+          {% set hours = states('sensor.buddy_last_feeding_hours')|float %}
+          {% if hours < 6 %}
+            mdi:food-drumstick
+          {% elif hours < 12 %}
+            mdi:clock-alert
+          {% else %}
+            mdi:alert-circle
+          {% endif %}
+
+      - name: "Buddy Walk Status"
+        state: >
+          {% if is_state('binary_sensor.buddy_walk_in_progress', 'on') %}
+            Walking
+          {% elif is_state('binary_sensor.buddy_needs_walk', 'on') %}
+            Needs Walk
+          {% else %}
+            Satisfied
+          {% endif %}
+
+# =============================================================================
+# ADVANCED AUTOMATION EXAMPLES
+# =============================================================================
+
+automation:
+  # Intelligent feeding suggestions based on activity
+  - alias: "Smart Feeding Recommendations"
+    trigger:
+      - platform: state
+        entity_id: sensor.buddy_daily_walk_distance
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state|float > 5000 }}"  # More than 5km
+    action:
+      - service: pawcontrol.feed_dog
+        data:
+          dog_id: "buddy"
+          meal_type: "snack"
+          portion_size: 50
+          notes: "Extra portion after long walk ({{ trigger.to_state.state }}m)"
+
+  # Weather-based walk suggestions
+  - alias: "Weather-Appropriate Walk Reminder"
+    trigger:
+      - platform: time
+        at: "17:00:00"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.buddy_needs_walk
+        state: "on"
+      - condition: numeric_state
+        entity_id: weather.home
+        attribute: temperature
+        above: 5
+        below: 25
+      - condition: state
+        entity_id: weather.home
+        state: "sunny"
+    action:
+      - service: notify.family
+        data:
+          title: "Perfect Walk Weather!"
+          message: "Great weather for Buddy's walk - {{ states('weather.home') }}, {{ state_attr('weather.home', 'temperature') }}°C"
+
+  # Emergency health alert
+  - alias: "Emergency Health Alert"
+    trigger:
+      - platform: state
+        entity_id: select.buddy_health_status
+        to: "critical"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "🚨 EMERGENCY - Buddy"
+          message: "Critical health status detected! Contact veterinarian immediately."
+          data:
+            priority: "high"
+            persistent: true
+            actions:
+              - action: "CALL_VET"
+                title: "Call Vet"
+              - action: "DISMISS"
+                title: "Dismiss"
+
+# =============================================================================
+# INTEGRATION WITH OTHER PLATFORMS
+# =============================================================================
+
+# Integrate with calendar for vet appointments
+calendar:
+  - platform: caldav
+    username: your-email@gmail.com
+    password: your-password
+    url: https://caldav.gmail.com
+    calendars:
+      - "Buddy Vet Appointments"
+
+# Integrate with weather for walk planning
+weather:
+  - platform: openweathermap
+    api_key: your-api-key
+    mode: daily
+
+# Integrate with person tracking for automatic walk detection
+person:
+  - name: "Dog Walker"
+    id: "dog_walker"
+    device_trackers:
+      - device_tracker.phone
+      - device_tracker.smartwatch
+
+# Example script for manual data entry
+script:
+  log_buddy_activities:
+    alias: "Log Buddy's Activities"
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.activity_type
+        data:
+          option: "{{ activity_type }}"
+      
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ activity_type == 'feeding' }}"
+            sequence:
+              - service: pawcontrol.feed_dog
+                data:
+                  dog_id: "buddy"
+                  meal_type: "{{ meal_type | default('snack') }}"
+                  portion_size: "{{ portion_size | default(100) }}"
+          
+          - conditions:
+              - condition: template
+                value_template: "{{ activity_type == 'walk' }}"
+            sequence:
+              - service: pawcontrol.start_walk
+                data:
+                  dog_id: "buddy"
+                  label: "Manual entry"
+              - delay: "{{ walk_duration | default('00:30:00') }}"
+              - service: pawcontrol.end_walk
+                data:
+                  dog_id: "buddy"
+                  duration: "{{ (walk_duration | default('00:30:00')).split(':')[1] | int }}"
+
+# This configuration file provides comprehensive examples for setting up
+# and using the Paw Control integration with various features and scenarios.
+# Adapt these examples to your specific needs and setup.
