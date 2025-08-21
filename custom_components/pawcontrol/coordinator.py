@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -326,7 +325,7 @@ class PawControlCoordinator(DataUpdateCoordinator[CoordinatorData]):
             Feeding data including meal history, schedules, and statistics
         """
         now = dt_util.now()
-        today = now.date()
+        now.date()
         
         # TODO: Load actual feeding data from storage
         # This would query the data manager for feeding history

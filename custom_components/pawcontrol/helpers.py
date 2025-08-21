@@ -6,16 +6,12 @@ required for the Paw Control integration to achieve Platinum quality standards.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import os
 from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import storage
 from homeassistant.helpers.event import async_track_time_interval
@@ -24,7 +20,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
@@ -618,12 +613,11 @@ class PawControlNotificationManager:
         """
         try:
             # Get notification configuration
-            notification_config = self.config_entry.options.get(
+            self.config_entry.options.get(
                 CONF_NOTIFICATIONS, {}
             )
             
             # Determine notification service
-            service_name = "persistent_notification.create"
             service_data = {
                 "title": notification["title"],
                 "message": notification["message"],

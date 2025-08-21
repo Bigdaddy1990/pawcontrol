@@ -18,15 +18,11 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
-from homeassistant.helpers.typing import DiscoveryInfoType
 
 from .const import (
-    ACTIVITY_LEVELS,
     CONF_DASHBOARD_MODE,
     CONF_DOGS,
     CONF_DOG_AGE,
@@ -35,12 +31,9 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_FEEDING_TIMES,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
-    CONF_GPS_SOURCE,
     CONF_GPS_UPDATE_INTERVAL,
-    CONF_HEALTH_TRACKING,
     CONF_MODULES,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
@@ -48,8 +41,6 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
-    CONF_SOURCES,
-    DASHBOARD_MODES,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_GPS_UPDATE_INTERVAL,
@@ -57,9 +48,6 @@ from .const import (
     DEFAULT_RESET_TIME,
     DOG_SIZES,
     DOMAIN,
-    FOOD_TYPES,
-    GPS_SOURCES,
-    HEALTH_STATUS_OPTIONS,
     MAX_DOG_AGE,
     MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
@@ -73,8 +61,6 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
     MODULE_WALK,
-    MOOD_OPTIONS,
-    PERFORMANCE_MODES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1012,10 +998,10 @@ class PawControlOptionsFlow(OptionsFlow):
             # Base entities: 2
             entity_count += 2
             # Module-specific entities
-            if modules.get(MODULE_FEEDING): entity_count += 7
-            if modules.get(MODULE_WALK): entity_count += 6
-            if modules.get(MODULE_GPS): entity_count += 8
-            if modules.get(MODULE_HEALTH): entity_count += 6
+            if modules.get(MODULE_FEEDING): entity_count += 7  # noqa: E701
+            if modules.get(MODULE_WALK): entity_count += 6  # noqa: E701
+            if modules.get(MODULE_GPS): entity_count += 8  # noqa: E701
+            if modules.get(MODULE_HEALTH): entity_count += 6  # noqa: E701
             
         return f"Approximately {entity_count} entities for {len(self._dogs)} dogs"
 

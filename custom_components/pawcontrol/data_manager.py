@@ -12,7 +12,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiofiles
 from homeassistant.core import HomeAssistant
@@ -26,14 +26,10 @@ from .const import (
 )
 from .exceptions import (
     DataExportError,
-    DataImportError,
     StorageError,
 )
 from .utils import (
     deep_merge_dicts,
-    safe_float,
-    safe_int,
-    safe_str,
     sanitize_filename,
 )
 

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance

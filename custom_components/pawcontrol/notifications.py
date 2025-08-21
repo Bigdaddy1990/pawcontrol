@@ -19,7 +19,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
     SERVICE_NOTIFY_TEST,
 )
