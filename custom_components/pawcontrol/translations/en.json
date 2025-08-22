@@ -49,7 +49,7 @@
       "description": "Log a feeding event for a dog"
     },
     "start_walk": {
-      "name": "Start Walk", 
+      "name": "Start Walk",
       "description": "Start a walk for a dog"
     },
     "end_walk": {
@@ -61,7 +61,7 @@
       "description": "Start a GPS-tracked walk for a dog"
     },
     "gps_end_walk": {
-      "name": "GPS End Walk", 
+      "name": "GPS End Walk",
       "description": "End the current GPS-tracked walk"
     },
     "log_health_data": {

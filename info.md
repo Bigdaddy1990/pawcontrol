@@ -72,7 +72,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Manuelle Erfassung**
 - **Rückfrage-System**: Automatische Bestätigung via Push-Benachrichtigung
 - **Aktivitäts-Counter**
-- **Zeitstempel-Tracking** für Aktivitäten 
+- **Zeitstempel-Tracking** für Aktivitäten
 - **Dauer-Messung** Aufenthaltszeit im Garten
 
 ### 💩 Geschäfte & Gesundheits-Tracking
