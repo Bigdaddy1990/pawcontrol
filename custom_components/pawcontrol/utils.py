@@ -31,8 +31,8 @@ from .const import (
     MIN_DOG_WEIGHT,
     MOOD_OPTIONS,
     ACTIVITY_LEVELS,
-    VALID_MEAL_TYPES,
-    VALID_GPS_SOURCES,
+    MEAL_TYPES,
+    GPS_SOURCES,
 )
 from .exceptions import (
     InvalidCoordinatesError,

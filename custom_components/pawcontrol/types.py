@@ -227,11 +227,17 @@ class DogProfile:
     is_visitor_mode: bool = False
 
 
+# Forward declarations to avoid circular imports
+if TYPE_CHECKING:
+    from .coordinator import PawControlCoordinator
+    from .data_manager import PawControlDataManager
+    from .notifications import PawControlNotificationManager
+
 class PawControlRuntimeData(TypedDict):
     """Runtime data structure for the integration."""
-    coordinator: DataUpdateCoordinator[Dict[str, Any]]
-    data_manager: Any  # PawControlDataManager - avoiding circular import
-    notification_manager: Any  # PawControlNotificationManager - avoiding circular import
+    coordinator: PawControlCoordinator
+    data_manager: PawControlDataManager
+    notification_manager: PawControlNotificationManager
     config_entry: ConfigEntry
     dogs: List[DogConfigData]
 
@@ -313,16 +319,28 @@ def is_feeding_data_valid(data: Any) -> bool:
     )
 
 
-# Constants for type validation
-VALID_MEAL_TYPES = {"breakfast", "lunch", "dinner", "snack", "treat"}
-VALID_FOOD_TYPES = {"dry_food", "wet_food", "barf", "home_cooked", "mixed", "treat"}
-VALID_DOG_SIZES = {"toy", "small", "medium", "large", "giant"}
-VALID_HEALTH_STATUS = {"excellent", "very_good", "good", "normal", "unwell", "sick"}
-VALID_MOOD_OPTIONS = {"happy", "neutral", "sad", "angry", "anxious", "tired"}
-VALID_ACTIVITY_LEVELS = {"very_low", "low", "normal", "high", "very_high"}
-VALID_GEOFENCE_TYPES = {"safe_zone", "restricted_area", "point_of_interest"}
+# Import validation constants from const.py (single source of truth)
+from .const import (
+    MEAL_TYPES,
+    FOOD_TYPES, 
+    DOG_SIZES,
+    HEALTH_STATUS_OPTIONS,
+    MOOD_OPTIONS,
+    ACTIVITY_LEVELS,
+    GEOFENCE_TYPES,
+    GPS_SOURCES,
+)
+
+# Convert to sets for type validation (faster lookups)
+VALID_MEAL_TYPES = set(MEAL_TYPES)
+VALID_FOOD_TYPES = set(FOOD_TYPES)
+VALID_DOG_SIZES = set(DOG_SIZES)
+VALID_HEALTH_STATUS = set(HEALTH_STATUS_OPTIONS)
+VALID_MOOD_OPTIONS = set(MOOD_OPTIONS)
+VALID_ACTIVITY_LEVELS = set(ACTIVITY_LEVELS)
+VALID_GEOFENCE_TYPES = set(GEOFENCE_TYPES)
+VALID_GPS_SOURCES = set(GPS_SOURCES)
 VALID_NOTIFICATION_PRIORITIES = {"low", "normal", "high", "urgent"}
-VALID_GPS_SOURCES = {"manual", "device_tracker", "person_entity", "smartphone", "tractive", "webhook", "mqtt"}
 
 # Performance optimization types
 class PerformanceConfig(TypedDict):

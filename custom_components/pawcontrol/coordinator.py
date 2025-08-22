@@ -1358,50 +1358,382 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
     async def _calculate_next_checkup(self, dog_id: str, last_visit: Optional[dict]) -> Optional[datetime]:
-        """Calculate next checkup date."""
-        return None
+        """Calculate next checkup date based on last visit and dog age."""
+        if not last_visit:
+            # No vet history - recommend checkup soon
+            return dt_util.utcnow() + timedelta(days=30)
+        
+        try:
+            last_visit_date = dt_util.parse_datetime(last_visit.get("date"))
+            if not last_visit_date:
+                return None
+            
+            # Get dog info to determine checkup frequency
+            dog_info = self.get_dog_info(dog_id)
+            if not dog_info:
+                return last_visit_date + timedelta(days=365)  # Default 1 year
+            
+            age = dog_info.get("dog_age", 5)
+            
+            # Checkup frequency based on age
+            if age < 1:  # Puppy - every 3-4 months
+                interval_days = 120
+            elif age < 2:  # Young adult - every 6 months
+                interval_days = 180
+            elif age < 7:  # Adult - yearly
+                interval_days = 365
+            elif age < 10:  # Senior - every 8 months
+                interval_days = 240
+            else:  # Very senior - every 6 months
+                interval_days = 180
+            
+            next_checkup = last_visit_date + timedelta(days=interval_days)
+            return next_checkup
+            
+        except (ValueError, TypeError) as err:
+            _LOGGER.debug("Error calculating next checkup for %s: %s", dog_id, err)
+            return None
 
     async def _is_grooming_due(self, dog_id: str, last_grooming: Optional[dict]) -> bool:
-        """Check if grooming is due."""
-        return False
+        """Check if grooming is due based on last grooming and dog characteristics."""
+        if not last_grooming:
+            return True  # No grooming history - recommend grooming
+        
+        try:
+            last_grooming_date = dt_util.parse_datetime(last_grooming.get("date"))
+            if not last_grooming_date:
+                return True
+            
+            # Get dog info to determine grooming frequency
+            dog_info = self.get_dog_info(dog_id)
+            if not dog_info:
+                # Default grooming interval is 6 weeks
+                days_since = (dt_util.utcnow() - last_grooming_date).days
+                return days_since >= 42
+            
+            # Grooming frequency based on coat type and size
+            dog_size = dog_info.get("dog_size", "medium")
+            
+            # Default intervals (can be enhanced with breed-specific data)
+            grooming_intervals = {
+                "toy": 28,      # 4 weeks - small dogs with fine coats
+                "small": 35,    # 5 weeks 
+                "medium": 42,   # 6 weeks
+                "large": 49,    # 7 weeks
+                "giant": 56,    # 8 weeks - larger dogs, less frequent grooming
+            }
+            
+            interval_days = grooming_intervals.get(dog_size, 42)
+            
+            # Check if due based on interval
+            days_since = (dt_util.utcnow() - last_grooming_date).days
+            return days_since >= interval_days
+            
+        except (ValueError, TypeError) as err:
+            _LOGGER.debug("Error checking grooming due for %s: %s", dog_id, err)
+            return False
 
     async def _get_care_reminders(self, dog_id: str) -> list[str]:
-        """Get care reminders for a dog."""
-        return []
+        """Get comprehensive care reminders for a dog."""
+        reminders = []
+        
+        try:
+            runtime_data = self._get_runtime_data()
+            if not runtime_data:
+                return reminders
+            
+            data_manager = runtime_data.get("data_manager")
+            if not data_manager:
+                return reminders
+            
+            # Check various care needs
+            
+            # 1. Vet checkup reminders
+            last_vet_visit = await data_manager.async_get_last_vet_visit(dog_id)
+            next_checkup = await self._calculate_next_checkup(dog_id, last_vet_visit)
+            if next_checkup:
+                days_until = (next_checkup - dt_util.utcnow()).days
+                if days_until <= 7:
+                    if days_until <= 0:
+                        reminders.append("Vet checkup is overdue")
+                    else:
+                        reminders.append(f"Vet checkup due in {days_until} days")
+                elif days_until <= 30:
+                    reminders.append(f"Vet checkup due in {days_until} days")
+            
+            # 2. Grooming reminders
+            last_grooming = await data_manager.async_get_last_grooming(dog_id)
+            is_grooming_due = await self._is_grooming_due(dog_id, last_grooming)
+            if is_grooming_due:
+                if last_grooming:
+                    last_date = dt_util.parse_datetime(last_grooming.get("date"))
+                    if last_date:
+                        days_since = (dt_util.utcnow() - last_date).days
+                        reminders.append(f"Grooming needed (last groomed {days_since} days ago)")
+                    else:
+                        reminders.append("Grooming recommended")
+                else:
+                    reminders.append("Initial grooming appointment needed")
+            
+            # 3. Medication reminders
+            medications = await data_manager.async_get_active_medications(dog_id)
+            for med in medications:
+                next_dose = med.get("next_dose")
+                if next_dose:
+                    try:
+                        next_dose_dt = dt_util.parse_datetime(next_dose)
+                        if next_dose_dt:
+                            time_diff = (next_dose_dt - dt_util.utcnow()).total_seconds()
+                            if time_diff < 0:  # Overdue
+                                hours_overdue = abs(time_diff) / 3600
+                                reminders.append(f"Medication '{med.get('name', 'Unknown')}' is {hours_overdue:.1f} hours overdue")
+                            elif time_diff < 3600:  # Due within 1 hour
+                                minutes_until = time_diff / 60
+                                reminders.append(f"Medication '{med.get('name', 'Unknown')}' due in {minutes_until:.0f} minutes")
+                    except (ValueError, TypeError):
+                        continue
+            
+            # 4. Exercise reminders
+            dog_data = await data_manager.async_get_dog_data(dog_id)
+            if dog_data:
+                walk_data = dog_data.get("walk", {})
+                last_walk = walk_data.get("last_walk")
+                if last_walk:
+                    try:
+                        last_walk_dt = dt_util.parse_datetime(last_walk)
+                        if last_walk_dt:
+                            hours_since = (dt_util.utcnow() - last_walk_dt).total_seconds() / 3600
+                            if hours_since > 12:  # No walk in 12+ hours
+                                reminders.append(f"Walk needed (last walk {hours_since:.1f} hours ago)")
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    reminders.append("Daily walk needed")
+            
+            # 5. Feeding reminders (if enabled)
+            feeding_data = dog_data.get("feeding", {}) if dog_data else {}
+            last_feeding = feeding_data.get("last_feeding")
+            if last_feeding:
+                try:
+                    last_feeding_dt = dt_util.parse_datetime(last_feeding)
+                    if last_feeding_dt:
+                        hours_since = (dt_util.utcnow() - last_feeding_dt).total_seconds() / 3600
+                        if hours_since > 8:  # No feeding in 8+ hours (might be hungry)
+                            reminders.append(f"Check feeding schedule (last fed {hours_since:.1f} hours ago)")
+                except (ValueError, TypeError):
+                    pass
+            
+            return reminders
+            
+        except Exception as err:
+            _LOGGER.error("Error getting care reminders for %s: %s", dog_id, err)
+            return reminders
 
     def _calculate_today_walk_stats_comprehensive(self, walk_history: list) -> dict[str, Any]:
         """Calculate comprehensive today's walk statistics."""
+        today = dt_util.utcnow().date()
+        
+        walks_today = 0
+        total_distance_today = 0.0
+        total_duration_today = 0
+        last_walk = None
+        last_walk_duration = None
+        last_walk_distance = None
+        last_walk_hours = None
+        
+        for walk in walk_history:
+            try:
+                walk_date = dt_util.parse_datetime(walk.get("start_time"))
+                if walk_date and walk_date.date() == today:
+                    walks_today += 1
+                    
+                    # Add distance if available
+                    distance = walk.get("distance", 0)
+                    if distance:
+                        total_distance_today += distance
+                    
+                    # Add duration if available
+                    duration = walk.get("duration_minutes", 0)
+                    if duration:
+                        total_duration_today += duration
+                    
+                    # Track most recent walk
+                    if not last_walk or walk_date > dt_util.parse_datetime(last_walk.get("start_time")):
+                        last_walk = walk
+                        last_walk_duration = duration
+                        last_walk_distance = distance
+                        last_walk_hours = self._calculate_hours_since(walk_date)
+                        
+            except (ValueError, TypeError):
+                continue
+        
         return {
-            "last_walk": None,
-            "last_walk_duration": None,
-            "last_walk_distance": None,
-            "last_walk_hours": None,
-            "walks_today": 0,
-            "total_distance_today": 0,
-            "total_duration_today": 0,
+            "last_walk": last_walk,
+            "last_walk_duration": last_walk_duration,
+            "last_walk_distance": last_walk_distance, 
+            "last_walk_hours": last_walk_hours,
+            "walks_today": walks_today,
+            "total_distance_today": round(total_distance_today, 1),
+            "total_duration_today": total_duration_today,
         }
 
     def _calculate_weekly_walk_stats_comprehensive(self, walk_history: list) -> dict[str, Any]:
         """Calculate comprehensive weekly walk statistics."""
+        one_week_ago = dt_util.utcnow() - timedelta(days=7)
+        
+        weekly_walk_count = 0
+        weekly_distance = 0.0
+        weekly_duration = 0
+        
+        for walk in walk_history:
+            try:
+                walk_date = dt_util.parse_datetime(walk.get("start_time"))
+                if walk_date and walk_date >= one_week_ago:
+                    weekly_walk_count += 1
+                    
+                    # Add distance if available
+                    distance = walk.get("distance", 0)
+                    if distance:
+                        weekly_distance += distance
+                    
+                    # Add duration if available
+                    duration = walk.get("duration_minutes", 0)
+                    if duration:
+                        weekly_duration += duration
+                        
+            except (ValueError, TypeError):
+                continue
+        
         return {
-            "weekly_walk_count": 0,
-            "weekly_distance": 0,
+            "weekly_walk_count": weekly_walk_count,
+            "weekly_distance": round(weekly_distance, 1),
+            "weekly_duration": weekly_duration,
+            "average_walk_distance": round(weekly_distance / max(weekly_walk_count, 1), 1),
+            "average_walk_duration": int(weekly_duration / max(weekly_walk_count, 1)),
         }
 
     async def _calculate_walk_recommendation(self, dog_id: str, walk_history: list, today_stats: dict) -> dict[str, Any]:
-        """Calculate walk recommendations."""
+        """Calculate walk recommendations based on dog needs and activity."""
+        walks_today = today_stats.get("walks_today", 0)
+        last_walk_hours = today_stats.get("last_walk_hours", 24)
+        
+        # Get dog info for size-based recommendations
+        dog_info = self.get_dog_info(dog_id)
+        dog_size = dog_info.get("dog_size", "medium") if dog_info else "medium"
+        dog_age = dog_info.get("dog_age", 5) if dog_info else 5
+        
+        # Size-based walk recommendations per day
+        daily_walk_needs = {
+            "toy": 1,      # Toy dogs need 1-2 short walks
+            "small": 2,    # Small dogs need 2 walks
+            "medium": 2,   # Medium dogs need 2-3 walks  
+            "large": 3,    # Large dogs need 3 walks
+            "giant": 2,    # Giant dogs need 2 longer walks
+        }
+        
+        recommended_walks = daily_walk_needs.get(dog_size, 2)
+        
+        # Age adjustments
+        if dog_age < 1:  # Puppy - more frequent short walks
+            recommended_walks += 1
+        elif dog_age > 8:  # Senior - fewer but still necessary walks
+            recommended_walks = max(1, recommended_walks - 1)
+        
+        # Determine urgency and recommendation
+        needs_walk = False
+        walk_urgency = "none"
+        walk_recommendation = ""
+        
+        if walks_today == 0:
+            if last_walk_hours >= 12:
+                needs_walk = True
+                walk_urgency = "high"
+                walk_recommendation = f"No walks today - {dog_size} dogs need at least {recommended_walks} walks daily"
+            elif last_walk_hours >= 8:
+                needs_walk = True
+                walk_urgency = "medium"
+                walk_recommendation = f"First walk of the day recommended for {dog_size} dogs"
+        elif walks_today < recommended_walks:
+            if last_walk_hours >= 6:
+                needs_walk = True
+                walk_urgency = "medium"
+                walk_recommendation = f"Walk {walks_today + 1} of {recommended_walks} recommended for {dog_size} dogs"
+            elif last_walk_hours >= 4:
+                needs_walk = True
+                walk_urgency = "low"
+                walk_recommendation = f"Additional walk would be beneficial"
+        elif last_walk_hours >= 8:
+            needs_walk = True
+            walk_urgency = "low"
+            walk_recommendation = "Long time since last walk - short walk recommended"
+        else:
+            walk_recommendation = f"Walk needs met for today ({walks_today}/{recommended_walks} walks)"
+        
         return {
-            "needs_walk": False,
-            "walk_urgency": "none",
-            "walk_recommendation": "",
+            "needs_walk": needs_walk,
+            "walk_urgency": walk_urgency,
+            "walk_recommendation": walk_recommendation,
+            "walks_completed": walks_today,
+            "walks_recommended": recommended_walks,
         }
 
     def _calculate_activity_analysis(self, today_stats: dict, weekly_stats: dict) -> dict[str, Any]:
-        """Calculate activity analysis."""
+        """Calculate activity analysis based on walk statistics."""
+        walks_today = today_stats.get("walks_today", 0)
+        total_duration_today = today_stats.get("total_duration_today", 0)
+        weekly_walk_count = weekly_stats.get("weekly_walk_count", 0)
+        weekly_duration = weekly_stats.get("weekly_duration", 0)
+        
+        # Calculate daily and weekly averages
+        daily_avg_walks = weekly_walk_count / 7
+        daily_avg_duration = weekly_duration / 7
+        
+        # Calculate activity score (0-100)
+        activity_score = 0
+        
+        # Score based on walk frequency (40 points max)
+        if walks_today >= 2:
+            activity_score += 40
+        elif walks_today == 1:
+            activity_score += 20
+        
+        # Score based on duration (40 points max)
+        if total_duration_today >= 60:  # 1+ hour
+            activity_score += 40
+        elif total_duration_today >= 30:  # 30+ minutes
+            activity_score += 30
+        elif total_duration_today >= 15:  # 15+ minutes
+            activity_score += 20
+        elif total_duration_today > 0:
+            activity_score += 10
+        
+        # Score based on weekly consistency (20 points max)
+        if weekly_walk_count >= 14:  # 2+ walks per day average
+            activity_score += 20
+        elif weekly_walk_count >= 7:   # 1+ walk per day average
+            activity_score += 15
+        elif weekly_walk_count >= 4:   # Some regular activity
+            activity_score += 10
+        elif weekly_walk_count > 0:
+            activity_score += 5
+        
+        # Determine activity trend
+        activity_trend = "stable"
+        if walks_today > daily_avg_walks * 1.3:
+            activity_trend = "increasing"
+        elif walks_today < daily_avg_walks * 0.7:
+            activity_trend = "decreasing"
+        
+        # Determine if walk goal is met (basic criteria)
+        walk_goal_met = walks_today >= 2 or total_duration_today >= 30
+        
         return {
-            "walk_goal_met": False,
-            "activity_score": 0,
-            "activity_trend": "stable",
+            "walk_goal_met": walk_goal_met,
+            "activity_score": min(100, activity_score),
+            "activity_trend": activity_trend,
+            "daily_avg_walks": round(daily_avg_walks, 1),
+            "daily_avg_duration": round(daily_avg_duration, 1),
+            "weekly_consistency": round((weekly_walk_count / 14) * 100, 1) if weekly_walk_count > 0 else 0,
         }
 
     async def _process_current_walk_data(self, current_walk: dict) -> dict[str, Any]:

@@ -55,11 +55,11 @@ from .const import (
     SERVICE_NOTIFY_TEST,
     SERVICE_START_GROOMING,
     SERVICE_START_WALK,
-    VALID_FOOD_TYPES,
-    VALID_MEAL_TYPES,
-    VALID_HEALTH_STATUS,
-    VALID_MOOD_OPTIONS,
-    VALID_ACTIVITY_LEVELS,
+    FOOD_TYPES,
+    MEAL_TYPES,
+    HEALTH_STATUS_OPTIONS,
+    MOOD_OPTIONS,
+    ACTIVITY_LEVELS,
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
@@ -97,11 +97,11 @@ PLATFORMS: Final[list[Platform]] = [
 # Enhanced service validation schemas with comprehensive validation
 SERVICE_FEED_DOG_SCHEMA: Final = vol.Schema({
     vol.Required(ATTR_DOG_ID): vol.All(cv.string, vol.Length(min=1, max=50)),
-    vol.Optional(ATTR_MEAL_TYPE, default="snack"): vol.In(VALID_MEAL_TYPES),
+    vol.Optional(ATTR_MEAL_TYPE, default="snack"): vol.In(MEAL_TYPES),
     vol.Optional(ATTR_PORTION_SIZE, default=0.0): vol.All(
         vol.Coerce(float), vol.Range(min=0.0, max=10000.0)
     ),
-    vol.Optional("food_type", default="dry_food"): vol.In(VALID_FOOD_TYPES),
+    vol.Optional("food_type", default="dry_food"): vol.In(FOOD_TYPES),
     vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
     vol.Optional("calories"): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=5000.0)),
     vol.Optional("brand", default=""): vol.All(cv.string, vol.Length(max=100)),
@@ -147,9 +147,9 @@ SERVICE_HEALTH_SCHEMA: Final = vol.Schema({
     vol.Required(ATTR_DOG_ID): vol.All(cv.string, vol.Length(min=1, max=50)),
     vol.Optional("weight"): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=200.0)),
     vol.Optional("temperature"): vol.All(vol.Coerce(float), vol.Range(min=35.0, max=42.0)),
-    vol.Optional("mood", default=""): vol.In([""] + list(VALID_MOOD_OPTIONS)),
-    vol.Optional("activity_level", default=""): vol.In([""] + list(VALID_ACTIVITY_LEVELS)),
-    vol.Optional("health_status", default=""): vol.In([""] + list(VALID_HEALTH_STATUS)),
+    vol.Optional("mood", default=""): vol.In([""] + list(MOOD_OPTIONS)),
+    vol.Optional("activity_level", default=""): vol.In([""] + list(ACTIVITY_LEVELS)),
+    vol.Optional("health_status", default=""): vol.In([""] + list(HEALTH_STATUS_OPTIONS)),
     vol.Optional("symptoms", default=""): vol.All(cv.string, vol.Length(max=500)),
     vol.Optional("note", default=""): vol.All(cv.string, vol.Length(max=1000)),
     vol.Optional("heart_rate"): vol.All(vol.Coerce(int), vol.Range(min=60, max=250)),
