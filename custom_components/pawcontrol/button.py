@@ -13,13 +13,11 @@ from typing import Any, Dict, List, Optional
 
 from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .exceptions import (
-    DogNotFoundError,
     PawControlError,
-    ValidationError,
     WalkAlreadyInProgressError,
     WalkNotInProgressError,
 )
@@ -883,7 +881,7 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
             # Log a manual walk with reasonable defaults
             # In a full implementation, this would open a frontend dialog
             now = dt_util.now()
-            default_start = now - timedelta(minutes=30)  # Assume 30-minute walk
+            now - timedelta(minutes=30)  # Assume 30-minute walk
             
             # Start and immediately end a walk with manual data
             await self.hass.services.async_call(

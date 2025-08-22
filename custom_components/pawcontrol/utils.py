@@ -15,7 +15,7 @@ import logging
 import math
 import re
 from collections.abc import Callable, Sequence
-from datetime import datetime, timedelta, time
+from datetime import datetime, time
 from functools import lru_cache, wraps
 from typing import Any, Final, TypeVar, overload
 
@@ -23,22 +23,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOG_SIZES,
-    FOOD_TYPES,
-    HEALTH_STATUS_OPTIONS,
-    MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
     MIN_DOG_WEIGHT,
-    MOOD_OPTIONS,
-    ACTIVITY_LEVELS,
-    VALID_MEAL_TYPES,
-    VALID_GPS_SOURCES,
-)
-from .exceptions import (
-    InvalidCoordinatesError,
-    InvalidWeightError,
-    ValidationError,
-    PawControlError,
 )
 
 _LOGGER = logging.getLogger(__name__)

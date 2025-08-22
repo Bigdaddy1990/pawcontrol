@@ -17,23 +17,17 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, TYPE_CHECKING
 
 from homeassistant.components import persistent_notification
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
-    SERVICE_NOTIFY_TEST,
 )
 from .exceptions import NotificationError
 from .utils import is_within_quiet_hours
 
 if TYPE_CHECKING:
     from .types import (
-        NotificationConfig,
         PawControlRuntimeData,
     )
 

@@ -8,7 +8,7 @@ Platinum quality standards.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import voluptuous as vol
 
@@ -16,7 +16,7 @@ from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv, issue_registry as ir
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
@@ -29,7 +29,6 @@ from .const import (
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
 )
-from .exceptions import ConfigurationError, ValidationError
 
 _LOGGER = logging.getLogger(__name__)
 

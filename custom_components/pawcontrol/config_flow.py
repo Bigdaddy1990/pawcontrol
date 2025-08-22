@@ -24,15 +24,11 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
-from homeassistant.helpers.typing import DiscoveryInfoType
 
 from .const import (
-    ACTIVITY_LEVELS,
     CONF_DASHBOARD_MODE,
     CONF_DOGS,
     CONF_DOG_AGE,
@@ -41,12 +37,9 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_FEEDING_TIMES,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
-    CONF_GPS_SOURCE,
     CONF_GPS_UPDATE_INTERVAL,
-    CONF_HEALTH_TRACKING,
     CONF_MODULES,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
@@ -54,18 +47,12 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
-    CONF_SOURCES,
-    DASHBOARD_MODES,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
-    DEFAULT_GPS_UPDATE_INTERVAL,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
     DOG_SIZES,
     DOMAIN,
-    FOOD_TYPES,
-    GPS_SOURCES,
-    HEALTH_STATUS_OPTIONS,
     MAX_DOG_AGE,
     MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
@@ -79,11 +66,8 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
     MODULE_WALK,
-    MOOD_OPTIONS,
-    PERFORMANCE_MODES,
 )
 from .types import DogConfigData, is_dog_config_valid
-from .utils import generate_entity_id, sanitize_filename
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -593,8 +577,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             return ""
         
         name = user_input.get(CONF_DOG_NAME, "").lower()
-        size = user_input.get(CONF_DOG_SIZE, "")
-        weight = user_input.get(CONF_DOG_WEIGHT, 0)
+        user_input.get(CONF_DOG_SIZE, "")
+        user_input.get(CONF_DOG_WEIGHT, 0)
         
         # Simple breed suggestions based on common patterns
         breed_hints = {

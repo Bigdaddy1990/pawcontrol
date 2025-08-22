@@ -7,7 +7,7 @@ Designed for Home Assistant 2025.8.2+ with Platinum quality standards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import datetime
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from homeassistant.config_entries import ConfigEntry

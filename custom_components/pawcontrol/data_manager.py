@@ -24,32 +24,19 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DATA_RETENTION_DAYS,
     DEFAULT_DATA_RETENTION_DAYS,
     DOMAIN,
     STORAGE_VERSION,
 )
 from .exceptions import (
-    DataExportError,
-    DataImportError,
     StorageError,
 )
 from .utils import (
     deep_merge_dicts,
-    safe_float,
-    safe_int,
-    safe_str,
-    sanitize_filename,
 )
 
 if TYPE_CHECKING:
-    from .types import (
-        FeedingData,
-        WalkData,
-        HealthData,
-        GroomingData,
-        GPSPoint,
-    )
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 
