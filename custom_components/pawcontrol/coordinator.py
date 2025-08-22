@@ -1990,6 +1990,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Return the configuration entry for this coordinator."""
         return self.entry
 
+    @config_entry.setter
+    def config_entry(self, value: ConfigEntry) -> None:
+        """Allow Home Assistant to set the config entry on initialization."""
+        self.entry = value
+
     @property
     def available(self) -> bool:
         """Return if the coordinator is available."""
