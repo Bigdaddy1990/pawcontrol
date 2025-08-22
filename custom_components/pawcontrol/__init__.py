@@ -201,6 +201,11 @@ SERVICE_NOTIFY_TEST_SCHEMA: Final = vol.Schema({
     ]),
 })
 
+SERVICE_DAILY_RESET_SCHEMA: Final = vol.Schema({
+    vol.Optional("force", default=False): cv.boolean,
+    vol.Optional("dog_ids"): vol.All(cv.ensure_list, [cv.string]),
+})
+
 # Enhanced error handling with detailed context
 class PawControlSetupError(HomeAssistantError):
     """Exception raised when Paw Control setup fails."""
@@ -714,14 +719,289 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         except PawControlError as err:
             _LOGGER.error("PawControl error in feed_dog service: %s", err.to_dict())
             raise ServiceValidationError(err.user_message) from err
+    @performance_monitor(timeout=10.0)
+    async def _handle_start_walk_service(call: ServiceCall) -> None:
+        """Handle the start_walk service call with comprehensive validation."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        label: str = call.data.get("label", "")
+        location: str = call.data.get("location", "")
+        walk_type: str = call.data.get("walk_type", "regular")
+        
+        _LOGGER.debug("Processing start_walk service for %s: %s", dog_id, walk_type)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            data_manager = runtime_data["data_manager"]
+            
+            walk_data = {
+                "label": label,
+                "location": location,
+                "walk_type": walk_type,
+                "planned_duration": call.data.get("planned_duration"),
+                "planned_distance": call.data.get("planned_distance"),
+                "started_by": "service_call",
+            }
+            
+            walk_id = await data_manager.async_start_walk(dog_id, walk_data)
+            
+            hass.bus.async_fire(EVENT_WALK_STARTED, {
+                ATTR_DOG_ID: dog_id,
+                "walk_id": walk_id,
+                "walk_type": walk_type,
+                "timestamp": dt_util.utcnow().isoformat(),
+            })
+            
+            _LOGGER.info("Successfully started walk %s for %s", walk_id, dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in start_walk service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
         except Exception as err:
-            _LOGGER.error("Unexpected error in feed_dog service: %s", err, exc_info=True)
-            raise ServiceValidationError(f"Failed to log feeding: {err}") from err
+            _LOGGER.error("Unexpected error in start_walk service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to start walk: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_end_walk_service(call: ServiceCall) -> None:
+        """Handle the end_walk service call with comprehensive validation."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        distance: float = float(call.data.get("distance", 0.0))
+        duration: int = int(call.data.get("duration", 0))
+        notes: str = call.data.get("notes", "").strip()
+        
+        _LOGGER.debug("Processing end_walk service for %s", dog_id)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            data_manager = runtime_data["data_manager"]
+            
+            walk_data = {
+                "distance": distance,
+                "duration_minutes": duration,
+                "notes": notes,
+                "rating": call.data.get("rating", 0),
+                "weather": call.data.get("weather", ""),
+                "terrain": call.data.get("terrain", ""),
+                "social_interactions": call.data.get("social_interactions", 0),
+                "ended_by": "service_call",
+            }
+            
+            await data_manager.async_end_walk(dog_id, walk_data)
+            
+            hass.bus.async_fire(EVENT_WALK_ENDED, {
+                ATTR_DOG_ID: dog_id,
+                "duration_minutes": duration,
+                "distance": distance,
+                "timestamp": dt_util.utcnow().isoformat(),
+            })
+            
+            _LOGGER.info("Successfully ended walk for %s", dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in end_walk service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in end_walk service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to end walk: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_log_health_service(call: ServiceCall) -> None:
+        """Handle the log_health service call with comprehensive validation."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        
+        _LOGGER.debug("Processing log_health service for %s", dog_id)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            data_manager = runtime_data["data_manager"]
+            
+            health_data = {
+                "weight": call.data.get("weight"),
+                "temperature": call.data.get("temperature"),
+                "mood": call.data.get("mood", ""),
+                "activity_level": call.data.get("activity_level", ""),
+                "health_status": call.data.get("health_status", ""),
+                "symptoms": call.data.get("symptoms", ""),
+                "note": call.data.get("note", ""),
+                "heart_rate": call.data.get("heart_rate"),
+                "respiratory_rate": call.data.get("respiratory_rate"),
+                "appetite_level": call.data.get("appetite_level", ""),
+                "energy_level": call.data.get("energy_level", ""),
+                "logged_by": "service_call",
+            }
+            
+            # Remove None values
+            health_data = {k: v for k, v in health_data.items() if v is not None and v != ""}
+            
+            await data_manager.async_log_health(dog_id, health_data)
+            
+            hass.bus.async_fire(EVENT_HEALTH_LOGGED, {
+                ATTR_DOG_ID: dog_id,
+                "data_types": list(health_data.keys()),
+                "timestamp": dt_util.utcnow().isoformat(),
+            })
+            
+            _LOGGER.info("Successfully logged health data for %s", dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in log_health service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in log_health service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to log health data: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_log_medication_service(call: ServiceCall) -> None:
+        """Handle the log_medication service call with comprehensive validation."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        medication_name: str = call.data["medication_name"]
+        dosage: str = call.data["dosage"]
+        
+        _LOGGER.debug("Processing log_medication service for %s: %s", dog_id, medication_name)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            data_manager = runtime_data["data_manager"]
+            
+            medication_data = {
+                "type": "medication",
+                "medication_name": medication_name,
+                "dosage": dosage,
+                "administration_time": call.data.get("administration_time", dt_util.utcnow()),
+                "next_dose": call.data.get("next_dose"),
+                "notes": call.data.get("notes", ""),
+                "medication_type": call.data.get("medication_type", "oral"),
+                "prescribing_vet": call.data.get("prescribing_vet", ""),
+                "duration_days": call.data.get("duration_days"),
+                "logged_by": "service_call",
+            }
+            
+            await data_manager.async_log_health(dog_id, medication_data)
+            
+            _LOGGER.info("Successfully logged medication %s for %s", medication_name, dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in log_medication service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in log_medication service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to log medication: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_start_grooming_service(call: ServiceCall) -> None:
+        """Handle the start_grooming service call with comprehensive validation."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        grooming_type: str = call.data.get("type", "general")
+        
+        _LOGGER.debug("Processing start_grooming service for %s: %s", dog_id, grooming_type)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            data_manager = runtime_data["data_manager"]
+            
+            grooming_data = {
+                "type": grooming_type,
+                "location": call.data.get("location", ""),
+                "groomer": call.data.get("groomer", ""),
+                "notes": call.data.get("notes", ""),
+                "cost": call.data.get("cost"),
+                "products_used": call.data.get("products_used", ""),
+                "next_appointment": call.data.get("next_appointment"),
+                "started_by": "service_call",
+            }
+            
+            grooming_id = await data_manager.async_start_grooming(dog_id, grooming_data)
+            
+            _LOGGER.info("Successfully started grooming %s for %s", grooming_id, dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in start_grooming service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in start_grooming service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to start grooming: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_daily_reset_service(call: ServiceCall) -> None:
+        """Handle the daily_reset service call with comprehensive processing."""
+        _LOGGER.debug("Processing daily_reset service call")
+        
+        try:
+            # Reset daily statistics for all dogs
+            all_dogs = _get_available_dog_ids(hass)
+            
+            reset_tasks = []
+            for dog_id in all_dogs:
+                runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+                if runtime_data:
+                    data_manager = runtime_data["data_manager"]
+                    reset_tasks.append(data_manager.async_reset_dog_daily_stats(dog_id))
+            
+            if reset_tasks:
+                await asyncio.gather(*reset_tasks, return_exceptions=True)
+            
+            _LOGGER.info("Daily reset completed successfully for %d dogs", len(all_dogs))
+            
+        except Exception as err:
+            _LOGGER.error("Unexpected error in daily_reset service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to perform daily reset: {err}") from err
+    
+    @performance_monitor(timeout=10.0)
+    async def _handle_notify_test_service(call: ServiceCall) -> None:
+        """Handle the notify_test service call with comprehensive features."""
+        dog_id: str = call.data[ATTR_DOG_ID]
+        message: str = call.data.get("message", "Test notification from Paw Control")
+        priority: str = call.data.get("priority", "normal")
+        
+        _LOGGER.debug("Processing notify_test service for %s", dog_id)
+        
+        try:
+            runtime_data = _get_runtime_data_for_dog(hass, dog_id)
+            if not runtime_data:
+                raise DogNotFoundError(dog_id, _get_available_dog_ids(hass))
+            
+            notification_manager = runtime_data["notification_manager"]
+            
+            success = await notification_manager.async_send_test_notification(
+                dog_id, message, priority
+            )
+            
+            if success:
+                _LOGGER.info("Successfully sent test notification for %s", dog_id)
+            else:
+                _LOGGER.warning("Failed to send test notification for %s", dog_id)
+            
+        except PawControlError as err:
+            _LOGGER.error("PawControl error in notify_test service: %s", err.to_dict())
+            raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in notify_test service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to send test notification: {err}") from err
     
     # Service registration with comprehensive error handling
     services = [
         (SERVICE_FEED_DOG, _handle_feed_dog_service, SERVICE_FEED_DOG_SCHEMA),
-        # Additional services would be added here following the same pattern...
+        (SERVICE_START_WALK, _handle_start_walk_service, SERVICE_WALK_SCHEMA),
+        (SERVICE_END_WALK, _handle_end_walk_service, SERVICE_END_WALK_SCHEMA),
+        (SERVICE_LOG_HEALTH, _handle_log_health_service, SERVICE_HEALTH_SCHEMA),
+        (SERVICE_LOG_MEDICATION, _handle_log_medication_service, SERVICE_MEDICATION_SCHEMA),
+        (SERVICE_START_GROOMING, _handle_start_grooming_service, SERVICE_GROOMING_SCHEMA),
+        (SERVICE_DAILY_RESET, _handle_daily_reset_service, SERVICE_DAILY_RESET_SCHEMA),
+        (SERVICE_NOTIFY_TEST, _handle_notify_test_service, SERVICE_NOTIFY_TEST_SCHEMA),
     ]
     
     # Register all services with enhanced error handling

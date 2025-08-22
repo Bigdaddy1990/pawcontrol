@@ -712,23 +712,6 @@ class PawControlNotificationManager:
 
     async def _register_services(self) -> None:
         """Register notification-related services."""
-        
-        async def handle_test_notification(call) -> None:
-            """Handle test notification service call."""
-            dog_id = call.data.get(ATTR_DOG_ID)
-            message = call.data.get("message", "Test notification from Paw Control")
-            priority = call.data.get("priority", PRIORITY_NORMAL)
-            
-            if not dog_id:
-                _LOGGER.error("Dog ID is required for test notification")
-                return
-            
-            await self.async_send_test_notification(dog_id, message, priority)
-        
-        # Register the test notification service if not already registered
-        if not self.hass.services.has_service(DOMAIN, SERVICE_NOTIFY_TEST):
-            self.hass.services.async_register(
-                DOMAIN,
-                SERVICE_NOTIFY_TEST,
-                handle_test_notification
-            )
+        # Note: SERVICE_NOTIFY_TEST is now registered in init.py to avoid conflicts
+        # This method reserved for future notification-specific services
+        pass
