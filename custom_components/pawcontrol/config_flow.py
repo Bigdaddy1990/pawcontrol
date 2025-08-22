@@ -1051,7 +1051,9 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         self._config_entry = config_entry
         self._current_dog: DogConfigData | None = None
-        self._dogs: list[DogConfigData] = [d.copy() for d in self._config_entry.data.get(CONF_DOGS, [])]
+        self._dogs: list[DogConfigData] = [
+            d.copy() for d in self._config_entry.data.get(CONF_DOGS, [])
+        ]
         self._navigation_stack: list[str] = []
         self._unsaved_changes: dict[str, Any] = {}
 
