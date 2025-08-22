@@ -20,7 +20,6 @@ from functools import lru_cache, wraps
 from typing import Any, Final, TypeVar, overload
 
 from homeassistant.util import dt as dt_util
-from homeassistant.util.location import distance
 
 from .const import (
     DOG_SIZES,
@@ -600,7 +599,7 @@ def safe_convert(value: Any, target_type: type[float], default: float = 0.0) -> 
 @overload 
 def safe_convert(value: Any, target_type: type[str], default: str = "") -> str: ...
 
-def safe_convert(value: Any, target_type: type[T], default: T = None) -> T:
+def safe_convert(value: Any, target_type: type[T], default: T | None = None) -> T:
     """Type-safe conversion with better error handling and type hints.
     
     Args:
@@ -617,8 +616,8 @@ def safe_convert(value: Any, target_type: type[T], default: T = None) -> T:
     try:
         if target_type == bool:
             if isinstance(value, str):
-                return value.lower() in ('true', 'yes', '1', 'on')
-            return bool(value)
+                return target_type(value.lower() in ('true', 'yes', '1', 'on'))
+            return target_type(value)
         elif target_type in (int, float):
             return target_type(value)
         elif target_type == str:
@@ -813,14 +812,18 @@ def is_within_time_range_enhanced(
         else:
             current_time_obj = current_time
         
-        # Convert string times to time objects
+        # Convert string times to time objects with validation
         if isinstance(start_time, str):
+            if not TIME_PATTERN.match(start_time):
+                return False, f"Invalid start time format: {start_time}"
             start_hour, start_minute = map(int, start_time.split(':'))
             start_time_obj = time(start_hour, start_minute)
         else:
             start_time_obj = start_time
         
         if isinstance(end_time, str):
+            if not TIME_PATTERN.match(end_time):
+                return False, f"Invalid end time format: {end_time}"
             end_hour, end_minute = map(int, end_time.split(':'))
             end_time_obj = time(end_hour, end_minute)
         else:

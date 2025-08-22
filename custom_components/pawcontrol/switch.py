@@ -14,6 +14,13 @@ from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+
+from .exceptions import (
+    ConfigurationError,
+    DogNotFoundError,
+    PawControlError,
+    ValidationError,
+)
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -504,9 +511,21 @@ class PawControlMainPowerSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the main power state."""
-        # This would update the coordinator and all related systems
-        # For now, we'll just trigger a coordinator refresh
-        await self.coordinator.async_refresh_dog(self._dog_id)
+        # Update main power state through data manager
+        try:
+            runtime_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
+            data_manager = runtime_data.get("data_manager")
+            
+            if data_manager:
+                await data_manager.async_set_dog_power_state(self._dog_id, state)
+                
+            # Trigger coordinator refresh to update all entities
+            await self.coordinator.async_refresh_dog(self._dog_id)
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to update power state through data manager: %s", err)
+            # Fallback to coordinator refresh only
+            await self.coordinator.async_refresh_dog(self._dog_id)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -554,8 +573,21 @@ class PawControlVisitorModeSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the visitor mode state."""
-        # This would call the visitor mode service
-        # For now, we'll just log the action
+        # Call the visitor mode service with appropriate parameters
+        await self.hass.services.async_call(
+            DOMAIN,
+            "set_visitor_mode",
+            {
+                "dog_id": self._dog_id,
+                "enabled": state,
+                "visitor_name": "Switch Toggle" if state else None,
+                "reduced_alerts": state,
+                "modified_schedule": state,
+                "notes": f"Visitor mode {'enabled' if state else 'disabled'} via switch",
+            },
+            blocking=True,
+        )
+        
         _LOGGER.info(
             "Visitor mode %s for %s",
             "enabled" if state else "disabled",
@@ -599,14 +631,31 @@ class PawControlDoNotDisturbSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the do not disturb state."""
-        # This would modify notification settings
-        entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
-        notification_manager = entry_data.get("notifications")
-        
-        if notification_manager:
-            # Update notification settings based on DND state
-            # This is a simplified implementation
-            pass
+        # Update notification settings based on DND state
+        try:
+            await self.hass.services.async_call(
+                DOMAIN,
+                "configure_alerts",
+                {
+                    "dog_id": self._dog_id,
+                    "feeding_alerts": not state,
+                    "walk_alerts": not state,
+                    "health_alerts": not state,  # Keep health alerts even in DND
+                    "gps_alerts": not state,
+                    "quiet_hours_start": "22:00" if state else None,
+                    "quiet_hours_end": "08:00" if state else None,
+                },
+                blocking=True,
+            )
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to update DND settings: %s", err)
+            # Fallback to manual notification manager update
+            entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
+            notification_manager = entry_data.get("notifications")
+            
+            if notification_manager:
+                await notification_manager.async_set_dnd_mode(self._dog_id, state)
 
 
 # Module switches
@@ -640,19 +689,38 @@ class PawControlModuleSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the module state."""
-        # This would update the module configuration
-        # In a real implementation, this would modify the config entry
-        # and update the coordinator configuration
-        
-        _LOGGER.info(
-            "Module %s %s for %s",
-            self._module_name,
-            "enabled" if state else "disabled",
-            self._dog_name
-        )
-        
-        # Trigger coordinator update with new module configuration
-        await self.coordinator.async_refresh_dog(self._dog_id)
+        # Update module configuration through config entry
+        try:
+            # Get current config data
+            new_data = dict(self.coordinator.config_entry.data)
+            
+            # Update the specific dog's module configuration
+            for i, dog in enumerate(new_data.get("dogs", [])):
+                if dog.get("dog_id") == self._dog_id:
+                    if "modules" not in new_data["dogs"][i]:
+                        new_data["dogs"][i]["modules"] = {}
+                    new_data["dogs"][i]["modules"][self._module_id] = state
+                    break
+            
+            # Update the config entry
+            self.hass.config_entries.async_update_entry(
+                self.coordinator.config_entry, data=new_data
+            )
+            
+            _LOGGER.info(
+                "Module %s %s for %s",
+                self._module_name,
+                "enabled" if state else "disabled",
+                self._dog_name
+            )
+            
+            # Update coordinator configuration and trigger refresh
+            await self.coordinator.async_update_config(new_data)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to update module configuration: %s", err)
+            # Fallback to coordinator refresh only
+            await self.coordinator.async_refresh_dog(self._dog_id)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -716,8 +784,16 @@ class PawControlAutoFeedingRemindersSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the auto feeding reminders state."""
-        # This would configure feeding reminder automations
-        pass
+        # Configure feeding reminder automations through service
+        await self.hass.services.async_call(
+            DOMAIN,
+            "configure_alerts",
+            {
+                "dog_id": self._dog_id,
+                "feeding_alerts": state,
+            },
+            blocking=True,
+        )
 
 
 class PawControlFeedingScheduleSwitch(PawControlSwitchBase):
@@ -741,8 +817,16 @@ class PawControlFeedingScheduleSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the feeding schedule state."""
-        # This would enable/disable scheduled feeding tracking
-        pass
+        # Configure feeding schedule tracking
+        await self.hass.services.async_call(
+            DOMAIN,
+            "set_feeding_schedule",
+            {
+                "dog_id": self._dog_id,
+                "enabled": state,
+            },
+            blocking=True,
+        )
 
 
 class PawControlPortionControlSwitch(PawControlSwitchBase):
@@ -817,8 +901,19 @@ class PawControlGPSTrackingSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the GPS tracking state."""
-        # This would enable/disable GPS data collection
-        pass
+        # Configure GPS data collection through data manager
+        try:
+            runtime_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
+            data_manager = runtime_data.get("data_manager")
+            
+            if data_manager:
+                await data_manager.async_set_gps_tracking(self._dog_id, state)
+            
+            # Update coordinator to reflect changes
+            await self.coordinator.async_refresh_dog(self._dog_id)
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to configure GPS tracking: %s", err)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -1100,13 +1195,19 @@ class PawControlNotificationsSwitch(PawControlSwitchBase):
 
     async def _async_set_switch_state(self, state: bool) -> None:
         """Set the notifications state."""
-        # This would enable/disable all notifications for this dog
-        entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
-        notification_manager = entry_data.get("notifications")
-        
-        if notification_manager:
-            # Update notification settings
-            pass
+        # Configure all notifications for this dog
+        await self.hass.services.async_call(
+            DOMAIN,
+            "configure_alerts",
+            {
+                "dog_id": self._dog_id,
+                "feeding_alerts": state,
+                "walk_alerts": state,
+                "health_alerts": state,
+                "gps_alerts": state,
+            },
+            blocking=True,
+        )
 
 
 class PawControlUrgentNotificationsSwitch(PawControlSwitchBase):

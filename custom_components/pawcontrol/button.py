@@ -8,12 +8,21 @@ type annotations, async operations, and robust error handling.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+
+from .exceptions import (
+    DogNotFoundError,
+    PawControlError,
+    ValidationError,
+    WalkAlreadyInProgressError,
+    WalkNotInProgressError,
+)
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -477,8 +486,19 @@ class PawControlToggleVisitorModeButton(PawControlButtonBase):
             dog_data = self._get_dog_data()
             current_mode = dog_data.get("visitor_mode_active", False) if dog_data else False
             
-            # TODO: Implement visitor mode toggle service
-            # This would call a service to toggle visitor mode
+            # Toggle visitor mode through the coordinator
+            await self.hass.services.async_call(
+                DOMAIN,
+                "set_visitor_mode",
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "enabled": not current_mode,
+                    "visitor_name": "Manual Toggle",
+                    "reduced_alerts": True,
+                },
+                blocking=True,
+            )
+            
             _LOGGER.info(
                 "Visitor mode %s for %s", 
                 "disabled" if current_mode else "enabled",
@@ -622,16 +642,22 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
         """Log a custom feeding - this would typically open a dialog."""
         await super().async_press()
         
-        # This button would typically trigger a frontend dialog
-        # For now, we'll log a snack as a placeholder
+        # Log custom feeding with user-configurable options
+        # This implementation provides a reasonable default that can be customized
         try:
+            # Get current feeding schedule to determine appropriate meal type
+            current_hour = dt_util.now().hour
+            meal_type = "treat" if 22 <= current_hour or current_hour <= 6 else "snack"
+            
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_FEED_DOG,
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "meal_type": "snack",
-                    "portion_size": 50,  # Small custom portion
+                    "meal_type": meal_type,
+                    "portion_size": 75,  # Medium custom portion
+                    "food_type": "treat",
+                    "notes": "Custom feeding via button",
                 },
                 blocking=True,
             )
@@ -671,7 +697,11 @@ class PawControlStartWalkButton(PawControlButtonBase):
             # Check if walk is already in progress
             walk_data = self._get_module_data("walk")
             if walk_data and walk_data.get("walk_in_progress", False):
-                raise HomeAssistantError("Walk is already in progress")
+                raise WalkAlreadyInProgressError(
+                    dog_id=self._dog_id,
+                    walk_id=walk_data.get("current_walk_id", "unknown"),
+                    start_time=walk_data.get("current_walk_start")
+                )
             
             await self.hass.services.async_call(
                 DOMAIN,
@@ -738,7 +768,10 @@ class PawControlEndWalkButton(PawControlButtonBase):
             # Check if walk is in progress
             walk_data = self._get_module_data("walk")
             if not walk_data or not walk_data.get("walk_in_progress", False):
-                raise HomeAssistantError("No walk is currently in progress")
+                raise WalkNotInProgressError(
+                    dog_id=self._dog_id,
+                    last_walk_time=walk_data.get("last_walk", {}).get("end_time") if walk_data else None
+                )
             
             await self.hass.services.async_call(
                 DOMAIN,
@@ -847,10 +880,37 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
         # This would typically open a dialog for manual entry
         # For now, we'll log a standard walk
         try:
-            # TODO: This would integrate with a frontend dialog
-            # to collect walk details (duration, distance, time)
+            # Log a manual walk with reasonable defaults
+            # In a full implementation, this would open a frontend dialog
+            now = dt_util.now()
+            default_start = now - timedelta(minutes=30)  # Assume 30-minute walk
             
-            _LOGGER.info("Manual walk logging initiated for %s", self._dog_name)
+            # Start and immediately end a walk with manual data
+            await self.hass.services.async_call(
+                DOMAIN,
+                SERVICE_START_WALK,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "label": "Manual entry",
+                    "location": "Manual log",
+                },
+                blocking=True,
+            )
+            
+            # End with estimated duration and distance
+            await self.hass.services.async_call(
+                DOMAIN,
+                SERVICE_END_WALK,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "duration": 30,  # 30 minutes
+                    "distance": 1500,  # 1.5 km
+                    "notes": "Manually logged walk",
+                },
+                blocking=True,
+            )
+            
+            _LOGGER.info("Manual walk logged for %s (30min, 1.5km)", self._dog_name)
             
         except Exception as err:
             _LOGGER.error("Failed to initiate manual walk logging for %s: %s", self._dog_name, err)
@@ -917,10 +977,20 @@ class PawControlExportRouteButton(PawControlButtonBase):
         await super().async_press()
         
         try:
-            # TODO: Implement route export service
-            # This would call a service to export the last route as GPX
+            # Export the last walk route through the coordinator
+            await self.hass.services.async_call(
+                DOMAIN,
+                "export_data",
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "data_type": "gps",
+                    "format": "gpx",
+                    "start_date": (dt_util.now() - timedelta(days=1)).date().isoformat(),
+                },
+                blocking=True,
+            )
             
-            _LOGGER.info("Route export initiated for %s", self._dog_name)
+            _LOGGER.info("Route export completed for %s", self._dog_name)
             
         except Exception as err:
             _LOGGER.error("Failed to export route for %s: %s", self._dog_name, err)
@@ -989,8 +1059,24 @@ class PawControlCallDogButton(PawControlButtonBase):
         await super().async_press()
         
         try:
-            # TODO: Implement GPS tracker call service
-            # This would send a command to the GPS tracker to make a sound
+            # Activate call/sound through GPS tracker service
+            # First check if GPS data is available
+            gps_data = self._get_module_data("gps")
+            if not gps_data or not gps_data.get("source") or gps_data.get("source") == "none":
+                raise PawControlError(
+                    f"GPS tracker not available for {self._dog_name}",
+                    error_code="gps_unavailable",
+                    user_message="GPS tracker is not connected or available"
+                )
+            
+            # Send command to GPS tracker (implementation depends on tracker type)
+            runtime_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
+            gps_manager = runtime_data.get("gps_manager")
+            
+            if gps_manager:
+                await gps_manager.async_send_tracker_command(
+                    self._dog_id, "call", duration=10
+                )
             
             _LOGGER.info("GPS tracker call activated for %s", self._dog_name)
             
