@@ -8,10 +8,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, time
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+# Import validation constants from const.py (single source of truth)
+from .const import (
+    MEAL_TYPES,
+    FOOD_TYPES, 
+    DOG_SIZES,
+    HEALTH_STATUS_OPTIONS,
+    MOOD_OPTIONS,
+    ACTIVITY_LEVELS,
+    GEOFENCE_TYPES,
+    GPS_SOURCES,
+)
 
 # Type aliases for better readability
 DogId = str
@@ -318,18 +330,6 @@ def is_feeding_data_valid(data: Any) -> bool:
         data["portion_size"] >= 0
     )
 
-
-# Import validation constants from const.py (single source of truth)
-from .const import (
-    MEAL_TYPES,
-    FOOD_TYPES, 
-    DOG_SIZES,
-    HEALTH_STATUS_OPTIONS,
-    MOOD_OPTIONS,
-    ACTIVITY_LEVELS,
-    GEOFENCE_TYPES,
-    GPS_SOURCES,
-)
 
 # Convert to sets for type validation (faster lookups)
 VALID_MEAL_TYPES = set(MEAL_TYPES)
