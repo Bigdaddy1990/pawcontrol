@@ -1990,6 +1990,20 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Return the configuration entry for this coordinator."""
         return self.entry
 
+    @config_entry.setter
+    def config_entry(self, value: ConfigEntry) -> None:
+        """Allow Home Assistant to set the config entry on initialization."""
+        self.entry = value
+        self.dogs = self.entry.data.get(CONF_DOGS, [])
+
+        new_interval = self._calculate_optimal_update_interval()
+        self.update_interval = timedelta(seconds=new_interval)
+        _LOGGER.debug(
+            "Configuration updated: %d dogs, new interval: %ds",
+            len(self.dogs),
+            new_interval,
+        )
+
     @property
     def available(self) -> bool:
         """Return if the coordinator is available."""

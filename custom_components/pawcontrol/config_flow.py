@@ -1084,6 +1084,24 @@ class PawControlOptionsFlow(OptionsFlow):
             ],
         )
 
+    async def async_step_import_export(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Placeholder handler for import/export settings.
+
+        The import/export feature has not yet been implemented. Instead of
+        raising an ``UnknownStep`` error when users navigate to this menu
+        entry, we immediately redirect them back to the main options menu.
+
+        Args:
+            user_input: Not used.
+
+        Returns:
+            Flow result for the initial options step.
+        """
+
+        return await self.async_step_init()
+
     # The remaining methods would follow similar patterns with enhanced
     # validation, modern UI components, and comprehensive error handling
     # ... (Additional methods continue in similar pattern)
