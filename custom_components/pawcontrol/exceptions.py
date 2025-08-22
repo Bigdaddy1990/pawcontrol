@@ -283,7 +283,7 @@ class InvalidCoordinatesError(GPSError):
         """
         if latitude is not None and longitude is not None:
             message = f"Invalid GPS coordinates: ({latitude}, {longitude})"
-            details = f"Latitude must be between -90 and 90, longitude between -180 and 180"
+            details = "Latitude must be between -90 and 90, longitude between -180 and 180"
         else:
             message = "Invalid GPS coordinates provided"
             details = "GPS coordinates are missing or malformed"
@@ -895,7 +895,7 @@ def handle_exception_gracefully(
                 raise
             
             return default_return
-        except Exception as e:
+        except Exception:
             if log_errors:
                 import logging
                 logger = logging.getLogger(__name__)

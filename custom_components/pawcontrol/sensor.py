@@ -8,7 +8,7 @@ annotations, async operations, and robust error handling.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from homeassistant.components.sensor import (
@@ -18,7 +18,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_NAME,
     PERCENTAGE,
     UnitOfLength,
     UnitOfMass,
@@ -26,9 +25,8 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfEnergy,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 

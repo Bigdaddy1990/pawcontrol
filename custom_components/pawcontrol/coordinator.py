@@ -13,15 +13,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_HOME, STATE_NOT_HOME, STATE_UNKNOWN
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -45,8 +42,6 @@ from .utils import (
     async_calculate_haversine_distance,
     calculate_bmr_advanced,
     calculate_trend_advanced,
-    format_time_ago_smart,
-    safe_convert,
     performance_monitor,
 )
 
@@ -1101,7 +1096,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Calculate calorie needs using advanced BMR calculation
             weight = dog_info.get("dog_weight", 20)
             age = dog_info.get("dog_age", 5)
-            size = dog_info.get("dog_size", "medium")
+            dog_info.get("dog_size", "medium")
             
             # Estimate activity level (could be enhanced with actual activity data)
             activity_level = "normal"
@@ -1661,7 +1656,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif last_walk_hours >= 4:
                 needs_walk = True
                 walk_urgency = "low"
-                walk_recommendation = f"Additional walk would be beneficial"
+                walk_recommendation = "Additional walk would be beneficial"
         elif last_walk_hours >= 8:
             needs_walk = True
             walk_urgency = "low"
