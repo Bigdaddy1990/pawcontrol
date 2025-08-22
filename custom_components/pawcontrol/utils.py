@@ -614,13 +614,13 @@ def safe_convert(value: Any, target_type: type[T], default: T | None = None) -> 
         return default if default is not None else target_type()
     
     try:
-        if target_type == bool:
+        if target_type is bool:
             if isinstance(value, str):
                 return target_type(value.lower() in ('true', 'yes', '1', 'on'))
             return target_type(value)
         elif target_type in (int, float):
             return target_type(value)
-        elif target_type == str:
+        elif target_type is str:
             return str(value)
         else:
             return target_type(value)
