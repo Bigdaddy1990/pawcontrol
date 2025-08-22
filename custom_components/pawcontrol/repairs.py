@@ -5,6 +5,7 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import logging
@@ -61,7 +62,7 @@ async def async_create_issue(
     severity: str = "warning",
 ) -> None:
     """Create a repair issue for the integration.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
@@ -76,10 +77,10 @@ async def async_create_issue(
         "created_at": dt_util.utcnow().isoformat(),
         "severity": severity,
     }
-    
+
     if data:
         issue_data.update(data)
-    
+
     ir.async_create_issue(
         hass,
         DOMAIN,
@@ -92,59 +93,61 @@ async def async_create_issue(
         translation_placeholders=issue_data,
         data=issue_data,
     )
-    
+
     _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
 
 
 async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Check for common issues and create repair flows if needed.
-    
+
     This function performs comprehensive health checks and identifies
     potential configuration or operational issues that require user attention.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry to check
     """
     _LOGGER.debug("Checking for issues in Paw Control entry: %s", entry.entry_id)
-    
+
     try:
         # Check dog configuration issues
         await _check_dog_configuration_issues(hass, entry)
-        
+
         # Check GPS configuration issues
         await _check_gps_configuration_issues(hass, entry)
-        
+
         # Check notification configuration issues
         await _check_notification_configuration_issues(hass, entry)
-        
+
         # Check for outdated configuration
         await _check_outdated_configuration(hass, entry)
-        
+
         # Check performance issues
         await _check_performance_issues(hass, entry)
-        
+
         # Check storage issues
         await _check_storage_issues(hass, entry)
-        
+
         # Check coordinator health
         await _check_coordinator_health(hass, entry)
-        
+
         _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
-        
+
     except Exception as err:
         _LOGGER.error("Error during issue check for entry %s: %s", entry.entry_id, err)
 
 
-async def _check_dog_configuration_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_dog_configuration_issues(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
     """Check for dog configuration issues.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
     """
     dogs = entry.data.get(CONF_DOGS, [])
-    
+
     # Check for empty dog configuration
     if not dogs:
         await async_create_issue(
@@ -153,14 +156,14 @@ async def _check_dog_configuration_issues(hass: HomeAssistant, entry: ConfigEntr
             f"{entry.entry_id}_no_dogs",
             ISSUE_MISSING_DOG_CONFIG,
             {"dogs_count": 0},
-            severity="error"
+            severity="error",
         )
         return
-    
+
     # Check for duplicate dog IDs
     dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs]
     duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
-    
+
     if duplicate_ids:
         await async_create_issue(
             hass,
@@ -171,15 +174,15 @@ async def _check_dog_configuration_issues(hass: HomeAssistant, entry: ConfigEntr
                 "duplicate_ids": duplicate_ids,
                 "total_dogs": len(dogs),
             },
-            severity="error"
+            severity="error",
         )
-    
+
     # Check for invalid dog data
     invalid_dogs = []
     for dog in dogs:
         if not dog.get(CONF_DOG_ID) or not dog.get(CONF_DOG_NAME):
             invalid_dogs.append(dog.get(CONF_DOG_ID, "unknown"))
-    
+
     if invalid_dogs:
         await async_create_issue(
             hass,
@@ -190,29 +193,30 @@ async def _check_dog_configuration_issues(hass: HomeAssistant, entry: ConfigEntr
                 "invalid_dogs": invalid_dogs,
                 "total_dogs": len(dogs),
             },
-            severity="error"
+            severity="error",
         )
 
 
-async def _check_gps_configuration_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_gps_configuration_issues(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
     """Check for GPS configuration issues.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
     """
     dogs = entry.data.get(CONF_DOGS, [])
     gps_enabled_dogs = [
-        dog for dog in dogs 
-        if dog.get("modules", {}).get(MODULE_GPS, False)
+        dog for dog in dogs if dog.get("modules", {}).get(MODULE_GPS, False)
     ]
-    
+
     if not gps_enabled_dogs:
         return  # No GPS configuration to check
-    
+
     # Check if GPS sources are properly configured
     gps_config = entry.options.get("gps", {})
-    
+
     # Check for missing GPS source configuration
     if not gps_config.get("gps_source"):
         await async_create_issue(
@@ -224,9 +228,9 @@ async def _check_gps_configuration_issues(hass: HomeAssistant, entry: ConfigEntr
                 "issue": "missing_gps_source",
                 "gps_enabled_dogs": len(gps_enabled_dogs),
             },
-            severity="warning"
+            severity="warning",
         )
-    
+
     # Check for unrealistic GPS update intervals
     update_interval = gps_config.get("gps_update_interval", 60)
     if update_interval < 10:  # Less than 10 seconds
@@ -240,29 +244,30 @@ async def _check_gps_configuration_issues(hass: HomeAssistant, entry: ConfigEntr
                 "current_interval": update_interval,
                 "recommended_interval": 30,
             },
-            severity="info"
+            severity="info",
         )
 
 
-async def _check_notification_configuration_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_notification_configuration_issues(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
     """Check for notification configuration issues.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
     """
     dogs = entry.data.get(CONF_DOGS, [])
     notification_enabled_dogs = [
-        dog for dog in dogs 
-        if dog.get("modules", {}).get(MODULE_NOTIFICATIONS, False)
+        dog for dog in dogs if dog.get("modules", {}).get(MODULE_NOTIFICATIONS, False)
     ]
-    
+
     if not notification_enabled_dogs:
         return  # No notification configuration to check
-    
+
     # Check if notification services are available
     notification_config = entry.options.get("notifications", {})
-    
+
     # Check for mobile app availability
     mobile_enabled = notification_config.get("mobile_notifications", True)
     if mobile_enabled and not hass.services.has_service("notify", "mobile_app"):
@@ -275,13 +280,15 @@ async def _check_notification_configuration_issues(hass: HomeAssistant, entry: C
                 "missing_service": "mobile_app",
                 "notification_enabled_dogs": len(notification_enabled_dogs),
             },
-            severity="warning"
+            severity="warning",
         )
 
 
-async def _check_outdated_configuration(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _check_outdated_configuration(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
     """Check for outdated configuration that needs migration.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
@@ -297,19 +304,19 @@ async def _check_outdated_configuration(hass: HomeAssistant, entry: ConfigEntry)
                 "current_version": entry.version,
                 "required_version": 1,
             },
-            severity="info"
+            severity="info",
         )
 
 
 async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Check for performance-related issues.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
     """
     dogs = entry.data.get(CONF_DOGS, [])
-    
+
     # Check for too many dogs (performance warning)
     if len(dogs) > 10:
         await async_create_issue(
@@ -322,16 +329,20 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
                 "recommended_max": 10,
                 "suggestion": "Consider performance mode optimization",
             },
-            severity="info"
+            severity="info",
         )
-    
+
     # Check for conflicting module configurations
     high_resource_modules = [MODULE_GPS, MODULE_HEALTH]
     dogs_with_all_modules = [
-        dog for dog in dogs
-        if all(dog.get("modules", {}).get(module, False) for module in high_resource_modules)
+        dog
+        for dog in dogs
+        if all(
+            dog.get("modules", {}).get(module, False)
+            for module in high_resource_modules
+        )
     ]
-    
+
     if len(dogs_with_all_modules) > 5:
         await async_create_issue(
             hass,
@@ -343,20 +354,20 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
                 "total_dogs": len(dogs),
                 "suggestion": "Consider selective module enabling",
             },
-            severity="info"
+            severity="info",
         )
 
 
 async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Check for storage-related issues.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
     """
     # Check data retention settings
     retention_days = entry.options.get("data_retention_days", 90)
-    
+
     if retention_days > 365:  # More than 1 year
         await async_create_issue(
             hass,
@@ -368,13 +379,13 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
                 "recommended_max": 365,
                 "suggestion": "Consider reducing data retention period",
             },
-            severity="info"
+            severity="info",
         )
 
 
 async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Check coordinator health and functionality.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
@@ -382,7 +393,7 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
     try:
         integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         coordinator = integration_data.get("coordinator")
-        
+
         if not coordinator:
             await async_create_issue(
                 hass,
@@ -393,10 +404,10 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
                     "error": "coordinator_not_initialized",
                     "suggestion": "Try reloading the integration",
                 },
-                severity="error"
+                severity="error",
             )
             return
-        
+
         if not coordinator.last_update_success:
             await async_create_issue(
                 hass,
@@ -405,12 +416,14 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
                 ISSUE_COORDINATOR_ERROR,
                 {
                     "error": "last_update_failed",
-                    "last_update": coordinator.last_update_time.isoformat() if coordinator.last_update_time else None,
+                    "last_update": coordinator.last_update_time.isoformat()
+                    if coordinator.last_update_time
+                    else None,
                     "suggestion": "Check logs for detailed error information",
                 },
-                severity="warning"
+                severity="warning",
             )
-    
+
     except Exception as err:
         _LOGGER.error("Error checking coordinator health: %s", err)
 
@@ -428,16 +441,16 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         self._issue_data = self.hass.data[ir.DOMAIN][self.issue_id].data
         self._repair_type = self._issue_data.get("issue_type", "")
-        
+
         # Route to appropriate repair flow based on issue type
         if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
             return await self.async_step_missing_dog_config()
@@ -466,37 +479,46 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         if user_input is not None:
             action = user_input.get("action")
-            
+
             if action == "add_dog":
                 return await self.async_step_add_first_dog()
             elif action == "reconfigure":
                 # Redirect to reconfigure flow
-                return self.async_external_step(step_id="reconfigure", url="/config/integrations")
+                return self.async_external_step(
+                    step_id="reconfigure", url="/config/integrations"
+                )
             else:
                 return await self.async_step_complete_repair()
-        
+
         return self.async_show_form(
             step_id="missing_dog_config",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector({
-                    "select": {
-                        "options": [
-                            {"value": "add_dog", "label": "Add a dog now"},
-                            {"value": "reconfigure", "label": "Go to integration settings"},
-                            {"value": "ignore", "label": "Ignore for now"},
-                        ]
-                    }
-                })
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {"value": "add_dog", "label": "Add a dog now"},
+                                    {
+                                        "value": "reconfigure",
+                                        "label": "Go to integration settings",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
             description_placeholders={
                 "dogs_count": self._issue_data.get("dogs_count", 0),
             },
@@ -506,28 +528,28 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle adding the first dog.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         errors = {}
-        
+
         if user_input is not None:
             try:
                 # Validate dog data
                 dog_id = user_input["dog_id"].lower().strip()
                 dog_name = user_input["dog_name"].strip()
-                
+
                 if not dog_id or not dog_name:
                     errors["base"] = "incomplete_data"
                 else:
                     # Get the config entry and update it
                     config_entry_id = self._issue_data["config_entry_id"]
                     entry = self.hass.config_entries.async_get_entry(config_entry_id)
-                    
+
                     if entry:
                         # Create new dog configuration
                         new_dog = {
@@ -545,37 +567,41 @@ class PawControlRepairsFlow(RepairsFlow):
                                 "notifications": True,
                             },
                         }
-                        
+
                         # Update the config entry
                         new_data = entry.data.copy()
                         new_data[CONF_DOGS] = [new_dog]
-                        
+
                         self.hass.config_entries.async_update_entry(
                             entry, data=new_data
                         )
-                        
+
                         return await self.async_step_complete_repair()
                     else:
                         errors["base"] = "config_entry_not_found"
-            
+
             except Exception as err:
                 _LOGGER.error("Error adding first dog: %s", err)
                 errors["base"] = "unexpected_error"
-        
+
         return self.async_show_form(
             step_id="add_first_dog",
-            data_schema=vol.Schema({
-                vol.Required("dog_id"): str,
-                vol.Required("dog_name"): str,
-                vol.Optional("dog_breed", default=""): str,
-                vol.Optional("dog_age", default=3): int,
-                vol.Optional("dog_weight", default=20.0): float,
-                vol.Optional("dog_size", default="medium"): selector({
-                    "select": {
-                        "options": ["toy", "small", "medium", "large", "giant"]
-                    }
-                }),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("dog_id"): str,
+                    vol.Required("dog_name"): str,
+                    vol.Optional("dog_breed", default=""): str,
+                    vol.Optional("dog_age", default=3): int,
+                    vol.Optional("dog_weight", default=20.0): float,
+                    vol.Optional("dog_size", default="medium"): selector(
+                        {
+                            "select": {
+                                "options": ["toy", "small", "medium", "large", "giant"]
+                            }
+                        }
+                    ),
+                }
+            ),
             errors=errors,
         )
 
@@ -583,38 +609,50 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         if user_input is not None:
             action = user_input.get("action")
-            
+
             if action == "auto_fix":
                 # Automatically fix duplicate IDs
                 await self._fix_duplicate_dog_ids()
                 return await self.async_step_complete_repair()
             elif action == "manual_fix":
-                return self.async_external_step(step_id="reconfigure", url="/config/integrations")
+                return self.async_external_step(
+                    step_id="reconfigure", url="/config/integrations"
+                )
             else:
                 return await self.async_step_complete_repair()
-        
+
         return self.async_show_form(
             step_id="duplicate_dog_ids",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector({
-                    "select": {
-                        "options": [
-                            {"value": "auto_fix", "label": "Automatically fix duplicate IDs"},
-                            {"value": "manual_fix", "label": "Manually fix in integration settings"},
-                            {"value": "ignore", "label": "Ignore for now"},
-                        ]
-                    }
-                })
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "auto_fix",
+                                        "label": "Automatically fix duplicate IDs",
+                                    },
+                                    {
+                                        "value": "manual_fix",
+                                        "label": "Manually fix in integration settings",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
             description_placeholders={
                 "duplicate_ids": ", ".join(self._issue_data.get("duplicate_ids", [])),
                 "total_dogs": self._issue_data.get("total_dogs", 0),
@@ -625,16 +663,16 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         if user_input is not None:
             action = user_input.get("action")
-            
+
             if action == "configure_gps":
                 return await self.async_step_configure_gps()
             elif action == "disable_gps":
@@ -642,20 +680,30 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             else:
                 return await self.async_step_complete_repair()
-        
+
         return self.async_show_form(
             step_id="invalid_gps_config",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector({
-                    "select": {
-                        "options": [
-                            {"value": "configure_gps", "label": "Configure GPS settings"},
-                            {"value": "disable_gps", "label": "Disable GPS for all dogs"},
-                            {"value": "ignore", "label": "Ignore for now"},
-                        ]
-                    }
-                })
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "configure_gps",
+                                        "label": "Configure GPS settings",
+                                    },
+                                    {
+                                        "value": "disable_gps",
+                                        "label": "Disable GPS for all dogs",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
             description_placeholders={
                 "issue": self._issue_data.get("issue", "unknown"),
                 "gps_enabled_dogs": self._issue_data.get("gps_enabled_dogs", 0),
@@ -666,10 +714,10 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle GPS configuration step.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
@@ -678,90 +726,107 @@ class PawControlRepairsFlow(RepairsFlow):
                 # Update GPS configuration
                 config_entry_id = self._issue_data["config_entry_id"]
                 entry = self.hass.config_entries.async_get_entry(config_entry_id)
-                
+
                 if entry:
                     new_options = entry.options.copy()
-                    new_options.setdefault("gps", {}).update({
-                        "gps_source": user_input["gps_source"],
-                        "gps_update_interval": user_input["update_interval"],
-                        "gps_accuracy_filter": user_input["accuracy_filter"],
-                    })
-                    
+                    new_options.setdefault("gps", {}).update(
+                        {
+                            "gps_source": user_input["gps_source"],
+                            "gps_update_interval": user_input["update_interval"],
+                            "gps_accuracy_filter": user_input["accuracy_filter"],
+                        }
+                    )
+
                     self.hass.config_entries.async_update_entry(
                         entry, options=new_options
                     )
-                    
+
                     return await self.async_step_complete_repair()
                 else:
                     return self.async_abort(reason="config_entry_not_found")
-            
+
             except Exception as err:
                 _LOGGER.error("Error configuring GPS: %s", err)
                 return self.async_abort(reason="unexpected_error")
-        
+
         return self.async_show_form(
             step_id="configure_gps",
-            data_schema=vol.Schema({
-                vol.Required("gps_source", default="device_tracker"): selector({
-                    "select": {
-                        "options": [
-                            "device_tracker",
-                            "person_entity", 
-                            "manual",
-                            "smartphone",
-                        ]
-                    }
-                }),
-                vol.Required("update_interval", default=60): vol.All(
-                    int, vol.Range(min=30, max=600)
-                ),
-                vol.Required("accuracy_filter", default=100): vol.All(
-                    int, vol.Range(min=5, max=500)
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("gps_source", default="device_tracker"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    "device_tracker",
+                                    "person_entity",
+                                    "manual",
+                                    "smartphone",
+                                ]
+                            }
+                        }
+                    ),
+                    vol.Required("update_interval", default=60): vol.All(
+                        int, vol.Range(min=30, max=600)
+                    ),
+                    vol.Required("accuracy_filter", default=100): vol.All(
+                        int, vol.Range(min=5, max=500)
+                    ),
+                }
+            ),
         )
 
     async def async_step_missing_notifications(
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         if user_input is not None:
             action = user_input.get("action")
-            
+
             if action == "setup_mobile_app":
                 return self.async_external_step(
-                    step_id="setup_mobile", 
-                    url="/config/mobile_app"
+                    step_id="setup_mobile", url="/config/mobile_app"
                 )
             elif action == "disable_mobile":
                 await self._disable_mobile_notifications()
                 return await self.async_step_complete_repair()
             else:
                 return await self.async_step_complete_repair()
-        
+
         return self.async_show_form(
             step_id="missing_notifications",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector({
-                    "select": {
-                        "options": [
-                            {"value": "setup_mobile_app", "label": "Set up Mobile App integration"},
-                            {"value": "disable_mobile", "label": "Disable mobile notifications"},
-                            {"value": "ignore", "label": "Ignore for now"},
-                        ]
-                    }
-                })
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "setup_mobile_app",
+                                        "label": "Set up Mobile App integration",
+                                    },
+                                    {
+                                        "value": "disable_mobile",
+                                        "label": "Disable mobile notifications",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
             description_placeholders={
                 "missing_service": self._issue_data.get("missing_service", "unknown"),
-                "notification_enabled_dogs": self._issue_data.get("notification_enabled_dogs", 0),
+                "notification_enabled_dogs": self._issue_data.get(
+                    "notification_enabled_dogs", 0
+                ),
             },
         )
 
@@ -769,37 +834,49 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle performance warning repair flow.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for next step or completion
         """
         if user_input is not None:
             action = user_input.get("action")
-            
+
             if action == "optimize":
                 await self._apply_performance_optimizations()
                 return await self.async_step_complete_repair()
             elif action == "configure":
-                return self.async_external_step(step_id="configure", url="/config/integrations")
+                return self.async_external_step(
+                    step_id="configure", url="/config/integrations"
+                )
             else:
                 return await self.async_step_complete_repair()
-        
+
         return self.async_show_form(
             step_id="performance_warning",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector({
-                    "select": {
-                        "options": [
-                            {"value": "optimize", "label": "Apply automatic optimizations"},
-                            {"value": "configure", "label": "Configure settings manually"},
-                            {"value": "ignore", "label": "Ignore warning"},
-                        ]
-                    }
-                })
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Configure settings manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
             description_placeholders=self._issue_data,
         )
 
@@ -807,16 +884,16 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Complete the repair flow.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result indicating completion
         """
         # Remove the issue from the issue registry
         ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
-        
+
         return self.async_create_entry(
             title="Repair completed",
             data={"repaired_issue": self._repair_type},
@@ -826,10 +903,10 @@ class PawControlRepairsFlow(RepairsFlow):
         self, user_input: Dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle unknown issue types.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Flow result for completion
         """
@@ -841,98 +918,98 @@ class PawControlRepairsFlow(RepairsFlow):
         """Automatically fix duplicate dog IDs."""
         config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
-        
+
         if not entry:
             return
-        
+
         dogs = entry.data.get(CONF_DOGS, [])
         seen_ids = set()
         fixed_dogs = []
-        
+
         for dog in dogs:
             original_id = dog.get(CONF_DOG_ID, "")
             dog_id = original_id
             counter = 1
-            
+
             # Generate unique ID
             while dog_id in seen_ids:
                 dog_id = f"{original_id}_{counter}"
                 counter += 1
-            
+
             seen_ids.add(dog_id)
-            
+
             # Update dog configuration
             fixed_dog = dog.copy()
             fixed_dog[CONF_DOG_ID] = dog_id
             fixed_dogs.append(fixed_dog)
-        
+
         # Update config entry
         new_data = entry.data.copy()
         new_data[CONF_DOGS] = fixed_dogs
-        
+
         self.hass.config_entries.async_update_entry(entry, data=new_data)
 
     async def _disable_gps_for_all_dogs(self) -> None:
         """Disable GPS module for all dogs."""
         config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
-        
+
         if not entry:
             return
-        
+
         dogs = entry.data.get(CONF_DOGS, [])
         updated_dogs = []
-        
+
         for dog in dogs:
             updated_dog = dog.copy()
             modules = updated_dog.setdefault("modules", {})
             modules[MODULE_GPS] = False
             updated_dogs.append(updated_dog)
-        
+
         new_data = entry.data.copy()
         new_data[CONF_DOGS] = updated_dogs
-        
+
         self.hass.config_entries.async_update_entry(entry, data=new_data)
 
     async def _disable_mobile_notifications(self) -> None:
         """Disable mobile app notifications."""
         config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
-        
+
         if not entry:
             return
-        
+
         new_options = entry.options.copy()
         notifications = new_options.setdefault("notifications", {})
         notifications["mobile_notifications"] = False
-        
+
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
     async def _apply_performance_optimizations(self) -> None:
         """Apply automatic performance optimizations."""
         config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
-        
+
         if not entry:
             return
-        
+
         new_options = entry.options.copy()
-        
+
         # Set performance mode to minimal
         new_options["performance_mode"] = "minimal"
-        
+
         # Optimize GPS settings if present
         if "gps" in new_options:
             gps_settings = new_options["gps"]
             gps_settings["gps_update_interval"] = max(
                 gps_settings.get("gps_update_interval", 60), 120
             )
-        
+
         # Reduce data retention
         new_options["data_retention_days"] = min(
             new_options.get("data_retention_days", 90), 30
         )
-        
+
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
 
@@ -943,12 +1020,12 @@ def async_create_repair_flow(
     data: Dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
     """Create a repair flow.
-    
+
     Args:
         hass: Home Assistant instance
         issue_id: Issue identifier
         data: Issue data
-        
+
     Returns:
         Repair flow instance
     """

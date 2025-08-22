@@ -9,6 +9,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -56,32 +57,32 @@ _LOGGER = logging.getLogger(__name__)
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Data update coordinator for Paw Control integration with complete implementation.
-    
+
     This coordinator manages data updates for all dogs in a config entry.
     It provides intelligent update scheduling based on enabled modules,
     parallel data processing for optimal performance, and robust error
     handling to maintain system stability.
-    
+
     The coordinator follows Home Assistant's async patterns and provides
     efficient data management for the integration's entities.
     """
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the Paw Control coordinator.
-        
+
         Sets up the coordinator with optimal update intervals based on
         enabled modules and prepares data structures for efficient operation.
-        
+
         Args:
             hass: Home Assistant instance
             entry: Configuration entry containing dog configurations
         """
         self.entry = entry
         self.dogs: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-        
+
         # Calculate optimal update interval based on enabled modules
         update_interval = self._calculate_optimal_update_interval()
-        
+
         super().__init__(
             hass,
             _LOGGER,
@@ -89,24 +90,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(seconds=update_interval),
             always_update=False,  # Modern HA 2025.8+ approach
         )
-        
+
         # Internal data storage with type annotations
         self._data: dict[str, Any] = {}
         self._listeners: set[Callable[[], None]] = set()
-        self._module_processors: dict[str, Callable[[str], Any]] = self._setup_module_processors()
+        self._module_processors: dict[str, Callable[[str], Any]] = (
+            self._setup_module_processors()
+        )
         self._performance_metrics: dict[str, Any] = {
             "update_count": 0,
             "error_count": 0,
             "average_update_time": 0.0,
             "last_performance_check": dt_util.utcnow(),
         }
-        
+
         # Home Assistant zone and entity caches for performance
         self._home_zone_cache: dict[str, Any] | None = None
         self._zone_cache: dict[str, dict[str, Any]] = {}
         self._entity_cache: dict[str, Any] = {}
         self._cache_expiry: datetime = dt_util.utcnow()
-        
+
         _LOGGER.debug(
             "Coordinator initialized for %d dogs with %ds update interval",
             len(self.dogs),
@@ -115,61 +118,60 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _calculate_optimal_update_interval(self) -> int:
         """Calculate the optimal update interval based on enabled modules.
-        
+
         Analyzes all configured dogs and their enabled modules to determine
         the most appropriate update frequency. GPS and walk modules require
         more frequent updates, while feeding and health can use longer intervals.
-        
+
         Returns:
             Update interval in seconds (minimum 30 seconds)
         """
         # Start with default balanced interval
         base_interval = UPDATE_INTERVALS["balanced"]
-        
+
         # Check for modules requiring frequent updates
         has_gps = False
         has_realtime_modules = False
         active_dogs = 0
-        
+
         for dog in self.dogs:
             modules = dog.get("modules", {})
             active_dogs += 1
-            
+
             # GPS module requires frequent updates
             if modules.get(MODULE_GPS, False):
                 has_gps = True
                 gps_interval = self.entry.options.get(
-                    CONF_GPS_UPDATE_INTERVAL,
-                    DEFAULT_GPS_UPDATE_INTERVAL
+                    CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL
                 )
                 base_interval = min(base_interval, gps_interval)
-            
+
             # Real-time modules (GPS, Walk tracking)
             realtime_modules = [MODULE_GPS, MODULE_WALK]
             if any(modules.get(module, False) for module in realtime_modules):
                 has_realtime_modules = True
-        
+
         # Adjust interval based on feature requirements and load
         if has_realtime_modules:
             base_interval = min(base_interval, UPDATE_INTERVALS["frequent"])
-        
+
         if not has_gps and not has_realtime_modules:
             # Only feeding/health modules - can use minimal updates
             base_interval = max(base_interval, UPDATE_INTERVALS["minimal"])
-        
+
         # Scale based on number of dogs to prevent system overload
         if active_dogs > 5:
             base_interval = max(base_interval, 60)  # Minimum 1 minute for many dogs
-        
+
         # Ensure minimum update interval for responsiveness
         return max(base_interval, 30)
 
     def _setup_module_processors(self) -> dict[str, Callable[[str], Any]]:
         """Setup module-specific data processors.
-        
+
         Creates a mapping of module names to their respective data processing
         functions. This allows for modular and maintainable data handling.
-        
+
         Returns:
             Dictionary mapping module names to processor functions
         """
@@ -182,86 +184,81 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch and update data for all configured dogs.
-        
+
         This is the main update function called by Home Assistant. It processes
         all dogs in parallel for optimal performance and provides comprehensive
         error handling to ensure system stability.
-        
+
         Returns:
             Dictionary containing data for all dogs organized by dog_id
-            
+
         Raises:
             UpdateFailed: If critical errors occur during data update
         """
         start_time = dt_util.utcnow()
-        
+
         try:
             # Early return if no dogs configured
             if not self.dogs:
                 _LOGGER.debug("No dogs configured, returning empty data")
                 return {}
-            
+
             # Update caches if expired
             await self._update_caches_if_needed()
-            
+
             # Process all dogs in parallel for better performance
-            update_tasks = [
-                self._async_update_dog_data(dog)
-                for dog in self.dogs
-            ]
-            
+            update_tasks = [self._async_update_dog_data(dog) for dog in self.dogs]
+
             # Execute all updates concurrently with timeout
             try:
                 dog_results = await asyncio.wait_for(
                     asyncio.gather(*update_tasks, return_exceptions=True),
-                    timeout=30.0  # 30 second timeout for all dogs
+                    timeout=30.0,  # 30 second timeout for all dogs
                 )
             except asyncio.TimeoutError:
                 _LOGGER.warning("Data update timed out after 30 seconds")
                 # Fall back to previous data
                 return self._data
-            
+
             # Process results and handle any exceptions
             updated_data: dict[str, Any] = {}
             error_count = 0
-            
+
             for dog, result in zip(self.dogs, dog_results):
                 dog_id = dog[CONF_DOG_ID]
-                
+
                 if isinstance(result, Exception):
                     _LOGGER.error(
-                        "Failed to update data for dog %s: %s",
-                        dog_id,
-                        result
+                        "Failed to update data for dog %s: %s", dog_id, result
                     )
                     error_count += 1
                     # Keep previous data if available, otherwise use empty dict
                     updated_data[dog_id] = self._data.get(dog_id, {})
                 else:
                     updated_data[dog_id] = result
-            
+
             # Update internal data storage
             self._data = updated_data
-            
+
             # Update performance metrics
             update_time = (dt_util.utcnow() - start_time).total_seconds()
             self._update_performance_metrics(update_time, error_count)
-            
+
             # Log update summary
             success_count = len(self.dogs) - error_count
             _LOGGER.debug(
                 "Data update completed in %.2fs: %d successful, %d errors",
                 update_time,
                 success_count,
-                error_count
+                error_count,
             )
-            
+
             # Only fail if all dogs failed to update and we have dogs
             if error_count == len(self.dogs) and len(self.dogs) > 0:
                 raise UpdateFailed("All dog data updates failed")
-            
+
             return updated_data
-            
+
         except Exception as err:
             _LOGGER.error("Critical error during data update: %s", err)
             self._performance_metrics["error_count"] += 1
@@ -269,7 +266,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _update_performance_metrics(self, update_time: float, error_count: int) -> None:
         """Update internal performance metrics.
-        
+
         Args:
             update_time: Time taken for the update in seconds
             error_count: Number of errors encountered
@@ -277,74 +274,74 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         metrics = self._performance_metrics
         metrics["update_count"] += 1
         metrics["error_count"] += error_count
-        
+
         # Calculate rolling average of update time
         current_avg = metrics["average_update_time"]
         update_count = metrics["update_count"]
         metrics["average_update_time"] = (
-            (current_avg * (update_count - 1) + update_time) / update_count
-        )
-        
+            current_avg * (update_count - 1) + update_time
+        ) / update_count
+
         # Log performance warnings
         if update_time > 10.0:
             _LOGGER.warning("Slow update detected: %.2fs", update_time)
-        
+
         if metrics["update_count"] % 100 == 0:  # Log every 100 updates
             _LOGGER.info(
                 "Performance metrics: %d updates, %.2fs avg time, %d errors",
                 metrics["update_count"],
                 metrics["average_update_time"],
-                metrics["error_count"]
+                metrics["error_count"],
             )
 
     async def _async_update_dog_data(self, dog: DogConfigData) -> dict[str, Any]:
         """Update data for a specific dog.
-        
+
         Processes all enabled modules for a dog in parallel and combines
         the results into a comprehensive data structure.
-        
+
         Args:
             dog: Dog configuration dictionary
-            
+
         Returns:
             Complete data structure for the dog including all module data
-            
+
         Raises:
             Exception: If dog data processing fails
         """
         dog_id = dog[CONF_DOG_ID]
         dog_name = dog[CONF_DOG_NAME]
         enabled_modules = dog.get("modules", {})
-        
+
         _LOGGER.debug("Updating data for dog: %s (%s)", dog_name, dog_id)
-        
+
         # Base dog data structure with comprehensive metadata
         dog_data: dict[str, Any] = {
             "dog_info": dog,
             "last_update": dt_util.utcnow().isoformat(),
             "status": "online",
-            "enabled_modules": [mod for mod, enabled in enabled_modules.items() if enabled],
+            "enabled_modules": [
+                mod for mod, enabled in enabled_modules.items() if enabled
+            ],
             "update_source": "coordinator",
             "data_version": 1,
         }
-        
+
         # Process enabled modules in parallel
         module_tasks = []
         module_names = []
-        
+
         for module_name, enabled in enabled_modules.items():
             if enabled and module_name in self._module_processors:
-                module_tasks.append(
-                    self._module_processors[module_name](dog_id)
-                )
+                module_tasks.append(self._module_processors[module_name](dog_id))
                 module_names.append(module_name)
-        
+
         if module_tasks:
             # Execute all module processors concurrently with timeout
             try:
                 module_results = await asyncio.wait_for(
                     asyncio.gather(*module_tasks, return_exceptions=True),
-                    timeout=20.0  # 20 second timeout per dog
+                    timeout=20.0,  # 20 second timeout per dog
                 )
             except asyncio.TimeoutError:
                 _LOGGER.warning("Module processing timed out for dog %s", dog_id)
@@ -352,7 +349,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 for module_name in module_names:
                     dog_data[module_name] = {}
                 return dog_data
-            
+
             # Process module results
             for module_name, result in zip(module_names, module_results):
                 if isinstance(result, Exception):
@@ -360,30 +357,30 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "Failed to process %s data for %s: %s",
                         module_name,
                         dog_id,
-                        result
+                        result,
                     )
                     # Use empty data for failed modules
                     dog_data[module_name] = {}
                 else:
                     dog_data[module_name] = result or {}
-        
+
         return dog_data
 
     async def _update_caches_if_needed(self) -> None:
         """Update internal caches if they have expired."""
         now = dt_util.utcnow()
-        
+
         if now > self._cache_expiry:
             try:
                 # Update home zone cache
                 await self._update_home_zone_cache()
-                
+
                 # Update zone cache
                 await self._update_zone_cache()
-                
+
                 # Set next cache expiry (every 5 minutes)
                 self._cache_expiry = now + timedelta(minutes=5)
-                
+
             except Exception as err:
                 _LOGGER.warning("Failed to update caches: %s", err)
 
@@ -412,29 +409,33 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     try:
                         zones[entity_id] = {
                             "latitude": float(zone_state.attributes.get("latitude", 0)),
-                            "longitude": float(zone_state.attributes.get("longitude", 0)),
+                            "longitude": float(
+                                zone_state.attributes.get("longitude", 0)
+                            ),
                             "radius": float(zone_state.attributes.get("radius", 100)),
-                            "friendly_name": zone_state.attributes.get("friendly_name", entity_id),
+                            "friendly_name": zone_state.attributes.get(
+                                "friendly_name", entity_id
+                            ),
                             "passive": zone_state.attributes.get("passive", False),
                         }
                     except (ValueError, TypeError):
                         continue
-            
+
             self._zone_cache = zones
-            
+
         except Exception as err:
             _LOGGER.warning("Failed to update zone cache: %s", err)
 
     @performance_monitor(timeout=15.0)
     async def _process_gps_data(self, dog_id: str) -> dict[str, Any]:
         """Process GPS and location data for a dog with complete implementation.
-        
+
         Retrieves and processes GPS data from configured sources including
         device trackers, person entities, and direct GPS feeds.
-        
+
         Args:
             dog_id: Unique identifier for the dog
-            
+
         Returns:
             GPS data including location, accuracy, speed, and zone information
         """
@@ -444,21 +445,21 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not runtime_data:
                 _LOGGER.warning("No runtime data available for GPS processing")
                 return self._get_empty_gps_data()
-            
+
             # Access data manager for GPS data
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return self._get_empty_gps_data()
-            
+
             # Get current GPS data from data manager
             gps_data = await data_manager.async_get_current_gps_data(dog_id)
-            
+
             if not gps_data:
                 return self._get_empty_gps_data()
-            
+
             # Enhance GPS data with calculated fields
             enhanced_data = gps_data.copy()
-            
+
             # Calculate distance from home if location available
             if gps_data.get("latitude") and gps_data.get("longitude"):
                 home_location = await self._get_home_location()
@@ -466,25 +467,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     try:
                         distance = await async_calculate_haversine_distance(
                             (gps_data["latitude"], gps_data["longitude"]),
-                            (home_location["latitude"], home_location["longitude"])
+                            (home_location["latitude"], home_location["longitude"]),
                         )
                         enhanced_data["distance_from_home"] = round(distance, 1)
                     except Exception as err:
                         _LOGGER.debug("Failed to calculate distance from home: %s", err)
                         enhanced_data["distance_from_home"] = None
-            
+
             # Determine current zone with comprehensive zone checking
             zone_info = await self._determine_current_zone(
                 enhanced_data.get("latitude"), enhanced_data.get("longitude")
             )
             enhanced_data.update(zone_info)
-            
+
             # Calculate movement and speed trends
             movement_data = await self._calculate_movement_data(dog_id, enhanced_data)
             enhanced_data.update(movement_data)
-            
+
             return enhanced_data
-            
+
         except Exception as err:
             _LOGGER.error("Error processing GPS data for %s: %s", dog_id, err)
             return self._get_empty_gps_data()
@@ -512,13 +513,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @performance_monitor(timeout=10.0)
     async def _process_feeding_data(self, dog_id: str) -> dict[str, Any]:
         """Process feeding and nutrition data for a dog with complete calculations.
-        
+
         Analyzes feeding history and calculates feeding statistics,
         meal timing, and nutrition tracking information.
-        
+
         Args:
             dog_id: Unique identifier for the dog
-            
+
         Returns:
             Feeding data including meal history, schedules, and statistics
         """
@@ -526,19 +527,21 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             runtime_data = self._get_runtime_data()
             if not runtime_data:
                 return self._get_empty_feeding_data()
-            
+
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return self._get_empty_feeding_data()
-            
+
             # Get feeding data from data manager
-            feeding_history = await data_manager.async_get_feeding_history(dog_id, days=1)
+            feeding_history = await data_manager.async_get_feeding_history(
+                dog_id, days=1
+            )
             feeding_schedule = await data_manager.async_get_feeding_schedule(dog_id)
-            
+
             # Calculate feeding statistics with comprehensive analysis
             now = dt_util.now()
             today = now.date()
-            
+
             # Count today's feedings by type with detailed tracking
             feedings_today = {
                 "breakfast": 0,
@@ -547,12 +550,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "snack": 0,
                 "treat": 0,
             }
-            
+
             total_calories_today = 0.0
             total_portion_today = 0.0
             last_feeding = None
             feeding_times = []
-            
+
             if feeding_history:
                 for feeding in feeding_history:
                     feeding_date = feeding.get("timestamp", now).date()
@@ -560,48 +563,62 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         meal_type = feeding.get("meal_type", "snack")
                         if meal_type in feedings_today:
                             feedings_today[meal_type] += 1
-                        
+
                         total_calories_today += feeding.get("calories", 0)
                         total_portion_today += feeding.get("portion_size", 0)
                         feeding_times.append(feeding.get("timestamp"))
-                        
-                        if not last_feeding or feeding["timestamp"] > last_feeding["timestamp"]:
+
+                        if (
+                            not last_feeding
+                            or feeding["timestamp"] > last_feeding["timestamp"]
+                        ):
                             last_feeding = feeding
-            
+
             # Calculate comprehensive feeding metrics
             total_feedings_today = sum(feedings_today.values())
-            
+
             # Determine if dog is hungry based on schedule and last feeding
-            is_hungry = await self._calculate_hunger_status(dog_id, last_feeding, feeding_schedule)
-            
+            is_hungry = await self._calculate_hunger_status(
+                dog_id, last_feeding, feeding_schedule
+            )
+
             # Calculate next feeding time with smart scheduling
-            next_feeding = await self._calculate_next_feeding(dog_id, feeding_schedule, feeding_times)
-            
+            next_feeding = await self._calculate_next_feeding(
+                dog_id, feeding_schedule, feeding_times
+            )
+
             # Calculate feeding consistency and schedule adherence
             schedule_adherence = await self._calculate_schedule_adherence(
                 dog_id, feeding_times, feeding_schedule
             )
-            
+
             # Calculate nutritional needs and recommendations
             nutrition_data = await self._calculate_nutrition_analysis(
                 dog_id, total_calories_today, total_portion_today
             )
-            
+
             return {
                 "last_feeding": last_feeding,
-                "last_feeding_type": last_feeding.get("meal_type") if last_feeding else None,
-                "last_feeding_hours": self._calculate_hours_since(last_feeding["timestamp"]) if last_feeding else None,
+                "last_feeding_type": last_feeding.get("meal_type")
+                if last_feeding
+                else None,
+                "last_feeding_hours": self._calculate_hours_since(
+                    last_feeding["timestamp"]
+                )
+                if last_feeding
+                else None,
                 "feedings_today": feedings_today,
                 "total_feedings_today": total_feedings_today,
                 "total_calories_today": round(total_calories_today, 1),
                 "total_portion_today": round(total_portion_today, 1),
                 "next_feeding_due": next_feeding,
                 "is_hungry": is_hungry,
-                "daily_target_met": total_feedings_today >= feeding_schedule.get("meals_per_day", 2),
+                "daily_target_met": total_feedings_today
+                >= feeding_schedule.get("meals_per_day", 2),
                 "feeding_schedule_adherence": round(schedule_adherence, 1),
                 **nutrition_data,
             }
-            
+
         except Exception as err:
             _LOGGER.error("Error processing feeding data for %s: %s", dog_id, err)
             return self._get_empty_feeding_data()
@@ -612,7 +629,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_feeding": None,
             "last_feeding_type": None,
             "last_feeding_hours": None,
-            "feedings_today": {"breakfast": 0, "lunch": 0, "dinner": 0, "snack": 0, "treat": 0},
+            "feedings_today": {
+                "breakfast": 0,
+                "lunch": 0,
+                "dinner": 0,
+                "snack": 0,
+                "treat": 0,
+            },
             "total_feedings_today": 0,
             "total_calories_today": 0.0,
             "total_portion_today": 0.0,
@@ -632,52 +655,71 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             runtime_data = self._get_runtime_data()
             if not runtime_data:
                 return self._get_empty_health_data()
-            
+
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return self._get_empty_health_data()
-            
+
             # Get comprehensive health data from data manager
-            health_history = await data_manager.async_get_health_history(dog_id, days=30)
-            weight_history = await data_manager.async_get_weight_history(dog_id, days=90)
+            health_history = await data_manager.async_get_health_history(
+                dog_id, days=30
+            )
+            weight_history = await data_manager.async_get_weight_history(
+                dog_id, days=90
+            )
             medications = await data_manager.async_get_active_medications(dog_id)
-            
+
             # Process weight data with trend analysis
             weight_data = self._process_weight_data_comprehensive(weight_history)
-            
+
             # Process medication data with scheduling
-            medication_data = await self._process_medication_data_comprehensive(medications)
-            
+            medication_data = await self._process_medication_data_comprehensive(
+                medications
+            )
+
             # Get care history and schedule future appointments
             last_vet_visit = await data_manager.async_get_last_vet_visit(dog_id)
             last_grooming = await data_manager.async_get_last_grooming(dog_id)
-            
+
             # Calculate comprehensive health alerts and recommendations
-            health_alerts = await self._calculate_health_alerts_comprehensive(dog_id, {
-                "weight_data": weight_data,
-                "medications": medication_data,
-                "last_vet_visit": last_vet_visit,
-                "last_grooming": last_grooming,
-                "health_history": health_history,
-            })
-            
+            health_alerts = await self._calculate_health_alerts_comprehensive(
+                dog_id,
+                {
+                    "weight_data": weight_data,
+                    "medications": medication_data,
+                    "last_vet_visit": last_vet_visit,
+                    "last_grooming": last_grooming,
+                    "health_history": health_history,
+                },
+            )
+
             # Calculate health scores and trends
-            health_scores = await self._calculate_health_scores(dog_id, health_history, weight_data)
-            
+            health_scores = await self._calculate_health_scores(
+                dog_id, health_history, weight_data
+            )
+
             return {
                 **weight_data,
                 **medication_data,
                 **health_scores,
                 "last_vet_visit": last_vet_visit,
-                "days_since_vet_visit": self._calculate_days_since(last_vet_visit["date"]) if last_vet_visit else None,
-                "next_checkup_due": await self._calculate_next_checkup(dog_id, last_vet_visit),
+                "days_since_vet_visit": self._calculate_days_since(
+                    last_vet_visit["date"]
+                )
+                if last_vet_visit
+                else None,
+                "next_checkup_due": await self._calculate_next_checkup(
+                    dog_id, last_vet_visit
+                ),
                 "last_grooming": last_grooming,
-                "days_since_grooming": self._calculate_days_since(last_grooming["date"]) if last_grooming else None,
+                "days_since_grooming": self._calculate_days_since(last_grooming["date"])
+                if last_grooming
+                else None,
                 "grooming_due": await self._is_grooming_due(dog_id, last_grooming),
                 "health_alerts": health_alerts,
                 "care_reminders": await self._get_care_reminders(dog_id),
             }
-            
+
         except Exception as err:
             _LOGGER.error("Error processing health data for %s: %s", dog_id, err)
             return self._get_empty_health_data()
@@ -712,32 +754,34 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             runtime_data = self._get_runtime_data()
             if not runtime_data:
                 return self._get_empty_walk_data()
-            
+
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return self._get_empty_walk_data()
-            
+
             # Get comprehensive walk data from data manager
             current_walk = await data_manager.async_get_current_walk(dog_id)
             walk_history = await data_manager.async_get_walk_history(dog_id, days=7)
-            
+
             # Calculate comprehensive walk statistics
             today_stats = self._calculate_today_walk_stats_comprehensive(walk_history)
             weekly_stats = self._calculate_weekly_walk_stats_comprehensive(walk_history)
-            
+
             # Determine walk needs with intelligent recommendations
             walk_recommendation = await self._calculate_walk_recommendation(
                 dog_id, walk_history, today_stats
             )
-            
+
             # Calculate activity scores and trends
-            activity_analysis = self._calculate_activity_analysis(today_stats, weekly_stats)
-            
+            activity_analysis = self._calculate_activity_analysis(
+                today_stats, weekly_stats
+            )
+
             # Process current walk if in progress
             current_walk_data = {}
             if current_walk:
                 current_walk_data = await self._process_current_walk_data(current_walk)
-            
+
             return {
                 "walk_in_progress": current_walk is not None,
                 **current_walk_data,
@@ -746,7 +790,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 **walk_recommendation,
                 **activity_analysis,
             }
-            
+
         except Exception as err:
             _LOGGER.error("Error processing walk data for %s: %s", dog_id, err)
             return self._get_empty_walk_data()
@@ -782,7 +826,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get home location coordinates from Home Assistant."""
         if self._home_zone_cache:
             return self._home_zone_cache
-        
+
         try:
             zone_state = self.hass.states.get("zone.home")
             if zone_state and zone_state.attributes:
@@ -793,13 +837,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 }
         except (ValueError, TypeError) as err:
             _LOGGER.debug("Failed to get home location: %s", err)
-        
+
         return None
 
     async def _determine_current_zone(
-        self, 
-        lat: Optional[float], 
-        lon: Optional[float]
+        self, lat: Optional[float], lon: Optional[float]
     ) -> dict[str, Any]:
         """Determine current zone based on coordinates with comprehensive zone checking."""
         if not lat or not lon:
@@ -808,15 +850,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "zone_friendly_name": "Unknown",
                 "is_home": False,
             }
-        
+
         try:
             # Check home zone first
             if self._home_zone_cache:
                 home_distance = await async_calculate_haversine_distance(
                     (lat, lon),
-                    (self._home_zone_cache["latitude"], self._home_zone_cache["longitude"])
+                    (
+                        self._home_zone_cache["latitude"],
+                        self._home_zone_cache["longitude"],
+                    ),
                 )
-                
+
                 if home_distance <= self._home_zone_cache["radius"]:
                     return {
                         "zone": "home",
@@ -824,17 +869,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "is_home": True,
                         "distance_to_zone_center": round(home_distance, 1),
                     }
-            
+
             # Check other zones
             for zone_id, zone_data in self._zone_cache.items():
                 if zone_data.get("passive", False):
                     continue  # Skip passive zones
-                
+
                 zone_distance = await async_calculate_haversine_distance(
-                    (lat, lon),
-                    (zone_data["latitude"], zone_data["longitude"])
+                    (lat, lon), (zone_data["latitude"], zone_data["longitude"])
                 )
-                
+
                 if zone_distance <= zone_data["radius"]:
                     zone_name = zone_id.replace("zone.", "")
                     return {
@@ -843,14 +887,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "is_home": zone_name == "home",
                         "distance_to_zone_center": round(zone_distance, 1),
                     }
-            
+
             # Not in any zone
             return {
                 "zone": "not_home",
                 "zone_friendly_name": "Away",
                 "is_home": False,
             }
-            
+
         except Exception as err:
             _LOGGER.debug("Error determining zone: %s", err)
             return {
@@ -860,9 +904,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
     async def _calculate_movement_data(
-        self, 
-        dog_id: str, 
-        current_gps: dict[str, Any]
+        self, dog_id: str, current_gps: dict[str, Any]
     ) -> dict[str, Any]:
         """Calculate movement and speed data for a dog."""
         try:
@@ -870,34 +912,34 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             runtime_data = self._get_runtime_data()
             if not runtime_data:
                 return {"is_moving": False, "movement_confidence": 0.0}
-            
+
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return {"is_moving": False, "movement_confidence": 0.0}
-            
+
             # Get recent GPS history for movement analysis
             gps_history = await data_manager.async_get_module_data(
                 "gps", dog_id, limit=5
             )
-            
+
             if len(gps_history) < 2:
                 return {"is_moving": False, "movement_confidence": 0.0}
-            
+
             # Calculate movement based on recent positions
             distances = []
             time_diffs = []
-            
+
             for i in range(1, len(gps_history)):
                 prev_point = gps_history[i]
-                curr_point = gps_history[i-1]  # More recent
-                
-                if (prev_point.get("latitude") and curr_point.get("latitude")):
+                curr_point = gps_history[i - 1]  # More recent
+
+                if prev_point.get("latitude") and curr_point.get("latitude"):
                     distance = await async_calculate_haversine_distance(
                         (prev_point["latitude"], prev_point["longitude"]),
-                        (curr_point["latitude"], curr_point["longitude"])
+                        (curr_point["latitude"], curr_point["longitude"]),
                     )
                     distances.append(distance)
-                    
+
                     # Calculate time difference
                     try:
                         prev_time = datetime.fromisoformat(prev_point["timestamp"])
@@ -907,92 +949,88 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             time_diffs.append(time_diff)
                     except (ValueError, KeyError):
                         continue
-            
+
             if not distances or not time_diffs:
                 return {"is_moving": False, "movement_confidence": 0.0}
-            
+
             # Calculate average speed and movement confidence
             total_distance = sum(distances)
             total_time = sum(time_diffs)
-            
+
             if total_time > 0:
                 avg_speed_ms = total_distance / total_time
                 avg_speed_kmh = avg_speed_ms * 3.6
-                
+
                 # Movement detection thresholds
                 is_moving = avg_speed_kmh > 1.0  # Moving if > 1 km/h
-                movement_confidence = min(avg_speed_kmh / 5.0, 1.0)  # Confidence based on speed
-                
+                movement_confidence = min(
+                    avg_speed_kmh / 5.0, 1.0
+                )  # Confidence based on speed
+
                 return {
                     "is_moving": is_moving,
                     "movement_confidence": round(movement_confidence, 2),
                     "speed_kmh": round(avg_speed_kmh, 1),
                 }
-            
+
             return {"is_moving": False, "movement_confidence": 0.0}
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating movement data: %s", err)
             return {"is_moving": False, "movement_confidence": 0.0}
 
     async def _calculate_hunger_status(
-        self, 
-        dog_id: str, 
-        last_feeding: Optional[dict], 
-        schedule: dict
+        self, dog_id: str, last_feeding: Optional[dict], schedule: dict
     ) -> bool:
         """Calculate if dog is hungry based on feeding schedule and history."""
         if not last_feeding:
             return True  # Always hungry if never fed
-        
+
         try:
             now = dt_util.now()
             last_feeding_time = last_feeding.get("timestamp", now)
-            
+
             if isinstance(last_feeding_time, str):
                 last_feeding_time = datetime.fromisoformat(last_feeding_time)
-            
+
             hours_since_feeding = (now - last_feeding_time).total_seconds() / 3600
-            
+
             # Basic hunger logic based on meal type and time
             meal_type = last_feeding.get("meal_type", "snack")
-            
+
             hunger_thresholds = {
                 "breakfast": 4,  # Hungry after 4 hours
-                "lunch": 5,      # Hungry after 5 hours  
-                "dinner": 8,     # Hungry after 8 hours
-                "snack": 2,      # Hungry after 2 hours
-                "treat": 1,      # Hungry after 1 hour
+                "lunch": 5,  # Hungry after 5 hours
+                "dinner": 8,  # Hungry after 8 hours
+                "snack": 2,  # Hungry after 2 hours
+                "treat": 1,  # Hungry after 1 hour
             }
-            
+
             threshold = hunger_thresholds.get(meal_type, 4)
-            
+
             # Check if scheduled feeding time has passed
             meals_per_day = schedule.get("meals_per_day", 2)
             feeding_interval = 24 / meals_per_day
-            
+
             return hours_since_feeding >= min(threshold, feeding_interval)
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating hunger status: %s", err)
             return False
 
     async def _calculate_next_feeding(
-        self, 
-        dog_id: str, 
-        schedule: dict, 
-        feeding_times: list
+        self, dog_id: str, schedule: dict, feeding_times: list
     ) -> Optional[datetime]:
         """Calculate next scheduled feeding time with smart scheduling."""
         try:
             now = dt_util.now()
             meals_per_day = schedule.get("meals_per_day", 2)
-            
+
             # Get configured feeding times
             breakfast_time = schedule.get("breakfast_time")
-            lunch_time = schedule.get("lunch_time") 
+            lunch_time = schedule.get("lunch_time")
             dinner_time = schedule.get("dinner_time")
-            
+
             # Default feeding times if not configured
             default_times = {
                 1: ["08:00"],
@@ -1000,22 +1038,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 3: ["08:00", "13:00", "18:00"],
                 4: ["08:00", "12:00", "16:00", "20:00"],
             }
-            
+
             feeding_schedule = []
             if meals_per_day in default_times:
                 feeding_schedule = default_times[meals_per_day]
-            
+
             # Override with configured times
             if breakfast_time:
                 feeding_schedule[0] = breakfast_time
             if lunch_time and len(feeding_schedule) > 1:
-                feeding_schedule[1] = lunch_time  
+                feeding_schedule[1] = lunch_time
             if dinner_time and len(feeding_schedule) > 2:
                 feeding_schedule[-1] = dinner_time
-            
+
             # Find next feeding time
             current_time = now.time()
-            
+
             for feeding_time_str in feeding_schedule:
                 try:
                     feeding_time = datetime.strptime(feeding_time_str, "%H:%M").time()
@@ -1025,61 +1063,57 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             hour=feeding_time.hour,
                             minute=feeding_time.minute,
                             second=0,
-                            microsecond=0
+                            microsecond=0,
                         )
                         return next_feeding
                 except ValueError:
                     continue
-            
+
             # All feeding times for today have passed, next is tomorrow's first meal
             if feeding_schedule:
                 try:
-                    first_meal_time = datetime.strptime(feeding_schedule[0], "%H:%M").time()
+                    first_meal_time = datetime.strptime(
+                        feeding_schedule[0], "%H:%M"
+                    ).time()
                     tomorrow = now + timedelta(days=1)
                     next_feeding = tomorrow.replace(
                         hour=first_meal_time.hour,
                         minute=first_meal_time.minute,
                         second=0,
-                        microsecond=0
+                        microsecond=0,
                     )
                     return next_feeding
                 except ValueError:
                     pass
-            
+
             return None
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating next feeding: %s", err)
             return None
 
     async def _calculate_schedule_adherence(
-        self, 
-        dog_id: str, 
-        feeding_times: list, 
-        schedule: dict
+        self, dog_id: str, feeding_times: list, schedule: dict
     ) -> float:
         """Calculate feeding schedule adherence percentage."""
         try:
             if not feeding_times or not schedule:
                 return 100.0
-            
+
             meals_per_day = schedule.get("meals_per_day", 2)
             actual_meals = len(feeding_times)
-            
+
             # Basic adherence based on meal count
             adherence = min(actual_meals / meals_per_day, 1.0) * 100
-            
+
             return adherence
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating schedule adherence: %s", err)
             return 100.0
 
     async def _calculate_nutrition_analysis(
-        self, 
-        dog_id: str, 
-        daily_calories: float, 
-        daily_portion: float
+        self, dog_id: str, daily_calories: float, daily_portion: float
     ) -> dict[str, Any]:
         """Calculate nutritional analysis and recommendations."""
         try:
@@ -1089,28 +1123,34 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if dog.get(CONF_DOG_ID) == dog_id:
                     dog_info = dog
                     break
-            
+
             if not dog_info:
-                return {"calorie_target": 0, "calorie_progress": 0.0, "nutrition_status": "unknown"}
-            
+                return {
+                    "calorie_target": 0,
+                    "calorie_progress": 0.0,
+                    "nutrition_status": "unknown",
+                }
+
             # Calculate calorie needs using advanced BMR calculation
             weight = dog_info.get("dog_weight", 20)
             age = dog_info.get("dog_age", 5)
             dog_info.get("dog_size", "medium")
-            
+
             # Estimate activity level (could be enhanced with actual activity data)
             activity_level = "normal"
-            
+
             target_calories = calculate_bmr_advanced(
                 weight_kg=weight,
                 age_years=age,
                 activity_level=activity_level,
                 breed_factor=1.0,  # Could be breed-specific
-                is_neutered=True   # Could be configured
+                is_neutered=True,  # Could be configured
             )
-            
-            calorie_progress = (daily_calories / target_calories * 100) if target_calories > 0 else 0
-            
+
+            calorie_progress = (
+                (daily_calories / target_calories * 100) if target_calories > 0 else 0
+            )
+
             # Determine nutrition status
             if calorie_progress < 75:
                 nutrition_status = "underfeeding"
@@ -1118,18 +1158,24 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 nutrition_status = "overfeeding"
             else:
                 nutrition_status = "good"
-            
+
             return {
                 "calorie_target": int(target_calories),
                 "calorie_progress": round(calorie_progress, 1),
                 "nutrition_status": nutrition_status,
             }
-            
+
         except Exception as err:
             _LOGGER.debug("Error calculating nutrition analysis: %s", err)
-            return {"calorie_target": 0, "calorie_progress": 0.0, "nutrition_status": "unknown"}
+            return {
+                "calorie_target": 0,
+                "calorie_progress": 0.0,
+                "nutrition_status": "unknown",
+            }
 
-    def _process_weight_data_comprehensive(self, weight_history: list) -> dict[str, Any]:
+    def _process_weight_data_comprehensive(
+        self, weight_history: list
+    ) -> dict[str, Any]:
         """Process weight history data with comprehensive trend analysis."""
         if not weight_history:
             return {
@@ -1139,38 +1185,44 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "weight_change_percent": 0.0,
                 "weight_status": "unknown",
             }
-        
+
         try:
             # Sort by date
             sorted_weights = sorted(
-                weight_history, 
+                weight_history,
                 key=lambda x: x.get("timestamp", datetime.min),
-                reverse=True
+                reverse=True,
             )
-            
+
             current_weight = sorted_weights[0].get("weight")
             last_weight_date = sorted_weights[0].get("timestamp")
-            
+
             # Calculate trend using advanced trend analysis
-            weights = [entry.get("weight", 0) for entry in sorted_weights[:30]]  # Last 30 entries
+            weights = [
+                entry.get("weight", 0) for entry in sorted_weights[:30]
+            ]  # Last 30 entries
             weight_tuple = tuple(weights)  # For caching
-            
-            trend_analysis = calculate_trend_advanced(weight_tuple, periods=min(len(weights), 14))
-            
+
+            trend_analysis = calculate_trend_advanced(
+                weight_tuple, periods=min(len(weights), 14)
+            )
+
             # Calculate weight change percentage
             weight_change_percent = 0.0
             if len(sorted_weights) >= 2:
                 old_weight = sorted_weights[-1].get("weight", current_weight)
                 if old_weight > 0:
-                    weight_change_percent = ((current_weight - old_weight) / old_weight) * 100
-            
+                    weight_change_percent = (
+                        (current_weight - old_weight) / old_weight
+                    ) * 100
+
             # Determine weight status
             weight_status = "normal"
             if abs(weight_change_percent) > 10:
                 weight_status = "significant_change"
             elif abs(weight_change_percent) > 5:
                 weight_status = "moderate_change"
-            
+
             return {
                 "current_weight": current_weight,
                 "last_weight_date": last_weight_date,
@@ -1179,7 +1231,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "weight_status": weight_status,
                 "weight_trend_confidence": trend_analysis["confidence"],
             }
-            
+
         except Exception as err:
             _LOGGER.debug("Error processing weight data: %s", err)
             return {
@@ -1191,7 +1243,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
     # Complete medication data processing implementation
-    async def _process_medication_data_comprehensive(self, medications: list) -> dict[str, Any]:
+    async def _process_medication_data_comprehensive(
+        self, medications: list
+    ) -> dict[str, Any]:
         """Process medication data with comprehensive scheduling."""
         if not medications:
             return {
@@ -1200,12 +1254,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "next_medication_due": None,
                 "medications_overdue": [],
             }
-        
+
         now = dt_util.utcnow()
         medications_due = []
         medications_overdue = []
         next_due = None
-        
+
         for med in medications:
             next_dose = med.get("next_dose")
             if next_dose:
@@ -1214,22 +1268,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         next_dose_dt = dt_util.parse_datetime(next_dose)
                     else:
                         next_dose_dt = next_dose
-                    
+
                     if next_dose_dt:
                         time_diff = (next_dose_dt - now).total_seconds()
-                        
+
                         if time_diff < 0:  # Overdue
                             medications_overdue.append(med)
                         elif time_diff < 3600:  # Due within 1 hour
                             medications_due.append(med)
-                        
+
                         # Track next medication due
                         if not next_due or next_dose_dt < next_due:
                             next_due = next_dose_dt
-                            
+
                 except (ValueError, TypeError):
                     continue
-        
+
         return {
             "medications_due": medications_due,
             "active_medications": medications,
@@ -1237,33 +1291,39 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "medications_overdue": medications_overdue,
         }
 
-    async def _calculate_health_alerts_comprehensive(self, dog_id: str, health_data: dict) -> list[str]:
+    async def _calculate_health_alerts_comprehensive(
+        self, dog_id: str, health_data: dict
+    ) -> list[str]:
         """Calculate comprehensive health alerts."""
         alerts = []
-        
+
         try:
             weight_data = health_data.get("weight_data", {})
             medications = health_data.get("medications", {})
             last_vet_visit = health_data.get("last_vet_visit")
-            
+
             # Weight alerts
             weight_status = weight_data.get("weight_status")
             if weight_status == "significant_change":
                 weight_change = weight_data.get("weight_change_percent", 0)
                 if weight_change > 10:
-                    alerts.append(f"Significant weight gain detected (+{weight_change:.1f}%)")
+                    alerts.append(
+                        f"Significant weight gain detected (+{weight_change:.1f}%)"
+                    )
                 elif weight_change < -10:
-                    alerts.append(f"Significant weight loss detected ({weight_change:.1f}%)")
-            
+                    alerts.append(
+                        f"Significant weight loss detected ({weight_change:.1f}%)"
+                    )
+
             # Medication alerts
             medications_overdue = medications.get("medications_overdue", [])
             if medications_overdue:
                 alerts.append(f"{len(medications_overdue)} medication(s) overdue")
-            
+
             medications_due = medications.get("medications_due", [])
             if medications_due:
                 alerts.append(f"{len(medications_due)} medication(s) due soon")
-            
+
             # Vet visit alerts
             if last_vet_visit:
                 try:
@@ -1278,41 +1338,46 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     pass
             else:
                 alerts.append("No vet visit history available")
-            
+
             return alerts
-            
+
         except Exception as err:
             _LOGGER.error("Error calculating health alerts for %s: %s", dog_id, err)
             return []
 
-    async def _calculate_health_scores(self, dog_id: str, health_history: list, weight_data: dict) -> dict[str, Any]:
+    async def _calculate_health_scores(
+        self, dog_id: str, health_history: list, weight_data: dict
+    ) -> dict[str, Any]:
         """Calculate health scores and trends."""
         try:
             base_score = 100
-            recent_entries = health_history[:7] if health_history else []  # Last 7 entries
-            
+            recent_entries = (
+                health_history[:7] if health_history else []
+            )  # Last 7 entries
+
             # Weight score impact
             weight_status = weight_data.get("weight_status", "normal")
             if weight_status == "significant_change":
                 base_score -= 20
             elif weight_status == "moderate_change":
                 base_score -= 10
-            
+
             # Health status trends
             health_statuses = []
             activity_levels = []
-            
+
             for entry in recent_entries:
                 if "health_status" in entry:
                     health_statuses.append(entry["health_status"])
                 if "activity_level" in entry:
                     activity_levels.append(entry["activity_level"])
-            
+
             # Calculate most common recent status
             if health_statuses:
                 from collections import Counter
+
                 most_common_health = Counter(health_statuses).most_common(1)[0][0]
-                
+
                 health_score_map = {
                     "excellent": 0,
                     "very_good": -5,
@@ -1324,15 +1389,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 base_score += health_score_map.get(most_common_health, -15)
             else:
                 most_common_health = "unknown"
-            
+
             if activity_levels:
                 most_common_activity = Counter(activity_levels).most_common(1)[0][0]
             else:
                 most_common_activity = "unknown"
-            
+
             # Ensure score is within bounds
             final_score = max(0, min(100, base_score))
-            
+
             return {
                 "health_status": most_common_health,
                 "activity_level": most_common_activity,
@@ -1343,7 +1408,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "data_quality": "good" if recent_entries else "limited",
                 },
             }
-            
+
         except Exception as err:
             _LOGGER.error("Error calculating health scores for %s: %s", dog_id, err)
             return {
@@ -1352,24 +1417,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "health_score": 50,
             }
 
-    async def _calculate_next_checkup(self, dog_id: str, last_visit: Optional[dict]) -> Optional[datetime]:
+    async def _calculate_next_checkup(
+        self, dog_id: str, last_visit: Optional[dict]
+    ) -> Optional[datetime]:
         """Calculate next checkup date based on last visit and dog age."""
         if not last_visit:
             # No vet history - recommend checkup soon
             return dt_util.utcnow() + timedelta(days=30)
-        
+
         try:
             last_visit_date = dt_util.parse_datetime(last_visit.get("date"))
             if not last_visit_date:
                 return None
-            
+
             # Get dog info to determine checkup frequency
             dog_info = self.get_dog_info(dog_id)
             if not dog_info:
                 return last_visit_date + timedelta(days=365)  # Default 1 year
-            
+
             age = dog_info.get("dog_age", 5)
-            
+
             # Checkup frequency based on age
             if age < 1:  # Puppy - every 3-4 months
                 interval_days = 120
@@ -1381,49 +1448,51 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 interval_days = 240
             else:  # Very senior - every 6 months
                 interval_days = 180
-            
+
             next_checkup = last_visit_date + timedelta(days=interval_days)
             return next_checkup
-            
+
         except (ValueError, TypeError) as err:
             _LOGGER.debug("Error calculating next checkup for %s: %s", dog_id, err)
             return None
 
-    async def _is_grooming_due(self, dog_id: str, last_grooming: Optional[dict]) -> bool:
+    async def _is_grooming_due(
+        self, dog_id: str, last_grooming: Optional[dict]
+    ) -> bool:
         """Check if grooming is due based on last grooming and dog characteristics."""
         if not last_grooming:
             return True  # No grooming history - recommend grooming
-        
+
         try:
             last_grooming_date = dt_util.parse_datetime(last_grooming.get("date"))
             if not last_grooming_date:
                 return True
-            
+
             # Get dog info to determine grooming frequency
             dog_info = self.get_dog_info(dog_id)
             if not dog_info:
                 # Default grooming interval is 6 weeks
                 days_since = (dt_util.utcnow() - last_grooming_date).days
                 return days_since >= 42
-            
+
             # Grooming frequency based on coat type and size
             dog_size = dog_info.get("dog_size", "medium")
-            
+
             # Default intervals (can be enhanced with breed-specific data)
             grooming_intervals = {
-                "toy": 28,      # 4 weeks - small dogs with fine coats
-                "small": 35,    # 5 weeks 
-                "medium": 42,   # 6 weeks
-                "large": 49,    # 7 weeks
-                "giant": 56,    # 8 weeks - larger dogs, less frequent grooming
+                "toy": 28,  # 4 weeks - small dogs with fine coats
+                "small": 35,  # 5 weeks
+                "medium": 42,  # 6 weeks
+                "large": 49,  # 7 weeks
+                "giant": 56,  # 8 weeks - larger dogs, less frequent grooming
             }
-            
+
             interval_days = grooming_intervals.get(dog_size, 42)
-            
+
             # Check if due based on interval
             days_since = (dt_util.utcnow() - last_grooming_date).days
             return days_since >= interval_days
-            
+
         except (ValueError, TypeError) as err:
             _LOGGER.debug("Error checking grooming due for %s: %s", dog_id, err)
             return False
@@ -1431,18 +1500,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _get_care_reminders(self, dog_id: str) -> list[str]:
         """Get comprehensive care reminders for a dog."""
         reminders = []
-        
+
         try:
             runtime_data = self._get_runtime_data()
             if not runtime_data:
                 return reminders
-            
+
             data_manager = runtime_data.get("data_manager")
             if not data_manager:
                 return reminders
-            
+
             # Check various care needs
-            
+
             # 1. Vet checkup reminders
             last_vet_visit = await data_manager.async_get_last_vet_visit(dog_id)
             next_checkup = await self._calculate_next_checkup(dog_id, last_vet_visit)
@@ -1455,7 +1524,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         reminders.append(f"Vet checkup due in {days_until} days")
                 elif days_until <= 30:
                     reminders.append(f"Vet checkup due in {days_until} days")
-            
+
             # 2. Grooming reminders
             last_grooming = await data_manager.async_get_last_grooming(dog_id)
             is_grooming_due = await self._is_grooming_due(dog_id, last_grooming)
@@ -1464,12 +1533,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     last_date = dt_util.parse_datetime(last_grooming.get("date"))
                     if last_date:
                         days_since = (dt_util.utcnow() - last_date).days
-                        reminders.append(f"Grooming needed (last groomed {days_since} days ago)")
+                        reminders.append(
+                            f"Grooming needed (last groomed {days_since} days ago)"
+                        )
                     else:
                         reminders.append("Grooming recommended")
                 else:
                     reminders.append("Initial grooming appointment needed")
-            
+
             # 3. Medication reminders
             medications = await data_manager.async_get_active_medications(dog_id)
             for med in medications:
@@ -1478,16 +1549,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     try:
                         next_dose_dt = dt_util.parse_datetime(next_dose)
                         if next_dose_dt:
-                            time_diff = (next_dose_dt - dt_util.utcnow()).total_seconds()
+                            time_diff = (
+                                next_dose_dt - dt_util.utcnow()
+                            ).total_seconds()
                             if time_diff < 0:  # Overdue
                                 hours_overdue = abs(time_diff) / 3600
-                                reminders.append(f"Medication '{med.get('name', 'Unknown')}' is {hours_overdue:.1f} hours overdue")
+                                reminders.append(
+                                    f"Medication '{med.get('name', 'Unknown')}' is {hours_overdue:.1f} hours overdue"
+                                )
                             elif time_diff < 3600:  # Due within 1 hour
                                 minutes_until = time_diff / 60
-                                reminders.append(f"Medication '{med.get('name', 'Unknown')}' due in {minutes_until:.0f} minutes")
+                                reminders.append(
+                                    f"Medication '{med.get('name', 'Unknown')}' due in {minutes_until:.0f} minutes"
+                                )
                     except (ValueError, TypeError):
                         continue
-            
+
             # 4. Exercise reminders
             dog_data = await data_manager.async_get_dog_data(dog_id)
             if dog_data:
@@ -1497,14 +1574,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     try:
                         last_walk_dt = dt_util.parse_datetime(last_walk)
                         if last_walk_dt:
-                            hours_since = (dt_util.utcnow() - last_walk_dt).total_seconds() / 3600
+                            hours_since = (
+                                dt_util.utcnow() - last_walk_dt
+                            ).total_seconds() / 3600
                             if hours_since > 12:  # No walk in 12+ hours
-                                reminders.append(f"Walk needed (last walk {hours_since:.1f} hours ago)")
+                                reminders.append(
+                                    f"Walk needed (last walk {hours_since:.1f} hours ago)"
+                                )
                     except (ValueError, TypeError):
                         pass
                 else:
                     reminders.append("Daily walk needed")
-            
+
             # 5. Feeding reminders (if enabled)
             feeding_data = dog_data.get("feeding", {}) if dog_data else {}
             last_feeding = feeding_data.get("last_feeding")
@@ -1512,22 +1593,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 try:
                     last_feeding_dt = dt_util.parse_datetime(last_feeding)
                     if last_feeding_dt:
-                        hours_since = (dt_util.utcnow() - last_feeding_dt).total_seconds() / 3600
+                        hours_since = (
+                            dt_util.utcnow() - last_feeding_dt
+                        ).total_seconds() / 3600
                         if hours_since > 8:  # No feeding in 8+ hours (might be hungry)
-                            reminders.append(f"Check feeding schedule (last fed {hours_since:.1f} hours ago)")
+                            reminders.append(
+                                f"Check feeding schedule (last fed {hours_since:.1f} hours ago)"
+                            )
                 except (ValueError, TypeError):
                     pass
-            
+
             return reminders
-            
+
         except Exception as err:
             _LOGGER.error("Error getting care reminders for %s: %s", dog_id, err)
             return reminders
 
-    def _calculate_today_walk_stats_comprehensive(self, walk_history: list) -> dict[str, Any]:
+    def _calculate_today_walk_stats_comprehensive(
+        self, walk_history: list
+    ) -> dict[str, Any]:
         """Calculate comprehensive today's walk statistics."""
         today = dt_util.utcnow().date()
-        
+
         walks_today = 0
         total_distance_today = 0.0
         total_duration_today = 0
@@ -1535,110 +1622,118 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         last_walk_duration = None
         last_walk_distance = None
         last_walk_hours = None
-        
+
         for walk in walk_history:
             try:
                 walk_date = dt_util.parse_datetime(walk.get("start_time"))
                 if walk_date and walk_date.date() == today:
                     walks_today += 1
-                    
+
                     # Add distance if available
                     distance = walk.get("distance", 0)
                     if distance:
                         total_distance_today += distance
-                    
+
                     # Add duration if available
                     duration = walk.get("duration_minutes", 0)
                     if duration:
                         total_duration_today += duration
-                    
+
                     # Track most recent walk
-                    if not last_walk or walk_date > dt_util.parse_datetime(last_walk.get("start_time")):
+                    if not last_walk or walk_date > dt_util.parse_datetime(
+                        last_walk.get("start_time")
+                    ):
                         last_walk = walk
                         last_walk_duration = duration
                         last_walk_distance = distance
                         last_walk_hours = self._calculate_hours_since(walk_date)
-                        
+
             except (ValueError, TypeError):
                 continue
-        
+
         return {
             "last_walk": last_walk,
             "last_walk_duration": last_walk_duration,
-            "last_walk_distance": last_walk_distance, 
+            "last_walk_distance": last_walk_distance,
             "last_walk_hours": last_walk_hours,
             "walks_today": walks_today,
             "total_distance_today": round(total_distance_today, 1),
             "total_duration_today": total_duration_today,
         }
 
-    def _calculate_weekly_walk_stats_comprehensive(self, walk_history: list) -> dict[str, Any]:
+    def _calculate_weekly_walk_stats_comprehensive(
+        self, walk_history: list
+    ) -> dict[str, Any]:
         """Calculate comprehensive weekly walk statistics."""
         one_week_ago = dt_util.utcnow() - timedelta(days=7)
-        
+
         weekly_walk_count = 0
         weekly_distance = 0.0
         weekly_duration = 0
-        
+
         for walk in walk_history:
             try:
                 walk_date = dt_util.parse_datetime(walk.get("start_time"))
                 if walk_date and walk_date >= one_week_ago:
                     weekly_walk_count += 1
-                    
+
                     # Add distance if available
                     distance = walk.get("distance", 0)
                     if distance:
                         weekly_distance += distance
-                    
+
                     # Add duration if available
                     duration = walk.get("duration_minutes", 0)
                     if duration:
                         weekly_duration += duration
-                        
+
             except (ValueError, TypeError):
                 continue
-        
+
         return {
             "weekly_walk_count": weekly_walk_count,
             "weekly_distance": round(weekly_distance, 1),
             "weekly_duration": weekly_duration,
-            "average_walk_distance": round(weekly_distance / max(weekly_walk_count, 1), 1),
+            "average_walk_distance": round(
+                weekly_distance / max(weekly_walk_count, 1), 1
+            ),
             "average_walk_duration": int(weekly_duration / max(weekly_walk_count, 1)),
         }
 
-    async def _calculate_walk_recommendation(self, dog_id: str, walk_history: list, today_stats: dict) -> dict[str, Any]:
+    async def _calculate_walk_recommendation(
+        self, dog_id: str, walk_history: list, today_stats: dict
+    ) -> dict[str, Any]:
         """Calculate walk recommendations based on dog needs and activity."""
         walks_today = today_stats.get("walks_today", 0)
         last_walk_hours = today_stats.get("last_walk_hours", 24)
-        
+
         # Get dog info for size-based recommendations
         dog_info = self.get_dog_info(dog_id)
         dog_size = dog_info.get("dog_size", "medium") if dog_info else "medium"
         dog_age = dog_info.get("dog_age", 5) if dog_info else 5
-        
+
         # Size-based walk recommendations per day
         daily_walk_needs = {
-            "toy": 1,      # Toy dogs need 1-2 short walks
-            "small": 2,    # Small dogs need 2 walks
-            "medium": 2,   # Medium dogs need 2-3 walks  
-            "large": 3,    # Large dogs need 3 walks
-            "giant": 2,    # Giant dogs need 2 longer walks
+            "toy": 1,  # Toy dogs need 1-2 short walks
+            "small": 2,  # Small dogs need 2 walks
+            "medium": 2,  # Medium dogs need 2-3 walks
+            "large": 3,  # Large dogs need 3 walks
+            "giant": 2,  # Giant dogs need 2 longer walks
         }
-        
+
         recommended_walks = daily_walk_needs.get(dog_size, 2)
-        
+
         # Age adjustments
         if dog_age < 1:  # Puppy - more frequent short walks
             recommended_walks += 1
         elif dog_age > 8:  # Senior - fewer but still necessary walks
             recommended_walks = max(1, recommended_walks - 1)
-        
+
         # Determine urgency and recommendation
         needs_walk = False
         walk_urgency = "none"
         walk_recommendation = ""
-        
+
         if walks_today == 0:
             if last_walk_hours >= 12:
                 needs_walk = True
@@ -1647,7 +1742,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif last_walk_hours >= 8:
                 needs_walk = True
                 walk_urgency = "medium"
-                walk_recommendation = f"First walk of the day recommended for {dog_size} dogs"
+                walk_recommendation = (
+                    f"First walk of the day recommended for {dog_size} dogs"
+                )
         elif walks_today < recommended_walks:
             if last_walk_hours >= 6:
                 needs_walk = True
@@ -1662,8 +1759,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             walk_urgency = "low"
             walk_recommendation = "Long time since last walk - short walk recommended"
         else:
-            walk_recommendation = f"Walk needs met for today ({walks_today}/{recommended_walks} walks)"
-        
+            walk_recommendation = (
+                f"Walk needs met for today ({walks_today}/{recommended_walks} walks)"
+            )
+
         return {
             "needs_walk": needs_walk,
             "walk_urgency": walk_urgency,
@@ -1672,26 +1771,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "walks_recommended": recommended_walks,
         }
 
-    def _calculate_activity_analysis(self, today_stats: dict, weekly_stats: dict) -> dict[str, Any]:
+    def _calculate_activity_analysis(
+        self, today_stats: dict, weekly_stats: dict
+    ) -> dict[str, Any]:
         """Calculate activity analysis based on walk statistics."""
         walks_today = today_stats.get("walks_today", 0)
         total_duration_today = today_stats.get("total_duration_today", 0)
         weekly_walk_count = weekly_stats.get("weekly_walk_count", 0)
         weekly_duration = weekly_stats.get("weekly_duration", 0)
-        
+
         # Calculate daily and weekly averages
         daily_avg_walks = weekly_walk_count / 7
         daily_avg_duration = weekly_duration / 7
-        
+
         # Calculate activity score (0-100)
         activity_score = 0
-        
+
         # Score based on walk frequency (40 points max)
         if walks_today >= 2:
             activity_score += 40
         elif walks_today == 1:
             activity_score += 20
-        
+
         # Score based on duration (40 points max)
         if total_duration_today >= 60:  # 1+ hour
             activity_score += 40
@@ -1701,34 +1802,36 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             activity_score += 20
         elif total_duration_today > 0:
             activity_score += 10
-        
+
         # Score based on weekly consistency (20 points max)
         if weekly_walk_count >= 14:  # 2+ walks per day average
             activity_score += 20
-        elif weekly_walk_count >= 7:   # 1+ walk per day average
+        elif weekly_walk_count >= 7:  # 1+ walk per day average
             activity_score += 15
-        elif weekly_walk_count >= 4:   # Some regular activity
+        elif weekly_walk_count >= 4:  # Some regular activity
             activity_score += 10
         elif weekly_walk_count > 0:
             activity_score += 5
-        
+
         # Determine activity trend
         activity_trend = "stable"
         if walks_today > daily_avg_walks * 1.3:
             activity_trend = "increasing"
         elif walks_today < daily_avg_walks * 0.7:
             activity_trend = "decreasing"
-        
+
         # Determine if walk goal is met (basic criteria)
         walk_goal_met = walks_today >= 2 or total_duration_today >= 30
-        
+
         return {
             "walk_goal_met": walk_goal_met,
             "activity_score": min(100, activity_score),
             "activity_trend": activity_trend,
             "daily_avg_walks": round(daily_avg_walks, 1),
             "daily_avg_duration": round(daily_avg_duration, 1),
-            "weekly_consistency": round((weekly_walk_count / 14) * 100, 1) if weekly_walk_count > 0 else 0,
+            "weekly_consistency": round((weekly_walk_count / 14) * 100, 1)
+            if weekly_walk_count > 0
+            else 0,
         }
 
     async def _process_current_walk_data(self, current_walk: dict) -> dict[str, Any]:
@@ -1744,16 +1847,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Calculate current walk duration in minutes."""
         if not walk or not walk.get("start_time"):
             return 0
-        
+
         start_time = walk["start_time"]
         now = dt_util.now()
-        
+
         if isinstance(start_time, str):
             start_time = datetime.fromisoformat(start_time)
-        
+
         if start_time.tzinfo is None:
             start_time = dt_util.as_local(start_time)
-        
+
         delta = now - start_time
         return int(delta.total_seconds() / 60)
 
@@ -1761,13 +1864,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Calculate hours since a given timestamp."""
         if not timestamp:
             return None
-        
+
         now = dt_util.now()
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
         if timestamp.tzinfo is None:
             timestamp = dt_util.as_local(timestamp)
-        
+
         delta = now - timestamp
         return round(delta.total_seconds() / 3600, 1)
 
@@ -1775,52 +1878,51 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Calculate days since a given date."""
         if not date_obj:
             return None
-        
+
         now = dt_util.now().date()
         if isinstance(date_obj, str):
             date_obj = datetime.fromisoformat(date_obj).date()
-        elif hasattr(date_obj, 'date'):
+        elif hasattr(date_obj, "date"):
             date_obj = date_obj.date()
-        
+
         delta = now - date_obj
         return delta.days
 
     def _get_runtime_data(self) -> Optional[PawControlRuntimeData]:
         """Get runtime data for the integration."""
-        return getattr(self.entry, 'runtime_data', None)
+        return getattr(self.entry, "runtime_data", None)
 
     # Public interface methods (inherited and new)
     @callback
     def async_add_listener(
-        self, 
-        update_callback: Callable[[], None]
+        self, update_callback: Callable[[], None]
     ) -> Callable[[], None]:
         """Add a listener for data updates."""
         self._listeners.add(update_callback)
-        
+
         @callback
         def remove_listener() -> None:
             """Remove the listener from the coordinator."""
             self._listeners.discard(update_callback)
-        
+
         return remove_listener
 
     @callback
     def async_update_listeners(self) -> None:
         """Notify all registered listeners of data updates."""
         failed_listeners = []
-        
+
         for listener in self._listeners:
             try:
                 listener()
             except Exception as err:
                 _LOGGER.exception("Error calling update listener: %s", err)
                 failed_listeners.append(listener)
-        
+
         # Remove listeners that consistently fail
         for failed_listener in failed_listeners:
             self._listeners.discard(failed_listener)
-        
+
         if failed_listeners:
             _LOGGER.warning("Removed %d failed listeners", len(failed_listeners))
 
@@ -1847,20 +1949,20 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if dog[CONF_DOG_ID] == dog_id:
                 dog_config = dog
                 break
-        
+
         if not dog_config:
             raise ValueError(f"Dog {dog_id} not found in configuration")
-        
+
         try:
             # Update data for this specific dog
             updated_dog_data = await self._async_update_dog_data(dog_config)
             self._data[dog_id] = updated_dog_data
-            
+
             # Notify listeners of the update
             self.async_update_listeners()
-            
+
             _LOGGER.debug("Refreshed data for dog %s", dog_id)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to refresh data for dog %s: %s", dog_id, err)
             raise
@@ -1868,19 +1970,19 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator and cleanup resources."""
         _LOGGER.debug("Shutting down Paw Control coordinator")
-        
+
         # Clear all listeners
         self._listeners.clear()
-        
+
         # Clear data and caches
         self._data.clear()
         self._zone_cache.clear()
         self._entity_cache.clear()
         self._home_zone_cache = None
-        
+
         # Reset performance metrics
         self._performance_metrics.clear()
-        
+
         _LOGGER.debug("Coordinator shutdown completed")
 
     @property
@@ -1909,29 +2011,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         dog_info = self.get_dog_info(dog_id)
         if not dog_info:
             return []
-        
+
         modules = dog_info.get("modules", {})
         return [module for module, enabled in modules.items() if enabled]
 
     async def async_update_config(self, new_config: dict[str, Any]) -> None:
         """Update coordinator configuration."""
         self.dogs = new_config.get(CONF_DOGS, [])
-        
+
         # Recalculate update interval based on new configuration
         new_interval = self._calculate_optimal_update_interval()
         self.update_interval = timedelta(seconds=new_interval)
-        
+
         # Clear caches to force refresh with new configuration
         self._zone_cache.clear()
         self._entity_cache.clear()
         self._cache_expiry = dt_util.utcnow()
-        
+
         _LOGGER.debug(
             "Configuration updated: %d dogs, new interval: %ds",
             len(self.dogs),
             new_interval,
         )
-        
+
         # Trigger immediate refresh with new configuration
         await self.async_refresh()
 

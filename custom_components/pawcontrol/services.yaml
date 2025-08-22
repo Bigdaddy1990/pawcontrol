@@ -20,7 +20,7 @@ feed_dog:
         select:
           options:
             - "breakfast"
-            - "lunch" 
+            - "lunch"
             - "dinner"
             - "snack"
             - "treat"

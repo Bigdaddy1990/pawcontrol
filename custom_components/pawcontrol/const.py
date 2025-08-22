@@ -1,4 +1,5 @@
 """Constants for the Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Final
@@ -92,29 +93,18 @@ DEFAULT_DATA_RETENTION_DAYS: Final = 90
 DEFAULT_GROOMING_INTERVAL: Final = 28  # days
 
 # Feeding types
-FOOD_TYPES: Final = [
-    "dry_food",
-    "wet_food",
-    "barf",
-    "home_cooked",
-    "mixed"
-]
+FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
 
 # Meal types
-MEAL_TYPES: Final = [
-    "breakfast",
-    "lunch", 
-    "dinner",
-    "snack"
-]
+MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
 
 # Dog sizes
 DOG_SIZES: Final = [
-    "toy",      # 1-6kg
-    "small",    # 6-12kg
-    "medium",   # 12-27kg
-    "large",    # 27-45kg
-    "giant"     # 45-90kg
+    "toy",  # 1-6kg
+    "small",  # 6-12kg
+    "medium",  # 12-27kg
+    "large",  # 27-45kg
+    "giant",  # 45-90kg
 ]
 
 # GPS sources
@@ -125,51 +115,30 @@ GPS_SOURCES: Final = [
     "smartphone",
     "tractive",
     "webhook",
-    "mqtt"
+    "mqtt",
 ]
 
 # Health status options
 HEALTH_STATUS_OPTIONS: Final = [
     "excellent",
-    "very_good", 
+    "very_good",
     "good",
     "normal",
     "unwell",
-    "sick"
+    "sick",
 ]
 
 # Mood options
-MOOD_OPTIONS: Final = [
-    "happy",
-    "neutral",
-    "sad",
-    "angry",
-    "anxious",
-    "tired"
-]
+MOOD_OPTIONS: Final = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
 
 # Activity levels
-ACTIVITY_LEVELS: Final = [
-    "very_low",
-    "low",
-    "normal", 
-    "high",
-    "very_high"
-]
+ACTIVITY_LEVELS: Final = ["very_low", "low", "normal", "high", "very_high"]
 
 # Dashboard modes
-DASHBOARD_MODES: Final = [
-    "full",
-    "cards",
-    "minimal"
-]
+DASHBOARD_MODES: Final = ["full", "cards", "minimal"]
 
 # Performance modes
-PERFORMANCE_MODES: Final = [
-    "minimal",
-    "balanced",
-    "full"
-]
+PERFORMANCE_MODES: Final = ["minimal", "balanced", "full"]
 
 # Service names
 SERVICE_FEED_DOG: Final = "feed_dog"
@@ -220,26 +189,17 @@ SECONDS_IN_DAY: Final = 86400
 MINUTES_IN_HOUR: Final = 60
 
 # Geofence types
-GEOFENCE_TYPES: Final = [
-    "safe_zone",
-    "restricted_area", 
-    "point_of_interest"
-]
+GEOFENCE_TYPES: Final = ["safe_zone", "restricted_area", "point_of_interest"]
 
 # Notification channels
-NOTIFICATION_CHANNELS: Final = [
-    "mobile",
-    "persistent", 
-    "email",
-    "slack"
-]
+NOTIFICATION_CHANNELS: Final = ["mobile", "persistent", "email", "slack"]
 
 # Update intervals (seconds)
 UPDATE_INTERVALS: Final = {
-    "minimal": 300,    # 5 minutes
-    "balanced": 120,   # 2 minutes
-    "frequent": 60,    # 1 minute
-    "real_time": 30    # 30 seconds
+    "minimal": 300,  # 5 minutes
+    "balanced": 120,  # 2 minutes
+    "frequent": 60,  # 1 minute
+    "real_time": 30,  # 30 seconds
 }
 
 # Data file names
@@ -269,41 +229,70 @@ ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
 # Export validation constants for use in other modules
 __all__ = [
     # Core constants
-    "DOMAIN", "STORAGE_VERSION",
-    
+    "DOMAIN",
+    "STORAGE_VERSION",
     # Configuration keys
-    "CONF_DOGS", "CONF_DOG_ID", "CONF_DOG_NAME", "CONF_DOG_BREED",
-    "CONF_DOG_AGE", "CONF_DOG_WEIGHT", "CONF_DOG_SIZE", "CONF_DOG_COLOR",
-    
+    "CONF_DOGS",
+    "CONF_DOG_ID",
+    "CONF_DOG_NAME",
+    "CONF_DOG_BREED",
+    "CONF_DOG_AGE",
+    "CONF_DOG_WEIGHT",
+    "CONF_DOG_SIZE",
+    "CONF_DOG_COLOR",
     # Module constants
-    "MODULE_GPS", "MODULE_FEEDING", "MODULE_HEALTH", "MODULE_WALK",
-    "MODULE_NOTIFICATIONS", "MODULE_DASHBOARD", "MODULE_VISITOR",
-    
+    "MODULE_GPS",
+    "MODULE_FEEDING",
+    "MODULE_HEALTH",
+    "MODULE_WALK",
+    "MODULE_NOTIFICATIONS",
+    "MODULE_DASHBOARD",
+    "MODULE_VISITOR",
     # Validation lists (primary source)
-    "MEAL_TYPES", "FOOD_TYPES", "DOG_SIZES", "GPS_SOURCES",
-    "HEALTH_STATUS_OPTIONS", "MOOD_OPTIONS", "ACTIVITY_LEVELS",
-    "DASHBOARD_MODES", "PERFORMANCE_MODES", "GEOFENCE_TYPES",
-    
+    "MEAL_TYPES",
+    "FOOD_TYPES",
+    "DOG_SIZES",
+    "GPS_SOURCES",
+    "HEALTH_STATUS_OPTIONS",
+    "MOOD_OPTIONS",
+    "ACTIVITY_LEVELS",
+    "DASHBOARD_MODES",
+    "PERFORMANCE_MODES",
+    "GEOFENCE_TYPES",
     # Service names
-    "SERVICE_FEED_DOG", "SERVICE_START_WALK", "SERVICE_END_WALK",
-    "SERVICE_LOG_HEALTH", "SERVICE_LOG_MEDICATION", "SERVICE_DAILY_RESET",
-    
+    "SERVICE_FEED_DOG",
+    "SERVICE_START_WALK",
+    "SERVICE_END_WALK",
+    "SERVICE_LOG_HEALTH",
+    "SERVICE_LOG_MEDICATION",
+    "SERVICE_DAILY_RESET",
     # Event types
-    "EVENT_WALK_STARTED", "EVENT_WALK_ENDED", "EVENT_FEEDING_LOGGED",
-    "EVENT_HEALTH_LOGGED", "EVENT_GEOFENCE_ENTERED", "EVENT_GEOFENCE_LEFT",
-    
+    "EVENT_WALK_STARTED",
+    "EVENT_WALK_ENDED",
+    "EVENT_FEEDING_LOGGED",
+    "EVENT_HEALTH_LOGGED",
+    "EVENT_GEOFENCE_ENTERED",
+    "EVENT_GEOFENCE_LEFT",
     # Attribute keys
-    "ATTR_DOG_ID", "ATTR_DOG_NAME", "ATTR_MEAL_TYPE", "ATTR_PORTION_SIZE",
-    "ATTR_WALK_DURATION", "ATTR_WALK_DISTANCE", "ATTR_HEALTH_STATUS",
-    
+    "ATTR_DOG_ID",
+    "ATTR_DOG_NAME",
+    "ATTR_MEAL_TYPE",
+    "ATTR_PORTION_SIZE",
+    "ATTR_WALK_DURATION",
+    "ATTR_WALK_DISTANCE",
+    "ATTR_HEALTH_STATUS",
     # Default values
-    "DEFAULT_RESET_TIME", "DEFAULT_GPS_UPDATE_INTERVAL", 
-    "DEFAULT_GPS_ACCURACY_FILTER", "DEFAULT_DATA_RETENTION_DAYS",
-    
+    "DEFAULT_RESET_TIME",
+    "DEFAULT_GPS_UPDATE_INTERVAL",
+    "DEFAULT_GPS_ACCURACY_FILTER",
+    "DEFAULT_DATA_RETENTION_DAYS",
     # Limits
-    "MIN_DOG_WEIGHT", "MAX_DOG_WEIGHT", "MIN_DOG_AGE", "MAX_DOG_AGE",
-    "MIN_DOG_NAME_LENGTH", "MAX_DOG_NAME_LENGTH",
-    
+    "MIN_DOG_WEIGHT",
+    "MAX_DOG_WEIGHT",
+    "MIN_DOG_AGE",
+    "MAX_DOG_AGE",
+    "MIN_DOG_NAME_LENGTH",
+    "MAX_DOG_NAME_LENGTH",
     # Update intervals
     "UPDATE_INTERVALS",
 ]

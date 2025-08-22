@@ -9,6 +9,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -60,7 +61,7 @@ DELIVERY_DISCORD = "discord"
 
 # Rate limiting intervals by priority
 RATE_LIMIT_INTERVALS = {
-    PRIORITY_URGENT: timedelta(minutes=0),    # No rate limiting
+    PRIORITY_URGENT: timedelta(minutes=0),  # No rate limiting
     PRIORITY_HIGH: timedelta(minutes=15),
     PRIORITY_NORMAL: timedelta(hours=1),
     PRIORITY_LOW: timedelta(hours=4),
@@ -73,7 +74,7 @@ MAX_HISTORY_COUNT = 1000
 
 class PawControlNotificationManager:
     """Advanced notification management for Paw Control integration.
-    
+
     Provides intelligent notification handling with priority management,
     rate limiting, quiet hours, multiple delivery methods, and comprehensive
     tracking. Designed for optimal user experience and system performance.
@@ -81,20 +82,20 @@ class PawControlNotificationManager:
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         """Initialize the notification manager.
-        
+
         Args:
             hass: Home Assistant instance
             entry_id: Configuration entry ID
         """
         self.hass = hass
         self.entry_id = entry_id
-        
+
         # Modern async-safe state management
         self._active_notifications: dict[str, dict[str, Any]] = {}
         self._notification_history: list[dict[str, Any]] = []
         self._rate_limits: dict[str, datetime] = {}
         self._suppressed_notifications: set[str] = set()
-        
+
         # Configuration with sensible defaults
         self._config: dict[str, Any] = {
             "global_enabled": True,
@@ -107,14 +108,14 @@ class PawControlNotificationManager:
             "summary_notifications": False,
             "smart_grouping": True,
         }
-        
+
         # Dog-specific settings
         self._dog_settings: dict[str, dict[str, Any]] = {}
-        
+
         # Background tasks
         self._cleanup_task: Optional[asyncio.Task] = None
         self._summary_task: Optional[asyncio.Task] = None
-        
+
         # Performance metrics
         self._metrics: dict[str, Any] = {
             "notifications_sent": 0,
@@ -122,38 +123,40 @@ class PawControlNotificationManager:
             "delivery_failures": 0,
             "rate_limited_count": 0,
         }
-        
+
         # Async locks for thread safety
         self._lock = asyncio.Lock()
 
     async def async_initialize(self) -> None:
         """Initialize the notification manager with modern async patterns.
-        
+
         Raises:
             NotificationError: If initialization fails
         """
         _LOGGER.debug("Initializing notification manager for entry %s", self.entry_id)
-        
+
         try:
             # Load configuration from config entry
             await self._load_configuration()
-            
+
             # Start background tasks
             await self._start_background_tasks()
-            
+
             # Register services
             await self._register_services()
-            
+
             _LOGGER.info("Notification manager initialized successfully")
-            
+
         except Exception as err:
-            _LOGGER.error("Failed to initialize notification manager: %s", err, exc_info=True)
+            _LOGGER.error(
+                "Failed to initialize notification manager: %s", err, exc_info=True
+            )
             raise NotificationError("initialization", str(err)) from err
 
     async def async_shutdown(self) -> None:
         """Shutdown the notification manager gracefully."""
         _LOGGER.debug("Shutting down notification manager")
-        
+
         try:
             # Cancel background tasks
             if self._cleanup_task:
@@ -162,21 +165,21 @@ class PawControlNotificationManager:
                     await self._cleanup_task
                 except asyncio.CancelledError:
                     pass
-            
+
             if self._summary_task:
                 self._summary_task.cancel()
                 try:
                     await self._summary_task
                 except asyncio.CancelledError:
                     pass
-            
+
             # Dismiss all active notifications
             async with self._lock:
                 for notification_id in list(self._active_notifications.keys()):
                     await self._dismiss_notification_internal(notification_id)
-            
+
             _LOGGER.info("Notification manager shutdown complete")
-            
+
         except Exception as err:
             _LOGGER.error("Error during notification manager shutdown: %s", err)
 
@@ -194,7 +197,7 @@ class PawControlNotificationManager:
         actions: Optional[list[dict[str, Any]]] = None,
     ) -> bool:
         """Send a notification for a specific dog with comprehensive options.
-        
+
         Args:
             dog_id: Dog identifier
             notification_type: Type of notification
@@ -205,35 +208,43 @@ class PawControlNotificationManager:
             delivery_methods: Specific delivery methods to use
             force: Force sending even if rate limited or in quiet hours
             actions: Interactive actions for supported platforms
-            
+
         Returns:
             True if notification was sent successfully
-            
+
         Raises:
             NotificationError: If sending fails critically
         """
         async with self._lock:
             try:
                 # Early validation
-                if not self._validate_notification_params(dog_id, notification_type, priority):
+                if not self._validate_notification_params(
+                    dog_id, notification_type, priority
+                ):
                     return False
-                
+
                 # Check global and dog-specific enablement
-                if not await self._is_notification_enabled(dog_id, notification_type, force):
+                if not await self._is_notification_enabled(
+                    dog_id, notification_type, force
+                ):
                     return False
-                
+
                 # Check quiet hours and rate limiting
                 if not force:
-                    if await self._should_suppress_notification(dog_id, notification_type, priority):
+                    if await self._should_suppress_notification(
+                        dog_id, notification_type, priority
+                    ):
                         self._metrics["notifications_suppressed"] += 1
                         return False
-                
+
                 # Generate unique notification ID
-                notification_id = self._generate_notification_id(dog_id, notification_type)
-                
+                notification_id = self._generate_notification_id(
+                    dog_id, notification_type
+                )
+
                 # Get dog information
                 dog_name = await self._get_dog_name(dog_id)
-                
+
                 # Prepare comprehensive notification data
                 notification_data = {
                     "id": notification_id,
@@ -241,27 +252,28 @@ class PawControlNotificationManager:
                     "dog_name": dog_name,
                     "type": notification_type,
                     "priority": priority,
-                    "title": title or self._generate_title(dog_name, notification_type, priority),
+                    "title": title
+                    or self._generate_title(dog_name, notification_type, priority),
                     "message": message,
                     "timestamp": dt_util.utcnow(),
                     "data": data or {},
                     "actions": actions or [],
                     "delivery_status": {},
                 }
-                
+
                 # Determine delivery methods
                 methods = delivery_methods or await self._get_delivery_methods(
                     dog_id, notification_type, priority
                 )
-                
+
                 # Send via each delivery method with parallel processing
                 delivery_tasks = [
                     self._send_via_method(method, notification_data)
                     for method in methods
                 ]
-                
+
                 results = await asyncio.gather(*delivery_tasks, return_exceptions=True)
-                
+
                 # Process delivery results
                 successful_deliveries = []
                 for method, result in zip(methods, results):
@@ -274,39 +286,40 @@ class PawControlNotificationManager:
                         notification_data["delivery_status"][method] = "success"
                     else:
                         notification_data["delivery_status"][method] = "skipped"
-                
+
                 success = len(successful_deliveries) > 0
-                
+
                 if success:
                     # Track notification
                     self._active_notifications[notification_id] = notification_data
                     self._notification_history.append(notification_data)
-                    
+
                     # Update rate limiting
                     if self._config["rate_limiting_enabled"]:
                         rate_key = f"{dog_id}_{notification_type}"
                         self._rate_limits[rate_key] = dt_util.utcnow()
-                    
+
                     # Update metrics
                     self._metrics["notifications_sent"] += 1
-                    
+
                     _LOGGER.info(
                         "Sent %s notification for %s via %s: %s",
                         priority,
                         dog_name,
                         ", ".join(successful_deliveries),
-                        message
+                        message,
                     )
                 else:
                     _LOGGER.warning(
-                        "Failed to send notification for %s via any method",
-                        dog_name
+                        "Failed to send notification for %s via any method", dog_name
                     )
-                
+
                 return success
-                
+
             except Exception as err:
-                _LOGGER.error("Critical error sending notification: %s", err, exc_info=True)
+                _LOGGER.error(
+                    "Critical error sending notification: %s", err, exc_info=True
+                )
                 raise NotificationError(notification_type, str(err)) from err
 
     async def async_send_test_notification(
@@ -316,12 +329,12 @@ class PawControlNotificationManager:
         priority: str = PRIORITY_NORMAL,
     ) -> bool:
         """Send a test notification with comprehensive feature demonstration.
-        
+
         Args:
             dog_id: Dog identifier
             message: Test message
             priority: Notification priority
-            
+
         Returns:
             True if notification was sent
         """
@@ -329,10 +342,10 @@ class PawControlNotificationManager:
             {
                 "action": "test_response",
                 "title": "Test Response",
-                "data": {"dog_id": dog_id, "test": True}
+                "data": {"dog_id": dog_id, "test": True},
             }
         ]
-        
+
         return await self.async_send_notification(
             dog_id,
             NOTIFICATION_SYSTEM,
@@ -347,9 +360,9 @@ class PawControlNotificationManager:
                     "priority_handling",
                     "delivery_methods",
                     "interactive_actions",
-                    "rich_data"
-                ]
-            }
+                    "rich_data",
+                ],
+            },
         )
 
     # Private helper methods
@@ -369,7 +382,7 @@ class PawControlNotificationManager:
         """Start background tasks for cleanup and summaries."""
         # Cleanup task every hour
         self._cleanup_task = asyncio.create_task(self._background_cleanup())
-        
+
         # Summary task if enabled
         if self._config.get("summary_notifications", False):
             self._summary_task = asyncio.create_task(self._background_summary())
@@ -394,13 +407,13 @@ class PawControlNotificationManager:
                 next_summary = now.replace(hour=8, minute=0, second=0, microsecond=0)
                 if next_summary <= now:
                     next_summary += timedelta(days=1)
-                
+
                 wait_seconds = (next_summary - now).total_seconds()
                 await asyncio.sleep(wait_seconds)
-                
+
                 # Send daily summary
                 await self.async_send_summary_notification("daily")
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as err:
@@ -411,113 +424,136 @@ class PawControlNotificationManager:
         async with self._lock:
             try:
                 now = dt_util.utcnow()
-                
+
                 # Clean notification history
                 cutoff = now - timedelta(days=MAX_HISTORY_DAYS)
                 original_count = len(self._notification_history)
                 self._notification_history = [
-                    n for n in self._notification_history
-                    if n["timestamp"] >= cutoff
+                    n for n in self._notification_history if n["timestamp"] >= cutoff
                 ]
-                
+
                 # Limit history size
                 if len(self._notification_history) > MAX_HISTORY_COUNT:
-                    self._notification_history = self._notification_history[-MAX_HISTORY_COUNT:]
-                
+                    self._notification_history = self._notification_history[
+                        -MAX_HISTORY_COUNT:
+                    ]
+
                 # Clean rate limits
                 old_rate_limits = [
-                    key for key, timestamp in self._rate_limits.items()
+                    key
+                    for key, timestamp in self._rate_limits.items()
                     if now - timestamp > timedelta(days=1)
                 ]
                 for key in old_rate_limits:
                     del self._rate_limits[key]
-                
+
                 # Clean suppressed notifications
                 self._suppressed_notifications.clear()
-                
+
                 cleaned_count = original_count - len(self._notification_history)
                 if cleaned_count > 0:
                     _LOGGER.debug("Cleaned up %d old notifications", cleaned_count)
-                
+
             except Exception as err:
                 _LOGGER.error("Error during cleanup: %s", err)
 
-    def _validate_notification_params(self, dog_id: str, notification_type: str, priority: str) -> bool:
+    def _validate_notification_params(
+        self, dog_id: str, notification_type: str, priority: str
+    ) -> bool:
         """Validate notification parameters."""
         if not dog_id or not notification_type:
             _LOGGER.error("Dog ID and notification type are required")
             return False
-        
-        valid_priorities = {PRIORITY_LOW, PRIORITY_NORMAL, PRIORITY_HIGH, PRIORITY_URGENT}
+
+        valid_priorities = {
+            PRIORITY_LOW,
+            PRIORITY_NORMAL,
+            PRIORITY_HIGH,
+            PRIORITY_URGENT,
+        }
         if priority not in valid_priorities:
             _LOGGER.error("Invalid priority: %s", priority)
             return False
-        
+
         return True
 
-    async def _is_notification_enabled(self, dog_id: str, notification_type: str, force: bool) -> bool:
+    async def _is_notification_enabled(
+        self, dog_id: str, notification_type: str, force: bool
+    ) -> bool:
         """Check if notifications are enabled for dog and type."""
         if force:
             return True
-        
+
         # Global enablement
         if not self._config.get("global_enabled", True):
             _LOGGER.debug("Notifications globally disabled")
             return False
-        
+
         # Dog-specific enablement
         dog_settings = self._dog_settings.get(dog_id, {})
         if not dog_settings.get("notifications_enabled", True):
             _LOGGER.debug("Notifications disabled for dog %s", dog_id)
             return False
-        
+
         # Type-specific enablement
         type_key = f"{notification_type}_alerts"
         if not dog_settings.get(type_key, True):
-            _LOGGER.debug("%s notifications disabled for dog %s", notification_type, dog_id)
+            _LOGGER.debug(
+                "%s notifications disabled for dog %s", notification_type, dog_id
+            )
             return False
-        
+
         return True
 
-    async def _should_suppress_notification(self, dog_id: str, notification_type: str, priority: str) -> bool:
+    async def _should_suppress_notification(
+        self, dog_id: str, notification_type: str, priority: str
+    ) -> bool:
         """Check if notification should be suppressed."""
         # Check quiet hours (urgent notifications always go through)
         if priority != PRIORITY_URGENT and self._is_in_quiet_hours():
-            _LOGGER.debug("In quiet hours, suppressing %s priority notification", priority)
+            _LOGGER.debug(
+                "In quiet hours, suppressing %s priority notification", priority
+            )
             return True
-        
+
         # Check rate limiting
-        if self._config.get("rate_limiting_enabled", True) and self._is_rate_limited(dog_id, notification_type, priority):
-            _LOGGER.debug("Rate limited notification for %s_%s", dog_id, notification_type)
+        if self._config.get("rate_limiting_enabled", True) and self._is_rate_limited(
+            dog_id, notification_type, priority
+        ):
+            _LOGGER.debug(
+                "Rate limited notification for %s_%s", dog_id, notification_type
+            )
             self._metrics["rate_limited_count"] += 1
             return True
-        
+
         return False
 
     def _is_in_quiet_hours(self) -> bool:
         """Check if current time is within quiet hours."""
         if not self._config.get("quiet_hours_enabled", False):
             return False
-        
+
         return is_within_quiet_hours(
             dt_util.now(),
             self._config.get("quiet_hours_start", "22:00"),
-            self._config.get("quiet_hours_end", "08:00")
+            self._config.get("quiet_hours_end", "08:00"),
         )
 
-    def _is_rate_limited(self, dog_id: str, notification_type: str, priority: str) -> bool:
+    def _is_rate_limited(
+        self, dog_id: str, notification_type: str, priority: str
+    ) -> bool:
         """Check if notification is rate limited."""
         if priority == PRIORITY_URGENT:
             return False  # Urgent notifications bypass rate limiting
-        
+
         rate_key = f"{dog_id}_{notification_type}"
         if rate_key not in self._rate_limits:
             return False
-        
+
         last_sent = self._rate_limits[rate_key]
         now = dt_util.utcnow()
         interval = RATE_LIMIT_INTERVALS.get(priority, timedelta(hours=1))
-        
+
         return now - last_sent < interval
 
     def _generate_notification_id(self, dog_id: str, notification_type: str) -> str:
@@ -537,10 +573,12 @@ class PawControlNotificationManager:
                         return dog_data["dog_info"].get("dog_name", dog_id)
         except Exception as err:
             _LOGGER.debug("Could not get dog name for %s: %s", dog_id, err)
-        
+
         return dog_id.replace("_", " ").title()
 
-    def _generate_title(self, dog_name: str, notification_type: str, priority: str) -> str:
+    def _generate_title(
+        self, dog_name: str, notification_type: str, priority: str
+    ) -> str:
         """Generate a notification title with emojis and context."""
         priority_prefixes = {
             PRIORITY_URGENT: "🚨 URGENT",
@@ -548,7 +586,7 @@ class PawControlNotificationManager:
             PRIORITY_NORMAL: "🐕",
             PRIORITY_LOW: "ℹ️",
         }
-        
+
         type_names = {
             NOTIFICATION_FEEDING: "Feeding",
             NOTIFICATION_WALK: "Walk",
@@ -559,28 +597,25 @@ class PawControlNotificationManager:
             NOTIFICATION_MEDICATION: "Medication",
             NOTIFICATION_SYSTEM: "Paw Control",
         }
-        
+
         prefix = priority_prefixes.get(priority, "🐕")
         type_name = type_names.get(notification_type, "Alert")
-        
+
         return f"{prefix} {type_name} - {dog_name}"
 
     async def _get_delivery_methods(
-        self,
-        dog_id: str,
-        notification_type: str,
-        priority: str
+        self, dog_id: str, notification_type: str, priority: str
     ) -> list[str]:
         """Get appropriate delivery methods for notification."""
         # Start with configured default methods
         methods = self._config.get("delivery_methods", [DELIVERY_PERSISTENT]).copy()
-        
+
         # Get dog-specific overrides
         dog_settings = self._dog_settings.get(dog_id, {})
         dog_methods = dog_settings.get("delivery_methods")
         if dog_methods:
             methods = dog_methods.copy()
-        
+
         # Priority-based method enhancement
         if priority == PRIORITY_URGENT:
             # Add all available methods for urgent notifications
@@ -592,13 +627,11 @@ class PawControlNotificationManager:
             # Ensure mobile app notification for high priority
             if DELIVERY_MOBILE_APP not in methods:
                 methods.append(DELIVERY_MOBILE_APP)
-        
+
         return methods
 
     async def _send_via_method(
-        self,
-        method: str,
-        notification_data: dict[str, Any]
+        self, method: str, notification_data: dict[str, Any]
     ) -> bool:
         """Send notification via specific delivery method."""
         try:
@@ -609,7 +642,7 @@ class PawControlNotificationManager:
             else:
                 _LOGGER.warning("Unknown delivery method: %s", method)
                 return False
-                
+
         except Exception as err:
             _LOGGER.error("Failed to send via %s: %s", method, err)
             return False
@@ -621,7 +654,7 @@ class PawControlNotificationManager:
                 self.hass,
                 data["message"],
                 title=data["title"],
-                notification_id=data["id"]
+                notification_id=data["id"],
             )
             return True
         except Exception as err:
@@ -633,13 +666,14 @@ class PawControlNotificationManager:
         try:
             # Check for mobile app notification services
             mobile_services = [
-                service for service in self.hass.services.async_services().get("notify", {})
+                service
+                for service in self.hass.services.async_services().get("notify", {})
                 if service.startswith("mobile_app_")
             ]
-            
+
             if not mobile_services:
                 return False
-            
+
             # Prepare notification data with interactive actions
             notification_data = {
                 "title": data["title"],
@@ -648,23 +682,23 @@ class PawControlNotificationManager:
                     "tag": f"pawcontrol_{data['dog_id']}_{data['type']}",
                     "group": "pawcontrol",
                     "channel": "Paw Control",
-                    "importance": "high" if data["priority"] in [PRIORITY_HIGH, PRIORITY_URGENT] else "normal",
+                    "importance": "high"
+                    if data["priority"] in [PRIORITY_HIGH, PRIORITY_URGENT]
+                    else "normal",
                     "notification_icon": "mdi:dog",
                     "actions": data.get("actions", []),
                     **data["data"],
-                }
+                },
             }
-            
+
             # Send to all mobile app services
             for service in mobile_services:
                 await self.hass.services.async_call(
-                    "notify",
-                    service,
-                    notification_data
+                    "notify", service, notification_data
                 )
-            
+
             return True
-            
+
         except Exception as err:
             _LOGGER.error("Failed to send mobile app notification: %s", err)
             return False
@@ -673,17 +707,17 @@ class PawControlNotificationManager:
         """Internal method to dismiss notification."""
         if notification_id not in self._active_notifications:
             return False
-        
+
         try:
             # Remove from persistent notifications
             persistent_notification.async_dismiss(self.hass, notification_id)
-            
+
             # Remove from active notifications
             del self._active_notifications[notification_id]
-            
+
             _LOGGER.debug("Dismissed notification %s", notification_id)
             return True
-            
+
         except Exception as err:
             _LOGGER.error("Failed to dismiss notification %s: %s", notification_id, err)
             return False
