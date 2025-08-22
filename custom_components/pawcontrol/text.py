@@ -1,4 +1,5 @@
 """Text platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import logging
@@ -35,47 +36,57 @@ async def async_setup_entry(
     """Set up Paw Control text platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     dogs = entry.data.get(CONF_DOGS, [])
-    
+
     entities = []
-    
+
     for dog in dogs:
         dog_id = dog[CONF_DOG_ID]
         dog_name = dog[CONF_DOG_NAME]
         modules = dog.get("modules", {})
-        
+
         # Basic dog configuration texts
-        entities.extend([
-            PawControlDogNotesText(coordinator, dog_id, dog_name),
-            PawControlCustomLabelText(coordinator, dog_id, dog_name),
-        ])
-        
+        entities.extend(
+            [
+                PawControlDogNotesText(coordinator, dog_id, dog_name),
+                PawControlCustomLabelText(coordinator, dog_id, dog_name),
+            ]
+        )
+
         # Walk texts
         if modules.get(MODULE_WALK, False):
-            entities.extend([
-                PawControlWalkNotesText(coordinator, dog_id, dog_name),
-                PawControlCurrentWalkLabelText(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    PawControlWalkNotesText(coordinator, dog_id, dog_name),
+                    PawControlCurrentWalkLabelText(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Health texts
         if modules.get(MODULE_HEALTH, False):
-            entities.extend([
-                PawControlHealthNotesText(coordinator, dog_id, dog_name),
-                PawControlMedicationNotesText(coordinator, dog_id, dog_name),
-                PawControlVetNotesText(coordinator, dog_id, dog_name),
-                PawControlGroomingNotesText(coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    PawControlHealthNotesText(coordinator, dog_id, dog_name),
+                    PawControlMedicationNotesText(coordinator, dog_id, dog_name),
+                    PawControlVetNotesText(coordinator, dog_id, dog_name),
+                    PawControlGroomingNotesText(coordinator, dog_id, dog_name),
+                ]
+            )
+
         # Notification texts
         if modules.get(MODULE_NOTIFICATIONS, False):
-            entities.extend([
-                PawControlCustomMessageText(coordinator, dog_id, dog_name),
-                PawControlEmergencyContactText(coordinator, dog_id, dog_name),
-            ])
-    
+            entities.extend(
+                [
+                    PawControlCustomMessageText(coordinator, dog_id, dog_name),
+                    PawControlEmergencyContactText(coordinator, dog_id, dog_name),
+                ]
+            )
+
     async_add_entities(entities)
 
 
-class PawControlTextBase(CoordinatorEntity[PawControlCoordinator], TextEntity, RestoreEntity):
+class PawControlTextBase(
+    CoordinatorEntity[PawControlCoordinator], TextEntity, RestoreEntity
+):
     """Base class for Paw Control text entities."""
 
     def __init__(
@@ -93,12 +104,12 @@ class PawControlTextBase(CoordinatorEntity[PawControlCoordinator], TextEntity, R
         self._dog_name = dog_name
         self._text_type = text_type
         self._current_value: str = ""
-        
+
         self._attr_unique_id = f"pawcontrol_{dog_id}_{text_type}"
         self._attr_name = f"{dog_name} {text_type.replace('_', ' ').title()}"
         self._attr_native_max = max_length
         self._attr_mode = mode
-        
+
         # Device info
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
@@ -126,7 +137,7 @@ class PawControlTextBase(CoordinatorEntity[PawControlCoordinator], TextEntity, R
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
-        
+
         # Restore previous value
         if (last_state := await self.async_get_last_state()) is not None:
             if last_state.state not in ("unknown", "unavailable"):
@@ -135,32 +146,31 @@ class PawControlTextBase(CoordinatorEntity[PawControlCoordinator], TextEntity, R
     async def async_set_value(self, value: str) -> None:
         """Set new value."""
         if len(value) > self.native_max:
-            value = value[:self.native_max]
-        
+            value = value[: self.native_max]
+
         self._current_value = value
         self.async_write_ha_state()
-        _LOGGER.debug("Set %s for %s to: %s", self._text_type, self._dog_name, value[:50])
+        _LOGGER.debug(
+            "Set %s for %s to: %s", self._text_type, self._dog_name, value[:50]
+        )
 
 
 class PawControlDogNotesText(PawControlTextBase):
     """Text entity for general dog notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "notes", 
-            max_length=1000,
-            mode=TextMode.TEXT
+            coordinator, dog_id, dog_name, "notes", max_length=1000, mode=TextMode.TEXT
         )
         self._attr_icon = "mdi:note-text"
 
     async def async_set_value(self, value: str) -> None:
         """Set new notes value."""
         await super().async_set_value(value)
-        
+
         # Log notes update as health data if meaningful content
         if len(value.strip()) > 10:
             await self.hass.services.async_call(
@@ -176,7 +186,9 @@ class PawControlDogNotesText(PawControlTextBase):
 class PawControlCustomLabelText(PawControlTextBase):
     """Text entity for custom dog label."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, "custom_label", max_length=50)
         self._attr_icon = "mdi:label"
@@ -185,22 +197,24 @@ class PawControlCustomLabelText(PawControlTextBase):
 class PawControlWalkNotesText(PawControlTextBase):
     """Text entity for walk notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "walk_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "walk_notes",
             max_length=500,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:walk"
 
     async def async_set_value(self, value: str) -> None:
         """Set new walk notes."""
         await super().async_set_value(value)
-        
+
         # Add notes to current walk if one is active
         dog_data = self.coordinator.get_dog_data(self._dog_id)
         if dog_data and dog_data.get("walk", {}).get("walk_in_progress", False):
@@ -210,9 +224,13 @@ class PawControlWalkNotesText(PawControlTextBase):
 class PawControlCurrentWalkLabelText(PawControlTextBase):
     """Text entity for current walk label."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator, dog_id, dog_name, "current_walk_label", max_length=100)
+        super().__init__(
+            coordinator, dog_id, dog_name, "current_walk_label", max_length=100
+        )
         self._attr_icon = "mdi:tag"
 
     @property
@@ -221,7 +239,7 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
         dog_data = self.coordinator.get_dog_data(self._dog_id)
         if not dog_data:
             return False
-        
+
         # Only available when walk is in progress
         return dog_data.get("walk", {}).get("walk_in_progress", False)
 
@@ -229,22 +247,24 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
 class PawControlHealthNotesText(PawControlTextBase):
     """Text entity for health notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "health_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_notes",
             max_length=1000,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:heart-pulse"
 
     async def async_set_value(self, value: str) -> None:
         """Set new health notes."""
         await super().async_set_value(value)
-        
+
         # Log health notes
         if value.strip():
             await self.hass.services.async_call(
@@ -260,22 +280,24 @@ class PawControlHealthNotesText(PawControlTextBase):
 class PawControlMedicationNotesText(PawControlTextBase):
     """Text entity for medication notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "medication_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "medication_notes",
             max_length=500,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:pill"
 
     async def async_set_value(self, value: str) -> None:
         """Set new medication notes."""
         await super().async_set_value(value)
-        
+
         # Log medication if notes contain meaningful information
         if value.strip() and len(value.strip()) > 5:
             await self.hass.services.async_call(
@@ -292,22 +314,24 @@ class PawControlMedicationNotesText(PawControlTextBase):
 class PawControlVetNotesText(PawControlTextBase):
     """Text entity for veterinary notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "vet_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "vet_notes",
             max_length=1000,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:medical-bag"
 
     async def async_set_value(self, value: str) -> None:
         """Set new vet notes."""
         await super().async_set_value(value)
-        
+
         # Log as health data with vet context
         if value.strip():
             await self.hass.services.async_call(
@@ -323,22 +347,24 @@ class PawControlVetNotesText(PawControlTextBase):
 class PawControlGroomingNotesText(PawControlTextBase):
     """Text entity for grooming notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "grooming_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "grooming_notes",
             max_length=500,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:content-cut"
 
     async def async_set_value(self, value: str) -> None:
         """Set new grooming notes."""
         await super().async_set_value(value)
-        
+
         # Start grooming session if notes are added
         if value.strip() and len(value.strip()) > 10:
             await self.hass.services.async_call(
@@ -355,22 +381,24 @@ class PawControlGroomingNotesText(PawControlTextBase):
 class PawControlCustomMessageText(PawControlTextBase):
     """Text entity for custom notification message."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "custom_message", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "custom_message",
             max_length=300,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:message-text"
 
     async def async_set_value(self, value: str) -> None:
         """Set new custom message and send notification."""
         await super().async_set_value(value)
-        
+
         # Send custom message as notification if not empty
         if value.strip():
             await self.hass.services.async_call(
@@ -386,15 +414,17 @@ class PawControlCustomMessageText(PawControlTextBase):
 class PawControlEmergencyContactText(PawControlTextBase):
     """Text entity for emergency contact information."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "emergency_contact", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "emergency_contact",
             max_length=200,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:phone-alert"
 
@@ -402,7 +432,9 @@ class PawControlEmergencyContactText(PawControlTextBase):
 class PawControlMicrochipText(PawControlTextBase):
     """Text entity for microchip number."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, "microchip", max_length=20)
         self._attr_icon = "mdi:chip"
@@ -412,15 +444,17 @@ class PawControlMicrochipText(PawControlTextBase):
 class PawControlBreederInfoText(PawControlTextBase):
     """Text entity for breeder information."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "breeder_info", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "breeder_info",
             max_length=300,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:account-group"
 
@@ -428,7 +462,9 @@ class PawControlBreederInfoText(PawControlTextBase):
 class PawControlRegistrationText(PawControlTextBase):
     """Text entity for registration information."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, "registration", max_length=100)
         self._attr_icon = "mdi:certificate"
@@ -437,15 +473,17 @@ class PawControlRegistrationText(PawControlTextBase):
 class PawControlInsuranceText(PawControlTextBase):
     """Text entity for insurance information."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "insurance_info", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "insurance_info",
             max_length=300,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:shield-account"
 
@@ -453,22 +491,24 @@ class PawControlInsuranceText(PawControlTextBase):
 class PawControlAllergiesText(PawControlTextBase):
     """Text entity for allergies and restrictions."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "allergies", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "allergies",
             max_length=500,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:alert-circle"
 
     async def async_set_value(self, value: str) -> None:
         """Set new allergies information."""
         await super().async_set_value(value)
-        
+
         # Log allergies as important health data
         if value.strip():
             await self.hass.services.async_call(
@@ -484,15 +524,17 @@ class PawControlAllergiesText(PawControlTextBase):
 class PawControlTrainingNotesText(PawControlTextBase):
     """Text entity for training notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "training_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "training_notes",
             max_length=1000,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:school"
 
@@ -500,22 +542,24 @@ class PawControlTrainingNotesText(PawControlTextBase):
 class PawControlBehaviorNotesText(PawControlTextBase):
     """Text entity for behavior notes."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "behavior_notes", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "behavior_notes",
             max_length=1000,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:emoticon-happy"
 
     async def async_set_value(self, value: str) -> None:
         """Set new behavior notes."""
         await super().async_set_value(value)
-        
+
         # Log behavior changes as health data
         if value.strip() and len(value.strip()) > 10:
             await self.hass.services.async_call(
@@ -531,15 +575,17 @@ class PawControlBehaviorNotesText(PawControlTextBase):
 class PawControlLocationDescriptionText(PawControlTextBase):
     """Text entity for custom location description."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, 
-            dog_id, 
-            dog_name, 
-            "location_description", 
+            coordinator,
+            dog_id,
+            dog_name,
+            "location_description",
             max_length=200,
-            mode=TextMode.TEXT
+            mode=TextMode.TEXT,
         )
         self._attr_icon = "mdi:map-marker-outline"
 
@@ -549,11 +595,11 @@ class PawControlLocationDescriptionText(PawControlTextBase):
         dog_data = self.coordinator.get_dog_data(self._dog_id)
         if not dog_data:
             return False
-        
+
         # Available when GPS module is enabled
         dog_info = self.coordinator.get_dog_info(self._dog_id)
         if not dog_info:
             return False
-        
+
         modules = dog_info.get("modules", {})
         return modules.get("gps", False)

@@ -26,7 +26,7 @@
         "description": "Choose which monitoring modules to enable for {dog_name}. You can change these settings later.",
         "data": {
           "module_feeding": "Feeding Tracking",
-          "module_walk": "Walk Monitoring", 
+          "module_walk": "Walk Monitoring",
           "module_gps": "GPS Location Tracking",
           "module_health": "Health Monitoring",
           "module_notifications": "Smart Notifications"
@@ -44,7 +44,7 @@
         }
       },
       "feeding_setup": {
-        "title": "Feeding Configuration", 
+        "title": "Feeding Configuration",
         "description": "Set up feeding tracking and reminders for {dog_name}. Configure meal schedules, portion sizes, and dietary preferences.",
         "data": {
           "daily_food_amount": "Daily Food Amount (grams)",
@@ -72,7 +72,7 @@
           "enable_notifications": "Enable Notifications",
           "notification_priority": "Default Priority",
           "feeding_alerts": "Feeding Reminders",
-          "walk_alerts": "Walk Reminders", 
+          "walk_alerts": "Walk Reminders",
           "health_alerts": "Health Alerts",
           "gps_alerts": "Location Alerts",
           "quiet_hours_start": "Quiet Hours Start",
@@ -96,7 +96,7 @@
       "cannot_connect": "Failed to connect to Paw Control service",
       "invalid_dog_id": "Dog ID must be unique and contain only letters, numbers, and underscores",
       "invalid_weight": "Weight must be between {min_weight} and {max_weight} kg",
-      "invalid_age": "Age must be between {min_age} and {max_age} years", 
+      "invalid_age": "Age must be between {min_age} and {max_age} years",
       "invalid_coordinates": "Invalid GPS coordinates provided",
       "duplicate_dog": "A dog with this ID already exists",
       "no_dogs_configured": "At least one dog must be configured",
@@ -115,7 +115,7 @@
         "description": "Modify integration settings and dog configurations",
         "menu_options": {
           "general": "General Settings",
-          "dogs": "Dog Management", 
+          "dogs": "Dog Management",
           "notifications": "Notification Settings",
           "data": "Data Management",
           "advanced": "Advanced Options"
@@ -144,7 +144,7 @@
         "data": {
           "dog_name": "Dog Name",
           "dog_id": "Dog ID",
-          "dog_breed": "Breed", 
+          "dog_breed": "Breed",
           "dog_age": "Age (years)",
           "dog_weight": "Weight (kg)",
           "dog_size": "Size Category"
@@ -156,7 +156,7 @@
         "data": {
           "dog_name": "Dog Name",
           "dog_breed": "Breed",
-          "dog_age": "Age (years)", 
+          "dog_age": "Age (years)",
           "dog_weight": "Weight (kg)",
           "dog_size": "Size Category"
         }
@@ -167,7 +167,7 @@
         "data": {
           "module_feeding": "Feeding Tracking",
           "module_walk": "Walk Monitoring",
-          "module_gps": "GPS Location Tracking", 
+          "module_gps": "GPS Location Tracking",
           "module_health": "Health Monitoring",
           "module_notifications": "Smart Notifications"
         }
@@ -185,7 +185,7 @@
       },
       "data": {
         "title": "Data Management",
-        "description": "Manage data storage, export, and cleanup options", 
+        "description": "Manage data storage, export, and cleanup options",
         "data": {
           "data_retention_days": "Data Retention (days)",
           "auto_cleanup": "Enable Automatic Cleanup",
@@ -568,7 +568,7 @@
         "name": "Size",
         "state": {
           "toy": "Toy",
-          "small": "Small", 
+          "small": "Small",
           "medium": "Medium",
           "large": "Large",
           "giant": "Giant"
@@ -744,7 +744,7 @@
       "description": "Log feeding for a specific dog"
     },
     "start_walk": {
-      "name": "Start Walk", 
+      "name": "Start Walk",
       "description": "Begin tracking a walk for a specific dog"
     },
     "end_walk": {

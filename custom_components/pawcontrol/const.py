@@ -1,4 +1,5 @@
 """Constants for the Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Final
@@ -92,29 +93,18 @@ DEFAULT_DATA_RETENTION_DAYS: Final = 90
 DEFAULT_GROOMING_INTERVAL: Final = 28  # days
 
 # Feeding types
-FOOD_TYPES: Final = [
-    "dry_food",
-    "wet_food",
-    "barf",
-    "home_cooked",
-    "mixed"
-]
+FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
 
 # Meal types
-MEAL_TYPES: Final = [
-    "breakfast",
-    "lunch", 
-    "dinner",
-    "snack"
-]
+MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
 
 # Dog sizes
 DOG_SIZES: Final = [
-    "toy",      # 1-6kg
-    "small",    # 6-12kg
-    "medium",   # 12-27kg
-    "large",    # 27-45kg
-    "giant"     # 45-90kg
+    "toy",  # 1-6kg
+    "small",  # 6-12kg
+    "medium",  # 12-27kg
+    "large",  # 27-45kg
+    "giant",  # 45-90kg
 ]
 
 # GPS sources
@@ -125,51 +115,30 @@ GPS_SOURCES: Final = [
     "smartphone",
     "tractive",
     "webhook",
-    "mqtt"
+    "mqtt",
 ]
 
 # Health status options
 HEALTH_STATUS_OPTIONS: Final = [
     "excellent",
-    "very_good", 
+    "very_good",
     "good",
     "normal",
     "unwell",
-    "sick"
+    "sick",
 ]
 
 # Mood options
-MOOD_OPTIONS: Final = [
-    "happy",
-    "neutral",
-    "sad",
-    "angry",
-    "anxious",
-    "tired"
-]
+MOOD_OPTIONS: Final = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
 
 # Activity levels
-ACTIVITY_LEVELS: Final = [
-    "very_low",
-    "low",
-    "normal", 
-    "high",
-    "very_high"
-]
+ACTIVITY_LEVELS: Final = ["very_low", "low", "normal", "high", "very_high"]
 
 # Dashboard modes
-DASHBOARD_MODES: Final = [
-    "full",
-    "cards",
-    "minimal"
-]
+DASHBOARD_MODES: Final = ["full", "cards", "minimal"]
 
 # Performance modes
-PERFORMANCE_MODES: Final = [
-    "minimal",
-    "balanced",
-    "full"
-]
+PERFORMANCE_MODES: Final = ["minimal", "balanced", "full"]
 
 # Service names
 SERVICE_FEED_DOG: Final = "feed_dog"
@@ -220,26 +189,17 @@ SECONDS_IN_DAY: Final = 86400
 MINUTES_IN_HOUR: Final = 60
 
 # Geofence types
-GEOFENCE_TYPES: Final = [
-    "safe_zone",
-    "restricted_area", 
-    "point_of_interest"
-]
+GEOFENCE_TYPES: Final = ["safe_zone", "restricted_area", "point_of_interest"]
 
 # Notification channels
-NOTIFICATION_CHANNELS: Final = [
-    "mobile",
-    "persistent", 
-    "email",
-    "slack"
-]
+NOTIFICATION_CHANNELS: Final = ["mobile", "persistent", "email", "slack"]
 
 # Update intervals (seconds)
 UPDATE_INTERVALS: Final = {
-    "minimal": 300,    # 5 minutes
-    "balanced": 120,   # 2 minutes
-    "frequent": 60,    # 1 minute
-    "real_time": 30    # 30 seconds
+    "minimal": 300,  # 5 minutes
+    "balanced": 120,  # 2 minutes
+    "frequent": 60,  # 1 minute
+    "real_time": 30,  # 30 seconds
 }
 
 # Data file names

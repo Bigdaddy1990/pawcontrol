@@ -63,7 +63,7 @@
 - **Manuelle Erfassung**
 - **Rückfrage-System**: Automatische Bestätigung via Push-Benachrichtigung
 - **Aktivitäts-Counter**
-- **Zeitstempel-Tracking** für Aktivitäten 
+- **Zeitstempel-Tracking** für Aktivitäten
 - **Dauer-Messung** Aufenthaltszeit im Garten
 
 ### 💩 Geschäfte & Gesundheits-Tracking
@@ -192,7 +192,7 @@
 - **Erweiterbares System**
 
 ### 🧠 Erweiterte Konfiguration
-- **Umfassender Config Flow**: 
+- **Umfassender Config Flow**:
   - Individuelle Namensvergabe pro pawcontrol
   - Multi-Device Push-Gerät-Auswahl
   - Türsensor-Integration
@@ -241,7 +241,7 @@
 
 ## 2) Globale Abhängigkeiten & `manifest.json`
 
-**Abhängigkeiten (optional, weich)**: `mobile_app`, `person`, `zone`, `calendar`  
+**Abhängigkeiten (optional, weich)**: `mobile_app`, `person`, `zone`, `calendar`
 **After-Dependencies**: `http`, `cloud` (falls benötigt für mobile actions)
 
 **Beispiel `manifest.json`:**
@@ -274,7 +274,7 @@
 
 **Option Keys (Beispiele)**:
 ```yaml
-dogs: 
+dogs:
   - dog_id: "rex"
     name: "Rex"
     modules:
@@ -489,8 +489,8 @@ mode: restart
 
 ## 8) GitHub Actions & HACS
 
-**`.github/workflows/validate.yml`**: hassfest, ruff/flake8, pytest  
-**`.github/workflows/release.yml`**: Tag → Release (Zip)  
+**`.github/workflows/validate.yml`**: hassfest, ruff/flake8, pytest
+**`.github/workflows/release.yml`**: Tag → Release (Zip)
 **`hacs.json`** (Repo-Wurzel):
 ```json
 { "name": "pawcontrol", "render_readme": true }
@@ -560,13 +560,13 @@ mode: restart
 ### Fütterungszeiten
 - **Frühstück aktivieren** *(Boolean, Standard: true)*
   - **Frühstückszeit** *(Zeit, Standard: 09:00)*
-  
+
 - **Mittagessen aktivieren** *(Boolean, Standard: false)*
   - **Mittagszeit** *(Zeit, Standard: 13:00)*
-  
+
 - **Abendessen aktivieren** *(Boolean, Standard: true)*
   - **Abendzeit** *(Zeit, Standard: 17:00)*
-  
+
 - **Snacks aktivieren** *(Boolean, Standard: false)*
   - **Snack-Zeiten** *(Mehrfach-Auswahl)*
 
@@ -574,7 +574,7 @@ mode: restart
 - **Tägliche Futtermenge** *(Optional)*
   - Bereich: 50-2000g
   - Standard: Auto-Berechnung basierend auf Gewicht (2.5% Körpergewicht)
-  
+
 - **Anzahl Mahlzeiten pro Tag** *(Optional)*
   - Bereich: 1-5
   - Standard: 2
@@ -601,7 +601,7 @@ mode: restart
 ### Gesundheits-Parameter
 
 
-### Notfall-Erkennung  
+### Notfall-Erkennung
 - **Automatische Notfall-Erkennung** *(Boolean, Standard: false)*
 
 ### Medikations-Management
@@ -793,7 +793,7 @@ mode: restart
 - **Device Tracker Entity** *(Required bei Device Tracker)*
   - Entity-Auswahl aus vorhandenen device_tracker
 
-#### Person Entity Konfiguration  
+#### Person Entity Konfiguration
 - **Person Entity** *(Required bei Person Entity)*
   - Entity-Auswahl aus vorhandenen Person-Entities
 
@@ -819,7 +819,7 @@ mode: restart
 - **Heimkoordinaten** *(Optional)*
   - Auto-Detection bei erstem GPS-Update
   - Manuelle Eingabe: Latitude, Longitude
-  
+
 - **Heimbereich-Radius** *(Meter)*
   - Bereich: 10-1000m
   - Standard: 50m
@@ -839,15 +839,15 @@ mode: restart
 - **Bewegungs-Schwelle** *(Meter)*
   - Bereich: 1-50m
   - Standard: 3m
-  
+
 - **Stillstands-Zeit** *(Sekunden)*
   - Bereich: 60-1800 Sekunden
   - Standard: 300 Sekunden
-  
+
 - **Walk-Detection-Distanz** *(Meter)*
-  - Bereich: 5-200m  
+  - Bereich: 5-200m
   - Standard: 10m
-  
+
 - **Minimale Walk-Dauer** *(Minuten)*
   - Bereich: 1-60 Minuten
   - Standard: 5 Minuten
@@ -862,7 +862,7 @@ mode: restart
 - **Route-Punkte-Limit** *(Number)*
   - Bereich: 10-1000
   - Standard: 100
-  
+
 - **GPS-Punkt-Speicher-Intervall** *(Sekunden)*
   - Bereich: 5-300
   - Standard: 30
@@ -871,7 +871,7 @@ mode: restart
 - **Kalorien-Berechnung aktivieren** *(Boolean, Standard: true)*
 - **Aktivitäts-Intensitäts-Multiplikatoren** *(Advanced)*
   - Langsam: 0.7 (Standard)
-  - Normal: 1.0 (Standard) 
+  - Normal: 1.0 (Standard)
   - Schnell: 1.4 (Standard)
 
 ---
@@ -973,7 +973,7 @@ mode: restart
 - **Export-Funktionen aktivieren** *(Boolean, Standard: false)*
 - **Export-Formate** *(Multi-Select)*
   - CSV
-  - JSON  
+  - JSON
   - PDF-Reports
   - GPX (für GPS-Routen)
 
@@ -1041,7 +1041,7 @@ mode: restart
 
 ### MODULARE OPTIONAL-KONFIGURATION
 1. **Hundedaten-Erweiterung** (9 Parameter)
-2. **Fütterungssystem** (15 Parameter)  
+2. **Fütterungssystem** (15 Parameter)
 3. **GPS-Tracking-System** (35+ Parameter)
 4. **Gesundheitsüberwachung** (18 Parameter)
 5. **Benachrichtigungssystem** (25 Parameter)
@@ -1060,7 +1060,7 @@ mode: restart
 
 ### SETUP-FLOW-EMPFEHLUNG
 1. **Quick Setup** (5 Min): Nur Grunddaten + GPS-Quelle
-2. **Standard Setup** (15 Min): + Fütterung + Benachrichtigungen 
+2. **Standard Setup** (15 Min): + Fütterung + Benachrichtigungen
 3. **Advanced Setup** (30 Min): + Gesundheit + Automatisierung
 4. **Expert Setup** (60+ Min): Vollständige Konfiguration aller Module
 

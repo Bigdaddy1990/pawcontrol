@@ -47,7 +47,7 @@ pawcontrol_multi:
         gps: true
         health: true
         notifications: true
-      
+
     # Small indoor dog with limited GPS needs
     - dog_id: "bella"
       dog_name: "Bella"
@@ -61,7 +61,7 @@ pawcontrol_multi:
         gps: false  # Indoor dog, no GPS needed
         health: true
         notifications: true
-    
+
     # Senior dog with enhanced health monitoring
     - dog_id: "max"
       dog_name: "Max"
@@ -85,7 +85,7 @@ pawcontrol_advanced:
   update_interval: 60
   performance_mode: "full"
   data_retention_days: 365
-  
+
   dogs:
     - dog_id: "buddy"
       dog_name: "Buddy"
@@ -93,14 +93,14 @@ pawcontrol_advanced:
       dog_age: 5
       dog_weight: 30.5
       dog_size: "large"
-      
+
       modules:
         feeding: true
         walk: true
         gps: true
         health: true
         notifications: true
-      
+
       # Feeding configuration
       feeding_config:
         daily_food_amount: 400  # grams
@@ -109,7 +109,7 @@ pawcontrol_advanced:
         feeding_schedule: "strict"
         reminder_hours: 8
         calorie_target: 1200
-      
+
       # Walk configuration
       walk_config:
         daily_walk_target: 3
@@ -118,7 +118,7 @@ pawcontrol_advanced:
         walk_mode: "automatic"
         reminder_hours: 6
         weather_preference: "no_rain"
-      
+
       # GPS configuration
       gps_config:
         gps_source: "device_tracker"
@@ -127,7 +127,7 @@ pawcontrol_advanced:
         accuracy_threshold: 50  # meters
         geofence_radius: 100  # meters
         battery_threshold: 20  # percent
-      
+
       # Health configuration
       health_config:
         target_weight: 30.0
@@ -135,7 +135,7 @@ pawcontrol_advanced:
         vet_checkup_interval: 12  # months
         grooming_interval: 28  # days
         activity_tracking: true
-      
+
       # Notification configuration
       notification_config:
         notifications_enabled: true
@@ -299,7 +299,7 @@ views:
               service: button.press
               target:
                 entity_id: button.buddy_mark_fed
-          
+
           - type: button
             entity: button.buddy_start_walk
             name: "Walk"
@@ -309,7 +309,7 @@ views:
               service: button.press
               target:
                 entity_id: button.buddy_start_walk
-          
+
           - type: button
             entity: button.buddy_log_weight
             name: "Weigh"
@@ -519,7 +519,7 @@ script:
           entity_id: input_select.activity_type
         data:
           option: "{{ activity_type }}"
-      
+
       - choose:
           - conditions:
               - condition: template
@@ -530,7 +530,7 @@ script:
                   dog_id: "buddy"
                   meal_type: "{{ meal_type | default('snack') }}"
                   portion_size: "{{ portion_size | default(100) }}"
-          
+
           - conditions:
               - condition: template
                 value_template: "{{ activity_type == 'walk' }}"

@@ -4,6 +4,7 @@ This module provides comprehensive type definitions for all Paw Control
 components, ensuring type safety and better IDE support across the integration.
 Designed for Home Assistant 2025.8.2+ with Platinum quality standards.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ ConfigData = Dict[str, Any]
 
 class DogConfigData(TypedDict, total=False):
     """Type definition for dog configuration data."""
+
     dog_id: str
     dog_name: str
     dog_breed: Optional[str]
@@ -38,6 +40,7 @@ class DogConfigData(TypedDict, total=False):
 
 class ModuleConfigData(TypedDict, total=False):
     """Type definition for module configuration data."""
+
     gps: bool
     feeding: bool
     health: bool
@@ -49,6 +52,7 @@ class ModuleConfigData(TypedDict, total=False):
 
 class SourceConfigData(TypedDict, total=False):
     """Type definition for source entity configuration."""
+
     door_sensor: Optional[str]
     person_entities: List[str]
     device_trackers: List[str]
@@ -59,6 +63,7 @@ class SourceConfigData(TypedDict, total=False):
 
 class GPSConfigData(TypedDict, total=False):
     """Type definition for GPS configuration data."""
+
     gps_source: str
     gps_update_interval: int
     gps_accuracy_filter: int
@@ -71,6 +76,7 @@ class GPSConfigData(TypedDict, total=False):
 
 class NotificationConfigData(TypedDict, total=False):
     """Type definition for notification configuration."""
+
     quiet_hours: bool
     quiet_start: str
     quiet_end: str
@@ -83,6 +89,7 @@ class NotificationConfigData(TypedDict, total=False):
 
 class FeedingConfigData(TypedDict, total=False):
     """Type definition for feeding configuration."""
+
     feeding_times: List[str]
     breakfast_time: Optional[str]
     lunch_time: Optional[str]
@@ -95,6 +102,7 @@ class FeedingConfigData(TypedDict, total=False):
 
 class HealthConfigData(TypedDict, total=False):
     """Type definition for health tracking configuration."""
+
     health_tracking: bool
     weight_tracking: bool
     medication_reminders: bool
@@ -104,6 +112,7 @@ class HealthConfigData(TypedDict, total=False):
 
 class SystemConfigData(TypedDict, total=False):
     """Type definition for system configuration."""
+
     reset_time: str
     dashboard_mode: str
     data_retention_days: int
@@ -113,6 +122,7 @@ class SystemConfigData(TypedDict, total=False):
 
 class PawControlConfigData(TypedDict, total=False):
     """Complete configuration data structure."""
+
     dogs: List[DogConfigData]
     modules: ModuleConfigData
     sources: SourceConfigData
@@ -126,6 +136,7 @@ class PawControlConfigData(TypedDict, total=False):
 @dataclass
 class FeedingData:
     """Data structure for feeding information."""
+
     meal_type: str
     portion_size: float
     food_type: str
@@ -138,6 +149,7 @@ class FeedingData:
 @dataclass
 class WalkData:
     """Data structure for walk information."""
+
     start_time: datetime
     end_time: Optional[datetime] = None
     duration: Optional[int] = None  # seconds
@@ -154,6 +166,7 @@ class WalkData:
 @dataclass
 class HealthData:
     """Data structure for health information."""
+
     timestamp: datetime
     weight: Optional[float] = None
     temperature: Optional[float] = None
@@ -169,6 +182,7 @@ class HealthData:
 @dataclass
 class GPSLocation:
     """Data structure for GPS location information."""
+
     latitude: float
     longitude: float
     accuracy: Optional[float] = None
@@ -180,6 +194,7 @@ class GPSLocation:
 @dataclass
 class GeofenceZone:
     """Data structure for geofence zone definition."""
+
     name: str
     latitude: float
     longitude: float
@@ -192,6 +207,7 @@ class GeofenceZone:
 @dataclass
 class NotificationData:
     """Data structure for notification information."""
+
     title: str
     message: str
     priority: str = "normal"
@@ -204,6 +220,7 @@ class NotificationData:
 @dataclass
 class DailyStats:
     """Data structure for daily statistics."""
+
     date: datetime
     feedings_count: int = 0
     total_food_amount: float = 0.0
@@ -218,6 +235,7 @@ class DailyStats:
 @dataclass
 class DogProfile:
     """Complete dog profile data structure."""
+
     dog_id: str
     dog_name: str
     config: DogConfigData
@@ -229,15 +247,19 @@ class DogProfile:
 
 class PawControlRuntimeData(TypedDict):
     """Runtime data structure for the integration."""
+
     coordinator: DataUpdateCoordinator[Dict[str, Any]]
     data_manager: Any  # PawControlDataManager - avoiding circular import
-    notification_manager: Any  # PawControlNotificationManager - avoiding circular import
+    notification_manager: (
+        Any  # PawControlNotificationManager - avoiding circular import
+    )
     config_entry: ConfigEntry
     dogs: List[DogConfigData]
 
 
 class EntityStateData(TypedDict, total=False):
     """Type definition for entity state data."""
+
     state: Union[str, int, float, bool, None]
     attributes: Dict[str, Any]
     last_updated: datetime
@@ -246,6 +268,7 @@ class EntityStateData(TypedDict, total=False):
 
 class ServiceCallData(TypedDict, total=False):
     """Type definition for service call data."""
+
     domain: str
     service: str
     service_data: ServiceData
@@ -256,6 +279,7 @@ class ServiceCallData(TypedDict, total=False):
 
 class DiagnosticsData(TypedDict):
     """Type definition for diagnostics data."""
+
     config_entry: Dict[str, Any]
     dogs: List[Dict[str, Any]]
     entities: List[Dict[str, Any]]
@@ -267,6 +291,7 @@ class DiagnosticsData(TypedDict):
 
 class RepairIssueData(TypedDict):
     """Type definition for repair issue data."""
+
     issue_id: str
     translation_key: str
     severity: str
@@ -278,38 +303,38 @@ class RepairIssueData(TypedDict):
 def is_dog_config_valid(config: Any) -> bool:
     """Type guard to validate dog configuration."""
     return (
-        isinstance(config, dict) and
-        "dog_id" in config and
-        "dog_name" in config and
-        isinstance(config["dog_id"], str) and
-        isinstance(config["dog_name"], str) and
-        len(config["dog_id"]) > 0 and
-        len(config["dog_name"]) > 0
+        isinstance(config, dict)
+        and "dog_id" in config
+        and "dog_name" in config
+        and isinstance(config["dog_id"], str)
+        and isinstance(config["dog_name"], str)
+        and len(config["dog_id"]) > 0
+        and len(config["dog_name"]) > 0
     )
 
 
 def is_gps_location_valid(location: Any) -> bool:
     """Type guard to validate GPS location data."""
     return (
-        isinstance(location, dict) and
-        "latitude" in location and
-        "longitude" in location and
-        isinstance(location["latitude"], (int, float)) and
-        isinstance(location["longitude"], (int, float)) and
-        -90 <= location["latitude"] <= 90 and
-        -180 <= location["longitude"] <= 180
+        isinstance(location, dict)
+        and "latitude" in location
+        and "longitude" in location
+        and isinstance(location["latitude"], (int, float))
+        and isinstance(location["longitude"], (int, float))
+        and -90 <= location["latitude"] <= 90
+        and -180 <= location["longitude"] <= 180
     )
 
 
 def is_feeding_data_valid(data: Any) -> bool:
     """Type guard to validate feeding data."""
     return (
-        isinstance(data, dict) and
-        "meal_type" in data and
-        "portion_size" in data and
-        isinstance(data["meal_type"], str) and
-        isinstance(data["portion_size"], (int, float)) and
-        data["portion_size"] >= 0
+        isinstance(data, dict)
+        and "meal_type" in data
+        and "portion_size" in data
+        and isinstance(data["meal_type"], str)
+        and isinstance(data["portion_size"], (int, float))
+        and data["portion_size"] >= 0
     )
 
 
@@ -322,11 +347,21 @@ VALID_MOOD_OPTIONS = {"happy", "neutral", "sad", "angry", "anxious", "tired"}
 VALID_ACTIVITY_LEVELS = {"very_low", "low", "normal", "high", "very_high"}
 VALID_GEOFENCE_TYPES = {"safe_zone", "restricted_area", "point_of_interest"}
 VALID_NOTIFICATION_PRIORITIES = {"low", "normal", "high", "urgent"}
-VALID_GPS_SOURCES = {"manual", "device_tracker", "person_entity", "smartphone", "tractive", "webhook", "mqtt"}
+VALID_GPS_SOURCES = {
+    "manual",
+    "device_tracker",
+    "person_entity",
+    "smartphone",
+    "tractive",
+    "webhook",
+    "mqtt",
+}
+
 
 # Performance optimization types
 class PerformanceConfig(TypedDict):
     """Performance configuration options."""
+
     update_interval: int
     batch_size: int
     cache_timeout: int
@@ -336,6 +371,7 @@ class PerformanceConfig(TypedDict):
 
 class CacheEntry(TypedDict):
     """Cache entry structure."""
+
     data: Any
     timestamp: datetime
     ttl: int  # seconds
@@ -346,15 +382,17 @@ class CacheEntry(TypedDict):
 @dataclass
 class PawControlError:
     """Base error data structure."""
+
     code: str
     message: str
     timestamp: datetime = field(default_factory=datetime.now)
     context: Dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass  
+@dataclass
 class ConfigurationError(PawControlError):
     """Configuration-related error."""
+
     config_section: str = ""
     suggested_fix: str = ""
 
@@ -362,6 +400,7 @@ class ConfigurationError(PawControlError):
 @dataclass
 class DataError(PawControlError):
     """Data-related error."""
+
     data_type: str = ""
     validation_error: str = ""
 
@@ -369,6 +408,7 @@ class DataError(PawControlError):
 @dataclass
 class GPSError(PawControlError):
     """GPS-related error."""
+
     location_source: str = ""
     last_known_location: Optional[GPSLocation] = None
 
@@ -376,5 +416,6 @@ class GPSError(PawControlError):
 @dataclass
 class NotificationError(PawControlError):
     """Notification-related error."""
+
     notification_channel: str = ""
     retry_count: int = 0
