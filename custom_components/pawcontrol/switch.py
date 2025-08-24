@@ -308,7 +308,6 @@ class PawControlSwitchBase(
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
         }
 
     async def async_added_to_hass(self) -> None:

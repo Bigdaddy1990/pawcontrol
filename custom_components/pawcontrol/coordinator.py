@@ -1735,26 +1735,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         walk_recommendation = ""
 
         if walks_today == 0:
-            if last_walk_hours >= 12:
+            if last_walk_hours is not None and last_walk_hours >= 12:
                 needs_walk = True
                 walk_urgency = "high"
                 walk_recommendation = f"No walks today - {dog_size} dogs need at least {recommended_walks} walks daily"
-            elif last_walk_hours >= 8:
+            elif last_walk_hours is not None and last_walk_hours >= 8:
                 needs_walk = True
                 walk_urgency = "medium"
                 walk_recommendation = (
                     f"First walk of the day recommended for {dog_size} dogs"
                 )
         elif walks_today < recommended_walks:
-            if last_walk_hours >= 6:
+            if last_walk_hours is not None and last_walk_hours >= 6:
                 needs_walk = True
                 walk_urgency = "medium"
                 walk_recommendation = f"Walk {walks_today + 1} of {recommended_walks} recommended for {dog_size} dogs"
-            elif last_walk_hours >= 4:
+            elif last_walk_hours is not None and last_walk_hours >= 4:
                 needs_walk = True
                 walk_urgency = "low"
                 walk_recommendation = "Additional walk would be beneficial"
-        elif last_walk_hours >= 8:
+        elif last_walk_hours is not None and last_walk_hours >= 8:
             needs_walk = True
             walk_urgency = "low"
             walk_recommendation = "Long time since last walk - short walk recommended"
@@ -1895,9 +1895,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # Public interface methods (inherited and new)
     @callback
     def async_add_listener(
-        self, update_callback: Callable[[], None]
+        self, update_callback: Callable[[], None], context: Any = None
     ) -> Callable[[], None]:
-        """Add a listener for data updates."""
+        """Add a listener for data updates.
+        
+        Args:
+            update_callback: Callback function to call on updates
+            context: Optional context parameter for Home Assistant 2025.8+ compatibility
+        """
         self._listeners.add(update_callback)
 
         @callback

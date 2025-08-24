@@ -16,6 +16,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import time
+from pathlib import Path
 from typing import Any, Final
 
 import voluptuous as vol
@@ -394,10 +395,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "entry": entry,
             }
 
-            # Setup platforms with enhanced error handling and dependency resolution
+            # Setup platforms with modern HA 2025.8.2+ API
+            # Use the new async_forward_entry_setups API that loads multiple platforms
+            # concurrently without blocking import_module issues
             try:
-                await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-                _LOGGER.debug("Successfully set up %d platforms", len(PLATFORMS))
+                async with asyncio.timeout(45):  # 45 second timeout for all platforms
+                    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+                
+                _LOGGER.info("Successfully set up all %d platforms using modern HA 2025.8.2+ API", len(PLATFORMS))
+            except asyncio.TimeoutError:
+                _LOGGER.error("Platform setup timed out after 45 seconds")
+                await _async_cleanup_runtime_data(hass, entry, runtime_data)
+                raise ConfigEntryNotReady("Platform setup timed out") from None
             except Exception as err:
                 _LOGGER.error("Failed to setup platforms: %s", err, exc_info=True)
                 # Clean up on platform setup failure
@@ -611,6 +620,18 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     except Exception as err:
         _LOGGER.error("Failed to reload integration: %s", err, exc_info=True)
         raise
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 async def _async_cleanup_runtime_data(

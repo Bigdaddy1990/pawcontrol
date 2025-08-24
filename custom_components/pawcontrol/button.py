@@ -269,7 +269,6 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
         }
 
     @property

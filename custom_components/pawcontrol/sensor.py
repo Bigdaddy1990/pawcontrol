@@ -273,7 +273,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         self._attr_name = f"{dog_name} {sensor_type.replace('_', ' ').title()}"
         self._attr_device_class = device_class
         self._attr_state_class = state_class
-        self._attr_native_unit_of_measurement = unit_of_measurement
+        self._attr_unit_of_measurement = unit_of_measurement
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
@@ -284,7 +284,6 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
         }
 
     @property

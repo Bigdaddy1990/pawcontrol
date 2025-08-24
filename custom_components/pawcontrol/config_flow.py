@@ -1086,6 +1086,98 @@ class PawControlOptionsFlow(OptionsFlow):
             ],
         )
 
+    async def async_step_advanced_settings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle advanced settings configuration.
+
+        This step provides access to advanced system configuration options
+        including performance settings, debugging, and experimental features.
+
+        Args:
+            user_input: User-provided configuration data
+
+        Returns:
+            Configuration flow result
+        """
+        if user_input is not None:
+            try:
+                # Update options with advanced settings
+                self._unsaved_changes.update({
+                    "performance_mode": user_input.get("performance_mode", "balanced"),
+                    "debug_logging": user_input.get("debug_logging", False),
+                    "data_retention_days": user_input.get("data_retention_days", 90),
+                    "auto_backup": user_input.get("auto_backup", False),
+                    "experimental_features": user_input.get("experimental_features", False),
+                })
+                
+                # Save changes and return to main menu
+                return await self._async_save_options()
+            except Exception as err:
+                _LOGGER.error("Error saving advanced settings: %s", err)
+                return self.async_show_form(
+                    step_id="advanced_settings",
+                    errors={"base": "save_failed"},
+                    data_schema=self._get_advanced_settings_schema(user_input)
+                )
+
+        return self.async_show_form(
+            step_id="advanced_settings",
+            data_schema=self._get_advanced_settings_schema()
+        )
+
+    def _get_advanced_settings_schema(self, user_input: dict[str, Any] | None = None) -> vol.Schema:
+        """Get schema for advanced settings form.
+        
+        Args:
+            user_input: Current user input values
+            
+        Returns:
+            Voluptuous schema for advanced settings
+        """
+        current_options = self._config_entry.options
+        current_values = user_input or {}
+        
+        return vol.Schema({
+            vol.Optional(
+                "performance_mode",
+                default=current_values.get("performance_mode", current_options.get("performance_mode", "balanced"))
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "minimal", "label": "Minimal - Lowest resource usage"},
+                        {"value": "balanced", "label": "Balanced - Good performance and efficiency"},
+                        {"value": "full", "label": "Full - Maximum features and responsiveness"}
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN
+                )
+            ),
+            vol.Optional(
+                "debug_logging",
+                default=current_values.get("debug_logging", current_options.get("debug_logging", False))
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                "data_retention_days",
+                default=current_values.get("data_retention_days", current_options.get("data_retention_days", 90))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=30,
+                    max=365,
+                    step=1,
+                    mode=selector.NumberSelectorMode.BOX,
+                    unit_of_measurement="days"
+                )
+            ),
+            vol.Optional(
+                "auto_backup",
+                default=current_values.get("auto_backup", current_options.get("auto_backup", False))
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                "experimental_features",
+                default=current_values.get("experimental_features", current_options.get("experimental_features", False))
+            ): selector.BooleanSelector(),
+        })
+
     async def async_step_import_export(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1104,6 +1196,52 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return await self.async_step_init()
 
-    # The remaining methods would follow similar patterns with enhanced
-    # validation, modern UI components, and comprehensive error handling
-    # ... (Additional methods continue in similar pattern)
+    async def _async_save_options(self) -> ConfigFlowResult:
+        """Save the current options changes.
+        
+        Returns:
+            Configuration flow result indicating successful save
+        """
+        try:
+            # Merge unsaved changes with existing options
+            new_options = {**self._config_entry.options, **self._unsaved_changes}
+            
+            # Clear unsaved changes
+            self._unsaved_changes.clear()
+            
+            # Update the config entry
+            return self.async_create_entry(
+                title="",  # Title is not used for options flow
+                data=new_options
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to save options: %s", err)
+            return await self.async_step_init()
+
+    async def async_step_manage_dogs(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for dog management."""
+        return await self.async_step_init()
+    
+    async def async_step_gps_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for GPS settings."""
+        return await self.async_step_init()
+    
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for notification settings."""
+        return await self.async_step_init()
+    
+    async def async_step_feeding_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for feeding settings."""
+        return await self.async_step_init()
+    
+    async def async_step_health_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for health settings."""
+        return await self.async_step_init()
+    
+    async def async_step_system_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for system settings."""
+        return await self.async_step_init()
+    
+    async def async_step_dashboard_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Placeholder for dashboard settings."""
+        return await self.async_step_init()

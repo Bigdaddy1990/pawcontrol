@@ -12,11 +12,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from homeassistant.components.device_tracker import (
-    SOURCE_TYPE_GPS,
-    SourceType,
-    TrackerEntity,
-)
+from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.components.device_tracker import SourceType
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_BATTERY_LEVEL,
@@ -144,7 +141,6 @@ class PawControlDeviceTracker(
             "manufacturer": "Paw Control",
             "model": "Smart Dog GPS Tracker",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
         }
 
         # Internal state
@@ -190,7 +186,7 @@ class PawControlDeviceTracker(
         Returns:
             GPS source type for location tracking
         """
-        return SOURCE_TYPE_GPS
+        return SourceType.GPS
 
     @property
     def latitude(self) -> Optional[float]:
