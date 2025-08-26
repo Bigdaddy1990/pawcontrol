@@ -8,6 +8,7 @@ type annotations, async operations, and robust error handling.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
@@ -16,6 +17,7 @@ from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers.entity import EntityCategory
 
 from .exceptions import (
     PawControlError,
@@ -50,6 +52,52 @@ _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
 AttributeDict = Dict[str, Any]
+
+
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlButtonBase],
+    batch_size: int = 12,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add button entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of button entities to add
+        batch_size: Number of entities per batch (default: 12)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d button entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing button batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
 
 
 async def async_setup_entry(
@@ -99,10 +147,11 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(_create_health_buttons(coordinator, dog_id, dog_name))
 
-    # Add all entities at once for better performance
-    async_add_entities(entities, update_before_add=True)
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 44+ button entities (2 dogs), batching prevents Registry flooding
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)
 
-    _LOGGER.info("Created %d button entities for %d dogs", len(entities), len(dogs))
+    _LOGGER.info("Created %d button entities for %d dogs using batched approach", len(entities), len(dogs))
 
 
 def _create_base_buttons(
@@ -262,13 +311,14 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     @property

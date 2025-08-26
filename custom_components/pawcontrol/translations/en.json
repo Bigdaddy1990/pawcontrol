@@ -22,9 +22,28 @@
       },
       "add_another_dog": {
         "title": "Add Another Dog?",
-        "description": "Dogs configured:\n{dogs_list}\n\nWould you like to add another dog?",
+        "description": "Dogs configured: {dogs_list} Would you like to add another dog? Remaining spots: {remaining_spots}/{max_dogs}",
         "data": {
           "add_another": "Add another dog"
+        }
+      },
+      "configure_modules": {
+        "title": "Enable Modules",
+        "description": "Choose which monitoring modules to enable for your dogs. These can be changed later.\n\n🐕 {dog_count} dogs configured\n🔧 {gps_suggestion} GPS tracking based on dog sizes\n👥 {visitor_suggestion} Visitor mode based on dog maturity\n\nModule suggestions:\n{dogs_summary}",
+        "data": {
+          "enable_gps": "GPS Location Tracking",
+          "enable_health": "Health Monitoring", 
+          "enable_visitor_mode": "Visitor Mode",
+          "enable_advanced_features": "Advanced Features (Dashboard, Enhanced Notifications)"
+        }
+      },
+      "configure_external_entities": {
+        "title": "Configure External Entities",
+        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality compliance.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n\n⚠️ If no entities are available, you can configure them manually later.",
+        "data": {
+          "gps_source": "GPS Source (Required for GPS tracking)",
+          "door_sensor": "Door Sensor (Optional for visitor mode)",
+          "notify_fallback": "Notification Service (Optional)"
         }
       },
       "final_setup": {
@@ -36,7 +55,34 @@
       "dog_id_already_exists": "A dog with this ID already exists",
       "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
       "invalid_config": "Invalid configuration",
-      "cannot_connect": "Failed to connect"
+      "cannot_connect": "Failed to connect",
+      "dog_name_already_exists": "A dog with this name already exists",
+      "dog_id_too_short": "Dog ID must be at least 2 characters long",
+      "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
+      "invalid_dog_id_format": "Dog ID must start with a letter and contain only lowercase letters, numbers, and underscores",
+      "dog_name_required": "Dog name is required",
+      "dog_name_too_short": "Dog name is too short",
+      "dog_name_too_long": "Dog name is too long",
+      "invalid_weight_format": "Weight must be a valid number",
+      "weight_out_of_range": "Weight must be between 0.5 and 200 kg",
+      "weight_size_mismatch": "Weight doesn't match the selected size category",
+      "invalid_age_format": "Age must be a valid number",
+      "age_out_of_range": "Age must be between 0 and 30 years",
+      "breed_name_too_long": "Breed name is too long",
+      "add_dog_failed": "Failed to add dog configuration",
+      "integration_name_required": "Integration name is required",
+      "integration_name_too_short": "Integration name is too short",
+      "integration_name_too_long": "Integration name is too long", 
+      "reserved_integration_name": "This integration name is reserved",
+      "no_dogs_configured": "At least one dog must be configured",
+      "setup_failed": "Setup failed due to configuration error",
+      "validation_error": "Configuration validation failed",
+      "gps_entity_not_found": "The selected GPS source entity was not found",
+      "gps_entity_unavailable": "The selected GPS source entity is currently unavailable",
+      "door_sensor_not_found": "The selected door sensor entity was not found",
+      "notification_service_not_found": "The selected notification service was not found",
+      "invalid_notification_service": "The notification service format is invalid",
+      "external_entity_validation_failed": "External entity validation failed"
     },
     "abort": {
       "already_configured": "Device is already configured",

@@ -42,6 +42,54 @@ from .utils import safe_convert, performance_monitor
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: list[PawControlDateBase],
+    batch_size: int = 12,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add date entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of date entities to add
+        batch_size: Number of entities per batch (default: 12)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    import asyncio
+    
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d date entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing date batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -136,9 +184,11 @@ async def async_setup_entry(
                 )
                 continue
 
-        async_add_entities(entities)
+        # Add entities in smaller batches to prevent Entity Registry overload
+        # With 48+ date entities (2 dogs), batching prevents Registry flooding
+        await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
         _LOGGER.info(
-            "Successfully set up %d date entities for %d dogs",
+            "Successfully set up %d date entities for %d dogs using batched approach",
             len(entities),
             len(dogs),
         )
@@ -188,7 +238,7 @@ class PawControlDateBase(
         self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
         self._attr_icon = icon
 
-        # Device association for proper grouping in UI
+        # Device association for proper grouping in UI - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
@@ -196,6 +246,7 @@ class PawControlDateBase(
             "model": "Smart Dog Management",
             "sw_version": "2025.8.2",
             "suggested_area": "Pet Area",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     @property

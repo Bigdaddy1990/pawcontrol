@@ -8,6 +8,7 @@ annotations, async operations, and robust validation.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -15,6 +16,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -95,6 +97,52 @@ WEATHER_CONDITIONS = [
 ]
 
 
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlSelectBase],
+    batch_size: int = 10,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add select entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of select entities to add
+        batch_size: Number of entities per batch (default: 10)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d select entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing select batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -142,10 +190,11 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(_create_health_selects(coordinator, dog_id, dog_name))
 
-    # Add all entities at once for better performance
-    async_add_entities(entities, update_before_add=True)
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 32+ select entities (2 dogs), batching prevents Registry flooding
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)
 
-    _LOGGER.info("Created %d select entities for %d dogs", len(entities), len(dogs))
+    _LOGGER.info("Created %d select entities for %d dogs using batched approach", len(entities), len(dogs))
 
 
 def _create_base_selects(
@@ -273,7 +322,7 @@ class PawControlSelectBase(
         *,
         options: List[str],
         icon: Optional[str] = None,
-        entity_category: Optional[str] = None,
+        entity_category: Optional[EntityCategory] = None,
         initial_option: Optional[str] = None,
     ) -> None:
         """Initialize the select entity.
@@ -302,14 +351,14 @@ class PawControlSelectBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     async def async_added_to_hass(self) -> None:
@@ -471,7 +520,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             "size",
             options=DOG_SIZES,
             icon="mdi:dog",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_option=current_size,
         )
 
@@ -546,7 +595,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             "performance_mode",
             options=PERFORMANCE_MODES,
             icon="mdi:speedometer",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_option="balanced",
         )
 
@@ -894,7 +943,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             "gps_source",
             options=GPS_SOURCES,
             icon="mdi:crosshairs-gps",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_option="device_tracker",
         )
 
@@ -1000,7 +1049,7 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
             "location_accuracy",
             options=["low", "balanced", "high", "best"],
             icon="mdi:crosshairs",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_option="balanced",
         )
 

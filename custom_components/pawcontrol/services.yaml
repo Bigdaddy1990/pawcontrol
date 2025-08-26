@@ -353,7 +353,7 @@ update_location:
         number:
           min: -90
           max: 90
-          step: 0.000001
+          step: 0.001
     longitude:
       name: Longitude
       description: Longitude coordinate
@@ -362,7 +362,7 @@ update_location:
         number:
           min: -180
           max: 180
-          step: 0.000001
+          step: 0.001
     accuracy:
       name: Accuracy
       description: Location accuracy in meters

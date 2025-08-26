@@ -30,7 +30,9 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CALENDAR,
     CONF_DASHBOARD_MODE,
+    CONF_DEVICE_TRACKERS,
     CONF_DOGS,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -38,22 +40,29 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_DOOR_SENSOR,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
+    CONF_GPS_SOURCE,
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MODULES,
     CONF_NOTIFICATIONS,
+    CONF_NOTIFY_FALLBACK,
+    CONF_PERSON_ENTITIES,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
+    CONF_SOURCES,
+    CONF_WEATHER,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
     DOG_SIZES,
     DOMAIN,
+    GPS_SOURCES,
     MAX_DOG_AGE,
     MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
@@ -137,6 +146,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._integration_name = "Paw Control"
         self._errors: dict[str, str] = {}
         self._step_stack: list[str] = []
+        self._enabled_modules: dict[str, bool] = {}
+        self._external_entities: dict[str, str] = {}
 
         # Performance tracking for better UX
         self._validation_cache: dict[str, dict[str, Any]] = {}
@@ -428,17 +439,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             True if weight matches size expectations
         """
+        # Consistent realistic weight ranges with overlap to accommodate breed variations
         size_ranges = {
-            "toy": (0.5, 8.0),
-            "small": (4.0, 15.0),
-            "medium": (10.0, 30.0),
-            "large": (22.0, 50.0),
-            "giant": (35.0, 200.0),
+            "toy": (1.0, 6.0),        # Chihuahua, Yorkshire Terrier
+            "small": (4.0, 15.0),     # Beagle, Cocker Spaniel (overlap with toy/medium)
+            "medium": (8.0, 30.0),    # Border Collie, Labrador (overlap with small/large)
+            "large": (22.0, 50.0),    # German Shepherd, Golden Retriever (overlap with medium/giant)
+            "giant": (35.0, 90.0),    # Great Dane, Saint Bernard (overlap with large)
         }
 
-        range_min, range_max = size_ranges.get(size, (0.5, 200.0))
+        range_min, range_max = size_ranges.get(size, (1.0, 90.0))
 
-        # Allow some flexibility with overlapping ranges
+        # Allow some flexibility with overlapping ranges for realistic breed variations
         return range_min <= weight <= range_max
 
     async def _create_dog_config(self, user_input: dict[str, Any]) -> DogConfigData:
@@ -803,7 +815,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "dogs_list": self._format_dogs_list(),
             "dog_count": len(self._dogs),
             "max_dogs": MAX_DOGS_PER_ENTRY,
-            "remaining_slots": MAX_DOGS_PER_ENTRY - len(self._dogs),
+            "remaining_spots": MAX_DOGS_PER_ENTRY - len(self._dogs),
             "at_limit": "true" if at_limit else "false",
         }
 
@@ -848,7 +860,19 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     dog[CONF_MODULES][MODULE_DASHBOARD] = True
                     dog[CONF_MODULES][MODULE_NOTIFICATIONS] = True
 
-            return await self.async_step_final_setup()
+            # Store enabled modules for next step
+            self._enabled_modules = {
+                "gps": gps_enabled,
+                "health": health_enabled,
+                "visitor": visitor_enabled,
+                "advanced": advanced_features,
+            }
+
+            # If GPS is enabled, configure external entities
+            if gps_enabled:
+                return await self.async_step_configure_external_entities()
+            else:
+                return await self.async_step_final_setup()
 
         # Only show this step if we have dogs configured
         if not self._dogs:
@@ -915,6 +939,244 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return "\n".join(summaries)
 
+    async def async_step_configure_external_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure external entities required for enabled modules.
+
+        This critical step configures external Home Assistant entities that
+        the integration depends on. Required for Platinum quality scale compliance.
+
+        Args:
+            user_input: External entity configuration
+
+        Returns:
+            Configuration flow result for final setup
+        """
+        if user_input is not None:
+            # Validate and store external entity selections
+            try:
+                validated_entities = await self._async_validate_external_entities(user_input)
+                self._external_entities.update(validated_entities)
+                return await self.async_step_final_setup()
+            except ValueError as err:
+                return self.async_show_form(
+                    step_id="configure_external_entities",
+                    data_schema=self._get_external_entities_schema(),
+                    errors={"base": str(err)},
+                )
+
+        return self.async_show_form(
+            step_id="configure_external_entities",
+            data_schema=self._get_external_entities_schema(),
+            description_placeholders={
+                "gps_enabled": self._enabled_modules.get("gps", False),
+                "visitor_enabled": self._enabled_modules.get("visitor", False),
+                "dog_count": len(self._dogs),
+            },
+        )
+
+    def _get_external_entities_schema(self) -> vol.Schema:
+        """Get schema for external entities configuration.
+        
+        Returns:
+            Schema based on enabled modules
+        """
+        schema_dict = {}
+        
+        # GPS source selection - REQUIRED if GPS enabled
+        if self._enabled_modules.get("gps", False):
+            # Get available device trackers and person entities
+            device_trackers = self._get_available_device_trackers()
+            person_entities = self._get_available_person_entities()
+            
+            gps_options = []
+            if device_trackers:
+                gps_options.extend([
+                    {"value": entity_id, "label": f"📍 {name} (Device Tracker)"}
+                    for entity_id, name in device_trackers.items()
+                ])
+            if person_entities:
+                gps_options.extend([
+                    {"value": entity_id, "label": f"👤 {name} (Person)"}
+                    for entity_id, name in person_entities.items()
+                ])
+            
+            if gps_options:
+                schema_dict[vol.Required(CONF_GPS_SOURCE)] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=gps_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            else:
+                # No GPS entities available - offer manual setup
+                schema_dict[vol.Required(CONF_GPS_SOURCE, default="manual")] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "manual", "label": "📝 Manual GPS (configure later)"}
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+        
+        # Door sensor for visitor mode (optional)
+        if self._enabled_modules.get("visitor", False):
+            door_sensors = self._get_available_door_sensors()
+            if door_sensors:
+                door_options = [{"value": "", "label": "None (optional)"}]
+                door_options.extend([
+                    {"value": entity_id, "label": f"🚪 {name}"}
+                    for entity_id, name in door_sensors.items()
+                ])
+                
+                schema_dict[vol.Optional(CONF_DOOR_SENSOR, default="")] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=door_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+        
+        # Notification services (always show if advanced features enabled)
+        if self._enabled_modules.get("advanced", False):
+            notify_services = self._get_available_notify_services()
+            if notify_services:
+                notify_options = [{"value": "", "label": "Default (persistent_notification)"}]
+                notify_options.extend([
+                    {"value": service_id, "label": f"🔔 {name}"}
+                    for service_id, name in notify_services.items()
+                ])
+                
+                schema_dict[vol.Optional(CONF_NOTIFY_FALLBACK, default="")] = selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=notify_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+        
+        return vol.Schema(schema_dict)
+
+    def _get_available_device_trackers(self) -> dict[str, str]:
+        """Get available device tracker entities.
+        
+        Returns:
+            Dictionary of entity_id -> friendly_name
+        """
+        device_trackers = {}
+        
+        for entity_id in self.hass.states.async_entity_ids("device_tracker"):
+            state = self.hass.states.get(entity_id)
+            if state and state.state not in ["unknown", "unavailable"]:
+                friendly_name = state.attributes.get("friendly_name", entity_id)
+                # Filter out the Home Assistant companion apps to avoid confusion
+                if "home_assistant" not in entity_id.lower():
+                    device_trackers[entity_id] = friendly_name
+        
+        return device_trackers
+    
+    def _get_available_person_entities(self) -> dict[str, str]:
+        """Get available person entities.
+        
+        Returns:
+            Dictionary of entity_id -> friendly_name
+        """
+        person_entities = {}
+        
+        for entity_id in self.hass.states.async_entity_ids("person"):
+            state = self.hass.states.get(entity_id)
+            if state:
+                friendly_name = state.attributes.get("friendly_name", entity_id)
+                person_entities[entity_id] = friendly_name
+        
+        return person_entities
+    
+    def _get_available_door_sensors(self) -> dict[str, str]:
+        """Get available door/window sensors.
+        
+        Returns:
+            Dictionary of entity_id -> friendly_name
+        """
+        door_sensors = {}
+        
+        for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
+            state = self.hass.states.get(entity_id)
+            if state:
+                device_class = state.attributes.get("device_class")
+                if device_class in ["door", "window", "opening", "garage_door"]:
+                    friendly_name = state.attributes.get("friendly_name", entity_id)
+                    door_sensors[entity_id] = friendly_name
+        
+        return door_sensors
+    
+    def _get_available_notify_services(self) -> dict[str, str]:
+        """Get available notification services.
+        
+        Returns:
+            Dictionary of service_id -> friendly_name
+        """
+        notify_services = {}
+        
+        # Get all notification services
+        services = self.hass.services.async_services().get("notify", {})
+        for service_name in services:
+            if service_name != "persistent_notification":  # Exclude default
+                service_id = f"notify.{service_name}"
+                # Create friendly name from service name
+                friendly_name = service_name.replace("_", " ").title()
+                notify_services[service_id] = friendly_name
+        
+        return notify_services
+
+    async def _async_validate_external_entities(self, user_input: dict[str, Any]) -> dict[str, str]:
+        """Validate external entity selections.
+        
+        Args:
+            user_input: User selections to validate
+            
+        Returns:
+            Validated entity configuration
+            
+        Raises:
+            ValueError: If validation fails
+        """
+        validated = {}
+        
+        # Validate GPS source if provided
+        gps_source = user_input.get(CONF_GPS_SOURCE)
+        if gps_source and gps_source != "manual":
+            state = self.hass.states.get(gps_source)
+            if not state:
+                raise ValueError(f"GPS source entity {gps_source} not found")
+            if state.state in ["unknown", "unavailable"]:
+                raise ValueError(f"GPS source entity {gps_source} is unavailable")
+            validated[CONF_GPS_SOURCE] = gps_source
+        elif gps_source == "manual":
+            validated[CONF_GPS_SOURCE] = "manual"
+        
+        # Validate door sensor if provided
+        door_sensor = user_input.get(CONF_DOOR_SENSOR)
+        if door_sensor:
+            state = self.hass.states.get(door_sensor)
+            if not state:
+                raise ValueError(f"Door sensor entity {door_sensor} not found")
+            validated[CONF_DOOR_SENSOR] = door_sensor
+        
+        # Validate notification service if provided
+        notify_service = user_input.get(CONF_NOTIFY_FALLBACK)
+        if notify_service:
+            # Check if service exists
+            service_parts = notify_service.split(".", 1)
+            if len(service_parts) != 2 or service_parts[0] != "notify":
+                raise ValueError(f"Invalid notification service: {notify_service}")
+            
+            services = self.hass.services.async_services().get("notify", {})
+            if service_parts[1] not in services:
+                raise ValueError(f"Notification service {service_parts[1]} not found")
+            
+            validated[CONF_NOTIFY_FALLBACK] = notify_service
+        
+        return validated
+
     async def async_step_final_setup(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -942,6 +1204,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 "setup_version": self.VERSION,
                 "setup_timestamp": asyncio.get_event_loop().time(),
             }
+
+            # Add external entities configuration if configured
+            if self._external_entities:
+                config_data[CONF_SOURCES] = self._external_entities
 
             # Create intelligent default options based on configuration
             options_data = await self._create_intelligent_options(config_data)

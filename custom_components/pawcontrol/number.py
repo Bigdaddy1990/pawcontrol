@@ -8,6 +8,7 @@ with full type annotations, async operations, and robust validation.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -17,11 +18,12 @@ from homeassistant.const import (
     PERCENTAGE,
     UnitOfLength,
     UnitOfMass,
-    UnitOfTime,
     UnitOfSpeed,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -57,6 +59,52 @@ DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
+
+
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlNumberBase],
+    batch_size: int = 12,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add number entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of number entities to add
+        batch_size: Number of entities per batch (default: 12)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d number entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing number batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
 
 
 async def async_setup_entry(
@@ -106,10 +154,11 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(_create_health_numbers(coordinator, dog_id, dog_name))
 
-    # Add all entities at once for better performance
-    async_add_entities(entities, update_before_add=True)
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 46+ number entities (2 dogs), batching prevents Registry flooding
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
 
-    _LOGGER.info("Created %d number entities for %d dogs", len(entities), len(dogs))
+    _LOGGER.info("Created %d number entities for %d dogs using batched approach", len(entities), len(dogs))
 
 
 def _create_base_numbers(
@@ -248,7 +297,7 @@ class PawControlNumberBase(
         native_max_value: float = 100,
         native_step: float = 1,
         icon: Optional[str] = None,
-        entity_category: Optional[str] = None,
+        entity_category: Optional[EntityCategory] = None,
         initial_value: Optional[float] = None,
     ) -> None:
         """Initialize the number entity.
@@ -287,14 +336,14 @@ class PawControlNumberBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
-            "configuration_url": f"/config/integrations/integration/{DOMAIN}",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     async def async_added_to_hass(self) -> None:
@@ -532,7 +581,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
             native_max_value=MAX_DOG_AGE,
             native_step=1,
             icon="mdi:calendar",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_value=current_age,
         )
 
@@ -890,7 +939,7 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
             native_max_value=500,
             native_step=5,
             icon="mdi:crosshairs-gps",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_value=DEFAULT_GPS_ACCURACY_THRESHOLD,
         )
 
@@ -918,7 +967,7 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
             native_max_value=600,
             native_step=30,
             icon="mdi:update",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_value=60,
         )
 
@@ -973,7 +1022,7 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
             native_max_value=100,
             native_step=1,
             icon="mdi:map-marker-path",
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
             initial_value=10,
         )
 

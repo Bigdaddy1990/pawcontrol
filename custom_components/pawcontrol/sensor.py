@@ -8,6 +8,7 @@ annotations, async operations, and robust error handling.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
@@ -21,12 +22,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfLength,
-    UnitOfMass,
-    UnitOfTime,
     UnitOfSpeed,
-    UnitOfEnergy,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -50,6 +50,52 @@ _LOGGER = logging.getLogger(__name__)
 # Type aliases for better code readability
 SensorValue = Union[str, int, float, datetime, None]
 AttributeDict = Dict[str, Any]
+
+
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlSensorBase],
+    batch_size: int = 8,
+    delay_between_batches: float = 0.25
+) -> None:
+    """Add entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of entities to add
+        batch_size: Number of entities per batch (default: 15)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
 
 
 async def async_setup_entry(
@@ -99,10 +145,22 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(_create_health_sensors(coordinator, dog_id, dog_name))
 
-    # Add all entities at once for better performance
-    async_add_entities(entities, update_before_add=True)
+    # Add entities in small batches to prevent Entity Registry overload
+    # Progressive batching: smaller batches for larger entity counts
+    entity_count = len(entities)
+    if entity_count > 100:
+        batch_size = 6
+        delay = 0.3
+    elif entity_count > 50:
+        batch_size = 8
+        delay = 0.25
+    else:
+        batch_size = 10
+        delay = 0.2
+    
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=batch_size, delay_between_batches=delay)
 
-    _LOGGER.info("Created %d sensor entities for %d dogs", len(entities), len(dogs))
+    _LOGGER.info("Created %d sensor entities for %d dogs using batched approach", len(entities), len(dogs))
 
 
 def _create_base_sensors(
@@ -247,7 +305,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         state_class: Optional[SensorStateClass] = None,
         unit_of_measurement: Optional[str] = None,
         icon: Optional[str] = None,
-        entity_category: Optional[str] = None,
+        entity_category: Optional[EntityCategory] = None,
     ) -> None:
         """Initialize the sensor entity.
 
@@ -277,13 +335,15 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
+            "suggested_area": "Living Room",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     @property
@@ -556,7 +616,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             dog_name,
             "activity_score",
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=PERCENTAGE,
+            unit_of_measurement=PERCENTAGE,
             icon="mdi:chart-line",
         )
 
@@ -810,7 +870,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             "last_feeding_hours",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfTime.HOURS,
+            unit_of_measurement="h",
             icon="mdi:clock-outline",
         )
 
@@ -906,7 +966,7 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
             dog_name,
             "daily_calories",
             state_class=SensorStateClass.TOTAL_INCREASING,
-            native_unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            unit_of_measurement="kcal",
             icon="mdi:fire",
         )
 
@@ -936,7 +996,7 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
             dog_name,
             "feeding_schedule_adherence",
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=PERCENTAGE,
+            unit_of_measurement=PERCENTAGE,
             icon="mdi:calendar-check",
         )
 
@@ -1002,7 +1062,7 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
             "last_walk_hours",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfTime.HOURS,
+            unit_of_measurement="h",
             icon="mdi:clock-outline",
         )
 
@@ -1040,7 +1100,7 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
             "last_walk_duration",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfTime.MINUTES,
+            unit_of_measurement="min",
             icon="mdi:timer",
         )
 
@@ -1094,7 +1154,7 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
             "total_walk_time_today",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.TOTAL_INCREASING,
-            native_unit_of_measurement=UnitOfTime.MINUTES,
+            unit_of_measurement="min",
             icon="mdi:timer-sand",
         )
 
@@ -1148,7 +1208,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
             "average_walk_duration",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfTime.MINUTES,
+            unit_of_measurement="min",
             icon="mdi:timer-outline",
         )
 
@@ -1183,7 +1243,7 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
             "current_speed",
             device_class=SensorDeviceClass.SPEED,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+            unit_of_measurement="km/h",
             icon="mdi:speedometer",
         )
 
@@ -1211,7 +1271,7 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
             "distance_from_home",
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement="m",
             icon="mdi:map-marker-distance",
         )
 
@@ -1239,7 +1299,7 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
             "gps_accuracy",
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement="m",
             icon="mdi:crosshairs-gps",
         )
 
@@ -1267,7 +1327,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
             "last_walk_distance",
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement="m",
             icon="mdi:map-marker-path",
         )
 
@@ -1295,7 +1355,7 @@ class PawControlTotalDistanceTodaySensor(PawControlSensorBase):
             "total_distance_today",
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.TOTAL_INCREASING,
-            native_unit_of_measurement=UnitOfLength.METERS,
+            unit_of_measurement="m",
             icon="mdi:map-marker-path",
         )
 
@@ -1323,7 +1383,7 @@ class PawControlWeeklyDistanceSensor(PawControlSensorBase):
             "weekly_distance",
             device_class=SensorDeviceClass.DISTANCE,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfLength.KILOMETERS,
+            unit_of_measurement="km",
             icon="mdi:map-marker-path",
         )
 
@@ -1373,7 +1433,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
             "gps_battery_level",
             device_class=SensorDeviceClass.BATTERY,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=PERCENTAGE,
+            unit_of_measurement=PERCENTAGE,
             icon="mdi:battery",
         )
 
@@ -1402,7 +1462,7 @@ class PawControlWeightSensor(PawControlSensorBase):
             "weight",
             device_class=SensorDeviceClass.WEIGHT,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+            unit_of_measurement="kg",
             icon="mdi:scale",
         )
 
@@ -1524,7 +1584,7 @@ class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
             "days_since_grooming",
             device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfTime.DAYS,
+            unit_of_measurement="d",
             icon="mdi:content-cut",
         )
 

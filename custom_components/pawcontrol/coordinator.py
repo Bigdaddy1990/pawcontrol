@@ -272,6 +272,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             error_count: Number of errors encountered
         """
         metrics = self._performance_metrics
+        
+        # Ensure metrics dictionary has all required keys (defensive programming)
+        if "update_count" not in metrics:
+            metrics["update_count"] = 0
+        if "error_count" not in metrics:
+            metrics["error_count"] = 0
+        if "average_update_time" not in metrics:
+            metrics["average_update_time"] = 0.0
+            
         metrics["update_count"] += 1
         metrics["error_count"] += error_count
 

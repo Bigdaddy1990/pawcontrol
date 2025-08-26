@@ -22,9 +22,28 @@
       },
       "add_another_dog": {
         "title": "Weiteren Hund hinzufügen?",
-        "description": "Konfigurierte Hunde:\n{dogs_list}\n\nMöchtest du einen weiteren Hund hinzufügen?",
+        "description": "Konfigurierte Hunde: {dogs_list} Möchtest du einen weiteren Hund hinzufügen? Verbleibende Plätze: {remaining_spots}/{max_dogs}",
         "data": {
           "add_another": "Weiteren Hund hinzufügen"
+        }
+      },
+      "configure_modules": {
+        "title": "Module aktivieren",
+        "description": "Wähle aus, welche Überwachungsmodule für deine Hunde aktiviert werden sollen. Diese können später geändert werden.\n\n🐕 {dog_count} Hunde konfiguriert\n🔧 GPS-Tracking {gps_suggestion} basierend auf Hundegrößen\n👥 Besuchermodus {visitor_suggestion} basierend auf Hundereife\n\nModul-Vorschläge:\n{dogs_summary}",
+        "data": {
+          "enable_gps": "GPS-Ortungsverfolgung",
+          "enable_health": "Gesundheitsüberwachung",
+          "enable_visitor_mode": "Besuchermodus",
+          "enable_advanced_features": "Erweiterte Funktionen (Dashboard, Verbesserte Benachrichtigungen)"
+        }
+      },
+      "configure_external_entities": {
+        "title": "Externe Entitäten konfigurieren",
+        "description": "🔗 **Konfiguration externer Entitäten**\n\nPaw Control muss sich mit vorhandenen Home Assistant-Entitäten verbinden, um voll funktionsfähig zu sein. Dieser Schritt ist für die Platinum-Qualitätseinhaltung erforderlich.\n\n**Erforderlich für GPS-Tracking:** Device Tracker oder Person-Entität\n**Optional für Besuchererkennung:** Türsensor\n**Optional für Benachrichtigungen:** Benutzerdefinierter Benachrichtigungsdienst\n\n⚠️ Falls keine Entitäten verfügbar sind, kannst du sie später manuell konfigurieren.",
+        "data": {
+          "gps_source": "GPS-Quelle (Erforderlich für GPS-Tracking)",
+          "door_sensor": "Türsensor (Optional für Besuchermodus)",
+          "notify_fallback": "Benachrichtigungsdienst (Optional)"
         }
       },
       "final_setup": {
@@ -36,7 +55,34 @@
       "dog_id_already_exists": "Ein Hund mit dieser ID existiert bereits",
       "invalid_dog_name_length": "Der Hundename muss zwischen 2 und 30 Zeichen lang sein",
       "invalid_config": "Ungültige Konfiguration",
-      "cannot_connect": "Verbindung fehlgeschlagen"
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "dog_name_already_exists": "Ein Hund mit diesem Namen existiert bereits",
+      "dog_id_too_short": "Hunde-ID muss mindestens 2 Zeichen lang sein",
+      "dog_id_too_long": "Hunde-ID darf nicht länger als 30 Zeichen sein",
+      "invalid_dog_id_format": "Hunde-ID muss mit einem Buchstaben beginnen und darf nur Kleinbuchstaben, Zahlen und Unterstriche enthalten",
+      "dog_name_required": "Hundename ist erforderlich",
+      "dog_name_too_short": "Hundename ist zu kurz",
+      "dog_name_too_long": "Hundename ist zu lang",
+      "invalid_weight_format": "Gewicht muss eine gültige Zahl sein",
+      "weight_out_of_range": "Gewicht muss zwischen 0,5 und 200 kg liegen",
+      "weight_size_mismatch": "Gewicht passt nicht zur ausgewählten Größenkategorie",
+      "invalid_age_format": "Alter muss eine gültige Zahl sein",
+      "age_out_of_range": "Alter muss zwischen 0 und 30 Jahren liegen",
+      "breed_name_too_long": "Rassenname ist zu lang",
+      "add_dog_failed": "Hinzufügen der Hundekonfiguration fehlgeschlagen",
+      "integration_name_required": "Integrationsname ist erforderlich",
+      "integration_name_too_short": "Integrationsname ist zu kurz",
+      "integration_name_too_long": "Integrationsname ist zu lang",
+      "reserved_integration_name": "Dieser Integrationsname ist reserviert",
+      "no_dogs_configured": "Mindestens ein Hund muss konfiguriert werden",
+      "setup_failed": "Setup aufgrund eines Konfigurationsfehlers fehlgeschlagen",
+      "validation_error": "Konfigurationsvalidierung fehlgeschlagen",
+      "gps_entity_not_found": "Die ausgewählte GPS-Quellenentität wurde nicht gefunden",
+      "gps_entity_unavailable": "Die ausgewählte GPS-Quellenentität ist derzeit nicht verfügbar",
+      "door_sensor_not_found": "Die ausgewählte Türsensor-Entität wurde nicht gefunden",
+      "notification_service_not_found": "Der ausgewählte Benachrichtigungsdienst wurde nicht gefunden",
+      "invalid_notification_service": "Das Format des Benachrichtigungsdienstes ist ungültig",
+      "external_entity_validation_failed": "Validierung externer Entitäten fehlgeschlagen"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",

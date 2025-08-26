@@ -8,6 +8,7 @@ type annotations, async operations, and robust error handling.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -15,6 +16,7 @@ from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -41,6 +43,52 @@ _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
 AttributeDict = Dict[str, Any]
+
+
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlSwitchBase],
+    batch_size: int = 14,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add switch entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of switch entities to add
+        batch_size: Number of entities per batch (default: 14)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d switch entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing switch batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
 
 
 async def async_setup_entry(
@@ -95,10 +143,11 @@ async def async_setup_entry(
                 _create_notification_switches(coordinator, dog_id, dog_name)
             )
 
-    # Add all entities at once for better performance
-    async_add_entities(entities, update_before_add=True)
+    # Add entities in smaller batches to prevent Entity Registry overload
+    # With 56+ switch entities (2 dogs), batching prevents Registry flooding
+    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=14)
 
-    _LOGGER.info("Created %d switch entities for %d dogs", len(entities), len(dogs))
+    _LOGGER.info("Created %d switch entities for %d dogs using batched approach", len(entities), len(dogs))
 
 
 def _create_base_switches(
@@ -272,7 +321,7 @@ class PawControlSwitchBase(
         *,
         device_class: Optional[SwitchDeviceClass] = None,
         icon: Optional[str] = None,
-        entity_category: Optional[str] = None,
+        entity_category: Optional[EntityCategory] = None,
         initial_state: bool = False,
     ) -> None:
         """Initialize the switch entity.
@@ -301,13 +350,14 @@ class PawControlSwitchBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Monitoring",
             "sw_version": "1.0.0",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
     async def async_added_to_hass(self) -> None:
@@ -661,7 +711,7 @@ class PawControlModuleSwitch(PawControlSwitchBase):
             f"module_{module_id}",
             icon=icon,
             initial_state=initial_state,
-            entity_category="config",
+            entity_category=EntityCategory.CONFIG,
         )
         self._attr_name = f"{dog_name} {module_name}"
 

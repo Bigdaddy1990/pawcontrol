@@ -409,10 +409,14 @@ class PawControlDataManager:
             # Calculate walk duration
             start_time_str = dog_data["walk"].get("current_walk_start")
             duration_minutes = 0
-            if start_time_str:
-                start_time = datetime.fromisoformat(start_time_str)
-                duration = timestamp - start_time
-                duration_minutes = int(duration.total_seconds() / 60)
+            if start_time_str and isinstance(start_time_str, str):
+                try:
+                    start_time = datetime.fromisoformat(start_time_str)
+                    duration = timestamp - start_time
+                    duration_minutes = int(duration.total_seconds() / 60)
+                except (ValueError, TypeError) as err:
+                    _LOGGER.warning("Invalid start time format for dog %s: %s", dog_id, err)
+                    duration_minutes = 0
 
             # Update the walk entry
             walk_updates = {
@@ -810,13 +814,30 @@ class PawControlDataManager:
                 filtered_entries = []
                 for entry in entries:
                     try:
-                        entry_time = datetime.fromisoformat(entry["timestamp"])
-                        if start_date and entry_time < start_date:
+                        timestamp_value = entry.get("timestamp")
+                        if not isinstance(timestamp_value, str) or not timestamp_value:
+                            # Keep entries with invalid timestamps
+                            filtered_entries.append(entry)
                             continue
-                        if end_date and entry_time > end_date:
-                            continue
+                        
+                        entry_time = datetime.fromisoformat(timestamp_value)
+                        # Ensure timezone consistency for comparisons
+                        if entry_time.tzinfo is None:
+                            entry_time = dt_util.as_local(entry_time)
+                        
+                        # Make sure start_date and end_date are timezone-aware
+                        if start_date:
+                            if start_date.tzinfo is None:
+                                start_date = dt_util.as_local(start_date)
+                            if entry_time < start_date:
+                                continue
+                        if end_date:
+                            if end_date.tzinfo is None:
+                                end_date = dt_util.as_local(end_date)
+                            if entry_time > end_date:
+                                continue
                         filtered_entries.append(entry)
-                    except (ValueError, KeyError):
+                    except (ValueError, KeyError, TypeError):
                         # Keep entries with invalid timestamps
                         filtered_entries.append(entry)
                 entries = filtered_entries
@@ -1118,10 +1139,22 @@ class PawControlDataManager:
                 filtered_entries = []
                 for entry in entries:
                     try:
-                        entry_date = datetime.fromisoformat(entry["timestamp"])
+                        timestamp_value = entry.get("timestamp")
+                        if not isinstance(timestamp_value, str) or not timestamp_value:
+                            # Keep entries with invalid timestamps
+                            filtered_entries.append(entry)
+                            continue
+                        
+                        entry_date = datetime.fromisoformat(timestamp_value)
+                        # Ensure both timestamps are timezone-aware for comparison
+                        if entry_date.tzinfo is None:
+                            entry_date = dt_util.as_local(entry_date)
+                        if cutoff_date.tzinfo is None:
+                            cutoff_date = dt_util.as_local(cutoff_date)
+                        
                         if entry_date >= cutoff_date:
                             filtered_entries.append(entry)
-                    except (ValueError, KeyError):
+                    except (ValueError, KeyError, TypeError):
                         # Keep entries with invalid timestamps
                         filtered_entries.append(entry)
 

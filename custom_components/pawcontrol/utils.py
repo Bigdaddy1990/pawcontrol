@@ -208,14 +208,14 @@ def validate_weight_enhanced(
                 f"Weight must be between {MIN_DOG_WEIGHT}kg and {MAX_DOG_WEIGHT}kg",
             )
 
-        # Enhanced size-specific validation
+        # Enhanced size-specific validation with realistic overlapping ranges
         if dog_size and dog_size in DOG_SIZES:
             size_ranges = {
-                "toy": (1.0, 6.0),
-                "small": (6.0, 12.0),
-                "medium": (12.0, 27.0),
-                "large": (27.0, 45.0),
-                "giant": (45.0, 90.0),
+                "toy": (1.0, 6.0),        # Chihuahua, Yorkshire Terrier
+                "small": (4.0, 15.0),     # Beagle, Cocker Spaniel (overlap with toy/medium)
+                "medium": (8.0, 30.0),    # Border Collie, Labrador (overlap with small/large)
+                "large": (22.0, 50.0),    # German Shepherd, Golden Retriever (overlap with medium/giant)
+                "giant": (35.0, 90.0),    # Great Dane, Saint Bernard (overlap with large)
             }
 
             min_weight, max_weight = size_ranges[dog_size]

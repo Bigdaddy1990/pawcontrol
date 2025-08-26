@@ -25,11 +25,19 @@
         "title": "Enable Modules",
         "description": "Choose which monitoring modules to enable for {dog_name}. You can change these settings later.",
         "data": {
-          "module_feeding": "Feeding Tracking",
-          "module_walk": "Walk Monitoring",
-          "module_gps": "GPS Location Tracking",
-          "module_health": "Health Monitoring",
-          "module_notifications": "Smart Notifications"
+          "enable_gps": "GPS Location Tracking",
+          "enable_health": "Health Monitoring",
+          "enable_visitor_mode": "Visitor Mode",
+          "enable_advanced_features": "Advanced Features"
+        }
+      },
+      "configure_external_entities": {
+        "title": "Configure External Entities",
+        "description": "Select existing Home Assistant entities that Paw Control will use for GPS tracking, visitor detection, and notifications. This is required for proper integration functionality.",
+        "data": {
+          "gps_source": "GPS Source (Device Tracker or Person)",
+          "door_sensor": "Door Sensor (Optional)",
+          "notify_fallback": "Notification Service (Optional)"
         }
       },
       "gps_setup": {
@@ -101,7 +109,13 @@
       "duplicate_dog": "A dog with this ID already exists",
       "no_dogs_configured": "At least one dog must be configured",
       "module_dependency": "GPS module is required for walk tracking",
-      "invalid_schedule": "Invalid feeding or walk schedule format"
+      "invalid_schedule": "Invalid feeding or walk schedule format",
+      "gps_entity_not_found": "The selected GPS source entity was not found",
+      "gps_entity_unavailable": "The selected GPS source entity is unavailable",
+      "door_sensor_not_found": "The selected door sensor entity was not found",
+      "notification_service_not_found": "The selected notification service was not found",
+      "invalid_notification_service": "The notification service format is invalid",
+      "external_entity_validation_failed": "External entity validation failed"
     },
     "abort": {
       "already_configured": "This integration is already configured",

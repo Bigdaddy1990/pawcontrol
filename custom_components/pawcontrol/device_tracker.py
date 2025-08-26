@@ -8,6 +8,7 @@ Designed to meet Home Assistant's Platinum quality standards.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -55,6 +56,52 @@ BATTERY_LOW_THRESHOLD = 20  # percent
 MAX_GPS_AGE = timedelta(minutes=30)  # Maximum age for GPS data
 
 
+async def _async_add_entities_in_batches(
+    async_add_entities_func,
+    entities: List[PawControlDeviceTracker],
+    batch_size: int = 8,
+    delay_between_batches: float = 0.1
+) -> None:
+    """Add device tracker entities in small batches to prevent Entity Registry overload.
+    
+    The Entity Registry logs warnings when >200 messages occur rapidly.
+    By batching entities and adding delays, we prevent registry overload.
+    
+    Args:
+        async_add_entities_func: The actual async_add_entities callback
+        entities: List of device tracker entities to add
+        batch_size: Number of entities per batch (default: 8)
+        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    """
+    total_entities = len(entities)
+    
+    _LOGGER.debug(
+        "Adding %d device tracker entities in batches of %d to prevent Registry overload",
+        total_entities,
+        batch_size
+    )
+    
+    # Process entities in batches
+    for i in range(0, total_entities, batch_size):
+        batch = entities[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (total_entities + batch_size - 1) // batch_size
+        
+        _LOGGER.debug(
+            "Processing device tracker batch %d/%d with %d entities",
+            batch_num,
+            total_batches,
+            len(batch)
+        )
+        
+        # Add batch without update_before_add to reduce Registry load
+        async_add_entities_func(batch, update_before_add=False)
+        
+        # Small delay between batches to prevent Registry flooding
+        if i + batch_size < total_entities:  # No delay after last batch
+            await asyncio.sleep(delay_between_batches)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -90,11 +137,12 @@ async def async_setup_entry(
             entities.append(PawControlDeviceTracker(coordinator, dog_id, dog_name))
 
     if entities:
-        # Add all entities at once for better performance
-        async_add_entities(entities, update_before_add=True)
+        # Add entities in smaller batches to prevent Entity Registry overload
+        # With GPS device tracker entities, batching prevents Registry flooding
+        await _async_add_entities_in_batches(async_add_entities, entities, batch_size=8)
 
         _LOGGER.info(
-            "Created %d device tracker entities for GPS-enabled dogs", len(entities)
+            "Created %d device tracker entities for GPS-enabled dogs using batched approach", len(entities)
         )
     else:
         _LOGGER.debug("No GPS-enabled dogs found, no device trackers created")
@@ -134,13 +182,14 @@ class PawControlDeviceTracker(
         self._attr_name = f"{dog_name} GPS"
         self._attr_icon = "mdi:dog"
 
-        # Device info for proper grouping
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog GPS Tracker",
             "sw_version": "1.0.0",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
 
         # Internal state
