@@ -644,8 +644,25 @@ class PawControlFeedingCountTodaySensor(PawControlSensorBase):
     def native_value(self) -> int:
         """Return feeding count for meal type."""
         feeding_data = self._get_module_data("feeding")
-        if feeding_data and (feedings := feeding_data.get("feedings_today")):
-            return feedings.get(self._meal_type, 0)
+        if not feeding_data:
+            return 0
+            
+        feedings_today = feeding_data.get("feedings_today")
+        
+        # Handle case where feedings_today is a dict with meal type breakdown
+        if isinstance(feedings_today, dict):
+            return feedings_today.get(self._meal_type, 0)
+        
+        # Handle case where feedings_today is just a total count (int)
+        # We cannot provide meal-specific data from total count, so return 0
+        if isinstance(feedings_today, (int, float)):
+            # Log warning for debugging
+            _LOGGER.debug(
+                "feedings_today is %s (%s), expected dict for meal type breakdown", 
+                type(feedings_today).__name__, feedings_today
+            )
+            return 0
+            
         return 0
 
 
