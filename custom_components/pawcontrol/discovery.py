@@ -14,20 +14,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Final
 
-from homeassistant.components import bluetooth, dhcp, usb, zeroconf
+from homeassistant.components import bluetooth, usb
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.discovery_flow import FlowManagerMixin
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.util.dt import utcnow
 
-from .const import DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -337,7 +333,6 @@ class PawControlDiscovery:
             }
 
             # Get Bluetooth devices (simplified for this implementation)
-            bluetooth_devices = []  # In real implementation: await bluetooth.async_get_discovered_devices(self.hass)
             
             for name_pattern, device_info in bluetooth_signatures.items():
                 if device_info["category"] not in categories:

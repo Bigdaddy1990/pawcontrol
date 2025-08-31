@@ -17,7 +17,6 @@ from datetime import datetime, timedelta, date
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -234,7 +233,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Complete data structure for the dog
         """
         dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
+        dog[CONF_DOG_NAME]
         enabled_modules = dog.get("modules", {})
 
         # Base dog data structure
