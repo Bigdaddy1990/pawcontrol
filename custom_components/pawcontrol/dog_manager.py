@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 from typing import Any, Dict
 
 
@@ -29,4 +30,4 @@ class DogDataManager:
     async def async_all_dogs(self) -> Dict[str, Dict[str, Any]]:
         """Return a copy of all stored dog data."""
         async with self._lock:
-            return copy.deepcopy(self._dogs)  # noqa: F821
+            return copy.deepcopy(self._dogs)

@@ -48,6 +48,7 @@ from .const import (
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_NAME,
     CONF_RESET_TIME,
     DEFAULT_DASHBOARD_AUTO_CREATE,
     DEFAULT_DASHBOARD_ENABLED,
@@ -643,7 +644,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         dashboard_url = await dashboard_generator.async_create_dashboard(
                             dogs_config,
                             options={
-                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",  # noqa: F821
+                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
                                 "theme": entry.options.get(
                                     "dashboard_theme", "default"
                                 ),
