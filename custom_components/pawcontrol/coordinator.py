@@ -116,14 +116,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Log limiter to prevent excessive logging
         self._log_counter: dict[str, int] = {}
         self._log_reset_time: datetime = dt_util.utcnow()
-
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
+        # Managers (will be initialized in __init__.py)
+        self.dog_manager = None
+        self.walk_manager = None
+        self.feeding_manager = None
+        self.health_calculator = None
         _LOGGER.debug(
             "Coordinator initialized for %d dogs with %ds update interval",
             len(self.dogs),
@@ -181,7 +178,14 @@ self.health_calculator = None
         # Dictionary with timestamp field (from data_manager)
         if isinstance(value, dict):
             # Try various timestamp field names
-            for field in ["timestamp", "datetime", "date", "time", "created_at", "updated_at"]:
+            for field in [
+                "timestamp",
+                "datetime",
+                "date",
+                "time",
+                "created_at",
+                "updated_at",
+            ]:
                 if field in value:
                     return self._parse_datetime_safely(value[field])
             return None
@@ -418,14 +422,7 @@ self.health_calculator = None
             # Early return if no dogs configured
             if not self.dogs:
                 if self._should_log("no_dogs"):
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("No dogs configured, returning empty data")
+                    _LOGGER.debug("No dogs configured, returning empty data")
                 return {}
 
             # Update caches if expired
@@ -475,13 +472,7 @@ self.health_calculator = None
             if self._should_log("update_summary", max_count=5):
                 success_count = len(self.dogs) - error_count
 
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug(
+                _LOGGER.debug(
                     "Data update completed in %.2fs: %d successful, %d errors",
                     update_time,
                     success_count,
@@ -556,14 +547,7 @@ self.health_calculator = None
         enabled_modules = dog.get("modules", {})
 
         if self._should_log(f"update_dog_{dog_id}", max_count=20):
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Updating data for dog: %s (%s)", dog_name, dog_id)
+            _LOGGER.debug("Updating data for dog: %s (%s)", dog_name, dog_id)
 
         # Base dog data structure with comprehensive metadata
         dog_data: dict[str, Any] = {
@@ -727,14 +711,7 @@ self.health_calculator = None
                         )
                         enhanced_data["distance_from_home"] = round(distance, 1)
                     except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Failed to calculate distance from home: %s", err)
+                        _LOGGER.debug("Failed to calculate distance from home: %s", err)
                         enhanced_data["distance_from_home"] = None
 
             # Determine current zone with comprehensive zone checking
@@ -824,23 +801,20 @@ self.health_calculator = None
             if feeding_history:
                 for feeding in feeding_history:
                     # FIXED: Robust datetime parsing to prevent comparison errors
-                    timestamp = feeding.get("timestamp") or feeding.get("datetime") or feeding.get("created_at")
+                    timestamp = (
+                        feeding.get("timestamp")
+                        or feeding.get("datetime")
+                        or feeding.get("created_at")
+                    )
                     parsed_timestamp = self._parse_datetime_safely(timestamp)
 
                     if parsed_timestamp is None:
                         if self._should_log(f"feeding_parse_error_{dog_id}"):
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug(
+                            _LOGGER.debug(
                                 "Could not parse feeding timestamp for dog %s: %s (type: %s)",
                                 dog_id,
                                 timestamp,
-                                type(timestamp).__name__
+                                type(timestamp).__name__,
                             )
                         continue
 
@@ -857,7 +831,10 @@ self.health_calculator = None
                         feeding_times.append(parsed_timestamp)
 
                         # Track most recent feeding
-                        if last_feeding_timestamp is None or parsed_timestamp > last_feeding_timestamp:
+                        if (
+                            last_feeding_timestamp is None
+                            or parsed_timestamp > last_feeding_timestamp
+                        ):
                             last_feeding = feeding.copy()
                             last_feeding["timestamp"] = parsed_timestamp.isoformat()
                             last_feeding_timestamp = parsed_timestamp
@@ -894,7 +871,9 @@ self.health_calculator = None
 
             return {
                 "last_feeding": last_feeding_iso,
-                "last_feeding_type": last_feeding.get("meal_type") if last_feeding else None,
+                "last_feeding_type": last_feeding.get("meal_type")
+                if last_feeding
+                else None,
                 "last_feeding_hours": last_feeding_hours,
                 "feedings_today": feedings_today,
                 "total_feedings_today": total_feedings_today,
@@ -992,17 +971,17 @@ self.health_calculator = None
             vet_visit_date = None
             if last_vet_visit:
                 vet_visit_date = self._parse_datetime_safely(
-                    last_vet_visit.get("date") or
-                    last_vet_visit.get("timestamp") or
-                    last_vet_visit.get("visit_date")
+                    last_vet_visit.get("date")
+                    or last_vet_visit.get("timestamp")
+                    or last_vet_visit.get("visit_date")
                 )
 
             grooming_date = None
             if last_grooming:
                 grooming_date = self._parse_datetime_safely(
-                    last_grooming.get("date") or
-                    last_grooming.get("timestamp") or
-                    last_grooming.get("grooming_date")
+                    last_grooming.get("date")
+                    or last_grooming.get("timestamp")
+                    or last_grooming.get("grooming_date")
                 )
 
             return {
@@ -1011,13 +990,15 @@ self.health_calculator = None
                 **health_scores,
                 "last_vet_visit": last_vet_visit,
                 "days_since_vet_visit": self._calculate_days_since(vet_visit_date)
-                    if vet_visit_date else None,
+                if vet_visit_date
+                else None,
                 "next_checkup_due": await self._calculate_next_checkup(
                     dog_id, last_vet_visit
                 ),
                 "last_grooming": last_grooming,
                 "days_since_grooming": self._calculate_days_since(grooming_date)
-                    if grooming_date else None,
+                if grooming_date
+                else None,
                 "grooming_due": await self._is_grooming_due(dog_id, last_grooming),
                 "health_alerts": health_alerts,
                 "care_reminders": await self._get_care_reminders(dog_id),
@@ -1144,7 +1125,9 @@ self.health_calculator = None
         delta = now - parsed_dt
         return round(delta.total_seconds() / 3600, 1)
 
-    def _calculate_days_since(self, date_obj: datetime | date | str | None) -> int | None:
+    def _calculate_days_since(
+        self, date_obj: datetime | date | str | None
+    ) -> int | None:
         """Calculate days since a given date."""
         if not date_obj:
             return None
@@ -1174,22 +1157,19 @@ self.health_calculator = None
 
         for walk in walk_history:
             # FIXED: Robust DateTime-Verarbeitung für Walk-Historie
-            start_time = walk.get("start_time") or walk.get("timestamp") or walk.get("created_at")
+            start_time = (
+                walk.get("start_time")
+                or walk.get("timestamp")
+                or walk.get("created_at")
+            )
             walk_dt = self._parse_datetime_safely(start_time)
 
             if not walk_dt:
                 if self._should_log("walk_parse_error"):
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug(
+                    _LOGGER.debug(
                         "Could not parse walk timestamp: %s (type: %s)",
                         start_time,
-                        type(start_time).__name__
+                        type(start_time).__name__,
                     )
                 continue
 
@@ -1241,7 +1221,11 @@ self.health_calculator = None
 
         for walk in walk_history:
             # FIXED: Robust DateTime-Verarbeitung
-            start_time = walk.get("start_time") or walk.get("timestamp") or walk.get("created_at")
+            start_time = (
+                walk.get("start_time")
+                or walk.get("timestamp")
+                or walk.get("created_at")
+            )
             walk_dt = self._parse_datetime_safely(start_time)
 
             if not walk_dt:
@@ -1289,16 +1273,8 @@ self.health_calculator = None
                     "radius": float(zone_state.attributes.get("radius", 100)),
                 }
         except (ValueError, TypeError) as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Failed to get home location: %s", err)
-
-        return None
+            _LOGGER.debug("Failed to get home location: %s", err)
+            return None
 
     async def _determine_current_zone(
         self, lat: Optional[float], lon: Optional[float]
@@ -1356,14 +1332,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error determining zone: %s", err)
+            _LOGGER.debug("Error determining zone: %s", err)
             return {
                 "zone": "unknown",
                 "zone_friendly_name": "Unknown",
@@ -1447,15 +1416,7 @@ self.health_calculator = None
 
             # Notify listeners of the update
             self.async_update_listeners()
-
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Refreshed data for dog %s", dog_id)
+            _LOGGER.debug("Refreshed data for dog %s", dog_id)
 
         except Exception as err:
             _LOGGER.error("Failed to refresh data for dog %s: %s", dog_id, err)
@@ -1463,12 +1424,6 @@ self.health_calculator = None
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator and cleanup resources."""
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
 
         _LOGGER.debug("Shutting down Paw Control coordinator")
 
@@ -1483,13 +1438,6 @@ self.health_calculator = None
 
         # Reset performance metrics
         self._performance_metrics.clear()
-
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
 
         _LOGGER.debug("Coordinator shutdown completed")
 
@@ -1506,12 +1454,6 @@ self.health_calculator = None
 
         new_interval = self._calculate_optimal_update_interval()
         self.update_interval = timedelta(seconds=new_interval)
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
 
         _LOGGER.debug(
             "Configuration updated: %d dogs, new interval: %ds",
@@ -1556,13 +1498,6 @@ self.health_calculator = None
         self._zone_cache.clear()
         self._entity_cache.clear()
         self._cache_expiry = dt_util.utcnow()
-
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
 
         _LOGGER.debug(
             "Configuration updated: %d dogs, new interval: %ds",
@@ -1661,14 +1596,7 @@ self.health_calculator = None
             return {"is_moving": False, "movement_confidence": 0.0}
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating movement data: %s", err)
+            _LOGGER.debug("Error calculating movement data: %s", err)
             return {"is_moving": False, "movement_confidence": 0.0}
 
     async def _calculate_hunger_status(
@@ -1709,14 +1637,7 @@ self.health_calculator = None
             return hours_since_feeding >= min(threshold, feeding_interval)
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating hunger status: %s", err)
+            _LOGGER.debug("Error calculating hunger status: %s", err)
             return False
 
     async def _calculate_next_feeding(
@@ -1790,14 +1711,7 @@ self.health_calculator = None
             return None
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating next feeding: %s", err)
+            _LOGGER.debug("Error calculating next feeding: %s", err)
             return None
 
     async def _calculate_schedule_adherence(
@@ -1817,14 +1731,7 @@ self.health_calculator = None
             return adherence
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating schedule adherence: %s", err)
+            _LOGGER.debug("Error calculating schedule adherence: %s", err)
             return 100.0
 
     async def _calculate_nutrition_analysis(
@@ -1880,14 +1787,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating nutrition analysis: %s", err)
+            _LOGGER.debug("Error calculating nutrition analysis: %s", err)
             return {
                 "calorie_target": 0,
                 "calorie_progress": 0.0,
@@ -1913,12 +1813,17 @@ self.health_calculator = None
             # Sort by date
             sorted_weights = sorted(
                 weight_history,
-                key=lambda x: self._parse_datetime_safely(x.get("timestamp", datetime.min)) or datetime.min,
+                key=lambda x: self._parse_datetime_safely(
+                    x.get("timestamp", datetime.min)
+                )
+                or datetime.min,
                 reverse=True,
             )
 
             current_weight = sorted_weights[0].get("weight")
-            last_weight_date = self._parse_datetime_safely(sorted_weights[0].get("timestamp"))
+            last_weight_date = self._parse_datetime_safely(
+                sorted_weights[0].get("timestamp")
+            )
 
             # Calculate trend using advanced trend analysis
             weights = [
@@ -1948,7 +1853,9 @@ self.health_calculator = None
 
             return {
                 "current_weight": current_weight,
-                "last_weight_date": last_weight_date.isoformat() if last_weight_date else None,
+                "last_weight_date": last_weight_date.isoformat()
+                if last_weight_date
+                else None,
                 "weight_trend": trend_analysis["direction"],
                 "weight_change_percent": round(weight_change_percent, 1),
                 "weight_status": weight_status,
@@ -1956,14 +1863,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error processing weight data: %s", err)
+            _LOGGER.debug("Error processing weight data: %s", err)
             return {
                 "current_weight": None,
                 "last_weight_date": None,
@@ -2056,7 +1956,11 @@ self.health_calculator = None
 
             # Vet visit alerts with robust date handling
             if last_vet_visit:
-                date_value = last_vet_visit.get("date") or last_vet_visit.get("timestamp") or last_vet_visit.get("visit_date")
+                date_value = (
+                    last_vet_visit.get("date")
+                    or last_vet_visit.get("timestamp")
+                    or last_vet_visit.get("visit_date")
+                )
                 if date_value:
                     last_visit_date = self._parse_datetime_safely(date_value)
 
@@ -2122,6 +2026,7 @@ self.health_calculator = None
 
             if activity_levels:
                 from collections import Counter
+
                 most_common_activity = Counter(activity_levels).most_common(1)[0][0]
             else:
                 most_common_activity = "unknown"
@@ -2158,7 +2063,11 @@ self.health_calculator = None
 
         try:
             # Try different date field names for compatibility
-            date_value = last_visit.get("date") or last_visit.get("timestamp") or last_visit.get("visit_date")
+            date_value = (
+                last_visit.get("date")
+                or last_visit.get("timestamp")
+                or last_visit.get("visit_date")
+            )
             if not date_value:
                 return None
 
@@ -2189,14 +2098,7 @@ self.health_calculator = None
             return next_checkup
 
         except (ValueError, TypeError) as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error calculating next checkup for %s: %s", dog_id, err)
+            _LOGGER.debug("Error calculating next checkup for %s: %s", dog_id, err)
             return None
 
     async def _is_grooming_due(
@@ -2208,7 +2110,11 @@ self.health_calculator = None
 
         try:
             # Try different date field names for compatibility
-            date_value = last_grooming.get("date") or last_grooming.get("timestamp") or last_grooming.get("grooming_date")
+            date_value = (
+                last_grooming.get("date")
+                or last_grooming.get("timestamp")
+                or last_grooming.get("grooming_date")
+            )
             if not date_value:
                 return True  # No valid date found - recommend grooming
 
@@ -2242,14 +2148,7 @@ self.health_calculator = None
             return days_since >= interval_days
 
         except (ValueError, TypeError) as err:
-
-# Managers (will be initialized in __init__.py)
-self.dog_manager = None
-self.walk_manager = None
-self.feeding_manager = None
-self.health_calculator = None
-
-        _LOGGER.debug("Error checking grooming due for %s: %s", dog_id, err)
+            _LOGGER.debug("Error checking grooming due for %s: %s", dog_id, err)
             return False
 
     async def _get_care_reminders(self, dog_id: str) -> list[str]:
@@ -2285,7 +2184,11 @@ self.health_calculator = None
             is_grooming_due = await self._is_grooming_due(dog_id, last_grooming)
             if is_grooming_due:
                 if last_grooming:
-                    date_value = last_grooming.get("date") or last_grooming.get("timestamp") or last_grooming.get("grooming_date")
+                    date_value = (
+                        last_grooming.get("date")
+                        or last_grooming.get("timestamp")
+                        or last_grooming.get("grooming_date")
+                    )
                     if date_value:
                         last_date = self._parse_datetime_safely(date_value)
                         if last_date:
@@ -2329,7 +2232,9 @@ self.health_calculator = None
                 if last_walk:
                     last_walk_dt = self._parse_datetime_safely(last_walk)
                     if last_walk_dt:
-                        hours_since = (dt_util.utcnow() - last_walk_dt).total_seconds() / 3600
+                        hours_since = (
+                            dt_util.utcnow() - last_walk_dt
+                        ).total_seconds() / 3600
                         if hours_since > 12:  # No walk in 12+ hours
                             reminders.append(
                                 f"Walk needed (last walk {hours_since:.1f} hours ago)"
@@ -2343,7 +2248,9 @@ self.health_calculator = None
             if last_feeding:
                 last_feeding_dt = self._parse_datetime_safely(last_feeding)
                 if last_feeding_dt:
-                    hours_since = (dt_util.utcnow() - last_feeding_dt).total_seconds() / 3600
+                    hours_since = (
+                        dt_util.utcnow() - last_feeding_dt
+                    ).total_seconds() / 3600
                     if hours_since > 8:  # No feeding in 8+ hours (might be hungry)
                         reminders.append(
                             f"Check feeding schedule (last fed {hours_since:.1f} hours ago)"
@@ -2397,7 +2304,9 @@ self.health_calculator = None
             elif last_walk_hours is not None and last_walk_hours >= 8:
                 needs_walk = True
                 walk_urgency = "medium"
-                walk_recommendation = f"First walk of the day recommended for {dog_size} dogs"
+                walk_recommendation = (
+                    f"First walk of the day recommended for {dog_size} dogs"
+                )
         elif walks_today < recommended_walks:
             if last_walk_hours is not None and last_walk_hours >= 6:
                 needs_walk = True
@@ -2412,7 +2321,9 @@ self.health_calculator = None
             walk_urgency = "low"
             walk_recommendation = "Long time since last walk - short walk recommended"
         else:
-            walk_recommendation = f"Walk needs met for today ({walks_today}/{recommended_walks} walks)"
+            walk_recommendation = (
+                f"Walk needs met for today ({walks_today}/{recommended_walks} walks)"
+            )
 
         return {
             "needs_walk": needs_walk,
@@ -2524,6 +2435,7 @@ async def async_load(self) -> None:
     if data:
         self._data.update(data)
         _LOGGER.debug("Loaded persisted data for coordinator %s", self.entry.entry_id)
+
 
 async def async_save(self) -> None:
     """Persist coordinator data."""
