@@ -29,4 +29,4 @@ class DogDataManager:
     async def async_all_dogs(self) -> Dict[str, Dict[str, Any]]:
         """Return a copy of all stored dog data."""
         async with self._lock:
-            return copy.deepcopy(self._dogs)
+            return copy.deepcopy(self._dogs)  # noqa: F821
