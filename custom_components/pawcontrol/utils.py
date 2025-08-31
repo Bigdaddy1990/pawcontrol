@@ -771,7 +771,7 @@ def calculate_trend_advanced(
 
     else:
         # Simplified calculation for other algorithms
-        slope = (y[-1] - y[0]) / (n - 1) if n > 1 else 0
+        slope = (y[-1] - y[0]) / (n - 1)
 
         # Estimate r-squared using a basic linear fit between first and last point
         y_mean = sum(y) / n
