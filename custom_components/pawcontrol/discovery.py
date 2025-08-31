@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Final
 
-from homeassistant.components import bluetooth, usb
+from homeassistant.components import bluetooth, dhcp, usb, zeroconf
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
