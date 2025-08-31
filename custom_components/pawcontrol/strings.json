@@ -837,7 +837,7 @@
   },
   "exceptions": {
     "dog_not_found": {
-      "message": "Dog with ID '{dog_id}' not found"
+      "message": "Dog with ID {dog_id} not found"
     },
     "invalid_coordinates": {
       "message": "Invalid GPS coordinates provided"
