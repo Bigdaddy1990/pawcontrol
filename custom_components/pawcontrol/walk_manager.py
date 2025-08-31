@@ -9,11 +9,11 @@ dog.
 
 from __future__ import annotations
 
+import copy
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
-import copy
-import uuid
 
 
 @dataclass(slots=True)
