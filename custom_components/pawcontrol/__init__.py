@@ -119,9 +119,9 @@ ALL_PLATFORMS: Final[list[Platform]] = [
 def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
     """Ermittelt nur die benötigten Plattformen basierend auf aktivierten Modulen.
     
-    Diese Funktion löst das Entity Registry Problem durch intelligentes
-    Platform Loading. Nur aktivierte Module führen zum Laden der entsprechenden
-    Plattformen, was die Performance verbessert und unnötige Entities verhindert.
+    This feature solves the Entity Registry problem through intelligent
+    platform loading. Only enabled modules load the corresponding
+    platforms, which improves performance and prevents unnecessary entities.
     
     Args:
         dogs: Liste der konfigurierten Hunde mit ihren Modulen
