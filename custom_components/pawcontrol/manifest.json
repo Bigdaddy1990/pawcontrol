@@ -1,10 +1,6 @@
 {
   "domain": "pawcontrol",
   "name": "Paw Control",
-  "version": "1.0.0",
-  "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
-  "dependencies": [],
   "after_dependencies": [
     "mobile_app",
     "person",
@@ -15,14 +11,17 @@
     "zeroconf",
     "dhcp"
   ],
-  "requirements": [
-    "aiofiles>=23.1.0",
-    "asyncio-mqtt>=0.16.0"
+  "bluetooth": [
+    {
+      "service_uuid": "0000180f-0000-1000-8000-00805f9b34fb",
+      "connectable": true
+    }
   ],
-  "config_flow": true,
   "codeowners": [
     "@BigDaddy1990"
   ],
+  "config_flow": true,
+  "dependencies": [],
   "dhcp": [
     {
       "hostname": "tractive-*",
@@ -37,11 +36,24 @@
       "macaddress": "AA:BB:CC:*"
     }
   ],
-  "bluetooth": [
-    {
-      "service_uuid": "0000180f-0000-1000-8000-00805f9b34fb",
-      "connectable": true
-    }
+  "documentation": "https://github.com/BigDaddy1990/pawcontrol",
+  "homekit": {
+    "models": [
+      "tractive gps tracker",
+      "petnet smart feeder",
+      "whistle health monitor"
+    ]
+  },
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "loggers": [
+    "custom_components.pawcontrol"
+  ],
+  "quality_scale": "platinum",
+  "requirements": [
+    "aiofiles>=23.1.0",
+    "asyncio-mqtt>=0.16.0"
   ],
   "usb": [
     {
@@ -55,6 +67,7 @@
       "description": "whistle health monitor"
     }
   ],
+  "version": "1.0.0",
   "zeroconf": [
     {
       "type": "_pawcontrol._tcp.local.",
@@ -68,18 +81,5 @@
       "type": "_tractive._tcp.local.",
       "name": "tractive-*"
     }
-  ],
-  "integration_type": "hub",
-  "iot_class": "local_push",
-  "quality_scale": "platinum",
-  "loggers": [
-    "custom_components.pawcontrol"
-  ],
-  "homekit": {
-    "models": [
-      "tractive gps tracker",
-      "petnet smart feeder",
-      "whistle health monitor"
-    ]
-  }
+  ]
 }
