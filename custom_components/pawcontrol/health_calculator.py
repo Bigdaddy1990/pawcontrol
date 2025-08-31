@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 class HealthCalculator:
     def calculate_bmi(self, weight: float, height: float) -> float:
         if height <= 0:

@@ -7,7 +7,7 @@ quality_scale:
   has-owner: true  # @BigDaddy1990 in manifest.json
   config-flow: true  # Comprehensive config flow implemented
   test-coverage: true  # Tests in tests/ directory
-  
+
   # Silver requirements ✅
   config-flow-discovery: false  # Not applicable for dog management
   docs-actions: true  # Services documented in services.yaml
@@ -17,7 +17,7 @@ quality_scale:
   entity-unique-id: true  # All entities use unique IDs
   integration-setup-errors: true  # Proper error handling in setup
   log-when-unavailable: true  # Logs when entities unavailable
-  
+
   # Gold requirements ✅
   devices: true  # Creates device for each dog
   diagnostics: true  # diagnostics.py implemented
@@ -34,7 +34,7 @@ quality_scale:
   test-before-configure: true  # Validates before config
   test-before-setup: true  # Tests connections in setup
   unique-config-entry: true  # Unique IDs enforced
-  
+
   # Platinum requirements ✅
   async-dependency: true  # Fully async implementation
   inject-websocket-api: false  # Not required

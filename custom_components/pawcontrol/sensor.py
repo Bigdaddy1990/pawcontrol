@@ -45,7 +45,7 @@ AttributeDict = dict[str, Any]
 
 # Entity Registry Optimization: Reduzierte Logging-Frequenz
 ENTITY_CREATION_DELAY = 0.05  # 50ms zwischen Entity-Gruppen
-MAX_ENTITIES_PER_BATCH = 5   # Kleinere Batches für bessere Performance
+MAX_ENTITIES_PER_BATCH = 5  # Kleinere Batches für bessere Performance
 
 
 async def async_setup_entry(
@@ -60,7 +60,9 @@ async def async_setup_entry(
     - Reduzierte Entity-Erstellung pro Zeiteinheit
     - Intelligente Gruppierung nach Hunden
     """
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "coordinator"
+    ]
     dogs: list[dict[str, Any]] = entry.data.get(CONF_DOGS, [])
 
     if not dogs:
@@ -69,12 +71,12 @@ async def async_setup_entry(
 
     # OPTIMIZATION: Gruppiere Entities nach Hunden für bessere Registry-Performance
     entities_by_dog: dict[str, list[PawControlSensorBase]] = {}
-    
+
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
-        
+
         dog_entities = []
 
         # Base sensors - immer erstellen
@@ -94,17 +96,17 @@ async def async_setup_entry(
             dog_entities.extend(_create_health_sensors(coordinator, dog_id, dog_name))
 
         entities_by_dog[dog_id] = dog_entities
-        
+
         _LOGGER.debug(
             "Prepared %d sensor entities for dog: %s (%s)",
             len(dog_entities),
             dog_name,
-            dog_id
+            dog_id,
         )
 
     # FIXED: Optimierte Entity-Erstellung zur Vermeidung von Registry-Überflutung
     total_entities = sum(len(entities) for entities in entities_by_dog.values())
-    
+
     if total_entities <= 10:
         # Wenige Entities: Alle auf einmal erstellen
         all_entities = []
@@ -116,24 +118,24 @@ async def async_setup_entry(
         # FIXED: Gestaffelte Entity-Erstellung für mehrere Hunde
         # Erstelle Entities hundeweise mit kleinen Verzögerungen
         created_count = 0
-        
+
         for dog_id, dog_entities in entities_by_dog.items():
             # Teile große Hundegruppen in kleinere Batches
             for i in range(0, len(dog_entities), MAX_ENTITIES_PER_BATCH):
-                batch = dog_entities[i:i + MAX_ENTITIES_PER_BATCH]
-                
+                batch = dog_entities[i : i + MAX_ENTITIES_PER_BATCH]
+
                 # Füge Batch hinzu OHNE update_before_add für bessere Performance
                 async_add_entities(batch, update_before_add=False)
                 created_count += len(batch)
-                
+
                 # Kleine Verzögerung zwischen Batches zur Registry-Entlastung
                 if created_count < total_entities:
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
-        
+
         _LOGGER.info(
             "Created %d sensor entities for %d dogs (optimized batching)",
             total_entities,
-            len(dogs)
+            len(dogs),
         )
 
 
@@ -217,7 +219,7 @@ def _create_health_sensors(
 
 class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntity):
     """Base class for all Paw Control sensor entities.
-    
+
     OPTIMIZED: Reduzierte Update-Frequenz und verbesserte Performance.
     """
 
@@ -277,12 +279,14 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         dog_data = self._get_dog_data()
         if dog_data and "dog_info" in dog_data:
             dog_info = dog_data["dog_info"]
-            attrs.update({
-                "dog_breed": dog_info.get("dog_breed", ""),
-                "dog_age": dog_info.get("dog_age"),
-                "dog_size": dog_info.get("dog_size"),
-                "dog_weight": dog_info.get("dog_weight"),
-            })
+            attrs.update(
+                {
+                    "dog_breed": dog_info.get("dog_breed", ""),
+                    "dog_age": dog_info.get("dog_age"),
+                    "dog_size": dog_info.get("dog_size"),
+                    "dog_weight": dog_info.get("dog_weight"),
+                }
+            )
 
         return attrs
 
@@ -304,10 +308,13 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
 
 # Sensor implementations
 
+
 class PawControlLastActionSensor(PawControlSensorBase):
     """Sensor for tracking the last action timestamp."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -329,8 +336,10 @@ class PawControlLastActionSensor(PawControlSensorBase):
         # Safely parse timestamps
         for module in ["feeding", "walk", "health"]:
             module_data = dog_data.get(module, {})
-            timestamp_key = f"last_{module}" if module != "health" else "last_health_entry"
-            
+            timestamp_key = (
+                f"last_{module}" if module != "health" else "last_health_entry"
+            )
+
             if timestamp_str := module_data.get(timestamp_key):
                 try:
                     if isinstance(timestamp_str, str):
@@ -346,10 +355,10 @@ class PawControlLastActionSensor(PawControlSensorBase):
 class PawControlDogStatusSensor(PawControlSensorBase):
     """Sensor for overall dog status."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
-        super().__init__(
-            coordinator, dog_id, dog_name, "status", icon="mdi:dog"
-        )
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(coordinator, dog_id, dog_name, "status", icon="mdi:dog")
 
     @property
     def native_value(self) -> str:
@@ -374,14 +383,16 @@ class PawControlDogStatusSensor(PawControlSensorBase):
                 return "home"
         elif zone := gps_data.get("zone"):
             return f"at_{zone}" if zone != "unknown" else "away"
-        
+
         return "away"
 
 
 class PawControlActivityScoreSensor(PawControlSensorBase):
     """Sensor for calculating activity score."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -440,11 +451,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         """Calculate feeding regularity score."""
         adherence = feeding_data.get("feeding_schedule_adherence", 0)
         target_met = feeding_data.get("daily_target_met", False)
-        
+
         score = adherence
         if target_met:
             score += 20
-            
+
         return min(score, 100)
 
     def _calculate_gps_score(self, gps_data: dict) -> Optional[float]:
@@ -458,7 +469,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     def _calculate_health_score(self, health_data: dict) -> Optional[float]:
         """Calculate health maintenance score."""
         status = health_data.get("health_status", "good")
-        
+
         scores = {
             "excellent": 100,
             "very_good": 90,
@@ -467,16 +478,19 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             "unwell": 40,
             "sick": 20,
         }
-        
+
         return float(scores.get(status, 70))
 
 
 # Feeding Sensors
 
+
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -508,7 +522,9 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
 class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     """Sensor for hours since last feeding."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -530,7 +546,9 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
     """Sensor for total feedings today."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -550,7 +568,9 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
 class PawControlDailyCaloriesSensor(PawControlSensorBase):
     """Sensor for daily calorie intake."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -571,7 +591,9 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
 class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
     """Sensor for feeding schedule adherence."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -586,7 +608,11 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
     def native_value(self) -> float:
         """Return feeding schedule adherence."""
         feeding_data = self._get_module_data("feeding")
-        return feeding_data.get("feeding_schedule_adherence", 100.0) if feeding_data else 100.0
+        return (
+            feeding_data.get("feeding_schedule_adherence", 100.0)
+            if feeding_data
+            else 100.0
+        )
 
 
 class PawControlFeedingCountTodaySensor(PawControlSensorBase):
@@ -621,10 +647,13 @@ class PawControlFeedingCountTodaySensor(PawControlSensorBase):
 
 # Walk Sensors
 
+
 class PawControlLastWalkSensor(PawControlSensorBase):
     """Sensor for last walk timestamp."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -656,7 +685,9 @@ class PawControlLastWalkSensor(PawControlSensorBase):
 class PawControlLastWalkHoursSensor(PawControlSensorBase):
     """Sensor for hours since last walk."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -678,7 +709,9 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
 class PawControlLastWalkDurationSensor(PawControlSensorBase):
     """Sensor for last walk duration."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -700,7 +733,9 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
 class PawControlWalkCountTodaySensor(PawControlSensorBase):
     """Sensor for walk count today."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -720,7 +755,9 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
 class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
     """Sensor for total walk time today."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -742,7 +779,9 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
 class PawControlWeeklyWalkCountSensor(PawControlSensorBase):
     """Sensor for weekly walk count."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -762,7 +801,9 @@ class PawControlWeeklyWalkCountSensor(PawControlSensorBase):
 class PawControlAverageWalkDurationSensor(PawControlSensorBase):
     """Sensor for average walk duration."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -783,10 +824,13 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
 # GPS Sensors
 
+
 class PawControlCurrentSpeedSensor(PawControlSensorBase):
     """Sensor for current speed."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -808,7 +852,9 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
 class PawControlDistanceFromHomeSensor(PawControlSensorBase):
     """Sensor for distance from home."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -830,7 +876,9 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
 class PawControlGPSAccuracySensor(PawControlSensorBase):
     """Sensor for GPS accuracy."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -852,7 +900,9 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
 class PawControlLastWalkDistanceSensor(PawControlSensorBase):
     """Sensor for last walk distance."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -874,7 +924,9 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
 class PawControlTotalDistanceTodaySensor(PawControlSensorBase):
     """Sensor for total distance today."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -896,7 +948,9 @@ class PawControlTotalDistanceTodaySensor(PawControlSensorBase):
 class PawControlWeeklyDistanceSensor(PawControlSensorBase):
     """Sensor for weekly distance."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -918,7 +972,9 @@ class PawControlWeeklyDistanceSensor(PawControlSensorBase):
 class PawControlCurrentZoneSensor(PawControlSensorBase):
     """Sensor for current zone."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator, dog_id, dog_name, "current_zone", icon="mdi:map-marker"
         )
@@ -933,7 +989,9 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
 class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
     """Sensor for GPS battery level."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -954,10 +1012,13 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
 
 # Health Sensors
 
+
 class PawControlWeightSensor(PawControlSensorBase):
     """Sensor for dog weight."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -979,7 +1040,9 @@ class PawControlWeightSensor(PawControlSensorBase):
 class PawControlWeightTrendSensor(PawControlSensorBase):
     """Sensor for weight trend."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator, dog_id, dog_name, "weight_trend", icon="mdi:trending-up"
         )
@@ -994,7 +1057,9 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
 class PawControlActivityLevelSensor(PawControlSensorBase):
     """Sensor for activity level."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator, dog_id, dog_name, "activity_level", icon="mdi:run"
         )
@@ -1009,7 +1074,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 class PawControlLastVetVisitSensor(PawControlSensorBase):
     """Sensor for last vet visit."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -1041,7 +1108,9 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
 class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
     """Sensor for days since grooming."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -1062,7 +1131,9 @@ class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
 class PawControlHealthStatusSensor(PawControlSensorBase):
     """Sensor for health status."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator, dog_id, dog_name, "health_status", icon="mdi:heart"
         )
@@ -1077,7 +1148,9 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
 class PawControlMedicationDueSensor(PawControlSensorBase):
     """Sensor for medication due status."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator, dog_id, dog_name, "medication_due", icon="mdi:pill"
         )
@@ -1094,11 +1167,11 @@ class PawControlMedicationDueSensor(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes."""
         attrs = super().extra_state_attributes
-        
+
         health_data = self._get_module_data("health")
         if health_data and (med_details := health_data.get("medication_details")):
             attrs["medication_name"] = med_details.get("name")
             attrs["medication_dosage"] = med_details.get("dosage")
             attrs["next_dose_time"] = med_details.get("next_dose_time")
-        
+
         return attrs

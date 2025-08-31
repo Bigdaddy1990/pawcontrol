@@ -2,6 +2,7 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+
 class WalkManager:
     def __init__(self) -> None:
         self._walks: dict[str, list[dict[str, Any]]] = {}
