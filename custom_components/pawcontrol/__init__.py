@@ -101,6 +101,9 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# This integration can only be configured via the UI
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 # Ordered platform loading for optimal dependency resolution
 # Legacy: All platforms (kept for reference and fallback)
 ALL_PLATFORMS: Final[list[Platform]] = [
