@@ -1,7 +1,7 @@
-"""Sensor platform for Paw Control integration - FIXED VERSION.
+"""Sensor platform for the Paw Control integration.
 
-Optimiert für Home Assistant 2025.8.2 mit Python 3.13.
-Behebt das Entity Registry Logging Problem bei mehreren Hunden.
+Optimized for Home Assistant 2025.8.2 with Python 3.13 and fixes the
+Entity Registry logging issue when multiple dogs are configured.
 """
 
 from __future__ import annotations
@@ -43,9 +43,9 @@ _LOGGER = logging.getLogger(__name__)
 SensorValue = Union[str, int, float, datetime, None]
 AttributeDict = dict[str, Any]
 
-# Entity Registry Optimization: Reduzierte Logging-Frequenz
-ENTITY_CREATION_DELAY = 0.05  # 50ms zwischen Entity-Gruppen
-MAX_ENTITIES_PER_BATCH = 5  # Kleinere Batches für bessere Performance
+# Entity Registry optimization: reduced logging frequency
+ENTITY_CREATION_DELAY = 0.05  # 50ms between entity groups
+MAX_ENTITIES_PER_BATCH = 5  # Smaller batches for better performance
 
 
 async def async_setup_entry(
@@ -53,23 +53,27 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Paw Control sensor platform mit Entity Registry Optimierung.
+    """Set up the Paw Control sensor platform with entity registry optimization.
 
-    FIXED: Behebt das "logging too frequently" Problem durch:
-    - Optimierte Batch-Verarbeitung
-    - Reduzierte Entity-Erstellung pro Zeiteinheit
-    - Intelligente Gruppierung nach Hunden
+    Fixes the "logging too frequently" issue by:
+    - using optimized batch processing
+    - reducing entity creation frequency
+    - grouping entities by dog
     """
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
-        "coordinator"
-    ]
-    dogs: list[dict[str, Any]] = entry.data.get(CONF_DOGS, [])
+    runtime_data = getattr(entry, "runtime_data", None)
+
+    if runtime_data:
+        coordinator: PawControlCoordinator = runtime_data["coordinator"]
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
+    else:
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        dogs = entry.data.get(CONF_DOGS, [])
 
     if not dogs:
         _LOGGER.warning("No dogs configured for sensor platform")
         return
 
-    # OPTIMIZATION: Gruppiere Entities nach Hunden für bessere Registry-Performance
+    # OPTIMIZATION: group entities by dog for better registry performance
     entities_by_dog: dict[str, list[PawControlSensorBase]] = {}
 
     for dog in dogs:
@@ -79,10 +83,10 @@ async def async_setup_entry(
 
         dog_entities = []
 
-        # Base sensors - immer erstellen
+        # Base sensors - always created
         dog_entities.extend(_create_base_sensors(coordinator, dog_id, dog_name))
 
-        # Module-spezifische Sensoren
+        # Module-specific sensors
         if modules.get(MODULE_FEEDING, False):
             dog_entities.extend(_create_feeding_sensors(coordinator, dog_id, dog_name))
 
@@ -104,31 +108,31 @@ async def async_setup_entry(
             dog_id,
         )
 
-    # FIXED: Optimierte Entity-Erstellung zur Vermeidung von Registry-Überflutung
+    # Optimized entity creation to avoid overloading the registry
     total_entities = sum(len(entities) for entities in entities_by_dog.values())
 
     if total_entities <= 10:
-        # Wenige Entities: Alle auf einmal erstellen
+        # Few entities: create all at once
         all_entities = []
         for dog_entities in entities_by_dog.values():
             all_entities.extend(dog_entities)
         async_add_entities(all_entities, update_before_add=False)
         _LOGGER.info("Created %d sensor entities (single batch)", total_entities)
     else:
-        # FIXED: Gestaffelte Entity-Erstellung für mehrere Hunde
-        # Erstelle Entities hundeweise mit kleinen Verzögerungen
+        # Staggered entity creation for multiple dogs
+        # Create entities per dog with small delays
         created_count = 0
 
         for dog_id, dog_entities in entities_by_dog.items():
-            # Teile große Hundegruppen in kleinere Batches
+            # Split large dog groups into smaller batches
             for i in range(0, len(dog_entities), MAX_ENTITIES_PER_BATCH):
                 batch = dog_entities[i : i + MAX_ENTITIES_PER_BATCH]
 
-                # Füge Batch hinzu OHNE update_before_add für bessere Performance
+                # Add batch without update_before_add for better performance
                 async_add_entities(batch, update_before_add=False)
                 created_count += len(batch)
 
-                # Kleine Verzögerung zwischen Batches zur Registry-Entlastung
+                # Small delay between batches to relieve the registry
                 if created_count < total_entities:
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
 
@@ -162,7 +166,7 @@ def _create_feeding_sensors(
         PawControlFeedingScheduleAdherenceSensor(coordinator, dog_id, dog_name),
     ]
 
-    # Meal type sensors nur bei Bedarf
+    # Add meal type sensors only when needed
     for meal_type in ["breakfast", "lunch", "dinner", "snack"]:
         sensors.append(
             PawControlFeedingCountTodaySensor(coordinator, dog_id, dog_name, meal_type)
@@ -220,7 +224,7 @@ def _create_health_sensors(
 class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntity):
     """Base class for all Paw Control sensor entities.
 
-    OPTIMIZED: Reduzierte Update-Frequenz und verbesserte Performance.
+    Optimized for reduced update frequency and improved performance.
     """
 
     # Class-level optimization flags

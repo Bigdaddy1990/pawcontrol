@@ -106,10 +106,14 @@ async def async_setup_entry(
         entry: Configuration entry containing dog configurations
         async_add_entities: Callback to add binary sensor entities
     """
-    coordinator: PawControlCoordinator = hass.data[DOMAIN][entry.entry_id][
-        "coordinator"
-    ]
-    dogs: list[dict[str, Any]] = entry.data.get(CONF_DOGS, [])
+    runtime_data = getattr(entry, "runtime_data", None)
+
+    if runtime_data:
+        coordinator: PawControlCoordinator = runtime_data["coordinator"]
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
+    else:
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        dogs = entry.data.get(CONF_DOGS, [])
 
     entities: list[PawControlBinarySensorBase] = []
 
