@@ -28,9 +28,7 @@ from .exceptions import NotificationError
 from .utils import is_within_quiet_hours
 
 if TYPE_CHECKING:
-    from .types import (
-        PawControlRuntimeData,
-    )
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 

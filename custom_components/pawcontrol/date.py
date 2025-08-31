@@ -37,7 +37,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .exceptions import PawControlError, ValidationError
-from .utils import safe_convert, performance_monitor
+from .utils import performance_monitor
 
 _LOGGER = logging.getLogger(__name__)
 

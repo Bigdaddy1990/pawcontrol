@@ -60,11 +60,13 @@ from .const import (
     FOOD_TYPES,
     HEALTH_STATUS_OPTIONS,
     MEAL_TYPES,
+    MODULE_DASHBOARD,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
+    MODULE_VISITOR,
     MOOD_OPTIONS,
     SERVICE_DAILY_RESET,
     SERVICE_END_WALK,
@@ -638,7 +640,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         dashboard_url = await dashboard_generator.async_create_dashboard(
                             dogs_config,
                             options={
-                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
+                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",  # noqa: F821
                                 "theme": entry.options.get("dashboard_theme", "default"),
                                 "mode": entry.options.get("dashboard_mode", "full"),
                             }
