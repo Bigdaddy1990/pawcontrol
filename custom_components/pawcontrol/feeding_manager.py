@@ -1,6 +1,7 @@
 from __future__ import annotations
 import datetime
 
+
 class FeedingManager:
     def __init__(self) -> None:
         self._feedings: dict[str, list[dict[str, str]]] = {}

@@ -366,7 +366,7 @@ class PawControlNotificationManager:
     # Private helper methods
     def _get_runtime_data(self) -> Optional[dict[str, Any]]:
         """Get runtime data for the integration using modern HA 2025.8+ approach.
-        
+
         Returns:
             Runtime data dictionary or None if not available
         """
@@ -378,30 +378,38 @@ class PawControlNotificationManager:
                     if runtime_data:
                         return {
                             "coordinator": runtime_data.get("coordinator"),
-                            "data_manager": runtime_data.get("data_manager"), 
+                            "data_manager": runtime_data.get("data_manager"),
                             "notifications": runtime_data.get("notification_manager"),
                             "entry": runtime_data.get("config_entry"),
                             "config_entry": runtime_data.get("config_entry"),
                         }
-            
+
             # Fallback to legacy data storage
             entry_data = self.hass.data.get(DOMAIN, {}).get(self.entry_id, {})
             return entry_data if entry_data else None
-            
+
         except Exception as err:
             _LOGGER.debug("Failed to get runtime data: %s", err)
             return None
-    
+
     async def _load_configuration(self) -> None:
         """Load configuration from config entry options."""
         try:
             runtime_data = self._get_runtime_data()
             if runtime_data:
-                config_entry = runtime_data.get("entry")  # Use 'entry' instead of 'config_entry'
-                if config_entry and hasattr(config_entry, 'options') and config_entry.options:
+                config_entry = runtime_data.get(
+                    "entry"
+                )  # Use 'entry' instead of 'config_entry'
+                if (
+                    config_entry
+                    and hasattr(config_entry, "options")
+                    and config_entry.options
+                ):
                     notifications_config = config_entry.options.get("notifications", {})
                     self._config.update(notifications_config)
-                    _LOGGER.debug("Loaded notification configuration: %s", notifications_config)
+                    _LOGGER.debug(
+                        "Loaded notification configuration: %s", notifications_config
+                    )
         except Exception as err:
             _LOGGER.warning("Failed to load notification configuration: %s", err)
 
@@ -764,26 +772,28 @@ class PawControlNotificationManager:
                 # Get or create dog settings
                 if dog_id not in self._dog_settings:
                     self._dog_settings[dog_id] = {}
-                
+
                 # Update DND settings
-                self._dog_settings[dog_id].update({
-                    "dnd_enabled": enabled,
-                    "dnd_set_at": dt_util.utcnow().isoformat(),
-                    "notifications_enabled": not enabled,  # Inverse of DND
-                    "feeding_alerts": not enabled,
-                    "walk_alerts": not enabled,
-                    "health_alerts": True,  # Always keep health alerts
-                    "gps_alerts": not enabled,
-                })
-                
-                _LOGGER.info(
-                    "Do not disturb mode %s for dog %s", 
-                    "enabled" if enabled else "disabled",
-                    dog_id
+                self._dog_settings[dog_id].update(
+                    {
+                        "dnd_enabled": enabled,
+                        "dnd_set_at": dt_util.utcnow().isoformat(),
+                        "notifications_enabled": not enabled,  # Inverse of DND
+                        "feeding_alerts": not enabled,
+                        "walk_alerts": not enabled,
+                        "health_alerts": True,  # Always keep health alerts
+                        "gps_alerts": not enabled,
+                    }
                 )
-                
+
+                _LOGGER.info(
+                    "Do not disturb mode %s for dog %s",
+                    "enabled" if enabled else "disabled",
+                    dog_id,
+                )
+
                 return True
-                
+
         except Exception as err:
             _LOGGER.error("Failed to set DND mode for %s: %s", dog_id, err)
             return False

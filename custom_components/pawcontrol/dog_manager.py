@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
+
 class DogDataManager:
     def __init__(self) -> None:
         self._dogs: dict[str, dict[str, Any]] = {}

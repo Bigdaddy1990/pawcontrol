@@ -17,10 +17,8 @@ from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers.entity import EntityCategory
 
 from .exceptions import (
-    PawControlError,
     WalkAlreadyInProgressError,
     WalkNotInProgressError,
 )
@@ -58,13 +56,13 @@ async def _async_add_entities_in_batches(
     async_add_entities_func,
     entities: List[PawControlButtonBase],
     batch_size: int = 5,
-    delay_between_batches: float = 1.0
+    delay_between_batches: float = 1.0,
 ) -> None:
     """Add button entities in small batches to prevent Entity Registry overload.
-    
+
     HA Entity Registry logs warnings when >200 messages occur rapidly.
     Solution: Small batches (5) with 1 second delays between batches.
-    
+
     Args:
         async_add_entities_func: The actual async_add_entities callback
         entities: List of button entities to add
@@ -72,33 +70,33 @@ async def _async_add_entities_in_batches(
         delay_between_batches: Seconds to wait between batches (default: 1.0s)
     """
     total_entities = len(entities)
-    
+
     if total_entities == 0:
         return
-        
+
     _LOGGER.info(
         "Adding %d button entities in batches of %d with %ds delays to prevent Entity Registry overload",
         total_entities,
         batch_size,
-        delay_between_batches
+        delay_between_batches,
     )
-    
+
     # Process entities in small batches with longer delays
     for i in range(0, total_entities, batch_size):
-        batch = entities[i:i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
-        
+
         _LOGGER.debug(
             "Adding button batch %d/%d with %d entities",
             batch_num,
             total_batches,
-            len(batch)
+            len(batch),
         )
-        
+
         # Add batch with explicit update_before_add=False to minimize Registry load
         async_add_entities_func(batch, update_before_add=False)
-        
+
         # Longer delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:
             await asyncio.sleep(delay_between_batches)
@@ -153,16 +151,13 @@ async def async_setup_entry(
 
     # Add entities with proper batching to prevent Entity Registry overload
     await _async_add_entities_in_batches(
-        async_add_entities, 
-        entities, 
-        batch_size=5, 
-        delay_between_batches=1.0
+        async_add_entities, entities, batch_size=5, delay_between_batches=1.0
     )
 
     _LOGGER.info(
-        "Successfully created %d button entities for %d dogs using proper batched approach", 
-        len(entities), 
-        len(dogs)
+        "Successfully created %d button entities for %d dogs using proper batched approach",
+        len(entities),
+        len(dogs),
     )
 
 
@@ -687,8 +682,10 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
         try:
             # Get current feeding schedule to determine appropriate meal type
             # Use only MEAL_TYPES that are valid for service validation
-            current_hour = dt_util.now().hour
-            meal_type = "snack"  # Always use 'snack' for custom feeding (valid in MEAL_TYPES)
+            dt_util.now().hour
+            meal_type = (
+                "snack"  # Always use 'snack' for custom feeding (valid in MEAL_TYPES)
+            )
 
             await self.hass.services.async_call(
                 DOMAIN,
@@ -1095,8 +1092,8 @@ class PawControlCallDogButton(PawControlButtonBase):
             ):
                 _LOGGER.warning(
                     "GPS tracker not available for %s - source: %s",
-                    self._dog_id, 
-                    gps_data.get("source") if gps_data else "no_data"
+                    self._dog_id,
+                    gps_data.get("source") if gps_data else "no_data",
                 )
                 raise HomeAssistantError(
                     f"GPS tracker not available for {self._dog_id}. "
@@ -1118,14 +1115,14 @@ class PawControlCallDogButton(PawControlButtonBase):
                 # Fallback: Log the call request and notify user
                 _LOGGER.warning(
                     "GPS manager not available for %s - call request logged",
-                    self._dog_name
+                    self._dog_name,
                 )
                 # Still notify user that action was attempted
                 self.hass.components.persistent_notification.create(
                     f"GPS call requested for {self._dog_name}. "
                     "Please check GPS tracker configuration.",
                     title="GPS Call Request",
-                    notification_id=f"pawcontrol_gps_call_{self._dog_id}"
+                    notification_id=f"pawcontrol_gps_call_{self._dog_id}",
                 )
 
             _LOGGER.info("GPS tracker call processed for %s", self._dog_name)

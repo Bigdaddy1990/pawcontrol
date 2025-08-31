@@ -112,7 +112,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._zone_cache: dict[str, dict[str, Any]] = {}
         self._entity_cache: dict[str, Any] = {}
         self._cache_expiry: datetime = dt_util.utcnow()
-        
+
         # Log limiter to prevent excessive logging
         self._log_counter: dict[str, int] = {}
         self._log_reset_time: datetime = dt_util.utcnow()
@@ -132,21 +132,21 @@ self.health_calculator = None
 
     def _should_log(self, log_key: str, max_count: int = 10) -> bool:
         """Check if we should log to prevent excessive logging.
-        
+
         Args:
             log_key: Unique key for this log type
             max_count: Maximum logs per hour
-            
+
         Returns:
             True if logging is allowed
         """
         now = dt_util.utcnow()
-        
+
         # Reset counter every hour
         if (now - self._log_reset_time).total_seconds() > 3600:
             self._log_counter.clear()
             self._log_reset_time = now
-        
+
         count = self._log_counter.get(log_key, 0)
         if count < max_count:
             self._log_counter[log_key] = count + 1
@@ -155,29 +155,29 @@ self.health_calculator = None
 
     def _parse_datetime_safely(self, value: Any) -> datetime | None:
         """Safely parse datetime from various input types - FIXED VERSION.
-        
+
         Args:
             value: Value to parse (string, datetime, date, dict or None)
-            
+
         Returns:
             Parsed datetime object or None if parsing fails
         """
         if value is None:
             return None
-            
+
         # Already a datetime
         if isinstance(value, datetime):
             # Ensure timezone awareness
             if value.tzinfo is None:
                 return dt_util.as_local(value)
             return value
-            
+
         # Date object (not datetime)
         if isinstance(value, date) and not isinstance(value, datetime):
             # Convert date to datetime at midnight local time
             dt = datetime.combine(value, datetime.min.time())
             return dt_util.as_local(dt)
-            
+
         # Dictionary with timestamp field (from data_manager)
         if isinstance(value, dict):
             # Try various timestamp field names
@@ -185,12 +185,12 @@ self.health_calculator = None
                 if field in value:
                     return self._parse_datetime_safely(value[field])
             return None
-            
+
         # String parsing
         if isinstance(value, str):
             # Clean string
             value = value.strip()
-            
+
             try:
                 # Try ISO format first (most common)
                 if "T" in value or " " in value:
@@ -202,7 +202,7 @@ self.health_calculator = None
                         return parsed
             except (ValueError, TypeError):
                 pass
-                
+
             try:
                 # Try date-only format (YYYY-MM-DD)
                 if len(value) == 10 and value.count("-") == 2:
@@ -210,7 +210,7 @@ self.health_calculator = None
                     return dt_util.as_local(parsed_date)
             except (ValueError, TypeError):
                 pass
-                
+
             try:
                 # Try alternative formats
                 for fmt in [
@@ -228,7 +228,7 @@ self.health_calculator = None
                         continue
             except Exception:
                 pass
-                    
+
         # Timestamp (Unix epoch)
         if isinstance(value, (int, float)):
             try:
@@ -240,29 +240,29 @@ self.health_calculator = None
                     return dt_util.as_local(datetime.fromtimestamp(value / 1000))
             except (ValueError, OSError):
                 pass
-                
+
         return None
 
     def _parse_date_safely(self, value: Any) -> date | None:
         """Safely parse date from various input types - FIXED VERSION.
-        
+
         Args:
             value: Value to parse (string, datetime, date, dict or None)
-            
+
         Returns:
             Parsed date object or None if parsing fails
         """
         if value is None:
             return None
-            
+
         # Already a date (but not datetime)
         if isinstance(value, date) and not isinstance(value, datetime):
             return value
-            
+
         # DateTime object - extract date
         if isinstance(value, datetime):
             return value.date()
-            
+
         # Dictionary with date field
         if isinstance(value, dict):
             for field in ["date", "timestamp", "datetime", "created_at", "updated_at"]:
@@ -271,62 +271,62 @@ self.health_calculator = None
                     if parsed_dt:
                         return parsed_dt.date()
             return None
-            
+
         # String parsing
         if isinstance(value, str):
             # First try to parse as datetime
             parsed_dt = self._parse_datetime_safely(value)
             if parsed_dt:
                 return parsed_dt.date()
-                
+
             # Try direct date parsing
             value = value.strip()
-            
+
             for fmt in ["%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y"]:
                 try:
                     return datetime.strptime(value, fmt).date()
                 except ValueError:
                     continue
-                    
+
         return None
-    
+
     def _ensure_timezone_aware(self, dt: datetime | None) -> datetime | None:
         """Ensure a datetime is timezone-aware.
-        
+
         Args:
             dt: Datetime to check
-            
+
         Returns:
             Timezone-aware datetime or None
         """
         if dt is None:
             return None
-            
+
         if dt.tzinfo is None:
             return dt_util.as_local(dt)
-            
+
         return dt
-    
+
     def _safe_datetime_comparison(self, dt1: Any, dt2: Any) -> bool:
         """Safely compare two datetime values.
-        
+
         Args:
             dt1: First datetime value
             dt2: Second datetime value
-            
+
         Returns:
             True if dt1 > dt2, False otherwise or if comparison fails
         """
         parsed_dt1 = self._parse_datetime_safely(dt1)
         parsed_dt2 = self._parse_datetime_safely(dt2)
-        
+
         if parsed_dt1 is None or parsed_dt2 is None:
             return False
-            
+
         # Ensure both are timezone-aware for comparison
         parsed_dt1 = self._ensure_timezone_aware(parsed_dt1)
         parsed_dt2 = self._ensure_timezone_aware(parsed_dt2)
-        
+
         try:
             return parsed_dt1 > parsed_dt2
         except TypeError:
@@ -418,7 +418,7 @@ self.health_calculator = None
             # Early return if no dogs configured
             if not self.dogs:
                 if self._should_log("no_dogs"):
-            
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -474,7 +474,7 @@ self.health_calculator = None
             # Log update summary (only periodically)
             if self._should_log("update_summary", max_count=5):
                 success_count = len(self.dogs) - error_count
-        
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -508,12 +508,12 @@ self.health_calculator = None
             error_count: Number of errors encountered
         """
         metrics = self._performance_metrics
-        
+
         # Ensure metrics dictionary has all required keys (defensive programming)
         metrics.setdefault("update_count", 0)
         metrics.setdefault("error_count", 0)
         metrics.setdefault("average_update_time", 0.0)
-            
+
         metrics["update_count"] += 1
         metrics["error_count"] += error_count
 
@@ -556,7 +556,7 @@ self.health_calculator = None
         enabled_modules = dog.get("modules", {})
 
         if self._should_log(f"update_dog_{dog_id}", max_count=20):
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -727,7 +727,7 @@ self.health_calculator = None
                         )
                         enhanced_data["distance_from_home"] = round(distance, 1)
                     except Exception as err:
-                
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -826,10 +826,10 @@ self.health_calculator = None
                     # FIXED: Robust datetime parsing to prevent comparison errors
                     timestamp = feeding.get("timestamp") or feeding.get("datetime") or feeding.get("created_at")
                     parsed_timestamp = self._parse_datetime_safely(timestamp)
-                    
+
                     if parsed_timestamp is None:
                         if self._should_log(f"feeding_parse_error_{dog_id}"):
-                    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -843,10 +843,10 @@ self.health_calculator = None
                                 type(timestamp).__name__
                             )
                         continue
-                    
+
                     # FIXED: Safe date comparison
                     feeding_date = parsed_timestamp.date()
-                    
+
                     if feeding_date == today:
                         meal_type = feeding.get("meal_type", "snack")
                         if meal_type in feedings_today:
@@ -992,16 +992,16 @@ self.health_calculator = None
             vet_visit_date = None
             if last_vet_visit:
                 vet_visit_date = self._parse_datetime_safely(
-                    last_vet_visit.get("date") or 
-                    last_vet_visit.get("timestamp") or 
+                    last_vet_visit.get("date") or
+                    last_vet_visit.get("timestamp") or
                     last_vet_visit.get("visit_date")
                 )
-            
+
             grooming_date = None
             if last_grooming:
                 grooming_date = self._parse_datetime_safely(
-                    last_grooming.get("date") or 
-                    last_grooming.get("timestamp") or 
+                    last_grooming.get("date") or
+                    last_grooming.get("timestamp") or
                     last_grooming.get("grooming_date")
                 )
 
@@ -1010,7 +1010,7 @@ self.health_calculator = None
                 **medication_data,
                 **health_scores,
                 "last_vet_visit": last_vet_visit,
-                "days_since_vet_visit": self._calculate_days_since(vet_visit_date) 
+                "days_since_vet_visit": self._calculate_days_since(vet_visit_date)
                     if vet_visit_date else None,
                 "next_checkup_due": await self._calculate_next_checkup(
                     dog_id, last_vet_visit
@@ -1136,7 +1136,7 @@ self.health_calculator = None
             return None
 
         now = dt_util.now()
-        
+
         # Ensure timezone awareness
         if parsed_dt.tzinfo is None:
             parsed_dt = dt_util.as_local(parsed_dt)
@@ -1176,10 +1176,10 @@ self.health_calculator = None
             # FIXED: Robust DateTime-Verarbeitung für Walk-Historie
             start_time = walk.get("start_time") or walk.get("timestamp") or walk.get("created_at")
             walk_dt = self._parse_datetime_safely(start_time)
-            
+
             if not walk_dt:
                 if self._should_log("walk_parse_error"):
-            
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1192,7 +1192,7 @@ self.health_calculator = None
                         type(start_time).__name__
                     )
                 continue
-            
+
             # FIXED: Safe date comparison
             if walk_dt.date() == today:
                 walks_today += 1
@@ -1243,14 +1243,14 @@ self.health_calculator = None
             # FIXED: Robust DateTime-Verarbeitung
             start_time = walk.get("start_time") or walk.get("timestamp") or walk.get("created_at")
             walk_dt = self._parse_datetime_safely(start_time)
-            
+
             if not walk_dt:
                 continue
-            
+
             # FIXED: Safe DateTime comparison with timezone awareness
             walk_dt = self._ensure_timezone_aware(walk_dt)
             one_week_ago_aware = self._ensure_timezone_aware(one_week_ago)
-            
+
             if walk_dt >= one_week_ago_aware:
                 weekly_walk_count += 1
 
@@ -1289,7 +1289,7 @@ self.health_calculator = None
                     "radius": float(zone_state.attributes.get("radius", 100)),
                 }
         except (ValueError, TypeError) as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1356,7 +1356,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1380,7 +1380,7 @@ self.health_calculator = None
         self, update_callback: Callable[[], None], context: Any = None
     ) -> Callable[[], None]:
         """Add a listener for data updates.
-        
+
         Args:
             update_callback: Callback function to call on updates
             context: Optional context parameter for Home Assistant 2025.8+ compatibility
@@ -1448,7 +1448,7 @@ self.health_calculator = None
             # Notify listeners of the update
             self.async_update_listeners()
 
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1661,7 +1661,7 @@ self.health_calculator = None
             return {"is_moving": False, "movement_confidence": 0.0}
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1683,7 +1683,7 @@ self.health_calculator = None
             last_feeding_time = self._parse_datetime_safely(
                 last_feeding.get("timestamp", now)
             )
-            
+
             if not last_feeding_time:
                 return False
 
@@ -1709,7 +1709,7 @@ self.health_calculator = None
             return hours_since_feeding >= min(threshold, feeding_interval)
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1790,7 +1790,7 @@ self.health_calculator = None
             return None
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1817,7 +1817,7 @@ self.health_calculator = None
             return adherence
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1880,7 +1880,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1895,7 +1895,7 @@ self.health_calculator = None
             }
 
     # Continue with remaining helper methods
-    
+
     def _process_weight_data_comprehensive(
         self, weight_history: list
     ) -> dict[str, Any]:
@@ -1956,7 +1956,7 @@ self.health_calculator = None
             }
 
         except Exception as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -1994,12 +1994,12 @@ self.health_calculator = None
             if next_dose:
                 try:
                     next_dose_dt = self._parse_datetime_safely(next_dose)
-                    
+
                     if next_dose_dt:
                         # Ensure timezone awareness
                         if next_dose_dt.tzinfo is None:
                             next_dose_dt = dt_util.as_local(next_dose_dt)
-                            
+
                         time_diff = (next_dose_dt - now).total_seconds()
 
                         if time_diff < 0:  # Overdue
@@ -2059,7 +2059,7 @@ self.health_calculator = None
                 date_value = last_vet_visit.get("date") or last_vet_visit.get("timestamp") or last_vet_visit.get("visit_date")
                 if date_value:
                     last_visit_date = self._parse_datetime_safely(date_value)
-                    
+
                     if last_visit_date:
                         days_since = (dt_util.utcnow() - last_visit_date).days
                         if days_since > 365:
@@ -2161,7 +2161,7 @@ self.health_calculator = None
             date_value = last_visit.get("date") or last_visit.get("timestamp") or last_visit.get("visit_date")
             if not date_value:
                 return None
-                
+
             last_visit_date = self._parse_datetime_safely(date_value)
             if not last_visit_date:
                 return None
@@ -2189,7 +2189,7 @@ self.health_calculator = None
             return next_checkup
 
         except (ValueError, TypeError) as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -2211,7 +2211,7 @@ self.health_calculator = None
             date_value = last_grooming.get("date") or last_grooming.get("timestamp") or last_grooming.get("grooming_date")
             if not date_value:
                 return True  # No valid date found - recommend grooming
-                
+
             last_grooming_date = self._parse_datetime_safely(date_value)
             if not last_grooming_date:
                 return True
@@ -2242,7 +2242,7 @@ self.health_calculator = None
             return days_since >= interval_days
 
         except (ValueError, TypeError) as err:
-    
+
 # Managers (will be initialized in __init__.py)
 self.dog_manager = None
 self.walk_manager = None
@@ -2501,12 +2501,12 @@ self.health_calculator = None
 
         start_time = walk["start_time"]
         parsed_start = self._parse_datetime_safely(start_time)
-        
+
         if not parsed_start:
             return 0
 
         now = dt_util.now()
-        
+
         # Ensure timezone awareness
         if parsed_start.tzinfo is None:
             parsed_start = dt_util.as_local(parsed_start)

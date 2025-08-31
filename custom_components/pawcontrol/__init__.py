@@ -76,7 +76,6 @@ from .const import (
     SERVICE_NOTIFY_TEST,
     SERVICE_START_GROOMING,
     SERVICE_START_WALK,
-
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
@@ -86,6 +85,7 @@ from .exceptions import (
     DogNotFoundError,
     ValidationError,
 )
+
 # Error classes already imported from .exceptions
 from .notifications import PawControlNotificationManager
 from .types import DogConfigData, PawControlRuntimeData
@@ -118,64 +118,60 @@ ALL_PLATFORMS: Final[list[Platform]] = [
 
 def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
     """Ermittelt nur die benötigten Plattformen basierend auf aktivierten Modulen.
-    
+
     This feature solves the Entity Registry problem through intelligent
     platform loading. Only enabled modules load the corresponding
     platforms, which improves performance and prevents unnecessary entities.
-    
+
     Args:
         dogs: Liste der konfigurierten Hunde mit ihren Modulen
-        
+
     Returns:
         Liste der benötigten Plattformen in optimaler Ladereihenfolge
     """
-    from .const import (
-        MODULE_GPS, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK,
-        MODULE_NOTIFICATIONS, MODULE_DASHBOARD, MODULE_VISITOR
-    )
-    
+
     # Module-zu-Platform-Mapping basierend auf Funktionalität
     MODULE_PLATFORM_MAP = {
         MODULE_GPS: {
             Platform.DEVICE_TRACKER,  # GPS Position Tracking
-            Platform.SENSOR,          # GPS Status, Accuracy, Distance
+            Platform.SENSOR,  # GPS Status, Accuracy, Distance
         },
         MODULE_FEEDING: {
-            Platform.SENSOR,          # Feeding Stats, Last Fed
-            Platform.BUTTON,          # Feed Dog Button
-            Platform.SELECT,          # Meal Type Selection
-            Platform.DATETIME,        # Last Feeding Time
+            Platform.SENSOR,  # Feeding Stats, Last Fed
+            Platform.BUTTON,  # Feed Dog Button
+            Platform.SELECT,  # Meal Type Selection
+            Platform.DATETIME,  # Last Feeding Time
         },
         MODULE_HEALTH: {
-            Platform.SENSOR,          # Health Status, Weight Trends
-            Platform.NUMBER,          # Weight Input, Temperature
-            Platform.DATE,            # Last Vet Visit, Next Checkup
+            Platform.SENSOR,  # Health Status, Weight Trends
+            Platform.NUMBER,  # Weight Input, Temperature
+            Platform.DATE,  # Last Vet Visit, Next Checkup
         },
         MODULE_WALK: {
-            Platform.SENSOR,          # Walk Stats, Duration, Distance
-            Platform.BUTTON,          # Start/End Walk Buttons
-            Platform.BINARY_SENSOR,   # Currently Walking Status
+            Platform.SENSOR,  # Walk Stats, Duration, Distance
+            Platform.BUTTON,  # Start/End Walk Buttons
+            Platform.BINARY_SENSOR,  # Currently Walking Status
         },
         MODULE_NOTIFICATIONS: {
-            Platform.SWITCH,          # Notification Enable/Disable
-            Platform.SELECT,          # Notification Priority Level
+            Platform.SWITCH,  # Notification Enable/Disable
+            Platform.SELECT,  # Notification Priority Level
         },
         MODULE_DASHBOARD: {
-            Platform.SENSOR,          # Dashboard Summary Stats
-            Platform.TEXT,            # Dashboard Status Messages
+            Platform.SENSOR,  # Dashboard Summary Stats
+            Platform.TEXT,  # Dashboard Status Messages
         },
         MODULE_VISITOR: {
-            Platform.SWITCH,          # Visitor Mode On/Off
-            Platform.BINARY_SENSOR,   # Visitor Present Status
+            Platform.SWITCH,  # Visitor Mode On/Off
+            Platform.BINARY_SENSOR,  # Visitor Present Status
         },
     }
-    
+
     # Core Plattformen die IMMER benötigt werden
     required_platforms = {
-        Platform.SENSOR,    # Basis-Sensoren für jeden Hund
-        Platform.BUTTON,    # Basis-Buttons (Daily Reset etc.)
+        Platform.SENSOR,  # Basis-Sensoren für jeden Hund
+        Platform.BUTTON,  # Basis-Buttons (Daily Reset etc.)
     }
-    
+
     # Sammle alle aktivierten Module aus allen Hunden
     enabled_modules = set()
     for dog in dogs:
@@ -183,31 +179,31 @@ def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
         for module_name, is_enabled in dog_modules.items():
             if is_enabled:
                 enabled_modules.add(module_name)
-    
+
     # Ermittle benötigte Plattformen basierend auf aktivierten Modulen
     needed_platforms = required_platforms.copy()
-    
+
     for module in enabled_modules:
         module_platforms = MODULE_PLATFORM_MAP.get(module, set())
         needed_platforms.update(module_platforms)
-        
+
     # Konvertiere zu sortierter Liste für optimale Ladereihenfolge
     platform_order = [
-        Platform.SENSOR,         # Basis-Sensoren zuerst
+        Platform.SENSOR,  # Basis-Sensoren zuerst
         Platform.BINARY_SENSOR,  # Binäre Sensoren
-        Platform.BUTTON,         # Buttons
-        Platform.SWITCH,         # Switches
-        Platform.NUMBER,         # Zahlen-Eingaben
-        Platform.SELECT,         # Auswahl-Felder  
-        Platform.TEXT,           # Text-Felder
-        Platform.DEVICE_TRACKER, # Device Tracker
-        Platform.DATE,           # Datum-Felder
-        Platform.DATETIME,       # DateTime-Felder
+        Platform.BUTTON,  # Buttons
+        Platform.SWITCH,  # Switches
+        Platform.NUMBER,  # Zahlen-Eingaben
+        Platform.SELECT,  # Auswahl-Felder
+        Platform.TEXT,  # Text-Felder
+        Platform.DEVICE_TRACKER,  # Device Tracker
+        Platform.DATE,  # Datum-Felder
+        Platform.DATETIME,  # DateTime-Felder
     ]
-    
+
     # Filtere und sortiere nach optimaler Reihenfolge
     platforms_list = [p for p in platform_order if p in needed_platforms]
-        
+
     # Log für Debugging
     _LOGGER.info(
         "Modulares Platform Loading: %d Module aktiv (%s), %d/%d Plattformen geladen: %s",
@@ -215,10 +211,11 @@ def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
         ", ".join(sorted(enabled_modules)),
         len(platforms_list),
         len(ALL_PLATFORMS),
-        [p.value for p in platforms_list]
+        [p.value for p in platforms_list],
     )
-    
+
     return platforms_list
+
 
 # OPTIMIZATION: Rate limiting für Entity Registry Updates
 _PLATFORM_SETUP_LOCK = asyncio.Lock()
@@ -407,7 +404,9 @@ SERVICE_SET_VISITOR_MODE_SCHEMA: Final = vol.Schema(
     {
         vol.Required(ATTR_DOG_ID): vol.All(cv.string, vol.Length(min=1, max=50)),
         vol.Required("enabled"): cv.boolean,
-        vol.Optional("visitor_name", default=""): vol.All(cv.string, vol.Length(max=100)),
+        vol.Optional("visitor_name", default=""): vol.All(
+            cv.string, vol.Length(max=100)
+        ),
         vol.Optional("reduced_alerts", default=True): cv.boolean,
         vol.Optional("modified_schedule", default=True): cv.boolean,
         vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
@@ -500,9 +499,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     except Exception as err:
-        _LOGGER.error("Failed to set up Paw Control integration: %s", err, exc_info=True)
+        _LOGGER.error(
+            "Failed to set up Paw Control integration: %s", err, exc_info=True
+        )
         raise ConfigEntryNotReady from err
-        
+
     _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     # Enhanced setup context manager for proper cleanup
@@ -533,9 +534,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await _async_validate_dogs_configuration(dogs_config)
 
             # Initialize core components with optimized timeouts for faster setup
-            async with asyncio.timeout(
-                15
-            ):  # Reduced from 45s to 15s for faster setup
+            async with asyncio.timeout(15):  # Reduced from 45s to 15s for faster setup
                 # Initialize coordinator with enhanced configuration
                 coordinator = PawControlCoordinator(hass, entry)
 
@@ -575,28 +574,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             try:
                 # ✅ LÖSUNG: Modulares Platform Loading basierend auf aktivierten Modulen
                 needed_platforms = get_platforms_for_modules(dogs_config)
-                
+
                 # Fallback auf alle Plattformen falls keine Module konfiguriert (Safety)
                 if not needed_platforms:
-                    _LOGGER.warning("Keine Module aktiviert, verwende Fallback auf alle Plattformen")
+                    _LOGGER.warning(
+                        "Keine Module aktiviert, verwende Fallback auf alle Plattformen"
+                    )
                     needed_platforms = ALL_PLATFORMS
-                
+
                 # FIX: Rate-limited platform setup to prevent Entity Registry flooding
                 async with _PLATFORM_SETUP_LOCK:
                     # Bei mehreren Hunden: Gestaffelte Platform-Initialisierung
                     if len(dogs_config) > 2:
                         # Teile Platforms in kleinere Gruppen auf
                         platform_groups = [
-                            needed_platforms[i:i+3] 
+                            needed_platforms[i : i + 3]
                             for i in range(0, len(needed_platforms), 3)
                         ]
-                        
+
                         for group_idx, platform_group in enumerate(platform_groups):
                             async with asyncio.timeout(15):  # Timeout pro Gruppe
                                 await hass.config_entries.async_forward_entry_setups(
                                     entry, platform_group
                                 )
-                            
+
                             # Verzögerung zwischen Gruppen bei vielen Hunden
                             if group_idx < len(platform_groups) - 1:
                                 await asyncio.sleep(_PLATFORM_SETUP_DELAY)
@@ -606,13 +607,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             await hass.config_entries.async_forward_entry_setups(
                                 entry, needed_platforms
                             )
-                
+
                 _LOGGER.info(
-                    "Modulares Setup erfolgreich: %d von %d Plattformen für %d Hunde (%.0f%% optimiert)", 
-                    len(needed_platforms), 
+                    "Modulares Setup erfolgreich: %d von %d Plattformen für %d Hunde (%.0f%% optimiert)",
+                    len(needed_platforms),
                     len(ALL_PLATFORMS),
                     len(dogs_config),
-                    (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100
+                    (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100,
                 )
             except asyncio.TimeoutError:
                 _LOGGER.error("Platform setup timed out after 30 seconds")
@@ -635,28 +636,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 try:
                     dashboard_generator = PawControlDashboardGenerator(hass, entry)
                     await dashboard_generator.async_initialize()
-                    
-                    if entry.options.get(CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE):
+
+                    if entry.options.get(
+                        CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE
+                    ):
                         dashboard_url = await dashboard_generator.async_create_dashboard(
                             dogs_config,
                             options={
                                 "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",  # noqa: F821
-                                "theme": entry.options.get("dashboard_theme", "default"),
+                                "theme": entry.options.get(
+                                    "dashboard_theme", "default"
+                                ),
                                 "mode": entry.options.get("dashboard_mode", "full"),
-                            }
+                            },
                         )
                         _LOGGER.info("Created dashboard at: %s", dashboard_url)
-                        
+
                         # Create individual dog dashboards if configured
                         if entry.options.get("dashboard_per_dog", False):
                             for dog in dogs_config:
-                                dog_url = await dashboard_generator.async_create_dog_dashboard(dog)
-                                _LOGGER.info("Created dog dashboard for %s at: %s", dog[CONF_DOG_NAME], dog_url)
-                    
+                                dog_url = await dashboard_generator.async_create_dog_dashboard(
+                                    dog
+                                )
+                                _LOGGER.info(
+                                    "Created dog dashboard for %s at: %s",
+                                    dog[CONF_DOG_NAME],
+                                    dog_url,
+                                )
+
                     # Update runtime data with dashboard generator
                     runtime_data["dashboard_generator"] = dashboard_generator
-                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = dashboard_generator
-                    
+                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = (
+                        dashboard_generator
+                    )
+
                 except Exception as err:
                     _LOGGER.error("Failed to setup dashboard: %s", err)
                     # Dashboard failure is non-critical, continue setup
@@ -681,7 +694,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "Paw Control integration setup completed successfully: "
                 "%d dogs, %d/%d platforms loaded (modulares Loading), entry_id=%s",
                 len(dogs_config),
-                len(needed_platforms), 
+                len(needed_platforms),
                 len(ALL_PLATFORMS),
                 entry.entry_id,
             )
@@ -808,8 +821,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         # Ermittle die aktuell geladenen Plattformen basierend auf Konfiguration
         dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-        loaded_platforms = get_platforms_for_modules(dogs_config) if dogs_config else ALL_PLATFORMS
-        
+        loaded_platforms = (
+            get_platforms_for_modules(dogs_config) if dogs_config else ALL_PLATFORMS
+        )
+
         # Unload alle aktuell geladenen Plattformen mit timeout protection
         async with asyncio.timeout(30):
             unload_success = await hass.config_entries.async_unload_platforms(
@@ -869,18 +884,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         raise
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 async def _async_cleanup_runtime_data(
     hass: HomeAssistant, entry: ConfigEntry, runtime_data: PawControlRuntimeData
 ) -> None:
@@ -904,7 +907,7 @@ async def _async_cleanup_runtime_data(
                 "dashboard_generator", dashboard_generator.async_cleanup()
             )
         )
-    
+
     # Notification manager cleanup
     notification_manager = runtime_data.get("notification_manager")
     if notification_manager and hasattr(notification_manager, "async_shutdown"):
@@ -1025,7 +1028,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
             data_manager = runtime_data["data_manager"]
             await data_manager.async_feed_dog(dog_id, amount)
-            
+
             _LOGGER.info("Successfully fed %s with amount %s", dog_id, amount)
 
             # Prepare comprehensive feeding data with validation
@@ -1088,7 +1091,9 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("PawControl error in feed_dog service: %s", err.to_dict())
             raise ServiceValidationError(err.user_message) from err
         except Exception as err:
-            _LOGGER.error("Unexpected error in feed_dog service: %s", err, exc_info=True)
+            _LOGGER.error(
+                "Unexpected error in feed_dog service: %s", err, exc_info=True
+            )
             raise ServiceValidationError(f"Failed to feed dog: {err}") from err
 
     @performance_monitor(timeout=10.0)
@@ -1413,7 +1418,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         dog_id: str = call.data[ATTR_DOG_ID]
         enabled: bool = call.data["enabled"]
         visitor_name: str = call.data.get("visitor_name", "")
-        
+
         _LOGGER.debug("Processing set_visitor_mode service for %s: %s", dog_id, enabled)
 
         try:
@@ -1438,21 +1443,21 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             )
 
             _LOGGER.info(
-                "Successfully %s visitor mode for %s", 
-                "enabled" if enabled else "disabled", 
-                dog_id
+                "Successfully %s visitor mode for %s",
+                "enabled" if enabled else "disabled",
+                dog_id,
             )
 
         except PawControlError as err:
-            _LOGGER.error("PawControl error in set_visitor_mode service: %s", err.to_dict())
+            _LOGGER.error(
+                "PawControl error in set_visitor_mode service: %s", err.to_dict()
+            )
             raise ServiceValidationError(err.user_message) from err
         except Exception as err:
             _LOGGER.error(
                 "Unexpected error in set_visitor_mode service: %s", err, exc_info=True
             )
-            raise ServiceValidationError(
-                f"Failed to set visitor mode: {err}"
-            ) from err
+            raise ServiceValidationError(f"Failed to set visitor mode: {err}") from err
 
     @performance_monitor(timeout=30.0)
     async def _handle_export_data_service(call: ServiceCall) -> None:
@@ -1460,7 +1465,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         dog_id: str = call.data[ATTR_DOG_ID]
         data_type: str = call.data["data_type"]
         export_format: str = call.data.get("format", "csv")
-        
+
         _LOGGER.debug("Processing export_data service for %s: %s", dog_id, data_type)
 
         try:
@@ -1473,21 +1478,21 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             # Get date range for export - handle date objects properly
             start_date = call.data.get("start_date")
             end_date = call.data.get("end_date")
-            
+
             if start_date:
                 # Handle different date/datetime types properly
                 if isinstance(start_date, str):
                     start_date = dt_util.parse_datetime(start_date)
-                elif hasattr(start_date, 'year') and not hasattr(start_date, 'hour'):
+                elif hasattr(start_date, "year") and not hasattr(start_date, "hour"):
                     # Convert date to datetime at start of day
                     start_date = dt_util.start_of_local_day(start_date)
                 # If already datetime, use as-is
-                
+
             if end_date:
-                # Handle different date/datetime types properly  
+                # Handle different date/datetime types properly
                 if isinstance(end_date, str):
                     end_date = dt_util.parse_datetime(end_date)
-                elif hasattr(end_date, 'year') and not hasattr(end_date, 'hour'):
+                elif hasattr(end_date, "year") and not hasattr(end_date, "hour"):
                     # Convert date to datetime at end of day
                     end_date = dt_util.end_of_local_day(end_date)
                 # If already datetime, use as-is
@@ -1517,15 +1522,21 @@ async def _async_register_services(hass: HomeAssistant) -> None:
                 )
 
             # Create export file (simplified implementation)
-            export_path = f"/config/paw_control_export_{dog_id}_{data_type}_{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}.{export_format}"
-            
+            f"/config/paw_control_export_{dog_id}_{data_type}_{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}.{export_format}"
+
             # Note: In a full implementation, this would create actual export files
             # For now, we'll just log the export request
             _LOGGER.info(
-                "Export completed for %s: %s (%d entries)", 
-                dog_id, 
+                "Export completed for %s: %s (%d entries)",
+                dog_id,
                 data_type,
-                len(export_data) if isinstance(export_data, list) else sum(len(v) if isinstance(v, list) else 0 for v in export_data.values() if isinstance(v, (list, dict)))
+                len(export_data)
+                if isinstance(export_data, list)
+                else sum(
+                    len(v) if isinstance(v, list) else 0
+                    for v in export_data.values()
+                    if isinstance(v, (list, dict))
+                ),
             )
 
         except PawControlError as err:
@@ -1535,9 +1546,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             _LOGGER.error(
                 "Unexpected error in export_data service: %s", err, exc_info=True
             )
-            raise ServiceValidationError(
-                f"Failed to export data: {err}"
-            ) from err
+            raise ServiceValidationError(f"Failed to export data: {err}") from err
 
     # Service registration with comprehensive error handling
     services = [
@@ -1557,7 +1566,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         ),
         (SERVICE_DAILY_RESET, _handle_daily_reset_service, SERVICE_DAILY_RESET_SCHEMA),
         (SERVICE_NOTIFY_TEST, _handle_notify_test_service, SERVICE_NOTIFY_TEST_SCHEMA),
-        ("set_visitor_mode", _handle_set_visitor_mode_service, SERVICE_SET_VISITOR_MODE_SCHEMA),
+        (
+            "set_visitor_mode",
+            _handle_set_visitor_mode_service,
+            SERVICE_SET_VISITOR_MODE_SCHEMA,
+        ),
         ("export_data", _handle_export_data_service, SERVICE_EXPORT_DATA_SCHEMA),
     ]
 

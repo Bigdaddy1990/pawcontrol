@@ -415,7 +415,9 @@ class PawControlDataManager:
                     duration = timestamp - start_time
                     duration_minutes = int(duration.total_seconds() / 60)
                 except (ValueError, TypeError) as err:
-                    _LOGGER.warning("Invalid start time format for dog %s: %s", dog_id, err)
+                    _LOGGER.warning(
+                        "Invalid start time format for dog %s: %s", dog_id, err
+                    )
                     duration_minutes = 0
 
             # Update the walk entry
@@ -819,7 +821,7 @@ class PawControlDataManager:
                             # Keep entries with no timestamp
                             filtered_entries.append(entry)
                             continue
-                        
+
                         # Handle both string and datetime timestamps
                         if isinstance(timestamp_value, str):
                             entry_time = datetime.fromisoformat(timestamp_value)
@@ -829,36 +831,46 @@ class PawControlDataManager:
                             # Keep entries with invalid timestamp types
                             filtered_entries.append(entry)
                             continue
-                        
+
                         # Ensure timezone consistency for comparisons
                         if entry_time.tzinfo is None:
                             entry_time = dt_util.as_local(entry_time)
-                        
+
                         # Make sure start_date and end_date are timezone-aware (use local copies)
                         start_date_normalized = start_date
                         end_date_normalized = end_date
-                        
+
                         if start_date_normalized:
                             if isinstance(start_date_normalized, str):
-                                start_date_normalized = dt_util.parse_datetime(start_date_normalized)
+                                start_date_normalized = dt_util.parse_datetime(
+                                    start_date_normalized
+                                )
                             elif start_date_normalized.tzinfo is None:
-                                start_date_normalized = dt_util.as_local(start_date_normalized)
+                                start_date_normalized = dt_util.as_local(
+                                    start_date_normalized
+                                )
                             if entry_time < start_date_normalized:
                                 continue
-                                
+
                         if end_date_normalized:
                             if isinstance(end_date_normalized, str):
-                                end_date_normalized = dt_util.parse_datetime(end_date_normalized)
+                                end_date_normalized = dt_util.parse_datetime(
+                                    end_date_normalized
+                                )
                             elif end_date_normalized.tzinfo is None:
-                                end_date_normalized = dt_util.as_local(end_date_normalized)
+                                end_date_normalized = dt_util.as_local(
+                                    end_date_normalized
+                                )
                             if entry_time > end_date_normalized:
                                 continue
-                                
+
                         filtered_entries.append(entry)
                     except (ValueError, KeyError, TypeError) as exc:
                         _LOGGER.debug(
-                            "Invalid timestamp in entry for %s: %s - %s", 
-                            dog_id, timestamp_value, exc
+                            "Invalid timestamp in entry for %s: %s - %s",
+                            dog_id,
+                            timestamp_value,
+                            exc,
                         )
                         # Keep entries with invalid timestamps
                         filtered_entries.append(entry)
@@ -879,7 +891,7 @@ class PawControlDataManager:
                     return timestamp_value
                 else:
                     return datetime.min  # Invalid types sort last
-                    
+
             entries.sort(key=safe_timestamp_key, reverse=True)
 
             # Apply limit
@@ -915,32 +927,32 @@ class PawControlDataManager:
 
     async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
         """Set the main power state for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             enabled: Whether monitoring is enabled
         """
         try:
             await self.async_update_dog_data(
-                dog_id, 
+                dog_id,
                 {
                     "system": {
                         "enabled": enabled,
                         "power_state_changed": dt_util.utcnow().isoformat(),
                         "changed_by": "power_switch",
                     }
-                }
+                },
             )
-            
+
             _LOGGER.info("Set power state for %s: %s", dog_id, enabled)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to set power state for %s: %s", dog_id, err)
             raise
-            
+
     async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
         """Set GPS tracking state for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             enabled: Whether GPS tracking is enabled
@@ -954,11 +966,11 @@ class PawControlDataManager:
                         "tracking_state_changed": dt_util.utcnow().isoformat(),
                         "changed_by": "gps_switch",
                     }
-                }
+                },
             )
-            
+
             _LOGGER.info("Set GPS tracking for %s: %s", dog_id, enabled)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to set GPS tracking for %s: %s", dog_id, err)
             raise
@@ -1231,14 +1243,14 @@ class PawControlDataManager:
                             # Keep entries with invalid timestamps
                             filtered_entries.append(entry)
                             continue
-                        
+
                         entry_date = datetime.fromisoformat(timestamp_value)
                         # Ensure both timestamps are timezone-aware for comparison
                         if entry_date.tzinfo is None:
                             entry_date = dt_util.as_local(entry_date)
                         if cutoff_date.tzinfo is None:
                             cutoff_date = dt_util.as_local(cutoff_date)
-                        
+
                         if entry_date >= cutoff_date:
                             filtered_entries.append(entry)
                     except (ValueError, KeyError, TypeError):

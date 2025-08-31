@@ -105,11 +105,11 @@ MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
 
 # Dog sizes with realistic weight ranges (overlapping for breed variations)
 DOG_SIZES: Final = [
-    "toy",     # 1-6kg: Chihuahua, Yorkshire Terrier
-    "small",   # 4-15kg: Beagle, Cocker Spaniel (overlap with toy/medium)
+    "toy",  # 1-6kg: Chihuahua, Yorkshire Terrier
+    "small",  # 4-15kg: Beagle, Cocker Spaniel (overlap with toy/medium)
     "medium",  # 8-30kg: Border Collie, Labrador (overlap with small/large)
-    "large",   # 22-50kg: German Shepherd, Golden Retriever (overlap with medium/giant)
-    "giant",   # 35-90kg: Great Dane, Saint Bernard (overlap with large)
+    "large",  # 22-50kg: German Shepherd, Golden Retriever (overlap with medium/giant)
+    "giant",  # 35-90kg: Great Dane, Saint Bernard (overlap with large)
 ]
 
 # GPS sources

@@ -48,13 +48,13 @@ async def _async_add_entities_in_batches(
     async_add_entities_func,
     entities: list[PawControlBinarySensorBase],
     batch_size: int = 15,
-    delay_between_batches: float = 0.1
+    delay_between_batches: float = 0.1,
 ) -> None:
     """Add binary sensor entities in small batches to prevent Entity Registry overload.
-    
+
     The Entity Registry logs warnings when >200 messages occur rapidly.
     By batching entities and adding delays, we prevent registry overload.
-    
+
     Args:
         async_add_entities_func: The actual async_add_entities callback
         entities: List of binary sensor entities to add
@@ -62,29 +62,29 @@ async def _async_add_entities_in_batches(
         delay_between_batches: Seconds to wait between batches (default: 0.1s)
     """
     total_entities = len(entities)
-    
+
     _LOGGER.debug(
         "Adding %d binary sensor entities in batches of %d to prevent Registry overload",
         total_entities,
-        batch_size
+        batch_size,
     )
-    
+
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i:i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
-        
+
         _LOGGER.debug(
             "Processing binary sensor batch %d/%d with %d entities",
             batch_num,
             total_batches,
-            len(batch)
+            len(batch),
         )
-        
+
         # Add batch without update_before_add to reduce Registry load
         async_add_entities_func(batch, update_before_add=False)
-        
+
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
@@ -146,7 +146,9 @@ async def async_setup_entry(
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
 
     _LOGGER.info(
-        "Created %d binary sensor entities for %d dogs using batched approach", len(entities), len(dogs)
+        "Created %d binary sensor entities for %d dogs using batched approach",
+        len(entities),
+        len(dogs),
     )
 
 

@@ -32,7 +32,7 @@
         "description": "Choose which monitoring modules to enable for your dogs. These can be changed later.\n\n🐕 {dog_count} dogs configured\n🔧 {gps_suggestion} GPS tracking based on dog sizes\n👥 {visitor_suggestion} Visitor mode based on dog maturity\n\nModule suggestions:\n{dogs_summary}",
         "data": {
           "enable_gps": "GPS Location Tracking",
-          "enable_health": "Health Monitoring", 
+          "enable_health": "Health Monitoring",
           "enable_visitor_mode": "Visitor Mode",
           "enable_advanced_features": "Advanced Features (Dashboard, Enhanced Notifications)"
         }
@@ -72,7 +72,7 @@
       "add_dog_failed": "Failed to add dog configuration",
       "integration_name_required": "Integration name is required",
       "integration_name_too_short": "Integration name is too short",
-      "integration_name_too_long": "Integration name is too long", 
+      "integration_name_too_long": "Integration name is too long",
       "reserved_integration_name": "This integration name is reserved",
       "no_dogs_configured": "At least one dog must be configured",
       "setup_failed": "Setup failed due to configuration error",
