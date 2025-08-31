@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, TYPE_CHECKING
 
 from homeassistant.components import persistent_notification
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -804,11 +804,58 @@ class PawControlNotificationManager:
         dogs: Optional[list[str]] = None,
     ) -> bool:
         """Send a summary notification with activity overview."""
-        # Placeholder implementation
-        return False
+        try:
+            async with self._lock:
+                now = dt_util.utcnow()
+                if timeframe == "weekly":
+                    start = now - timedelta(days=7)
+                    title = "\ud83d\udcc8 Weekly Summary"
+                else:
+                    start = now - timedelta(days=1)
+                    title = "\ud83d\udcca Daily Summary"
+
+                history = [
+                    n
+                    for n in self._notification_history
+                    if n["timestamp"] >= start and (not dogs or n["dog_id"] in dogs)
+                ]
+
+                if not history:
+                    return False
+
+                counts: dict[str, int] = {}
+                for item in history:
+                    name = item.get("dog_name", item["dog_id"])
+                    counts[name] = counts.get(name, 0) + 1
+
+                message = ", ".join(
+                    f"{name}: {count}" for name, count in counts.items()
+                )
+
+            return await self.async_send_notification(
+                "summary",
+                NOTIFICATION_SYSTEM,
+                message,
+                title=title,
+                priority=PRIORITY_LOW,
+                force=True,
+                data={"timeframe": timeframe, "counts": counts},
+            )
+
+        except Exception as err:
+            _LOGGER.error("Failed to send summary notification: %s", err)
+            return False
 
     async def _register_services(self) -> None:
         """Register notification-related services."""
         # Note: SERVICE_NOTIFY_TEST is now registered in init.py to avoid conflicts
-        # This method reserved for future notification-specific services
-        pass
+        # Register summary notification service
+        if self.hass.services.has_service(DOMAIN, "send_summary"):
+            return
+
+        async def _handle_send_summary(call: ServiceCall) -> None:
+            timeframe = call.data.get("timeframe", "daily")
+            dogs = call.data.get("dogs")
+            await self.async_send_summary_notification(timeframe, dogs)
+
+        self.hass.services.async_register(DOMAIN, "send_summary", _handle_send_summary)

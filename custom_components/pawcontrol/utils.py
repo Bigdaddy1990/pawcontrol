@@ -771,8 +771,14 @@ def calculate_trend_advanced(
 
     else:
         # Simplified calculation for other algorithms
-        slope = (y[-1] - y[0]) / (n - 1) if n > 1 else 0
-        r_squared = 0.5  # Placeholder
+        slope = (y[-1] - y[0]) / (n - 1)
+
+        # Estimate r-squared using a basic linear fit between first and last point
+        y_mean = sum(y) / n
+        y_pred = [y[0] + slope * i for i in range(n)]
+        ss_tot = sum((yi - y_mean) ** 2 for yi in y)
+        ss_res = sum((yi - yp) ** 2 for yi, yp in zip(y, y_pred))
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
 
     # Determine trend characteristics
     abs_slope = abs(slope)
