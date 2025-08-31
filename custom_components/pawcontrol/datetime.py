@@ -82,8 +82,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control datetime platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    dogs = entry.data.get(CONF_DOGS, [])
+    runtime_data = getattr(entry, "runtime_data", None)
+
+    if runtime_data:
+        coordinator: PawControlCoordinator = runtime_data["coordinator"]
+        dogs = runtime_data.get("dogs", [])
+    else:
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        dogs = entry.data.get(CONF_DOGS, [])
 
     entities = []
 

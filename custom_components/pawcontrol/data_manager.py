@@ -199,6 +199,12 @@ class PawControlDataManager:
         dogs_data = await self._get_cache("dogs", {})
         return dogs_data.get(dog_id)
 
+    async def async_get_registered_dogs(self) -> list[str]:
+        """Return IDs of all registered dogs."""
+        await self._ensure_cache_fresh("dogs")
+        dogs_data = await self._get_cache("dogs", {})
+        return list(dogs_data.keys())
+
     async def async_set_dog_data(self, dog_id: str, data: dict[str, Any]) -> None:
         """Set data for a specific dog.
 
@@ -270,6 +276,40 @@ class PawControlDataManager:
         return dogs_data.copy()
 
     # Feeding operations
+
+    async def async_feed_dog(self, dog_id: str, amount: float) -> None:
+        """Handle a simple feeding action for a dog.
+
+        This method updates the basic feeding status for a dog when food
+        is dispensed. Detailed logging should be done separately via
+        ``async_log_feeding`` which records comprehensive meal data.
+
+        Args:
+            dog_id: Dog identifier
+            amount: Amount of food dispensed
+        """
+
+        try:
+            timestamp = dt_util.utcnow().isoformat()
+            await self.async_update_dog_data(
+                dog_id,
+                {
+                    "feeding": {
+                        "last_feeding": timestamp,
+                        "last_feeding_amount": amount,
+                        "last_feeding_hours": 0,
+                    }
+                },
+            )
+
+            self._metrics["operations_count"] += 1
+            _LOGGER.debug("Fed dog %s with amount %s", dog_id, amount)
+
+        except Exception as err:
+            _LOGGER.error("Failed to feed dog %s: %s", dog_id, err)
+            self._metrics["errors_count"] += 1
+            raise
+
     async def async_log_feeding(self, dog_id: str, meal_data: dict[str, Any]) -> None:
         """Log a feeding event for a dog.
 
@@ -287,6 +327,7 @@ class PawControlDataManager:
             }
 
             await self._append_to_module_data("feeding", dog_id, feeding_entry)
+            self._metrics["operations_count"] += 1
 
             # Update dog's last feeding time
             await self.async_update_dog_data(
@@ -363,6 +404,7 @@ class PawControlDataManager:
             }
 
             await self._append_to_module_data("walks", dog_id, walk_entry)
+            self._metrics["operations_count"] += 1
 
             # Update dog's walk status
             await self.async_update_dog_data(
@@ -429,6 +471,7 @@ class PawControlDataManager:
             }
 
             await self._update_module_entry("walks", dog_id, walk_id, walk_updates)
+            self._metrics["operations_count"] += 1
 
             # Update dog's walk status
             await self.async_update_dog_data(
@@ -510,6 +553,7 @@ class PawControlDataManager:
             }
 
             await self._append_to_module_data("health", dog_id, health_entry)
+            self._metrics["operations_count"] += 1
 
             # Update dog's current health status
             health_updates = {"health": {"last_health_update": timestamp.isoformat()}}
@@ -621,6 +665,7 @@ class PawControlDataManager:
             }
 
             await self._append_to_module_data("gps", dog_id, gps_entry)
+            self._metrics["operations_count"] += 1
 
             # Update dog's current location
             gps_updates = {
