@@ -28,7 +28,20 @@
           "enable_gps": "GPS Location Tracking",
           "enable_health": "Health Monitoring",
           "enable_visitor_mode": "Visitor Mode",
+          "enable_dashboard": "Dashboard",
           "enable_advanced_features": "Advanced Features"
+        }
+      },
+      "configure_dashboard": {
+        "title": "Configure Dashboard",
+        "description": "Set up dashboard settings for {dog_count} dogs.\n\n{dashboard_info}",
+        "data": {
+          "auto_create_dashboard": "Automatically create dashboard",
+          "create_per_dog_dashboards": "Create per-dog dashboards",
+          "dashboard_theme": "Dashboard Theme",
+          "dashboard_mode": "Dashboard Mode",
+          "show_statistics": "Show statistics",
+          "show_maps": "Show maps"
         }
       },
       "configure_external_entities": {

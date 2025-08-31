@@ -34,7 +34,20 @@
           "enable_gps": "GPS-Ortungsverfolgung",
           "enable_health": "Gesundheitsüberwachung",
           "enable_visitor_mode": "Besuchermodus",
+          "enable_dashboard": "Dashboard",
           "enable_advanced_features": "Erweiterte Funktionen (Dashboard, Verbesserte Benachrichtigungen)"
+        }
+      },
+      "configure_dashboard": {
+        "title": "Dashboard konfigurieren",
+        "description": "Konfiguriere Dashboard-Einstellungen für {dog_count} Hunde.\n\n{dashboard_info}",
+        "data": {
+          "auto_create_dashboard": "Dashboard automatisch erstellen",
+          "create_per_dog_dashboards": "Dashboard pro Hund erstellen",
+          "dashboard_theme": "Dashboard-Theme",
+          "dashboard_mode": "Dashboard-Modus",
+          "show_statistics": "Statistiken anzeigen",
+          "show_maps": "Karten anzeigen"
         }
       },
       "configure_external_entities": {
