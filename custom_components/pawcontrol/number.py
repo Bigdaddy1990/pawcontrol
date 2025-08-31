@@ -595,9 +595,25 @@ class PawControlDogAgeNumber(PawControlNumberBase):
 
     async def _async_set_number_value(self, value: float) -> None:
         """Set the dog's age."""
-        # This would update the dog's age in the configuration
-        # and trigger age-related calculations
-        pass
+        int_value = int(value)
+
+        # Update coordinator cache so other entities see the new value immediately
+        dog_data = self._get_dog_data() or {}
+        dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
+
+        # Persist the change if the data manager is available
+        runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
+        if runtime_data and (data_manager := runtime_data.get("data_manager")):
+            try:
+                await data_manager.async_update_dog_data(
+                    self._dog_id, {"profile": {CONF_DOG_AGE: int_value}}
+                )
+            except Exception as err:  # pragma: no cover - best effort only
+                _LOGGER.debug(
+                    "Could not persist dog age for %s: %s", self._dog_name, err
+                )
+
+        _LOGGER.info("Set age for %s to %s", self._dog_name, int_value)
 
 
 class PawControlActivityGoalNumber(PawControlNumberBase):
