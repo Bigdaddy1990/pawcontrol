@@ -815,10 +815,10 @@ class PawControlNotificationManager:
                     title = "\ud83d\udcca Daily Summary"
 
                 history = [
-                    n for n in self._notification_history if n["timestamp"] >= start
-                ]
-                if dogs:
-                    history = [n for n in history if n["dog_id"] in dogs]
+                          n
+                          for n in self._notification_history
+                          if n["timestamp"] >= start and (not dogs or n["dog_id"] in dogs)
+                         ]
 
                 if not history:
                     return False
