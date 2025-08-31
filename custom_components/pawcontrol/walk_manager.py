@@ -9,10 +9,11 @@ dog.
 
 from __future__ import annotations
 
+import copy
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
-import uuid
 
 
 @dataclass(slots=True)
@@ -58,4 +59,4 @@ class WalkManager:
 
     async def async_get_walks(self, dog_id: str) -> List[WalkSession]:
         """Return a copy of the walk history for ``dog_id``."""
-        return [copy.copy(session) for session in self._history.get(dog_id, [])]  # noqa: F821
+        return [copy.copy(session) for session in self._history.get(dog_id, [])]
