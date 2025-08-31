@@ -51,7 +51,7 @@ DEFAULT_DASHBOARD_URL: Final[str] = "paw-control"
 # Card types for modular dashboard creation
 CARD_TYPES: Final[dict[str, str]] = {
     "overview": "Overview Card",
-    "feeding": "Feeding Management", 
+    "feeding": "Feeding Management",
     "walk": "Walk Tracker",
     "health": "Health Monitor",
     "gps": "GPS Tracking",
@@ -67,7 +67,7 @@ CARD_TYPES: Final[dict[str, str]] = {
 # Default theme colors for dog cards
 DOG_CARD_THEMES: Final[list[dict[str, str]]] = [
     {"primary": "#4CAF50", "accent": "#8BC34A"},  # Green
-    {"primary": "#2196F3", "accent": "#03A9F4"},  # Blue  
+    {"primary": "#2196F3", "accent": "#03A9F4"},  # Blue
     {"primary": "#FF9800", "accent": "#FFC107"},  # Orange
     {"primary": "#9C27B0", "accent": "#E91E63"},  # Purple
     {"primary": "#00BCD4", "accent": "#009688"},  # Cyan
@@ -77,7 +77,7 @@ DOG_CARD_THEMES: Final[list[dict[str, str]]] = [
 
 class PawControlDashboardGenerator:
     """Generate and manage dashboards for Paw Control integration.
-    
+
     Provides comprehensive dashboard creation with automatic card generation,
     modular design based on enabled modules, and full async operation.
     Implements modern Home Assistant storage patterns and Lovelace integration.
@@ -104,7 +104,7 @@ class PawControlDashboardGenerator:
 
     async def async_initialize(self) -> None:
         """Initialize the dashboard generator and load existing dashboards.
-        
+
         Raises:
             HomeAssistantError: If initialization fails
         """
@@ -119,21 +119,23 @@ class PawControlDashboardGenerator:
                 # Load existing dashboard configurations with error handling
                 stored_data = await self._store.async_load() or {}
                 self._dashboards = stored_data.get("dashboards", {})
-                
+
                 _LOGGER.debug(
                     "Dashboard generator initialized: %d existing dashboards for entry %s",
                     len(self._dashboards),
                     self.entry.entry_id,
                 )
-                
+
                 # Validate stored dashboards and clean up invalid ones
                 await self._validate_stored_dashboards()
-                
+
             except Exception as err:
-                _LOGGER.error("Failed to initialize dashboard generator: %s", err, exc_info=True)
+                _LOGGER.error(
+                    "Failed to initialize dashboard generator: %s", err, exc_info=True
+                )
                 self._dashboards = {}
                 # Don't raise, allow initialization to continue
-                
+
             finally:
                 self._initialized = True
 
@@ -150,7 +152,7 @@ class PawControlDashboardGenerator:
 
         Returns:
             URL path to the created dashboard
-            
+
         Raises:
             HomeAssistantError: If dashboard creation fails
             ValueError: If dogs_config is invalid
@@ -162,7 +164,7 @@ class PawControlDashboardGenerator:
             raise ValueError("At least one dog configuration is required")
 
         options = options or {}
-        
+
         async with self._lock:
             try:
                 # Generate dashboard configuration
@@ -183,7 +185,7 @@ class PawControlDashboardGenerator:
                 # Create the dashboard using modern Lovelace patterns
                 dashboard_path = await self._create_lovelace_dashboard(
                     dashboard_url,
-                    dashboard_title, 
+                    dashboard_title,
                     dashboard_config,
                     options.get("icon", DEFAULT_DASHBOARD_ICON),
                     options.get("show_in_sidebar", True),
@@ -196,7 +198,9 @@ class PawControlDashboardGenerator:
                     "path": dashboard_path,
                     "created": utcnow().isoformat(),
                     "type": "main",
-                    "dogs": [dog[CONF_DOG_ID] for dog in dogs_config if dog.get(CONF_DOG_ID)],
+                    "dogs": [
+                        dog[CONF_DOG_ID] for dog in dogs_config if dog.get(CONF_DOG_ID)
+                    ],
                     "options": options,
                     "entry_id": self.entry.entry_id,
                     "version": DASHBOARD_STORAGE_VERSION,
@@ -207,7 +211,7 @@ class PawControlDashboardGenerator:
                 _LOGGER.info(
                     "Created main dashboard '%s' at /%s for %d dogs",
                     dashboard_title,
-                    dashboard_url, 
+                    dashboard_url,
                     len(dogs_config),
                 )
 
@@ -230,7 +234,7 @@ class PawControlDashboardGenerator:
 
         Returns:
             URL path to the created dashboard
-            
+
         Raises:
             HomeAssistantError: If dashboard creation fails
             ValueError: If dog_config is invalid
@@ -241,14 +245,14 @@ class PawControlDashboardGenerator:
         # Validate dog configuration
         dog_id = dog_config.get(CONF_DOG_ID)
         dog_name = dog_config.get(CONF_DOG_NAME)
-        
+
         if not dog_id:
             raise ValueError("Dog ID is required in dog_config")
         if not dog_name:
             raise ValueError("Dog name is required in dog_config")
 
         options = options or {}
-        
+
         async with self._lock:
             try:
                 # Generate dog-specific dashboard configuration
@@ -294,8 +298,15 @@ class PawControlDashboardGenerator:
                 return f"/{dashboard_url}"
 
             except Exception as err:
-                _LOGGER.error("Failed to create dog dashboard for %s: %s", dog_name, err, exc_info=True)
-                raise HomeAssistantError(f"Dog dashboard creation failed: {err}") from err
+                _LOGGER.error(
+                    "Failed to create dog dashboard for %s: %s",
+                    dog_name,
+                    err,
+                    exc_info=True,
+                )
+                raise HomeAssistantError(
+                    f"Dog dashboard creation failed: {err}"
+                ) from err
 
     async def async_update_dashboard(
         self,
@@ -315,13 +326,13 @@ class PawControlDashboardGenerator:
         """
         if not self._initialized:
             await self.async_initialize()
-            
+
         if dashboard_url not in self._dashboards:
             _LOGGER.warning("Dashboard %s not found for update", dashboard_url)
             return False
 
         dashboard_info = self._dashboards[dashboard_url]
-        
+
         async with self._lock:
             try:
                 # Generate updated configuration
@@ -359,7 +370,12 @@ class PawControlDashboardGenerator:
                 return True
 
             except Exception as err:
-                _LOGGER.error("Failed to update dashboard %s: %s", dashboard_url, err, exc_info=True)
+                _LOGGER.error(
+                    "Failed to update dashboard %s: %s",
+                    dashboard_url,
+                    err,
+                    exc_info=True,
+                )
                 return False
 
     async def async_delete_dashboard(self, dashboard_url: str) -> bool:
@@ -378,7 +394,7 @@ class PawControlDashboardGenerator:
         async with self._lock:
             try:
                 dashboard_info = self._dashboards[dashboard_url]
-                
+
                 # Remove from Lovelace
                 await self._delete_lovelace_dashboard(dashboard_info["path"])
 
@@ -390,7 +406,12 @@ class PawControlDashboardGenerator:
                 return True
 
             except Exception as err:
-                _LOGGER.error("Failed to delete dashboard %s: %s", dashboard_url, err, exc_info=True)
+                _LOGGER.error(
+                    "Failed to delete dashboard %s: %s",
+                    dashboard_url,
+                    err,
+                    exc_info=True,
+                )
                 return False
 
     async def async_cleanup(self) -> None:
@@ -405,14 +426,16 @@ class PawControlDashboardGenerator:
                     dashboard_info = self._dashboards[dashboard_url]
                     await self._delete_lovelace_dashboard(dashboard_info["path"])
                 except Exception as err:
-                    _LOGGER.warning("Error cleaning up dashboard %s: %s", dashboard_url, err)
+                    _LOGGER.warning(
+                        "Error cleaning up dashboard %s: %s", dashboard_url, err
+                    )
 
             # Clear storage
             try:
                 await self._store.async_remove()
             except Exception as err:
                 _LOGGER.warning("Error removing dashboard storage: %s", err)
-                
+
             self._dashboards.clear()
 
     async def _generate_main_dashboard_config(
@@ -442,7 +465,7 @@ class PawControlDashboardGenerator:
         for idx, dog_config in enumerate(dogs_config):
             if not dog_config.get(CONF_DOG_ID) or not dog_config.get(CONF_DOG_NAME):
                 continue
-                
+
             dog_view = {
                 "title": dog_config[CONF_DOG_NAME],
                 "path": slugify(dog_config[CONF_DOG_ID]),
@@ -458,13 +481,13 @@ class PawControlDashboardGenerator:
         if options.get("show_statistics", True):
             stats_view = {
                 "title": "Statistics",
-                "path": "statistics", 
+                "path": "statistics",
                 "icon": "mdi:chart-line",
                 "cards": await self._generate_statistics_cards(dogs_config, options),
             }
             views.append(stats_view)
 
-        # Settings view if enabled  
+        # Settings view if enabled
         if options.get("show_settings", True):
             settings_view = {
                 "title": "Settings",
@@ -548,41 +571,47 @@ class PawControlDashboardGenerator:
         cards = []
 
         # Welcome card
-        cards.append({
-            "type": "markdown",
-            "content": (
-                f"# {options.get('title', DEFAULT_DASHBOARD_TITLE)}\n\n"
-                f"Managing **{len(dogs_config)}** dogs with Paw Control\n\n"
-                f"Last updated: {{{{ now().strftime('%H:%M') }}}}"
-            ),
-        })
+        cards.append(
+            {
+                "type": "markdown",
+                "content": (
+                    f"# {options.get('title', DEFAULT_DASHBOARD_TITLE)}\n\n"
+                    f"Managing **{len(dogs_config)}** dogs with Paw Control\n\n"
+                    f"Last updated: {{{{ now().strftime('%H:%M') }}}}"
+                ),
+            }
+        )
 
         # Dog status grid
         dog_cards = []
         for dog in dogs_config:
             if not dog.get(CONF_DOG_ID) or not dog.get(CONF_DOG_NAME):
                 continue
-                
+
             dog_id = dog[CONF_DOG_ID]
             dog_name = dog[CONF_DOG_NAME]
 
-            dog_cards.append({
-                "type": "button",
-                "entity": f"sensor.{dog_id}_status",
-                "name": dog_name,
-                "icon": "mdi:dog",
-                "tap_action": {
-                    "action": "navigate",
-                    "navigation_path": f"/{DEFAULT_DASHBOARD_URL}-{self.entry.entry_id[:8]}/{slugify(dog_id)}",
-                },
-            })
+            dog_cards.append(
+                {
+                    "type": "button",
+                    "entity": f"sensor.{dog_id}_status",
+                    "name": dog_name,
+                    "icon": "mdi:dog",
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"/{DEFAULT_DASHBOARD_URL}-{self.entry.entry_id[:8]}/{slugify(dog_id)}",
+                    },
+                }
+            )
 
         if dog_cards:
-            cards.append({
-                "type": "grid",
-                "columns": 3,
-                "cards": dog_cards,
-            })
+            cards.append(
+                {
+                    "type": "grid",
+                    "columns": 3,
+                    "cards": dog_cards,
+                }
+            )
 
         # Quick actions
         action_cards = [
@@ -598,36 +627,48 @@ class PawControlDashboardGenerator:
         ]
 
         # Add feeding/walking buttons if any dogs have those modules
-        has_feeding = any(dog.get("modules", {}).get(MODULE_FEEDING) for dog in dogs_config)
-        has_walking = any(dog.get("modules", {}).get(MODULE_WALK) for dog in dogs_config)
+        has_feeding = any(
+            dog.get("modules", {}).get(MODULE_FEEDING) for dog in dogs_config
+        )
+        has_walking = any(
+            dog.get("modules", {}).get(MODULE_WALK) for dog in dogs_config
+        )
 
         if has_feeding:
-            action_cards.insert(0, {
-                "type": "button", 
-                "name": "Feed All",
-                "icon": "mdi:food-drumstick",
-                "tap_action": {
-                    "action": "more-info",
-                    "entity": f"button.{DOMAIN}_feed_all_dogs",
+            action_cards.insert(
+                0,
+                {
+                    "type": "button",
+                    "name": "Feed All",
+                    "icon": "mdi:food-drumstick",
+                    "tap_action": {
+                        "action": "more-info",
+                        "entity": f"button.{DOMAIN}_feed_all_dogs",
+                    },
                 },
-            })
+            )
 
         if has_walking:
-            action_cards.insert(-1, {
-                "type": "button",
-                "name": "Walk Status",
-                "icon": "mdi:walk", 
-                "tap_action": {
-                    "action": "more-info",
-                    "entity": f"sensor.{DOMAIN}_dogs_walking",
+            action_cards.insert(
+                -1,
+                {
+                    "type": "button",
+                    "name": "Walk Status",
+                    "icon": "mdi:walk",
+                    "tap_action": {
+                        "action": "more-info",
+                        "entity": f"sensor.{DOMAIN}_dogs_walking",
+                    },
                 },
-            })
+            )
 
         if action_cards:
-            cards.append({
-                "type": "horizontal-stack",
-                "cards": action_cards,
-            })
+            cards.append(
+                {
+                    "type": "horizontal-stack",
+                    "cards": action_cards,
+                }
+            )
 
         # Activity summary if requested
         if options.get("show_activity_summary", True) and dogs_config:
@@ -636,14 +677,16 @@ class PawControlDashboardGenerator:
                 for dog in dogs_config
                 if dog.get(CONF_DOG_ID)
             ]
-            
+
             if activity_entities:
-                cards.append({
-                    "type": "history-graph", 
-                    "title": "Activity Summary",
-                    "entities": activity_entities,
-                    "hours_to_show": 24,
-                })
+                cards.append(
+                    {
+                        "type": "history-graph",
+                        "title": "Activity Summary",
+                        "entities": activity_entities,
+                        "hours_to_show": 24,
+                    }
+                )
 
         return cards
 
@@ -658,14 +701,16 @@ class PawControlDashboardGenerator:
 
         # Dog header card
         dog_image = dog_config.get("dog_image", "/local/paw_control/default_dog.jpg")
-        cards.append({
-            "type": "picture-entity",
-            "entity": f"sensor.{dog_id}_status",
-            "name": dog_name,
-            "image": dog_image,
-            "show_state": True,
-            "show_name": True,
-        })
+        cards.append(
+            {
+                "type": "picture-entity",
+                "entity": f"sensor.{dog_id}_status",
+                "name": dog_name,
+                "image": dog_image,
+                "show_state": True,
+                "show_name": True,
+            }
+        )
 
         # Status card with key metrics
         status_entities = [
@@ -675,134 +720,162 @@ class PawControlDashboardGenerator:
 
         # Add module-specific status entities
         if modules.get(MODULE_FEEDING):
-            status_entities.extend([
-                f"sensor.{dog_id}_last_fed",
-                f"sensor.{dog_id}_meals_today",
-            ])
+            status_entities.extend(
+                [
+                    f"sensor.{dog_id}_last_fed",
+                    f"sensor.{dog_id}_meals_today",
+                ]
+            )
 
         if modules.get(MODULE_WALK):
-            status_entities.extend([
-                f"sensor.{dog_id}_last_walk",
-                f"binary_sensor.{dog_id}_is_walking",
-            ])
+            status_entities.extend(
+                [
+                    f"sensor.{dog_id}_last_walk",
+                    f"binary_sensor.{dog_id}_is_walking",
+                ]
+            )
 
         if modules.get(MODULE_HEALTH):
-            status_entities.extend([
-                f"sensor.{dog_id}_weight",
-                f"sensor.{dog_id}_health_status",
-            ])
+            status_entities.extend(
+                [
+                    f"sensor.{dog_id}_weight",
+                    f"sensor.{dog_id}_health_status",
+                ]
+            )
 
-        cards.append({
-            "type": "entities",
-            "title": "Status",
-            "entities": status_entities,
-            "state_color": True,
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Status",
+                "entities": status_entities,
+                "state_color": True,
+            }
+        )
 
         # Quick actions for this dog
         action_buttons = []
 
         if modules.get(MODULE_FEEDING):
-            action_buttons.append({
-                "type": "button",
-                "name": "Feed",
-                "icon": "mdi:food-drumstick", 
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.feed_dog",
-                    "service_data": {
-                        "dog_id": dog_id,
-                        "meal_type": "regular",
+            action_buttons.append(
+                {
+                    "type": "button",
+                    "name": "Feed",
+                    "icon": "mdi:food-drumstick",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_dog",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": "regular",
+                        },
                     },
-                },
-            })
+                }
+            )
 
         if modules.get(MODULE_WALK):
             # Show different button based on walking state
-            action_buttons.extend([
-                {
-                    "type": "conditional",
-                    "conditions": [{
-                        "entity": f"binary_sensor.{dog_id}_is_walking",
-                        "state": "off",
-                    }],
-                    "card": {
-                        "type": "button",
-                        "name": "Start Walk",
-                        "icon": "mdi:walk",
-                        "tap_action": {
-                            "action": "call-service", 
-                            "service": f"{DOMAIN}.start_walk",
-                            "service_data": {"dog_id": dog_id},
+            action_buttons.extend(
+                [
+                    {
+                        "type": "conditional",
+                        "conditions": [
+                            {
+                                "entity": f"binary_sensor.{dog_id}_is_walking",
+                                "state": "off",
+                            }
+                        ],
+                        "card": {
+                            "type": "button",
+                            "name": "Start Walk",
+                            "icon": "mdi:walk",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": f"{DOMAIN}.start_walk",
+                                "service_data": {"dog_id": dog_id},
+                            },
                         },
                     },
-                },
-                {
-                    "type": "conditional",
-                    "conditions": [{
-                        "entity": f"binary_sensor.{dog_id}_is_walking",
-                        "state": "on",
-                    }],
-                    "card": {
-                        "type": "button",
-                        "name": "End Walk",
-                        "icon": "mdi:stop",
-                        "tap_action": {
-                            "action": "call-service",
-                            "service": f"{DOMAIN}.end_walk",
-                            "service_data": {"dog_id": dog_id},
+                    {
+                        "type": "conditional",
+                        "conditions": [
+                            {
+                                "entity": f"binary_sensor.{dog_id}_is_walking",
+                                "state": "on",
+                            }
+                        ],
+                        "card": {
+                            "type": "button",
+                            "name": "End Walk",
+                            "icon": "mdi:stop",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": f"{DOMAIN}.end_walk",
+                                "service_data": {"dog_id": dog_id},
+                            },
                         },
                     },
-                },
-            ])
+                ]
+            )
 
         if modules.get(MODULE_HEALTH):
-            action_buttons.append({
-                "type": "button",
-                "name": "Log Health",
-                "icon": "mdi:heart-pulse",
-                "tap_action": {
-                    "action": "call-service", 
-                    "service": f"{DOMAIN}.log_health",
-                    "service_data": {"dog_id": dog_id},
-                },
-            })
+            action_buttons.append(
+                {
+                    "type": "button",
+                    "name": "Log Health",
+                    "icon": "mdi:heart-pulse",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.log_health",
+                        "service_data": {"dog_id": dog_id},
+                    },
+                }
+            )
 
         if action_buttons:
             # Split conditional and regular buttons
-            regular_buttons = [b for b in action_buttons if b.get("type") != "conditional"]
-            conditional_cards = [b for b in action_buttons if b.get("type") == "conditional"]
-            
+            regular_buttons = [
+                b for b in action_buttons if b.get("type") != "conditional"
+            ]
+            conditional_cards = [
+                b for b in action_buttons if b.get("type") == "conditional"
+            ]
+
             if regular_buttons:
-                cards.append({
-                    "type": "horizontal-stack", 
-                    "cards": regular_buttons,
-                })
-                
+                cards.append(
+                    {
+                        "type": "horizontal-stack",
+                        "cards": regular_buttons,
+                    }
+                )
+
             # Add conditional cards separately
             cards.extend(conditional_cards)
 
         # GPS map if enabled
         if modules.get(MODULE_GPS):
-            cards.append({
-                "type": "map",
-                "entities": [f"device_tracker.{dog_id}_location"],
-                "default_zoom": 15,
-                "dark_mode": options.get("dark_mode", False),
-            })
+            cards.append(
+                {
+                    "type": "map",
+                    "entities": [f"device_tracker.{dog_id}_location"],
+                    "default_zoom": 15,
+                    "dark_mode": options.get("dark_mode", False),
+                }
+            )
 
         # Activity graph
         if options.get("show_activity_graph", True):
             activity_entities = [f"sensor.{dog_id}_activity_level"]
             if modules.get(MODULE_WALK):
                 activity_entities.append(f"binary_sensor.{dog_id}_is_walking")
-                
-            cards.append({
-                "type": "history-graph",
-                "title": "24h Activity", 
-                "entities": activity_entities,
-                "hours_to_show": 24,
-            })
+
+            cards.append(
+                {
+                    "type": "history-graph",
+                    "title": "24h Activity",
+                    "entities": activity_entities,
+                    "hours_to_show": 24,
+                }
+            )
 
         return cards
 
@@ -814,16 +887,18 @@ class PawControlDashboardGenerator:
         dog_id = dog_config[CONF_DOG_ID]
 
         # Feeding schedule and status
-        cards.append({
-            "type": "entities",
-            "title": "Feeding Schedule",
-            "entities": [
-                f"sensor.{dog_id}_next_meal_time",
-                f"sensor.{dog_id}_meals_today",
-                f"sensor.{dog_id}_calories_today",
-                f"sensor.{dog_id}_last_fed",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Feeding Schedule",
+                "entities": [
+                    f"sensor.{dog_id}_next_meal_time",
+                    f"sensor.{dog_id}_meals_today",
+                    f"sensor.{dog_id}_calories_today",
+                    f"sensor.{dog_id}_last_fed",
+                ],
+            }
+        )
 
         # Feeding controls
         feeding_buttons = [
@@ -833,7 +908,7 @@ class PawControlDashboardGenerator:
                 "icon": "mdi:weather-sunny",
                 "tap_action": {
                     "action": "call-service",
-                    "service": f"{DOMAIN}.feed_dog", 
+                    "service": f"{DOMAIN}.feed_dog",
                     "service_data": {
                         "dog_id": dog_id,
                         "meal_type": "breakfast",
@@ -841,7 +916,7 @@ class PawControlDashboardGenerator:
                 },
             },
             {
-                "type": "button", 
+                "type": "button",
                 "name": "Lunch",
                 "icon": "mdi:weather-partly-cloudy",
                 "tap_action": {
@@ -849,13 +924,13 @@ class PawControlDashboardGenerator:
                     "service": f"{DOMAIN}.feed_dog",
                     "service_data": {
                         "dog_id": dog_id,
-                        "meal_type": "lunch", 
+                        "meal_type": "lunch",
                     },
                 },
             },
             {
                 "type": "button",
-                "name": "Dinner", 
+                "name": "Dinner",
                 "icon": "mdi:weather-night",
                 "tap_action": {
                     "action": "call-service",
@@ -871,7 +946,7 @@ class PawControlDashboardGenerator:
                 "name": "Snack",
                 "icon": "mdi:cookie",
                 "tap_action": {
-                    "action": "call-service", 
+                    "action": "call-service",
                     "service": f"{DOMAIN}.feed_dog",
                     "service_data": {
                         "dog_id": dog_id,
@@ -881,27 +956,31 @@ class PawControlDashboardGenerator:
             },
         ]
 
-        cards.extend([
-            {
-                "type": "horizontal-stack",
-                "cards": feeding_buttons[:2],
-            },
-            {
-                "type": "horizontal-stack", 
-                "cards": feeding_buttons[2:],
-            },
-        ])
+        cards.extend(
+            [
+                {
+                    "type": "horizontal-stack",
+                    "cards": feeding_buttons[:2],
+                },
+                {
+                    "type": "horizontal-stack",
+                    "cards": feeding_buttons[2:],
+                },
+            ]
+        )
 
         # Feeding history graph
-        cards.append({
-            "type": "history-graph",
-            "title": "Feeding History (7 days)",
-            "entities": [
-                f"sensor.{dog_id}_meals_today",
-                f"sensor.{dog_id}_calories_today",
-            ],
-            "hours_to_show": 168,  # 7 days
-        })
+        cards.append(
+            {
+                "type": "history-graph",
+                "title": "Feeding History (7 days)",
+                "entities": [
+                    f"sensor.{dog_id}_meals_today",
+                    f"sensor.{dog_id}_calories_today",
+                ],
+                "hours_to_show": 168,  # 7 days
+            }
+        )
 
         return cards
 
@@ -913,68 +992,78 @@ class PawControlDashboardGenerator:
         dog_id = dog_config[CONF_DOG_ID]
 
         # Walk status
-        cards.append({
-            "type": "entities",
-            "title": "Walk Status",
-            "entities": [
-                f"binary_sensor.{dog_id}_is_walking", 
-                f"sensor.{dog_id}_current_walk_duration",
-                f"sensor.{dog_id}_walks_today",
-                f"sensor.{dog_id}_walk_distance_today",
-                f"sensor.{dog_id}_last_walk_time",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Walk Status",
+                "entities": [
+                    f"binary_sensor.{dog_id}_is_walking",
+                    f"sensor.{dog_id}_current_walk_duration",
+                    f"sensor.{dog_id}_walks_today",
+                    f"sensor.{dog_id}_walk_distance_today",
+                    f"sensor.{dog_id}_last_walk_time",
+                ],
+            }
+        )
 
         # Walk controls (using conditionals for proper state-based display)
-        cards.extend([
-            {
-                "type": "conditional",
-                "conditions": [{
-                    "entity": f"binary_sensor.{dog_id}_is_walking",
-                    "state": "off",
-                }],
-                "card": {
-                    "type": "button", 
-                    "name": "Start Walk",
-                    "icon": "mdi:walk",
-                    "icon_height": "60px",
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.start_walk",
-                        "service_data": {"dog_id": dog_id},
+        cards.extend(
+            [
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {
+                            "entity": f"binary_sensor.{dog_id}_is_walking",
+                            "state": "off",
+                        }
+                    ],
+                    "card": {
+                        "type": "button",
+                        "name": "Start Walk",
+                        "icon": "mdi:walk",
+                        "icon_height": "60px",
+                        "tap_action": {
+                            "action": "call-service",
+                            "service": f"{DOMAIN}.start_walk",
+                            "service_data": {"dog_id": dog_id},
+                        },
                     },
                 },
-            },
-            {
-                "type": "conditional",
-                "conditions": [{
-                    "entity": f"binary_sensor.{dog_id}_is_walking",
-                    "state": "on",
-                }],
-                "card": {
-                    "type": "button",
-                    "name": "End Walk", 
-                    "icon": "mdi:stop",
-                    "icon_height": "60px",
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.end_walk",
-                        "service_data": {"dog_id": dog_id},
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {
+                            "entity": f"binary_sensor.{dog_id}_is_walking",
+                            "state": "on",
+                        }
+                    ],
+                    "card": {
+                        "type": "button",
+                        "name": "End Walk",
+                        "icon": "mdi:stop",
+                        "icon_height": "60px",
+                        "tap_action": {
+                            "action": "call-service",
+                            "service": f"{DOMAIN}.end_walk",
+                            "service_data": {"dog_id": dog_id},
+                        },
                     },
                 },
-            },
-        ])
+            ]
+        )
 
         # Walk history graph
-        cards.append({
-            "type": "history-graph",
-            "title": "Walk History (7 days)",
-            "entities": [
-                f"sensor.{dog_id}_walks_today",
-                f"sensor.{dog_id}_walk_distance_today",
-            ],
-            "hours_to_show": 168,  # 7 days
-        })
+        cards.append(
+            {
+                "type": "history-graph",
+                "title": "Walk History (7 days)",
+                "entities": [
+                    f"sensor.{dog_id}_walks_today",
+                    f"sensor.{dog_id}_walk_distance_today",
+                ],
+                "hours_to_show": 168,  # 7 days
+            }
+        )
 
         return cards
 
@@ -986,17 +1075,19 @@ class PawControlDashboardGenerator:
         dog_id = dog_config[CONF_DOG_ID]
 
         # Health metrics
-        cards.append({
-            "type": "entities",
-            "title": "Health Metrics",
-            "entities": [
-                f"sensor.{dog_id}_health_status",
-                f"sensor.{dog_id}_weight", 
-                f"sensor.{dog_id}_temperature",
-                f"sensor.{dog_id}_mood",
-                f"sensor.{dog_id}_energy_level",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Health Metrics",
+                "entities": [
+                    f"sensor.{dog_id}_health_status",
+                    f"sensor.{dog_id}_weight",
+                    f"sensor.{dog_id}_temperature",
+                    f"sensor.{dog_id}_mood",
+                    f"sensor.{dog_id}_energy_level",
+                ],
+            }
+        )
 
         # Health management buttons
         health_buttons = [
@@ -1011,7 +1102,7 @@ class PawControlDashboardGenerator:
                 },
             },
             {
-                "type": "button", 
+                "type": "button",
                 "name": "Log Medication",
                 "icon": "mdi:pill",
                 "tap_action": {
@@ -1026,29 +1117,35 @@ class PawControlDashboardGenerator:
             },
         ]
 
-        cards.append({
-            "type": "horizontal-stack",
-            "cards": health_buttons,
-        })
+        cards.append(
+            {
+                "type": "horizontal-stack",
+                "cards": health_buttons,
+            }
+        )
 
         # Weight tracking graph
-        cards.append({
-            "type": "history-graph", 
-            "title": "Weight Tracking (30 days)",
-            "entities": [f"sensor.{dog_id}_weight"],
-            "hours_to_show": 720,  # 30 days
-        })
+        cards.append(
+            {
+                "type": "history-graph",
+                "title": "Weight Tracking (30 days)",
+                "entities": [f"sensor.{dog_id}_weight"],
+                "hours_to_show": 720,  # 30 days
+            }
+        )
 
         # Important dates
-        cards.append({
-            "type": "entities",
-            "title": "Health Schedule",
-            "entities": [
-                f"date.{dog_id}_next_vet_visit",
-                f"date.{dog_id}_next_vaccination", 
-                f"date.{dog_id}_next_grooming",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Health Schedule",
+                "entities": [
+                    f"date.{dog_id}_next_vet_visit",
+                    f"date.{dog_id}_next_vaccination",
+                    f"date.{dog_id}_next_grooming",
+                ],
+            }
+        )
 
         return cards
 
@@ -1060,49 +1157,57 @@ class PawControlDashboardGenerator:
         dog_id = dog_config[CONF_DOG_ID]
 
         # GPS map (main feature)
-        cards.append({
-            "type": "map",
-            "entities": [f"device_tracker.{dog_id}_location"],
-            "default_zoom": 16,
-            "dark_mode": options.get("dark_mode", False),
-            "hours_to_show": 2,  # Show recent GPS trail
-        })
+        cards.append(
+            {
+                "type": "map",
+                "entities": [f"device_tracker.{dog_id}_location"],
+                "default_zoom": 16,
+                "dark_mode": options.get("dark_mode", False),
+                "hours_to_show": 2,  # Show recent GPS trail
+            }
+        )
 
         # GPS status and metrics
-        cards.append({
-            "type": "entities", 
-            "title": "GPS Status",
-            "entities": [
-                f"device_tracker.{dog_id}_location",
-                f"sensor.{dog_id}_gps_accuracy",
-                f"sensor.{dog_id}_distance_from_home",
-                f"sensor.{dog_id}_speed",
-                f"sensor.{dog_id}_battery_level",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "GPS Status",
+                "entities": [
+                    f"device_tracker.{dog_id}_location",
+                    f"sensor.{dog_id}_gps_accuracy",
+                    f"sensor.{dog_id}_distance_from_home",
+                    f"sensor.{dog_id}_speed",
+                    f"sensor.{dog_id}_battery_level",
+                ],
+            }
+        )
 
         # Geofence status
-        cards.append({
-            "type": "entities",
-            "title": "Geofence & Safety",
-            "entities": [
-                f"binary_sensor.{dog_id}_at_home", 
-                f"binary_sensor.{dog_id}_at_park",
-                f"binary_sensor.{dog_id}_in_safe_zone",
-                f"switch.{dog_id}_gps_tracking_enabled",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Geofence & Safety",
+                "entities": [
+                    f"binary_sensor.{dog_id}_at_home",
+                    f"binary_sensor.{dog_id}_at_park",
+                    f"binary_sensor.{dog_id}_in_safe_zone",
+                    f"switch.{dog_id}_gps_tracking_enabled",
+                ],
+            }
+        )
 
         # GPS history (if available)
-        cards.append({
-            "type": "history-graph",
-            "title": "Location History",
-            "entities": [
-                f"sensor.{dog_id}_distance_from_home",
-                f"sensor.{dog_id}_speed",
-            ],
-            "hours_to_show": 24,
-        })
+        cards.append(
+            {
+                "type": "history-graph",
+                "title": "Location History",
+                "entities": [
+                    f"sensor.{dog_id}_distance_from_home",
+                    f"sensor.{dog_id}_speed",
+                ],
+                "hours_to_show": 24,
+            }
+        )
 
         return cards
 
@@ -1120,13 +1225,15 @@ class PawControlDashboardGenerator:
         ]
 
         if activity_entities:
-            cards.append({
-                "type": "statistics-graph",
-                "title": "Activity Statistics (30 days)",
-                "entities": activity_entities,
-                "stat_types": ["mean", "min", "max"],
-                "days_to_show": 30,
-            })
+            cards.append(
+                {
+                    "type": "statistics-graph",
+                    "title": "Activity Statistics (30 days)",
+                    "entities": activity_entities,
+                    "stat_types": ["mean", "min", "max"],
+                    "days_to_show": 30,
+                }
+            )
 
         # Feeding statistics
         feeding_entities = [
@@ -1136,15 +1243,17 @@ class PawControlDashboardGenerator:
         ]
 
         if feeding_entities:
-            cards.append({
-                "type": "statistics-graph",
-                "title": "Feeding Statistics (30 days)",
-                "entities": feeding_entities,
-                "stat_types": ["sum", "mean"],
-                "days_to_show": 30,
-            })
+            cards.append(
+                {
+                    "type": "statistics-graph",
+                    "title": "Feeding Statistics (30 days)",
+                    "entities": feeding_entities,
+                    "stat_types": ["sum", "mean"],
+                    "days_to_show": 30,
+                }
+            )
 
-        # Walk statistics  
+        # Walk statistics
         walk_entities = [
             f"sensor.{dog[CONF_DOG_ID]}_walk_distance_today"
             for dog in dogs_config
@@ -1152,13 +1261,15 @@ class PawControlDashboardGenerator:
         ]
 
         if walk_entities:
-            cards.append({
-                "type": "statistics-graph", 
-                "title": "Walk Statistics (30 days)",
-                "entities": walk_entities,
-                "stat_types": ["sum", "mean", "max"],
-                "days_to_show": 30,
-            })
+            cards.append(
+                {
+                    "type": "statistics-graph",
+                    "title": "Walk Statistics (30 days)",
+                    "entities": walk_entities,
+                    "stat_types": ["sum", "mean", "max"],
+                    "days_to_show": 30,
+                }
+            )
 
         # Health trends
         weight_entities = [
@@ -1168,29 +1279,33 @@ class PawControlDashboardGenerator:
         ]
 
         if weight_entities:
-            cards.append({
-                "type": "statistics-graph",
-                "title": "Weight Trends (60 days)",
-                "entities": weight_entities,
-                "stat_types": ["mean", "min", "max"],
-                "days_to_show": 60,
-            })
+            cards.append(
+                {
+                    "type": "statistics-graph",
+                    "title": "Weight Trends (60 days)",
+                    "entities": weight_entities,
+                    "stat_types": ["mean", "min", "max"],
+                    "days_to_show": 60,
+                }
+            )
 
         # Summary statistics card
-        cards.append({
-            "type": "markdown",
-            "title": "Summary",
-            "content": (
-                f"## Paw Control Statistics\n\n"
-                f"**Dogs managed:** {len(dogs_config)}\n\n"
-                f"**Active modules:**\n"
-                f"- Feeding: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_FEEDING))}\n"
-                f"- Walks: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_WALK))}\n" 
-                f"- Health: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_HEALTH))}\n"
-                f"- GPS: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_GPS))}\n\n"
-                f"*Last updated: {{{{ now().strftime('%Y-%m-%d %H:%M') }}}}*"
-            ),
-        })
+        cards.append(
+            {
+                "type": "markdown",
+                "title": "Summary",
+                "content": (
+                    f"## Paw Control Statistics\n\n"
+                    f"**Dogs managed:** {len(dogs_config)}\n\n"
+                    f"**Active modules:**\n"
+                    f"- Feeding: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_FEEDING))}\n"
+                    f"- Walks: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_WALK))}\n"
+                    f"- Health: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_HEALTH))}\n"
+                    f"- GPS: {sum(1 for d in dogs_config if d.get('modules', {}).get(MODULE_GPS))}\n\n"
+                    f"*Last updated: {{{{ now().strftime('%Y-%m-%d %H:%M') }}}}*"
+                ),
+            }
+        )
 
         return cards
 
@@ -1201,40 +1316,44 @@ class PawControlDashboardGenerator:
         cards = []
 
         # Integration-wide settings
-        cards.append({
-            "type": "entities",
-            "title": "Integration Settings", 
-            "entities": [
-                f"switch.{DOMAIN}_notifications_enabled",
-                f"select.{DOMAIN}_data_retention_days",
-                f"switch.{DOMAIN}_advanced_logging",
-            ],
-        })
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Integration Settings",
+                "entities": [
+                    f"switch.{DOMAIN}_notifications_enabled",
+                    f"select.{DOMAIN}_data_retention_days",
+                    f"switch.{DOMAIN}_advanced_logging",
+                ],
+            }
+        )
 
         # Per-dog settings
         for dog in dogs_config:
             if not dog.get(CONF_DOG_ID) or not dog.get(CONF_DOG_NAME):
                 continue
-                
+
             dog_id = dog[CONF_DOG_ID]
             dog_name = dog[CONF_DOG_NAME]
 
             dog_entities = [f"switch.{dog_id}_notifications_enabled"]
-            
+
             # Add module-specific settings
             modules = dog.get("modules", {})
             if modules.get(MODULE_GPS):
                 dog_entities.append(f"switch.{dog_id}_gps_tracking_enabled")
-            if modules.get(MODULE_VISITOR):  
+            if modules.get(MODULE_VISITOR):
                 dog_entities.append(f"switch.{dog_id}_visitor_mode")
             if modules.get(MODULE_NOTIFICATIONS):
                 dog_entities.append(f"select.{dog_id}_notification_priority")
 
-            cards.append({
-                "type": "entities",
-                "title": f"{dog_name} Settings",
-                "entities": dog_entities,
-            })
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": f"{dog_name} Settings",
+                    "entities": dog_entities,
+                }
+            )
 
         # Maintenance and system actions
         maintenance_buttons = [
@@ -1254,7 +1373,7 @@ class PawControlDashboardGenerator:
             {
                 "type": "button",
                 "name": "Daily Reset",
-                "icon": "mdi:refresh", 
+                "icon": "mdi:refresh",
                 "tap_action": {
                     "action": "call-service",
                     "service": f"{DOMAIN}.daily_reset",
@@ -1266,7 +1385,7 @@ class PawControlDashboardGenerator:
                 "icon": "mdi:reload",
                 "tap_action": {
                     "action": "call-service",
-                    "service": "homeassistant.reload_config_entry", 
+                    "service": "homeassistant.reload_config_entry",
                     "service_data": {
                         "entry_id": self.entry.entry_id,
                     },
@@ -1276,11 +1395,13 @@ class PawControlDashboardGenerator:
 
         # Split into rows of 2 buttons each
         for i in range(0, len(maintenance_buttons), 2):
-            button_row = maintenance_buttons[i:i+2]
-            cards.append({
-                "type": "horizontal-stack",
-                "cards": button_row,
-            })
+            button_row = maintenance_buttons[i : i + 2]
+            cards.append(
+                {
+                    "type": "horizontal-stack",
+                    "cards": button_row,
+                }
+            )
 
         return cards
 
@@ -1303,7 +1424,7 @@ class PawControlDashboardGenerator:
 
         Returns:
             Path identifier for the created dashboard
-            
+
         Raises:
             HomeAssistantError: If dashboard creation fails
         """
@@ -1331,14 +1452,18 @@ class PawControlDashboardGenerator:
 
             # Write dashboard configuration using async file operations
             async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as file:
-                await file.write(json.dumps(dashboard_data, indent=2, ensure_ascii=False))
+                await file.write(
+                    json.dumps(dashboard_data, indent=2, ensure_ascii=False)
+                )
 
             _LOGGER.debug("Created dashboard file: %s", dashboard_file)
-            
+
             return str(dashboard_file)
 
         except Exception as err:
-            _LOGGER.error("Failed to create Lovelace dashboard file: %s", err, exc_info=True)
+            _LOGGER.error(
+                "Failed to create Lovelace dashboard file: %s", err, exc_info=True
+            )
             raise HomeAssistantError(f"Dashboard file creation failed: {err}") from err
 
     async def _update_lovelace_dashboard(
@@ -1349,13 +1474,13 @@ class PawControlDashboardGenerator:
         Args:
             dashboard_path: Path to the dashboard file
             config: New dashboard configuration
-            
+
         Raises:
             HomeAssistantError: If dashboard update fails
         """
         try:
             dashboard_file = Path(dashboard_path)
-            
+
             if not dashboard_file.exists():
                 raise HomeAssistantError(f"Dashboard file not found: {dashboard_path}")
 
@@ -1370,7 +1495,9 @@ class PawControlDashboardGenerator:
 
             # Write updated dashboard
             async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as file:
-                await file.write(json.dumps(dashboard_data, indent=2, ensure_ascii=False))
+                await file.write(
+                    json.dumps(dashboard_data, indent=2, ensure_ascii=False)
+                )
 
             _LOGGER.debug("Updated dashboard file: %s", dashboard_file)
 
@@ -1386,10 +1513,10 @@ class PawControlDashboardGenerator:
         """
         try:
             dashboard_file = Path(dashboard_path)
-            
+
             # Use async file operations for deletion
             await asyncio.to_thread(dashboard_file.unlink, missing_ok=True)
-            
+
             _LOGGER.debug("Deleted dashboard file: %s", dashboard_file)
 
         except Exception as err:
@@ -1398,18 +1525,20 @@ class PawControlDashboardGenerator:
 
     async def _save_dashboards(self) -> None:
         """Save dashboard configurations to storage.
-        
+
         Raises:
             HomeAssistantError: If saving fails
         """
         try:
-            await self._store.async_save({
-                "dashboards": self._dashboards,
-                "updated": utcnow().isoformat(),
-                "version": DASHBOARD_STORAGE_VERSION,
-                "entry_id": self.entry.entry_id,
-            })
-            
+            await self._store.async_save(
+                {
+                    "dashboards": self._dashboards,
+                    "updated": utcnow().isoformat(),
+                    "version": DASHBOARD_STORAGE_VERSION,
+                    "entry_id": self.entry.entry_id,
+                }
+            )
+
         except Exception as err:
             _LOGGER.error("Failed to save dashboard storage: %s", err, exc_info=True)
             raise HomeAssistantError(f"Dashboard storage save failed: {err}") from err
@@ -1417,7 +1546,7 @@ class PawControlDashboardGenerator:
     async def _validate_stored_dashboards(self) -> None:
         """Validate and clean up stored dashboards."""
         invalid_dashboards = []
-        
+
         for url, dashboard_info in self._dashboards.items():
             try:
                 # Check if dashboard file still exists
@@ -1425,12 +1554,12 @@ class PawControlDashboardGenerator:
                 if dashboard_path and not Path(dashboard_path).exists():
                     invalid_dashboards.append(url)
                     continue
-                    
+
                 # Validate required fields
                 required_fields = ["title", "created", "type"]
                 if not all(field in dashboard_info for field in required_fields):
                     invalid_dashboards.append(url)
-                    
+
             except Exception as err:
                 _LOGGER.warning("Error validating dashboard %s: %s", url, err)
                 invalid_dashboards.append(url)
@@ -1467,7 +1596,7 @@ class PawControlDashboardGenerator:
     @callback
     def is_initialized(self) -> bool:
         """Check if the dashboard generator is initialized.
-        
+
         Returns:
             True if initialized
         """
