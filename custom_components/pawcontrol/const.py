@@ -6,11 +6,13 @@ from typing import Final
 
 # Storage version for data persistence
 STORAGE_VERSION: Final = 1
+DASHBOARD_STORAGE_VERSION: Final = 1
 
 # Integration domain
 DOMAIN: Final = "pawcontrol"
 
 # Config flow constants
+CONF_NAME: Final = "name"  # Integration instance name
 CONF_DOGS: Final = "dogs"
 CONF_DOG_ID: Final = "dog_id"
 CONF_DOG_NAME: Final = "dog_name"
@@ -29,6 +31,9 @@ MODULE_WALK: Final = "walk"
 MODULE_NOTIFICATIONS: Final = "notifications"
 MODULE_DASHBOARD: Final = "dashboard"
 MODULE_VISITOR: Final = "visitor"
+MODULE_GROOMING: Final = "grooming"
+MODULE_MEDICATION: Final = "medication"
+MODULE_TRAINING: Final = "training"
 
 # Source entities
 CONF_SOURCES: Final = "sources"
@@ -137,6 +142,20 @@ ACTIVITY_LEVELS: Final = ["very_low", "low", "normal", "high", "very_high"]
 # Dashboard modes
 DASHBOARD_MODES: Final = ["full", "cards", "minimal"]
 
+# Dashboard configuration
+CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
+CONF_DASHBOARD_AUTO_CREATE: Final = "dashboard_auto_create"
+CONF_DASHBOARD_THEME: Final = "dashboard_theme"
+CONF_DASHBOARD_CARDS: Final = "dashboard_cards"
+CONF_DASHBOARD_VIEWS: Final = "dashboard_views"
+CONF_DASHBOARD_PER_DOG: Final = "dashboard_per_dog"
+
+# Dashboard defaults
+DEFAULT_DASHBOARD_ENABLED: Final = True
+DEFAULT_DASHBOARD_AUTO_CREATE: Final = True
+DEFAULT_DASHBOARD_THEME: Final = "default"
+DEFAULT_DASHBOARD_MODE: Final = "full"
+
 # Performance modes
 PERFORMANCE_MODES: Final = ["minimal", "balanced", "full"]
 
@@ -232,6 +251,7 @@ __all__ = [
     "DOMAIN",
     "STORAGE_VERSION",
     # Configuration keys
+    "CONF_NAME",
     "CONF_DOGS",
     "CONF_DOG_ID",
     "CONF_DOG_NAME",
@@ -248,6 +268,9 @@ __all__ = [
     "MODULE_NOTIFICATIONS",
     "MODULE_DASHBOARD",
     "MODULE_VISITOR",
+    "MODULE_GROOMING",
+    "MODULE_MEDICATION",
+    "MODULE_TRAINING",
     # Validation lists (primary source)
     "MEAL_TYPES",
     "FOOD_TYPES",
@@ -257,6 +280,12 @@ __all__ = [
     "MOOD_OPTIONS",
     "ACTIVITY_LEVELS",
     "DASHBOARD_MODES",
+    "DASHBOARD_STORAGE_VERSION",
+    "CONF_DASHBOARD_ENABLED",
+    "CONF_DASHBOARD_AUTO_CREATE",
+    "CONF_DASHBOARD_THEME",
+    "DEFAULT_DASHBOARD_ENABLED",
+    "DEFAULT_DASHBOARD_AUTO_CREATE",
     "PERFORMANCE_MODES",
     "GEOFENCE_TYPES",
     # Service names
@@ -265,6 +294,8 @@ __all__ = [
     "SERVICE_END_WALK",
     "SERVICE_LOG_HEALTH",
     "SERVICE_LOG_MEDICATION",
+    "SERVICE_START_GROOMING",
+    "SERVICE_NOTIFY_TEST",
     "SERVICE_DAILY_RESET",
     # Event types
     "EVENT_WALK_STARTED",

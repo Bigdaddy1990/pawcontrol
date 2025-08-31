@@ -7,11 +7,34 @@
   "codeowners": ["@BigDaddy1990"],
   "config_flow": true,
   "dependencies": [],
-  "after_dependencies": ["mobile_app", "person", "zone", "calendar", "weather", "device_tracker"],
+  "after_dependencies": [
+    "mobile_app",
+    "person",
+    "zone",
+    "calendar",
+    "weather",
+    "device_tracker"
+  ],
   "requirements": [],
   "iot_class": "local_push",
   "quality_scale": "platinum",
   "integration_type": "hub",
   "min_ha_version": "2025.8.2",
-  "loggers": ["custom_components.pawcontrol"]
+  "loggers": ["custom_components.pawcontrol"],
+  "usb": [
+    {
+      "vid": "1234",
+      "pid": "abcd"
+    }
+  ],
+  "zeroconf": [
+    {
+      "type": "_pawcontrol._tcp.local."
+    }
+  ],
+  "dhcp": [
+    {
+      "mac": "00:11:22:33:44"
+    }
+  ]
 }

@@ -91,7 +91,9 @@ async def async_get_config_entry_diagnostics(
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
-
+    # --- Patch: hier sicherstellen, dass Redaction auf alles angewandt wird ---
+    return _redact_sensitive_data(diagnostics)
+    
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 

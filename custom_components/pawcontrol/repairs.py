@@ -1030,3 +1030,14 @@ def async_create_repair_flow(
         Repair flow instance
     """
     return PawControlRepairsFlow()
+
+
+async def async_register_repairs(hass: HomeAssistant) -> None:
+    """Register initial repair checks for Paw Control integration."""
+    _LOGGER.debug("Registering Paw Control repair checks")
+
+    # Iterate over all entries and run checks
+    for entry_id, data in hass.data.get(DOMAIN, {}).items():
+        entry = data.get("entry")
+        if entry:
+            await async_check_for_issues(hass, entry)

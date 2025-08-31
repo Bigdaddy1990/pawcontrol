@@ -7,7 +7,7 @@ operation, complete type annotations, and robust error handling.
 
 Quality Scale: Platinum
 Home Assistant: 2025.8.2+
-Python: 3.12+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -35,20 +35,37 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
+from . import repairs
+from .dashboard_generator import PawControlDashboardGenerator
+
 from .const import (
+    ACTIVITY_LEVELS,
     ATTR_DOG_ID,
     ATTR_MEAL_TYPE,
     ATTR_PORTION_SIZE,
+    CONF_DASHBOARD_AUTO_CREATE,
+    CONF_DASHBOARD_ENABLED,
     CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_RESET_TIME,
+    DEFAULT_DASHBOARD_AUTO_CREATE,
+    DEFAULT_DASHBOARD_ENABLED,
     DEFAULT_RESET_TIME,
     DOMAIN,
     EVENT_FEEDING_LOGGED,
     EVENT_HEALTH_LOGGED,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
+    FOOD_TYPES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+    MOOD_OPTIONS,
     SERVICE_DAILY_RESET,
     SERVICE_END_WALK,
     SERVICE_FEED_DOG,
@@ -57,11 +74,7 @@ from .const import (
     SERVICE_NOTIFY_TEST,
     SERVICE_START_GROOMING,
     SERVICE_START_WALK,
-    FOOD_TYPES,
-    MEAL_TYPES,
-    HEALTH_STATUS_OPTIONS,
-    MOOD_OPTIONS,
-    ACTIVITY_LEVELS,
+
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
@@ -71,6 +84,7 @@ from .exceptions import (
     DogNotFoundError,
     ValidationError,
 )
+# Error classes already imported from .exceptions
 from .notifications import PawControlNotificationManager
 from .types import DogConfigData, PawControlRuntimeData
 from .utils import (
@@ -81,10 +95,12 @@ from .utils import (
     performance_monitor,
 )
 
+
 _LOGGER = logging.getLogger(__name__)
 
 # Ordered platform loading for optimal dependency resolution
-PLATFORMS: Final[list[Platform]] = [
+# Legacy: All platforms (kept for reference and fallback)
+ALL_PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
@@ -96,6 +112,115 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.DATE,
     Platform.DATETIME,
 ]
+
+
+def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
+    """Ermittelt nur die benötigten Plattformen basierend auf aktivierten Modulen.
+    
+    Diese Funktion löst das Entity Registry Problem durch intelligentes
+    Platform Loading. Nur aktivierte Module führen zum Laden der entsprechenden
+    Plattformen, was die Performance verbessert und unnötige Entities verhindert.
+    
+    Args:
+        dogs: Liste der konfigurierten Hunde mit ihren Modulen
+        
+    Returns:
+        Liste der benötigten Plattformen in optimaler Ladereihenfolge
+    """
+    from .const import (
+        MODULE_GPS, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK,
+        MODULE_NOTIFICATIONS, MODULE_DASHBOARD, MODULE_VISITOR
+    )
+    
+    # Module-zu-Platform-Mapping basierend auf Funktionalität
+    MODULE_PLATFORM_MAP = {
+        MODULE_GPS: {
+            Platform.DEVICE_TRACKER,  # GPS Position Tracking
+            Platform.SENSOR,          # GPS Status, Accuracy, Distance
+        },
+        MODULE_FEEDING: {
+            Platform.SENSOR,          # Feeding Stats, Last Fed
+            Platform.BUTTON,          # Feed Dog Button
+            Platform.SELECT,          # Meal Type Selection
+            Platform.DATETIME,        # Last Feeding Time
+        },
+        MODULE_HEALTH: {
+            Platform.SENSOR,          # Health Status, Weight Trends
+            Platform.NUMBER,          # Weight Input, Temperature
+            Platform.DATE,            # Last Vet Visit, Next Checkup
+        },
+        MODULE_WALK: {
+            Platform.SENSOR,          # Walk Stats, Duration, Distance
+            Platform.BUTTON,          # Start/End Walk Buttons
+            Platform.BINARY_SENSOR,   # Currently Walking Status
+        },
+        MODULE_NOTIFICATIONS: {
+            Platform.SWITCH,          # Notification Enable/Disable
+            Platform.SELECT,          # Notification Priority Level
+        },
+        MODULE_DASHBOARD: {
+            Platform.SENSOR,          # Dashboard Summary Stats
+            Platform.TEXT,            # Dashboard Status Messages
+        },
+        MODULE_VISITOR: {
+            Platform.SWITCH,          # Visitor Mode On/Off
+            Platform.BINARY_SENSOR,   # Visitor Present Status
+        },
+    }
+    
+    # Core Plattformen die IMMER benötigt werden
+    required_platforms = {
+        Platform.SENSOR,    # Basis-Sensoren für jeden Hund
+        Platform.BUTTON,    # Basis-Buttons (Daily Reset etc.)
+    }
+    
+    # Sammle alle aktivierten Module aus allen Hunden
+    enabled_modules = set()
+    for dog in dogs:
+        dog_modules = dog.get("modules", {})
+        for module_name, is_enabled in dog_modules.items():
+            if is_enabled:
+                enabled_modules.add(module_name)
+    
+    # Ermittle benötigte Plattformen basierend auf aktivierten Modulen
+    needed_platforms = required_platforms.copy()
+    
+    for module in enabled_modules:
+        module_platforms = MODULE_PLATFORM_MAP.get(module, set())
+        needed_platforms.update(module_platforms)
+        
+    # Konvertiere zu sortierter Liste für optimale Ladereihenfolge
+    platform_order = [
+        Platform.SENSOR,         # Basis-Sensoren zuerst
+        Platform.BINARY_SENSOR,  # Binäre Sensoren
+        Platform.BUTTON,         # Buttons
+        Platform.SWITCH,         # Switches
+        Platform.NUMBER,         # Zahlen-Eingaben
+        Platform.SELECT,         # Auswahl-Felder  
+        Platform.TEXT,           # Text-Felder
+        Platform.DEVICE_TRACKER, # Device Tracker
+        Platform.DATE,           # Datum-Felder
+        Platform.DATETIME,       # DateTime-Felder
+    ]
+    
+    # Filtere und sortiere nach optimaler Reihenfolge
+    platforms_list = [p for p in platform_order if p in needed_platforms]
+        
+    # Log für Debugging
+    _LOGGER.info(
+        "Modulares Platform Loading: %d Module aktiv (%s), %d/%d Plattformen geladen: %s",
+        len(enabled_modules),
+        ", ".join(sorted(enabled_modules)),
+        len(platforms_list),
+        len(ALL_PLATFORMS),
+        [p.value for p in platforms_list]
+    )
+    
+    return platforms_list
+
+# OPTIMIZATION: Rate limiting für Entity Registry Updates
+_PLATFORM_SETUP_LOCK = asyncio.Lock()
+_PLATFORM_SETUP_DELAY = 0.1  # 100ms zwischen Platform-Setups bei mehreren Hunden
 
 # Enhanced service validation schemas with comprehensive validation
 SERVICE_FEED_DOG_SCHEMA: Final = vol.Schema(
@@ -352,6 +477,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ConfigEntryAuthFailed: If authentication fails
         PawControlSetupError: If setup fails due to configuration issues
     """
+    try:
+        coordinator = PawControlCoordinator(hass, entry)
+        await coordinator.async_config_entry_first_refresh()
+
+        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
+            "coordinator": coordinator,
+            "entry": entry,
+            # weitere runtime_data wie data_manager, notifications etc.
+        }
+
+        await repairs.async_register_repairs(hass)  # <--- Patch hinzugefügt
+
+        # Register all services (vollständige Logik bleibt erhalten)
+        await _async_register_services(hass, entry)
+
+        # Schedule daily reset if configured
+        await _async_setup_daily_reset_scheduler(hass, entry)
+
+        return True
+
+    except Exception as err:
+        _LOGGER.error("Failed to set up Paw Control integration: %s", err, exc_info=True)
+        raise ConfigEntryNotReady from err
+        
     _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     # Enhanced setup context manager for proper cleanup
@@ -381,10 +530,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Enhanced dog configuration validation
             await _async_validate_dogs_configuration(dogs_config)
 
-            # Initialize core components with modern async patterns and timeouts
+            # Initialize core components with optimized timeouts for faster setup
             async with asyncio.timeout(
-                45
-            ):  # 45-second timeout for component initialization
+                15
+            ):  # Reduced from 45s to 15s for faster setup
                 # Initialize coordinator with enhanced configuration
                 coordinator = PawControlCoordinator(hass, entry)
 
@@ -416,19 +565,55 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "coordinator": coordinator,
                 "data": data_manager,
                 "notifications": notification_manager,
+                "dashboard_generator": None,  # Will be initialized after platforms
                 "entry": entry,
             }
 
-            # Setup platforms with modern HA 2025.8.2+ API
-            # Use the new async_forward_entry_setups API that loads multiple platforms
-            # concurrently without blocking import_module issues
+            # Setup platforms using modulares Loading für optimale Performance und Entity Registry
             try:
-                async with asyncio.timeout(45):  # 45 second timeout for all platforms
-                    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+                # ✅ LÖSUNG: Modulares Platform Loading basierend auf aktivierten Modulen
+                needed_platforms = get_platforms_for_modules(dogs_config)
                 
-                _LOGGER.info("Successfully set up all %d platforms using modern HA 2025.8.2+ API", len(PLATFORMS))
+                # Fallback auf alle Plattformen falls keine Module konfiguriert (Safety)
+                if not needed_platforms:
+                    _LOGGER.warning("Keine Module aktiviert, verwende Fallback auf alle Plattformen")
+                    needed_platforms = ALL_PLATFORMS
+                
+                # FIX: Rate-limited platform setup to prevent Entity Registry flooding
+                async with _PLATFORM_SETUP_LOCK:
+                    # Bei mehreren Hunden: Gestaffelte Platform-Initialisierung
+                    if len(dogs_config) > 2:
+                        # Teile Platforms in kleinere Gruppen auf
+                        platform_groups = [
+                            needed_platforms[i:i+3] 
+                            for i in range(0, len(needed_platforms), 3)
+                        ]
+                        
+                        for group_idx, platform_group in enumerate(platform_groups):
+                            async with asyncio.timeout(15):  # Timeout pro Gruppe
+                                await hass.config_entries.async_forward_entry_setups(
+                                    entry, platform_group
+                                )
+                            
+                            # Verzögerung zwischen Gruppen bei vielen Hunden
+                            if group_idx < len(platform_groups) - 1:
+                                await asyncio.sleep(_PLATFORM_SETUP_DELAY)
+                    else:
+                        # Wenige Hunde: Normal setup
+                        async with asyncio.timeout(30):
+                            await hass.config_entries.async_forward_entry_setups(
+                                entry, needed_platforms
+                            )
+                
+                _LOGGER.info(
+                    "Modulares Setup erfolgreich: %d von %d Plattformen für %d Hunde (%.0f%% optimiert)", 
+                    len(needed_platforms), 
+                    len(ALL_PLATFORMS),
+                    len(dogs_config),
+                    (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100
+                )
             except asyncio.TimeoutError:
-                _LOGGER.error("Platform setup timed out after 45 seconds")
+                _LOGGER.error("Platform setup timed out after 30 seconds")
                 await _async_cleanup_runtime_data(hass, entry, runtime_data)
                 raise ConfigEntryNotReady("Platform setup timed out") from None
             except Exception as err:
@@ -443,9 +628,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Setup daily reset scheduler with modern async patterns and error handling
             await _async_setup_daily_reset_scheduler(hass, entry)
 
-            # Perform initial data refresh with timeout and graceful degradation
+            # Setup dashboard if enabled
+            if entry.options.get(CONF_DASHBOARD_ENABLED, DEFAULT_DASHBOARD_ENABLED):
+                try:
+                    dashboard_generator = PawControlDashboardGenerator(hass, entry)
+                    await dashboard_generator.async_initialize()
+                    
+                    if entry.options.get(CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE):
+                        dashboard_url = await dashboard_generator.async_create_dashboard(
+                            dogs_config,
+                            options={
+                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
+                                "theme": entry.options.get("dashboard_theme", "default"),
+                                "mode": entry.options.get("dashboard_mode", "full"),
+                            }
+                        )
+                        _LOGGER.info("Created dashboard at: %s", dashboard_url)
+                        
+                        # Create individual dog dashboards if configured
+                        if entry.options.get("dashboard_per_dog", False):
+                            for dog in dogs_config:
+                                dog_url = await dashboard_generator.async_create_dog_dashboard(dog)
+                                _LOGGER.info("Created dog dashboard for %s at: %s", dog[CONF_DOG_NAME], dog_url)
+                    
+                    # Update runtime data with dashboard generator
+                    runtime_data["dashboard_generator"] = dashboard_generator
+                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = dashboard_generator
+                    
+                except Exception as err:
+                    _LOGGER.error("Failed to setup dashboard: %s", err)
+                    # Dashboard failure is non-critical, continue setup
+
+            # Perform initial data refresh with shorter timeout for faster setup
             try:
-                async with asyncio.timeout(30):
+                async with asyncio.timeout(10):  # Reduced from 30s to 10s
                     await coordinator.async_config_entry_first_refresh()
                 _LOGGER.debug("Initial data refresh completed successfully")
             except asyncio.TimeoutError:
@@ -461,9 +677,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Setup complete - log comprehensive status
             _LOGGER.info(
                 "Paw Control integration setup completed successfully: "
-                "%d dogs, %d platforms, entry_id=%s",
+                "%d dogs, %d/%d platforms loaded (modulares Loading), entry_id=%s",
                 len(dogs_config),
-                len(PLATFORMS),
+                len(needed_platforms), 
+                len(ALL_PLATFORMS),
                 entry.entry_id,
             )
 
@@ -587,10 +804,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Unloading Paw Control integration entry: %s", entry.entry_id)
 
     try:
-        # Unload all platforms with timeout protection
+        # Ermittle die aktuell geladenen Plattformen basierend auf Konfiguration
+        dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
+        loaded_platforms = get_platforms_for_modules(dogs_config) if dogs_config else ALL_PLATFORMS
+        
+        # Unload alle aktuell geladenen Plattformen mit timeout protection
         async with asyncio.timeout(30):
             unload_success = await hass.config_entries.async_unload_platforms(
-                entry, PLATFORMS
+                entry, loaded_platforms
             )
 
         if unload_success:
@@ -673,6 +894,15 @@ async def _async_cleanup_runtime_data(
     # Define component shutdown order (reverse dependency order)
     shutdown_tasks = []
 
+    # Dashboard generator cleanup
+    dashboard_generator = runtime_data.get("dashboard_generator")
+    if dashboard_generator and hasattr(dashboard_generator, "async_cleanup"):
+        shutdown_tasks.append(
+            _async_shutdown_component(
+                "dashboard_generator", dashboard_generator.async_cleanup()
+            )
+        )
+    
     # Notification manager cleanup
     notification_manager = runtime_data.get("notification_manager")
     if notification_manager and hasattr(notification_manager, "async_shutdown"):
@@ -772,9 +1002,11 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         food_type: str = call.data.get("food_type", "dry_food")
         notes: str = call.data.get("notes", "").strip()
         calories: float = float(call.data.get("calories", 0.0))
+        amount: float = call.data.get("amount", 0)
 
         _LOGGER.debug(
             "Processing feed_dog service for %s: %s (%.1fg, %.0f cal)",
+            amount,
             dog_id,
             meal_type,
             portion_size,
@@ -790,6 +1022,9 @@ async def _async_register_services(hass: HomeAssistant) -> None:
                 ).with_user_message(f"Dog '{dog_id}' not found in any configuration")
 
             data_manager = runtime_data["data_manager"]
+            await data_manager.async_feed_dog(dog_id, amount)
+            
+            _LOGGER.info("Successfully fed %s with amount %s", dog_id, amount)
 
             # Prepare comprehensive feeding data with validation
             feeding_data = {
@@ -840,6 +1075,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info(
                 "Successfully logged feeding for %s: %s (%.1fg, %.0f cal)",
+                amount,
                 dog_id,
                 meal_type,
                 portion_size,
@@ -849,6 +1085,9 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         except PawControlError as err:
             _LOGGER.error("PawControl error in feed_dog service: %s", err.to_dict())
             raise ServiceValidationError(err.user_message) from err
+        except Exception as err:
+            _LOGGER.error("Unexpected error in feed_dog service: %s", err, exc_info=True)
+            raise ServiceValidationError(f"Failed to feed dog: {err}") from err
 
     @performance_monitor(timeout=10.0)
     async def _handle_start_walk_service(call: ServiceCall) -> None:
@@ -1229,14 +1468,27 @@ async def _async_register_services(hass: HomeAssistant) -> None:
 
             data_manager = runtime_data["data_manager"]
 
-            # Get date range for export
+            # Get date range for export - handle date objects properly
             start_date = call.data.get("start_date")
             end_date = call.data.get("end_date")
             
             if start_date:
-                start_date = dt_util.parse_datetime(start_date)
+                # Handle different date/datetime types properly
+                if isinstance(start_date, str):
+                    start_date = dt_util.parse_datetime(start_date)
+                elif hasattr(start_date, 'year') and not hasattr(start_date, 'hour'):
+                    # Convert date to datetime at start of day
+                    start_date = dt_util.start_of_local_day(start_date)
+                # If already datetime, use as-is
+                
             if end_date:
-                end_date = dt_util.parse_datetime(end_date)
+                # Handle different date/datetime types properly  
+                if isinstance(end_date, str):
+                    end_date = dt_util.parse_datetime(end_date)
+                elif hasattr(end_date, 'year') and not hasattr(end_date, 'hour'):
+                    # Convert date to datetime at end of day
+                    end_date = dt_util.end_of_local_day(end_date)
+                # If already datetime, use as-is
 
             # Collect data based on type
             if data_type == "all":

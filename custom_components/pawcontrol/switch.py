@@ -661,29 +661,25 @@ class PawControlDoNotDisturbSwitch(PawControlSwitchBase):
         """Set the do not disturb state."""
         # Update notification settings based on DND state
         try:
-            await self.hass.services.async_call(
-                DOMAIN,
-                "configure_alerts",
-                {
-                    "dog_id": self._dog_id,
-                    "feeding_alerts": not state,
-                    "walk_alerts": not state,
-                    "health_alerts": not state,  # Keep health alerts even in DND
-                    "gps_alerts": not state,
-                    "quiet_hours_start": "22:00" if state else None,
-                    "quiet_hours_end": "08:00" if state else None,
-                },
-                blocking=True,
-            )
-
-        except Exception as err:
-            _LOGGER.warning("Failed to update DND settings: %s", err)
-            # Fallback to manual notification manager update
+            # Update DND settings via notification manager directly
             entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
             notification_manager = entry_data.get("notifications")
 
-            if notification_manager:
+            if notification_manager and hasattr(notification_manager, "async_set_dnd_mode"):
                 await notification_manager.async_set_dnd_mode(self._dog_id, state)
+                _LOGGER.info(
+                    "DND mode %s for %s via notification manager",
+                    "enabled" if state else "disabled", 
+                    self._dog_name
+                )
+            else:
+                _LOGGER.warning(
+                    "Notification manager not available for DND mode update for %s", 
+                    self._dog_name
+                )
+
+        except Exception as err:
+            _LOGGER.error("Failed to update DND settings for %s: %s", self._dog_name, err)
 
 
 # Module switches

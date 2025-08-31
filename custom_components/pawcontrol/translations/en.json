@@ -89,6 +89,104 @@
       "single_instance_allowed": "Only a single configuration of Paw Control is allowed"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paw Control Settings",
+        "description": "Configure your Paw Control integration",
+        "menu_options": {
+          "manage_dogs": "Manage Dogs",
+          "gps_settings": "GPS & Tracking",
+          "notifications": "Notifications",
+          "feeding_settings": "Feeding Settings",
+          "health_settings": "Health Settings",
+          "system_settings": "System Settings",
+          "dashboard_settings": "Dashboard Settings"
+        }
+      },
+      "manage_dogs": {
+        "title": "Manage Dogs",
+        "description": "Add, edit, or remove dogs from your configuration.\n\nCurrently configured dogs:\n{dogs_list}\n\nTotal dogs: {current_dogs_count}",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "gps_settings": {
+        "title": "GPS & Tracking Settings",
+        "description": "Configure GPS tracking parameters for optimal performance and battery life.",
+        "data": {
+          "gps_update_interval": "GPS Update Interval (seconds)",
+          "gps_accuracy_filter": "GPS Accuracy Filter (meters)",
+          "gps_distance_filter": "GPS Distance Filter (meters)",
+          "auto_walk_detection": "Automatic Walk Detection",
+          "geofencing_enabled": "Enable Geofencing"
+        }
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "description": "Configure how and when you receive notifications about your dogs.",
+        "data": {
+          "quiet_hours": "Enable Quiet Hours",
+          "quiet_start": "Quiet Hours Start",
+          "quiet_end": "Quiet Hours End",
+          "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
+          "priority_notifications": "Priority Notifications",
+          "summary_notifications": "Daily Summary Notifications"
+        }
+      },
+      "feeding_settings": {
+        "title": "Feeding Settings",
+        "description": "Configure feeding schedules and reminders.",
+        "data": {
+          "breakfast_enabled": "Enable Breakfast",
+          "breakfast_time": "Breakfast Time",
+          "lunch_enabled": "Enable Lunch",
+          "lunch_time": "Lunch Time",
+          "dinner_enabled": "Enable Dinner",
+          "dinner_time": "Dinner Time",
+          "snacks_enabled": "Enable Snacks",
+          "feeding_reminders": "Feeding Reminders"
+        }
+      },
+      "health_settings": {
+        "title": "Health Settings",
+        "description": "Configure health monitoring and vet reminders.",
+        "data": {
+          "health_tracking": "Enable Health Tracking",
+          "weight_tracking": "Weight Tracking",
+          "medication_reminders": "Medication Reminders",
+          "vet_reminders": "Vet Reminders",
+          "grooming_interval": "Grooming Interval (days)"
+        }
+      },
+      "system_settings": {
+        "title": "System Settings",
+        "description": "Configure system-wide settings and performance options.",
+        "data": {
+          "reset_time": "Daily Reset Time",
+          "performance_mode": "Performance Mode",
+          "data_retention_days": "Data Retention (days)",
+          "auto_backup": "Automatic Backups"
+        }
+      },
+      "dashboard_settings": {
+        "title": "Dashboard Settings",
+        "description": "Configure dashboard appearance and layout.",
+        "data": {
+          "dashboard_mode": "Dashboard Mode",
+          "auto_create_dashboard": "Auto-create Dashboard",
+          "dashboard_name": "Dashboard Name",
+          "include_charts": "Include Charts"
+        }
+      }
+    },
+    "error": {
+      "dog_id_already_exists": "A dog with this ID already exists",
+      "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
+      "invalid_time_format": "Invalid time format",
+      "invalid_configuration": "Invalid configuration"
+    }
+  },
   "services": {
     "feed_dog": {
       "name": "Feed Dog",

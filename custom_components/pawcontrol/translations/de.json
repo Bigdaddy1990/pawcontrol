@@ -106,7 +106,7 @@
       },
       "manage_dogs": {
         "title": "Hunde verwalten",
-        "description": "Hunde zu deiner Konfiguration hinzufügen, bearbeiten oder entfernen.\n\nAktuell konfigurierte Hunde:\n{dogs_info}\n\nGesamtanzahl Hunde: {dog_count}",
+        "description": "Hunde zu deiner Konfiguration hinzufügen, bearbeiten oder entfernen.\n\nAktuell konfigurierte Hunde:\n{dogs_list}\n\nGesamtanzahl Hunde: {current_dogs_count}",
         "data": {
           "action": "Aktion"
         }

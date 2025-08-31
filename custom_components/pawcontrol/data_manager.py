@@ -815,35 +815,72 @@ class PawControlDataManager:
                 for entry in entries:
                     try:
                         timestamp_value = entry.get("timestamp")
-                        if not isinstance(timestamp_value, str) or not timestamp_value:
-                            # Keep entries with invalid timestamps
+                        if not timestamp_value:
+                            # Keep entries with no timestamp
                             filtered_entries.append(entry)
                             continue
                         
-                        entry_time = datetime.fromisoformat(timestamp_value)
+                        # Handle both string and datetime timestamps
+                        if isinstance(timestamp_value, str):
+                            entry_time = datetime.fromisoformat(timestamp_value)
+                        elif isinstance(timestamp_value, datetime):
+                            entry_time = timestamp_value
+                        else:
+                            # Keep entries with invalid timestamp types
+                            filtered_entries.append(entry)
+                            continue
+                        
                         # Ensure timezone consistency for comparisons
                         if entry_time.tzinfo is None:
                             entry_time = dt_util.as_local(entry_time)
                         
-                        # Make sure start_date and end_date are timezone-aware
-                        if start_date:
-                            if start_date.tzinfo is None:
-                                start_date = dt_util.as_local(start_date)
-                            if entry_time < start_date:
+                        # Make sure start_date and end_date are timezone-aware (use local copies)
+                        start_date_normalized = start_date
+                        end_date_normalized = end_date
+                        
+                        if start_date_normalized:
+                            if isinstance(start_date_normalized, str):
+                                start_date_normalized = dt_util.parse_datetime(start_date_normalized)
+                            elif start_date_normalized.tzinfo is None:
+                                start_date_normalized = dt_util.as_local(start_date_normalized)
+                            if entry_time < start_date_normalized:
                                 continue
-                        if end_date:
-                            if end_date.tzinfo is None:
-                                end_date = dt_util.as_local(end_date)
-                            if entry_time > end_date:
+                                
+                        if end_date_normalized:
+                            if isinstance(end_date_normalized, str):
+                                end_date_normalized = dt_util.parse_datetime(end_date_normalized)
+                            elif end_date_normalized.tzinfo is None:
+                                end_date_normalized = dt_util.as_local(end_date_normalized)
+                            if entry_time > end_date_normalized:
                                 continue
+                                
                         filtered_entries.append(entry)
-                    except (ValueError, KeyError, TypeError):
+                    except (ValueError, KeyError, TypeError) as exc:
+                        _LOGGER.debug(
+                            "Invalid timestamp in entry for %s: %s - %s", 
+                            dog_id, timestamp_value, exc
+                        )
                         # Keep entries with invalid timestamps
                         filtered_entries.append(entry)
                 entries = filtered_entries
 
-            # Sort by timestamp (most recent first)
-            entries.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+            # Sort by timestamp (most recent first) with proper type handling
+            def safe_timestamp_key(entry):
+                """Extract timestamp for sorting, handling mixed string/datetime types."""
+                timestamp_value = entry.get("timestamp", "")
+                if isinstance(timestamp_value, str):
+                    if not timestamp_value:
+                        return datetime.min  # Empty strings sort last
+                    try:
+                        return datetime.fromisoformat(timestamp_value)
+                    except (ValueError, TypeError):
+                        return datetime.min  # Invalid strings sort last
+                elif isinstance(timestamp_value, datetime):
+                    return timestamp_value
+                else:
+                    return datetime.min  # Invalid types sort last
+                    
+            entries.sort(key=safe_timestamp_key, reverse=True)
 
             # Apply limit
             if limit and limit > 0:
@@ -874,6 +911,56 @@ class PawControlDataManager:
         except Exception as err:
             _LOGGER.error("Failed to reset daily stats: %s", err)
             self._metrics["errors_count"] += 1
+            raise
+
+    async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
+        """Set the main power state for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            enabled: Whether monitoring is enabled
+        """
+        try:
+            await self.async_update_dog_data(
+                dog_id, 
+                {
+                    "system": {
+                        "enabled": enabled,
+                        "power_state_changed": dt_util.utcnow().isoformat(),
+                        "changed_by": "power_switch",
+                    }
+                }
+            )
+            
+            _LOGGER.info("Set power state for %s: %s", dog_id, enabled)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to set power state for %s: %s", dog_id, err)
+            raise
+            
+    async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
+        """Set GPS tracking state for a dog.
+        
+        Args:
+            dog_id: Dog identifier
+            enabled: Whether GPS tracking is enabled
+        """
+        try:
+            await self.async_update_dog_data(
+                dog_id,
+                {
+                    "gps": {
+                        "tracking_enabled": enabled,
+                        "tracking_state_changed": dt_util.utcnow().isoformat(),
+                        "changed_by": "gps_switch",
+                    }
+                }
+            )
+            
+            _LOGGER.info("Set GPS tracking for %s: %s", dog_id, enabled)
+            
+        except Exception as err:
+            _LOGGER.error("Failed to set GPS tracking for %s: %s", dog_id, err)
             raise
 
     async def _reset_single_dog_stats(self, dog_id: str) -> None:
