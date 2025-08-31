@@ -836,17 +836,41 @@
     }
   },
   "exceptions": {
-    "dog_not_found": "Dog with ID '{dog_id}' not found",
-    "invalid_coordinates": "Invalid GPS coordinates provided",
-    "walk_not_in_progress": "No walk is currently in progress for this dog",
-    "walk_already_in_progress": "A walk is already in progress for this dog",
-    "invalid_meal_type": "Invalid meal type specified",
-    "invalid_weight": "Weight must be a positive number",
-    "grooming_not_in_progress": "No grooming session is currently in progress",
-    "invalid_date_range": "Invalid date range specified",
-    "data_export_failed": "Failed to export data",
-    "notification_send_failed": "Failed to send notification",
-    "gps_unavailable": "GPS data is not available for this dog",
-    "module_not_enabled": "The required module is not enabled for this dog"
+    "dog_not_found": {
+      "message": "Dog with ID '{dog_id}' not found"
+    },
+    "invalid_coordinates": {
+      "message": "Invalid GPS coordinates provided"
+    },
+    "walk_not_in_progress": {
+      "message": "No walk is currently in progress for this dog"
+    },
+    "walk_already_in_progress": {
+      "message": "A walk is already in progress for this dog"
+    },
+    "invalid_meal_type": {
+      "message": "Invalid meal type specified"
+    },
+    "invalid_weight": {
+      "message": "Weight must be a positive number"
+    },
+    "grooming_not_in_progress": {
+      "message": "No grooming session is currently in progress"
+    },
+    "invalid_date_range": {
+      "message": "Invalid date range specified"
+    },
+    "data_export_failed": {
+      "message": "Failed to export data"
+    },
+    "notification_send_failed": {
+      "message": "Failed to send notification"
+    },
+    "gps_unavailable": {
+      "message": "GPS data is not available for this dog"
+    },
+    "module_not_enabled": {
+      "message": "The required module is not enabled for this dog"
+    }
   }
 }
