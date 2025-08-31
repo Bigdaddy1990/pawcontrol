@@ -1,12 +1,6 @@
 {
   "domain": "pawcontrol",
   "name": "Paw Control",
-  "version": "1.0.0",
-  "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
-  "codeowners": ["@BigDaddy1990"],
-  "config_flow": true,
-  "dependencies": [],
   "after_dependencies": [
     "mobile_app",
     "person",
@@ -15,9 +9,15 @@
     "weather",
     "device_tracker"
   ],
-  "requirements": [],
-  "iot_class": "local_push",
-  "quality_scale": "platinum",
+  "codeowners": ["@BigDaddy1990"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/BigDaddy1990/pawcontrol",
   "integration_type": "hub",
-  "loggers": ["custom_components.pawcontrol"]
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "loggers": ["custom_components.pawcontrol"],
+  "quality_scale": "platinum",
+  "requirements": [],
+  "version": "1.0.0"
 }
