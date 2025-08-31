@@ -881,8 +881,18 @@ class PawControlQuickWalkButton(PawControlButtonBase):
                 blocking=True,
             )
 
-            # TODO: In a real implementation, this would set the walk duration
-            # and automatically end it, or log it directly as a completed walk
+            # End the walk with predefined duration and distance
+            await self.hass.services.async_call(
+                DOMAIN,
+                SERVICE_END_WALK,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "duration": 10,  # 10 minutes
+                    "distance": 800,  # 0.8 km
+                    "notes": "Quick walk",
+                },
+                blocking=True,
+            )
 
             _LOGGER.info("Logged quick walk for %s", self._dog_name)
 
