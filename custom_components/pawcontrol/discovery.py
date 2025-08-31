@@ -22,7 +22,7 @@ from homeassistant.components import bluetooth, usb
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.util.dt import utcnow
+from .const import DOMAIN
 
 from .exceptions import PawControlError
 
