@@ -58,4 +58,4 @@ class WalkManager:
 
     async def async_get_walks(self, dog_id: str) -> List[WalkSession]:
         """Return a copy of the walk history for ``dog_id``."""
-        return list(self._history.get(dog_id, []))
+        return [copy.copy(session) for session in self._history.get(dog_id, [])]
