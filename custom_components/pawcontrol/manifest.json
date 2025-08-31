@@ -1,7 +1,7 @@
 {
   "domain": "pawcontrol",
   "name": "Paw Control",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
   "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
   "dependencies": [],
@@ -47,12 +47,12 @@
     {
       "vid": "1234",
       "pid": "5678",
-      "description": "Tractive GPS Tracker"
+      "description": "tractive gps tracker"
     },
     {
       "vid": "2345",
       "pid": "6789",
-      "description": "Whistle Health Monitor"
+      "description": "whistle health monitor"
     }
   ],
   "zeroconf": [
@@ -77,9 +77,9 @@
   ],
   "homekit": {
     "models": [
-      "Tractive GPS Tracker",
-      "PetNet Smart Feeder",
-      "Whistle Health Monitor"
+      "tractive gps tracker",
+      "petnet smart feeder",
+      "whistle health monitor"
     ]
   }
 }
