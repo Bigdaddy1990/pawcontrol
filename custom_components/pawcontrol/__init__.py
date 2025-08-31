@@ -35,7 +35,6 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
-from . import repairs
 from .dashboard_generator import PawControlDashboardGenerator
 
 from .const import (
@@ -482,32 +481,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ConfigEntryAuthFailed: If authentication fails
         PawControlSetupError: If setup fails due to configuration issues
     """
-    try:
-        coordinator = PawControlCoordinator(hass, entry)
-        await coordinator.async_config_entry_first_refresh()
-
-        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
-            "coordinator": coordinator,
-            "entry": entry,
-            # weitere runtime_data wie data_manager, notifications etc.
-        }
-
-        await repairs.async_register_repairs(hass)  # <--- Patch hinzugefügt
-
-        # Register all services (vollständige Logik bleibt erhalten)
-        await _async_register_services(hass, entry)
-
-        # Schedule daily reset if configured
-        await _async_setup_daily_reset_scheduler(hass, entry)
-
-        return True
-
-    except Exception as err:
-        _LOGGER.error(
-            "Failed to set up Paw Control integration: %s", err, exc_info=True
-        )
-        raise ConfigEntryNotReady from err
-
     _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     # Enhanced setup context manager for proper cleanup

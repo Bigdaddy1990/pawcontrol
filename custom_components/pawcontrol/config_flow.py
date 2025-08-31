@@ -963,6 +963,118 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
 
         return "\n".join(summaries)
 
+    async def async_step_configure_dashboard(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure dashboard settings during setup.
+
+        This step allows users to configure how the dashboard should be created
+        and displayed, including per-dog dashboards and theme selection.
+
+        Args:
+            user_input: Dashboard configuration choices
+
+        Returns:
+            Configuration flow result for next step
+        """
+        if user_input is not None:
+            # Store dashboard configuration
+            has_multiple_dogs = len(self._dogs) > 1
+            self._dashboard_config = {
+                "dashboard_enabled": True,
+                "dashboard_auto_create": user_input.get("auto_create_dashboard", True),
+                "dashboard_per_dog": user_input.get("create_per_dog_dashboards", has_multiple_dogs),
+                "dashboard_theme": user_input.get("dashboard_theme", "default"),
+                "dashboard_mode": user_input.get("dashboard_mode", "full" if has_multiple_dogs else "cards"),
+                "show_statistics": user_input.get("show_statistics", True),
+                "show_maps": user_input.get("show_maps", self._enabled_modules.get("gps", False)),
+                "show_alerts": user_input.get("show_alerts", True),
+                "compact_mode": user_input.get("compact_mode", False),
+            }
+
+            # Continue to next step based on enabled modules
+            if self._enabled_modules.get("gps", False):
+                return await self.async_step_configure_external_entities()
+            return await self.async_step_final_setup()
+
+        # Build dashboard configuration form
+        has_multiple_dogs = len(self._dogs) > 1
+        has_gps = self._enabled_modules.get("gps", False)
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "auto_create_dashboard", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "create_per_dog_dashboards", default=has_multiple_dogs
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "dashboard_theme", default="default"
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "default", "label": "🎨 Default - Clean and modern"},
+                            {"value": "dark", "label": "🌙 Dark - Night-friendly theme"},
+                            {"value": "playful", "label": "🎉 Playful - Colorful and fun"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "dashboard_mode", default="full" if has_multiple_dogs else "cards"
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "full", "label": "📊 Full - Complete dashboard with all features"},
+                            {"value": "cards", "label": "🃏 Cards - Organized card-based layout"},
+                            {"value": "minimal", "label": "⚡ Minimal - Essential information only"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("show_statistics", default=True): selector.BooleanSelector(),
+                vol.Optional("show_maps", default=has_gps): selector.BooleanSelector(),
+                vol.Optional("show_alerts", default=True): selector.BooleanSelector(),
+                vol.Optional("compact_mode", default=False): selector.BooleanSelector(),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="configure_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "dog_count": len(self._dogs),
+                "dashboard_info": self._get_dashboard_setup_info(),
+                "features": "GPS Maps, Statistics, Alerts, Mobile-Friendly" if has_gps else "Statistics, Alerts, Mobile-Friendly",
+            },
+        )
+
+    def _get_dashboard_setup_info(self) -> str:
+        """Get dashboard setup information for display.
+
+        Returns:
+            Formatted dashboard information string
+        """
+        info = [
+            "🎨 Dashboard will be automatically created after setup",
+            "📊 Includes cards for each dog and their activities",
+            "📱 Mobile-friendly and responsive design",
+        ]
+
+        if self._enabled_modules.get("gps", False):
+            info.append("🗺️ GPS maps and location tracking")
+
+        if len(self._dogs) > 1:
+            info.append(f"🐕 Individual dashboards for {len(self._dogs)} dogs available")
+
+        info.extend([
+            "⚡ Real-time updates and notifications",
+            "🔧 Fully customizable via Options later"
+        ])
+
+        return "\n".join(info)
+
     async def async_step_configure_external_entities(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
