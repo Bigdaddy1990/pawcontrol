@@ -17,7 +17,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -323,7 +323,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
         """Return the current status of the dog."""
         dog_data = self._get_dog_data()
         if not dog_data:
-            return "unknown"
+            return STATE_UNKNOWN
 
         walk_data = dog_data.get("walk", {})
         feeding_data = dog_data.get("feeding", {})
@@ -340,7 +340,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
             else:
                 return "home"
         elif zone := gps_data.get("zone"):
-            return f"at_{zone}" if zone != "unknown" else "away"
+            return f"at_{zone}" if zone != STATE_UNKNOWN else "away"
 
         return "away"
 
@@ -913,7 +913,7 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         gps_data = self._get_module_data("gps")
-        return gps_data.get("zone", "unknown") if gps_data else "unknown"
+        return gps_data.get("zone", STATE_UNKNOWN) if gps_data else STATE_UNKNOWN
 
 
 class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
@@ -976,7 +976,9 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
-        return health_data.get("weight_trend", "stable") if health_data else "unknown"
+        return (
+            health_data.get("weight_trend", "stable") if health_data else STATE_UNKNOWN
+        )
 
 
 class PawControlActivityLevelSensor(PawControlSensorBase):
@@ -994,7 +996,11 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
-        return health_data.get("activity_level", "normal") if health_data else "unknown"
+        return (
+            health_data.get("activity_level", "normal")
+            if health_data
+            else STATE_UNKNOWN
+        )
 
 
 class PawControlLastVetVisitSensor(PawControlSensorBase):
@@ -1061,7 +1067,9 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
-        return health_data.get("health_status", "good") if health_data else "unknown"
+        return (
+            health_data.get("health_status", "good") if health_data else STATE_UNKNOWN
+        )
 
 
 class PawControlMedicationDueSensor(PawControlSensorBase):
@@ -1079,4 +1087,4 @@ class PawControlMedicationDueSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
-        return health_data.get("medication_due", "no") if health_data else "unknown"
+        return health_data.get("medication_due", "no") if health_data else STATE_UNKNOWN

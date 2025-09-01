@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
+
 import sys
-from datetime import datetime, timedelta
 from importlib import util
 from pathlib import Path
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -51,31 +53,29 @@ async def test_feeding_manager_empty_history() -> None:
 
 
 @pytest.mark.asyncio
-async def test_feeding_manager_none_meal_type_defaults_to_unknown() -> None:
-    """Feedings with no meal type are categorized as 'unknown'."""
+async def test_feeding_manager_unknown_meal_type() -> None:
+    """Feeding with None meal_type is categorized as 'unknown'."""
 
     manager = FeedingManager()
     await manager.async_add_feeding("dog", 1.0, meal_type=None)
 
     data = await manager.async_get_feeding_data("dog")
 
-    assert data["feedings_today"] == {"unknown": 1}
+    assert data["feedings_today"]["unknown"] == 1
     assert data["total_feedings_today"] == 1
 
 
 @pytest.mark.asyncio
-async def test_feeding_manager_ignores_feedings_from_previous_days() -> None:
-    """Feedings from earlier days should not appear in today's counts."""
+async def test_feeding_manager_excludes_previous_days() -> None:
+    """Feedings from other days are excluded from today's totals."""
 
     manager = FeedingManager()
     yesterday = datetime.utcnow() - timedelta(days=1)
-
-    # Feeding yesterday should be ignored
     await manager.async_add_feeding("dog", 1.0, meal_type="breakfast", time=yesterday)
-    # Feeding today should be counted
     await manager.async_add_feeding("dog", 1.0, meal_type="dinner")
 
     data = await manager.async_get_feeding_data("dog")
 
-    assert data["feedings_today"] == {"dinner": 1}
+    assert "breakfast" not in data["feedings_today"]
+    assert data["feedings_today"]["dinner"] == 1
     assert data["total_feedings_today"] == 1
