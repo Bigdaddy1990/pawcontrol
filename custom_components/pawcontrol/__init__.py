@@ -16,7 +16,6 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import time
-from pathlib import Path
 from typing import Any, Final
 
 import voluptuous as vol
@@ -25,7 +24,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import (
-    ConfigEntryAuthFailed,
     ConfigEntryNotReady,
     HomeAssistantError,
     ServiceValidationError,
@@ -83,7 +81,6 @@ from .exceptions import (
     PawControlError,
     ConfigurationError,
     DogNotFoundError,
-    ValidationError,
 )
 
 # Error classes already imported from .exceptions
