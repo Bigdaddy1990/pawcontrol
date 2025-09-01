@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 SPEC = util.spec_from_file_location(
     "feeding_manager",
     Path(__file__).resolve().parents[1]

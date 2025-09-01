@@ -17,7 +17,6 @@ import re
 from typing import Any, Final
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
@@ -139,7 +138,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         features = [
             "🐕 Multi-dog management",
-            "📍 GPS tracking & geofencing", 
+            "📍 GPS tracking & geofencing",
             "🍽️ Feeding schedules & logging",
             "🏥 Health monitoring & vet reminders",
             "🚶 Walk tracking with routes",
@@ -263,7 +262,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             size_emojis = {
                 "toy": "🐭",
                 "small": "🐕",
-                "medium": "🐶", 
+                "medium": "🐶",
                 "large": "🐕‍🦺",
                 "giant": "🐺",
             }

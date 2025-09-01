@@ -15,10 +15,6 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-
 from custom_components.pawcontrol.discovery import (
     DEVICE_CATEGORIES,
     DISCOVERY_TIMEOUT,
@@ -30,6 +26,8 @@ from custom_components.pawcontrol.discovery import (
     async_start_discovery,
 )
 from custom_components.pawcontrol.exceptions import PawControlError
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 
 @pytest.fixture
@@ -48,7 +46,7 @@ def mock_usb_discovery():
 async def discovery_manager(hass: HomeAssistant):
     """Create a discovery manager for testing."""
     manager = PawControlDiscovery(hass)
-    
+
     # Mock the discovery methods to avoid actual hardware scanning
     with patch.multiple(
         manager,
@@ -83,7 +81,7 @@ class TestDiscoveredDevice:
             confidence=0.9,
             metadata={"protocol": "usb", "version": "1.0"},
         )
-        
+
         assert device.device_id == "test_device_123"
         assert device.name == "Test GPS Tracker"
         assert device.category == "gps_tracker"
@@ -100,7 +98,7 @@ class TestDiscoveredDevice:
         device = DiscoveredDevice(
             device_id="test",
             name="Test Device",
-            category="gps_tracker", 
+            category="gps_tracker",
             manufacturer="Test",
             model="Test",
             connection_type="usb",
@@ -110,7 +108,7 @@ class TestDiscoveredDevice:
             confidence=0.8,
             metadata={},
         )
-        
+
         with pytest.raises(AttributeError):
             device.device_id = "new_id"
 
@@ -121,7 +119,7 @@ class TestPawControlDiscovery:
     async def test_initialization(self, hass: HomeAssistant):
         """Test discovery manager initialization."""
         discovery = PawControlDiscovery(hass)
-        
+
         assert discovery.hass == hass
         assert discovery._discovered_devices == {}
         assert discovery._discovery_tasks == set()
@@ -138,13 +136,13 @@ class TestPawControlDiscovery:
     async def test_initialization_error_handling(self, hass: HomeAssistant):
         """Test initialization error handling."""
         discovery = PawControlDiscovery(hass)
-        
-        with patch.object(
-            discovery, "_start_background_scanning"
-        ) as mock_background:
+
+        with patch.object(discovery, "_start_background_scanning") as mock_background:
             mock_background.side_effect = Exception("Background error")
-            
-            with pytest.raises(HomeAssistantError, match="Discovery initialization failed"):
+
+            with pytest.raises(
+                HomeAssistantError, match="Discovery initialization failed"
+            ):
                 await discovery.async_initialize()
 
     async def test_discover_devices_basic(self, discovery_manager):
@@ -152,7 +150,7 @@ class TestPawControlDiscovery:
         # Mock discovery methods to return sample devices
         sample_usb_device = DiscoveredDevice(
             device_id="usb_test",
-            name="Test USB Device", 
+            name="Test USB Device",
             category="gps_tracker",
             manufacturer="TestCorp",
             model="USB-GPS",
@@ -165,24 +163,26 @@ class TestPawControlDiscovery:
         )
 
         discovery_manager._discover_usb_devices.return_value = [sample_usb_device]
-        
+
         devices = await discovery_manager.async_discover_devices(
             categories=["gps_tracker"]
         )
-        
+
         assert len(devices) == 1
         assert devices[0].device_id == "usb_test"
         assert devices[0].category == "gps_tracker"
-        
+
         # Verify device was stored
         assert "usb_test" in discovery_manager._discovered_devices
 
     async def test_discover_devices_all_categories(self, discovery_manager):
         """Test discovery with all device categories."""
-        devices = await discovery_manager.async_discover_devices()
-        
+        await discovery_manager.async_discover_devices()
+
         # Should call all discovery methods
-        discovery_manager._discover_usb_devices.assert_called_once_with(DEVICE_CATEGORIES)
+        discovery_manager._discover_usb_devices.assert_called_once_with(
+            DEVICE_CATEGORIES
+        )
         discovery_manager._discover_bluetooth_devices.assert_called_once()
         discovery_manager._discover_zeroconf_devices.assert_called_once()
         discovery_manager._discover_dhcp_devices.assert_called_once()
@@ -190,8 +190,8 @@ class TestPawControlDiscovery:
 
     async def test_discover_devices_quick_scan(self, discovery_manager):
         """Test quick scan functionality."""
-        devices = await discovery_manager.async_discover_devices(quick_scan=True)
-        
+        await discovery_manager.async_discover_devices(quick_scan=True)
+
         # Should still call all methods but with shorter timeout
         assert len(discovery_manager._discovery_tasks) == 0  # Tasks should be completed
 
@@ -199,7 +199,7 @@ class TestPawControlDiscovery:
         """Test protection against concurrent scans."""
         # Start a scan
         discovery_manager._scan_active = True
-        
+
         with patch.object(discovery_manager, "_wait_for_scan_completion") as mock_wait:
             await discovery_manager.async_discover_devices()
             mock_wait.assert_called_once()
@@ -207,60 +207,76 @@ class TestPawControlDiscovery:
     async def test_discover_devices_timeout(self, discovery_manager):
         """Test discovery timeout handling."""
         # Make one discovery method hang
-        discovery_manager._discover_usb_devices.side_effect = asyncio.sleep(DISCOVERY_TIMEOUT * 2)
-        
+        discovery_manager._discover_usb_devices.side_effect = asyncio.sleep(
+            DISCOVERY_TIMEOUT * 2
+        )
+
         # Should handle timeout gracefully and return existing devices
         devices = await discovery_manager.async_discover_devices(quick_scan=True)
-        
+
         assert isinstance(devices, list)  # Should return a list even on timeout
 
     async def test_discover_devices_with_exceptions(self, discovery_manager):
         """Test handling of exceptions during discovery."""
         discovery_manager._discover_usb_devices.side_effect = Exception("USB error")
-        discovery_manager._discover_bluetooth_devices.side_effect = Exception("Bluetooth error")
-        
+        discovery_manager._discover_bluetooth_devices.side_effect = Exception(
+            "Bluetooth error"
+        )
+
         # Should not raise, should continue with other methods
         devices = await discovery_manager.async_discover_devices()
-        
+
         assert isinstance(devices, list)
 
     async def test_discover_usb_devices(self, discovery_manager):
         """Test USB device discovery."""
         categories = ["gps_tracker", "smart_feeder"]
-        
+
         # Reset the mock to test actual implementation
-        discovery_manager._discover_usb_devices = discovery_manager.__class__._discover_usb_devices.__get__(discovery_manager)
-        
+        discovery_manager._discover_usb_devices = (
+            discovery_manager.__class__._discover_usb_devices.__get__(discovery_manager)
+        )
+
         with patch("custom_components.pawcontrol.discovery.usb") as mock_usb:
             mock_usb.async_get_usb.return_value = MagicMock()
-            
+
             devices = await discovery_manager._discover_usb_devices(categories)
-            
+
             assert isinstance(devices, list)
 
     async def test_discover_bluetooth_devices(self, discovery_manager):
         """Test Bluetooth device discovery."""
         categories = ["activity_monitor", "smart_collar"]
-        
+
         # Reset the mock to test actual implementation
-        discovery_manager._discover_bluetooth_devices = discovery_manager.__class__._discover_bluetooth_devices.__get__(discovery_manager)
-        
-        with patch("custom_components.pawcontrol.discovery.bluetooth") as mock_bluetooth:
+        discovery_manager._discover_bluetooth_devices = (
+            discovery_manager.__class__._discover_bluetooth_devices.__get__(
+                discovery_manager
+            )
+        )
+
+        with patch(
+            "custom_components.pawcontrol.discovery.bluetooth"
+        ) as mock_bluetooth:
             mock_bluetooth.async_get_scanner.return_value = MagicMock()
-            
+
             devices = await discovery_manager._discover_bluetooth_devices(categories)
-            
+
             assert isinstance(devices, list)
 
     async def test_discover_zeroconf_devices(self, discovery_manager):
         """Test Zeroconf/mDNS device discovery."""
         categories = ["smart_feeder"]
-        
+
         # Reset the mock to test actual implementation
-        discovery_manager._discover_zeroconf_devices = discovery_manager.__class__._discover_zeroconf_devices.__get__(discovery_manager)
-        
+        discovery_manager._discover_zeroconf_devices = (
+            discovery_manager.__class__._discover_zeroconf_devices.__get__(
+                discovery_manager
+            )
+        )
+
         devices = await discovery_manager._discover_zeroconf_devices(categories)
-        
+
         assert isinstance(devices, list)
         # Should create devices for matching categories
         if devices:
@@ -269,23 +285,31 @@ class TestPawControlDiscovery:
     async def test_discover_dhcp_devices(self, discovery_manager):
         """Test DHCP hostname-based discovery."""
         categories = ["gps_tracker", "health_device"]
-        
-        # Reset the mock to test actual implementation  
-        discovery_manager._discover_dhcp_devices = discovery_manager.__class__._discover_dhcp_devices.__get__(discovery_manager)
-        
+
+        # Reset the mock to test actual implementation
+        discovery_manager._discover_dhcp_devices = (
+            discovery_manager.__class__._discover_dhcp_devices.__get__(
+                discovery_manager
+            )
+        )
+
         devices = await discovery_manager._discover_dhcp_devices(categories)
-        
+
         assert isinstance(devices, list)
 
     async def test_discover_upnp_devices(self, discovery_manager):
         """Test UPnP device discovery."""
         categories = ["smart_feeder", "health_device"]
-        
+
         # Reset the mock to test actual implementation
-        discovery_manager._discover_upnp_devices = discovery_manager.__class__._discover_upnp_devices.__get__(discovery_manager)
-        
+        discovery_manager._discover_upnp_devices = (
+            discovery_manager.__class__._discover_upnp_devices.__get__(
+                discovery_manager
+            )
+        )
+
         devices = await discovery_manager._discover_upnp_devices(categories)
-        
+
         assert isinstance(devices, list)
 
     async def test_deduplicate_devices(self, discovery_manager):
@@ -305,7 +329,7 @@ class TestPawControlDiscovery:
                 metadata={},
             ),
             DiscoveredDevice(
-                device_id="device2", 
+                device_id="device2",
                 name="Test Device",  # Same name
                 category="gps_tracker",  # Same category
                 manufacturer="TestCorp",  # Same manufacturer
@@ -313,14 +337,14 @@ class TestPawControlDiscovery:
                 connection_type="bluetooth",
                 connection_info={},
                 capabilities=[],
-                discovered_at="2023-01-01T00:00:00", 
+                discovered_at="2023-01-01T00:00:00",
                 confidence=0.9,  # Higher confidence
                 metadata={},
             ),
         ]
-        
+
         unique_devices = discovery_manager._deduplicate_devices(devices)
-        
+
         assert len(unique_devices) == 1
         assert unique_devices[0].device_id == "device2"  # Should keep higher confidence
 
@@ -330,17 +354,17 @@ class TestPawControlDiscovery:
         mock_task = AsyncMock()
         mock_task.done.return_value = False
         discovery_manager._discovery_tasks.add(mock_task)
-        
+
         mock_listener = MagicMock()
         discovery_manager._listeners.append(mock_listener)
-        
+
         # Add a discovered device
         sample_device = DiscoveredDevice(
             device_id="test",
             name="Test",
             category="gps_tracker",
             manufacturer="Test",
-            model="Test", 
+            model="Test",
             connection_type="test",
             connection_info={},
             capabilities=[],
@@ -349,9 +373,9 @@ class TestPawControlDiscovery:
             metadata={},
         )
         discovery_manager._discovered_devices["test"] = sample_device
-        
+
         await discovery_manager.async_shutdown()
-        
+
         # Verify cleanup
         mock_task.cancel.assert_called_once()
         mock_listener.assert_called_once()
@@ -377,7 +401,7 @@ class TestPawControlDiscovery:
             ),
             DiscoveredDevice(
                 device_id="feeder1",
-                name="Smart Feeder", 
+                name="Smart Feeder",
                 category="smart_feeder",
                 manufacturer="TestCorp",
                 model="Feed-1",
@@ -389,7 +413,7 @@ class TestPawControlDiscovery:
                 metadata={},
             ),
         ]
-        
+
         for device in devices:
             discovery_manager._discovered_devices[device.device_id] = device
 
@@ -406,13 +430,13 @@ class TestPawControlDiscovery:
         device = discovery_manager.get_device_by_id("gps1")
         assert device is not None
         assert device.name == "GPS Tracker"
-        
+
         nonexistent = discovery_manager.get_device_by_id("nonexistent")
         assert nonexistent is None
 
         # Test is_scanning
         assert discovery_manager.is_scanning() is False
-        
+
         discovery_manager._scan_active = True
         assert discovery_manager.is_scanning() is True
 
@@ -420,29 +444,29 @@ class TestPawControlDiscovery:
         """Test waiting for scan completion."""
         # Start with scan active
         discovery_manager._scan_active = True
-        
+
         # Create a task that will set scan inactive after a short delay
         async def disable_scan():
             await asyncio.sleep(0.1)
             discovery_manager._scan_active = False
-        
+
         task = asyncio.create_task(disable_scan())
-        
+
         # Wait for scan completion
         await discovery_manager._wait_for_scan_completion()
-        
+
         assert discovery_manager._scan_active is False
         await task  # Clean up
 
     async def test_wait_for_scan_completion_timeout(self, discovery_manager):
         """Test scan completion timeout."""
         discovery_manager._scan_active = True
-        
+
         # Don't disable scan, should timeout
         start_time = asyncio.get_event_loop().time()
         await discovery_manager._wait_for_scan_completion()
         end_time = asyncio.get_event_loop().time()
-        
+
         # Should have waited for some time but not indefinitely
         assert end_time - start_time >= 0.1  # Should wait at least some time
 
@@ -452,42 +476,42 @@ class TestDiscoveryErrorHandling:
 
     async def test_discovery_with_paw_control_error(self, discovery_manager):
         """Test handling of PawControlError during discovery."""
-        discovery_manager._discover_usb_devices.side_effect = PawControlError("USB discovery failed")
-        
+        discovery_manager._discover_usb_devices.side_effect = PawControlError(
+            "USB discovery failed"
+        )
+
         # Should handle PawControlError gracefully
         devices = await discovery_manager.async_discover_devices()
-        
+
         assert isinstance(devices, list)
 
     async def test_discovery_method_exceptions(self, discovery_manager):
         """Test individual discovery method error handling."""
         # Test each discovery method with various exceptions
         categories = ["gps_tracker"]
-        
+
         for method_name in [
             "_discover_usb_devices",
-            "_discover_bluetooth_devices", 
+            "_discover_bluetooth_devices",
             "_discover_zeroconf_devices",
             "_discover_dhcp_devices",
             "_discover_upnp_devices",
         ]:
             method = getattr(discovery_manager, method_name)
             method.side_effect = Exception(f"{method_name} error")
-        
+
         # Should not raise, should continue with available methods
         devices = await discovery_manager.async_discover_devices(categories)
-        
+
         assert isinstance(devices, list)
 
     async def test_background_scanning_errors(self, hass: HomeAssistant):
         """Test error handling in background scanning."""
         discovery = PawControlDiscovery(hass)
-        
-        with patch.object(
-            discovery, "_register_discovery_listeners"
-        ) as mock_listeners:
+
+        with patch.object(discovery, "_register_discovery_listeners") as mock_listeners:
             mock_listeners.side_effect = Exception("Listener error")
-            
+
             # Should handle listener registration errors gracefully
             with patch.object(discovery, "_start_background_scanning"):
                 with pytest.raises(HomeAssistantError):
@@ -500,10 +524,10 @@ class TestDiscoveryErrorHandling:
         mock_task.done.return_value = False
         mock_task.cancel.side_effect = Exception("Cancel error")
         discovery_manager._discovery_tasks.add(mock_task)
-        
+
         # Should handle task errors gracefully during shutdown
         await discovery_manager.async_shutdown()
-        
+
         mock_task.cancel.assert_called_once()
 
 
@@ -513,9 +537,12 @@ class TestLegacyCompatibility:
     async def test_async_get_discovered_devices(self, hass: HomeAssistant):
         """Test legacy discovery function."""
         with patch.object(PawControlDiscovery, "async_initialize") as mock_init:
-            with patch.object(PawControlDiscovery, "async_discover_devices") as mock_discover:
-                with patch.object(PawControlDiscovery, "async_shutdown") as mock_shutdown:
-                    
+            with patch.object(
+                PawControlDiscovery, "async_discover_devices"
+            ) as mock_discover:
+                with patch.object(
+                    PawControlDiscovery, "async_shutdown"
+                ) as mock_shutdown:
                     sample_device = DiscoveredDevice(
                         device_id="test",
                         name="Test Device",
@@ -529,27 +556,29 @@ class TestLegacyCompatibility:
                         confidence=0.9,
                         metadata={},
                     )
-                    
+
                     mock_discover.return_value = [sample_device]
-                    
+
                     result = await async_get_discovered_devices(hass)
-                    
+
                     assert len(result) == 1
                     assert result[0]["source"] == "usb"
                     assert result[0]["data"]["device_id"] == "test"
                     assert result[0]["data"]["name"] == "Test Device"
-                    
+
                     mock_init.assert_called_once()
                     mock_discover.assert_called_once_with(quick_scan=True)
                     mock_shutdown.assert_called_once()
 
-    async def test_async_get_discovered_devices_error_handling(self, hass: HomeAssistant):
+    async def test_async_get_discovered_devices_error_handling(
+        self, hass: HomeAssistant
+    ):
         """Test legacy discovery function error handling."""
         with patch.object(PawControlDiscovery, "async_initialize") as mock_init:
             mock_init.side_effect = Exception("Init error")
-            
+
             result = await async_get_discovered_devices(hass)
-            
+
             assert result == []
 
     async def test_async_start_discovery(self):
@@ -568,14 +597,14 @@ class TestLegacyCompatibility:
         with patch.object(PawControlDiscovery, "async_initialize") as mock_init:
             manager2 = await async_get_discovery_manager(hass)
             mock_init.assert_not_called()  # Should not initialize again
-            
+
         assert manager1 is manager2
 
     async def test_shutdown_discovery_manager(self, hass: HomeAssistant):
         """Test global discovery manager shutdown."""
         with patch.object(PawControlDiscovery, "async_initialize"):
             manager = await async_get_discovery_manager(hass)
-        
+
         with patch.object(manager, "async_shutdown") as mock_shutdown:
             await async_shutdown_discovery_manager()
             mock_shutdown.assert_called_once()
@@ -592,14 +621,14 @@ class TestDiscoveryIntegration:
     async def test_full_discovery_cycle(self, hass: HomeAssistant):
         """Test a complete discovery cycle."""
         discovery = PawControlDiscovery(hass)
-        
+
         with patch.multiple(
             discovery,
             _start_background_scanning=AsyncMock(),
             _register_discovery_listeners=AsyncMock(),
         ):
             await discovery.async_initialize()
-            
+
             # Mock discovery to return various device types
             mock_devices = [
                 DiscoveredDevice(
@@ -617,7 +646,7 @@ class TestDiscoveryIntegration:
                 )
                 for protocol in ["usb", "bluetooth", "zeroconf", "dhcp", "upnp"]
             ]
-            
+
             with patch.multiple(
                 discovery,
                 _discover_usb_devices=AsyncMock(return_value=mock_devices[:1]),
@@ -626,43 +655,42 @@ class TestDiscoveryIntegration:
                 _discover_dhcp_devices=AsyncMock(return_value=mock_devices[3:4]),
                 _discover_upnp_devices=AsyncMock(return_value=mock_devices[4:5]),
             ):
-                
                 devices = await discovery.async_discover_devices()
-                
+
                 assert len(devices) == 5
                 assert all(device.category == "gps_tracker" for device in devices)
-                
+
                 # Test retrieval methods
                 all_devices = discovery.get_discovered_devices()
                 assert len(all_devices) == 5
-                
+
                 gps_devices = discovery.get_discovered_devices("gps_tracker")
                 assert len(gps_devices) == 5
-                
+
                 other_devices = discovery.get_discovered_devices("smart_feeder")
                 assert len(other_devices) == 0
-                
+
             await discovery.async_shutdown()
 
     async def test_discovery_with_home_assistant_components(self, hass: HomeAssistant):
         """Test discovery integration with Home Assistant components."""
         discovery = PawControlDiscovery(hass)
-        
+
         # Mock Home Assistant component availability
         hass.components.usb = MagicMock()
         hass.components.bluetooth = MagicMock()
         hass.components.zeroconf = MagicMock()
-        
+
         with patch.multiple(
             discovery,
             _start_background_scanning=AsyncMock(),
             _register_discovery_listeners=AsyncMock(),
         ):
             await discovery.async_initialize()
-            
+
             # Should be able to access HA components
             devices = await discovery.async_discover_devices(quick_scan=True)
-            
+
             assert isinstance(devices, list)
-            
+
         await discovery.async_shutdown()

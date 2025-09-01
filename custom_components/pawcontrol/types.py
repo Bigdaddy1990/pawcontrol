@@ -9,20 +9,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TypedDict, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, Union
 
 from homeassistant.config_entries import ConfigEntry
 
 # Import validation constants from const.py (single source of truth)
 from .const import (
-    MEAL_TYPES,
-    FOOD_TYPES,
-    DOG_SIZES,
-    HEALTH_STATUS_OPTIONS,
-    MOOD_OPTIONS,
     ACTIVITY_LEVELS,
+    DOG_SIZES,
+    FOOD_TYPES,
     GEOFENCE_TYPES,
     GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MOOD_OPTIONS,
 )
 
 # Type aliases for better readability
