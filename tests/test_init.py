@@ -352,7 +352,7 @@ class TestServiceHandlers:
     @pytest.fixture
     def mock_service_call(self):
         """Return a mock service call."""
-        call = Mock(spec=ServiceCall)
+        call = Mock(spec=ServiceCall)  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             ATTR_MEAL_TYPE: "breakfast",

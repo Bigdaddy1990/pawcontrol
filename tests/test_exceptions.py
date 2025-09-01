@@ -227,7 +227,7 @@ class TestConfigurationError:
             "test_setting", "invalid", expected_type=int, valid_values=[1, 2, 3]
         )
 
-        assert error.expected_type == int
+        assert error.expected_type == int  # noqa: E721
         assert error.valid_values == [1, 2, 3]
         assert error.context["expected_type"] == "int"
         assert error.context["valid_values"] == [1, 2, 3]
