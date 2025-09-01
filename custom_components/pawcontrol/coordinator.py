@@ -360,7 +360,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, data_manager, dog_id: str
     ) -> dict[str, Any]:
         """Get basic feeding data as fallback."""
-        meal_counts = {meal: 0 for meal in MEAL_TYPES}
+        {meal: 0 for meal in MEAL_TYPES}
         try:
             feeding_history = await data_manager.async_get_feeding_history(
                 dog_id, days=1
