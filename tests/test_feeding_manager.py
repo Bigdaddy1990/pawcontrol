@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 import sys
+from datetime import datetime, timedelta
 from importlib import util
 from pathlib import Path
-from datetime import datetime, timedelta
 from unittest.mock import patch
+
+import pytest
 
 
 SPEC = util.spec_from_file_location(
@@ -18,8 +18,6 @@ SPEC = util.spec_from_file_location(
     / "pawcontrol"
     / "feeding_manager.py",
 )
-from importlib import util
-from pathlib import Path
 
 feeding_manager = util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = feeding_manager
