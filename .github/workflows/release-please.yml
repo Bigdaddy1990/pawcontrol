@@ -1,7 +1,7 @@
 name: release-please
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -17,5 +17,5 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # oder RELEASE_PLEASE_TOKEN (PAT)
+          token: ${{ secrets.GITHUB_TOKEN }}  # oder RELEASE_PLEASE_TOKEN (PAT)
           release-type: simple
