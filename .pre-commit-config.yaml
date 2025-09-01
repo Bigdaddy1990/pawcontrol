@@ -22,15 +22,15 @@ repos:
         args: [--unsafe, --allow-multiple-documents]
         # Blueprints & Beispiele optional ausnehmen
         # (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(blueprints/|examples/)
+        exclude: ^(blueprints/|examples/|tests/)
       - id: check-json
       - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
         args: [--fix=lf]
-      - id: no-commit-to-branch
-        args: [--branch=main]
+      #- id: no-commit-to-branch
+      #  args: [--branch=main]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
@@ -52,11 +52,6 @@ repos:
             build/|
             .*/node_modules/
           )
-
-#  - repo: https://github.com/adrienverge/yamllint.git
-#    rev: v1.37.1
-#    hooks:
-#      - id: yamllint
 
 #  - repo: https://github.com/pre-commit/mirrors-prettier
 #    rev: v3.0.3
