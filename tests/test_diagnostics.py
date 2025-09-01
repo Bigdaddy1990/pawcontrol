@@ -13,7 +13,7 @@ The diagnostics module is critical for support and troubleshooting.
 
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -543,7 +543,7 @@ class TestSystemDiagnostics:
         assert diagnostics["timezone"] == "Europe/Berlin"
         assert diagnostics["is_running"] is True
         assert diagnostics["safe_mode"] is False
-        assert isinstance(diagnostics["uptime_seconds"], (int, float))
+        assert isinstance(diagnostics["uptime_seconds"], int | float)
         assert diagnostics["uptime_seconds"] > 0
 
     async def test_get_system_diagnostics_recovery_mode(self, mock_hass_with_states):

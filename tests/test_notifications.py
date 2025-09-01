@@ -13,7 +13,7 @@ The notification module is critical for user experience and requires thorough te
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
