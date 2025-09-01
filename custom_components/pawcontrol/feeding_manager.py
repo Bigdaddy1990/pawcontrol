@@ -65,7 +65,11 @@ class FeedingManager:
 
         feedings = self._feedings.get(dog_id, [])
         if not feedings:
-            return {"last_feeding": None, "feedings_today": {}, "total_feedings_today": 0}
+            return {
+                "last_feeding": None,
+                "feedings_today": {},
+                "total_feedings_today": 0,
+            }
 
         now = datetime.utcnow()
         feedings_today: Dict[str, int] = {}
