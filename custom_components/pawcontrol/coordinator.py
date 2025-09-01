@@ -360,7 +360,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, data_manager, dog_id: str
     ) -> dict[str, Any]:
         """Get basic feeding data as fallback."""
-        meal_counts = {meal: 0 for meal in MEAL_TYPES}
+        {meal: 0 for meal in MEAL_TYPES}
         try:
             feeding_history = await data_manager.async_get_feeding_history(
                 dog_id, days=1
@@ -369,16 +369,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not feeding_history:
                 return {
                     "last_feeding": None,
-                    "feedings_today": meal_counts,
+                    "feedings_today": {},
                     "total_feedings_today": 0,
                 }
 
-            for entry in feeding_history:
-                meal_type = entry.get("meal_type")
-                if meal_type in meal_counts:
-                    meal_counts[meal_type] += 1
-
-            total_feedings = sum(meal_counts.values())
+            feedings_today: dict[str, int] = {}
+            for item in feeding_history:
+                meal = item.get("meal_type") or "unknown"
+                if isinstance(meal, str):
+                    feedings_today[meal] = feedings_today.get(meal, 0) + 1
 
             # Get most recent feeding
             most_recent = max(
@@ -390,31 +389,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 default=None,
             )
 
-            last_feeding_ts = None
-            last_feeding_type = None
-            last_feeding_hours = None
+            total_today = sum(feedings_today.values())
 
             if most_recent:
-                last_feeding_type = most_recent.get("meal_type")
-                last_feeding_ts = self._parse_datetime_safely(
-                    most_recent.get("timestamp")
-                )
-                if last_feeding_ts:
-                    last_feeding_hours = self._calculate_hours_since(last_feeding_ts)
+                timestamp = self._parse_datetime_safely(most_recent.get("timestamp"))
+                return {
+                    "last_feeding": timestamp.isoformat() if timestamp else None,
+                    "last_feeding_type": most_recent.get("meal_type"),
+                    "last_feeding_hours": self._calculate_hours_since(timestamp)
+                    if timestamp
+                    else None,
+                    "feedings_today": feedings_today,
+                    "total_feedings_today": total_today,
+                }
 
             return {
-                "last_feeding": last_feeding_ts.isoformat()
-                if last_feeding_ts
-                else None,
-                "last_feeding_type": last_feeding_type,
-                "last_feeding_hours": last_feeding_hours,
-                "feedings_today": meal_counts,
-                "total_feedings_today": total_feedings,
+                "last_feeding": None,
+                "feedings_today": feedings_today,
+                "total_feedings_today": total_today,
             }
         except Exception:
             return {
                 "last_feeding": None,
-                "feedings_today": meal_counts,
+                "feedings_today": {},
                 "total_feedings_today": 0,
             }
 
