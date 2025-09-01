@@ -363,7 +363,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 dog_id, days=1
             )
 
-            meal_counts = {"breakfast": 0, "lunch": 0, "dinner": 0, "snack": 0}
+            meal_counts = {meal: 0 for meal in MEAL_TYPES}
             if not feeding_history:
                 return {
                     "last_feeding": None,
