@@ -8,6 +8,8 @@ import sys
 from importlib import util
 from pathlib import Path
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
 
 SPEC = util.spec_from_file_location(
     "feeding_manager",
@@ -64,16 +66,25 @@ async def test_feeding_manager_unknown_meal_type() -> None:
 
 
 @pytest.mark.asyncio
-async def test_feeding_manager_excludes_previous_days() -> None:
-    """Feedings from other days are excluded from today's totals."""
+async def test_feeding_manager_ignores_feedings_from_previous_days() -> None:
+    """Feedings from earlier days should not appear in today's counts."""
 
-    manager = FeedingManager()
-    yesterday = datetime.utcnow() - timedelta(days=1)
-    await manager.async_add_feeding("dog", 1.0, meal_type="breakfast", time=yesterday)
-    await manager.async_add_feeding("dog", 1.0, meal_type="dinner")
+    fixed_now = datetime(2023, 1, 1, 12, 0, 0)
+    yesterday = fixed_now - timedelta(days=1)
 
-    data = await manager.async_get_feeding_data("dog")
+    with patch("feeding_manager.datetime") as mock_datetime:
+        mock_datetime.utcnow.return_value = fixed_now
 
-    assert "breakfast" not in data["feedings_today"]
-    assert data["feedings_today"]["dinner"] == 1
+        manager = FeedingManager()
+
+        # Feeding yesterday should be ignored
+        await manager.async_add_feeding(
+            "dog", 1.0, meal_type="breakfast", time=yesterday
+        )
+        # Feeding today should be counted (uses patched utcnow)
+        await manager.async_add_feeding("dog", 1.0, meal_type="dinner")
+
+        data = await manager.async_get_feeding_data("dog")
+
+    assert data["feedings_today"] == {"dinner": 1}
     assert data["total_feedings_today"] == 1
