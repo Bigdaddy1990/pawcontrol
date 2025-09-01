@@ -1072,11 +1072,22 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "dog_count": len(self._dogs),
                 "dashboard_info": self._get_dashboard_setup_info(),
-                "features": "GPS Maps, Statistics, Alerts, Mobile-Friendly"
-                if has_gps
-                else "Statistics, Alerts, Mobile-Friendly",
+                "features": self._get_dashboard_features_string(has_gps),
             },
         )
+
+    def _get_dashboard_features_string(self, has_gps: bool) -> str:
+        """Get dashboard feature list string.
+
+        Args:
+            has_gps: Whether GPS tracking is enabled.
+
+        Returns:
+            Comma-separated feature string for dashboard descriptions.
+        """
+        if has_gps:
+            return "GPS Maps, Statistics, Alerts, Mobile-Friendly"
+        return "Statistics, Alerts, Mobile-Friendly"
 
     def _get_dashboard_setup_info(self) -> str:
         """Get dashboard setup information for display.
