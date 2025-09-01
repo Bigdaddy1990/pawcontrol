@@ -2,23 +2,23 @@
 target-version = "py313"
 line-length = 88
 src = ["custom_components"]
-#unsafe-fixes = true
+unsafe-fixes = true
 
 [lint]
 # Base: pycodestyle (E), pyflakes (F)
 # Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
 # Start with core correctness + imports
-select = ["E4", "E7", "E9", "F"]
+#select = ["E4", "E7", "E9", "F", "I"]
 # Ignore long lines initially; ruff format will wrap many cases
 #select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 ignore = ["E501"]
-#select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM"]
 fixable = ["ALL"]
 
 [lint.per-file-ignores]
 # Common package patterns
 "__init__.py" = ["F401", "F403", "E402"]
-#"tests/**" = ["E402", "F401"]
+"tests/**" = ["E402", "F401"]
 #"scripts/**" = ["E402", "F401"]
 
 [format]
