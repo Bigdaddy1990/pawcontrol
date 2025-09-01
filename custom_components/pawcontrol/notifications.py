@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Optional, TYPE_CHECKING
 
 from homeassistant.components import persistent_notification
@@ -28,7 +28,7 @@ from .exceptions import NotificationError
 from .utils import is_within_quiet_hours
 
 if TYPE_CHECKING:
-    pass
+    from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
