@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import STATE_ONLINE
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -29,7 +30,6 @@ from homeassistant.helpers.storage import Store
 from .const import (
     CONF_DOGS,
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_GPS_UPDATE_INTERVAL,
     DEFAULT_GPS_UPDATE_INTERVAL,
     DOMAIN,
@@ -38,6 +38,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
     UPDATE_INTERVALS,
+    MEAL_TYPES,
 )
 from .utils import performance_monitor
 
@@ -236,14 +237,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Complete data structure for the dog
         """
         dog_id = dog[CONF_DOG_ID]
-        dog[CONF_DOG_NAME]
         enabled_modules = dog.get("modules", {})
 
         # Base dog data structure
         dog_data: dict[str, Any] = {
             "dog_info": dog,
             "last_update": dt_util.utcnow().isoformat(),
-            "status": "online",
+            "status": STATE_ONLINE,
             "enabled_modules": [
                 mod for mod, enabled in enabled_modules.items() if enabled
             ],
@@ -360,10 +360,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, data_manager, dog_id: str
     ) -> dict[str, Any]:
         """Get basic feeding data as fallback."""
+        meal_counts = {meal: 0 for meal in MEAL_TYPES}
         try:
             feeding_history = await data_manager.async_get_feeding_history(
                 dog_id, days=1
             )
+
             if not feeding_history:
                 return {
                     "last_feeding": None,
@@ -413,6 +415,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "total_feedings_today": 0,
             }
 
+    def _get_default_health_data(self) -> dict[str, Any]:
+        """Return the default health data dictionary."""
+        return {
+            "current_weight": None,
+            "weight_status": STATE_UNKNOWN,
+            "health_status": STATE_UNKNOWN,
+        }
+
     async def _get_basic_health_data(self, data_manager, dog_id: str) -> dict[str, Any]:
         """Get basic health data as fallback."""
         try:
@@ -435,17 +445,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "health_status": "good",
                     }
 
-            return {
-                "current_weight": None,
-                "weight_status": STATE_UNKNOWN,
-                "health_status": STATE_UNKNOWN,
-            }
+            return self._get_default_health_data()
         except Exception:
-            return {
-                "current_weight": None,
-                "weight_status": STATE_UNKNOWN,
-                "health_status": STATE_UNKNOWN,
-            }
+            return self._get_default_health_data()
 
     async def _get_basic_walk_data(self, data_manager, dog_id: str) -> dict[str, Any]:
         """Get basic walk data as fallback."""
