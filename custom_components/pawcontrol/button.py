@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .exceptions import (
@@ -1313,7 +1314,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
             health_data = self._get_module_data("health")
             if health_data:
                 # Generate a health summary
-                health_status = health_data.get("health_status", "unknown")
+                health_status = health_data.get("health_status", STATE_UNKNOWN)
                 alerts = health_data.get("health_alerts", [])
 
                 # This would typically trigger a detailed health report

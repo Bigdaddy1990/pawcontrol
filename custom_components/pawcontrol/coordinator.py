@@ -24,6 +24,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.storage import Store
+from homeassistant.const import STATE_UNKNOWN
 
 from .const import (
     CONF_DOGS,
@@ -415,14 +416,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return {
                 "current_weight": None,
-                "weight_status": "unknown",
-                "health_status": "unknown",
+                "weight_status": STATE_UNKNOWN,
+                "health_status": STATE_UNKNOWN,
             }
         except Exception:
             return {
                 "current_weight": None,
-                "weight_status": "unknown",
-                "health_status": "unknown",
+                "weight_status": STATE_UNKNOWN,
+                "health_status": STATE_UNKNOWN,
             }
 
     async def _get_basic_walk_data(self, data_manager, dog_id: str) -> dict[str, Any]:
