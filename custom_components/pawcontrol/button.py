@@ -17,6 +17,7 @@ from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.const import STATE_UNKNOWN
 
 from .exceptions import (
     WalkAlreadyInProgressError,
@@ -740,7 +741,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             if walk_data and walk_data.get("walk_in_progress", False):
                 raise WalkAlreadyInProgressError(
                     dog_id=self._dog_id,
-                    walk_id=walk_data.get("current_walk_id", "unknown"),
+                    walk_id=walk_data.get("current_walk_id", STATE_UNKNOWN),
                     start_time=walk_data.get("current_walk_start"),
                 )
 
@@ -1313,7 +1314,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
             health_data = self._get_module_data("health")
             if health_data:
                 # Generate a health summary
-                health_status = health_data.get("health_status", "unknown")
+                health_status = health_data.get("health_status", STATE_UNKNOWN)
                 alerts = health_data.get("health_alerts", [])
 
                 # This would typically trigger a detailed health report
