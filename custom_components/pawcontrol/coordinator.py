@@ -18,7 +18,11 @@ from datetime import datetime, timedelta, date
 from typing import Any, Callable, Optional, TYPE_CHECKING
 import weakref
 
-from homeassistant.const import STATE_UNKNOWN, STATE_ONLINE
+from homeassistant.const import STATE_UNKNOWN
+
+# Newer Home Assistant versions removed STATE_ONLINE from homeassistant.const.
+# Define the constant locally for clarity and future compatibility.
+STATE_ONLINE = "online"
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import (

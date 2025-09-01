@@ -59,8 +59,10 @@ class TestPawControlCoordinator:
 
     @pytest.fixture
     def coordinator(self, hass: HomeAssistant, mock_entry):
-        """Create a coordinator instance."""
-        return PawControlCoordinator(hass, mock_entry)
+        """Create a coordinator instance without starting background tasks."""
+        # Avoid creating asyncio tasks during tests where no loop is running
+        with patch.object(PawControlCoordinator, "_start_background_tasks"):
+            return PawControlCoordinator(hass, mock_entry)
 
     @pytest.mark.asyncio
     async def test_coordinator_initialization(self, hass: HomeAssistant, mock_entry):
@@ -182,12 +184,17 @@ class TestPawControlCoordinator:
     @pytest.mark.asyncio
     async def test_async_update_data_success(self, coordinator):
         """Test successful data update."""
-        with patch.object(coordinator, '_fetch_dog_data', return_value={"status": "good"}) as mock_fetch:
+        mock_result = {"test_dog": {"status": "good"}}
+        with patch.object(
+            coordinator,
+            "_process_dog_batch",
+            AsyncMock(return_value=mock_result),
+        ) as mock_process:
             data = await coordinator._async_update_data()
-            
+
             assert "test_dog" in data
             assert data["test_dog"]["status"] == "good"
-            mock_fetch.assert_called_once_with("test_dog")
+            mock_process.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_async_update_data_multiple_dogs(self, coordinator):
