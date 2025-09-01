@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from custom_components.pawcontrol.exceptions import (
     EXCEPTION_MAP,
-    # Specific exceptions
     ConfigurationError,
     DataExportError,
     DataImportError,
@@ -19,7 +18,6 @@ from custom_components.pawcontrol.exceptions import (
     InvalidMealTypeError,
     InvalidWeightError,
     NotificationError,
-    # Base classes and enums
     PawControlError,
     RateLimitError,
     StorageError,
@@ -28,7 +26,6 @@ from custom_components.pawcontrol.exceptions import (
     WalkError,
     WalkNotInProgressError,
     create_error_context,
-    # Helper functions
     get_exception_class,
     handle_exception_gracefully,
     raise_from_error_code,
