@@ -983,17 +983,11 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
             self._dashboard_config = {
                 "dashboard_enabled": True,
                 "dashboard_auto_create": user_input.get("auto_create_dashboard", True),
-                "dashboard_per_dog": user_input.get(
-                    "create_per_dog_dashboards", has_multiple_dogs
-                ),
+                "dashboard_per_dog": user_input.get("create_per_dog_dashboards", has_multiple_dogs),
                 "dashboard_theme": user_input.get("dashboard_theme", "default"),
-                "dashboard_mode": user_input.get(
-                    "dashboard_mode", "full" if has_multiple_dogs else "cards"
-                ),
+                "dashboard_mode": user_input.get("dashboard_mode", "full" if has_multiple_dogs else "cards"),
                 "show_statistics": user_input.get("show_statistics", True),
-                "show_maps": user_input.get(
-                    "show_maps", self._enabled_modules.get("gps", False)
-                ),
+                "show_maps": user_input.get("show_maps", self._enabled_modules.get("gps", False)),
                 "show_alerts": user_input.get("show_alerts", True),
                 "compact_mode": user_input.get("compact_mode", False),
             }
@@ -1020,18 +1014,9 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {
-                                "value": "default",
-                                "label": "🎨 Default - Clean and modern",
-                            },
-                            {
-                                "value": "dark",
-                                "label": "🌙 Dark - Night-friendly theme",
-                            },
-                            {
-                                "value": "playful",
-                                "label": "🎉 Playful - Colorful and fun",
-                            },
+                            {"value": "default", "label": "🎨 Default - Clean and modern"},
+                            {"value": "dark", "label": "🌙 Dark - Night-friendly theme"},
+                            {"value": "playful", "label": "🎉 Playful - Colorful and fun"},
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
@@ -1041,25 +1026,14 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {
-                                "value": "full",
-                                "label": "📊 Full - Complete dashboard with all features",
-                            },
-                            {
-                                "value": "cards",
-                                "label": "🃏 Cards - Organized card-based layout",
-                            },
-                            {
-                                "value": "minimal",
-                                "label": "⚡ Minimal - Essential information only",
-                            },
+                            {"value": "full", "label": "📊 Full - Complete dashboard with all features"},
+                            {"value": "cards", "label": "🃏 Cards - Organized card-based layout"},
+                            {"value": "minimal", "label": "⚡ Minimal - Essential information only"},
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional(
-                    "show_statistics", default=True
-                ): selector.BooleanSelector(),
+                vol.Optional("show_statistics", default=True): selector.BooleanSelector(),
                 vol.Optional("show_maps", default=has_gps): selector.BooleanSelector(),
                 vol.Optional("show_alerts", default=True): selector.BooleanSelector(),
                 vol.Optional("compact_mode", default=False): selector.BooleanSelector(),
@@ -1072,9 +1046,7 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "dog_count": len(self._dogs),
                 "dashboard_info": self._get_dashboard_setup_info(),
-                "features": "GPS Maps, Statistics, Alerts, Mobile-Friendly"
-                if has_gps
-                else "Statistics, Alerts, Mobile-Friendly",
+                "features": "GPS Maps, Statistics, Alerts, Mobile-Friendly" if has_gps else "Statistics, Alerts, Mobile-Friendly",
             },
         )
 
@@ -1094,16 +1066,12 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
             info.append("🗺️ GPS maps and location tracking")
 
         if len(self._dogs) > 1:
-            info.append(
-                f"🐕 Individual dashboards for {len(self._dogs)} dogs available"
-            )
+            info.append(f"🐕 Individual dashboards for {len(self._dogs)} dogs available")
 
-        info.extend(
-            [
-                "⚡ Real-time updates and notifications",
-                "🔧 Fully customizable via Options later",
-            ]
-        )
+        info.extend([
+            "⚡ Real-time updates and notifications",
+            "🔧 Fully customizable via Options later"
+        ])
 
         return "\n".join(info)
 
