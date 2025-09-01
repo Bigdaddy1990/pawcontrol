@@ -9,7 +9,7 @@ ignore = ["tests", "examples"]
 # Base: pycodestyle (E), pyflakes (F)
 # Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
 # Start with core correctness + imports
-select = ["E4", "E7", "E9", "F", "I"]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
 # Ignore long lines initially; ruff format will wrap many cases
 #select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 ignore = ["E501"]
@@ -19,7 +19,7 @@ fixable = ["ALL"]
 [lint.per-file-ignores]
 # Common package patterns
 "__init__.py" = ["F401", "F403", "E402"]
-#"tests/**" = ["E402", "F401"]
+"tests/**" = ["E402", "F401"]
 #"scripts/**" = ["E402", "F401"]
 
 [format]
