@@ -1085,9 +1085,10 @@ class PawControlConfigFlow(DashboardFlowMixin, ConfigFlow, domain=DOMAIN):
         Returns:
             Comma-separated feature string for dashboard descriptions.
         """
+        features = ["Statistics", "Alerts", "Mobile-Friendly"]
         if has_gps:
-            return "GPS Maps, Statistics, Alerts, Mobile-Friendly"
-        return "Statistics, Alerts, Mobile-Friendly"
+            features.insert(0, "GPS Maps")
+        return ", ".join(features)
 
     def _get_dashboard_setup_info(self) -> str:
         """Get dashboard setup information for display.
