@@ -25,7 +25,6 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.storage import Store
-from homeassistant.const import STATE_UNKNOWN
 
 from .const import (
     CONF_DOGS,

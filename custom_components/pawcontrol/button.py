@@ -18,7 +18,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.const import STATE_UNKNOWN
 
 from .exceptions import (
     WalkAlreadyInProgressError,
