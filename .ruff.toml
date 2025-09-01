@@ -2,7 +2,8 @@
 target-version = "py313"
 line-length = 88
 src = ["custom_components"]
-unsafe-fixes = true
+#unsafe-fixes = true
+ignore = ["tests", "examples"]
 
 [lint]
 # Base: pycodestyle (E), pyflakes (F)
@@ -18,8 +19,7 @@ fixable = ["ALL"]
 [lint.per-file-ignores]
 # Common package patterns
 "__init__.py" = ["F401", "F403", "E402"]
-tests/**
-examples/**
+#"tests/**" = ["E402", "F401"]
 #"scripts/**" = ["E402", "F401"]
 
 [format]
