@@ -38,6 +38,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
     UPDATE_INTERVALS,
+    MEAL_TYPES,
 )
 from .utils import performance_monitor
 
@@ -359,12 +360,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, data_manager, dog_id: str
     ) -> dict[str, Any]:
         """Get basic feeding data as fallback."""
+        meal_counts = {meal: 0 for meal in MEAL_TYPES}
         try:
             feeding_history = await data_manager.async_get_feeding_history(
                 dog_id, days=1
             )
 
-            meal_counts = {meal: 0 for meal in MEAL_TYPES}
             if not feeding_history:
                 return {
                     "last_feeding": None,
@@ -413,7 +414,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:
             return {
                 "last_feeding": None,
-                "feedings_today": {meal: 0 for meal in MEAL_TYPES},
+                "feedings_today": meal_counts,
                 "total_feedings_today": 0,
             }
 
