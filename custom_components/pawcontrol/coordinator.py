@@ -364,7 +364,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 dog_id, days=1
             )
             if not feeding_history:
-                return {"last_feeding": None, "feedings_today": 0}
+                return {
+                    "last_feeding": None,
+                    "feedings_today": {},
+                    "total_feedings_today": 0,
+                }
 
             # Get most recent feeding
             most_recent = max(
@@ -378,18 +382,40 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if most_recent:
                 timestamp = self._parse_datetime_safely(most_recent.get("timestamp"))
+
+                feedings_today: dict[str, int] = {}
+                for item in feeding_history:
+                    meal = item.get("meal_type")
+                    if isinstance(meal, str):
+                        feedings_today[meal] = feedings_today.get(meal, 0) + 1
+
                 return {
                     "last_feeding": timestamp.isoformat() if timestamp else None,
                     "last_feeding_type": most_recent.get("meal_type"),
                     "last_feeding_hours": self._calculate_hours_since(timestamp)
                     if timestamp
                     else None,
-                    "feedings_today": len(feeding_history),
+                    "feedings_today": feedings_today,
+                    "total_feedings_today": sum(feedings_today.values()),
                 }
 
-            return {"last_feeding": None, "feedings_today": len(feeding_history)}
+            feedings_today: dict[str, int] = {}
+            for item in feeding_history:
+                meal = item.get("meal_type")
+                if isinstance(meal, str):
+                    feedings_today[meal] = feedings_today.get(meal, 0) + 1
+
+            return {
+                "last_feeding": None,
+                "feedings_today": feedings_today,
+                "total_feedings_today": sum(feedings_today.values()),
+            }
         except Exception:
-            return {"last_feeding": None, "feedings_today": 0}
+            return {
+                "last_feeding": None,
+                "feedings_today": {},
+                "total_feedings_today": 0,
+            }
 
     async def _get_basic_health_data(self, data_manager, dog_id: str) -> dict[str, Any]:
         """Get basic health data as fallback."""

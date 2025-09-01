@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass(slots=True)
@@ -54,3 +54,35 @@ class FeedingManager:
         """Return a copy of the feeding history for ``dog_id``."""
 
         return list(self._feedings.get(dog_id, []))
+
+    async def async_get_feeding_data(self, dog_id: str) -> dict[str, Any]:
+        """Return aggregated feeding data with strict type consistency.
+
+        The returned ``feedings_today`` field is always a mapping of meal type
+        to integer count.  ``total_feedings_today`` provides the numeric total
+        to avoid callers needing to sum the mapping themselves.
+        """
+
+        feedings = self._feedings.get(dog_id, [])
+        if not feedings:
+            return {"last_feeding": None, "feedings_today": {}, "total_feedings_today": 0}
+
+        now = datetime.utcnow()
+        feedings_today: Dict[str, int] = {}
+        for event in feedings:
+            if event.time.date() != now.date():
+                continue
+            meal = event.meal_type or "unknown"
+            feedings_today[meal] = feedings_today.get(meal, 0) + 1
+
+        last_event = max(feedings, key=lambda e: e.time, default=None)
+        last_time = last_event.time if last_event else None
+        last_hours = ((now - last_time).total_seconds() / 3600) if last_time else None
+
+        return {
+            "last_feeding": last_time.isoformat() if last_time else None,
+            "last_feeding_type": last_event.meal_type if last_event else None,
+            "last_feeding_hours": last_hours,
+            "feedings_today": feedings_today,
+            "total_feedings_today": sum(feedings_today.values()),
+        }
