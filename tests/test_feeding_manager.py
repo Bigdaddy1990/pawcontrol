@@ -16,8 +16,7 @@ SPEC = util.spec_from_file_location(
 )
 assert SPEC and SPEC.loader
 feeding_manager = util.module_from_spec(SPEC)
-sys_modules = __import__("sys").modules
-sys_modules[SPEC.name] = feeding_manager
+sys.modules[SPEC.name] = feeding_manager
 SPEC.loader.exec_module(feeding_manager)
 FeedingManager = feeding_manager.FeedingManager
 
