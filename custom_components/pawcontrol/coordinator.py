@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import STATE_ONLINE
@@ -440,14 +441,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return {
                 "current_weight": None,
-                "weight_status": "unknown",
-                "health_status": "unknown",
+                "weight_status": STATE_UNKNOWN,
+                "health_status": STATE_UNKNOWN,
             }
         except Exception:
             return {
                 "current_weight": None,
-                "weight_status": "unknown",
-                "health_status": "unknown",
+                "weight_status": STATE_UNKNOWN,
+                "health_status": STATE_UNKNOWN,
             }
 
     async def _get_basic_walk_data(self, data_manager, dog_id: str) -> dict[str, Any]:
