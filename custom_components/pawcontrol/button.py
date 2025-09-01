@@ -13,16 +13,11 @@ import logging
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
-from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
+from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.const import STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-
-from .exceptions import (
-    WalkAlreadyInProgressError,
-    WalkNotInProgressError,
-)
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -30,22 +25,26 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
-    SERVICE_FEED_DOG,
-    SERVICE_START_WALK,
     SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
     SERVICE_LOG_HEALTH,
-    SERVICE_START_GROOMING,
     SERVICE_NOTIFY_TEST,
+    SERVICE_START_GROOMING,
+    SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .exceptions import (
+    WalkAlreadyInProgressError,
+    WalkNotInProgressError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

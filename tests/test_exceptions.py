@@ -1,38 +1,37 @@
 """Tests for the Paw Control exceptions module."""
-import pytest
-from datetime import datetime
-from unittest.mock import patch, MagicMock
 
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 from custom_components.pawcontrol.exceptions import (
-    # Base classes and enums
-    PawControlError,
-    ErrorSeverity,
-    ErrorCategory,
-    
+    EXCEPTION_MAP,
     # Specific exceptions
     ConfigurationError,
-    DogNotFoundError,
-    GPSError,
-    InvalidCoordinatesError,
-    GPSUnavailableError,
-    WalkError,
-    WalkNotInProgressError,
-    WalkAlreadyInProgressError,
-    ValidationError,
-    InvalidMealTypeError,
-    InvalidWeightError,
-    StorageError,
-    RateLimitError,
-    NotificationError,
     DataExportError,
     DataImportError,
-    
+    DogNotFoundError,
+    ErrorCategory,
+    ErrorSeverity,
+    GPSError,
+    GPSUnavailableError,
+    InvalidCoordinatesError,
+    InvalidMealTypeError,
+    InvalidWeightError,
+    NotificationError,
+    # Base classes and enums
+    PawControlError,
+    RateLimitError,
+    StorageError,
+    ValidationError,
+    WalkAlreadyInProgressError,
+    WalkError,
+    WalkNotInProgressError,
+    create_error_context,
     # Helper functions
     get_exception_class,
-    raise_from_error_code,
     handle_exception_gracefully,
-    create_error_context,
-    EXCEPTION_MAP,
+    raise_from_error_code,
 )
 
 
@@ -67,8 +66,16 @@ class TestErrorCategory:
     def test_error_category_all_values(self):
         """Test all error category values are defined."""
         expected_categories = {
-            "configuration", "data", "network", "gps", "authentication",
-            "rate_limit", "storage", "validation", "business_logic", "system"
+            "configuration",
+            "data",
+            "network",
+            "gps",
+            "authentication",
+            "rate_limit",
+            "storage",
+            "validation",
+            "business_logic",
+            "system",
         }
         actual_categories = {category.value for category in ErrorCategory}
         assert actual_categories == expected_categories
@@ -80,7 +87,7 @@ class TestPawControlError:
     def test_basic_error_creation(self):
         """Test basic error creation."""
         error = PawControlError("Test error message")
-        
+
         assert str(error) == "Test error message"
         assert error.error_code == "pawcontrolerror"
         assert error.severity == ErrorSeverity.MEDIUM
@@ -96,7 +103,7 @@ class TestPawControlError:
         timestamp = datetime(2025, 1, 15, 12, 0, 0)
         context = {"key": "value"}
         suggestions = ["Try again", "Check settings"]
-        
+
         error = PawControlError(
             "Test message",
             error_code="test_error",
@@ -108,7 +115,7 @@ class TestPawControlError:
             technical_details="Technical details",
             timestamp=timestamp,
         )
-        
+
         assert error.error_code == "test_error"
         assert error.severity == ErrorSeverity.HIGH
         assert error.category == ErrorCategory.CONFIGURATION
@@ -130,9 +137,9 @@ class TestPawControlError:
             user_message="User message",
             technical_details="Tech details",
         )
-        
+
         error_dict = error.to_dict()
-        
+
         assert error_dict["error_code"] == "test_error"
         assert error_dict["message"] == "Test message"
         assert error_dict["user_message"] == "User message"
@@ -147,11 +154,11 @@ class TestPawControlError:
     def test_add_context(self):
         """Test adding context to error."""
         error = PawControlError("Test message")
-        
+
         result = error.add_context("key1", "value1")
         assert result is error  # Method chaining
         assert error.context["key1"] == "value1"
-        
+
         error.add_context("key2", "value2")
         assert error.context["key2"] == "value2"
         assert len(error.context) == 2
@@ -159,11 +166,11 @@ class TestPawControlError:
     def test_add_recovery_suggestion(self):
         """Test adding recovery suggestions."""
         error = PawControlError("Test message")
-        
+
         result = error.add_recovery_suggestion("Try this")
         assert result is error  # Method chaining
         assert "Try this" in error.recovery_suggestions
-        
+
         error.add_recovery_suggestion("Also try this")
         assert "Also try this" in error.recovery_suggestions
         assert len(error.recovery_suggestions) == 2
@@ -171,18 +178,20 @@ class TestPawControlError:
     def test_with_user_message(self):
         """Test setting user message."""
         error = PawControlError("Technical message")
-        
+
         result = error.with_user_message("User friendly message")
         assert result is error  # Method chaining
         assert error.user_message == "User friendly message"
 
     def test_method_chaining(self):
         """Test method chaining functionality."""
-        error = (PawControlError("Test message")
-                .add_context("dog_id", "test_dog")
-                .add_recovery_suggestion("Check dog configuration")
-                .with_user_message("Dog configuration error"))
-        
+        error = (
+            PawControlError("Test message")
+            .add_context("dog_id", "test_dog")
+            .add_recovery_suggestion("Check dog configuration")
+            .with_user_message("Dog configuration error")
+        )
+
         assert error.context["dog_id"] == "test_dog"
         assert "Check dog configuration" in error.recovery_suggestions
         assert error.user_message == "Dog configuration error"
@@ -194,7 +203,7 @@ class TestConfigurationError:
     def test_basic_configuration_error(self):
         """Test basic configuration error."""
         error = ConfigurationError("test_setting")
-        
+
         assert "test_setting" in str(error)
         assert error.error_code == "configuration_error"
         assert error.severity == ErrorSeverity.HIGH
@@ -205,7 +214,7 @@ class TestConfigurationError:
     def test_configuration_error_with_value(self):
         """Test configuration error with value."""
         error = ConfigurationError("test_setting", "invalid_value", "Too short")
-        
+
         assert "test_setting" in str(error)
         assert "invalid_value" in str(error)
         assert "Too short" in str(error)
@@ -215,12 +224,9 @@ class TestConfigurationError:
     def test_configuration_error_with_type(self):
         """Test configuration error with expected type."""
         error = ConfigurationError(
-            "test_setting", 
-            "invalid", 
-            expected_type=int,
-            valid_values=[1, 2, 3]
+            "test_setting", "invalid", expected_type=int, valid_values=[1, 2, 3]
         )
-        
+
         assert error.expected_type == int
         assert error.valid_values == [1, 2, 3]
         assert error.context["expected_type"] == "int"
@@ -229,9 +235,12 @@ class TestConfigurationError:
     def test_configuration_error_recovery_suggestions(self):
         """Test configuration error includes recovery suggestions."""
         error = ConfigurationError("test_setting")
-        
+
         assert len(error.recovery_suggestions) > 0
-        assert any("configuration" in suggestion.lower() for suggestion in error.recovery_suggestions)
+        assert any(
+            "configuration" in suggestion.lower()
+            for suggestion in error.recovery_suggestions
+        )
 
 
 class TestDogNotFoundError:
@@ -240,7 +249,7 @@ class TestDogNotFoundError:
     def test_basic_dog_not_found_error(self):
         """Test basic dog not found error."""
         error = DogNotFoundError("test_dog")
-        
+
         assert "test_dog" in str(error)
         assert error.error_code == "dog_not_found"
         assert error.severity == ErrorSeverity.MEDIUM
@@ -252,7 +261,7 @@ class TestDogNotFoundError:
         """Test dog not found error with available dogs list."""
         available = ["dog1", "dog2", "dog3"]
         error = DogNotFoundError("missing_dog", available)
-        
+
         assert error.available_dogs == available
         assert error.context["available_dogs"] == available
         assert "dog1, dog2, dog3" in error.recovery_suggestions[-1]
@@ -260,7 +269,7 @@ class TestDogNotFoundError:
     def test_dog_not_found_user_message(self):
         """Test dog not found error user message."""
         error = DogNotFoundError("test_dog")
-        
+
         assert "test_dog" in error.user_message
         assert "not found" in error.user_message.lower()
 
@@ -271,7 +280,7 @@ class TestGPSError:
     def test_basic_gps_error(self):
         """Test basic GPS error."""
         error = GPSError("GPS failed", dog_id="test_dog")
-        
+
         assert str(error) == "GPS failed"
         assert error.category == ErrorCategory.GPS
         assert error.dog_id == "test_dog"
@@ -280,13 +289,13 @@ class TestGPSError:
     def test_gps_error_with_location(self):
         """Test GPS error with location data."""
         from custom_components.pawcontrol.types import GPSLocation
-        
+
         # Mock GPSLocation since we're testing exceptions
         location = MagicMock()
         location.__dict__ = {"latitude": 52.5, "longitude": 13.4}
-        
+
         error = GPSError("GPS failed", dog_id="test_dog", location=location)
-        
+
         assert error.location == location
         assert error.context["location"] == location.__dict__
 
@@ -297,7 +306,7 @@ class TestInvalidCoordinatesError:
     def test_invalid_coordinates_with_values(self):
         """Test invalid coordinates error with values."""
         error = InvalidCoordinatesError(91.0, 181.0, "test_dog")
-        
+
         assert "91.0" in str(error)
         assert "181.0" in str(error)
         assert error.latitude == 91.0
@@ -311,7 +320,7 @@ class TestInvalidCoordinatesError:
     def test_invalid_coordinates_without_values(self):
         """Test invalid coordinates error without values."""
         error = InvalidCoordinatesError()
-        
+
         assert "missing or malformed" in error.technical_details
         assert error.latitude is None
         assert error.longitude is None
@@ -319,7 +328,7 @@ class TestInvalidCoordinatesError:
     def test_invalid_coordinates_recovery_suggestions(self):
         """Test invalid coordinates error recovery suggestions."""
         error = InvalidCoordinatesError()
-        
+
         suggestions = error.recovery_suggestions
         assert any("latitude" in suggestion for suggestion in suggestions)
         assert any("longitude" in suggestion for suggestion in suggestions)
@@ -332,7 +341,7 @@ class TestGPSUnavailableError:
     def test_gps_unavailable_basic(self):
         """Test basic GPS unavailable error."""
         error = GPSUnavailableError("test_dog")
-        
+
         assert "test_dog" in str(error)
         assert error.dog_id == "test_dog"
         assert error.reason is None
@@ -342,7 +351,7 @@ class TestGPSUnavailableError:
     def test_gps_unavailable_with_reason(self):
         """Test GPS unavailable error with reason."""
         error = GPSUnavailableError("test_dog", "Device offline")
-        
+
         assert "Device offline" in str(error)
         assert error.reason == "Device offline"
         assert error.context["reason"] == "Device offline"
@@ -351,7 +360,7 @@ class TestGPSUnavailableError:
         """Test GPS unavailable error with last known location."""
         last_location = MagicMock()
         error = GPSUnavailableError("test_dog", last_known_location=last_location)
-        
+
         assert error.last_known_location == last_location
         assert error.context["has_last_known_location"] is True
 
@@ -362,7 +371,7 @@ class TestWalkError:
     def test_walk_not_in_progress_error(self):
         """Test walk not in progress error."""
         error = WalkNotInProgressError("test_dog")
-        
+
         assert "test_dog" in str(error)
         assert "not currently in progress" in str(error)
         assert error.dog_id == "test_dog"
@@ -374,7 +383,7 @@ class TestWalkError:
         """Test walk not in progress error with last walk time."""
         last_walk = datetime(2025, 1, 15, 10, 0, 0)
         error = WalkNotInProgressError("test_dog", last_walk)
-        
+
         assert error.last_walk_time == last_walk
         assert error.context["last_walk_time"] == last_walk.isoformat()
 
@@ -382,7 +391,7 @@ class TestWalkError:
         """Test walk already in progress error."""
         start_time = datetime(2025, 1, 15, 10, 0, 0)
         error = WalkAlreadyInProgressError("test_dog", "walk_123", start_time)
-        
+
         assert "already in progress" in str(error)
         assert error.dog_id == "test_dog"
         assert error.walk_id == "walk_123"
@@ -397,7 +406,7 @@ class TestValidationError:
     def test_basic_validation_error(self):
         """Test basic validation error."""
         error = ValidationError("test_field", "invalid_value", "Must be positive")
-        
+
         assert "test_field" in str(error)
         assert "invalid_value" in str(error)
         assert "Must be positive" in str(error)
@@ -408,13 +417,9 @@ class TestValidationError:
     def test_validation_error_with_limits(self):
         """Test validation error with min/max limits."""
         error = ValidationError(
-            "age", 
-            -5, 
-            min_value=0, 
-            max_value=30,
-            valid_values=[1, 2, 3]
+            "age", -5, min_value=0, max_value=30, valid_values=[1, 2, 3]
         )
-        
+
         assert error.min_value == 0
         assert error.max_value == 30
         assert error.valid_values == [1, 2, 3]
@@ -424,7 +429,7 @@ class TestValidationError:
     def test_validation_error_user_message(self):
         """Test validation error user message formatting."""
         error = ValidationError("dog_weight", 0)
-        
+
         assert "dog weight" in error.user_message.lower()  # Replaces underscores
 
 
@@ -435,7 +440,7 @@ class TestInvalidMealTypeError:
         """Test invalid meal type error."""
         valid_types = ["breakfast", "lunch", "dinner"]
         error = InvalidMealTypeError("brunch", valid_types)
-        
+
         assert error.meal_type == "brunch"
         assert error.valid_types == valid_types
         assert error.field == "meal_type"
@@ -449,7 +454,7 @@ class TestInvalidWeightError:
     def test_invalid_weight_error_basic(self):
         """Test basic invalid weight error."""
         error = InvalidWeightError(-5.0)
-        
+
         assert error.weight == -5.0
         assert error.field == "weight"
         assert error.value == -5.0
@@ -458,7 +463,7 @@ class TestInvalidWeightError:
     def test_invalid_weight_error_with_limits(self):
         """Test invalid weight error with limits."""
         error = InvalidWeightError(100.0, min_weight=0.5, max_weight=50.0)
-        
+
         assert error.min_weight == 0.5
         assert error.max_weight == 50.0
         assert "between 0.5kg and 50.0kg" in error.constraint
@@ -470,7 +475,7 @@ class TestStorageError:
     def test_storage_error_basic(self):
         """Test basic storage error."""
         error = StorageError("save")
-        
+
         assert "save failed" in str(error)
         assert error.operation == "save"
         assert error.error_code == "storage_error"
@@ -480,7 +485,7 @@ class TestStorageError:
     def test_storage_error_with_reason(self):
         """Test storage error with reason."""
         error = StorageError("load", "File not found", "database", False)
-        
+
         assert "File not found" in str(error)
         assert error.storage_type == "database"
         assert error.retry_possible is False
@@ -489,11 +494,15 @@ class TestStorageError:
     def test_storage_error_recovery_suggestions(self):
         """Test storage error recovery suggestions."""
         error = StorageError("save", retry_possible=True)
-        
-        assert any("retry" in suggestion.lower() for suggestion in error.recovery_suggestions)
-        
+
+        assert any(
+            "retry" in suggestion.lower() for suggestion in error.recovery_suggestions
+        )
+
         error_no_retry = StorageError("save", retry_possible=False)
-        retry_suggestions = [s for s in error_no_retry.recovery_suggestions if "retry" in s.lower()]
+        retry_suggestions = [
+            s for s in error_no_retry.recovery_suggestions if "retry" in s.lower()
+        ]
         assert len(retry_suggestions) == 0
 
 
@@ -503,7 +512,7 @@ class TestRateLimitError:
     def test_rate_limit_error_basic(self):
         """Test basic rate limit error."""
         error = RateLimitError("api_call")
-        
+
         assert "api_call" in str(error)
         assert error.action == "api_call"
         assert error.error_code == "rate_limit_exceeded"
@@ -512,7 +521,7 @@ class TestRateLimitError:
     def test_rate_limit_error_with_retry_after(self):
         """Test rate limit error with retry after."""
         error = RateLimitError("api_call", "10/minute", 60, 15, 10)
-        
+
         assert error.limit == "10/minute"
         assert error.retry_after == 60
         assert error.current_count == 15
@@ -527,7 +536,7 @@ class TestNotificationError:
     def test_notification_error_basic(self):
         """Test basic notification error."""
         error = NotificationError("email")
-        
+
         assert "email notification" in str(error)
         assert error.notification_type == "email"
         assert error.error_code == "notification_send_failed"
@@ -536,7 +545,7 @@ class TestNotificationError:
     def test_notification_error_with_fallback(self):
         """Test notification error with fallback available."""
         error = NotificationError("sms", "Service down", "mobile", True)
-        
+
         assert error.channel == "mobile"
         assert error.fallback_available is True
         assert error.severity == ErrorSeverity.LOW  # Lower severity with fallback
@@ -549,7 +558,7 @@ class TestDataErrors:
     def test_data_export_error(self):
         """Test data export error."""
         error = DataExportError("walks", "Disk full", "csv", True)
-        
+
         assert "export walks data" in str(error)
         assert error.export_type == "walks"
         assert error.format_type == "csv"
@@ -559,7 +568,7 @@ class TestDataErrors:
     def test_data_import_error(self):
         """Test data import error."""
         error = DataImportError("health", "Invalid format", 42, False)
-        
+
         assert "import health data" in str(error)
         assert "line 42" in str(error)
         assert error.import_type == "health"
@@ -586,7 +595,7 @@ class TestHelperFunctions:
         """Test raising exception from valid error code."""
         with pytest.raises(ConfigurationError) as exc_info:
             raise_from_error_code("configuration_error", "Test message")
-        
+
         assert str(exc_info.value) == "Test message"
         assert exc_info.value.error_code == "configuration_error"
 
@@ -594,64 +603,63 @@ class TestHelperFunctions:
         """Test raising exception from invalid error code."""
         with pytest.raises(PawControlError) as exc_info:
             raise_from_error_code("unknown_error", "Test message")
-        
+
         assert str(exc_info.value) == "Test message"
         assert exc_info.value.error_code == "unknown_error"
 
     def test_handle_exception_gracefully_success(self):
         """Test graceful exception handling with successful function."""
+
         def successful_function():
             return "success"
-        
+
         result = handle_exception_gracefully(successful_function)()
         assert result == "success"
 
     def test_handle_exception_gracefully_paw_control_error(self):
         """Test graceful exception handling with PawControlError."""
+
         def failing_function():
             raise ValidationError("test_field", "invalid")
-        
-        with patch('logging.getLogger') as mock_logger:
+
+        with patch("logging.getLogger") as mock_logger:
             result = handle_exception_gracefully(
-                failing_function, 
-                default_return="fallback",
-                log_errors=True
+                failing_function, default_return="fallback", log_errors=True
             )()
-            
+
             assert result == "fallback"
             mock_logger.return_value.error.assert_called()
 
     def test_handle_exception_gracefully_critical_reraise(self):
         """Test graceful exception handling with critical error reraise."""
+
         def critical_function():
             raise PawControlError("Critical error", severity=ErrorSeverity.CRITICAL)
-        
+
         with pytest.raises(PawControlError):
-            handle_exception_gracefully(
-                critical_function,
-                reraise_critical=True
-            )()
+            handle_exception_gracefully(critical_function, reraise_critical=True)()
 
     def test_handle_exception_gracefully_unexpected_error(self):
         """Test graceful exception handling with unexpected error."""
+
         def unexpected_error_function():
             raise ValueError("Unexpected error")
-        
-        with patch('logging.getLogger') as mock_logger:
+
+        with patch("logging.getLogger") as mock_logger:
             result = handle_exception_gracefully(
                 unexpected_error_function,
                 default_return="fallback",
                 log_errors=True,
-                reraise_critical=False
+                reraise_critical=False,
             )()
-            
+
             assert result == "fallback"
             mock_logger.return_value.exception.assert_called()
 
     def test_create_error_context_basic(self):
         """Test creating basic error context."""
         context = create_error_context(dog_id="test_dog", operation="feeding")
-        
+
         assert context["dog_id"] == "test_dog"
         assert context["operation"] == "feeding"
         assert "timestamp" in context
@@ -659,11 +667,9 @@ class TestHelperFunctions:
     def test_create_error_context_with_additional(self):
         """Test creating error context with additional data."""
         context = create_error_context(
-            dog_id="test_dog",
-            custom_field="custom_value",
-            another_field=123
+            dog_id="test_dog", custom_field="custom_value", another_field=123
         )
-        
+
         assert context["dog_id"] == "test_dog"
         assert context["custom_field"] == "custom_value"
         assert context["another_field"] == 123
@@ -671,11 +677,9 @@ class TestHelperFunctions:
     def test_create_error_context_filters_none(self):
         """Test that error context filters out None values."""
         context = create_error_context(
-            dog_id="test_dog",
-            operation=None,
-            empty_field=None
+            dog_id="test_dog", operation=None, empty_field=None
         )
-        
+
         assert "operation" not in context
         assert "empty_field" not in context
         assert "dog_id" in context
@@ -688,7 +692,7 @@ class TestExceptionMap:
         """Test that EXCEPTION_MAP contains all expected exceptions."""
         expected_codes = {
             "configuration_error",
-            "dog_not_found", 
+            "dog_not_found",
             "invalid_coordinates",
             "gps_unavailable",
             "walk_not_in_progress",
@@ -702,7 +706,7 @@ class TestExceptionMap:
             "data_export_failed",
             "data_import_failed",
         }
-        
+
         assert set(EXCEPTION_MAP.keys()) == expected_codes
 
     def test_exception_map_classes(self):
@@ -730,7 +734,7 @@ class TestExceptionMap:
             DataExportError,
             DataImportError,
         }
-        
+
         mapped_classes = set(EXCEPTION_MAP.values())
         assert exception_classes.issubset(mapped_classes)
 
@@ -756,7 +760,7 @@ class TestExceptionHierarchy:
             DataExportError("walks"),
             DataImportError("health"),
         ]
-        
+
         for exception in specific_exceptions:
             assert isinstance(exception, PawControlError)
 

@@ -15,13 +15,12 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_DOG_SIZE,
     CONF_DOG_AGE,
+    CONF_DOG_SIZE,
     CONF_MODULES,
     DEFAULT_DASHBOARD_ENABLED,
     MODULE_DASHBOARD,
@@ -36,7 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class ModuleConfigurationMixin:
     """Mixin for module configuration functionality in configuration flow.
-    
+
     This mixin provides methods for configuring functional modules during
     the initial setup process, including intelligent suggestions based on
     dog characteristics and user preferences.

@@ -1,31 +1,32 @@
 """Tests for type definitions and validation."""
-import pytest
-from datetime import datetime
-from homeassistant.config_entries import ConfigEntry
 
+from datetime import datetime
+
+import pytest
 from custom_components.pawcontrol.types import (
-    DogConfigData,
-    FeedingData,
-    WalkData,
-    HealthData,
-    GPSLocation,
-    GeofenceZone,
-    NotificationData,
-    DailyStats,
-    DogProfile,
-    is_dog_config_valid,
-    is_gps_location_valid,
-    is_feeding_data_valid,
-    VALID_MEAL_TYPES,
-    VALID_FOOD_TYPES,
-    VALID_DOG_SIZES,
-    VALID_HEALTH_STATUS,
-    VALID_MOOD_OPTIONS,
     VALID_ACTIVITY_LEVELS,
+    VALID_DOG_SIZES,
+    VALID_FOOD_TYPES,
     VALID_GEOFENCE_TYPES,
     VALID_GPS_SOURCES,
+    VALID_HEALTH_STATUS,
+    VALID_MEAL_TYPES,
+    VALID_MOOD_OPTIONS,
     VALID_NOTIFICATION_PRIORITIES,
+    DailyStats,
+    DogConfigData,
+    DogProfile,
+    FeedingData,
+    GeofenceZone,
+    GPSLocation,
+    HealthData,
+    NotificationData,
+    WalkData,
+    is_dog_config_valid,
+    is_feeding_data_valid,
+    is_gps_location_valid,
 )
+from homeassistant.config_entries import ConfigEntry
 
 
 class TestDataStructures:
@@ -41,7 +42,7 @@ class TestDataStructures:
             notes="Test feeding",
             calories=300.0,
         )
-        
+
         assert feeding.meal_type == "breakfast"
         assert feeding.portion_size == 200.0
         assert feeding.food_type == "dry_food"
@@ -57,7 +58,7 @@ class TestDataStructures:
             food_type="wet_food",
             timestamp=datetime.now(),
         )
-        
+
         assert feeding.notes == ""
         assert feeding.logged_by == ""
         assert feeding.calories is None
@@ -65,13 +66,13 @@ class TestDataStructures:
     def test_walk_data_creation(self):
         """Test WalkData dataclass creation."""
         start_time = datetime.now()
-        
+
         walk = WalkData(
             start_time=start_time,
             label="Morning walk",
             location="Park",
         )
-        
+
         assert walk.start_time == start_time
         assert walk.label == "Morning walk"
         assert walk.location == "Park"
@@ -83,7 +84,7 @@ class TestDataStructures:
     def test_health_data_creation(self):
         """Test HealthData dataclass creation."""
         timestamp = datetime.now()
-        
+
         health = HealthData(
             timestamp=timestamp,
             weight=25.5,
@@ -91,7 +92,7 @@ class TestDataStructures:
             mood="happy",
             activity_level="normal",
         )
-        
+
         assert health.timestamp == timestamp
         assert health.weight == 25.5
         assert health.temperature == 38.5
@@ -103,7 +104,7 @@ class TestDataStructures:
     def test_gps_location_creation(self):
         """Test GPSLocation dataclass creation."""
         timestamp = datetime.now()
-        
+
         location = GPSLocation(
             latitude=52.5200,
             longitude=13.4050,
@@ -111,7 +112,7 @@ class TestDataStructures:
             timestamp=timestamp,
             source="test",
         )
-        
+
         assert location.latitude == 52.5200
         assert location.longitude == 13.4050
         assert location.accuracy == 10.0
@@ -128,38 +129,38 @@ class TestDataStructures:
             radius=100.0,
             zone_type="safe_zone",
         )
-        
+
         assert zone.name == "Home Zone"
         assert zone.latitude == 52.5200
         assert zone.longitude == 13.4050
         assert zone.radius == 100.0
         assert zone.zone_type == "safe_zone"
-        assert zone.notifications == True
+        assert zone.notifications
         assert zone.auto_actions == []
 
     def test_notification_data_creation(self):
         """Test NotificationData dataclass creation."""
         timestamp = datetime.now()
-        
+
         notification = NotificationData(
             title="Test Notification",
             message="This is a test",
             priority="high",
             timestamp=timestamp,
         )
-        
+
         assert notification.title == "Test Notification"
         assert notification.message == "This is a test"
         assert notification.priority == "high"
         assert notification.timestamp == timestamp
         assert notification.channel == "mobile"
-        assert notification.persistent == False
+        assert not notification.persistent
         assert notification.actions == []
 
     def test_daily_stats_creation(self):
         """Test DailyStats dataclass creation."""
         date = datetime.now()
-        
+
         stats = DailyStats(
             date=date,
             feedings_count=3,
@@ -168,7 +169,7 @@ class TestDataStructures:
             total_walk_time=3600,
             total_walk_distance=5000.0,
         )
-        
+
         assert stats.date == date
         assert stats.feedings_count == 3
         assert stats.total_food_amount == 600.0
@@ -185,23 +186,23 @@ class TestDataStructures:
             "dog_name": "Test Dog",
             "dog_breed": "Test Breed",
         }
-        
+
         daily_stats = DailyStats(date=datetime.now())
-        
+
         profile = DogProfile(
             dog_id="test_dog",
             dog_name="Test Dog",
             config=dog_config,
             daily_stats=daily_stats,
         )
-        
+
         assert profile.dog_id == "test_dog"
         assert profile.dog_name == "Test Dog"
         assert profile.config == dog_config
         assert profile.daily_stats == daily_stats
         assert profile.current_walk is None
         assert profile.last_location is None
-        assert profile.is_visitor_mode == False
+        assert not profile.is_visitor_mode
 
 
 class TestTypeGuards:
@@ -221,7 +222,7 @@ class TestTypeGuards:
                 "dog_age": 5,
             },
         ]
-        
+
         for config in valid_configs:
             assert is_dog_config_valid(config), f"Expected {config} to be valid"
 
@@ -238,7 +239,7 @@ class TestTypeGuards:
             "not_a_dict",  # Not a dict
             None,  # None
         ]
-        
+
         for config in invalid_configs:
             assert not is_dog_config_valid(config), f"Expected {config} to be invalid"
 
@@ -251,7 +252,7 @@ class TestTypeGuards:
             {"latitude": 90.0, "longitude": 180.0},
             {"latitude": -90.0, "longitude": -180.0},
         ]
-        
+
         for location in valid_locations:
             assert is_gps_location_valid(location), f"Expected {location} to be valid"
 
@@ -268,9 +269,11 @@ class TestTypeGuards:
             "not_a_dict",  # Not a dict
             None,  # None
         ]
-        
+
         for location in invalid_locations:
-            assert not is_gps_location_valid(location), f"Expected {location} to be invalid"
+            assert not is_gps_location_valid(location), (
+                f"Expected {location} to be invalid"
+            )
 
     def test_is_feeding_data_valid_true(self):
         """Test valid feeding data."""
@@ -280,7 +283,7 @@ class TestTypeGuards:
             {"meal_type": "dinner", "portion_size": 0},  # Zero is valid
             {"meal_type": "snack", "portion_size": 50.5},
         ]
-        
+
         for data in valid_data:
             assert is_feeding_data_valid(data), f"Expected {data} to be valid"
 
@@ -291,12 +294,15 @@ class TestTypeGuards:
             {"meal_type": "breakfast"},  # Missing portion_size
             {"portion_size": 200.0},  # Missing meal_type
             {"meal_type": 123, "portion_size": 200.0},  # Wrong type for meal_type
-            {"meal_type": "breakfast", "portion_size": "invalid"},  # Wrong type for portion_size
+            {
+                "meal_type": "breakfast",
+                "portion_size": "invalid",
+            },  # Wrong type for portion_size
             {"meal_type": "breakfast", "portion_size": -10.0},  # Negative portion_size
             "not_a_dict",  # Not a dict
             None,  # None
         ]
-        
+
         for data in invalid_data:
             assert not is_feeding_data_valid(data), f"Expected {data} to be invalid"
 
@@ -396,7 +402,7 @@ class TestValidationConstants:
             VALID_GPS_SOURCES,
             VALID_NOTIFICATION_PRIORITIES,
         ]
-        
+
         for constant in validation_constants:
             assert isinstance(constant, set), f"Expected set, got {type(constant)}"
             assert len(constant) > 0, "Validation set should not be empty"
@@ -414,12 +420,14 @@ class TestValidationConstants:
             VALID_GPS_SOURCES,
             VALID_NOTIFICATION_PRIORITIES,
         ]
-        
+
         for constant in validation_constants:
             for value in constant:
                 assert isinstance(value, str), f"Expected string, got {type(value)}"
                 assert len(value) > 0, "Validation values should not be empty"
-                assert value.strip() == value, "Validation values should not have leading/trailing whitespace"
+                assert value.strip() == value, (
+                    "Validation values should not have leading/trailing whitespace"
+                )
 
 
 class TestTypeAnnotations:
@@ -432,7 +440,7 @@ class TestTypeAnnotations:
             "dog_id": "test_dog",
             "dog_name": "Test Dog",
         }
-        
+
         assert config["dog_id"] == "test_dog"
         assert config["dog_name"] == "Test Dog"
 
@@ -444,7 +452,7 @@ class TestTypeAnnotations:
             "dog_breed": "Golden Retriever",  # Optional field
             "dog_age": 5,  # Optional field
         }
-        
+
         assert config.get("dog_breed") == "Golden Retriever"
         assert config.get("dog_age") == 5
         assert config.get("non_existent") is None
@@ -456,7 +464,7 @@ class TestDataStructureDefaults:
     def test_daily_stats_defaults(self):
         """Test DailyStats default values."""
         stats = DailyStats(date=datetime.now())
-        
+
         assert stats.feedings_count == 0
         assert stats.total_food_amount == 0.0
         assert stats.walks_count == 0
@@ -474,10 +482,10 @@ class TestDataStructureDefaults:
             config={},
             daily_stats=DailyStats(date=datetime.now()),
         )
-        
+
         assert profile.current_walk is None
         assert profile.last_location is None
-        assert profile.is_visitor_mode == False
+        assert not profile.is_visitor_mode
 
     def test_geofence_zone_defaults(self):
         """Test GeofenceZone default values."""
@@ -487,9 +495,9 @@ class TestDataStructureDefaults:
             longitude=0.0,
             radius=100.0,
         )
-        
+
         assert zone.zone_type == "safe_zone"
-        assert zone.notifications == True
+        assert zone.notifications
         assert zone.auto_actions == []
 
     def test_notification_data_defaults(self):
@@ -498,10 +506,10 @@ class TestDataStructureDefaults:
             title="Test",
             message="Test message",
         )
-        
+
         assert notification.priority == "normal"
         assert notification.channel == "mobile"
-        assert notification.persistent == False
+        assert not notification.persistent
         assert notification.actions == []
         assert isinstance(notification.timestamp, datetime)
 
@@ -514,7 +522,7 @@ class TestDataStructureValidation:
         # Test exact boundaries
         assert is_gps_location_valid({"latitude": 90.0, "longitude": 180.0})
         assert is_gps_location_valid({"latitude": -90.0, "longitude": -180.0})
-        
+
         # Test just outside boundaries
         assert not is_gps_location_valid({"latitude": 90.1, "longitude": 0.0})
         assert not is_gps_location_valid({"latitude": 0.0, "longitude": 180.1})
@@ -523,7 +531,7 @@ class TestDataStructureValidation:
         """Test feeding data validation edge cases."""
         # Test zero portion size (should be valid)
         assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 0.0})
-        
+
         # Test float vs int portion size
         assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 100})
         assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 100.5})
@@ -537,7 +545,7 @@ class TestDataStructureValidation:
             "extra_field": "should_be_ignored",
         }
         assert is_dog_config_valid(config)
-        
+
         # Test with whitespace
         config = {
             "dog_id": "  test  ",  # Should be trimmed by validator if needed

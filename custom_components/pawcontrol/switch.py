@@ -12,12 +12,11 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
-
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -26,16 +25,16 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
-    MODULE_WALK,
     MODULE_VISITOR,
+    MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
 

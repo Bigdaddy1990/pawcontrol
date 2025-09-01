@@ -15,7 +15,6 @@ import logging
 from typing import Any, Final
 
 import voluptuous as vol
-
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -289,7 +288,11 @@ class PawControlServiceManager:
             (SERVICE_FEED_DOG, self._handle_feed_dog_service, SERVICE_FEED_DOG_SCHEMA),
             (SERVICE_START_WALK, self._handle_start_walk_service, SERVICE_WALK_SCHEMA),
             (SERVICE_END_WALK, self._handle_end_walk_service, SERVICE_END_WALK_SCHEMA),
-            (SERVICE_LOG_HEALTH, self._handle_log_health_service, SERVICE_HEALTH_SCHEMA),
+            (
+                SERVICE_LOG_HEALTH,
+                self._handle_log_health_service,
+                SERVICE_HEALTH_SCHEMA,
+            ),
             (
                 SERVICE_LOG_MEDICATION,
                 self._handle_log_medication_service,
@@ -300,14 +303,26 @@ class PawControlServiceManager:
                 self._handle_start_grooming_service,
                 SERVICE_GROOMING_SCHEMA,
             ),
-            (SERVICE_DAILY_RESET, self._handle_daily_reset_service, SERVICE_DAILY_RESET_SCHEMA),
-            (SERVICE_NOTIFY_TEST, self._handle_notify_test_service, SERVICE_NOTIFY_TEST_SCHEMA),
+            (
+                SERVICE_DAILY_RESET,
+                self._handle_daily_reset_service,
+                SERVICE_DAILY_RESET_SCHEMA,
+            ),
+            (
+                SERVICE_NOTIFY_TEST,
+                self._handle_notify_test_service,
+                SERVICE_NOTIFY_TEST_SCHEMA,
+            ),
             (
                 "set_visitor_mode",
                 self._handle_set_visitor_mode_service,
                 SERVICE_SET_VISITOR_MODE_SCHEMA,
             ),
-            ("export_data", self._handle_export_data_service, SERVICE_EXPORT_DATA_SCHEMA),
+            (
+                "export_data",
+                self._handle_export_data_service,
+                SERVICE_EXPORT_DATA_SCHEMA,
+            ),
         ]
 
         # Register all services with enhanced error handling
@@ -342,8 +357,10 @@ class PawControlServiceManager:
                 self.hass.services.async_remove(DOMAIN, service_name)
                 _LOGGER.debug("Unregistered service: %s", service_name)
             except Exception as err:
-                _LOGGER.warning("Failed to unregister service %s: %s", service_name, err)
-        
+                _LOGGER.warning(
+                    "Failed to unregister service %s: %s", service_name, err
+                )
+
         self._registered_services.clear()
 
     @performance_monitor(timeout=10.0)
@@ -373,11 +390,13 @@ class PawControlServiceManager:
                 ).with_user_message(f"Dog '{dog_id}' not found in any configuration")
 
             data_manager = runtime_data["data_manager"]
-            
+
             # Use portion_size directly
             await data_manager.async_feed_dog(dog_id, portion_size)
 
-            _LOGGER.info("Successfully fed %s with portion size %.1fg", dog_id, portion_size)
+            _LOGGER.info(
+                "Successfully fed %s with portion size %.1fg", dog_id, portion_size
+            )
 
             # Prepare comprehensive feeding data with validation
             feeding_data = {
@@ -947,18 +966,20 @@ class PawControlServiceManager:
 
             if runtime_data:
                 dogs = runtime_data.get("dogs", [])
-                dog_ids.extend(dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID))
+                dog_ids.extend(
+                    dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID)
+                )
             else:
                 # Fallback to legacy data
                 dogs = config_entry.data.get(CONF_DOGS, [])
-                dog_ids.extend(dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID))
+                dog_ids.extend(
+                    dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID)
+                )
 
         return dog_ids
 
 
-async def async_setup_daily_reset_scheduler(
-    hass: HomeAssistant, entry: Any
-) -> None:
+async def async_setup_daily_reset_scheduler(hass: HomeAssistant, entry: Any) -> None:
     """Set up the daily reset scheduler with enhanced error handling.
 
     Args:

@@ -10,13 +10,53 @@ The repairs module is critical for automatic problem detection and
 user-guided repair flows, so comprehensive testing is essential.
 """
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime, timedelta
 from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
 import voluptuous as vol
-
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+)
+from custom_components.pawcontrol.repairs import (
+    ISSUE_COORDINATOR_ERROR,
+    ISSUE_DUPLICATE_DOG_IDS,
+    ISSUE_INVALID_DOG_DATA,
+    ISSUE_INVALID_GPS_CONFIG,
+    # Issue types
+    ISSUE_MISSING_DOG_CONFIG,
+    ISSUE_MISSING_NOTIFICATIONS,
+    ISSUE_MODULE_CONFLICT,
+    ISSUE_OUTDATED_CONFIG,
+    ISSUE_PERFORMANCE_WARNING,
+    ISSUE_STORAGE_WARNING,
+    REPAIR_FLOW_CONFIG_MIGRATION,
+    # Repair flow types
+    REPAIR_FLOW_DOG_CONFIG,
+    REPAIR_FLOW_GPS_SETUP,
+    REPAIR_FLOW_NOTIFICATION_SETUP,
+    REPAIR_FLOW_PERFORMANCE_OPTIMIZATION,
+    # Repair flow class
+    PawControlRepairsFlow,
+    _check_coordinator_health,
+    _check_dog_configuration_issues,
+    _check_gps_configuration_issues,
+    _check_notification_configuration_issues,
+    _check_outdated_configuration,
+    _check_performance_issues,
+    _check_storage_issues,
+    async_check_for_issues,
+    # Functions
+    async_create_issue,
+    async_create_repair_flow,
+)
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -24,67 +64,18 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 
-from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-)
-
-from custom_components.pawcontrol.repairs import (
-    # Issue types
-    ISSUE_MISSING_DOG_CONFIG,
-    ISSUE_DUPLICATE_DOG_IDS,
-    ISSUE_INVALID_GPS_CONFIG,
-    ISSUE_MISSING_NOTIFICATIONS,
-    ISSUE_OUTDATED_CONFIG,
-    ISSUE_PERFORMANCE_WARNING,
-    ISSUE_STORAGE_WARNING,
-    ISSUE_MODULE_CONFLICT,
-    ISSUE_INVALID_DOG_DATA,
-    ISSUE_COORDINATOR_ERROR,
-    
-    # Repair flow types
-    REPAIR_FLOW_DOG_CONFIG,
-    REPAIR_FLOW_GPS_SETUP,
-    REPAIR_FLOW_NOTIFICATION_SETUP,
-    REPAIR_FLOW_CONFIG_MIGRATION,
-    REPAIR_FLOW_PERFORMANCE_OPTIMIZATION,
-    
-    # Functions
-    async_create_issue,
-    async_check_for_issues,
-    _check_dog_configuration_issues,
-    _check_gps_configuration_issues,
-    _check_notification_configuration_issues,
-    _check_outdated_configuration,
-    _check_performance_issues,
-    _check_storage_issues,
-    _check_coordinator_health,
-    
-    # Repair flow class
-    PawControlRepairsFlow,
-    async_create_repair_flow,
-)
-
 
 # Test fixtures
 @pytest.fixture
 def mock_issue_registry():
     """Mock issue registry for testing."""
-    with patch("homeassistant.helpers.issue_registry.async_create_issue") as mock_create, \
-         patch("homeassistant.helpers.issue_registry.async_delete_issue") as mock_delete, \
-         patch("homeassistant.helpers.issue_registry.IssueSeverity") as mock_severity:
-        
+    with (
+        patch("homeassistant.helpers.issue_registry.async_create_issue") as mock_create,
+        patch("homeassistant.helpers.issue_registry.async_delete_issue") as mock_delete,
+        patch("homeassistant.helpers.issue_registry.IssueSeverity") as mock_severity,
+    ):
         mock_severity.return_value = "warning"
-        yield {
-            "create": mock_create,
-            "delete": mock_delete,
-            "severity": mock_severity
-        }
+        yield {"create": mock_create, "delete": mock_delete, "severity": mock_severity}
 
 
 @pytest.fixture
@@ -292,7 +283,9 @@ def outdated_config_entry():
 class TestIssueCreation:
     """Test issue creation functionality."""
 
-    async def test_async_create_issue_basic(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_async_create_issue_basic(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test basic issue creation."""
         await async_create_issue(
             hass,
@@ -300,58 +293,65 @@ class TestIssueCreation:
             "test_issue_id",
             ISSUE_MISSING_DOG_CONFIG,
             {"test_data": "value"},
-            "warning"
+            "warning",
         )
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
-        
+
         # Verify the call structure
         assert call_args[0][0] is hass  # First positional arg is hass
         assert call_args[0][1] == DOMAIN  # Second is domain
         assert call_args[0][2] == "test_issue_id"  # Third is issue_id
-        
+
         # Verify keyword arguments
         kwargs = call_args[1]
         assert kwargs["is_fixable"] is True
         assert kwargs["issue_domain"] == DOMAIN
         assert kwargs["translation_key"] == ISSUE_MISSING_DOG_CONFIG
 
-    async def test_async_create_issue_with_data(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_async_create_issue_with_data(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test issue creation with additional data."""
         test_data = {"dogs_count": 0, "severity": "error"}
-        
+
         await async_create_issue(
             hass,
             mock_config_entry,
             "test_issue_with_data",
             ISSUE_MISSING_DOG_CONFIG,
             test_data,
-            "error"
+            "error",
         )
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         # Verify translation placeholders contain our data
         assert "dogs_count" in kwargs["translation_placeholders"]
         assert kwargs["translation_placeholders"]["dogs_count"] == 0
-        assert kwargs["translation_placeholders"]["config_entry_id"] == mock_config_entry.entry_id
+        assert (
+            kwargs["translation_placeholders"]["config_entry_id"]
+            == mock_config_entry.entry_id
+        )
 
-    async def test_async_create_issue_severity_levels(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_async_create_issue_severity_levels(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test issue creation with different severity levels."""
         severities = ["error", "warning", "info"]
-        
+
         for severity in severities:
             await async_create_issue(
                 hass,
                 mock_config_entry,
                 f"test_issue_{severity}",
                 ISSUE_PERFORMANCE_WARNING,
-                severity=severity
+                severity=severity,
             )
-        
+
         assert mock_issue_registry["create"].call_count == len(severities)
 
 
@@ -359,50 +359,62 @@ class TestIssueCreation:
 class TestDogConfigurationIssues:
     """Test dog configuration issue detection."""
 
-    async def test_check_dog_configuration_no_dogs(self, hass: HomeAssistant, minimal_config_entry, mock_issue_registry):
+    async def test_check_dog_configuration_no_dogs(
+        self, hass: HomeAssistant, minimal_config_entry, mock_issue_registry
+    ):
         """Test detection of missing dog configuration."""
         await _check_dog_configuration_issues(hass, minimal_config_entry)
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_MISSING_DOG_CONFIG
         assert kwargs["translation_placeholders"]["dogs_count"] == 0
 
-    async def test_check_dog_configuration_duplicate_ids(self, hass: HomeAssistant, config_entry_duplicate_dogs, mock_issue_registry):
+    async def test_check_dog_configuration_duplicate_ids(
+        self, hass: HomeAssistant, config_entry_duplicate_dogs, mock_issue_registry
+    ):
         """Test detection of duplicate dog IDs."""
         await _check_dog_configuration_issues(hass, config_entry_duplicate_dogs)
 
         # Should create issue for duplicate IDs
         assert mock_issue_registry["create"].call_count >= 1
-        
+
         # Find the duplicate IDs call
         calls = mock_issue_registry["create"].call_args_list
         duplicate_call = next(
-            call for call in calls 
+            call
+            for call in calls
             if call[1]["translation_key"] == ISSUE_DUPLICATE_DOG_IDS
         )
-        
-        assert "test_dog" in duplicate_call[1]["translation_placeholders"]["duplicate_ids"]
 
-    async def test_check_dog_configuration_invalid_data(self, hass: HomeAssistant, config_entry_invalid_dogs, mock_issue_registry):
+        assert (
+            "test_dog" in duplicate_call[1]["translation_placeholders"]["duplicate_ids"]
+        )
+
+    async def test_check_dog_configuration_invalid_data(
+        self, hass: HomeAssistant, config_entry_invalid_dogs, mock_issue_registry
+    ):
         """Test detection of invalid dog data."""
         await _check_dog_configuration_issues(hass, config_entry_invalid_dogs)
 
         # Should create issues for both missing dogs and invalid data
         assert mock_issue_registry["create"].call_count >= 1
-        
+
         # Check for invalid dog data issue
         calls = mock_issue_registry["create"].call_args_list
         invalid_call = next(
-            call for call in calls 
+            call
+            for call in calls
             if call[1]["translation_key"] == ISSUE_INVALID_DOG_DATA
         )
-        
+
         assert len(invalid_call[1]["translation_placeholders"]["invalid_dogs"]) >= 1
 
-    async def test_check_dog_configuration_valid(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_dog_configuration_valid(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test that no issues are created for valid configuration."""
         await _check_dog_configuration_issues(hass, mock_config_entry)
 
@@ -414,14 +426,18 @@ class TestDogConfigurationIssues:
 class TestGPSConfigurationIssues:
     """Test GPS configuration issue detection."""
 
-    async def test_check_gps_no_gps_enabled(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_gps_no_gps_enabled(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test GPS check with no GPS-enabled dogs."""
         await _check_gps_configuration_issues(hass, mock_config_entry)
 
         # Should not create any issues if GPS is not enabled
         mock_issue_registry["create"].assert_not_called()
 
-    async def test_check_gps_missing_source(self, hass: HomeAssistant, config_entry_gps_issues, mock_issue_registry):
+    async def test_check_gps_missing_source(
+        self, hass: HomeAssistant, config_entry_gps_issues, mock_issue_registry
+    ):
         """Test detection of missing GPS source configuration."""
         await _check_gps_configuration_issues(hass, config_entry_gps_issues)
 
@@ -429,25 +445,33 @@ class TestGPSConfigurationIssues:
         mock_issue_registry["create"].assert_called()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_INVALID_GPS_CONFIG
         assert "missing_gps_source" in kwargs["translation_placeholders"]["issue"]
 
-    async def test_check_gps_update_too_frequent(self, hass: HomeAssistant, config_entry_gps_issues, mock_issue_registry):
+    async def test_check_gps_update_too_frequent(
+        self, hass: HomeAssistant, config_entry_gps_issues, mock_issue_registry
+    ):
         """Test detection of too frequent GPS updates."""
         await _check_gps_configuration_issues(hass, config_entry_gps_issues)
 
         # Should create performance warning for frequent updates
         calls = mock_issue_registry["create"].call_args_list
         performance_call = next(
-            call for call in calls 
+            call
+            for call in calls
             if call[1]["translation_key"] == ISSUE_PERFORMANCE_WARNING
         )
-        
-        assert "gps_update_too_frequent" in performance_call[1]["translation_placeholders"]["issue"]
+
+        assert (
+            "gps_update_too_frequent"
+            in performance_call[1]["translation_placeholders"]["issue"]
+        )
         assert performance_call[1]["translation_placeholders"]["current_interval"] == 5
 
-    async def test_check_gps_valid_config(self, hass: HomeAssistant, mock_issue_registry):
+    async def test_check_gps_valid_config(
+        self, hass: HomeAssistant, mock_issue_registry
+    ):
         """Test GPS check with valid configuration."""
         config_entry = ConfigEntry(
             version=1,
@@ -455,11 +479,13 @@ class TestGPSConfigurationIssues:
             domain=DOMAIN,
             title="Test",
             data={
-                CONF_DOGS: [{
-                    CONF_DOG_ID: "gps_dog",
-                    CONF_DOG_NAME: "GPS Dog",
-                    "modules": {MODULE_GPS: True},
-                }]
+                CONF_DOGS: [
+                    {
+                        CONF_DOG_ID: "gps_dog",
+                        CONF_DOG_NAME: "GPS Dog",
+                        "modules": {MODULE_GPS: True},
+                    }
+                ]
             },
             options={
                 "gps": {
@@ -481,33 +507,43 @@ class TestGPSConfigurationIssues:
 class TestNotificationConfigurationIssues:
     """Test notification configuration issue detection."""
 
-    async def test_check_notifications_no_notifications_enabled(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_notifications_no_notifications_enabled(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test notification check with no notifications enabled."""
         await _check_notification_configuration_issues(hass, mock_config_entry)
 
         # Should not create any issues if notifications are not enabled
         mock_issue_registry["create"].assert_not_called()
 
-    async def test_check_notifications_missing_mobile_app(self, hass: HomeAssistant, config_entry_notification_issues, mock_issue_registry):
+    async def test_check_notifications_missing_mobile_app(
+        self, hass: HomeAssistant, config_entry_notification_issues, mock_issue_registry
+    ):
         """Test detection of missing mobile app service."""
         # Mock services to not have mobile_app
         hass.services.has_service = Mock(return_value=False)
 
-        await _check_notification_configuration_issues(hass, config_entry_notification_issues)
+        await _check_notification_configuration_issues(
+            hass, config_entry_notification_issues
+        )
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_MISSING_NOTIFICATIONS
         assert kwargs["translation_placeholders"]["missing_service"] == "mobile_app"
 
-    async def test_check_notifications_mobile_app_available(self, hass: HomeAssistant, config_entry_notification_issues, mock_issue_registry):
+    async def test_check_notifications_mobile_app_available(
+        self, hass: HomeAssistant, config_entry_notification_issues, mock_issue_registry
+    ):
         """Test notification check with mobile app available."""
         # Mock services to have mobile_app
         hass.services.has_service = Mock(return_value=True)
 
-        await _check_notification_configuration_issues(hass, config_entry_notification_issues)
+        await _check_notification_configuration_issues(
+            hass, config_entry_notification_issues
+        )
 
         # Should not create any issues if mobile app is available
         mock_issue_registry["create"].assert_not_called()
@@ -517,19 +553,23 @@ class TestNotificationConfigurationIssues:
 class TestOutdatedConfiguration:
     """Test outdated configuration detection."""
 
-    async def test_check_outdated_configuration(self, hass: HomeAssistant, outdated_config_entry, mock_issue_registry):
+    async def test_check_outdated_configuration(
+        self, hass: HomeAssistant, outdated_config_entry, mock_issue_registry
+    ):
         """Test detection of outdated configuration."""
         await _check_outdated_configuration(hass, outdated_config_entry)
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_OUTDATED_CONFIG
         assert kwargs["translation_placeholders"]["current_version"] == 0
         assert kwargs["translation_placeholders"]["required_version"] == 1
 
-    async def test_check_current_configuration(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_current_configuration(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test check with current configuration version."""
         await _check_outdated_configuration(hass, mock_config_entry)
 
@@ -541,33 +581,41 @@ class TestOutdatedConfiguration:
 class TestPerformanceIssues:
     """Test performance issue detection."""
 
-    async def test_check_performance_too_many_dogs(self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry):
+    async def test_check_performance_too_many_dogs(
+        self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry
+    ):
         """Test detection of too many dogs."""
         await _check_performance_issues(hass, config_entry_performance_issues)
 
         # Should create performance warning for too many dogs
         calls = mock_issue_registry["create"].call_args_list
         performance_call = next(
-            call for call in calls 
+            call
+            for call in calls
             if call[1]["translation_key"] == ISSUE_PERFORMANCE_WARNING
         )
-        
+
         assert performance_call[1]["translation_placeholders"]["dog_count"] == 12
 
-    async def test_check_performance_module_conflicts(self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry):
+    async def test_check_performance_module_conflicts(
+        self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry
+    ):
         """Test detection of resource-intensive module combinations."""
         await _check_performance_issues(hass, config_entry_performance_issues)
 
         # Should create module conflict warning
         calls = mock_issue_registry["create"].call_args_list
         conflict_call = next(
-            call for call in calls 
+            call
+            for call in calls
             if call[1]["translation_key"] == ISSUE_MODULE_CONFLICT
         )
-        
+
         assert conflict_call[1]["translation_placeholders"]["intensive_dogs"] >= 5
 
-    async def test_check_performance_normal_config(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_performance_normal_config(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test performance check with normal configuration."""
         await _check_performance_issues(hass, mock_config_entry)
 
@@ -579,18 +627,22 @@ class TestPerformanceIssues:
 class TestStorageIssues:
     """Test storage issue detection."""
 
-    async def test_check_storage_high_retention(self, hass: HomeAssistant, config_entry_storage_issues, mock_issue_registry):
+    async def test_check_storage_high_retention(
+        self, hass: HomeAssistant, config_entry_storage_issues, mock_issue_registry
+    ):
         """Test detection of high data retention."""
         await _check_storage_issues(hass, config_entry_storage_issues)
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_STORAGE_WARNING
         assert kwargs["translation_placeholders"]["current_retention"] == 400
 
-    async def test_check_storage_normal_retention(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_storage_normal_retention(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test storage check with normal retention."""
         await _check_storage_issues(hass, mock_config_entry)
 
@@ -602,7 +654,9 @@ class TestStorageIssues:
 class TestCoordinatorHealth:
     """Test coordinator health checks."""
 
-    async def test_check_coordinator_missing(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_coordinator_missing(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test detection of missing coordinator."""
         # Setup hass.data without coordinator
         hass.data[DOMAIN] = {mock_config_entry.entry_id: {}}
@@ -612,50 +666,50 @@ class TestCoordinatorHealth:
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
-        assert kwargs["translation_key"] == ISSUE_COORDINATOR_ERROR
-        assert "coordinator_not_initialized" in kwargs["translation_placeholders"]["error"]
 
-    async def test_check_coordinator_failed_update(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+        assert kwargs["translation_key"] == ISSUE_COORDINATOR_ERROR
+        assert (
+            "coordinator_not_initialized" in kwargs["translation_placeholders"]["error"]
+        )
+
+    async def test_check_coordinator_failed_update(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test detection of coordinator update failure."""
         # Setup coordinator with failed update
         coordinator = Mock()
         coordinator.last_update_success = False
         coordinator.last_update_time = dt_util.utcnow()
-        
-        hass.data[DOMAIN] = {
-            mock_config_entry.entry_id: {
-                "coordinator": coordinator
-            }
-        }
+
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_COORDINATOR_ERROR
         assert "last_update_failed" in kwargs["translation_placeholders"]["error"]
 
-    async def test_check_coordinator_healthy(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_coordinator_healthy(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test coordinator health check with healthy coordinator."""
         # Setup healthy coordinator
         coordinator = Mock()
         coordinator.last_update_success = True
-        
-        hass.data[DOMAIN] = {
-            mock_config_entry.entry_id: {
-                "coordinator": coordinator
-            }
-        }
+
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
         # Should not create any issues for healthy coordinator
         mock_issue_registry["create"].assert_not_called()
 
-    async def test_check_coordinator_no_domain_data(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_check_coordinator_no_domain_data(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test coordinator health check with no domain data."""
         # Don't setup any domain data
         await _check_coordinator_health(hass, mock_config_entry)
@@ -663,7 +717,7 @@ class TestCoordinatorHealth:
         mock_issue_registry["create"].assert_called_once()
         call_args = mock_issue_registry["create"].call_args
         kwargs = call_args[1]
-        
+
         assert kwargs["translation_key"] == ISSUE_COORDINATOR_ERROR
 
 
@@ -671,23 +725,32 @@ class TestCoordinatorHealth:
 class TestMainCheckFunction:
     """Test the main async_check_for_issues function."""
 
-    async def test_async_check_for_issues_comprehensive(self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry):
+    async def test_async_check_for_issues_comprehensive(
+        self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry
+    ):
         """Test comprehensive issue checking."""
         await async_check_for_issues(hass, config_entry_performance_issues)
 
         # Should create multiple issues for the problematic configuration
         assert mock_issue_registry["create"].call_count >= 2
 
-    async def test_async_check_for_issues_error_handling(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_async_check_for_issues_error_handling(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test error handling in issue checking."""
-        with patch("custom_components.pawcontrol.repairs._check_dog_configuration_issues", side_effect=Exception("Test error")):
+        with patch(
+            "custom_components.pawcontrol.repairs._check_dog_configuration_issues",
+            side_effect=Exception("Test error"),
+        ):
             # Should not raise exception, but log error
             await async_check_for_issues(hass, mock_config_entry)
 
         # Should still continue and not crash
         assert True  # If we get here, error was handled
 
-    async def test_async_check_for_issues_clean_config(self, hass: HomeAssistant, mock_config_entry, mock_issue_registry):
+    async def test_async_check_for_issues_clean_config(
+        self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
+    ):
         """Test issue checking with clean configuration."""
         await async_check_for_issues(hass, mock_config_entry)
 
@@ -718,19 +781,21 @@ class TestPawControlRepairsFlow:
             "dogs_count": 0,
         }
 
-    async def test_flow_init_missing_dog_config(self, hass: HomeAssistant, mock_flow, mock_issue_data):
+    async def test_flow_init_missing_dog_config(
+        self, hass: HomeAssistant, mock_flow, mock_issue_data
+    ):
         """Test repair flow initialization for missing dog config."""
         # Setup mock issue data
-        hass.data[ir.DOMAIN] = {
-            "test_issue_id": Mock(data=mock_issue_data)
-        }
+        hass.data[ir.DOMAIN] = {"test_issue_id": Mock(data=mock_issue_data)}
 
         result = await mock_flow.async_step_init()
 
         assert result["type"] == "form"
         assert result["step_id"] == "missing_dog_config"
 
-    async def test_flow_missing_dog_config_add_dog(self, hass: HomeAssistant, mock_flow, mock_issue_data):
+    async def test_flow_missing_dog_config_add_dog(
+        self, hass: HomeAssistant, mock_flow, mock_issue_data
+    ):
         """Test adding a dog through repair flow."""
         mock_flow._issue_data = mock_issue_data
 
@@ -741,10 +806,12 @@ class TestPawControlRepairsFlow:
         assert result["type"] == "form"
         assert result["step_id"] == "add_first_dog"
 
-    async def test_flow_add_first_dog_success(self, hass: HomeAssistant, mock_flow, mock_config_entry, mock_issue_data):
+    async def test_flow_add_first_dog_success(
+        self, hass: HomeAssistant, mock_flow, mock_config_entry, mock_issue_data
+    ):
         """Test successfully adding first dog."""
         mock_flow._issue_data = mock_issue_data
-        
+
         # Mock config entry
         hass.config_entries.async_get_entry = Mock(return_value=mock_config_entry)
         hass.config_entries.async_update_entry = Mock()
@@ -764,7 +831,9 @@ class TestPawControlRepairsFlow:
         assert result["step_id"] == "complete_repair"
         hass.config_entries.async_update_entry.assert_called_once()
 
-    async def test_flow_add_first_dog_validation_error(self, hass: HomeAssistant, mock_flow, mock_issue_data):
+    async def test_flow_add_first_dog_validation_error(
+        self, hass: HomeAssistant, mock_flow, mock_issue_data
+    ):
         """Test validation error when adding first dog."""
         mock_flow._issue_data = mock_issue_data
 
@@ -781,7 +850,9 @@ class TestPawControlRepairsFlow:
         assert "errors" in result
         assert result["errors"]["base"] == "incomplete_data"
 
-    async def test_flow_duplicate_dog_ids_auto_fix(self, hass: HomeAssistant, mock_flow, config_entry_duplicate_dogs):
+    async def test_flow_duplicate_dog_ids_auto_fix(
+        self, hass: HomeAssistant, mock_flow, config_entry_duplicate_dogs
+    ):
         """Test auto-fixing duplicate dog IDs."""
         mock_flow._issue_data = {
             "config_entry_id": config_entry_duplicate_dogs.entry_id,
@@ -790,7 +861,9 @@ class TestPawControlRepairsFlow:
         }
 
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(return_value=config_entry_duplicate_dogs)
+        hass.config_entries.async_get_entry = Mock(
+            return_value=config_entry_duplicate_dogs
+        )
         hass.config_entries.async_update_entry = Mock()
 
         user_input = {"action": "auto_fix"}
@@ -800,7 +873,9 @@ class TestPawControlRepairsFlow:
         assert result["step_id"] == "complete_repair"
         hass.config_entries.async_update_entry.assert_called_once()
 
-    async def test_flow_gps_configuration(self, hass: HomeAssistant, mock_flow, config_entry_gps_issues):
+    async def test_flow_gps_configuration(
+        self, hass: HomeAssistant, mock_flow, config_entry_gps_issues
+    ):
         """Test GPS configuration repair flow."""
         mock_flow._issue_data = {
             "config_entry_id": config_entry_gps_issues.entry_id,
@@ -824,7 +899,9 @@ class TestPawControlRepairsFlow:
         assert result["step_id"] == "complete_repair"
         hass.config_entries.async_update_entry.assert_called_once()
 
-    async def test_flow_complete_repair(self, hass: HomeAssistant, mock_flow, mock_issue_registry):
+    async def test_flow_complete_repair(
+        self, hass: HomeAssistant, mock_flow, mock_issue_registry
+    ):
         """Test completing a repair flow."""
         mock_flow._repair_type = ISSUE_MISSING_DOG_CONFIG
 
@@ -833,8 +910,10 @@ class TestPawControlRepairsFlow:
         assert result["type"] == "create_entry"
         assert result["title"] == "Repair completed"
         assert result["data"]["repaired_issue"] == ISSUE_MISSING_DOG_CONFIG
-        
-        mock_issue_registry["delete"].assert_called_once_with(hass, DOMAIN, "test_issue_id")
+
+        mock_issue_registry["delete"].assert_called_once_with(
+            hass, DOMAIN, "test_issue_id"
+        )
 
     async def test_flow_unknown_issue(self, hass: HomeAssistant, mock_flow):
         """Test handling unknown issue types."""
@@ -843,12 +922,18 @@ class TestPawControlRepairsFlow:
         assert result["type"] == "abort"
         assert result["reason"] == "unknown_issue_type"
 
-    async def test_flow_helper_methods(self, hass: HomeAssistant, mock_flow, config_entry_duplicate_dogs):
+    async def test_flow_helper_methods(
+        self, hass: HomeAssistant, mock_flow, config_entry_duplicate_dogs
+    ):
         """Test repair flow helper methods."""
-        mock_flow._issue_data = {"config_entry_id": config_entry_duplicate_dogs.entry_id}
-        
+        mock_flow._issue_data = {
+            "config_entry_id": config_entry_duplicate_dogs.entry_id
+        }
+
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(return_value=config_entry_duplicate_dogs)
+        hass.config_entries.async_get_entry = Mock(
+            return_value=config_entry_duplicate_dogs
+        )
         hass.config_entries.async_update_entry = Mock()
 
         # Test fixing duplicate IDs
@@ -881,7 +966,7 @@ class TestRepairFlowFactory:
     def test_flow_inheritance(self):
         """Test that repair flow inherits from RepairsFlow."""
         flow = PawControlRepairsFlow()
-        
+
         assert isinstance(flow, RepairsFlow)
 
 
@@ -889,35 +974,41 @@ class TestRepairFlowFactory:
 class TestRepairsIntegration:
     """Test repairs module integration with Home Assistant."""
 
-    async def test_full_repair_cycle(self, hass: HomeAssistant, minimal_config_entry, mock_issue_registry):
+    async def test_full_repair_cycle(
+        self, hass: HomeAssistant, minimal_config_entry, mock_issue_registry
+    ):
         """Test a complete repair cycle from detection to resolution."""
         # Step 1: Detect issues
         await async_check_for_issues(hass, minimal_config_entry)
-        
+
         # Verify issue was created
         mock_issue_registry["create"].assert_called_once()
-        
+
         # Step 2: Create repair flow
-        flow = async_create_repair_flow(hass, "test_issue", {"config_entry_id": minimal_config_entry.entry_id})
-        
+        flow = async_create_repair_flow(
+            hass, "test_issue", {"config_entry_id": minimal_config_entry.entry_id}
+        )
+
         # Step 3: Complete repair
         flow._repair_type = ISSUE_MISSING_DOG_CONFIG
         result = await flow.async_step_complete_repair()
-        
+
         assert result["type"] == "create_entry"
         mock_issue_registry["delete"].assert_called_once()
 
-    async def test_multiple_issue_detection(self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry):
+    async def test_multiple_issue_detection(
+        self, hass: HomeAssistant, config_entry_performance_issues, mock_issue_registry
+    ):
         """Test detection of multiple issues in one check."""
         await async_check_for_issues(hass, config_entry_performance_issues)
-        
+
         # Should detect multiple issues
         assert mock_issue_registry["create"].call_count >= 2
-        
+
         # Verify different issue types were created
         calls = mock_issue_registry["create"].call_args_list
         issue_types = [call[1]["translation_key"] for call in calls]
-        
+
         assert ISSUE_PERFORMANCE_WARNING in issue_types
         assert ISSUE_MODULE_CONFLICT in issue_types
 
@@ -927,7 +1018,7 @@ class TestRepairsIntegration:
         corrupted_entry = Mock()
         corrupted_entry.data = None  # Corrupted data
         corrupted_entry.entry_id = "corrupted"
-        
+
         # Should not raise exception
         try:
             await async_check_for_issues(hass, corrupted_entry)
@@ -939,7 +1030,9 @@ class TestRepairsIntegration:
 class TestRepairsPerformance:
     """Test performance characteristics of repairs system."""
 
-    async def test_large_configuration_performance(self, hass: HomeAssistant, mock_issue_registry):
+    async def test_large_configuration_performance(
+        self, hass: HomeAssistant, mock_issue_registry
+    ):
         """Test performance with large configurations."""
         # Create config with many dogs
         large_config = ConfigEntry(
@@ -964,38 +1057,44 @@ class TestRepairsPerformance:
 
         # Measure time
         import time
+
         start_time = time.time()
-        
+
         await async_check_for_issues(hass, large_config)
-        
+
         end_time = time.time()
         duration = end_time - start_time
-        
+
         # Should complete in reasonable time (< 1 second)
         assert duration < 1.0, f"Issue checking took too long: {duration:.2f}s"
 
-    async def test_repair_flow_responsiveness(self, hass: HomeAssistant, mock_config_entry):
+    async def test_repair_flow_responsiveness(
+        self, hass: HomeAssistant, mock_config_entry
+    ):
         """Test that repair flows are responsive."""
         flow = PawControlRepairsFlow()
         flow.hass = hass
         flow.issue_id = "test_issue"
-        
+
         # Mock issue data
         hass.data[ir.DOMAIN] = {
-            "test_issue": Mock(data={
-                "config_entry_id": mock_config_entry.entry_id,
-                "issue_type": ISSUE_MISSING_DOG_CONFIG,
-            })
+            "test_issue": Mock(
+                data={
+                    "config_entry_id": mock_config_entry.entry_id,
+                    "issue_type": ISSUE_MISSING_DOG_CONFIG,
+                }
+            )
         }
-        
+
         import time
+
         start_time = time.time()
-        
+
         result = await flow.async_step_init()
-        
+
         end_time = time.time()
         duration = end_time - start_time
-        
+
         # Flow should respond quickly (< 0.1 seconds)
         assert duration < 0.1, f"Repair flow too slow: {duration:.3f}s"
         assert result["type"] == "form"
@@ -1031,7 +1130,7 @@ class TestEdgeCases:
 
         # Should handle gracefully and create appropriate issues
         await async_check_for_issues(hass, corrupted_entry)
-        
+
         # Should detect issues with invalid data
         assert mock_issue_registry["create"].call_count >= 1
 
@@ -1047,10 +1146,10 @@ class TestEdgeCases:
     async def test_repair_flow_invalid_entry_id(self, hass: HomeAssistant, mock_flow):
         """Test repair flow with invalid config entry ID."""
         mock_flow._issue_data = {"config_entry_id": "nonexistent"}
-        
+
         # Should handle gracefully when config entry doesn't exist
         hass.config_entries.async_get_entry = Mock(return_value=None)
-        
+
         await mock_flow._fix_duplicate_dog_ids()
         # Should not crash, just do nothing
 

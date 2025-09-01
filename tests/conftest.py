@@ -1,13 +1,18 @@
 """Test configuration and fixtures for Paw Control integration."""
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
-from datetime import datetime, timedelta
 
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import DOMAIN, CONF_DOGS, CONF_DOG_ID, CONF_DOG_NAME
 
 
 @pytest.fixture
@@ -107,7 +112,9 @@ def mock_notification_manager():
 
 
 @pytest.fixture
-def mock_runtime_data(mock_coordinator, mock_data_manager, mock_notification_manager, mock_config_entry):
+def mock_runtime_data(
+    mock_coordinator, mock_data_manager, mock_notification_manager, mock_config_entry
+):
     """Return mock runtime data."""
     return {
         "coordinator": mock_coordinator,
@@ -126,11 +133,7 @@ def mock_runtime_data(mock_coordinator, mock_data_manager, mock_notification_man
 @pytest.fixture
 def mock_hass_data(mock_runtime_data):
     """Return mock hass.data structure."""
-    return {
-        DOMAIN: {
-            "test_entry_id": mock_runtime_data
-        }
-    }
+    return {DOMAIN: {"test_entry_id": mock_runtime_data}}
 
 
 @pytest.fixture
@@ -191,21 +194,23 @@ def mock_datetime():
 @pytest.fixture
 def setup_integration(hass: HomeAssistant, mock_config_entry):
     """Set up the integration with mocked dependencies."""
+
     async def _setup():
         # Mock the coordinator, data manager, and notification manager
-        with patch("custom_components.pawcontrol.PawControlCoordinator"), \
-             patch("custom_components.pawcontrol.PawControlDataManager"), \
-             patch("custom_components.pawcontrol.PawControlNotificationManager"):
-            
+        with (
+            patch("custom_components.pawcontrol.PawControlCoordinator"),
+            patch("custom_components.pawcontrol.PawControlDataManager"),
+            patch("custom_components.pawcontrol.PawControlNotificationManager"),
+        ):
             # Add the config entry
             mock_config_entry.add_to_hass(hass)
-            
+
             # Import and setup the integration
             from custom_components.pawcontrol import async_setup_entry
-            
+
             result = await async_setup_entry(hass, mock_config_entry)
             await hass.async_block_till_done()
-            
+
             return result
-    
+
     return _setup

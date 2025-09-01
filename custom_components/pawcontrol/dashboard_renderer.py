@@ -49,7 +49,7 @@ class RenderJob:
         options: dict[str, Any] | None = None,
     ) -> None:
         """Initialize render job.
-        
+
         Args:
             job_id: Unique job identifier
             job_type: Type of rendering job
@@ -68,7 +68,7 @@ class RenderJob:
 
 class DashboardRenderer:
     """High-performance async dashboard rendering engine.
-    
+
     Provides non-blocking dashboard generation with batch processing,
     lazy loading, and efficient memory management. Supports concurrent
     rendering jobs with proper resource isolation.
@@ -76,19 +76,19 @@ class DashboardRenderer:
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize dashboard renderer.
-        
+
         Args:
             hass: Home Assistant instance
         """
         self.hass = hass
         self.templates = DashboardTemplates(hass)
-        
+
         # Initialize card generators
         self.overview_generator = OverviewCardGenerator(hass, self.templates)
         self.dog_generator = DogCardGenerator(hass, self.templates)
         self.module_generator = ModuleCardGenerator(hass, self.templates)
         self.stats_generator = StatisticsCardGenerator(hass, self.templates)
-        
+
         # Rendering queue and semaphore
         self._render_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RENDERS)
         self._active_jobs: dict[str, RenderJob] = {}
@@ -100,14 +100,14 @@ class DashboardRenderer:
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
-        
+
         Args:
             dogs_config: List of dog configurations
             options: Optional rendering options
-            
+
         Returns:
             Complete dashboard configuration
-            
+
         Raises:
             HomeAssistantError: If rendering fails
         """
@@ -117,7 +117,7 @@ class DashboardRenderer:
             config={"dogs": dogs_config},
             options=options,
         )
-        
+
         return await self._execute_render_job(job)
 
     async def render_dog_dashboard(
@@ -126,14 +126,14 @@ class DashboardRenderer:
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render individual dog dashboard configuration.
-        
+
         Args:
             dog_config: Dog configuration
             options: Optional rendering options
-            
+
         Returns:
             Complete dog dashboard configuration
-            
+
         Raises:
             HomeAssistantError: If rendering fails
         """
@@ -143,25 +143,25 @@ class DashboardRenderer:
             config={"dog": dog_config},
             options=options,
         )
-        
+
         return await self._execute_render_job(job)
 
     async def _execute_render_job(self, job: RenderJob) -> dict[str, Any]:
         """Execute a rendering job with resource management.
-        
+
         Args:
             job: Render job to execute
-            
+
         Returns:
             Rendered dashboard configuration
-            
+
         Raises:
             HomeAssistantError: If rendering fails
         """
         async with self._render_semaphore:
             self._active_jobs[job.job_id] = job
             job.status = "running"
-            
+
             try:
                 async with asyncio.timeout(RENDER_TIMEOUT_SECONDS):
                     if job.job_type == "main_dashboard":
@@ -170,97 +170,99 @@ class DashboardRenderer:
                         result = await self._render_dog_dashboard_job(job)
                     else:
                         raise ValueError(f"Unknown job type: {job.job_type}")
-                        
+
                     job.status = "completed"
                     job.result = result
-                    
+
                     return result
-                    
+
             except asyncio.TimeoutError:
                 job.status = "timeout"
                 job.error = "Rendering timed out"
                 _LOGGER.error("Dashboard rendering timeout for job %s", job.job_id)
                 raise HomeAssistantError(f"Dashboard rendering timeout: {job.job_id}")
-                
+
             except Exception as err:
                 job.status = "error"
                 job.error = str(err)
                 _LOGGER.error(
-                    "Dashboard rendering error for job %s: %s", 
-                    job.job_id, err, exc_info=True
+                    "Dashboard rendering error for job %s: %s",
+                    job.job_id,
+                    err,
+                    exc_info=True,
                 )
                 raise HomeAssistantError(f"Dashboard rendering failed: {err}") from err
-                
+
             finally:
                 self._active_jobs.pop(job.job_id, None)
 
     async def _render_main_dashboard_job(self, job: RenderJob) -> dict[str, Any]:
         """Render main dashboard job.
-        
+
         Args:
             job: Render job configuration
-            
+
         Returns:
             Main dashboard configuration
         """
         dogs_config = job.config["dogs"]
         options = job.options
-        
+
         views = []
-        
+
         # Overview view - render lazily
         overview_view = await self._render_overview_view(dogs_config, options)
         views.append(overview_view)
-        
+
         # Individual dog views - batch process
         dog_views = await self._render_dog_views_batch(dogs_config, options)
         views.extend(dog_views)
-        
+
         # Statistics view if enabled
         if options.get("show_statistics", True):
             stats_view = await self._render_statistics_view(dogs_config, options)
             views.append(stats_view)
-            
+
         # Settings view if enabled
         if options.get("show_settings", True):
             settings_view = await self._render_settings_view(dogs_config, options)
             views.append(settings_view)
-            
+
         return {"views": views}
 
     async def _render_dog_dashboard_job(self, job: RenderJob) -> dict[str, Any]:
         """Render dog dashboard job.
-        
+
         Args:
             job: Render job configuration
-            
+
         Returns:
             Dog dashboard configuration
         """
         dog_config = job.config["dog"]
         options = job.options
-        
+
         views = []
-        
+
         # Main dog overview view
         overview_view = await self._render_dog_overview_view(dog_config, options)
         views.append(overview_view)
-        
+
         # Module-specific views based on enabled modules
         module_views = await self._render_module_views(dog_config, options)
         views.extend(module_views)
-        
+
         return {"views": views}
 
     async def _render_overview_view(
         self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render overview view asynchronously.
-        
+
         Args:
             dogs_config: List of dog configurations
             options: Rendering options
-            
+
         Returns:
             Overview view configuration
         """
@@ -272,14 +274,14 @@ class DashboardRenderer:
             ),
             self.overview_generator.generate_quick_actions(dogs_config),
         ]
-        
+
         # Add activity summary if enabled
         if options.get("show_activity_summary", True):
             tasks.append(self._render_activity_summary(dogs_config))
-            
+
         # Execute tasks concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Filter successful results and handle exceptions
         cards = []
         for result in results:
@@ -287,7 +289,7 @@ class DashboardRenderer:
                 _LOGGER.warning("Overview card generation failed: %s", result)
             elif result is not None:
                 cards.append(result)
-                
+
         return {
             "title": "Overview",
             "path": "overview",
@@ -299,15 +301,15 @@ class DashboardRenderer:
         self, dogs_config: list[dict[str, Any]]
     ) -> dict[str, Any] | None:
         """Render activity summary card.
-        
+
         Args:
             dogs_config: List of dog configurations
-            
+
         Returns:
             Activity summary card or None
         """
         activity_entities = []
-        
+
         for dog in dogs_config:
             dog_id = dog.get("dog_id")
             if dog_id:
@@ -315,10 +317,10 @@ class DashboardRenderer:
                 # Check if entity exists before adding
                 if self.hass.states.get(entity_id):
                     activity_entities.append(entity_id)
-                    
+
         if not activity_entities:
             return None
-            
+
         return await self.templates.get_history_graph_template(
             activity_entities, "Activity Summary", 24
         )
@@ -327,66 +329,68 @@ class DashboardRenderer:
         self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Render dog views in batches for performance.
-        
+
         Args:
             dogs_config: List of dog configurations
             options: Rendering options
-            
+
         Returns:
             List of dog view configurations
         """
         views = []
-        
+
         # Process dogs in batches to prevent memory issues
-        batch_size = min(MAX_CARDS_PER_BATCH // 10, len(dogs_config))  # Estimate cards per dog
-        
+        batch_size = min(
+            MAX_CARDS_PER_BATCH // 10, len(dogs_config)
+        )  # Estimate cards per dog
+
         for i in range(0, len(dogs_config), batch_size):
-            batch = dogs_config[i:i+batch_size]
-            
+            batch = dogs_config[i : i + batch_size]
+
             # Process batch concurrently
             batch_tasks = [
                 self._render_single_dog_view(dog, i + idx, options)
                 for idx, dog in enumerate(batch)
             ]
-            
+
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-            
+
             # Add successful results
             for result in batch_results:
                 if isinstance(result, Exception):
                     _LOGGER.warning("Dog view generation failed: %s", result)
                 elif result is not None:
                     views.append(result)
-                    
+
         return views
 
     async def _render_single_dog_view(
         self, dog_config: dict[str, Any], index: int, options: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Render view for a single dog.
-        
+
         Args:
             dog_config: Dog configuration
             index: Dog index for theme selection
             options: Rendering options
-            
+
         Returns:
             Dog view configuration or None if invalid
         """
         dog_id = dog_config.get("dog_id")
         dog_name = dog_config.get("dog_name")
-        
+
         if not dog_id or not dog_name:
             return None
-            
+
         # Get theme colors (cycling through available themes)
         theme_colors = self._get_dog_theme(index)
-        
+
         # Generate dog cards
         cards = await self.dog_generator.generate_dog_overview_cards(
             dog_config, theme_colors, options
         )
-        
+
         return {
             "title": dog_name,
             "path": dog_id.replace(" ", "_").lower(),
@@ -397,10 +401,10 @@ class DashboardRenderer:
 
     def _get_dog_theme(self, index: int) -> dict[str, str]:
         """Get theme colors for dog based on index.
-        
+
         Args:
             index: Dog index
-            
+
         Returns:
             Theme color dictionary
         """
@@ -413,30 +417,30 @@ class DashboardRenderer:
             {"primary": "#00BCD4", "accent": "#009688"},  # Cyan
             {"primary": "#795548", "accent": "#607D8B"},  # Brown
         ]
-        
+
         return themes[index % len(themes)]
 
     async def _render_dog_overview_view(
         self, dog_config: dict[str, Any], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render dog overview view.
-        
+
         Args:
             dog_config: Dog configuration
             options: Rendering options
-            
+
         Returns:
             Dog overview view configuration
         """
         theme = self._get_dog_theme(0)  # Use first theme for individual dashboards
-        
+
         cards = await self.dog_generator.generate_dog_overview_cards(
             dog_config, theme, options
         )
-        
+
         return {
             "title": "Overview",
-            "path": "overview", 
+            "path": "overview",
             "icon": "mdi:dog",
             "cards": cards,
         }
@@ -445,42 +449,59 @@ class DashboardRenderer:
         self, dog_config: dict[str, Any], options: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Render module-specific views for dog.
-        
+
         Args:
             dog_config: Dog configuration
             options: Rendering options
-            
+
         Returns:
             List of module view configurations
         """
         views = []
         modules = dog_config.get("modules", {})
-        
+
         # Define module views with their generators
         module_configs = [
-            ("feeding", "Feeding", "mdi:food-drumstick", self.module_generator.generate_feeding_cards),
+            (
+                "feeding",
+                "Feeding",
+                "mdi:food-drumstick",
+                self.module_generator.generate_feeding_cards,
+            ),
             ("walk", "Walks", "mdi:walk", self.module_generator.generate_walk_cards),
-            ("health", "Health", "mdi:heart-pulse", self.module_generator.generate_health_cards),
-            ("gps", "Location", "mdi:map-marker", self.module_generator.generate_gps_cards),
+            (
+                "health",
+                "Health",
+                "mdi:heart-pulse",
+                self.module_generator.generate_health_cards,
+            ),
+            (
+                "gps",
+                "Location",
+                "mdi:map-marker",
+                self.module_generator.generate_gps_cards,
+            ),
         ]
-        
+
         # Generate views for enabled modules concurrently
         tasks = []
         for module_key, title, icon, generator in module_configs:
             if modules.get(module_key):
-                tasks.append(self._render_module_view(
-                    dog_config, options, module_key, title, icon, generator
-                ))
-                
+                tasks.append(
+                    self._render_module_view(
+                        dog_config, options, module_key, title, icon, generator
+                    )
+                )
+
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             for result in results:
                 if isinstance(result, Exception):
                     _LOGGER.warning("Module view generation failed: %s", result)
                 elif result is not None:
                     views.append(result)
-                    
+
         return views
 
     async def _render_module_view(
@@ -493,7 +514,7 @@ class DashboardRenderer:
         generator,
     ) -> dict[str, Any] | None:
         """Render a single module view.
-        
+
         Args:
             dog_config: Dog configuration
             options: Rendering options
@@ -501,27 +522,29 @@ class DashboardRenderer:
             title: View title
             icon: View icon
             generator: Card generator function
-            
+
         Returns:
             Module view configuration or None if failed
         """
         try:
             cards = await generator(dog_config, options)
-            
+
             if not cards:
                 return None
-                
+
             return {
                 "title": title,
                 "path": module_key,
                 "icon": icon,
                 "cards": cards,
             }
-            
+
         except Exception as err:
             _LOGGER.warning(
                 "Failed to render %s view for dog %s: %s",
-                module_key, dog_config.get("dog_name", "unknown"), err
+                module_key,
+                dog_config.get("dog_name", "unknown"),
+                err,
             )
             return None
 
@@ -529,16 +552,18 @@ class DashboardRenderer:
         self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render statistics view.
-        
+
         Args:
             dogs_config: List of dog configurations
             options: Rendering options
-            
+
         Returns:
             Statistics view configuration
         """
-        cards = await self.stats_generator.generate_statistics_cards(dogs_config, options)
-        
+        cards = await self.stats_generator.generate_statistics_cards(
+            dogs_config, options
+        )
+
         return {
             "title": "Statistics",
             "path": "statistics",
@@ -550,37 +575,39 @@ class DashboardRenderer:
         self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render settings view.
-        
+
         Args:
             dogs_config: List of dog configurations
             options: Rendering options
-            
+
         Returns:
             Settings view configuration
         """
         cards = []
-        
+
         # Integration-wide settings
-        cards.append({
-            "type": "entities",
-            "title": "Integration Settings",
-            "entities": [
-                f"switch.paw_control_notifications_enabled",
-                f"select.paw_control_data_retention_days",
-                f"switch.paw_control_advanced_logging",
-            ],
-        })
-        
+        cards.append(
+            {
+                "type": "entities",
+                "title": "Integration Settings",
+                "entities": [
+                    "switch.paw_control_notifications_enabled",
+                    "select.paw_control_data_retention_days",
+                    "switch.paw_control_advanced_logging",
+                ],
+            }
+        )
+
         # Per-dog settings
         for dog in dogs_config:
             dog_id = dog.get("dog_id")
             dog_name = dog.get("dog_name")
-            
+
             if not dog_id or not dog_name:
                 continue
-                
+
             dog_entities = [f"switch.{dog_id}_notifications_enabled"]
-            
+
             # Add module-specific settings
             modules = dog.get("modules", {})
             if modules.get("gps"):
@@ -589,16 +616,18 @@ class DashboardRenderer:
                 dog_entities.append(f"switch.{dog_id}_visitor_mode")
             if modules.get("notifications"):
                 dog_entities.append(f"select.{dog_id}_notification_priority")
-                
-            cards.append({
-                "type": "entities",
-                "title": f"{dog_name} Settings",
-                "entities": dog_entities,
-            })
-            
+
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": f"{dog_name} Settings",
+                    "entities": dog_entities,
+                }
+            )
+
         return {
             "title": "Settings",
-            "path": "settings", 
+            "path": "settings",
             "icon": "mdi:cog",
             "cards": cards,
         }
@@ -610,12 +639,12 @@ class DashboardRenderer:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Write dashboard configuration to file asynchronously.
-        
+
         Args:
             dashboard_config: Dashboard configuration
             file_path: Path to write file
             metadata: Optional metadata to include
-            
+
         Raises:
             HomeAssistantError: If file write fails
         """
@@ -630,27 +659,26 @@ class DashboardRenderer:
                     **(metadata or {}),
                 },
             }
-            
+
             # Ensure parent directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Write file asynchronously
             async with aiofiles.open(file_path, "w", encoding="utf-8") as file:
                 content = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await file.write(content)
-                
+
             _LOGGER.debug("Dashboard file written: %s", file_path)
-            
+
         except Exception as err:
             _LOGGER.error(
-                "Failed to write dashboard file %s: %s", 
-                file_path, err, exc_info=True
+                "Failed to write dashboard file %s: %s", file_path, err, exc_info=True
             )
             raise HomeAssistantError(f"Dashboard file write failed: {err}") from err
 
     def _generate_job_id(self) -> str:
         """Generate unique job ID.
-        
+
         Returns:
             Unique job identifier
         """
@@ -662,21 +690,21 @@ class DashboardRenderer:
         # Clear active jobs
         for job in self._active_jobs.values():
             job.status = "cancelled"
-            
+
         self._active_jobs.clear()
-        
+
         # Clean up templates
         await self.templates.cleanup()
 
     def get_render_stats(self) -> dict[str, Any]:
         """Get rendering statistics.
-        
+
         Returns:
             Rendering statistics
         """
         active_jobs = len(self._active_jobs)
         template_stats = self.templates.get_cache_stats()
-        
+
         return {
             "active_jobs": active_jobs,
             "total_jobs_processed": self._job_counter,

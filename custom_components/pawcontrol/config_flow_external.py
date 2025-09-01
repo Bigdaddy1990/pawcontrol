@@ -15,7 +15,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
@@ -30,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class ExternalEntityConfigurationMixin:
     """Mixin for external entity configuration functionality.
-    
+
     This mixin provides methods for configuring external Home Assistant
     entities that the integration depends on during setup. This is critical
     for Platinum quality scale compliance and ensures proper integration

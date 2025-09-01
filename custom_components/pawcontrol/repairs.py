@@ -12,7 +12,6 @@ import logging
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
-
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -22,9 +21,9 @@ from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_GPS,
     MODULE_HEALTH,

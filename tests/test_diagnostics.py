@@ -11,21 +11,16 @@ This test suite covers all aspects of the diagnostic system including:
 The diagnostics module is critical for support and troubleshooting.
 """
 
-import pytest
 import re
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.const import (
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -33,27 +28,31 @@ from custom_components.pawcontrol.const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-
 from custom_components.pawcontrol.diagnostics import (
-    async_get_config_entry_diagnostics,
+    REDACTED_KEYS,
+    _calculate_module_usage,
     _get_config_entry_diagnostics,
-    _get_system_diagnostics,
-    _get_integration_status,
     _get_coordinator_diagnostics,
-    _get_entities_diagnostics,
+    _get_data_statistics,
+    _get_debug_information,
     _get_devices_diagnostics,
     _get_dogs_summary,
-    _get_performance_metrics,
-    _get_data_statistics,
-    _get_recent_errors,
-    _get_debug_information,
+    _get_entities_diagnostics,
+    _get_integration_status,
     _get_loaded_platforms,
+    _get_performance_metrics,
+    _get_recent_errors,
     _get_registered_services,
-    _calculate_module_usage,
-    _redact_sensitive_data,
+    _get_system_diagnostics,
     _looks_like_sensitive_string,
-    REDACTED_KEYS,
+    _redact_sensitive_data,
+    async_get_config_entry_diagnostics,
 )
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 
 # Test fixtures
@@ -124,7 +123,7 @@ def mock_coordinator():
     coordinator.config_entry = Mock()
     coordinator.config_entry.entry_id = "test_entry_diagnostics"
     coordinator.dogs = ["buddy", "luna"]
-    
+
     # Mock statistics
     coordinator.get_update_statistics.return_value = {
         "total_updates": 100,
@@ -134,7 +133,7 @@ def mock_coordinator():
         "last_error": None,
         "update_interval_seconds": 60,
     }
-    
+
     # Mock dog data
     def get_dog_data(dog_id):
         if dog_id == "buddy":
@@ -155,7 +154,7 @@ def mock_coordinator():
                 "health": {"weight": 22.0, "mood": "playful"},
             }
         return None
-    
+
     coordinator.get_dog_data = Mock(side_effect=get_dog_data)
     return coordinator
 
@@ -174,7 +173,7 @@ def mock_integration_data(mock_coordinator):
 def mock_entity_registry():
     """Mock entity registry with test entities."""
     mock_registry = Mock()
-    
+
     # Create mock entities
     mock_entities = [
         Mock(
@@ -217,7 +216,7 @@ def mock_entity_registry():
             capabilities={},
         ),
     ]
-    
+
     mock_registry.async_entries_for_config_entry.return_value = mock_entities
     return mock_registry
 
@@ -226,7 +225,7 @@ def mock_entity_registry():
 def mock_device_registry():
     """Mock device registry with test devices."""
     mock_registry = Mock()
-    
+
     # Create mock devices
     mock_devices = [
         Mock(
@@ -260,7 +259,7 @@ def mock_device_registry():
             configuration_url=None,
         ),
     ]
-    
+
     mock_registry.async_entries_for_config_entry.return_value = mock_devices
     return mock_registry
 
@@ -289,9 +288,9 @@ def mock_hass_with_states(hass: HomeAssistant):
             attributes={"friendly_name": "Feed Buddy"},
         ),
     }
-    
+
     hass.states.get = Mock(side_effect=lambda entity_id: states.get(entity_id))
-    
+
     # Mock Home Assistant configuration
     hass.config.version = "2025.1.0"
     hass.config.python_version = "3.11.5"
@@ -301,7 +300,7 @@ def mock_hass_with_states(hass: HomeAssistant):
     hass.config.recovery_mode = False
     hass.config.start_time = dt_util.utcnow() - timedelta(hours=2)
     hass.is_running = True
-    
+
     return hass
 
 
@@ -310,34 +309,56 @@ class TestMainDiagnosticsFunction:
     """Test the main diagnostics collection function."""
 
     async def test_async_get_config_entry_diagnostics_complete(
-        self, mock_hass_with_states, mock_config_entry, mock_integration_data,
-        mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_integration_data,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test complete diagnostics collection."""
         # Setup integration data in hass.data
         mock_hass_with_states.data[DOMAIN] = {
             mock_config_entry.entry_id: mock_integration_data
         }
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Verify main structure
         assert isinstance(diagnostics, dict)
         expected_keys = [
-            "config_entry", "system_info", "integration_status",
-            "coordinator_info", "entities", "devices", "dogs_summary",
-            "performance_metrics", "data_statistics", "error_logs", "debug_info"
+            "config_entry",
+            "system_info",
+            "integration_status",
+            "coordinator_info",
+            "entities",
+            "devices",
+            "dogs_summary",
+            "performance_metrics",
+            "data_statistics",
+            "error_logs",
+            "debug_info",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics, f"Missing key: {key}"
-        
+
         # Verify data types
         assert isinstance(diagnostics["config_entry"], dict)
         assert isinstance(diagnostics["system_info"], dict)
@@ -345,27 +366,45 @@ class TestMainDiagnosticsFunction:
         assert isinstance(diagnostics["dogs_summary"], dict)
 
     async def test_async_get_config_entry_diagnostics_no_integration_data(
-        self, mock_hass_with_states, mock_config_entry, mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test diagnostics when integration data is missing."""
         # Don't set up integration data in hass.data
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Should still return diagnostics structure
         assert isinstance(diagnostics, dict)
         assert "integration_status" in diagnostics
         assert diagnostics["integration_status"]["entry_loaded"] is False
 
     async def test_async_get_config_entry_diagnostics_sensitive_data_redacted(
-        self, mock_hass_with_states, mock_config_entry, mock_integration_data,
-        mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_integration_data,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test that sensitive data is properly redacted."""
         # Add sensitive data to config
@@ -373,19 +412,29 @@ class TestMainDiagnosticsFunction:
         sensitive_config["api_key"] = "secret123456789"
         sensitive_config["password"] = "supersecret"
         mock_config_entry.data = sensitive_config
-        
+
         mock_hass_with_states.data[DOMAIN] = {
             mock_config_entry.entry_id: mock_integration_data
         }
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Check that sensitive data was redacted (we can't see the raw data in diagnostics
         # but we can verify the structure is intact)
         assert isinstance(diagnostics, dict)
@@ -406,20 +455,31 @@ class TestConfigEntryDiagnostics:
         mock_config_entry.supports_reconfigure = True
         mock_config_entry.supports_remove_device = True
         mock_config_entry.supports_unload = True
-        
+
         diagnostics = await _get_config_entry_diagnostics(mock_config_entry)
-        
+
         expected_keys = [
-            "entry_id", "title", "version", "domain", "state",
-            "source", "unique_id", "created_at", "modified_at",
-            "data_keys", "options_keys", "supports_options",
-            "supports_reconfigure", "supports_remove_device",
-            "supports_unload", "dogs_configured"
+            "entry_id",
+            "title",
+            "version",
+            "domain",
+            "state",
+            "source",
+            "unique_id",
+            "created_at",
+            "modified_at",
+            "data_keys",
+            "options_keys",
+            "supports_options",
+            "supports_reconfigure",
+            "supports_remove_device",
+            "supports_unload",
+            "dogs_configured",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["entry_id"] == mock_config_entry.entry_id
         assert diagnostics["title"] == mock_config_entry.title
         assert diagnostics["version"] == mock_config_entry.version
@@ -431,9 +491,9 @@ class TestConfigEntryDiagnostics:
         """Test config entry diagnostics with no timestamps."""
         mock_config_entry.created_at = None
         mock_config_entry.modified_at = None
-        
+
         diagnostics = await _get_config_entry_diagnostics(mock_config_entry)
-        
+
         assert diagnostics["created_at"] is None
         assert diagnostics["modified_at"] is None
 
@@ -449,9 +509,9 @@ class TestConfigEntryDiagnostics:
             entry_id="empty_entry",
             source="user",
         )
-        
+
         diagnostics = await _get_config_entry_diagnostics(config_entry)
-        
+
         assert diagnostics["dogs_configured"] == 0
 
 
@@ -462,15 +522,22 @@ class TestSystemDiagnostics:
     async def test_get_system_diagnostics_complete(self, mock_hass_with_states):
         """Test complete system diagnostics collection."""
         diagnostics = await _get_system_diagnostics(mock_hass_with_states)
-        
+
         expected_keys = [
-            "ha_version", "python_version", "timezone", "config_dir",
-            "is_running", "safe_mode", "recovery_mode", "current_time", "uptime_seconds"
+            "ha_version",
+            "python_version",
+            "timezone",
+            "config_dir",
+            "is_running",
+            "safe_mode",
+            "recovery_mode",
+            "current_time",
+            "uptime_seconds",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["ha_version"] == "2025.1.0"
         assert diagnostics["python_version"] == "3.11.5"
         assert diagnostics["timezone"] == "Europe/Berlin"
@@ -484,9 +551,9 @@ class TestSystemDiagnostics:
         mock_hass_with_states.config.safe_mode = True
         mock_hass_with_states.config.recovery_mode = True
         mock_hass_with_states.is_running = False
-        
+
         diagnostics = await _get_system_diagnostics(mock_hass_with_states)
-        
+
         assert diagnostics["safe_mode"] is True
         assert diagnostics["recovery_mode"] is True
         assert diagnostics["is_running"] is False
@@ -503,24 +570,36 @@ class TestIntegrationStatus:
         mock_hass_with_states.data[DOMAIN] = {
             mock_config_entry.entry_id: mock_integration_data
         }
-        
-        with patch("custom_components.pawcontrol.diagnostics._get_loaded_platforms", return_value=["sensor", "button"]), \
-             patch("custom_components.pawcontrol.diagnostics._get_registered_services", return_value=["feed_dog", "start_walk"]):
-            
+
+        with (
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_loaded_platforms",
+                return_value=["sensor", "button"],
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_registered_services",
+                return_value=["feed_dog", "start_walk"],
+            ),
+        ):
             diagnostics = await _get_integration_status(
                 mock_hass_with_states, mock_config_entry, mock_integration_data
             )
-        
+
         expected_keys = [
-            "entry_loaded", "coordinator_available", "coordinator_success",
-            "coordinator_last_update", "data_manager_available",
-            "notification_manager_available", "platforms_loaded",
-            "services_registered", "setup_completed"
+            "entry_loaded",
+            "coordinator_available",
+            "coordinator_success",
+            "coordinator_last_update",
+            "data_manager_available",
+            "notification_manager_available",
+            "platforms_loaded",
+            "services_registered",
+            "setup_completed",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["entry_loaded"] is True
         assert diagnostics["coordinator_available"] is True
         assert diagnostics["coordinator_success"] is True
@@ -532,14 +611,21 @@ class TestIntegrationStatus:
     ):
         """Test integration status when not loaded."""
         # Don't add integration data to hass.data
-        
-        with patch("custom_components.pawcontrol.diagnostics._get_loaded_platforms", return_value=[]), \
-             patch("custom_components.pawcontrol.diagnostics._get_registered_services", return_value=[]):
-            
+
+        with (
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_loaded_platforms",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_registered_services",
+                return_value=[],
+            ),
+        ):
             diagnostics = await _get_integration_status(
                 mock_hass_with_states, mock_config_entry, {}
             )
-        
+
         assert diagnostics["entry_loaded"] is False
         assert diagnostics["coordinator_available"] is False
         assert diagnostics["data_manager_available"] is False
@@ -552,14 +638,21 @@ class TestIntegrationStatus:
         failed_coordinator.last_update_success = False
         failed_coordinator.last_update_time = None
         mock_integration_data["coordinator"] = failed_coordinator
-        
-        with patch("custom_components.pawcontrol.diagnostics._get_loaded_platforms", return_value=["sensor"]), \
-             patch("custom_components.pawcontrol.diagnostics._get_registered_services", return_value=["feed_dog"]):
-            
+
+        with (
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_loaded_platforms",
+                return_value=["sensor"],
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_registered_services",
+                return_value=["feed_dog"],
+            ),
+        ):
             diagnostics = await _get_integration_status(
                 mock_hass_with_states, mock_config_entry, mock_integration_data
             )
-        
+
         assert diagnostics["coordinator_available"] is True
         assert diagnostics["coordinator_success"] is False
         assert diagnostics["coordinator_last_update"] is None
@@ -572,16 +665,23 @@ class TestCoordinatorDiagnostics:
     async def test_get_coordinator_diagnostics_available(self, mock_coordinator):
         """Test coordinator diagnostics when coordinator is available."""
         diagnostics = await _get_coordinator_diagnostics(mock_coordinator)
-        
+
         expected_keys = [
-            "available", "last_update_success", "last_update_time",
-            "update_interval_seconds", "update_method", "logger_name",
-            "name", "statistics", "config_entry_id", "dogs_managed"
+            "available",
+            "last_update_success",
+            "last_update_time",
+            "update_interval_seconds",
+            "update_method",
+            "logger_name",
+            "name",
+            "statistics",
+            "config_entry_id",
+            "dogs_managed",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["available"] is True
         assert diagnostics["last_update_success"] is True
         assert diagnostics["update_interval_seconds"] == 60
@@ -591,7 +691,7 @@ class TestCoordinatorDiagnostics:
     async def test_get_coordinator_diagnostics_none(self):
         """Test coordinator diagnostics when coordinator is None."""
         diagnostics = await _get_coordinator_diagnostics(None)
-        
+
         assert diagnostics["available"] is False
         assert "reason" in diagnostics
         assert diagnostics["reason"] == "Coordinator not initialized"
@@ -601,9 +701,9 @@ class TestCoordinatorDiagnostics:
         mock_coordinator.last_update_success = False
         mock_coordinator.last_update_time = None
         mock_coordinator.available = False
-        
+
         diagnostics = await _get_coordinator_diagnostics(mock_coordinator)
-        
+
         assert diagnostics["available"] is False
         assert diagnostics["last_update_success"] is False
         assert diagnostics["last_update_time"] is None
@@ -617,26 +717,34 @@ class TestEntitiesDiagnostics:
         self, mock_hass_with_states, mock_config_entry, mock_entity_registry
     ):
         """Test complete entities diagnostics collection."""
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry):
-            diagnostics = await _get_entities_diagnostics(mock_hass_with_states, mock_config_entry)
-        
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_entity_registry,
+        ):
+            diagnostics = await _get_entities_diagnostics(
+                mock_hass_with_states, mock_config_entry
+            )
+
         expected_keys = [
-            "total_entities", "entities_by_platform", "platform_counts",
-            "disabled_entities", "hidden_entities"
+            "total_entities",
+            "entities_by_platform",
+            "platform_counts",
+            "disabled_entities",
+            "hidden_entities",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["total_entities"] == 3
         assert diagnostics["disabled_entities"] == 1
         assert diagnostics["hidden_entities"] == 1
-        
+
         # Check platform grouping
         assert "sensor" in diagnostics["entities_by_platform"]
         assert "binary_sensor" in diagnostics["entities_by_platform"]
         assert "button" in diagnostics["entities_by_platform"]
-        
+
         assert diagnostics["platform_counts"]["sensor"] == 1
         assert diagnostics["platform_counts"]["binary_sensor"] == 1
         assert diagnostics["platform_counts"]["button"] == 1
@@ -645,19 +753,24 @@ class TestEntitiesDiagnostics:
         self, mock_hass_with_states, mock_config_entry, mock_entity_registry
     ):
         """Test entities diagnostics includes state information."""
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry):
-            diagnostics = await _get_entities_diagnostics(mock_hass_with_states, mock_config_entry)
-        
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_entity_registry,
+        ):
+            diagnostics = await _get_entities_diagnostics(
+                mock_hass_with_states, mock_config_entry
+            )
+
         # Check that entity state information is included
         sensor_entities = diagnostics["entities_by_platform"]["sensor"]
         sensor_entity = sensor_entities[0]
-        
+
         assert "state" in sensor_entity
         assert "available" in sensor_entity
         assert "last_changed" in sensor_entity
         assert "last_updated" in sensor_entity
         assert "attributes_count" in sensor_entity
-        
+
         assert sensor_entity["state"] == "30.5"
         assert sensor_entity["available"] is True
 
@@ -667,10 +780,15 @@ class TestEntitiesDiagnostics:
         """Test entities diagnostics with no entities."""
         mock_empty_registry = Mock()
         mock_empty_registry.async_entries_for_config_entry.return_value = []
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_empty_registry):
-            diagnostics = await _get_entities_diagnostics(mock_hass_with_states, mock_config_entry)
-        
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_empty_registry,
+        ):
+            diagnostics = await _get_entities_diagnostics(
+                mock_hass_with_states, mock_config_entry
+            )
+
         assert diagnostics["total_entities"] == 0
         assert diagnostics["entities_by_platform"] == {}
         assert diagnostics["platform_counts"] == {}
@@ -686,26 +804,41 @@ class TestDevicesDiagnostics:
         self, mock_hass_with_states, mock_config_entry, mock_device_registry
     ):
         """Test complete devices diagnostics collection."""
-        with patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry):
-            diagnostics = await _get_devices_diagnostics(mock_hass_with_states, mock_config_entry)
-        
+        with patch(
+            "homeassistant.helpers.device_registry.async_get",
+            return_value=mock_device_registry,
+        ):
+            diagnostics = await _get_devices_diagnostics(
+                mock_hass_with_states, mock_config_entry
+            )
+
         expected_keys = ["total_devices", "devices", "disabled_devices"]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["total_devices"] == 2
         assert diagnostics["disabled_devices"] == 1
         assert len(diagnostics["devices"]) == 2
-        
+
         # Check device information structure
         device = diagnostics["devices"][0]
         device_keys = [
-            "id", "name", "manufacturer", "model", "sw_version",
-            "hw_version", "via_device_id", "disabled", "disabled_by",
-            "entry_type", "identifiers", "connections", "configuration_url"
+            "id",
+            "name",
+            "manufacturer",
+            "model",
+            "sw_version",
+            "hw_version",
+            "via_device_id",
+            "disabled",
+            "disabled_by",
+            "entry_type",
+            "identifiers",
+            "connections",
+            "configuration_url",
         ]
-        
+
         for key in device_keys:
             assert key in device
 
@@ -715,10 +848,15 @@ class TestDevicesDiagnostics:
         """Test devices diagnostics with no devices."""
         mock_empty_registry = Mock()
         mock_empty_registry.async_entries_for_config_entry.return_value = []
-        
-        with patch("homeassistant.helpers.device_registry.async_get", return_value=mock_empty_registry):
-            diagnostics = await _get_devices_diagnostics(mock_hass_with_states, mock_config_entry)
-        
+
+        with patch(
+            "homeassistant.helpers.device_registry.async_get",
+            return_value=mock_empty_registry,
+        ):
+            diagnostics = await _get_devices_diagnostics(
+                mock_hass_with_states, mock_config_entry
+            )
+
         assert diagnostics["total_devices"] == 0
         assert diagnostics["devices"] == []
         assert diagnostics["disabled_devices"] == 0
@@ -728,30 +866,40 @@ class TestDevicesDiagnostics:
 class TestDogsSummary:
     """Test dogs summary diagnostics."""
 
-    async def test_get_dogs_summary_with_coordinator(self, mock_config_entry, mock_coordinator):
+    async def test_get_dogs_summary_with_coordinator(
+        self, mock_config_entry, mock_coordinator
+    ):
         """Test dogs summary with coordinator data."""
         diagnostics = await _get_dogs_summary(mock_config_entry, mock_coordinator)
-        
+
         expected_keys = ["total_dogs", "dogs", "module_usage"]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["total_dogs"] == 2
         assert len(diagnostics["dogs"]) == 2
-        
+
         # Check dog information
         buddy_dog = next(dog for dog in diagnostics["dogs"] if dog["dog_id"] == "buddy")
-        
+
         expected_dog_keys = [
-            "dog_id", "dog_name", "dog_breed", "dog_age", "dog_weight",
-            "dog_size", "enabled_modules", "module_count",
-            "coordinator_data_available", "last_activity", "status"
+            "dog_id",
+            "dog_name",
+            "dog_breed",
+            "dog_age",
+            "dog_weight",
+            "dog_size",
+            "enabled_modules",
+            "module_count",
+            "coordinator_data_available",
+            "last_activity",
+            "status",
         ]
-        
+
         for key in expected_dog_keys:
             assert key in buddy_dog
-        
+
         assert buddy_dog["coordinator_data_available"] is True
         assert buddy_dog["status"] == "healthy"
         assert buddy_dog["module_count"] == 5
@@ -759,13 +907,16 @@ class TestDogsSummary:
     async def test_get_dogs_summary_without_coordinator(self, mock_config_entry):
         """Test dogs summary without coordinator data."""
         diagnostics = await _get_dogs_summary(mock_config_entry, None)
-        
+
         assert diagnostics["total_dogs"] == 2
         assert len(diagnostics["dogs"]) == 2
-        
+
         # Check that dogs don't have coordinator data
         for dog in diagnostics["dogs"]:
-            assert "coordinator_data_available" not in dog or dog["coordinator_data_available"] is False
+            assert (
+                "coordinator_data_available" not in dog
+                or dog["coordinator_data_available"] is False
+            )
 
     async def test_get_dogs_summary_no_dogs(self):
         """Test dogs summary with no dogs configured."""
@@ -779,9 +930,9 @@ class TestDogsSummary:
             entry_id="empty",
             source="user",
         )
-        
+
         diagnostics = await _get_dogs_summary(empty_config, None)
-        
+
         assert diagnostics["total_dogs"] == 0
         assert diagnostics["dogs"] == []
         assert isinstance(diagnostics["module_usage"], dict)
@@ -794,30 +945,35 @@ class TestPerformanceMetrics:
     async def test_get_performance_metrics_with_coordinator(self, mock_coordinator):
         """Test performance metrics with coordinator data."""
         diagnostics = await _get_performance_metrics(mock_coordinator)
-        
+
         expected_keys = [
-            "update_frequency", "data_freshness", "memory_efficient",
-            "cpu_efficient", "network_efficient", "error_rate", "response_time"
+            "update_frequency",
+            "data_freshness",
+            "memory_efficient",
+            "cpu_efficient",
+            "network_efficient",
+            "error_rate",
+            "response_time",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["data_freshness"] == "fresh"
         assert diagnostics["update_frequency"] == 60
 
     async def test_get_performance_metrics_without_coordinator(self):
         """Test performance metrics without coordinator."""
         diagnostics = await _get_performance_metrics(None)
-        
+
         assert diagnostics["available"] is False
 
     async def test_get_performance_metrics_stale_data(self, mock_coordinator):
         """Test performance metrics with stale data."""
         mock_coordinator.last_update_success = False
-        
+
         diagnostics = await _get_performance_metrics(mock_coordinator)
-        
+
         assert diagnostics["data_freshness"] == "stale"
 
 
@@ -828,25 +984,29 @@ class TestDataStatistics:
     async def test_get_data_statistics_available(self):
         """Test data statistics when data manager is available."""
         integration_data = {"data": Mock()}
-        
+
         diagnostics = await _get_data_statistics(integration_data)
-        
+
         expected_keys = [
-            "data_manager_available", "storage_efficient", "cleanup_active",
-            "export_supported", "backup_supported", "retention_policy_active"
+            "data_manager_available",
+            "storage_efficient",
+            "cleanup_active",
+            "export_supported",
+            "backup_supported",
+            "retention_policy_active",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["data_manager_available"] is True
 
     async def test_get_data_statistics_not_available(self):
         """Test data statistics when data manager is not available."""
         integration_data = {}
-        
+
         diagnostics = await _get_data_statistics(integration_data)
-        
+
         assert diagnostics["available"] is False
 
 
@@ -854,29 +1014,47 @@ class TestDataStatistics:
 class TestDebugInformation:
     """Test debug information collection."""
 
-    async def test_get_debug_information_complete(self, mock_hass_with_states, mock_config_entry):
+    async def test_get_debug_information_complete(
+        self, mock_hass_with_states, mock_config_entry
+    ):
         """Test complete debug information collection."""
-        with patch("custom_components.pawcontrol.diagnostics._LOGGER.isEnabledFor", return_value=True):
-            diagnostics = await _get_debug_information(mock_hass_with_states, mock_config_entry)
-        
+        with patch(
+            "custom_components.pawcontrol.diagnostics._LOGGER.isEnabledFor",
+            return_value=True,
+        ):
+            diagnostics = await _get_debug_information(
+                mock_hass_with_states, mock_config_entry
+            )
+
         expected_keys = [
-            "debug_logging_enabled", "integration_version", "quality_scale",
-            "supported_features", "documentation_url", "issue_tracker"
+            "debug_logging_enabled",
+            "integration_version",
+            "quality_scale",
+            "supported_features",
+            "documentation_url",
+            "issue_tracker",
         ]
-        
+
         for key in expected_keys:
             assert key in diagnostics
-        
+
         assert diagnostics["debug_logging_enabled"] is True
         assert diagnostics["quality_scale"] == "platinum"
         assert isinstance(diagnostics["supported_features"], list)
         assert len(diagnostics["supported_features"]) > 0
 
-    async def test_get_debug_information_no_debug_logging(self, mock_hass_with_states, mock_config_entry):
+    async def test_get_debug_information_no_debug_logging(
+        self, mock_hass_with_states, mock_config_entry
+    ):
         """Test debug information with debug logging disabled."""
-        with patch("custom_components.pawcontrol.diagnostics._LOGGER.isEnabledFor", return_value=False):
-            diagnostics = await _get_debug_information(mock_hass_with_states, mock_config_entry)
-        
+        with patch(
+            "custom_components.pawcontrol.diagnostics._LOGGER.isEnabledFor",
+            return_value=False,
+        ):
+            diagnostics = await _get_debug_information(
+                mock_hass_with_states, mock_config_entry
+            )
+
         assert diagnostics["debug_logging_enabled"] is False
 
 
@@ -887,22 +1065,28 @@ class TestServiceRegistration:
     async def test_get_registered_services_all_available(self, mock_hass_with_states):
         """Test service registration when all services are available."""
         mock_hass_with_states.services.has_service = Mock(return_value=True)
-        
+
         services = await _get_registered_services(mock_hass_with_states)
-        
+
         expected_services = [
-            "feed_dog", "start_walk", "end_walk", "log_health",
-            "log_medication", "start_grooming", "notify_test", "daily_reset"
+            "feed_dog",
+            "start_walk",
+            "end_walk",
+            "log_health",
+            "log_medication",
+            "start_grooming",
+            "notify_test",
+            "daily_reset",
         ]
-        
+
         assert set(services) == set(expected_services)
 
     async def test_get_registered_services_none_available(self, mock_hass_with_states):
         """Test service registration when no services are available."""
         mock_hass_with_states.services.has_service = Mock(return_value=False)
-        
+
         services = await _get_registered_services(mock_hass_with_states)
-        
+
         assert services == []
 
 
@@ -932,41 +1116,54 @@ class TestModuleUsageStatistics:
                 }
             },
         ]
-        
+
         stats = _calculate_module_usage(dogs)
-        
-        expected_keys = ["counts", "percentages", "most_used_module", "least_used_module"]
-        
+
+        expected_keys = [
+            "counts",
+            "percentages",
+            "most_used_module",
+            "least_used_module",
+        ]
+
         for key in expected_keys:
             assert key in stats
-        
+
         assert stats["counts"][MODULE_FEEDING] == 2
         assert stats["counts"][MODULE_WALK] == 1
         assert stats["counts"][MODULE_GPS] == 1
         assert stats["counts"][MODULE_HEALTH] == 1
         assert stats["counts"][MODULE_NOTIFICATIONS] == 1
-        
+
         assert stats["percentages"][f"{MODULE_FEEDING}_percentage"] == 100.0
         assert stats["percentages"][f"{MODULE_WALK}_percentage"] == 50.0
-        
+
         assert stats["most_used_module"] == MODULE_FEEDING
 
     def test_calculate_module_usage_no_dogs(self):
         """Test module usage calculation with no dogs."""
         stats = _calculate_module_usage([])
-        
+
         assert stats["counts"][MODULE_FEEDING] == 0
         assert stats["percentages"][f"{MODULE_FEEDING}_percentage"] == 0.0
-        assert stats["most_used_module"] is not None  # Returns some module even with 0 count
+        assert (
+            stats["most_used_module"] is not None
+        )  # Returns some module even with 0 count
 
     def test_calculate_module_usage_no_modules(self):
         """Test module usage calculation with dogs that have no modules."""
         dogs = [{"modules": {}}, {"modules": {}}]
-        
+
         stats = _calculate_module_usage(dogs)
-        
+
         # All counts should be 0
-        for module in [MODULE_FEEDING, MODULE_WALK, MODULE_GPS, MODULE_HEALTH, MODULE_NOTIFICATIONS]:
+        for module in [
+            MODULE_FEEDING,
+            MODULE_WALK,
+            MODULE_GPS,
+            MODULE_HEALTH,
+            MODULE_NOTIFICATIONS,
+        ]:
             assert stats["counts"][module] == 0
             assert stats["percentages"][f"{module}_percentage"] == 0.0
 
@@ -984,9 +1181,9 @@ class TestSensitiveDataRedaction:
             "normal_data": {"nested": "value"},
             "coordinates": {"lat": 52.5200, "lon": 13.4050},
         }
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         assert redacted["safe_key"] == "safe_value"
         assert redacted["api_key"] == "**REDACTED**"
         assert redacted["password"] == "**REDACTED**"
@@ -1000,9 +1197,9 @@ class TestSensitiveDataRedaction:
             {"safe_data": "public"},
             "safe_string",
         ]
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         assert isinstance(redacted, list)
         assert redacted[0]["api_key"] == "**REDACTED**"
         assert redacted[1]["safe_data"] == "public"
@@ -1022,9 +1219,9 @@ class TestSensitiveDataRedaction:
                 },
             },
         }
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         assert redacted["level1"]["level2"]["api_key"] == "**REDACTED**"
         assert redacted["level1"]["level2"]["safe"] == "public"
         assert redacted["level1"]["level2"]["level3"][0]["token"] == "**REDACTED**"
@@ -1033,17 +1230,21 @@ class TestSensitiveDataRedaction:
     def test_looks_like_sensitive_string_patterns(self):
         """Test detection of sensitive string patterns."""
         # UUID
-        assert _looks_like_sensitive_string("123e4567-e89b-12d3-a456-426614174000") is True
-        
+        assert (
+            _looks_like_sensitive_string("123e4567-e89b-12d3-a456-426614174000") is True
+        )
+
         # Long alphanumeric (token-like)
-        assert _looks_like_sensitive_string("abcdef123456789012345678901234567890") is True
-        
+        assert (
+            _looks_like_sensitive_string("abcdef123456789012345678901234567890") is True
+        )
+
         # IP address
         assert _looks_like_sensitive_string("192.168.1.1") is True
-        
+
         # Email
         assert _looks_like_sensitive_string("user@example.com") is True
-        
+
         # Normal strings
         assert _looks_like_sensitive_string("normal text") is False
         assert _looks_like_sensitive_string("short") is False
@@ -1057,9 +1258,9 @@ class TestSensitiveDataRedaction:
             "email": "test@example.com",
             "normal": "just normal text",
         }
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         assert redacted["uuid"] == "**REDACTED**"
         assert redacted["token"] == "**REDACTED**"
         assert redacted["ip"] == "**REDACTED**"
@@ -1072,9 +1273,9 @@ class TestSensitiveDataRedaction:
         for key in REDACTED_KEYS:
             data[key] = "sensitive_value"
             data[f"prefix_{key}"] = "also_sensitive"
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         for key in REDACTED_KEYS:
             assert redacted[key] == "**REDACTED**"
             assert redacted[f"prefix_{key}"] == "**REDACTED**"
@@ -1089,9 +1290,9 @@ class TestSensitiveDataRedaction:
             "boolean": True,
             "null": None,
         }
-        
+
         redacted = _redact_sensitive_data(data)
-        
+
         assert isinstance(redacted["list"], list)
         assert isinstance(redacted["dict"], dict)
         assert isinstance(redacted["string"], str)
@@ -1105,24 +1306,46 @@ class TestDiagnosticsErrorHandling:
     """Test error handling in diagnostics collection."""
 
     async def test_diagnostics_with_exception_in_coordinator(
-        self, mock_hass_with_states, mock_config_entry, mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test diagnostics collection when coordinator raises exception."""
         # Setup coordinator that raises exception
         failing_coordinator = Mock()
-        failing_coordinator.get_update_statistics.side_effect = Exception("Coordinator error")
-        
-        integration_data = {"coordinator": failing_coordinator, "data": None, "notifications": None}
-        mock_hass_with_states.data[DOMAIN] = {mock_config_entry.entry_id: integration_data}
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+        failing_coordinator.get_update_statistics.side_effect = Exception(
+            "Coordinator error"
+        )
+
+        integration_data = {
+            "coordinator": failing_coordinator,
+            "data": None,
+            "notifications": None,
+        }
+        mock_hass_with_states.data[DOMAIN] = {
+            mock_config_entry.entry_id: integration_data
+        }
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Should still return diagnostics structure
         assert isinstance(diagnostics, dict)
         assert "coordinator_info" in diagnostics
@@ -1131,17 +1354,29 @@ class TestDiagnosticsErrorHandling:
         self, mock_hass_with_states, mock_config_entry, mock_integration_data
     ):
         """Test diagnostics when registry calls raise exceptions."""
-        mock_hass_with_states.data[DOMAIN] = {mock_config_entry.entry_id: mock_integration_data}
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", side_effect=Exception("Registry error")), \
-             patch("homeassistant.helpers.device_registry.async_get", side_effect=Exception("Registry error")), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+        mock_hass_with_states.data[DOMAIN] = {
+            mock_config_entry.entry_id: mock_integration_data
+        }
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                side_effect=Exception("Registry error"),
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                side_effect=Exception("Registry error"),
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             # Should not raise exception
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         assert isinstance(diagnostics, dict)
 
 
@@ -1150,24 +1385,40 @@ class TestDiagnosticsIntegration:
     """Test diagnostics integration with Home Assistant systems."""
 
     async def test_full_diagnostics_integration(
-        self, mock_hass_with_states, mock_config_entry, mock_integration_data,
-        mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_integration_data,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test full diagnostics collection integration."""
-        mock_hass_with_states.data[DOMAIN] = {mock_config_entry.entry_id: mock_integration_data}
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+        mock_hass_with_states.data[DOMAIN] = {
+            mock_config_entry.entry_id: mock_integration_data
+        }
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Verify comprehensive diagnostics structure
         assert isinstance(diagnostics, dict)
         assert len(diagnostics) >= 10  # Should have all main sections
-        
+
         # Verify key sections have data
         assert diagnostics["config_entry"]["dogs_configured"] == 2
         assert diagnostics["system_info"]["ha_version"] == "2025.1.0"
@@ -1177,30 +1428,54 @@ class TestDiagnosticsIntegration:
         assert diagnostics["dogs_summary"]["total_dogs"] == 2
 
     async def test_diagnostics_data_consistency(
-        self, mock_hass_with_states, mock_config_entry, mock_integration_data,
-        mock_entity_registry, mock_device_registry
+        self,
+        mock_hass_with_states,
+        mock_config_entry,
+        mock_integration_data,
+        mock_entity_registry,
+        mock_device_registry,
     ):
         """Test that diagnostics data is consistent across sections."""
-        mock_hass_with_states.data[DOMAIN] = {mock_config_entry.entry_id: mock_integration_data}
-        
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_registry), \
-             patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_registry), \
-             patch("custom_components.pawcontrol.diagnostics._get_recent_errors", return_value=[]):
-            
+        mock_hass_with_states.data[DOMAIN] = {
+            mock_config_entry.entry_id: mock_integration_data
+        }
+
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_entity_registry,
+            ),
+            patch(
+                "homeassistant.helpers.device_registry.async_get",
+                return_value=mock_device_registry,
+            ),
+            patch(
+                "custom_components.pawcontrol.diagnostics._get_recent_errors",
+                return_value=[],
+            ),
+        ):
             diagnostics = await async_get_config_entry_diagnostics(
                 mock_hass_with_states, mock_config_entry
             )
-        
+
         # Check data consistency
-        assert diagnostics["config_entry"]["dogs_configured"] == diagnostics["dogs_summary"]["total_dogs"]
+        assert (
+            diagnostics["config_entry"]["dogs_configured"]
+            == diagnostics["dogs_summary"]["total_dogs"]
+        )
         assert diagnostics["config_entry"]["entry_id"] == mock_config_entry.entry_id
-        
+
         # Check coordinator consistency
         coordinator_info = diagnostics["coordinator_info"]
         integration_status = diagnostics["integration_status"]
-        
-        assert coordinator_info["available"] == integration_status["coordinator_available"]
-        assert coordinator_info["last_update_success"] == integration_status["coordinator_success"]
+
+        assert (
+            coordinator_info["available"] == integration_status["coordinator_available"]
+        )
+        assert (
+            coordinator_info["last_update_success"]
+            == integration_status["coordinator_success"]
+        )
 
 
 if __name__ == "__main__":
