@@ -264,7 +264,10 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
     @property
     def available(self) -> bool:
         return self.coordinator.available and self._get_dog_data() is not None
+
+
 # Sensor implementations
+
 
 class PawControlLastActionSensor(PawControlSensorBase):
     """Sensor for tracking the last action timestamp."""
@@ -432,6 +435,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
 
 # Feeding Sensors
+
 
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
@@ -624,7 +628,9 @@ class PawControlFeedingCountTodaySensor(PawControlSensorBase):
             )
         return 0
 
+
 # Walk Sensors
+
 
 class PawControlLastWalkSensor(PawControlSensorBase):
     """Sensor for last walk timestamp."""
@@ -776,6 +782,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
 
 # GPS Sensors
+
 
 class PawControlCurrentSpeedSensor(PawControlSensorBase):
     """Sensor for current speed."""
@@ -929,7 +936,9 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
         gps_data = self._get_module_data("gps")
         return gps_data.get("battery") if gps_data else None
 
+
 # Health Sensors
+
 
 class PawControlWeightSensor(PawControlSensorBase):
     """Sensor for dog weight."""
