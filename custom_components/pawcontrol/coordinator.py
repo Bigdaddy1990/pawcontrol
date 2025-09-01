@@ -21,15 +21,15 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 # Newer Home Assistant versions removed STATE_ONLINE from homeassistant.const.
 # Define the constant locally for clarity and future compatibility.
 STATE_ONLINE = "online"
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import (
+from homeassistant.config_entries import ConfigEntry  # noqa: E402
+from homeassistant.core import HomeAssistant  # noqa: E402
+from homeassistant.helpers.update_coordinator import (  # noqa: E402
     DataUpdateCoordinator,
     UpdateFailed,
 )
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util  # noqa: E402
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_DOG_ID,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
@@ -41,7 +41,7 @@ from .const import (
     MODULE_WALK,
     UPDATE_INTERVALS,
 )
-from .utils import performance_monitor
+from .utils import performance_monitor  # noqa: E402
 
 if TYPE_CHECKING:
     from .types import DogConfigData
