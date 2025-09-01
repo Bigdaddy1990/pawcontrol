@@ -412,7 +412,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:
             return {
                 "last_feeding": None,
-                "feedings_today": {"breakfast": 0, "lunch": 0, "dinner": 0, "snack": 0},
+                "feedings_today": {meal: 0 for meal in MEAL_TYPES},
                 "total_feedings_today": 0,
             }
 
