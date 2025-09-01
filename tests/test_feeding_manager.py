@@ -69,9 +69,7 @@ async def test_feeding_manager_excludes_previous_days() -> None:
 
     manager = FeedingManager()
     yesterday = datetime.utcnow() - timedelta(days=1)
-    await manager.async_add_feeding(
-        "dog", 1.0, meal_type="breakfast", time=yesterday
-    )
+    await manager.async_add_feeding("dog", 1.0, meal_type="breakfast", time=yesterday)
     await manager.async_add_feeding("dog", 1.0, meal_type="dinner")
 
     data = await manager.async_get_feeding_data("dog")
