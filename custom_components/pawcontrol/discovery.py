@@ -382,7 +382,7 @@ class PawControlDiscovery:
             try:
                 await zeroconf.async_get_instance(self.hass)
             except Exception:
-                _LOGGER.debug("Zeroconf not available for discovery")
+                _LOGGER.debug("Zeroconf not available for discovery", exc_info=True)
                 return discovered
 
             # Zeroconf service patterns for dog devices
