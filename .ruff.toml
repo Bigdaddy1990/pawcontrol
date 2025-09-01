@@ -3,7 +3,6 @@ target-version = "py313"
 line-length = 88
 src = ["custom_components"]
 #unsafe-fixes = true
-ignore = ["tests", "examples"]
 
 [lint]
 # Base: pycodestyle (E), pyflakes (F)
