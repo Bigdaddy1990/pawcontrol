@@ -371,9 +371,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "total_feedings_today": 0,
                 }
 
-meal = item.get("meal_type") or "unknown"
-if isinstance(meal, str):
-    feedings_today[meal] = feedings_today.get(meal, 0) + 1
+            feedings_today: dict[str, int] = {}
             for item in feeding_history:
                 meal = item.get("meal_type") or "unknown"
                 if isinstance(meal, str):
