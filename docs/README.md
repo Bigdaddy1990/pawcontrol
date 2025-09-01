@@ -1,47 +1,50 @@
 # Paw Control
 
 ## Schnelle Installation (HACS)
+
 1. Öffne **HACS → Integrations → Custom repositories** und füge dieses Repository hinzu.
 2. Suche nach **Paw Control** und installiere die Integration.
 3. Gehe zu **Einstellungen → Geräte & Dienste → Integrationen** und richte **Paw Control** ein.
 4. Optional: Starte den Service `pawcontrol.show_install_help` für eine Schritt-für-Schritt-Anleitung im UI.
 
 ---
+
 # Erweiterte Fassung – pawcontrol
 
 # 🐶 pawcontrol - Home Assistant Integration
 
 ## 🎯 Hauptfeatures im Überblick
 
-| Kategorie                | Beschreibung |
-|--------------------------|--------------|
-| 🧠 **Setup per UI**      | Einfache Konfiguration pro Hund – inkl. Name, Türsensor, Push-Gerät |
-| 🚪 **Türsensor-Erkennung** | Automatische Erkennung, wenn Hund durch die Tür geht |
-| 📲 **Push-Rückfrage**     | Nachricht an gewähltes Gerät: „Hat er gemacht?" – Antwort mit ✅ / ❌ |
-| 🔄 **Quittierungs-Logik** | Antwort auf einem Gerät löscht die Nachricht auf allen anderen |
-| 📊 **Dashboard-Integration** | Lovelace-fertiges YAML-Layout enthalten |
-| 🔃 **Tagesreset**          | Alle Zähler (Fütterung, Draußen) werden täglich um 23:59 Uhr zurückgesetzt |
-| 🐾 **Mehrhundelogik**     | Unterstützung für mehrere Hunde mit eigenen Sensoren und Werten |
-| 🧪 **Besuchshund-Modus**  | Temporärer Hundebesuch? Kein Problem – einfach aktivieren |
-| 📦 **HACS-kompatibel**    | Installation als Custom Repository in HACS möglich |
+| Kategorie                    | Beschreibung                                                               |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| 🧠 **Setup per UI**          | Einfache Konfiguration pro Hund – inkl. Name, Türsensor, Push-Gerät        |
+| 🚪 **Türsensor-Erkennung**   | Automatische Erkennung, wenn Hund durch die Tür geht                       |
+| 📲 **Push-Rückfrage**        | Nachricht an gewähltes Gerät: „Hat er gemacht?" – Antwort mit ✅ / ❌      |
+| 🔄 **Quittierungs-Logik**    | Antwort auf einem Gerät löscht die Nachricht auf allen anderen             |
+| 📊 **Dashboard-Integration** | Lovelace-fertiges YAML-Layout enthalten                                    |
+| 🔃 **Tagesreset**            | Alle Zähler (Fütterung, Draußen) werden täglich um 23:59 Uhr zurückgesetzt |
+| 🐾 **Mehrhundelogik**        | Unterstützung für mehrere Hunde mit eigenen Sensoren und Werten            |
+| 🧪 **Besuchshund-Modus**     | Temporärer Hundebesuch? Kein Problem – einfach aktivieren                  |
+| 📦 **HACS-kompatibel**       | Installation als Custom Repository in HACS möglich                         |
 
 ### 🔧 Funktionsübersicht
 
-| Feature | Beschreibung |
-|---------|--------------|
-| 🍽️ **Fütterung** | Erinnerungen für Frühstück, Mittag, Abend, Leckerli |
-| 🚪 **Türsensor-Tracking** | „Draußen"-Protokoll mit Rückfragen |
-| 📲 **Push-Logik** | Nachricht an anwesende Person(en) oder manuelle Geräte |
-| 📅 **Tagesstatistik** | Counter pro Aktion + automatischer Reset |
-| 🧍 **Besucherhunde** | Optionaler Besuchsmodus & Statusanzeige |
-| 🧠 **Adminpanel** | Zentrale Übersicht, manuelle Steuerung, Push-Test |
-| 📊 **Dashboard** | Mushroom-fähig, responsiv, Chip + Template-Karten |
-| 💬 **Rückfragen** | „Hund schon gefüttert?" via Notification |
-| 🔁 **Flexibel** | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
+| Feature                   | Beschreibung                                            |
+| ------------------------- | ------------------------------------------------------- |
+| 🍽️ **Fütterung**          | Erinnerungen für Frühstück, Mittag, Abend, Leckerli     |
+| 🚪 **Türsensor-Tracking** | „Draußen"-Protokoll mit Rückfragen                      |
+| 📲 **Push-Logik**         | Nachricht an anwesende Person(en) oder manuelle Geräte  |
+| 📅 **Tagesstatistik**     | Counter pro Aktion + automatischer Reset                |
+| 🧍 **Besucherhunde**      | Optionaler Besuchsmodus & Statusanzeige                 |
+| 🧠 **Adminpanel**         | Zentrale Übersicht, manuelle Steuerung, Push-Test       |
+| 📊 **Dashboard**          | Mushroom-fähig, responsiv, Chip + Template-Karten       |
+| 💬 **Rückfragen**         | „Hund schon gefüttert?" via Notification                |
+| 🔁 **Flexibel**           | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
 
 ## 🎯 Features im Detail
 
 ### 🔔 Push & Benachrichtigungen
+
 - **Dynamische Personenerkennung**: Automatische Benachrichtigung via `person.*` Entitäten wenn `state == home`
 - **Fallback-System**: Statisch konfigurierte Geräte (`mobile_app_*`) als Backup
 - **Interaktive Rückfragen**: Benachrichtigungen mit Titel, Nachricht und Bestätigungsoptionen
@@ -50,6 +53,7 @@
 - **Test-Funktion**: Benachrichtigungs-Test per Button oder Service
 
 ### 🍽️ Fütterung & Rückfragen
+
 - **Vier Mahlzeiten**: Frühstück, Mittag, Abend, Snack – einzeln aktivierbar
 - **Intelligente Rückfragen**: Automatische Erinnerungen für jede Fütterung
 - **Status-Tracking**: Erkennung per `input_boolean`-Toggle pro Mahlzeit
@@ -59,6 +63,7 @@
 - **Tagesübersicht**: Vollständige Übersicht aller Fütterungen
 
 ### 🚪 Gartengang & Aktivitäts-Tracking
+
 - **Türsensor-Integration**: Automatische Erkennung "Hund war draußen?"
 - **Manuelle Erfassung**
 - **Rückfrage-System**: Automatische Bestätigung via Push-Benachrichtigung
@@ -67,12 +72,14 @@
 - **Dauer-Messung** Aufenthaltszeit im Garten
 
 ### 💩 Geschäfte & Gesundheits-Tracking
+
 - **Kot-Tracking**: Separater Counter für Geschäfte
 - **Gesundheits-Monitoring**: Unregelmäßigkeiten erkennen
 - **Tierarzt-Erinnerungen**: Automatische Benachrichtigungen bei Auffälligkeiten
 - **Wetter-Integration**: Berücksichtigung von Wetterbedingungen (geplant)
 
 ### 📊 Statistik & Auswertung
+
 - **Umfassende Counter für**:
   - Jede Fütterungsart (Frühstück, Mittag, Abend, Snack)
   - Gassigang-Häufigkeit
@@ -84,6 +91,7 @@
 - **Wöchentliche/Monatliche Zusammenfassungen**: Trend-Analyse
 
 ### 🧾 Automatisierung & Skripte
+
 - **Auto-generierte Skripte**:
   - Rückfrage-Skripte mit `notify`-Service
   - Individuelle Reset-Skripte pro Hund
@@ -93,6 +101,7 @@
 - **Bedingte Logik**: Intelligente Benachrichtigungen basierend auf Hundestatus
 
 ### 🧩 Erweiterbarkeit & Flexibilität
+
 - **Multi-Hund Support**
 - **Besucherhund-Modus**: Temporärer Modus für Gäste-Hunde (Hunde-Sitting)
 - **Geräte-Flexibilität**: Wählbar zwischen Personen-basiert oder statischer Geräteliste
@@ -101,8 +110,9 @@
 - **Integration Ready**: Vorbereitet für weitere Sensoren (Futterschale, Wasserspender, etc.)
 
 ### 🖥️ Dashboard & Benutzeroberfläche
+
 - **Mushroom-Kompatibilität**: Optimiert für Mushroom-Cards (Chips, Templates)
-- **Lovelance Installationsanleitung*
+- \*_Lovelance Installationsanleitung_
 - **Automatisches Dashboard**: Alle Entitäten werden automatisch angezeigt
 - **Responsive Design**: Optimiert für Desktop und Mobile
 - **Konfigurationspanel**: Zentrale Übersicht und Schnellsteuerung
@@ -111,6 +121,7 @@
 - **Schnellaktionen**: Ein-Klick-Buttons für häufige Aktionen
 
 ### 🌐 GitHub & HACS-Integration
+
 - **Vollständige HACS-Kompatibilität**:
   - `manifest.json` mit korrekter Versionierung
   - `hacs.json` mit Domain-Spezifikationen
@@ -129,6 +140,7 @@
   - Codeowner-Spezifikation
 
 ### 🔧 Technische Features
+
 - **Config Flow**: Benutzerfreundliche Einrichtung über UI
 - **Entity Registry**: Saubere Entitäts-Verwaltung
 - **Error Handling**: Robuste Fehlerbehandlung
@@ -138,12 +150,14 @@
 - **Service Schemas**: Validierte Service-Aufrufe
 
 ### 🛡️ Sicherheit & Datenschutz
+
 - **Lokale Verarbeitung**: Keine Cloud-Abhängigkeiten
 - **Sichere Konfiguration**: Validierte Eingaben
 - **Backup-Kompatibilität**: Alle Daten in Home Assistant-Backups enthalten
 - **Privacy-First**: Keine externen Datenübertragungen
 
 ### 🔧 Setup & Installation
+
 - **🐶 Automatische Setup-Skript-Erstellung**
 - **⏳ Verzögerter Start**: Vermeidet Race Conditions beim Skriptaufruf
 - **🧠 Robuste Fehlerbehandlung**
@@ -151,12 +165,14 @@
 - **📦 Integriertes Setup**
 
 ### 🐕 Besuchshund-Modul
+
 - **Flexible Aktivierung**
 - **Separate Verwaltung**: Eigene Dashboard-Blöcke mit getrennter Statistik
 - **Isolierte Rückfragen**: Unabhängiges Tracking ohne Vermischung der Daten
 - **Gäste-optimiert**: Ideal für temporäre Hundebesuche mit vollständiger Funktionalität
 
 ### 💬 Intelligente Rückfragen
+
 - **Türsensor-Integration**: Automatische Erkennung von Türbewegungen
 - **Kontextuelle Fragen**: „War der Hund draußen?" nach Türöffnung
 - **Geschäft-Tracking**: Optionale Nachfrage über erledigte Geschäfte
@@ -164,6 +180,7 @@
 - **Quittierungs-System**: Vollständige Rückmeldungslogik mit Status-Updates
 
 ### 📱 Mobile-First Design
+
 - **Mushroom UI-Optimierung**: Perfekt abgestimmt auf moderne Card-Layouts
 - **Timeline-Integration**: Chronologische Darstellung aller Aktivitäten
 - **Responsive Statusanzeige**: Optimiert für verschiedene Bildschirmgrößen
@@ -171,6 +188,7 @@
 - **Schnellzugriff-Panel**: Wichtigste Funktionen sofort verfügbar
 
 ### 🐶 Erweiterte Mehrhundeverwaltung
+
 - **Skalierbare Architektur**
 - **Automatische Entitätserstellung**: Zähler, Fütterungszeiten, Statistiken pro Hund
 - **Individuelle Konfiguration**: Jeder Hund mit eigenen Einstellungen und Türsensoren
@@ -178,6 +196,7 @@
 - **Getrennte Historien**: Separate für Wochen-/Monatsstatistiken
 
 ### 📊 Dashboard & Automatisierung
+
 - **Dynamische UI-Generierung**: Automatische Dashboard-Erstellung je Hund
 - **Besuchshund-Separation**: Separate Bereiche für temporäre Gäste
 - **Notification-Actions**: Interaktive Rückfragen direkt aus Benachrichtigungen
@@ -185,6 +204,7 @@
 - **Anpassbare Layouts**: Verschiedene Dashboard-Varianten für unterschiedliche Bedürfnisse
 
 ### ✅ Vollständige Setup-Integration
+
 - **UI-basiertes Onboarding**: Komplette Einrichtung über Home Assistant Interface
 - **Automatische Helper-Erstellung**: werden automatisch angelegt
 - **Intelligenter Tagesreset**: Konfigurierbare Reset-Zeit (Standard: 23:59 Uhr)
@@ -192,6 +212,7 @@
 - **Erweiterbares System**
 
 ### 🧠 Erweiterte Konfiguration
+
 - **Umfassender Config Flow**:
   - Individuelle Namensvergabe pro pawcontrol
   - Multi-Device Push-Gerät-Auswahl
@@ -208,6 +229,7 @@
 > Ziel: Für **jede Funktion** die nötige **Codebasis, Entities/Helper, Config-Optionen, Abhängigkeiten, Trigger/Scheduler** und **optionale Blueprints** auflisten. Außerdem: **minimale, lauffähige** Code-Skelette für die in der Struktur genannten Dateien (Domain: `pawcontrol`).
 
 ## Inhaltsverzeichnis
+
 1. Architektur & Konventionen
 2. Globale Abhängigkeiten & Manifest
 3. Config Flow & OptionsFlow (Schlüssel & Validierung)
@@ -245,6 +267,7 @@
 **After-Dependencies**: `http`, `cloud` (falls benötigt für mobile actions)
 
 **Beispiel `manifest.json`:**
+
 ```json
 {
   "domain": "pawcontrol",
@@ -266,6 +289,7 @@
 ## 3) Config Flow & Options (Schlüssel)
 
 **Grundstruktur**:
+
 - **Hunde**: Liste aus `[{ dog_id, name, color/icon (optional) }]`
 - **Module je Hund**: `feeding`, `walk`, `health`, `poop`, `notifications`, `dashboard`, `visitor`
 - **Quellen**: Türsensor (`binary_sensor.*`), GPS (`device_tracker.*`/`person.*`), Notify-Fallback (`notify.*`), Kalender (`calendar.*`), Wetter (`weather.*`)
@@ -273,6 +297,7 @@
 - **Reset-Zeit**: Standard 23:59, konfigurierbar
 
 **Option Keys (Beispiele)**:
+
 ```yaml
 dogs:
   - dog_id: "rex"
@@ -288,7 +313,7 @@ dogs:
     sources:
       door_sensor: binary_sensor.terrassentuer_contact
       person_entities: [person.denny]
-      device_trackers: [device_tracker.phone_denny]   # optional
+      device_trackers: [device_tracker.phone_denny] # optional
       notify_fallback: notify.mobile_app_dennys_iphone
       calendar: calendar.hund_events
       weather: weather.home
@@ -298,7 +323,7 @@ notifications:
   snooze_min: 15
 reset_time: "23:59:00"
 dashboard:
-  mode: "full"  # full|cards
+  mode: "full" # full|cards
 ```
 
 ---
@@ -306,6 +331,7 @@ dashboard:
 ## 4) Services & Schemas
 
 **Services (Auszug):**
+
 - `pawcontrol.start_walk`, `pawcontrol.end_walk`, `pawcontrol.walk_now`
 - `pawcontrol.feed_dog`
 - `pawcontrol.log_poop`
@@ -329,10 +355,11 @@ dashboard:
 ## 6) Module – Mapping: Codebasis, Entities, Configs, Abhängigkeiten
 
 ### 6.1 Push & Benachrichtigungen
+
 - **Codebasis**: `helpers.py` (NotificationRouter), `__init__.py` (Service-Calls), `services.yaml`
 - **Entities (pro Hund, Integration-eigen)**:
   - `button.pawcontrol_{dog}_notify_test`
-  - `switch.pawcontrol_{dog}_notifications_enabled` *(optional)*
+  - `switch.pawcontrol_{dog}_notifications_enabled` _(optional)_
 - **Configs**: `notifications.quiet_hours`, `notifications.reminder_repeat_min`, `notifications.snooze_min`, Quellen (`person_entities`, `notify_fallback`)
 - **Abhängigkeiten**: `mobile_app`, `person`
 - **Services**: `notify_test`, interne Router-Funktion (Person anwesend? → passendes `notify.mobile_app_*`)
@@ -340,6 +367,7 @@ dashboard:
 - **Optional Blueprints**: Generic Push Test / Acknowledge Pattern
 
 ### 6.2 Fütterung
+
 - **Codebasis**: `services.yaml` (`feed_dog`), `sensor.py` (letzte Mahlzeit), `button.py` (Schnellaktion „Gefüttert“), `helpers.py` (Reminder-Planer)
 - **Entities (pro Hund)**:
   - `sensor.pawcontrol_{dog}_last_feeding` (Zeitstempel/Typ)
@@ -352,6 +380,7 @@ dashboard:
 - **Optional Blueprints**: „Feeding Reminder (generic)“
 
 ### 6.3 Türsensor/Gartengang & Aktivität (Walk)
+
 - **Codebasis**: `helpers.py` (door/GPS-Logic), `sensor.py` (letzter Walk, Dauer), `binary_sensor.py` (needs_walk)
 - **Entities (pro Hund)**:
   - `sensor.pawcontrol_{dog}_last_walk` (datetime)
@@ -365,6 +394,7 @@ dashboard:
 - **Trigger/Scheduler**: Tür-Event, Distanzänderung, Inaktivitäts-Timeout
 
 ### 6.4 Geschäfte (Poop) & Gesundheit
+
 - **Codebasis**: `services.yaml`, `sensor.py` (Zähler, letzter Eintrag), `helpers.py` (Erinnerungen)
 - **Entities (pro Hund)**:
   - `sensor.pawcontrol_{dog}_poop_count_today`
@@ -377,6 +407,7 @@ dashboard:
 - **Trigger/Scheduler**: Medikation/Grooming-Fälligkeit
 
 ### 6.5 Statistik & Tagesreset
+
 - **Codebasis**: `helpers.py` (Scheduler + Tagesreset), `sensor.py` (Counter als Integration-Entities)
 - **Entities (pro Hund)**:
   - `sensor.pawcontrol_{dog}_feeding_count_today_*` (breakfast/lunch/dinner/snack)
@@ -388,6 +419,7 @@ dashboard:
 - **Trigger/Scheduler**: Reset 23:59, optional Report 23:55
 
 ### 6.6 Besuchshund-Modus
+
 - **Codebasis**: `__init__.py` (Mode-Flag), `sensor.py` (separate Zähler), `dashboard.py` (separate Sektion)
 - **Entities (global/je Hund)**:
   - `switch.pawcontrol_{dog}_visitor_mode`
@@ -396,6 +428,7 @@ dashboard:
 - **Trigger/Scheduler**: —
 
 ### 6.7 Dashboard
+
 - **Codebasis**: `dashboard.py` (Renderer), optionale YAML-Vorlagen
 - **Entities**: nutzt die oben definierten
 - **Configs**: Modus `full|cards`, Hundereihenfolge, Anzeigeoptionen
@@ -407,6 +440,7 @@ dashboard:
 ## 7) Optionale Blueprints (YAML)
 
 ### 7.1 Feeding Reminder (generic)
+
 ```yaml
 blueprint:
   name: pawcontrol – Feeding Reminder (generic)
@@ -446,6 +480,7 @@ mode: restart
 ```
 
 ### 7.2 Walk Missing Reminder
+
 ```yaml
 blueprint:
   name: pawcontrol – Walk Missing Reminder
@@ -486,12 +521,12 @@ mode: restart
 
 ---
 
-
 ## 8) GitHub Actions & HACS
 
 **`.github/workflows/validate.yml`**: hassfest, ruff/flake8, pytest
 **`.github/workflows/release.yml`**: Tag → Release (Zip)
 **`hacs.json`** (Repo-Wurzel):
+
 ```json
 { "name": "pawcontrol", "render_readme": true }
 ```
@@ -508,7 +543,6 @@ mode: restart
 - Dashboard-Renderer erzeugt Entities ohne Exceptions
 - HACS-Metadaten korrekt, CI-Grundchecks grün
 
-
 ---
 
 # Paw Control - Vollständige Setup-Konfiguration
@@ -516,39 +550,47 @@ mode: restart
 ## 🐕 MODUL 1: Grundlegende Hundedaten (ERFORDERLICH)
 
 ### Basis-Informationen
-- **Hundename** *(Pflichtfeld)*
+
+- **Hundename** _(Pflichtfeld)_
   - Validierung: 2-30 Zeichen, Buchstaben/Zahlen/Umlaute/Leerzeichen/Bindestriche
   - Pattern: `^[a-zA-ZäöüÄÖÜß0-9\s\-_.]+$`
   - Muss mit Buchstaben beginnen
 
 ### Physische Eigenschaften
-- **Hunderasse** *(Optional)*
+
+- **Hunderasse** _(Optional)_
+
   - Freitext-Eingabe (max. 100 Zeichen)
   - Dropdown mit häufigen Rassen vorschlagen
 
-- **Alter** *(Optional)*
+- **Alter** _(Optional)_
+
   - Bereich: 0-25 Jahre
   - Eingabe in Jahren (Decimal für Welpen: 0.5, 1.5 etc.)
 
-- **Gewicht** *(Optional)*
+- **Gewicht** _(Optional)_
+
   - Bereich: 0.5-100 kg
   - Schritte: 0.1 kg
   - Standard: 15 kg
 
-- **Größenkategorie** *(Optional)*
+- **Größenkategorie** _(Optional)_
   - Optionen: ["Toy" (1-6kg), "Klein" (6-12kg), "Mittel" (12-27kg), "Groß" (27-45kg), "Riesig" (45-90kg)]
   - Auto-Suggestion basierend auf Gewicht
 
 ### Gesundheits-Basisdaten
-- **Standard-Gesundheitsstatus** *(Optional)*
+
+- **Standard-Gesundheitsstatus** _(Optional)_
+
   - Optionen: ["Ausgezeichnet", "Sehr gut", "Gut", "Normal", "Unwohl", "Krank"]
   - Standard: "Gut"
 
-- **Standard-Stimmung** *(Optional)*
+- **Standard-Stimmung** _(Optional)_
+
   - Optionen: ["😊 Fröhlich", "😐 Neutral", "😟 Traurig", "😠 Ärgerlich", "😰 Ängstlich", "😴 Müde"]
   - Standard: "😊 Fröhlich"
 
-- **Aktivitätslevel** *(Optional)*
+- **Aktivitätslevel** _(Optional)_
   - Optionen: ["Sehr niedrig", "Niedrig", "Normal", "Hoch", "Sehr hoch"]
   - Standard: "Normal"
   - Beeinflusst Kalorien- und Spaziergang-Berechnungen
@@ -558,228 +600,265 @@ mode: restart
 ## 🍽️ MODUL 2: Fütterungseinstellungen (OPTIONAL)
 
 ### Fütterungszeiten
-- **Frühstück aktivieren** *(Boolean, Standard: true)*
-  - **Frühstückszeit** *(Zeit, Standard: 09:00)*
 
-- **Mittagessen aktivieren** *(Boolean, Standard: false)*
-  - **Mittagszeit** *(Zeit, Standard: 13:00)*
+- **Frühstück aktivieren** _(Boolean, Standard: true)_
 
-- **Abendessen aktivieren** *(Boolean, Standard: true)*
-  - **Abendzeit** *(Zeit, Standard: 17:00)*
+  - **Frühstückszeit** _(Zeit, Standard: 09:00)_
 
-- **Snacks aktivieren** *(Boolean, Standard: false)*
-  - **Snack-Zeiten** *(Mehrfach-Auswahl)*
+- **Mittagessen aktivieren** _(Boolean, Standard: false)_
+
+  - **Mittagszeit** _(Zeit, Standard: 13:00)_
+
+- **Abendessen aktivieren** _(Boolean, Standard: true)_
+
+  - **Abendzeit** _(Zeit, Standard: 17:00)_
+
+- **Snacks aktivieren** _(Boolean, Standard: false)_
+  - **Snack-Zeiten** _(Mehrfach-Auswahl)_
 
 ### Fütterungsmengen
-- **Tägliche Futtermenge** *(Optional)*
+
+- **Tägliche Futtermenge** _(Optional)_
+
   - Bereich: 50-2000g
   - Standard: Auto-Berechnung basierend auf Gewicht (2.5% Körpergewicht)
 
-- **Anzahl Mahlzeiten pro Tag** *(Optional)*
+- **Anzahl Mahlzeiten pro Tag** _(Optional)_
+
   - Bereich: 1-5
   - Standard: 2
   - Beeinflusst Portionsgrößen-Berechnung
 
-- **Standard-Futtertyp** *(Optional)*
+- **Standard-Futtertyp** _(Optional)_
   - Optionen: ["Trockenfutter", "Nassfutter", "BARF", "Selbstgekocht", "Gemischt"]
   - Standard: "Trockenfutter"
 
 ### Fütterungs-Erinnerungen
-- **Automatische Fütterungs-Erinnerungen** *(Boolean, Standard: true)*
-- **Erinnerungszeit vor Mahlzeit** *(Minuten, Standard: 30)*
-- **Snooze-Zeit bei Erinnerungen** *(Minuten, Standard: 10)*
 
+- **Automatische Fütterungs-Erinnerungen** _(Boolean, Standard: true)_
+- **Erinnerungszeit vor Mahlzeit** _(Minuten, Standard: 30)_
+- **Snooze-Zeit bei Erinnerungen** _(Minuten, Standard: 10)_
 
 ## 🏥 MODUL 3: Gesundheitsüberwachung (OPTIONAL)
 
 ### Gesundheits-Tracking
-- **Erweiterte Gesundheitsüberwachung aktivieren** *(Boolean, Standard: false)*
-- **Gewichtsverlauf speichern** *(Boolean, Standard: true)*
-- **Temperatur-Tracking aktivieren** *(Boolean, Standard: false)*
-- **Activity-Logger aktivieren** *(Boolean, Standard: true)*
+
+- **Erweiterte Gesundheitsüberwachung aktivieren** _(Boolean, Standard: false)_
+- **Gewichtsverlauf speichern** _(Boolean, Standard: true)_
+- **Temperatur-Tracking aktivieren** _(Boolean, Standard: false)_
+- **Activity-Logger aktivieren** _(Boolean, Standard: true)_
 
 ### Gesundheits-Parameter
 
-
 ### Notfall-Erkennung
-- **Automatische Notfall-Erkennung** *(Boolean, Standard: false)*
+
+- **Automatische Notfall-Erkennung** _(Boolean, Standard: false)_
 
 ### Medikations-Management
-- **Medikations-Erinnerungen aktivieren** *(Boolean, Standard: false)*
-- **Standard-Medikationen** *(Multi-Entry, Optional)*
-  - **Medikament-Name** *(Text)*
-  - **Dosierung** *(Text)*
-  - **Häufigkeit** *(Optionen: "Täglich", "2x täglich", "3x täglich", "Wöchentlich", "Nach Bedarf")*
-  - **Zeiten** *(Zeit-Auswahl je nach Häufigkeit)*
+
+- **Medikations-Erinnerungen aktivieren** _(Boolean, Standard: false)_
+- **Standard-Medikationen** _(Multi-Entry, Optional)_
+  - **Medikament-Name** _(Text)_
+  - **Dosierung** _(Text)_
+  - **Häufigkeit** _(Optionen: "Täglich", "2x täglich", "3x täglich", "Wöchentlich", "Nach Bedarf")_
+  - **Zeiten** _(Zeit-Auswahl je nach Häufigkeit)_
 
 ### Tierarzt-Integration
-- **Tierarzt-Kontakt** *(Optional)*
-  - **Name** *(Text)*
-  - **Telefon** *(Text)*
-  - **E-Mail** *(Text, Optional)*
-  - **Adresse** *(Text, Optional)*
 
-- **Regelmäßige Checkup-Erinnerungen** *(Boolean, Standard: false)*
-  - **Checkup-Intervall** *(Monate, Standard: 12)*
-  - **Nächster Termin** *(Datum, Optional)*
+- **Tierarzt-Kontakt** _(Optional)_
+
+  - **Name** _(Text)_
+  - **Telefon** _(Text)_
+  - **E-Mail** _(Text, Optional)_
+  - **Adresse** _(Text, Optional)_
+
+- **Regelmäßige Checkup-Erinnerungen** _(Boolean, Standard: false)_
+  - **Checkup-Intervall** _(Monate, Standard: 12)_
+  - **Nächster Termin** _(Datum, Optional)_
 
 ---
 
 ## 🔔 MODUL 4: Benachrichtigungssystem (OPTIONAL)
 
 ### Benachrichtigungs-Grundeinstellungen
-- **Benachrichtigungen aktivieren** *(Boolean, Standard: true)*
-- **Benachrichtigungstyp** *(Auswahl)*
+
+- **Benachrichtigungen aktivieren** _(Boolean, Standard: true)_
+- **Benachrichtigungstyp** _(Auswahl)_
   - "Persistent Notifications" (Standard)
   - "Mobile App Notifications"
   - "Both"
 
 ### Mobile App Konfiguration
-- **Mobile App Integration** *(Multi-Select)*
-  - **Person-Entity für Benachrichtigungen** *(Entity-Auswahl)*
-  - **Mobile App Service Name** *(Auto-Detection oder Manual)*
-  - **Fallback bei Abwesenheit** *(Boolean, Standard: true)*
+
+- **Mobile App Integration** _(Multi-Select)_
+  - **Person-Entity für Benachrichtigungen** _(Entity-Auswahl)_
+  - **Mobile App Service Name** _(Auto-Detection oder Manual)_
+  - **Fallback bei Abwesenheit** _(Boolean, Standard: true)_
 
 ### Actionable Notifications
-- **Actionable Notifications aktivieren** *(Boolean, Standard: false)*
-- **Action-Button-Konfiguration** *(Advanced)*
+
+- **Actionable Notifications aktivieren** _(Boolean, Standard: false)_
+- **Action-Button-Konfiguration** _(Advanced)_
   - Fütterungs-Actions: "Gefüttert ✅", "10 Min später ⏰"
   - Walk-Actions: "Gassi starten 🚶", "Später 🕐"
 
 ### Benachrichtigungs-Kategorien
+
 **Fütterungs-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
-- **Vorlaufzeit** *(Minuten, Standard: 30)*
-- **Wiederholungen bei ignoriert** *(Number, 0-5, Standard: 2)*
-- **Wiederholungs-Intervall** *(Minuten, Standard: 15)*
+
+- **Aktiviert** _(Boolean, Standard: true)_
+- **Vorlaufzeit** _(Minuten, Standard: 30)_
+- **Wiederholungen bei ignoriert** _(Number, 0-5, Standard: 2)_
+- **Wiederholungs-Intervall** _(Minuten, Standard: 15)_
 
 **Spaziergang-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
-- **Erinnerungsintervall** *(Stunden, Standard: 8)*
-- **Wetterbasierte Anpassungen** *(Boolean, Standard: false)*
+
+- **Aktiviert** _(Boolean, Standard: true)_
+- **Erinnerungsintervall** _(Stunden, Standard: 8)_
+- **Wetterbasierte Anpassungen** _(Boolean, Standard: false)_
 
 **Gesundheits-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
-- **Notfall-Benachrichtigungen** *(Boolean, Standard: true)*
-- **Medikations-Erinnerungen** *(Boolean, Standard: false)*
+
+- **Aktiviert** _(Boolean, Standard: true)_
+- **Notfall-Benachrichtigungen** _(Boolean, Standard: true)_
+- **Medikations-Erinnerungen** _(Boolean, Standard: false)_
 
 **GPS-Benachrichtigungen**
-- **Geofence-Alerts** *(Boolean, Standard: false)*
-- **Signal-Verlust-Alerts** *(Boolean, Standard: false)*
-- **Signal-Verlust-Schwelle** *(Minuten, Standard: 10)*
+
+- **Geofence-Alerts** _(Boolean, Standard: false)_
+- **Signal-Verlust-Alerts** _(Boolean, Standard: false)_
+- **Signal-Verlust-Schwelle** _(Minuten, Standard: 10)_
 
 ### Zeitbasierte Benachrichtigungs-Steuerung
-- **Nachtmodus aktivieren** *(Boolean, Standard: true)*
-- **Ruhezeiten** *(Zeitbereich)*
-  - **Start** *(Zeit, Standard: 22:00)*
-  - **Ende** *(Zeit, Standard: 07:00)*
-- **Nur Notfälle in Ruhezeiten** *(Boolean, Standard: true)*
+
+- **Nachtmodus aktivieren** _(Boolean, Standard: true)_
+- **Ruhezeiten** _(Zeitbereich)_
+  - **Start** _(Zeit, Standard: 22:00)_
+  - **Ende** _(Zeit, Standard: 07:00)_
+- **Nur Notfälle in Ruhezeiten** _(Boolean, Standard: true)_
 
 ---
 
 ## 🤖 MODUL 5: Automatisierungssystem (OPTIONAL)
 
 ### Basis-Automatisierung
-- **Automatisierungs-Manager aktivieren** *(Boolean, Standard: false)*
-- **Automatisierungs-Update-Intervall** *(Minuten, Standard: 5)*
+
+- **Automatisierungs-Manager aktivieren** _(Boolean, Standard: false)_
+- **Automatisierungs-Update-Intervall** _(Minuten, Standard: 5)_
 
 ### Fütterungs-Automatisierung
-- **Fütterungs-Erinnerungen aktivieren** *(Boolean, Standard: true)*
-- **Meilenstein-Benachrichtigungen** *(Boolean, Standard: false)*
-- **Meilenstein-Schwellen** *(Multi-Number)*
+
+- **Fütterungs-Erinnerungen aktivieren** _(Boolean, Standard: true)_
+- **Meilenstein-Benachrichtigungen** _(Boolean, Standard: false)_
+- **Meilenstein-Schwellen** _(Multi-Number)_
   - Standard: [5, 10, 25, 50, 100]
 
 ### Aktivitäts-Automatisierung
-- **Walk-Meilenstein-Feiern** *(Boolean, Standard: false)*
-- **Aktivitäts-Level-Monitoring** *(Boolean, Standard: false)*
-- **Inaktivitäts-Alerts** *(Boolean, Standard: false)*
-- **Inaktivitäts-Schwelle** *(Stunden, Standard: 24)*
+
+- **Walk-Meilenstein-Feiern** _(Boolean, Standard: false)_
+- **Aktivitäts-Level-Monitoring** _(Boolean, Standard: false)_
+- **Inaktivitäts-Alerts** _(Boolean, Standard: false)_
+- **Inaktivitäts-Schwelle** _(Stunden, Standard: 24)_
 
 ### Gesundheits-Automatisierung
-- **Automatische Gesundheits-Alerts** *(Boolean, Standard: false)*
-- **Stimmungsänderungs-Tracking** *(Boolean, Standard: false)*
-- **Gewichtsänderungs-Alerts** *(Boolean, Standard: false)*
-- **Gewichtsänderungs-Schwelle** *(%, Standard: 5)*
+
+- **Automatische Gesundheits-Alerts** _(Boolean, Standard: false)_
+- **Stimmungsänderungs-Tracking** _(Boolean, Standard: false)_
+- **Gewichtsänderungs-Alerts** _(Boolean, Standard: false)_
+- **Gewichtsänderungs-Schwelle** _(%, Standard: 5)_
 
 ### Besucher-Modus-Automatisierung
-- **Automatischer Besuchermodus** *(Boolean, Standard: false)*
-- **Besuchererkennung-Methode** *(Optionen)*
+
+- **Automatischer Besuchermodus** _(Boolean, Standard: false)_
+- **Besuchererkennung-Methode** _(Optionen)_
   - "Manual Toggle"
   - "Person Detection"
   - "Door Sensor"
   - "Calendar Integration"
 
 ### Wartungs-Automatisierung
-- **Tägliche Berichte generieren** *(Boolean, Standard: false)*
-- **Berichts-Zeit** *(Zeit, Standard: 23:30)*
-- **Wöchentliche Zusammenfassungen** *(Boolean, Standard: false)*
-- **System-Gesundheitschecks** *(Boolean, Standard: true)*
-- **Check-Intervall** *(Minuten, Standard: 30)*
+
+- **Tägliche Berichte generieren** _(Boolean, Standard: false)_
+- **Berichts-Zeit** _(Zeit, Standard: 23:30)_
+- **Wöchentliche Zusammenfassungen** _(Boolean, Standard: false)_
+- **System-Gesundheitschecks** _(Boolean, Standard: true)_
+- **Check-Intervall** _(Minuten, Standard: 30)_
 
 ### Notfall-Automatisierung
-- **Automatisches Notfall-Protokoll** *(Boolean, Standard: false)*
-- **Notfall-Kontakt-Integration** *(Boolean, Standard: false)*
-- **Eskalations-Stufen** *(Advanced)*
+
+- **Automatisches Notfall-Protokoll** _(Boolean, Standard: false)_
+- **Notfall-Kontakt-Integration** _(Boolean, Standard: false)_
+- **Eskalations-Stufen** _(Advanced)_
 
 ---
 
 ## 📊 MODUL 6: Dashboard und Visualisierung (OPTIONAL)
 
 ### Dashboard-Erstellung
-- **Automatisches Dashboard erstellen** *(Boolean, Standard: true)*
-- **Dashboard-Name** *(Text, Standard: "PawControl")*
-- **Dashboard-Pfad** *(Text, Standard: "pawcontrol")*
+
+- **Automatisches Dashboard erstellen** _(Boolean, Standard: true)_
+- **Dashboard-Name** _(Text, Standard: "PawControl")_
+- **Dashboard-Pfad** _(Text, Standard: "pawcontrol")_
 
 ### Dashboard-Module
+
 **Übersichts-Karten**
-- **Status-Übersichtskarte** *(Boolean, Standard: true)*
-- **Tages-Zusammenfassung** *(Boolean, Standard: true)*
-- **Quick-Action-Buttons** *(Boolean, Standard: true)*
 
-**GPS-Module** *(Wenn GPS aktiviert)*
-- **Live-GPS-Karte** *(Boolean, Standard: true)*
-- **Route-Verlauf** *(Boolean, Standard: false)*
-- **Geofence-Visualisierung** *(Boolean, Standard: false)*
+- **Status-Übersichtskarte** _(Boolean, Standard: true)_
+- **Tages-Zusammenfassung** _(Boolean, Standard: true)_
+- **Quick-Action-Buttons** _(Boolean, Standard: true)_
 
-**Gesundheits-Module** *(Wenn Gesundheit aktiviert)*
-- **Gesundheits-Status-Karte** *(Boolean, Standard: true)*
-- **Gewichtsverlaufs-Graph** *(Boolean, Standard: false)*
-- **Medikations-Übersicht** *(Boolean, Standard: false)*
+**GPS-Module** _(Wenn GPS aktiviert)_
+
+- **Live-GPS-Karte** _(Boolean, Standard: true)_
+- **Route-Verlauf** _(Boolean, Standard: false)_
+- **Geofence-Visualisierung** _(Boolean, Standard: false)_
+
+**Gesundheits-Module** _(Wenn Gesundheit aktiviert)_
+
+- **Gesundheits-Status-Karte** _(Boolean, Standard: true)_
+- **Gewichtsverlaufs-Graph** _(Boolean, Standard: false)_
+- **Medikations-Übersicht** _(Boolean, Standard: false)_
 
 **Aktivitäts-Module**
-- **Walk-Statistiken** *(Boolean, Standard: true)*
-- **Fütterungs-Status** *(Boolean, Standard: true)*
-- **Aktivitäts-Verlauf** *(Boolean, Standard: false)*
+
+- **Walk-Statistiken** _(Boolean, Standard: true)_
+- **Fütterungs-Status** _(Boolean, Standard: true)_
+- **Aktivitäts-Verlauf** _(Boolean, Standard: false)_
 
 ### UI-Anpassungen
-- **Card-Typ-Präferenz** *(Optionen)*
+
+- **Card-Typ-Präferenz** _(Optionen)_
+
   - "Mushroom Cards" (Standard, modern)
   - "Standard Entity Cards"
   - "Picture Entity Cards"
   - "Custom Cards"
 
-- **Farbschema** *(Optional)*
+- **Farbschema** _(Optional)_
   - "Auto" (Standard)
   - "Light"
   - "Dark"
 
 ### Mobile Dashboard
-- **Mobile-optimierte Ansicht** *(Boolean, Standard: true)*
-- **Schnellzugriff-Panel** *(Boolean, Standard: true)*
+
+- **Mobile-optimierte Ansicht** _(Boolean, Standard: true)_
+- **Schnellzugriff-Panel** _(Boolean, Standard: true)_
 
 ---
-
 
 ## 📍 MODUL 7: GPS-Tracking-System (OPTIONAL)
 
 ### GPS-Grundkonfiguration
-- **GPS-Tracking aktivieren** *(Boolean, Standard: false)*
-- **GPS-Update-Intervall** *(Sekunden)*
+
+- **GPS-Tracking aktivieren** _(Boolean, Standard: false)_
+- **GPS-Update-Intervall** _(Sekunden)_
   - Optionen: [30, 60, 120, 300, 600]
   - Standard: 60
 
 ### GPS-Quellen-Konfiguration
-- **Primäre GPS-Quelle** *(Required wenn GPS aktiviert)*
+
+- **Primäre GPS-Quelle** _(Required wenn GPS aktiviert)_
   - Optionen:
     - "Manual" - Manuelle Eingabe
     - "Device Tracker" - Bestehender device_tracker
@@ -790,86 +869,103 @@ mode: restart
     - "MQTT" - GPS via MQTT-Stream
 
 #### Device Tracker Konfiguration
-- **Device Tracker Entity** *(Required bei Device Tracker)*
+
+- **Device Tracker Entity** _(Required bei Device Tracker)_
   - Entity-Auswahl aus vorhandenen device_tracker
 
 #### Person Entity Konfiguration
-- **Person Entity** *(Required bei Person Entity)*
+
+- **Person Entity** _(Required bei Person Entity)_
   - Entity-Auswahl aus vorhandenen Person-Entities
 
 #### Smartphone Konfiguration
-- **Mobile App Name** *(Required bei Smartphone)*
-- **GPS-Genauigkeits-Schwelle** *(Meter, Standard: 50)*
+
+- **Mobile App Name** _(Required bei Smartphone)_
+- **GPS-Genauigkeits-Schwelle** _(Meter, Standard: 50)_
 
 #### Tractive Konfiguration
-- **Tractive Device ID** *(Required bei Tractive)*
-- **Tractive API Key** *(Required bei Tractive)*
-- **Update-Frequenz** *(Sekunden, Standard: 120)*
+
+- **Tractive Device ID** _(Required bei Tractive)_
+- **Tractive API Key** _(Required bei Tractive)_
+- **Update-Frequenz** _(Sekunden, Standard: 120)_
 
 #### Webhook Konfiguration
-- **Webhook ID** *(Required bei Webhook)*
-- **Webhook Secret** *(Optional)*
-- **Expected JSON Format** *(Auswahl: Standard, Custom)*
+
+- **Webhook ID** _(Required bei Webhook)_
+- **Webhook Secret** _(Optional)_
+- **Expected JSON Format** _(Auswahl: Standard, Custom)_
 
 #### MQTT Konfiguration
-- **MQTT Topic** *(Required bei MQTT)*
-- **MQTT Payload Format** *(JSON Path Konfiguration)*
+
+- **MQTT Topic** _(Required bei MQTT)_
+- **MQTT Payload Format** _(JSON Path Konfiguration)_
 
 ### Heimbereich-Konfiguration
-- **Heimkoordinaten** *(Optional)*
+
+- **Heimkoordinaten** _(Optional)_
+
   - Auto-Detection bei erstem GPS-Update
   - Manuelle Eingabe: Latitude, Longitude
 
-- **Heimbereich-Radius** *(Meter)*
+- **Heimbereich-Radius** _(Meter)_
   - Bereich: 10-1000m
   - Standard: 50m
 
 ### Geofencing-Einstellungen
-- **Geofencing aktivieren** *(Boolean, Standard: false)*
-- **Geofence-Konfigurationen** *(Multi-Entry)*
-  - **Name** *(Text)*
-  - **Center-Koordinaten** *(Lat, Lon)*
-  - **Radius** *(10-10000m)*
-  - **Typ** *(Optionen: "Safe Zone", "Restricted Area", "Point of Interest")*
-  - **Benachrichtigung bei Eintritt** *(Boolean)*
-  - **Benachrichtigung bei Verlassen** *(Boolean)*
+
+- **Geofencing aktivieren** _(Boolean, Standard: false)_
+- **Geofence-Konfigurationen** _(Multi-Entry)_
+  - **Name** _(Text)_
+  - **Center-Koordinaten** _(Lat, Lon)_
+  - **Radius** _(10-10000m)_
+  - **Typ** _(Optionen: "Safe Zone", "Restricted Area", "Point of Interest")_
+  - **Benachrichtigung bei Eintritt** _(Boolean)_
+  - **Benachrichtigung bei Verlassen** _(Boolean)_
 
 ### Automatische Spaziergang-Erkennung
-- **Auto-Walk-Detection aktivieren** *(Boolean, Standard: false)*
-- **Bewegungs-Schwelle** *(Meter)*
+
+- **Auto-Walk-Detection aktivieren** _(Boolean, Standard: false)_
+- **Bewegungs-Schwelle** _(Meter)_
+
   - Bereich: 1-50m
   - Standard: 3m
 
-- **Stillstands-Zeit** *(Sekunden)*
+- **Stillstands-Zeit** _(Sekunden)_
+
   - Bereich: 60-1800 Sekunden
   - Standard: 300 Sekunden
 
-- **Walk-Detection-Distanz** *(Meter)*
+- **Walk-Detection-Distanz** _(Meter)_
+
   - Bereich: 5-200m
   - Standard: 10m
 
-- **Minimale Walk-Dauer** *(Minuten)*
+- **Minimale Walk-Dauer** _(Minuten)_
+
   - Bereich: 1-60 Minuten
   - Standard: 5 Minuten
 
-- **Sensitivität** *(Optional)*
+- **Sensitivität** _(Optional)_
   - Optionen: ["Niedrig", "Mittel", "Hoch"]
   - Standard: "Mittel"
   - Beeinflusst Bewegungs-Detection-Parameter
 
 ### Route-Tracking
-- **Detaillierte Route aufzeichnen** *(Boolean, Standard: true)*
-- **Route-Punkte-Limit** *(Number)*
+
+- **Detaillierte Route aufzeichnen** _(Boolean, Standard: true)_
+- **Route-Punkte-Limit** _(Number)_
+
   - Bereich: 10-1000
   - Standard: 100
 
-- **GPS-Punkt-Speicher-Intervall** *(Sekunden)*
+- **GPS-Punkt-Speicher-Intervall** _(Sekunden)_
   - Bereich: 5-300
   - Standard: 30
 
 ### Kalorien-Berechnung
-- **Kalorien-Berechnung aktivieren** *(Boolean, Standard: true)*
-- **Aktivitäts-Intensitäts-Multiplikatoren** *(Advanced)*
+
+- **Kalorien-Berechnung aktivieren** _(Boolean, Standard: true)_
+- **Aktivitäts-Intensitäts-Multiplikatoren** _(Advanced)_
   - Langsam: 0.7 (Standard)
   - Normal: 1.0 (Standard)
   - Schnell: 1.4 (Standard)
@@ -879,167 +975,195 @@ mode: restart
 ## ⚙️ MODUL 8: Erweiterte Service-Konfiguration (OPTIONAL)
 
 ### Script-Services-Aktivierung
-- **Erweiterte Script-Services aktivieren** *(Boolean, Standard: false)*
-- **Service-Statistik-Tracking** *(Boolean, Standard: true)*
+
+- **Erweiterte Script-Services aktivieren** _(Boolean, Standard: false)_
+- **Service-Statistik-Tracking** _(Boolean, Standard: true)_
 
 ### Fütterungs-Services
-- **feed_dog Service** *(Boolean, Standard: true)*
-- **Automatische Portionsgrößen-Berechnung** *(Boolean, Standard: true)*
-- **Fütterungs-Logging-Level** *(Optionen: "Basic", "Detailed", "Full")*
+
+- **feed_dog Service** _(Boolean, Standard: true)_
+- **Automatische Portionsgrößen-Berechnung** _(Boolean, Standard: true)_
+- **Fütterungs-Logging-Level** _(Optionen: "Basic", "Detailed", "Full")_
 
 ### Aktivitäts-Services
-- **walk_dog Service** *(Boolean, Standard: true)*
-- **play_with_dog Service** *(Boolean, Standard: true)*
-- **start_training_session Service** *(Boolean, Standard: false)*
-- **Wetterintegration für Spaziergänge** *(Boolean, Standard: false)*
-- **Wetter-Entity** *(Entity-Auswahl, falls aktiviert)*
+
+- **walk_dog Service** _(Boolean, Standard: true)_
+- **play_with_dog Service** _(Boolean, Standard: true)_
+- **start_training_session Service** _(Boolean, Standard: false)_
+- **Wetterintegration für Spaziergänge** _(Boolean, Standard: false)_
+- **Wetter-Entity** _(Entity-Auswahl, falls aktiviert)_
 
 ### Gesundheits-Services
-- **perform_health_check Service** *(Boolean, Standard: false)*
-- **mark_medication_given Service** *(Boolean, Standard: false)*
-- **record_vet_visit Service** *(Boolean, Standard: false)*
-- **Gesundheitsdaten-Export** *(Boolean, Standard: false)*
+
+- **perform_health_check Service** _(Boolean, Standard: false)_
+- **mark_medication_given Service** _(Boolean, Standard: false)_
+- **record_vet_visit Service** _(Boolean, Standard: false)_
+- **Gesundheitsdaten-Export** _(Boolean, Standard: false)_
 
 ### Pflege-Services
-- **start_grooming_session Service** *(Boolean, Standard: false)*
-- **Pflegeerinnerungen** *(Boolean, Standard: false)*
-- **Pflege-Intervall** *(Wochen, Standard: 4)*
+
+- **start_grooming_session Service** _(Boolean, Standard: false)_
+- **Pflegeerinnerungen** _(Boolean, Standard: false)_
+- **Pflege-Intervall** _(Wochen, Standard: 4)_
 
 ### System-Services
-- **activate_emergency_mode Service** *(Boolean, Standard: true)*
-- **toggle_visitor_mode Service** *(Boolean, Standard: true)*
-- **daily_reset Service** *(Boolean, Standard: true)*
-- **generate_report Service** *(Boolean, Standard: false)*
+
+- **activate_emergency_mode Service** _(Boolean, Standard: true)_
+- **toggle_visitor_mode Service** _(Boolean, Standard: true)_
+- **daily_reset Service** _(Boolean, Standard: true)_
+- **generate_report Service** _(Boolean, Standard: false)_
 
 ---
 
 ## 🔧 MODUL 9: System-Integration und Hardware (OPTIONAL)
 
 ### Home Assistant Integration
-- **HA-Restart-Persistence** *(Boolean, Standard: true)*
-- **State-Backup-Intervall** *(Stunden, Standard: 24)*
-- **Entity-Naming-Prefix** *(Text, Standard: Hundename)*
+
+- **HA-Restart-Persistence** _(Boolean, Standard: true)_
+- **State-Backup-Intervall** _(Stunden, Standard: 24)_
+- **Entity-Naming-Prefix** _(Text, Standard: Hundename)_
 
 ### Hardware-Integration
+
 **Sensoren-Integration**
-- **Gewichts-Sensor Integration** *(Boolean, Standard: false)*
-- **Gewichts-Sensor Entity** *(Entity-Auswahl)*
-- **Temperatur-Sensor Integration** *(Boolean, Standard: false)*
-- **Temperatur-Sensor Entity** *(Entity-Auswahl)*
+
+- **Gewichts-Sensor Integration** _(Boolean, Standard: false)_
+- **Gewichts-Sensor Entity** _(Entity-Auswahl)_
+- **Temperatur-Sensor Integration** _(Boolean, Standard: false)_
+- **Temperatur-Sensor Entity** _(Entity-Auswahl)_
 
 **Smart Home Integration**
-- **Türsensoren für Outside-Detection** *(Boolean, Standard: false)*
-- **Türsensor-Entities** *(Multi-Entity-Auswahl)*
-- **Kamera-Integration für Überwachung** *(Boolean, Standard: false)*
-- **Kamera-Entities** *(Multi-Entity-Auswahl)*
+
+- **Türsensoren für Outside-Detection** _(Boolean, Standard: false)_
+- **Türsensor-Entities** _(Multi-Entity-Auswahl)_
+- **Kamera-Integration für Überwachung** _(Boolean, Standard: false)_
+- **Kamera-Entities** _(Multi-Entity-Auswahl)_
 
 **IoT-Device Integration**
-- **MQTT-Broker für IoT-Geräte** *(Boolean, Standard: false)*
-- **MQTT-Broker-Konfiguration** *(Host, Port, Username, Password)*
-- **Custom-Device-Endpoints** *(Multi-Entry, Advanced)*
+
+- **MQTT-Broker für IoT-Geräte** _(Boolean, Standard: false)_
+- **MQTT-Broker-Konfiguration** _(Host, Port, Username, Password)_
+- **Custom-Device-Endpoints** _(Multi-Entry, Advanced)_
 
 ### Externe API-Integration
-- **Wetterservice-Integration** *(Boolean, Standard: false)*
-- **Wetterservice-Typ** *(Optionen: "OpenWeatherMap", "Weather.com", "Home Assistant Weather")*
-- **API-Key** *(Text, falls erforderlich)*
 
-- **Veterinär-Software-Integration** *(Boolean, Standard: false)*
-- **Vet-Software-API-Endpoint** *(URL, Advanced)*
-- **API-Credentials** *(Username/Password oder API-Key)*
+- **Wetterservice-Integration** _(Boolean, Standard: false)_
+- **Wetterservice-Typ** _(Optionen: "OpenWeatherMap", "Weather.com", "Home Assistant Weather")_
+- **API-Key** _(Text, falls erforderlich)_
+
+- **Veterinär-Software-Integration** _(Boolean, Standard: false)_
+- **Vet-Software-API-Endpoint** _(URL, Advanced)_
+- **API-Credentials** _(Username/Password oder API-Key)_
 
 ---
 
 ## 📦 MODUL 10: Datenverwaltung und Backup (OPTIONAL)
 
 ### Daten-Retention
-- **Aktivitätsdaten-Aufbewahrung** *(Tage)*
+
+- **Aktivitätsdaten-Aufbewahrung** _(Tage)_
+
   - Optionen: [30, 90, 180, 365, "Unbegrenzt"]
   - Standard: 90 Tage
 
-- **GPS-Routen-Aufbewahrung** *(Anzahl Routen)*
+- **GPS-Routen-Aufbewahrung** _(Anzahl Routen)_
+
   - Bereich: 5-100
   - Standard: 20
 
-- **Gesundheitsdaten-Aufbewahrung** *(Tage)*
+- **Gesundheitsdaten-Aufbewahrung** _(Tage)_
   - Standard: 365 Tage
 
 ### Backup-Konfiguration
-- **Automatische Backups aktivieren** *(Boolean, Standard: false)*
-- **Backup-Intervall** *(Optionen: "Täglich", "Wöchentlich", "Monatlich")*
-- **Backup-Speicherort** *(Pfad, Standard: "/config/paw_control_backups")*
-- **Backup-Anzahl-Limit** *(Number, Standard: 10)*
+
+- **Automatische Backups aktivieren** _(Boolean, Standard: false)_
+- **Backup-Intervall** _(Optionen: "Täglich", "Wöchentlich", "Monatlich")_
+- **Backup-Speicherort** _(Pfad, Standard: "/config/paw_control_backups")_
+- **Backup-Anzahl-Limit** _(Number, Standard: 10)_
 
 ### Datenexport
-- **Export-Funktionen aktivieren** *(Boolean, Standard: false)*
-- **Export-Formate** *(Multi-Select)*
+
+- **Export-Funktionen aktivieren** _(Boolean, Standard: false)_
+- **Export-Formate** _(Multi-Select)_
   - CSV
   - JSON
   - PDF-Reports
   - GPX (für GPS-Routen)
 
 ### Datenschutz und Sicherheit
-- **Daten-Anonymisierung bei Export** *(Boolean, Standard: true)*
-- **GPS-Daten-Verschlüsselung** *(Boolean, Standard: false)*
-- **Backup-Verschlüsselung** *(Boolean, Standard: false)*
+
+- **Daten-Anonymisierung bei Export** _(Boolean, Standard: true)_
+- **GPS-Daten-Verschlüsselung** _(Boolean, Standard: false)_
+- **Backup-Verschlüsselung** _(Boolean, Standard: false)_
 
 ---
 
 ## 🚀 MODUL 11: Performance und Wartung (OPTIONAL)
 
 ### Performance-Optimierung
-- **Memory-Management** *(Optionen: "Conservative", "Balanced", "Performance")*
-- **Update-Intervall-Optimierung** *(Boolean, Standard: true)*
-- **Entity-Cleanup bei Neustart** *(Boolean, Standard: true)*
+
+- **Memory-Management** _(Optionen: "Conservative", "Balanced", "Performance")_
+- **Update-Intervall-Optimierung** _(Boolean, Standard: true)_
+- **Entity-Cleanup bei Neustart** _(Boolean, Standard: true)_
 
 ### Logging und Debugging
-- **Debug-Logging aktivieren** *(Boolean, Standard: false)*
-- **Log-Level** *(Optionen: "DEBUG", "INFO", "WARNING", "ERROR")*
-- **GPS-Trace-Logging** *(Boolean, Standard: false)*
-- **Service-Call-Logging** *(Boolean, Standard: false)*
+
+- **Debug-Logging aktivieren** _(Boolean, Standard: false)_
+- **Log-Level** _(Optionen: "DEBUG", "INFO", "WARNING", "ERROR")_
+- **GPS-Trace-Logging** _(Boolean, Standard: false)_
+- **Service-Call-Logging** _(Boolean, Standard: false)_
 
 ### System-Monitoring
-- **Performance-Monitoring** *(Boolean, Standard: false)*
-- **Memory-Usage-Tracking** *(Boolean, Standard: false)*
-- **Entity-Health-Monitoring** *(Boolean, Standard: true)*
+
+- **Performance-Monitoring** _(Boolean, Standard: false)_
+- **Memory-Usage-Tracking** _(Boolean, Standard: false)_
+- **Entity-Health-Monitoring** _(Boolean, Standard: true)_
 
 ### Update-Management
-- **Auto-Update-Checks** *(Boolean, Standard: true)*
-- **Beta-Features aktivieren** *(Boolean, Standard: false)*
-- **Update-Benachrichtigungen** *(Boolean, Standard: true)*
+
+- **Auto-Update-Checks** _(Boolean, Standard: true)_
+- **Beta-Features aktivieren** _(Boolean, Standard: false)_
+- **Update-Benachrichtigungen** _(Boolean, Standard: true)_
 
 ---
 
 ## 🎯 MODUL 12: Experteneinstellungen (ADVANCED)
 
 ### GPS-Advanced-Konfiguration
-- **Custom-GPS-Provider-Settings** *(JSON-Konfiguration)*
-- **Coordinate-System-Transformation** *(Boolean, Standard: false)*
-- **GPS-Drift-Correction** *(Boolean, Standard: true)*
-- **Signal-Noise-Filtering** *(Boolean, Standard: true)*
+
+- **Custom-GPS-Provider-Settings** _(JSON-Konfiguration)_
+- **Coordinate-System-Transformation** _(Boolean, Standard: false)_
+- **GPS-Drift-Correction** _(Boolean, Standard: true)_
+- **Signal-Noise-Filtering** _(Boolean, Standard: true)_
 
 ### Service-Custom-Konfiguration
-- **Custom-Service-Timeouts** *(Sekunden-Mapping)*
-- **Retry-Logic-Konfiguration** *(Advanced)*
-- **Error-Handling-Strategien** *(Advanced)*
+
+- **Custom-Service-Timeouts** _(Sekunden-Mapping)_
+- **Retry-Logic-Konfiguration** _(Advanced)_
+- **Error-Handling-Strategien** _(Advanced)_
 
 ### Entity-Management
-- **Entity-ID-Patterns** *(Template-Konfiguration)*
-- **Custom-Icon-Mappings** *(JSON)*
-- **Entity-State-Templates** *(YAML)*
+
+- **Entity-ID-Patterns** _(Template-Konfiguration)_
+- **Custom-Icon-Mappings** _(JSON)_
+- **Entity-State-Templates** _(YAML)_
 
 ### Integration-Hooks
-- **Pre/Post-Service-Hooks** *(Script-Referenzen)*
-- **Custom-Automation-Trigger** *(YAML)*
-- **Event-Bus-Integration** *(Advanced)*
+
+- **Pre/Post-Service-Hooks** _(Script-Referenzen)_
+- **Custom-Automation-Trigger** _(YAML)_
+- **Event-Bus-Integration** _(Advanced)_
 
 ---
 
 ## ✅ ZUSAMMENFASSUNG DER SETUP-KATEGORIEN
 
 ### ERFORDERLICHE KONFIGURATION
+
 1. **Hundename** (Pflichtfeld)
 
 ### MODULARE OPTIONAL-KONFIGURATION
+
 1. **Hundedaten-Erweiterung** (9 Parameter)
 2. **Fütterungssystem** (15 Parameter)
 3. **GPS-Tracking-System** (35+ Parameter)
@@ -1054,11 +1178,13 @@ mode: restart
 12. **Experteneinstellungen** (15 Parameter)
 
 ### GESAMT-PARAMETER-ANZAHL
+
 - **Erforderlich**: 1 Parameter
 - **Optional**: 200+ Parameter
 - **Total**: 200+ konfigurierbare Einstellungen
 
 ### SETUP-FLOW-EMPFEHLUNG
+
 1. **Quick Setup** (5 Min): Nur Grunddaten + GPS-Quelle
 2. **Standard Setup** (15 Min): + Fütterung + Benachrichtigungen
 3. **Advanced Setup** (30 Min): + Gesundheit + Automatisierung
@@ -1069,31 +1195,31 @@ Dieses Setup-System ermöglicht eine vollständige Anpassung von einer Basis-Hun
 ---
 
 ### Medikations-Mapping (ab v15)
+
 - Konfiguration **pro Hund** im **Options-Flow → medication_mapping**.
 - Für jeden Hund stehen **Slots 1..3** zur Verfügung; jeweils Mehrfachauswahl der Mahlzeiten (**Frühstück/Mittag/Abend**).
 - Die früheren Switches `switch.pawcontrol_*_medication_*_at_*` sind **entfernt**.
 
 ---
 
-## GPS-Setup – kompatibel zu *PawTracker*-Beispielen
+## GPS-Setup – kompatibel zu _PawTracker_-Beispielen
+
 Die Integration akzeptiert die in den Guides verwendeten Services **auch unter `pawtracker.*`** (Alias).
 Beispiele aus den Markdown-Dateien funktionieren daher direkt (z. B. `pawtracker.setup_automatic_gps`, `pawtracker.update_gps_simple`).
 
-
-
 ### Geofencing & Medien-Export
+
 - Sicherheitszonen (leave/enter) mit Events + Benachrichtigungen. Schneller Toggle via Service `pawcontrol.toggle_geofence_alerts`.
 - Routen-Export optional direkt ins **/media/pawcontrol_routes** (Media Browser) – setze `to_media: true` beim Service `pawcontrol.gps_export_last_route`.
 - Auto-Profile (bewegungsbasiert): `sensor.pawcontrol_*_gps_profile` zeigt aktuelles Profil (`battery_saver`/`high_accuracy`).
 
-
-
 ### Beispiele & Services
+
 - Beispiele unter `examples/gps_automation_examples.yaml` (aus den bereitgestellten Guides).
 - Neue Services: `pawcontrol.gps_pause_tracking`, `pawcontrol.gps_resume_tracking`.
 
-
 ### Blueprints
+
 - Siehe `blueprints/automation/pawcontrol/` für fertige Automations-Vorlagen.
 
 - Beispiel-Dashboard: `dashboards/pawcontrol_dashboard.yaml` (DOG_ID im YAML ersetzen).
@@ -1114,6 +1240,7 @@ Beispiele aus den Markdown-Dateien funktionieren daher direkt (z. B. `pawtrack
 - Optionen: **Hunde verwalten** – schnelle Eingabe als `id:name` je Zeile.
 
 ## Schnellstart
+
 - HACS installieren → Paw Control hinzufügen → Optionen öffnen → **Hunde verwalten** ausfüllen.
 
 - Optionen: **Module aktivieren** – Multi-Select für GPS / Feeding / Health / Walk.

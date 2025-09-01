@@ -36,13 +36,13 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 
 ### Unterstützte GPS-Tracker
 
-| Tracker | Status | Features | Setup-Anleitung |
-|---------|--------|----------|-----------------|
-| Tractive GPS | ✅ Vollständig | Live-Tracking, Geofencing | [Setup →](#tractive-setup) |
-| Fi Smart Dog Collar | ✅ Vollständig | GPS, Aktivität, Schlaf | [Setup →](#fi-setup) |
-| Apple AirTag | ⚠️ Begrenzt | Standort-Updates | [Setup →](#airtag-setup) |
-| Generic GPS Logger | ✅ Basis | GPS-Koordinaten | [Setup →](#generic-gps-setup) |
-| Whistle GPS | 🔄 In Entwicklung | - | Bald verfügbar |
+| Tracker             | Status            | Features                  | Setup-Anleitung               |
+| ------------------- | ----------------- | ------------------------- | ----------------------------- |
+| Tractive GPS        | ✅ Vollständig    | Live-Tracking, Geofencing | [Setup →](#tractive-setup)    |
+| Fi Smart Dog Collar | ✅ Vollständig    | GPS, Aktivität, Schlaf    | [Setup →](#fi-setup)          |
+| Apple AirTag        | ⚠️ Begrenzt       | Standort-Updates          | [Setup →](#airtag-setup)      |
+| Generic GPS Logger  | ✅ Basis          | GPS-Koordinaten           | [Setup →](#generic-gps-setup) |
+| Whistle GPS         | 🔄 In Entwicklung | -                         | Bald verfügbar                |
 
 ## 📦 Installation
 
@@ -111,24 +111,26 @@ dog_config:
     notifications: true
     dashboard: true
     grooming: true
-    medication: false  # Nur wenn benötigt
+    medication: false # Nur wenn benötigt
     training: true
 ```
 
 ### Schritt 3: Grundlegende Einstellungen
 
 #### Geofencing konfigurieren
+
 ```yaml
 geofence_settings:
   geofencing_enabled: true
-  geofence_lat: 52.520008  # Ihre Heimkoordinaten
+  geofence_lat: 52.520008 # Ihre Heimkoordinaten
   geofence_lon: 13.404954
-  geofence_radius_m: 150   # Radius in Metern
+  geofence_radius_m: 150 # Radius in Metern
   geofence_alerts_enabled: true
-  use_home_location: true  # HA-Koordinaten verwenden
+  use_home_location: true # HA-Koordinaten verwenden
 ```
 
 #### Benachrichtigungen einrichten
+
 ```yaml
 notifications:
   notifications_enabled: true
@@ -151,13 +153,13 @@ notifications:
 ```yaml
 gps_settings:
   gps_enabled: true
-  gps_accuracy_filter: 50      # Mindestgenauigkeit in Metern
-  gps_distance_filter: 10      # Mindestabstand zwischen Punkten
-  gps_update_interval: 30      # Sekunden zwischen Updates
-  auto_start_walk: false       # Manuelle Walk-Starts
-  auto_end_walk: true          # Automatisches Ende bei Heimkehr
-  route_recording: true        # Routen aufzeichnen
-  route_history_days: 90       # Aufbewahrung der Routenhistorie
+  gps_accuracy_filter: 50 # Mindestgenauigkeit in Metern
+  gps_distance_filter: 10 # Mindestabstand zwischen Punkten
+  gps_update_interval: 30 # Sekunden zwischen Updates
+  auto_start_walk: false # Manuelle Walk-Starts
+  auto_end_walk: true # Automatisches Ende bei Heimkehr
+  route_recording: true # Routen aufzeichnen
+  route_history_days: 90 # Aufbewahrung der Routenhistorie
 ```
 
 #### 2. Webhook für GPS-Tracking einrichten
@@ -374,6 +376,7 @@ lovelace:
 ### Schritt 3: Custom Cards installieren
 
 Erforderliche HACS-Cards:
+
 - **Mushroom Cards**: Moderne UI-Komponenten
 - **ApexCharts Card**: Für Diagramme und Statistiken
 - **Auto-Entities**: Dynamische Entitätslisten
@@ -565,6 +568,7 @@ widget_entities:
 #### Problem: GPS-Tracking funktioniert nicht
 
 **Lösung:**
+
 ```bash
 # 1. Integration-Logs prüfen
 # Einstellungen → System → Logs → Filter: pawcontrol
@@ -581,6 +585,7 @@ curl -X POST "https://ihr-ha-server.com/api/webhook/paw_control_gps" \
 #### Problem: Benachrichtigungen kommen nicht an
 
 **Lösung:**
+
 ```yaml
 # 1. Mobile App Konfiguration prüfen
 # 2. Notification Service testen
@@ -588,7 +593,6 @@ service: notify.mobile_app_phone
 data:
   title: "Test"
   message: "Paw Control Test-Nachricht"
-
 # 3. Quiet Hours prüfen
 # Einstellungen → Paw Control → Notifications → Quiet Hours
 ```
@@ -596,6 +600,7 @@ data:
 #### Problem: Entitäten werden nicht erstellt
 
 **Lösung:**
+
 ```bash
 # 1. Integration neu laden
 # Entwicklertools → YAML → Alle neu laden
@@ -633,9 +638,9 @@ service: pawcontrol.performance_monitor_start
 
 # Speicher-Verwendung optimieren
 gps_settings:
-  route_history_days: 30      # Reduzieren für weniger Speicher
-  gps_update_interval: 60     # Längere Intervalle
-  route_recording: false      # Deaktivieren wenn nicht benötigt
+  route_history_days: 30 # Reduzieren für weniger Speicher
+  gps_update_interval: 60 # Längere Intervalle
+  route_recording: false # Deaktivieren wenn nicht benötigt
 ```
 
 ## ⚡ Performance-Optimierung

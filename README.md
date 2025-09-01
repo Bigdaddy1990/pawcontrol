@@ -12,6 +12,7 @@
 ## ✨ Hauptfeatures
 
 ### 🗺️ **GPS-Tracking & Geofencing**
+
 - **Live GPS-Tracking** mit Routenaufzeichnung
 - **Intelligente Walk-Erkennung** über Türsensoren und Standort
 - **Geofencing** mit anpassbaren Sicherheitszonen
@@ -20,6 +21,7 @@
 - **Routen-Export** als GPX/GeoJSON für externe Analyse
 
 ### 🍽️ **Fütterungsmanagement**
+
 - **Automatische Fütterungserinnerungen** basierend auf Zeitplänen
 - **Smart Feeder Integration** für automatisierte Fütterung
 - **Mahlzeit-Tracking** mit verschiedenen Futterarten
@@ -27,6 +29,7 @@
 - **Fütterungshistorie** und Trends
 
 ### 🏥 **Gesundheitsüberwachung**
+
 - **Gewichtstracking** mit Trendanalyse
 - **Medikationserinnerungen** mit anpassbaren Zeitplänen
 - **Tierarzttermin-Verwaltung** und Erinnerungen
@@ -35,6 +38,7 @@
 - **Gesundheits-Alerts** bei Anomalien
 
 ### 📱 **Mobile Integration**
+
 - **Actionable Notifications** für iOS und Android
 - **Widget-Support** für Quick Actions
 - **Location-basierte Automatisierungen**
@@ -42,6 +46,7 @@
 - **Offline-Synchronisation** für GPS-Daten
 
 ### 🏠 **Smart Home Integration**
+
 - **Türsensor-Integration** für automatische Walk-Erkennung
 - **Wetter-basierte** Walk-Empfehlungen
 - **Kalender-Integration** für Termine und Events
@@ -49,6 +54,7 @@
 - **Licht-Signale** für Warnungen und Status
 
 ### 📊 **Analytics & Reporting**
+
 - **Detaillierte Dashboards** mit Echtzeit-Daten
 - **Wochen-/Monatsberichte** mit Trends
 - **Performance-Monitoring** der Integration
@@ -82,21 +88,23 @@ initial_setup:
 ## 📋 Unterstützte Plattformen & Entities
 
 ### Platforms
-| Platform | Entities | Features |
-|----------|----------|----------|
-| **Sensor** | 25+ | Walk-Statistiken, Gesundheitsdaten, GPS-Metriken |
-| **Binary Sensor** | 12+ | Walk-Status, Gesundheits-Alerts, Geofencing |
-| **Button** | 8+ | Walk-Steuerung, Fütterung, Pflege |
-| **Device Tracker** | Pro Hund | GPS-Position, Zonen-Tracking |
-| **Switch** | 6+ | Module-Steuerung, Benachrichtigungen |
-| **Number** | 4+ | Gewicht, Einstellungen |
-| **Select** | 3+ | Walk-Modi, Mahlzeit-Typen |
-| **Text** | 2+ | Notizen, Custom-Labels |
-| **DateTime** | 4+ | Letzte Fütterung, Medikation, Termine |
+
+| Platform           | Entities | Features                                         |
+| ------------------ | -------- | ------------------------------------------------ |
+| **Sensor**         | 25+      | Walk-Statistiken, Gesundheitsdaten, GPS-Metriken |
+| **Binary Sensor**  | 12+      | Walk-Status, Gesundheits-Alerts, Geofencing      |
+| **Button**         | 8+       | Walk-Steuerung, Fütterung, Pflege                |
+| **Device Tracker** | Pro Hund | GPS-Position, Zonen-Tracking                     |
+| **Switch**         | 6+       | Module-Steuerung, Benachrichtigungen             |
+| **Number**         | 4+       | Gewicht, Einstellungen                           |
+| **Select**         | 3+       | Walk-Modi, Mahlzeit-Typen                        |
+| **Text**           | 2+       | Notizen, Custom-Labels                           |
+| **DateTime**       | 4+       | Letzte Fütterung, Medikation, Termine            |
 
 ### Hauptentitäten (pro Hund)
 
 #### 📊 Sensoren
+
 ```yaml
 # Walk & GPS Daten
 sensor.buddy_walk_distance_today        # Heutige Walk-Distanz
@@ -125,6 +133,7 @@ sensor.buddy_walks_this_week           # Walks diese Woche
 ```
 
 #### 🔘 Binary Sensoren
+
 ```yaml
 # Status-Indikatoren
 binary_sensor.buddy_walk_in_progress    # Walk läuft gerade
@@ -141,6 +150,7 @@ binary_sensor.buddy_vet_checkup_due     # Tierarzt-Termin fällig
 ```
 
 #### 🎛️ Buttons & Controls
+
 ```yaml
 # Walk-Steuerung
 button.buddy_start_walk                 # Walk starten
@@ -158,6 +168,7 @@ button.buddy_reset_daily_stats          # Tagesstatistiken zurücksetzen
 ```
 
 #### 📍 Device Tracker
+
 ```yaml
 device_tracker.buddy_gps                # GPS-Position des Hundes
   attributes:
@@ -173,6 +184,7 @@ device_tracker.buddy_gps                # GPS-Position des Hundes
 ## 🛠️ Services
 
 ### GPS & Tracking Services
+
 ```yaml
 # Walk-Management
 pawcontrol.gps_start_walk:
@@ -206,6 +218,7 @@ pawcontrol.gps_export_last_route:
 ```
 
 ### Fütterungs-Services
+
 ```yaml
 pawcontrol.feed_dog:
   description: "Fütterung protokollieren"
@@ -217,6 +230,7 @@ pawcontrol.feed_dog:
 ```
 
 ### Gesundheits-Services
+
 ```yaml
 pawcontrol.log_health:
   description: "Gesundheitsdaten protokollieren"
@@ -241,6 +255,7 @@ pawcontrol.start_grooming:
 ```
 
 ### System-Services
+
 ```yaml
 pawcontrol.daily_reset:
   description: "Tägliche Statistiken zurücksetzen"
@@ -267,27 +282,27 @@ pawcontrol.generate_report:
 ```yaml
 # Hochpräzise GPS-Konfiguration
 high_precision_gps:
-  gps_accuracy_filter: 10      # Nur sehr genaue Punkte
-  gps_distance_filter: 5       # Engmaschiges Tracking
-  gps_update_interval: 15      # Alle 15 Sekunden
-  route_recording: true        # Vollständige Routen
-  route_history_days: 365      # 1 Jahr Historien
+  gps_accuracy_filter: 10 # Nur sehr genaue Punkte
+  gps_distance_filter: 5 # Engmaschiges Tracking
+  gps_update_interval: 15 # Alle 15 Sekunden
+  route_recording: true # Vollständige Routen
+  route_history_days: 365 # 1 Jahr Historien
 
 # Batterie-schonende Konfiguration
 battery_saving_gps:
-  gps_accuracy_filter: 100     # Weniger streng
-  gps_distance_filter: 20      # Größere Abstände
-  gps_update_interval: 60      # Minütlich
-  route_recording: false       # Keine Routen
-  route_history_days: 30       # Kurze Historie
+  gps_accuracy_filter: 100 # Weniger streng
+  gps_distance_filter: 20 # Größere Abstände
+  gps_update_interval: 60 # Minütlich
+  route_recording: false # Keine Routen
+  route_history_days: 30 # Kurze Historie
 
 # Ausgewogene Einstellung (empfohlen)
 balanced_gps:
-  gps_accuracy_filter: 50      # Moderate Genauigkeit
-  gps_distance_filter: 10      # Mittlere Abstände
-  gps_update_interval: 30      # Alle 30 Sekunden
-  route_recording: true        # Mit Routen
-  route_history_days: 90       # 3 Monate
+  gps_accuracy_filter: 50 # Moderate Genauigkeit
+  gps_distance_filter: 10 # Mittlere Abstände
+  gps_update_interval: 30 # Alle 30 Sekunden
+  route_recording: true # Mit Routen
+  route_history_days: 90 # 3 Monate
 ```
 
 ### Multi-Dog Setup
@@ -315,7 +330,7 @@ multi_dog_config:
       modules:
         gps: true
         feeding: true
-        health: false    # Deaktiviert für Luna
+        health: false # Deaktiviert für Luna
         grooming: true
 ```
 
@@ -332,10 +347,10 @@ notifications:
   priority_notifications: true
   summary_notifications: true
   notification_channels:
-    - mobile              # Mobile App
-    - persistent          # Persistent Notifications
-    - email              # E-Mail (falls konfiguriert)
-    - slack              # Slack (falls konfiguriert)
+    - mobile # Mobile App
+    - persistent # Persistent Notifications
+    - email # E-Mail (falls konfiguriert)
+    - slack # Slack (falls konfiguriert)
 
   # Spezifische Einstellungen
   walk_reminders:
@@ -351,7 +366,7 @@ notifications:
       dinner: "18:30"
 
   health_alerts:
-    weight_change_threshold: 1.0    # kg
+    weight_change_threshold: 1.0 # kg
     medication_reminders: true
     vet_checkup_reminders: true
 ```
@@ -608,22 +623,22 @@ pytest --cov=custom_components.pawcontrol --cov-report=html
 
 ### Performance Benchmarks
 
-| Metrik | Zielwert | Aktuell | Status |
-|--------|----------|---------|--------|
-| Entity Setup Time | < 5s | 2.3s | ✅ |
-| GPS Update Processing | < 100ms | 45ms | ✅ |
-| Memory Usage | < 50MB | 23MB | ✅ |
-| Config Flow Duration | < 10s | 4.1s | ✅ |
-| Service Response Time | < 500ms | 180ms | ✅ |
+| Metrik                | Zielwert | Aktuell | Status |
+| --------------------- | -------- | ------- | ------ |
+| Entity Setup Time     | < 5s     | 2.3s    | ✅     |
+| GPS Update Processing | < 100ms  | 45ms    | ✅     |
+| Memory Usage          | < 50MB   | 23MB    | ✅     |
+| Config Flow Duration  | < 10s    | 4.1s    | ✅     |
+| Service Response Time | < 500ms  | 180ms   | ✅     |
 
 ### Unterstützte Home Assistant Versionen
 
-| HA Version | Status | Getestet | Notizen |
-|------------|--------|----------|---------|
-| 2025.8.x | ✅ Vollständig | ✅ | Empfohlen |
-| 2025.7.x | ✅ Vollständig | ✅ | Stabil |
-| 2025.6.x | ⚠️ Eingeschränkt | ✅ | Basis-Features |
-| 2025.5.x | ❌ Nicht unterstützt | - | Zu alt |
+| HA Version | Status               | Getestet | Notizen        |
+| ---------- | -------------------- | -------- | -------------- |
+| 2025.8.x   | ✅ Vollständig       | ✅       | Empfohlen      |
+| 2025.7.x   | ✅ Vollständig       | ✅       | Stabil         |
+| 2025.6.x   | ⚠️ Eingeschränkt     | ✅       | Basis-Features |
+| 2025.5.x   | ❌ Nicht unterstützt | -        | Zu alt         |
 
 ## 🤝 Contributing
 
@@ -685,6 +700,7 @@ mypy custom_components/pawcontrol/
 ### Häufige Probleme
 
 **GPS-Tracking funktioniert nicht:**
+
 ```bash
 # Debug-Logging aktivieren
 logger:
@@ -698,6 +714,7 @@ data:
 ```
 
 **Benachrichtigungen kommen nicht an:**
+
 ```yaml
 # Mobile App Konfiguration prüfen
 service: notify.mobile_app_phone
@@ -707,6 +724,7 @@ data:
 ```
 
 **Entitäten werden nicht erstellt:**
+
 ```bash
 # Integration neu laden
 # Entwicklertools → YAML → Alle neu laden
@@ -736,6 +754,7 @@ data:
 ## 📝 Changelog
 
 ### Version 1.3.0 (Latest)
+
 - ✨ **Erweiterte Options Flow** mit umfassendem Menüsystem
 - 🗺️ **Verbesserte GPS-Tracking** Performance und Genauigkeit
 - 🏥 **Erweiterte Gesundheitsüberwachung** mit Trends und Alerts
@@ -771,7 +790,7 @@ Dieses Projekt steht unter der MIT Lizenz - siehe [LICENSE](LICENSE) für Detail
 
 **🐕 Made with ❤️ for our four-legged family members 🐾**
 
-*Paw Control - Bringing Smart Home technology to pet care since 2024*
+_Paw Control - Bringing Smart Home technology to pet care since 2024_
 
 </div>
 

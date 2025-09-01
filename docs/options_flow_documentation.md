@@ -28,6 +28,7 @@ Der erweiterte Options Flow für die Paw Control Integration bietet eine umfasse
 Konfiguration der Heimposition und Geofencing-Optionen:
 
 **Verfügbare Optionen:**
+
 - `geofencing_enabled`: Aktivierung des Geofencing (Boolean)
 - `geofence_lat`: Breitengrad der Heimposition (Float, -90 bis 90)
 - `geofence_lon`: Längengrad der Heimposition (Float, -180 bis 180)
@@ -36,6 +37,7 @@ Konfiguration der Heimposition und Geofencing-Optionen:
 - `use_home_location`: Verwendung der Home Assistant Heimposition (Boolean)
 
 **Verwendung:**
+
 ```python
 # Beispiel Geofence-Konfiguration
 geofence_config = {
@@ -53,6 +55,7 @@ geofence_config = {
 Konfiguration von Benachrichtigungen und Ruhezeiten:
 
 **Verfügbare Optionen:**
+
 - `notifications_enabled`: Aktivierung von Benachrichtigungen (Boolean)
 - `quiet_hours_enabled`: Aktivierung von Ruhezeiten (Boolean)
 - `quiet_start`: Startzeit der Ruhezeiten (String, HH:MM Format)
@@ -60,6 +63,7 @@ Konfiguration von Benachrichtigungen und Ruhezeiten:
 - `reminder_repeat_min`: Wiederholungsintervall für Erinnerungen in Minuten (Integer, 5-120)
 
 **Verwendung:**
+
 ```python
 # Beispiel Benachrichtigungs-Konfiguration
 notifications_config = {
@@ -76,6 +80,7 @@ notifications_config = {
 Aktivierung/Deaktivierung spezifischer Funktionen:
 
 **Verfügbare Module:**
+
 - `module_feeding`: Fütterungsmanagement (Boolean)
 - `module_gps`: GPS-Verfolgung (Boolean)
 - `module_health`: Gesundheitsüberwachung (Boolean)
@@ -85,6 +90,7 @@ Aktivierung/Deaktivierung spezifischer Funktionen:
 - `module_medication`: Medikamentenerinnerungen (Boolean)
 
 **Verwendung:**
+
 ```python
 # Beispiel Modul-Konfiguration
 modules_config = {
@@ -103,12 +109,14 @@ modules_config = {
 Allgemeine Systemkonfiguration:
 
 **Verfügbare Optionen:**
+
 - `reset_time`: Tägliche Zurücksetzungszeit (String, HH:MM:SS Format)
 - `visitor_mode`: Aktivierung des Besuchermodus (Boolean)
 - `export_format`: Standard-Exportformat (String: \"csv\", \"json\", \"pdf\")
 - `auto_prune_devices`: Automatisches Entfernen alter Geräte (Boolean)
 
 **Verwendung:**
+
 ```python
 # Beispiel System-Konfiguration
 system_config = {
@@ -228,6 +236,7 @@ async def test_options_flow_geofence_configuration(hass, mock_config_entry):
 ```
 
 **Testbereiche:**
+
 - Menü-Navigation
 - Formular-Darstellung
 - Datenvalidierung
@@ -266,6 +275,7 @@ Bestehende Konfigurationen werden automatisch erkannt und als Standardwerte verw
 ### Hinzufügen neuer Konfigurationsbereiche
 
 1. **Neue Menü-Option hinzufügen:**
+
 ```python
 MENU_OPTIONS: Final[dict[str, str]] = {
     \"existing_option\": \"Existing Option\",
@@ -274,6 +284,7 @@ MENU_OPTIONS: Final[dict[str, str]] = {
 ```
 
 2. **Neue Step-Methode implementieren:**
+
 ```python
 async def async_step_new_option(
     self, user_input: dict[str, Any] | None = None
@@ -283,6 +294,7 @@ async def async_step_new_option(
 ```
 
 3. **Schema definieren:**
+
 ```python
 schema = vol.Schema({
     vol.Optional(\"new_setting\", default=default_value): validator,
@@ -290,6 +302,7 @@ schema = vol.Schema({
 ```
 
 4. **Übersetzungen hinzufügen:**
+
 ```json
 {
     \"new_option\": {
@@ -303,6 +316,7 @@ schema = vol.Schema({
 ```
 
 5. **Tests schreiben:**
+
 ```python
 async def test_options_flow_new_option(hass, mock_config_entry):
     \"\"\"Test new option configuration.\"\"\"

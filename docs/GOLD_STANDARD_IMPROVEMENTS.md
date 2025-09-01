@@ -1,6 +1,7 @@
 # PawControl Integration - Gold Standard Improvement Plan
 
 ## Status: **Silver (80% Fortschritt zum Gold)**
+
 ## Ziel: **Gold Standard**
 
 ---
@@ -8,18 +9,21 @@
 ## ✅ **Heute durchgeführte Verbesserungen**
 
 ### 1. **Config Flow komplett bereinigt**
+
 - ✅ 7 unbenutzte Mixin-Klassen in `PawControlOptionsFlow` integriert
 - ✅ `async_step_reconfigure` korrekt implementiert
 - ✅ `async_step_reauth` vollständig implementiert
 - ✅ Duplizierter Code entfernt
 
 ### 2. **Discovery vollständig aktiviert**
+
 - ✅ USB Discovery in manifest.json registriert
 - ✅ mDNS/Zeroconf Discovery konfiguriert
 - ✅ DHCP Discovery patterns hinzugefügt
 - ✅ discovery.py vollständig implementiert
 
 ### 3. **Runtime Data Migration abgeschlossen**
+
 - ✅ hass.data Verwendung komplett entfernt
 - ✅ Alle Komponenten nutzen entry.runtime_data
 - ✅ Moderne API-Patterns implementiert
@@ -29,9 +33,11 @@
 ## ⚠️ **Verbleibende Aufgaben für Gold Standard**
 
 ### 1. **Test Coverage auf 95% erhöhen** (Aktuell: ~60%)
+
 **Kritisch für Gold Standard!**
 
 Benötigte Tests:
+
 ```python
 # test_sensor.py - Vollständige Tests für alle Sensor-Typen
 - Test für WalkDistanceCurrentSensor
@@ -56,23 +62,29 @@ Benötigte Tests:
 ```
 
 ### 2. **Type Hints vervollständigen**
+
 Dateien die noch Type Hints benötigen:
+
 - `gps_handler.py` - Partial typing
 - `report_generator.py` - Partial typing
 - `route_store.py` - Partial typing
-- helpers/*.py - Einige Funktionen ohne Types
+- helpers/\*.py - Einige Funktionen ohne Types
 
 ### 3. **Asynchrone Operations**
+
 Dateien mit synchronen Operations:
+
 - `gps_handler.py` - File I/O sollte async sein
 - `route_store.py` - Storage operations
 - `report_generator.py` - PDF Generation
 
 ### 4. **Repair Flows erweitern**
+
 - Weitere Repair-Szenarien hinzufügen
 - Automatische Problembehebung implementieren
 
 ### 5. **Brand Submission**
+
 - Logo und Icons vorbereiten
 - Pull Request an Home Assistant Brands Repository
 
@@ -80,36 +92,39 @@ Dateien mit synchronen Operations:
 
 ## 📊 **Quality Scale Fortschritt**
 
-| Requirement | Status | Progress |
-|------------|--------|----------|
-| **Bronze** | ✅ Complete | 100% |
-| **Silver** | ✅ Complete | 100% |
-| **Gold** | ⏳ In Progress | 80% |
-| Discovery | ✅ Implemented | 100% |
-| Test Coverage | ❌ Needs Work | 60% → 95% |
-| Type Hints | ⚠️ Partial | 85% → 100% |
-| Async Code | ⚠️ Partial | 90% → 100% |
-| runtime_data | ✅ Complete | 100% |
-| Reconfiguration | ✅ Complete | 100% |
-| Reauthentication | ✅ Complete | 100% |
+| Requirement      | Status         | Progress   |
+| ---------------- | -------------- | ---------- |
+| **Bronze**       | ✅ Complete    | 100%       |
+| **Silver**       | ✅ Complete    | 100%       |
+| **Gold**         | ⏳ In Progress | 80%        |
+| Discovery        | ✅ Implemented | 100%       |
+| Test Coverage    | ❌ Needs Work  | 60% → 95%  |
+| Type Hints       | ⚠️ Partial     | 85% → 100% |
+| Async Code       | ⚠️ Partial     | 90% → 100% |
+| runtime_data     | ✅ Complete    | 100%       |
+| Reconfiguration  | ✅ Complete    | 100%       |
+| Reauthentication | ✅ Complete    | 100%       |
 
 ---
 
 ## 🎯 **Nächste Prioritäten**
 
 ### 1. **Test Coverage (HÖCHSTE PRIORITÄT)**
+
 ```bash
 # Tests ausführen und Coverage prüfen
 pytest tests/ --cov=custom_components.pawcontrol --cov-report=html
 ```
 
 ### 2. **Type Hints vervollständigen**
+
 ```bash
 # Type checking mit mypy
 mypy custom_components/pawcontrol --strict
 ```
 
 ### 3. **Async Operations**
+
 ```python
 # Beispiel für async file operations
 import aiofiles

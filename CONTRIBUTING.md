@@ -1,4 +1,3 @@
-
 # Contributing to Paw Control
 
 - Code style follows Home Assistant integrations (async, typing).

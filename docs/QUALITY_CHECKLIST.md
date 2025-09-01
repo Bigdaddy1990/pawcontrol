@@ -3,6 +3,7 @@
 This document maps our implementation to the **Integration Quality Scale**.
 
 ## Silver (runtime robustness)
+
 - [x] Services registered in `async_setup` and validated via `ServiceValidationError`.
 - [x] `PARALLEL_UPDATES` explicitly set for read-only platforms.
 - [x] Graceful error handling; entities set `available` accordingly (coordinator-based).
@@ -11,6 +12,7 @@ This document maps our implementation to the **Integration Quality Scale**.
 - [x] Tests skeleton in place; target coverage ≥ 95% (to be completed in CI).
 
 ## Gold (user experience & supportability)
+
 - [x] Diagnostics (`diagnostics.py`) with **redaction** of sensitive data.
 - [x] Repair issues & Repair flows (`repairs.py`) for user-guided fixes.
 - [x] Device Registry: each dog/tracker is a Device; `unique_id` for entities.
@@ -22,8 +24,8 @@ This document maps our implementation to the **Integration Quality Scale**.
 - [ ] Test coverage ≥ 95% (implement & measure in CI with pytest + coverage).
 
 ## Notes
+
 - Discovery not applicable (no discoverable transport). Documented as exception.
 - Reauth only needed if authentication is introduced later.
-
 
 - [x] **GitHub Topics** gesetzt (z. B. `home-assistant`, `hacs`, `integration`) – verbessert Auffindbarkeit im HACS-Store.

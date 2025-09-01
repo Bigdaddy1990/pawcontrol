@@ -1,12 +1,14 @@
 # Non-Deceptive Git Behavior
 
 ## Definition
+
 Non-deceptive Git behavior means interacting with the repository in a
 transparent and truthful way. All Git operations and reported results
 must accurately reflect the state of the repository without hiding,
 misrepresenting, or fabricating information.
 
 ## Specification
+
 - Execute Git and development commands exactly as reported. Do not claim
   to have run commands that were not executed.
 - Surface command output that is relevant for understanding success or
@@ -19,6 +21,7 @@ misrepresenting, or fabricating information.
   instructions such as `AGENTS.md`.
 
 ## Acceptance Criteria
+
 - Command logs and file listings accurately match the actions that were
   performed.
 - Commit history shows only the intended changes with meaningful commit

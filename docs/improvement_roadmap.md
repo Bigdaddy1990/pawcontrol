@@ -3,6 +3,7 @@
 ## 📊 Aktuelle Bewertung
 
 ### ✅ Stärken
+
 - **Platinum Quality Scale erreicht** - Technisch hochwertige Implementation
 - **Vollständige Type Annotations** - Excellent types.py Implementation
 - **Umfassende Test-Coverage** - 30+ Test-Dateien vorhanden
@@ -11,6 +12,7 @@
 - **Umfangreiche Dokumentation** - Detailliertes README
 
 ### ⚠️ Verbesserungsbereiche
+
 - **Überkomplexität** - Zu viele Features in einer Integration
 - **Performance-Probleme** - Sehr viele Entitäten (25+ pro Hund)
 - **Coordinator zu groß** - 1000+ Zeilen, zu viele Verantwortlichkeiten
@@ -22,6 +24,7 @@
 ### 🔴 **Kritisch (Sofort)**
 
 #### 1. Coordinator Refactoring
+
 ```python
 # Aktuell: Monolithischer Coordinator (1000+ Zeilen)
 class PawControlCoordinator:
@@ -37,12 +40,14 @@ class PawControlCoordinator:
 ```
 
 **Umsetzung:**
+
 - [x] `DogDataManager` für Datenstrukturen
 - [x] `WalkManager` für GPS und Walks
 - [x] `FeedingManager` für Fütterung
 - [x] `HealthCalculator` für Gesundheitsmetriken
 
 #### 2. Performance-Optimierung
+
 ```python
 # Problem: Zu viele Entitäten pro Hund (25+)
 CURRENT_ENTITIES_PER_DOG = 25
@@ -53,6 +58,7 @@ ESSENTIAL_ENTITIES = ["location", "walk_status", "needs_walk"]
 ```
 
 **Maßnahmen:**
+
 - [x] Entity-Limits implementieren
 - [x] Performance-Monitoring
 - [x] Caching-System
@@ -60,6 +66,7 @@ ESSENTIAL_ENTITIES = ["location", "walk_status", "needs_walk"]
 - [x] Debounced Entity Updates
 
 #### 3. Konfiguration vereinfachen
+
 ```yaml
 # Aktuell: Überkomplexe Konfiguration
 dogs:
@@ -77,6 +84,7 @@ dogs:
 ### 🟡 **Wichtig (Nächste Wochen)**
 
 #### 4. Discovery Implementation verbessern
+
 ```python
 # Aktuell: Oberflächliche Discovery
 async def can_connect_pawtracker(hass, data):
@@ -91,12 +99,14 @@ SUPPORTED_DEVICES = {
 ```
 
 #### 5. Echte Hardware-Integration
+
 - **GPS-Tracker Support** (Tractive, Whistle, Fi)
 - **Smart Feeder Integration** (PetNet, SureFlap)
 - **Bluetooth Collar Unterstützung**
 - **USB-Serial Geräte**
 
 #### 6. API-Architektur
+
 ```python
 # Neue API-Struktur für Drittanbieter
 class PawControlAPI:
@@ -108,6 +118,7 @@ class PawControlAPI:
 ### 🟢 **Nice-to-Have (Später)**
 
 #### 7. Advanced Features
+
 - **Machine Learning** Walk-Pattern Erkennung
 - **Computer Vision** für Futterportionen
 - **IoT Integration** mit mehr Smart Home Geräten
@@ -117,6 +128,7 @@ class PawControlAPI:
 ## 📈 Implementation Plan
 
 ### Phase 1: Core Refactoring (2-3 Wochen)
+
 ```bash
 Week 1: Coordinator Refactoring
 - Split monolithic coordinator
@@ -135,6 +147,7 @@ Week 3: Simplified Configuration
 ```
 
 ### Phase 2: Hardware Integration (3-4 Wochen)
+
 ```bash
 Week 4-5: Real Device Support
 - GPS tracker integration
@@ -148,6 +161,7 @@ Week 6-7: Discovery Enhancement
 ```
 
 ### Phase 3: Advanced Features (4-6 Wochen)
+
 ```bash
 Week 8-10: API Development
 - External device APIs
@@ -163,6 +177,7 @@ Week 11-13: ML/AI Features
 ## 🔧 Konkrete Code-Änderungen
 
 ### 1. Coordinator Split
+
 ```python
 # Datei: coordinator.py (VORHER: 1000+ Zeilen)
 class PawControlCoordinator(DataUpdateCoordinator):
@@ -183,6 +198,7 @@ class PawControlCoordinator(DataUpdateCoordinator):
 ```
 
 ### 2. Performance Monitoring
+
 ```python
 # Datei: performance.py
 class PerformanceMonitor:
@@ -197,6 +213,7 @@ async def _async_update_data(self):
 ```
 
 ### 3. Modulare Entitäten
+
 ```python
 # Datei: entity_factory.py
 class EntityFactory:
@@ -209,18 +226,19 @@ class EntityFactory:
 
 ## 📊 Erwartete Verbesserungen
 
-| Metrik | Aktuell | Nach Refactoring | Verbesserung |
-|--------|---------|------------------|--------------|
-| **Entitäten pro Hund** | 25+ | 8-15 | -40 bis -70% |
-| **Memory Usage** | ~50MB | ~25MB | -50% |
-| **Setup Zeit** | 8-12s | 3-5s | -60% |
-| **Update Performance** | 200ms | 50ms | -75% |
-| **Code Complexity** | Hoch | Mittel | ⬇️⬇️ |
-| **Wartbarkeit** | Schwierig | Einfach | ⬆️⬆️ |
+| Metrik                 | Aktuell   | Nach Refactoring | Verbesserung |
+| ---------------------- | --------- | ---------------- | ------------ |
+| **Entitäten pro Hund** | 25+       | 8-15             | -40 bis -70% |
+| **Memory Usage**       | ~50MB     | ~25MB            | -50%         |
+| **Setup Zeit**         | 8-12s     | 3-5s             | -60%         |
+| **Update Performance** | 200ms     | 50ms             | -75%         |
+| **Code Complexity**    | Hoch      | Mittel           | ⬇️⬇️         |
+| **Wartbarkeit**        | Schwierig | Einfach          | ⬆️⬆️         |
 
 ## 🧪 Testing Strategy
 
 ### Unit Tests erweitern
+
 ```python
 # Neue Test-Kategorien
 tests/
@@ -238,6 +256,7 @@ tests/
 ```
 
 ### Performance Benchmarks
+
 ```python
 @pytest.mark.benchmark
 def test_coordinator_update_performance():
@@ -251,6 +270,7 @@ def test_entity_creation_time():
 ## 🚀 Migration Strategy
 
 ### Bestehende Installationen
+
 ```python
 # migration.py
 class ConfigMigration:
@@ -262,6 +282,7 @@ class ConfigMigration:
 ```
 
 ### Backwards Compatibility
+
 - **Alte Entitäten** bleiben verfügbar (deprecated)
 - **Automatische Migration** zu neuer Struktur
 - **Fallback-Modi** für Kompatibilität
@@ -269,6 +290,7 @@ class ConfigMigration:
 ## 🎯 Success Metrics
 
 ### Technische KPIs
+
 - ✅ Setup Zeit < 5 Sekunden
 - ✅ Memory Usage < 30MB
 - ✅ Entity Updates < 100ms
@@ -276,6 +298,7 @@ class ConfigMigration:
 - ✅ Integration Tests Pass Rate > 95%
 
 ### User Experience KPIs
+
 - ✅ Config Flow < 2 Minuten
 - ✅ Entity Count < 15 pro Hund
 - ✅ Error Rate < 1%
@@ -284,17 +307,20 @@ class ConfigMigration:
 ## 📝 Documentation Updates
 
 ### Entwickler-Dokumentation
+
 ```markdown
 # Neue Dokumentation
+
 docs/
-├── ARCHITECTURE.md      # Neue Architektur
-├── PERFORMANCE.md       # Performance Guidelines
-├── HARDWARE_SUPPORT.md  # Hardware Integration
-├── API_REFERENCE.md     # API Dokumentation
-└── MIGRATION_GUIDE.md   # Migration von v1 zu v2
+├── ARCHITECTURE.md # Neue Architektur
+├── PERFORMANCE.md # Performance Guidelines
+├── HARDWARE_SUPPORT.md # Hardware Integration
+├── API_REFERENCE.md # API Dokumentation
+└── MIGRATION_GUIDE.md # Migration von v1 zu v2
 ```
 
 ### User-Dokumentation
+
 - **Simplified Setup Guide**
 - **Hardware Compatibility List**
 - **Performance Troubleshooting**
@@ -303,18 +329,21 @@ docs/
 ## 🏆 Langfristige Vision
 
 ### 2025 Q4: Core Stability
+
 - ✅ Refactored Architecture
 - ✅ Performance Optimized
 - ✅ Hardware Integration
 - ✅ Simplified UX
 
 ### 2026 Q1: Ecosystem Growth
+
 - 🔄 Third-party Device APIs
 - 🔄 Mobile App Integration
 - 🔄 Cloud Synchronization
 - 🔄 Advanced Analytics
 
 ### 2026 Q2: AI/ML Integration
+
 - 🤖 Predictive Walk Recommendations
 - 🤖 Health Anomaly Detection
 - 🤖 Behavioral Pattern Analysis
@@ -327,6 +356,7 @@ docs/
 Die Paw Control Integration zeigt beeindruckende technische Tiefe und erreicht formal die Platinum Quality Scale. Mit den vorgeschlagenen Refactorings kann sie von einer "technischen Demo" zu einer **produktionsbereiten, wartbaren und performanten** Home Assistant Integration werden.
 
 **Nächste Schritte:**
+
 1. 🔴 **Sofort**: Coordinator Refactoring starten
 2. 🟡 **Diese Woche**: Performance-Monitoring implementieren
 3. 🟢 **Nächste Woche**: Vereinfachte Konfiguration einführen

@@ -22,35 +22,36 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 
 ## 🎯 Hauptfeatures im Überblick
 
-| Kategorie                | Beschreibung |
-|--------------------------|--------------|
-| 🧠 **Setup per UI**      | Einfache Konfiguration pro Hund – inkl. Name, Türsensor, Push-Gerät |
-| 🚪 **Türsensor-Erkennung** | Automatische Erkennung, wenn Hund durch die Tür geht |
-| 📲 **Push-Rückfrage**     | Nachricht an gewähltes Gerät: „Hat er gemacht?" – Antwort mit ✅ / ❌ |
-| 🔄 **Quittierungs-Logik** | Antwort auf einem Gerät löscht die Nachricht auf allen anderen |
-| 📊 **Dashboard-Integration** | Lovelace-fertiges YAML-Layout enthalten |
-| 🔃 **Tagesreset**          | Alle Zähler (Fütterung, Draußen) werden täglich um 23:59 Uhr zurückgesetzt |
-| 🐾 **Mehrhundelogik**     | Unterstützung für mehrere Hunde mit eigenen Sensoren und Werten |
-| 🧪 **Besuchshund-Modus**  | Temporärer Hundebesuch? Kein Problem – einfach aktivieren |
-| 📦 **HACS-kompatibel**    | Installation als Custom Repository in HACS möglich |
+| Kategorie                    | Beschreibung                                                               |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| 🧠 **Setup per UI**          | Einfache Konfiguration pro Hund – inkl. Name, Türsensor, Push-Gerät        |
+| 🚪 **Türsensor-Erkennung**   | Automatische Erkennung, wenn Hund durch die Tür geht                       |
+| 📲 **Push-Rückfrage**        | Nachricht an gewähltes Gerät: „Hat er gemacht?" – Antwort mit ✅ / ❌      |
+| 🔄 **Quittierungs-Logik**    | Antwort auf einem Gerät löscht die Nachricht auf allen anderen             |
+| 📊 **Dashboard-Integration** | Lovelace-fertiges YAML-Layout enthalten                                    |
+| 🔃 **Tagesreset**            | Alle Zähler (Fütterung, Draußen) werden täglich um 23:59 Uhr zurückgesetzt |
+| 🐾 **Mehrhundelogik**        | Unterstützung für mehrere Hunde mit eigenen Sensoren und Werten            |
+| 🧪 **Besuchshund-Modus**     | Temporärer Hundebesuch? Kein Problem – einfach aktivieren                  |
+| 📦 **HACS-kompatibel**       | Installation als Custom Repository in HACS möglich                         |
 
 ### 🔧 Funktionsübersicht
 
-| Feature | Beschreibung |
-|---------|--------------|
-| 🍽️ **Fütterung** | Erinnerungen für Frühstück, Mittag, Abend, Leckerli |
-| 🚪 **Türsensor-Tracking** | „Draußen"-Protokoll mit Rückfragen |
-| 📲 **Push-Logik** | Nachricht an anwesende Person(en) oder manuelle Geräte |
-| 📅 **Tagesstatistik** | Counter pro Aktion + automatischer Reset |
-| 🧍 **Besucherhunde** | Optionaler Besuchsmodus & Statusanzeige |
-| 🧠 **Adminpanel** | Zentrale Übersicht, manuelle Steuerung, Push-Test |
-| 📊 **Dashboard** | Mushroom-fähig, responsiv, Chip + Template-Karten |
-| 💬 **Rückfragen** | „Hund schon gefüttert?" via Notification |
-| 🔁 **Flexibel** | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
+| Feature                   | Beschreibung                                            |
+| ------------------------- | ------------------------------------------------------- |
+| 🍽️ **Fütterung**          | Erinnerungen für Frühstück, Mittag, Abend, Leckerli     |
+| 🚪 **Türsensor-Tracking** | „Draußen"-Protokoll mit Rückfragen                      |
+| 📲 **Push-Logik**         | Nachricht an anwesende Person(en) oder manuelle Geräte  |
+| 📅 **Tagesstatistik**     | Counter pro Aktion + automatischer Reset                |
+| 🧍 **Besucherhunde**      | Optionaler Besuchsmodus & Statusanzeige                 |
+| 🧠 **Adminpanel**         | Zentrale Übersicht, manuelle Steuerung, Push-Test       |
+| 📊 **Dashboard**          | Mushroom-fähig, responsiv, Chip + Template-Karten       |
+| 💬 **Rückfragen**         | „Hund schon gefüttert?" via Notification                |
+| 🔁 **Flexibel**           | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
 
 ## 🎯 Features im Detail
 
 ### 🔔 Push & Benachrichtigungen
+
 - **Dynamische Personenerkennung**: Automatische Benachrichtigung via `person.*` Entitäten wenn `state == home`
 - **Fallback-System**: Statisch konfigurierte Geräte (`mobile_app_*`) als Backup
 - **Interaktive Rückfragen**: Benachrichtigungen mit Titel, Nachricht und Bestätigungsoptionen
@@ -59,6 +60,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Test-Funktion**: Benachrichtigungs-Test per Button oder Service
 
 ### 🍽️ Fütterung & Rückfragen
+
 - **Vier Mahlzeiten**: Frühstück, Mittag, Abend, Snack – einzeln aktivierbar
 - **Intelligente Rückfragen**: Automatische Erinnerungen für jede Fütterung
 - **Status-Tracking**: Erkennung per `input_boolean`-Toggle pro Mahlzeit
@@ -68,6 +70,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Tagesübersicht**: Vollständige Übersicht aller Fütterungen
 
 ### 🚪 Gartengang & Aktivitäts-Tracking
+
 - **Türsensor-Integration**: Automatische Erkennung "Hund war draußen?"
 - **Manuelle Erfassung**
 - **Rückfrage-System**: Automatische Bestätigung via Push-Benachrichtigung
@@ -76,12 +79,14 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Dauer-Messung** Aufenthaltszeit im Garten
 
 ### 💩 Geschäfte & Gesundheits-Tracking
+
 - **Kot-Tracking**: Separater Counter für Geschäfte
 - **Gesundheits-Monitoring**: Unregelmäßigkeiten erkennen
 - **Tierarzt-Erinnerungen**: Automatische Benachrichtigungen bei Auffälligkeiten
 - **Wetter-Integration**: Berücksichtigung von Wetterbedingungen (geplant)
 
 ### 📊 Statistik & Auswertung
+
 - **Umfassende Counter für**:
   - Jede Fütterungsart (Frühstück, Mittag, Abend, Snack)
   - Gassigang-Häufigkeit
@@ -93,6 +98,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Wöchentliche/Monatliche Zusammenfassungen**: Trend-Analyse
 
 ### 🧾 Automatisierung & Skripte
+
 - **Auto-generierte Skripte**:
   - Rückfrage-Skripte mit `notify`-Service
   - Individuelle Reset-Skripte pro Hund
@@ -102,6 +108,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Bedingte Logik**: Intelligente Benachrichtigungen basierend auf Hundestatus
 
 ### 🧩 Erweiterbarkeit & Flexibilität
+
 - **Multi-Hund Support**
 - **Besucherhund-Modus**: Temporärer Modus für Gäste-Hunde (Hunde-Sitting)
 - **Geräte-Flexibilität**: Wählbar zwischen Personen-basiert oder statischer Geräteliste
@@ -110,8 +117,9 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Integration Ready**: Vorbereitet für weitere Sensoren (Futterschale, Wasserspender, etc.)
 
 ### 🖥️ Dashboard & Benutzeroberfläche
+
 - **Mushroom-Kompatibilität**: Optimiert für Mushroom-Cards (Chips, Templates)
-- **Lovelance Installationsanleitung*
+- \*_Lovelance Installationsanleitung_
 - **Automatisches Dashboard**: Alle Entitäten werden automatisch angezeigt
 - **Responsive Design**: Optimiert für Desktop und Mobile
 - **Konfigurationspanel**: Zentrale Übersicht und Schnellsteuerung
@@ -120,6 +128,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Schnellaktionen**: Ein-Klick-Buttons für häufige Aktionen
 
 ### 🔧 Technische Features
+
 - **Config Flow**: Benutzerfreundliche Einrichtung über UI
 - **Entity Registry**: Saubere Entitäts-Verwaltung
 - **Error Handling**: Robuste Fehlerbehandlung
@@ -129,6 +138,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Service Schemas**: Validierte Service-Aufrufe
 
 ### 🔧 Setup & Installation
+
 - **🐶 Automatische Setup-Skript-Erstellung**
 - **⏳ Verzögerter Start**: Vermeidet Race Conditions beim Skriptaufruf
 - **🧠 Robuste Fehlerbehandlung**
@@ -136,12 +146,14 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **📦 Integriertes Setup**
 
 ### 🐕 Besuchshund-Modul
+
 - **Flexible Aktivierung**
 - **Separate Verwaltung**: Eigene Dashboard-Blöcke mit getrennter Statistik
 - **Isolierte Rückfragen**: Unabhängiges Tracking ohne Vermischung der Daten
 - **Gäste-optimiert**: Ideal für temporäre Hundebesuche mit vollständiger Funktionalität
 
 ### 💬 Intelligente Rückfragen
+
 - **Türsensor-Integration**: Automatische Erkennung von Türbewegungen
 - **Kontextuelle Fragen**: „War der Hund draußen?" nach Türöffnung
 - **Geschäft-Tracking**: Optionale Nachfrage über erledigte Geschäfte
@@ -149,6 +161,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Quittierungs-System**: Vollständige Rückmeldungslogik mit Status-Updates
 
 ### 📱 Mobile-First Design
+
 - **Mushroom UI-Optimierung**: Perfekt abgestimmt auf moderne Card-Layouts
 - **Timeline-Integration**: Chronologische Darstellung aller Aktivitäten
 - **Responsive Statusanzeige**: Optimiert für verschiedene Bildschirmgrößen
@@ -156,6 +169,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Schnellzugriff-Panel**: Wichtigste Funktionen sofort verfügbar
 
 ### 🐶 Erweiterte Mehrhundeverwaltung
+
 - **Skalierbare Architektur**
 - **Automatische Entitätserstellung**: Zähler, Fütterungszeiten, Statistiken pro Hund
 - **Individuelle Konfiguration**: Jeder Hund mit eigenen Einstellungen und Türsensoren
@@ -163,6 +177,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Getrennte Historien**: Separate für Wochen-/Monatsstatistiken
 
 ### 📊 Dashboard & Automatisierung
+
 - **Dynamische UI-Generierung**: Automatische Dashboard-Erstellung je Hund
 - **Besuchshund-Separation**: Separate Bereiche für temporäre Gäste
 - **Notification-Actions**: Interaktive Rückfragen direkt aus Benachrichtigungen
@@ -170,6 +185,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 - **Anpassbare Layouts**: Verschiedene Dashboard-Varianten für unterschiedliche Bedürfnisse
 
 ### ✅ Vollständige Setup-Integration
+
 - **UI-basiertes Onboarding**: Komplette Einrichtung über Home Assistant Interface
 - **Automatische Helper-Erstellung**: werden automatisch angelegt
 - **Intelligenter Tagesreset**: Konfigurierbare Reset-Zeit (Standard: 23:59 Uhr)
@@ -181,6 +197,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
 ## 🚀 **HACS Installation**
 
 ### **Schritt 1: Repository hinzufügen**
+
 1. **HACS öffnen** in Home Assistant
 2. **Integrationen** → **⋮** → **Benutzerdefinierte Repositories**
 3. **Repository hinzufügen**:
@@ -190,11 +207,13 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
    ```
 
 ### **Schritt 2: Paw Control installieren**
+
 1. **"Paw Control"** in HACS suchen
 2. **"Installieren"** klicken
 3. **Home Assistant neu starten**
 
 ### **Schritt 3: Integration konfigurieren**
+
 1. **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen**
 2. **"Paw Control"** suchen und hinzufügen
 3. **Setup-Assistent** folgen:
@@ -206,6 +225,7 @@ Automatische Spaziergang-Erkennung • Live-GPS-Tracking • Intelligente Automa
    ```
 
 ### **Schritt 4: GPS-Tracking aktivieren**
+
 ```yaml
 # Automatisches Setup ausführen
 service: pawcontrol.setup_automatic_gps
@@ -224,6 +244,7 @@ data:
 ## 📱 **Unterstützte GPS-Tracker**
 
 ### **🎯 Tractive GPS-Collar**
+
 ```yaml
 # Native Home Assistant Integration
 service: pawcontrol.setup_automatic_gps
@@ -233,6 +254,7 @@ data:
 ```
 
 ### **📱 Smartphone (Empfohlen)**
+
 ```yaml
 # Home Assistant Companion App
 service: pawcontrol.setup_automatic_gps
@@ -242,6 +264,7 @@ data:
 ```
 
 ### **🔧 DIY & Universal**
+
 - **Webhooks**: Für jeden GPS-Tracker mit Internet
 - **MQTT**: Für IoT-basierte GPS-Geräte
 - **REST APIs**: Für kommerzielle GPS-Services
@@ -252,6 +275,7 @@ data:
 ## 🤖 **Beispiel-Automatisierungen**
 
 ### **🚶 Automatische Spaziergang-Benachrichtigungen**
+
 ```yaml
 # Spaziergang gestartet
 automation:
@@ -259,7 +283,7 @@ automation:
     trigger:
       - platform: state
         entity_id: binary_sensor.buddy_on_walk
-        to: 'on'
+        to: "on"
     action:
       - service: notify.mobile_app
         data:
@@ -268,6 +292,7 @@ automation:
 ```
 
 ### **🚨 Sicherheits-Automatisierungen**
+
 ```yaml
 # Hund verlässt Sicherheitszone
 automation:
@@ -275,8 +300,8 @@ automation:
     trigger:
       - platform: state
         entity_id: binary_sensor.buddy_in_safe_zone
-        to: 'off'
-        for: "00:02:00"  # 2 Minuten außerhalb
+        to: "off"
+        for: "00:02:00" # 2 Minuten außerhalb
     action:
       - service: notify.mobile_app
         data:
@@ -301,6 +326,7 @@ pawcontrol ist kostenlos und Open Source. Unterstützen Sie die Entwicklung:
 </div>
 
 ### **🌟 Andere Unterstützung**
+
 - ⭐ **GitHub-Stern geben** - Zeigen Sie anderen, dass pawcontrol großartig ist
 - 📢 **Weiterempfehlen** - Erzählen Sie anderen Hundebesitzern davon
 - 🐛 **Bugs melden** - Helfen Sie bei der Verbesserung
@@ -311,6 +337,7 @@ pawcontrol ist kostenlos und Open Source. Unterstützen Sie die Entwicklung:
 ## 📞 **Support & Community**
 
 ### **🆘 Hilfe benötigt?**
+
 - 🐛 **[Bug Reports](https://github.com/bigdaddy1990/pawcontrol/issues)** - Probleme melden
 - 💬 **[GitHub Discussions](https://github.com/bigdaddy1990/pawcontrol/discussions)** - Community-Support
 - 📖 **[Dokumentation](https://github.com/bigdaddy1990/pawcontrol/wiki)** - Ausführliche Anleitungen
@@ -322,7 +349,7 @@ pawcontrol ist kostenlos und Open Source. Unterstützen Sie die Entwicklung:
 
 ## 🐶 **Ready to Track Your Dog's Adventures?**
 
-**Paw Control** - *DOG-Tracking made simple for dog lovers!*
+**Paw Control** - _DOG-Tracking made simple for dog lovers!_
 
 ### **🚀 Jetzt installieren:**
 
@@ -333,7 +360,7 @@ pawcontrol ist kostenlos und Open Source. Unterstützen Sie die Entwicklung:
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bigdaddy1990)
 
-*🦴 Spenden Sie Hundekekse für die Entwicklung! 🦴*
+_🦴 Spenden Sie Hundekekse für die Entwicklung! 🦴_
 
 ---
 

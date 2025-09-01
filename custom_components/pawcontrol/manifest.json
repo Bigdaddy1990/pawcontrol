@@ -17,9 +17,7 @@
       "connectable": true
     }
   ],
-  "codeowners": [
-    "@BigDaddy1990"
-  ],
+  "codeowners": ["@BigDaddy1990"],
   "config_flow": true,
   "dependencies": [],
   "dhcp": [
@@ -47,14 +45,9 @@
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
-  "loggers": [
-    "custom_components.pawcontrol"
-  ],
+  "loggers": ["custom_components.pawcontrol"],
   "quality_scale": "platinum",
-  "requirements": [
-    "aiofiles>=23.1.0",
-    "asyncio-mqtt>=0.16.0"
-  ],
+  "requirements": ["aiofiles>=23.1.0", "asyncio-mqtt>=0.16.0"],
   "usb": [
     {
       "vid": "1234",

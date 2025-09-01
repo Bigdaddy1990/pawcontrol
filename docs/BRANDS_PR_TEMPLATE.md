@@ -3,10 +3,12 @@
 Repository: https://github.com/home-assistant/brands
 
 ## Structure
+
 - `src/pawcontrol/icon.svg`
 - `src/pawcontrol/logo.svg`
 
 ## Checklist
+
 - [x] Vector SVGs provided (icon, logo)
 - [x] Icon monochrome / adheres to style guide
 - [x] Logo legible on dark/light background
@@ -14,4 +16,5 @@ Repository: https://github.com/home-assistant/brands
 - [x] Tested locally in HA frontend (cache cleared)
 
 ## Notes
+
 - These placeholders are provided in `assets/brand/`. Replace with final artwork before submitting PR.

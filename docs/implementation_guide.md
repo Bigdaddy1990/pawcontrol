@@ -5,35 +5,41 @@
 Der Options Flow wurde umfassend erweitert und bietet jetzt folgende neue Funktionen:
 
 ### 🐕 **Hundeverwaltung**
+
 - **Individuelle Hunde-Konfiguration**: Jeder Hund kann individual konfiguriert werden
 - **Hunde hinzufügen/bearbeiten/entfernen**: Vollständige CRUD-Operationen
 - **Modulspezifische Aktivierung**: Module können pro Hund aktiviert/deaktiviert werden
 - **Detaillierte Hundeinformationen**: Rasse, Alter, Gewicht, Größe pro Hund
 
 ### 📍 **GPS & Tracking**
+
 - **Erweiterte GPS-Einstellungen**: Genauigkeitsfilter, Distanzfilter, Update-Intervalle
 - **Automatisierte Gassi-Erkennung**: Auto-Start/End basierend auf Bewegung und Position
 - **Routenaufzeichnung**: Konfigurierbare Aufzeichnung und Historienaufbewahrung
 - **Performance-Optimierung**: Einstellbare GPS-Parameter für bessere Performance
 
 ### 🏡 **Geofencing**
+
 - **Mehrere Zonen**: Unterstützung für mehrere Geofence-Zonen
 - **Flexible Zonenerkennnung**: Home Assistant Zonen, Custom Geofences oder beide
 - **Erweiterte Warnungen**: Konfigurierbare Geofence-Alerts
 
 ### 🔔 **Benachrichtigungen**
+
 - **Mehrere Kanäle**: Mobile, E-Mail, Slack, Discord, persistente Benachrichtigungen
 - **Prioritäts-System**: Wichtige vs. normale Benachrichtigungen
 - **Tägliche Zusammenfassungen**: Automatische Tagesberichte
 - **Erweiterte Ruhezeiten**: Detaillierte Konfiguration der Ruhezeiten
 
 ### 🔗 **Datenquellen**
+
 - **Entity-Management**: Auswahl von Person-, Device-Tracker-, Sensor-Entitäten
 - **Auto-Discovery**: Automatische Erkennung verfügbarer Entitäten
 - **Fallback-Tracking**: Backup-Tracking-Methoden
 - **Integration Management**: Verwaltung aller Datenquellen-Verbindungen
 
 ### ⚙️ **System & Wartung**
+
 - **Performance-Modi**: Minimal, Ausgewogen, Vollständig
 - **Datenaufbewahrung**: Konfigurierbare Aufbewahrungszeiten
 - **Automatische Backups**: Regelmäßige Konfigurationssicherungen
@@ -42,6 +48,7 @@ Der Options Flow wurde umfassend erweitert und bietet jetzt folgende neue Funkti
 ## Implementierungsschritte
 
 ### 1. **Backup der aktuellen config_flow.py**
+
 ```bash
 cp custom_components/pawcontrol/config_flow.py custom_components/pawcontrol/config_flow.py.backup
 ```
@@ -51,6 +58,7 @@ cp custom_components/pawcontrol/config_flow.py custom_components/pawcontrol/conf
 Ersetzen Sie die `OptionsFlowHandler` Klasse in der `config_flow.py` mit dem neuen erweiterten Code aus dem ersten Artifact.
 
 **Wichtige Änderungen:**
+
 - Neue `OptionsFlowHandler` Klasse mit umfangreichem Menüsystem
 - Hundeverwaltung mit CRUD-Operationen
 - Erweiterte Validierung und Fehlerbehandlung
@@ -59,12 +67,15 @@ Ersetzen Sie die `OptionsFlowHandler` Klasse in der `config_flow.py` mit dem neu
 ### 3. **Übersetzungen aktualisieren**
 
 #### **strings.json**
+
 Ersetzen Sie den Inhalt der `strings.json` mit dem erweiterten englischen Translation-Set.
 
 #### **translations/de.json**
+
 Aktualisieren Sie die deutsche Übersetzung mit dem erweiterten deutschen Translation-Set.
 
 #### **translations/en.json**
+
 Aktualisieren Sie die englische Übersetzung entsprechend.
 
 ### 4. **Validierung der Schemas**
@@ -90,12 +101,14 @@ DOG_CONFIG_SCHEMA = vol.Schema({
 ### 5. **Testen der neuen Funktionen**
 
 #### **Grundlegende Tests**
+
 1. **Menünavigation**: Alle Menüpunkte sollten erreichbar sein
 2. **Hunde-CRUD**: Hinzufügen, Bearbeiten, Entfernen von Hunden
 3. **Validierung**: Fehlerbehandlung bei ungültigen Eingaben
 4. **Speichern**: Korrekte Persistierung der Optionen
 
 #### **Erweiterte Tests**
+
 1. **GPS-Konfiguration**: Alle GPS-Parameter sollten funktionieren
 2. **Geofence-Setup**: Mehrere Zonen und Modi testen
 3. **Benachrichtigungen**: Verschiedene Kanäle und Timing
@@ -129,6 +142,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 ## Erweiterte Features
 
 ### **Backup & Restore System**
+
 ```python
 # Automatisches Backup wird unterstützt mit:
 - Zeitstempel-basierte Dateinamen
@@ -138,6 +152,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 ```
 
 ### **Performance-Optimierung**
+
 ```python
 # Drei Performance-Modi:
 - Minimal: Nur essenzielle Features
@@ -146,6 +161,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 ```
 
 ### **Entity-Discovery**
+
 ```python
 # Automatische Erkennung von:
 - Person-Entitäten für Anwesenheitserkennung
@@ -158,6 +174,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 ## Qualitätskontrolle
 
 ### **Home Assistant Standards**
+
 - ✅ Vollständige Type-Annotations
 - ✅ Async/Await Pattern
 - ✅ Proper Error Handling
@@ -165,6 +182,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 - ✅ Comprehensive Logging
 
 ### **Benutzerfreundlichkeit**
+
 - ✅ Intuitive Menüstruktur
 - ✅ Kontextuelle Hilfen
 - ✅ Validierte Eingaben
@@ -172,6 +190,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 - ✅ Mehrsprachige Unterstützung
 
 ### **Erweiterbarkeit**
+
 - ✅ Modulares Design
 - ✅ Plugin-ähnliche Struktur
 - ✅ Konfigurations-Templates
@@ -182,6 +201,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 ### **Häufige Probleme**
 
 1. **Import-Fehler**
+
    ```python
    # Sicherstellen, dass alle const.py Imports verfügbar sind
    from .const import (
@@ -190,6 +210,7 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
    ```
 
 2. **Schema-Validierung**
+
    ```python
    # Alle vol.Schema müssen korrekte Types verwenden
    vol.Required("field"): cv.string  # nicht str
