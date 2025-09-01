@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -111,8 +111,8 @@ class PawControlNotificationManager:
         self._dog_settings: dict[str, dict[str, Any]] = {}
 
         # Background tasks
-        self._cleanup_task: Optional[asyncio.Task] = None
-        self._summary_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
+        self._summary_task: asyncio.Task | None = None
 
         # Performance metrics
         self._metrics: dict[str, Any] = {
@@ -187,12 +187,12 @@ class PawControlNotificationManager:
         notification_type: str,
         message: str,
         *,
-        title: Optional[str] = None,
+        title: str | None = None,
         priority: str = PRIORITY_NORMAL,
-        data: Optional[dict[str, Any]] = None,
-        delivery_methods: Optional[list[str]] = None,
+        data: dict[str, Any] | None = None,
+        delivery_methods: list[str] | None = None,
         force: bool = False,
-        actions: Optional[list[dict[str, Any]]] = None,
+        actions: list[dict[str, Any]] | None = None,
     ) -> bool:
         """Send a notification for a specific dog with comprehensive options.
 
@@ -364,7 +364,7 @@ class PawControlNotificationManager:
         )
 
     # Private helper methods
-    def _get_runtime_data(self) -> Optional[dict[str, Any]]:
+    def _get_runtime_data(self) -> dict[str, Any] | None:
         """Get runtime data for the integration using modern HA 2025.8+ approach.
 
         Returns:
@@ -801,7 +801,7 @@ class PawControlNotificationManager:
     async def async_send_summary_notification(
         self,
         timeframe: str = "daily",
-        dogs: Optional[list[str]] = None,
+        dogs: list[str] | None = None,
     ) -> bool:
         """Send a summary notification with activity overview."""
         try:

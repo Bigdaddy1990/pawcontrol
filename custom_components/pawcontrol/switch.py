@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -41,12 +41,12 @@ from .coordinator import PawControlCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: List[PawControlSwitchBase],
+    entities: list[PawControlSwitchBase],
     batch_size: int = 14,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -110,18 +110,18 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: List[PawControlSwitchBase] = []
+    entities: list[PawControlSwitchBase] = []
 
     # Create switch entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: Dict[str, bool] = dog.get("modules", {})
+        modules: dict[str, bool] = dog.get("modules", {})
 
         _LOGGER.debug("Creating switch entities for dog: %s (%s)", dog_name, dog_id)
 
@@ -159,7 +159,7 @@ async def async_setup_entry(
 
 def _create_base_switches(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlSwitchBase]:
+) -> list[PawControlSwitchBase]:
     """Create base switches that are always present for every dog.
 
     Args:
@@ -181,8 +181,8 @@ def _create_module_switches(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    modules: Dict[str, bool],
-) -> List[PawControlSwitchBase]:
+    modules: dict[str, bool],
+) -> list[PawControlSwitchBase]:
     """Create module control switches for a dog.
 
     Args:
@@ -224,7 +224,7 @@ def _create_module_switches(
 
 def _create_feeding_switches(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlSwitchBase]:
+) -> list[PawControlSwitchBase]:
     """Create feeding-related switches for a dog.
 
     Args:
@@ -245,7 +245,7 @@ def _create_feeding_switches(
 
 def _create_gps_switches(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlSwitchBase]:
+) -> list[PawControlSwitchBase]:
     """Create GPS and location-related switches for a dog.
 
     Args:
@@ -267,7 +267,7 @@ def _create_gps_switches(
 
 def _create_health_switches(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlSwitchBase]:
+) -> list[PawControlSwitchBase]:
     """Create health and medical-related switches for a dog.
 
     Args:
@@ -289,7 +289,7 @@ def _create_health_switches(
 
 def _create_notification_switches(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlSwitchBase]:
+) -> list[PawControlSwitchBase]:
     """Create notification-related switches for a dog.
 
     Args:
@@ -326,9 +326,9 @@ class PawControlSwitchBase(
         dog_name: str,
         switch_type: str,
         *,
-        device_class: Optional[SwitchDeviceClass] = None,
-        icon: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
+        device_class: SwitchDeviceClass | None = None,
+        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
         initial_state: bool = False,
     ) -> None:
         """Initialize the switch entity.
@@ -491,7 +491,7 @@ class PawControlSwitchBase(
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this switch's dog from the coordinator.
 
         Returns:
@@ -502,7 +502,7 @@ class PawControlSwitchBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[Dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:
@@ -781,7 +781,7 @@ class PawControlModuleSwitch(PawControlSwitchBase):
         # GPS module typically requires additional setup
         return self._module_id == MODULE_GPS
 
-    def _get_module_dependencies(self) -> List[str]:
+    def _get_module_dependencies(self) -> list[str]:
         """Get list of modules this module depends on.
 
         Returns:
@@ -957,7 +957,7 @@ class PawControlGPSTrackingSwitch(PawControlSwitchBase):
 
         return attrs
 
-    def _assess_signal_quality(self, gps_data: Dict[str, Any]) -> str:
+    def _assess_signal_quality(self, gps_data: dict[str, Any]) -> str:
         """Assess GPS signal quality."""
         accuracy = gps_data.get("accuracy")
         if accuracy is None:

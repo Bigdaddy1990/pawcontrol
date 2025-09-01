@@ -76,7 +76,7 @@ def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
                     )
 
                 return result
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Function %s timed out after %ss", func.__name__, timeout)
                 raise
 

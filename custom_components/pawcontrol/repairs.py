@@ -9,7 +9,7 @@ Platinum quality standards.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
@@ -57,7 +57,7 @@ async def async_create_issue(
     entry: ConfigEntry,
     issue_id: str,
     issue_type: str,
-    data: Optional[Dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
     severity: str = "warning",
 ) -> None:
     """Create a repair issue for the integration.
@@ -433,11 +433,11 @@ class PawControlRepairsFlow(RepairsFlow):
     def __init__(self) -> None:
         """Initialize the repair flow."""
         super().__init__()
-        self._issue_data: Dict[str, Any] = {}
+        self._issue_data: dict[str, Any] = {}
         self._repair_type: str = ""
 
     async def async_step_init(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
 
@@ -475,7 +475,7 @@ class PawControlRepairsFlow(RepairsFlow):
             return await self.async_step_unknown_issue()
 
     async def async_step_missing_dog_config(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
 
@@ -524,7 +524,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_add_first_dog(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle adding the first dog.
 
@@ -605,7 +605,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_duplicate_dog_ids(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
 
@@ -659,7 +659,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_gps_config(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
 
@@ -710,7 +710,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_configure_gps(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle GPS configuration step.
 
@@ -775,7 +775,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_missing_notifications(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
 
@@ -830,7 +830,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_performance_warning(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle performance warning repair flow.
 
@@ -880,7 +880,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_complete_repair(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Complete the repair flow.
 
@@ -899,7 +899,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_unknown_issue(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle unknown issue types.
 
@@ -1016,7 +1016,7 @@ class PawControlRepairsFlow(RepairsFlow):
 def async_create_repair_flow(
     hass: HomeAssistant,
     issue_id: str,
-    data: Dict[str, Any] | None,
+    data: dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
     """Create a repair flow.
 

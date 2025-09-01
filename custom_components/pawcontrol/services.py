@@ -901,7 +901,7 @@ class PawControlServiceManager:
                 else sum(
                     len(v) if isinstance(v, list) else 0
                     for v in export_data.values()
-                    if isinstance(v, (list, dict))
+                    if isinstance(v, list | dict)
                 ),
             )
 
@@ -1020,7 +1020,7 @@ async def async_setup_daily_reset_scheduler(hass: HomeAssistant, entry: Any) -> 
                 async with asyncio.timeout(60):
                     await hass.services.async_call(DOMAIN, SERVICE_DAILY_RESET, {})
                 _LOGGER.info("Daily reset completed successfully")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Daily reset timed out after 60 seconds")
             except Exception as err:
                 _LOGGER.error("Daily reset task failed: %s", err, exc_info=True)

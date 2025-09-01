@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -21,21 +21,21 @@ class FeedingEvent:
 
     time: datetime
     amount: float
-    meal_type: Optional[str] = None
+    meal_type: str | None = None
 
 
 class FeedingManager:
     """Store and retrieve feeding information for dogs."""
 
     def __init__(self) -> None:
-        self._feedings: Dict[str, List[FeedingEvent]] = {}
+        self._feedings: dict[str, list[FeedingEvent]] = {}
 
     async def async_add_feeding(
         self,
         dog_id: str,
         amount: float,
-        meal_type: Optional[str] = None,
-        time: Optional[datetime] = None,
+        meal_type: str | None = None,
+        time: datetime | None = None,
     ) -> FeedingEvent:
         """Record a feeding event for a dog.
 
@@ -50,7 +50,7 @@ class FeedingManager:
         self._feedings.setdefault(dog_id, []).append(event)
         return event
 
-    async def async_get_feedings(self, dog_id: str) -> List[FeedingEvent]:
+    async def async_get_feedings(self, dog_id: str) -> list[FeedingEvent]:
         """Return a copy of the feeding history for ``dog_id``."""
 
         return list(self._feedings.get(dog_id, []))
@@ -72,7 +72,7 @@ class FeedingManager:
             }
 
         now = datetime.utcnow()
-        feedings_today: Dict[str, int] = {}
+        feedings_today: dict[str, int] = {}
         for event in feedings:
             if event.time.date() != now.date():
                 continue
