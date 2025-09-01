@@ -466,7 +466,7 @@ class PawControlDiscovery:
             try:
                 await dhcp.async_get_dhcp_entries(self.hass)
             except Exception:
-                _LOGGER.debug("DHCP not available for discovery")
+                _LOGGER.debug("DHCP not available for discovery", exc_info=True)
                 return discovered
 
             # DHCP hostname patterns for dog devices
