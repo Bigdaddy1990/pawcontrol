@@ -370,6 +370,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "total_feedings_today": 0,
                 }
 
+            feedings_today: dict[str, int] = {}
+            for item in feeding_history:
+                meal = item.get("meal_type")
+                if isinstance(meal, str):
+                    feedings_today[meal] = feedings_today.get(meal, 0) + 1
+
             # Get most recent feeding
             most_recent = max(
                 feeding_history,
@@ -382,13 +388,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if most_recent:
                 timestamp = self._parse_datetime_safely(most_recent.get("timestamp"))
-
-                feedings_today: dict[str, int] = {}
-                for item in feeding_history:
-                    meal = item.get("meal_type")
-                    if isinstance(meal, str):
-                        feedings_today[meal] = feedings_today.get(meal, 0) + 1
-
                 return {
                     "last_feeding": timestamp.isoformat() if timestamp else None,
                     "last_feeding_type": most_recent.get("meal_type"),
@@ -398,12 +397,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "feedings_today": feedings_today,
                     "total_feedings_today": sum(feedings_today.values()),
                 }
-
-            feedings_today: dict[str, int] = {}
-            for item in feeding_history:
-                meal = item.get("meal_type")
-                if isinstance(meal, str):
-                    feedings_today[meal] = feedings_today.get(meal, 0) + 1
 
             return {
                 "last_feeding": None,
