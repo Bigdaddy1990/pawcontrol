@@ -9,7 +9,6 @@ from importlib import util
 from pathlib import Path
 from datetime import datetime, timedelta
 
-import pytest
 
 SPEC = util.spec_from_file_location(
     "feeding_manager",
