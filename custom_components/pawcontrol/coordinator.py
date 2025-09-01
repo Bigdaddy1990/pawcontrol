@@ -392,6 +392,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:
             return {"last_feeding": None, "feedings_today": 0}
 
+    def _get_default_health_data(self) -> dict[str, Any]:
+        """Return the default health data dictionary."""
+        return {
+            "current_weight": None,
+            "weight_status": STATE_UNKNOWN,
+            "health_status": STATE_UNKNOWN,
+        }
+
     async def _get_basic_health_data(self, data_manager, dog_id: str) -> dict[str, Any]:
         """Get basic health data as fallback."""
         try:
@@ -414,17 +422,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "health_status": "good",
                     }
 
-            return {
-                "current_weight": None,
-                "weight_status": STATE_UNKNOWN,
-                "health_status": STATE_UNKNOWN,
-            }
+            return self._get_default_health_data()
         except Exception:
-            return {
-                "current_weight": None,
-                "weight_status": STATE_UNKNOWN,
-                "health_status": STATE_UNKNOWN,
-            }
+            return self._get_default_health_data()
 
     async def _get_basic_walk_data(self, data_manager, dog_id: str) -> dict[str, Any]:
         """Get basic walk data as fallback."""
