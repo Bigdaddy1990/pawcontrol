@@ -16,6 +16,7 @@ asyncio_mode = "auto"
 target-version = "py313"
 line-length = 88
 src = ["custom_components/pawcontrol","tests"]
+markers = ["asyncio: mark a test as using asyncio"]
 
 [tool.ruff.lint]
 select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
