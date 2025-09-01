@@ -19,6 +19,7 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -462,7 +463,7 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
             attrs.update(
                 {
                     "last_update": dog_data.get("last_update"),
-                    "status": dog_data.get("status", "unknown"),
+                    "status": dog_data.get("status", STATE_UNKNOWN),
                     "enabled_modules": dog_data.get("enabled_modules", []),
                     "system_health": "healthy" if self.is_on else "disconnected",
                 }
@@ -712,7 +713,7 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
         last_feeding_hours = feeding_data.get("last_feeding_hours")
 
         if not last_feeding_hours:
-            return "unknown"
+            return STATE_UNKNOWN
 
         if last_feeding_hours > 12:
             return "very_hungry"
@@ -929,7 +930,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
         last_walk_hours = walk_data.get("last_walk_hours")
 
         if not last_walk_hours:
-            return "unknown"
+            return STATE_UNKNOWN
 
         if last_walk_hours > 12:
             return "urgent"
@@ -1039,7 +1040,7 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
         if gps_data:
             attrs.update(
                 {
-                    "current_zone": gps_data.get("zone", "unknown"),
+                    "current_zone": gps_data.get("zone", STATE_UNKNOWN),
                     "distance_from_home": gps_data.get("distance_from_home"),
                     "last_seen": gps_data.get("last_seen"),
                     "accuracy": gps_data.get("accuracy"),
