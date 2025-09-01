@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+import sys
 from importlib import util
 from pathlib import Path
+from datetime import datetime, timedelta
 
 SPEC = util.spec_from_file_location(
     "feeding_manager",
@@ -46,3 +48,32 @@ async def test_feeding_manager_empty_history() -> None:
 
     assert data["feedings_today"] == {}
     assert data["total_feedings_today"] == 0
+
+
+@pytest.mark.asyncio
+async def test_feeding_manager_unknown_meal_type() -> None:
+    """Feeding with None meal_type is categorized as 'unknown'."""
+
+    manager = FeedingManager()
+    await manager.async_add_feeding("dog", 1.0, meal_type=None)
+
+    data = await manager.async_get_feeding_data("dog")
+
+    assert data["feedings_today"]["unknown"] == 1
+    assert data["total_feedings_today"] == 1
+
+
+@pytest.mark.asyncio
+async def test_feeding_manager_excludes_previous_days() -> None:
+    """Feedings from other days are excluded from today's totals."""
+
+    manager = FeedingManager()
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    await manager.async_add_feeding("dog", 1.0, meal_type="breakfast", time=yesterday)
+    await manager.async_add_feeding("dog", 1.0, meal_type="dinner")
+
+    data = await manager.async_get_feeding_data("dog")
+
+    assert "breakfast" not in data["feedings_today"]
+    assert data["feedings_today"]["dinner"] == 1
+    assert data["total_feedings_today"] == 1
