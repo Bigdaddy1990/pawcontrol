@@ -18,9 +18,9 @@ SPEC = util.spec_from_file_location(
     / "pawcontrol"
     / "feeding_manager.py",
 )
-import sys
 from importlib import util
 from pathlib import Path
+
 feeding_manager = util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = feeding_manager
 SPEC.loader.exec_module(feeding_manager)
