@@ -15,8 +15,9 @@ import asyncio
 import logging
 import weakref
 from collections import defaultdict, deque
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 # Newer Home Assistant versions removed STATE_ONLINE from homeassistant.const.
 # Define the constant locally for clarity and future compatibility.
@@ -463,7 +464,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             results = await asyncio.wait_for(
                 asyncio.gather(*tasks, return_exceptions=True), timeout=25.0
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Batch processing timeout for %d dogs", len(batch))
             return {}
 
@@ -610,7 +611,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Fast fallback
             return {}
-        except (asyncio.TimeoutError, Exception) as err:
+        except (TimeoutError, Exception) as err:
             _LOGGER.debug("GPS data timeout/error for %s: %s", dog_id, err)
             return {}
 
@@ -625,7 +626,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
             return {}
-        except (asyncio.TimeoutError, Exception) as err:
+        except (TimeoutError, Exception) as err:
             _LOGGER.debug("Feeding data timeout/error for %s: %s", dog_id, err)
             return {}
 
@@ -640,7 +641,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
             return {}
-        except (asyncio.TimeoutError, Exception) as err:
+        except (TimeoutError, Exception) as err:
             _LOGGER.debug("Health data timeout/error for %s: %s", dog_id, err)
             return {}
 
@@ -653,7 +654,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
             return {}
-        except (asyncio.TimeoutError, Exception) as err:
+        except (TimeoutError, Exception) as err:
             _LOGGER.debug("Walk data timeout/error for %s: %s", dog_id, err)
             return {}
 
@@ -747,7 +748,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return None
 
     # Public interface methods
-    def get_dog_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+    def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get data for a specific dog."""
         return self._data.get(dog_id)
 

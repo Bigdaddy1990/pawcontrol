@@ -190,9 +190,7 @@ class TestAsyncSetupEntry:
         mock_notification_manager,
     ):
         """Test setup when coordinator refresh times out."""
-        mock_coordinator.async_config_entry_first_refresh.side_effect = (
-            asyncio.TimeoutError()
-        )
+        mock_coordinator.async_config_entry_first_refresh.side_effect = TimeoutError()
 
         with (
             patch(
@@ -310,7 +308,7 @@ class TestAsyncUnloadEntry:
         with patch.object(
             hass.config_entries,
             "async_unload_platforms",
-            side_effect=asyncio.TimeoutError(),
+            side_effect=TimeoutError(),
         ):
             result = await async_unload_entry(hass, mock_config_entry)
             assert result is False

@@ -176,7 +176,7 @@ class DashboardRenderer:
 
                     return result
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 job.status = "timeout"
                 job.error = "Rendering timed out"
                 _LOGGER.error("Dashboard rendering timeout for job %s", job.job_id)

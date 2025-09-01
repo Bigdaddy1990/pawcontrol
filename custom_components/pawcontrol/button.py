@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -49,12 +49,12 @@ from .exceptions import (
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: List[PawControlButtonBase],
+    entities: list[PawControlButtonBase],
     batch_size: int = 5,
     delay_between_batches: float = 1.0,
 ) -> None:
@@ -122,18 +122,18 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: List[PawControlButtonBase] = []
+    entities: list[PawControlButtonBase] = []
 
     # Create button entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: Dict[str, bool] = dog.get("modules", {})
+        modules: dict[str, bool] = dog.get("modules", {})
 
         _LOGGER.debug("Creating button entities for dog: %s (%s)", dog_name, dog_id)
 
@@ -167,7 +167,7 @@ async def async_setup_entry(
 
 def _create_base_buttons(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlButtonBase]:
+) -> list[PawControlButtonBase]:
     """Create base buttons that are always present for every dog.
 
     Args:
@@ -187,7 +187,7 @@ def _create_base_buttons(
 
 def _create_feeding_buttons(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlButtonBase]:
+) -> list[PawControlButtonBase]:
     """Create feeding-related buttons for a dog.
 
     Args:
@@ -214,7 +214,7 @@ def _create_feeding_buttons(
 
 def _create_walk_buttons(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlButtonBase]:
+) -> list[PawControlButtonBase]:
     """Create walk-related buttons for a dog.
 
     Args:
@@ -235,7 +235,7 @@ def _create_walk_buttons(
 
 def _create_gps_buttons(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlButtonBase]:
+) -> list[PawControlButtonBase]:
     """Create GPS and location-related buttons for a dog.
 
     Args:
@@ -256,7 +256,7 @@ def _create_gps_buttons(
 
 def _create_health_buttons(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlButtonBase]:
+) -> list[PawControlButtonBase]:
     """Create health and medical-related buttons for a dog.
 
     Args:
@@ -291,10 +291,10 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         dog_name: str,
         button_type: str,
         *,
-        device_class: Optional[ButtonDeviceClass] = None,
-        icon: Optional[str] = None,
-        entity_category: Optional[str] = None,
-        action_description: Optional[str] = None,
+        device_class: ButtonDeviceClass | None = None,
+        icon: str | None = None,
+        entity_category: str | None = None,
+        action_description: str | None = None,
     ) -> None:
         """Initialize the button entity.
 
@@ -366,7 +366,7 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
 
         return attrs
 
-    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this button's dog from the coordinator.
 
         Returns:
@@ -377,7 +377,7 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[Dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:

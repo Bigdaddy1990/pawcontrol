@@ -9,7 +9,7 @@ Designed to meet Home Assistant's Platinum quality standards.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -53,7 +53,7 @@ REDACTED_KEYS = {
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
     This function collects comprehensive diagnostic information including
@@ -71,7 +71,7 @@ async def async_get_config_entry_diagnostics(
 
     # Get integration data
     integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coordinator: Optional[PawControlCoordinator] = integration_data.get("coordinator")
+    coordinator: PawControlCoordinator | None = integration_data.get("coordinator")
 
     # Base diagnostics structure
     diagnostics = {
@@ -99,7 +99,7 @@ async def async_get_config_entry_diagnostics(
     return redacted_diagnostics
 
 
-async def _get_config_entry_diagnostics(entry: ConfigEntry) -> Dict[str, Any]:
+async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
     """Get configuration entry diagnostic information.
 
     Args:
@@ -128,7 +128,7 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> Dict[str, Any]:
     }
 
 
-async def _get_system_diagnostics(hass: HomeAssistant) -> Dict[str, Any]:
+async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
     """Get Home Assistant system diagnostic information.
 
     Args:
@@ -151,8 +151,8 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> Dict[str, Any]:
 
 
 async def _get_integration_status(
-    hass: HomeAssistant, entry: ConfigEntry, integration_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    hass: HomeAssistant, entry: ConfigEntry, integration_data: dict[str, Any]
+) -> dict[str, Any]:
     """Get integration status diagnostics.
 
     Args:
@@ -185,8 +185,8 @@ async def _get_integration_status(
 
 
 async def _get_coordinator_diagnostics(
-    coordinator: Optional[PawControlCoordinator],
-) -> Dict[str, Any]:
+    coordinator: PawControlCoordinator | None,
+) -> dict[str, Any]:
     """Get coordinator diagnostic information.
 
     Args:
@@ -218,7 +218,7 @@ async def _get_coordinator_diagnostics(
 
 async def _get_entities_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get entities diagnostic information.
 
     Args:
@@ -234,7 +234,7 @@ async def _get_entities_diagnostics(
     entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
 
     # Group entities by platform
-    entities_by_platform: Dict[str, List[Dict[str, Any]]] = {}
+    entities_by_platform: dict[str, list[dict[str, Any]]] = {}
 
     for entity in entities:
         platform = entity.platform
@@ -286,7 +286,7 @@ async def _get_entities_diagnostics(
 
 async def _get_devices_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get devices diagnostic information.
 
     Args:
@@ -328,8 +328,8 @@ async def _get_devices_diagnostics(
 
 
 async def _get_dogs_summary(
-    entry: ConfigEntry, coordinator: Optional[PawControlCoordinator]
-) -> Dict[str, Any]:
+    entry: ConfigEntry, coordinator: PawControlCoordinator | None
+) -> dict[str, Any]:
     """Get summary of configured dogs.
 
     Args:
@@ -381,8 +381,8 @@ async def _get_dogs_summary(
 
 
 async def _get_performance_metrics(
-    coordinator: Optional[PawControlCoordinator],
-) -> Dict[str, Any]:
+    coordinator: PawControlCoordinator | None,
+) -> dict[str, Any]:
     """Get performance metrics.
 
     Args:
@@ -407,7 +407,7 @@ async def _get_performance_metrics(
     }
 
 
-async def _get_data_statistics(integration_data: Dict[str, Any]) -> Dict[str, Any]:
+async def _get_data_statistics(integration_data: dict[str, Any]) -> dict[str, Any]:
     """Get data storage statistics.
 
     Args:
@@ -432,7 +432,7 @@ async def _get_data_statistics(integration_data: Dict[str, Any]) -> Dict[str, An
     }
 
 
-async def _get_recent_errors(entry_id: str) -> List[Dict[str, Any]]:
+async def _get_recent_errors(entry_id: str) -> list[dict[str, Any]]:
     """Get recent error logs for this integration.
 
     Args:
@@ -453,7 +453,7 @@ async def _get_recent_errors(entry_id: str) -> List[Dict[str, Any]]:
 
 async def _get_debug_information(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get debug information.
 
     Args:
@@ -487,7 +487,7 @@ async def _get_debug_information(
     }
 
 
-async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> List[str]:
+async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list[str]:
     """Get list of loaded platforms for this entry.
 
     Args:
@@ -519,7 +519,7 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> List
     return loaded_platforms
 
 
-async def _get_registered_services(hass: HomeAssistant) -> List[str]:
+async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     """Get list of registered services for this domain.
 
     Args:
@@ -547,7 +547,7 @@ async def _get_registered_services(hass: HomeAssistant) -> List[str]:
     return services
 
 
-def _calculate_module_usage(dogs: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
     """Calculate module usage statistics across all dogs.
 
     Args:

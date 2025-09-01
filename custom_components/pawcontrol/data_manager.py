@@ -17,7 +17,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import aiofiles
 from homeassistant.core import HomeAssistant
@@ -79,8 +79,8 @@ class PawControlDataManager:
         self._cache_ttl = timedelta(minutes=5)
 
         # Background tasks
-        self._cleanup_task: Optional[asyncio.Task] = None
-        self._backup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
+        self._backup_task: asyncio.Task | None = None
 
         # Async locks for thread-safe operations
         self._lock = asyncio.Lock()
@@ -186,7 +186,7 @@ class PawControlDataManager:
             await self._stores["statistics"].async_save(initial_stats)
 
     # Core dog data operations
-    async def async_get_dog_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get all data for a specific dog.
 
         Args:
@@ -427,7 +427,7 @@ class PawControlDataManager:
             raise
 
     async def async_end_walk(
-        self, dog_id: str, walk_data: Optional[dict[str, Any]] = None
+        self, dog_id: str, walk_data: dict[str, Any] | None = None
     ) -> None:
         """End the current walk session for a dog.
 
@@ -495,7 +495,7 @@ class PawControlDataManager:
             self._metrics["errors_count"] += 1
             raise
 
-    async def async_get_current_walk(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_current_walk(self, dog_id: str) -> dict[str, Any] | None:
         """Get current active walk for a dog.
 
         Args:
@@ -620,7 +620,7 @@ class PawControlDataManager:
 
         return dog_data.get("health", {}).get("active_medications", [])
 
-    async def async_get_last_vet_visit(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_last_vet_visit(self, dog_id: str) -> dict[str, Any] | None:
         """Get last vet visit for a dog.
 
         Args:
@@ -635,7 +635,7 @@ class PawControlDataManager:
         ]
         return vet_visits[-1] if vet_visits else None
 
-    async def async_get_last_grooming(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_last_grooming(self, dog_id: str) -> dict[str, Any] | None:
         """Get last grooming session for a dog.
 
         Args:
@@ -708,7 +708,7 @@ class PawControlDataManager:
             self._metrics["errors_count"] += 1
             raise
 
-    async def async_get_current_gps_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_current_gps_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get current GPS data for a dog.
 
         Args:
@@ -768,7 +768,7 @@ class PawControlDataManager:
             raise
 
     async def async_end_grooming(
-        self, dog_id: str, grooming_data: Optional[dict[str, Any]] = None
+        self, dog_id: str, grooming_data: dict[str, Any] | None = None
     ) -> None:
         """End the current grooming session for a dog.
 
@@ -825,9 +825,9 @@ class PawControlDataManager:
         self,
         module: str,
         dog_id: str,
-        limit: Optional[int] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        limit: int | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """Get module data for a specific dog.
 
@@ -1234,7 +1234,7 @@ class PawControlDataManager:
             await f.write(json.dumps(data, indent=2, default=str, ensure_ascii=False))
 
     async def async_cleanup_old_data(
-        self, retention_days: Optional[int] = None
+        self, retention_days: int | None = None
     ) -> dict[str, int]:
         """Clean up old data based on retention policy."""
         if retention_days is None:

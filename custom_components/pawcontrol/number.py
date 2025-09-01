@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
@@ -52,7 +52,7 @@ from .coordinator import PawControlCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
@@ -63,7 +63,7 @@ DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: List[PawControlNumberBase],
+    entities: list[PawControlNumberBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -127,18 +127,18 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: List[PawControlNumberBase] = []
+    entities: list[PawControlNumberBase] = []
 
     # Create number entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: Dict[str, bool] = dog.get("modules", {})
+        modules: dict[str, bool] = dog.get("modules", {})
 
         _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
 
@@ -173,8 +173,8 @@ def _create_base_numbers(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: Dict[str, Any],
-) -> List[PawControlNumberBase]:
+    dog_config: dict[str, Any],
+) -> list[PawControlNumberBase]:
     """Create base numbers that are always present for every dog.
 
     Args:
@@ -195,7 +195,7 @@ def _create_base_numbers(
 
 def _create_feeding_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create feeding-related numbers for a dog.
 
     Args:
@@ -217,7 +217,7 @@ def _create_feeding_numbers(
 
 def _create_walk_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create walk-related numbers for a dog.
 
     Args:
@@ -239,7 +239,7 @@ def _create_walk_numbers(
 
 def _create_gps_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create GPS and location-related numbers for a dog.
 
     Args:
@@ -261,7 +261,7 @@ def _create_gps_numbers(
 
 def _create_health_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create health and medical-related numbers for a dog.
 
     Args:
@@ -298,15 +298,15 @@ class PawControlNumberBase(
         dog_name: str,
         number_type: str,
         *,
-        device_class: Optional[NumberDeviceClass] = None,
+        device_class: NumberDeviceClass | None = None,
         mode: NumberMode = NumberMode.AUTO,
-        native_unit_of_measurement: Optional[str] = None,
+        native_unit_of_measurement: str | None = None,
         native_min_value: float = 0,
         native_max_value: float = 100,
         native_step: float = 1,
-        icon: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
-        initial_value: Optional[float] = None,
+        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
+        initial_value: float | None = None,
     ) -> None:
         """Initialize the number entity.
 
@@ -384,7 +384,7 @@ class PawControlNumberBase(
                 )
 
     @property
-    def native_value(self) -> Optional[float]:
+    def native_value(self) -> float | None:
         """Return the current value of the number.
 
         Returns:
@@ -472,7 +472,7 @@ class PawControlNumberBase(
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this number's dog from the coordinator.
 
         Returns:
@@ -483,7 +483,7 @@ class PawControlNumberBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[Dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:
@@ -516,7 +516,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: Dict[str, Any],
+        dog_config: dict[str, Any],
     ) -> None:
         """Initialize the dog weight number."""
         current_weight = dog_config.get(CONF_DOG_WEIGHT, 20.0)
@@ -573,7 +573,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: Dict[str, Any],
+        dog_config: dict[str, Any],
     ) -> None:
         """Initialize the dog age number."""
         current_age = dog_config.get(CONF_DOG_AGE, 3)

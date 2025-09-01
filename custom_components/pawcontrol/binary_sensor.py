@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -282,10 +282,10 @@ class PawControlBinarySensorBase(
         dog_name: str,
         sensor_type: str,
         *,
-        device_class: Optional[BinarySensorDeviceClass] = None,
-        icon_on: Optional[str] = None,
-        icon_off: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
+        device_class: BinarySensorDeviceClass | None = None,
+        icon_on: str | None = None,
+        icon_off: str | None = None,
+        entity_category: EntityCategory | None = None,
     ) -> None:
         """Initialize the binary sensor entity.
 
@@ -324,7 +324,7 @@ class PawControlBinarySensorBase(
         }
 
     @property
-    def icon(self) -> Optional[str]:
+    def icon(self) -> str | None:
         """Return the icon to use in the frontend.
 
         Dynamically changes icon based on sensor state for better UX.
@@ -372,7 +372,7 @@ class PawControlBinarySensorBase(
 
         return attrs
 
-    def _get_dog_data(self) -> Optional[dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this sensor's dog from the coordinator.
 
         Returns:
@@ -383,7 +383,7 @@ class PawControlBinarySensorBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:
@@ -857,7 +857,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
 
         return attrs
 
-    def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> Optional[int]:
+    def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> int | None:
         """Estimate remaining walk time based on typical patterns.
 
         Args:

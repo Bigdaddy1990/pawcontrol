@@ -13,7 +13,6 @@ import copy
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
 
 
 @dataclass(slots=True)
@@ -22,7 +21,7 @@ class WalkSession:
 
     walk_id: str
     start: datetime
-    end: Optional[datetime] = None
+    end: datetime | None = None
     distance: float = 0.0
 
 
@@ -30,8 +29,8 @@ class WalkManager:
     """Track walks for multiple dogs."""
 
     def __init__(self) -> None:
-        self._active: Dict[str, WalkSession] = {}
-        self._history: Dict[str, List[WalkSession]] = {}
+        self._active: dict[str, WalkSession] = {}
+        self._history: dict[str, list[WalkSession]] = {}
 
     async def async_start_walk(self, dog_id: str) -> WalkSession:
         """Start a walk for ``dog_id``.
@@ -48,7 +47,7 @@ class WalkManager:
 
     async def async_end_walk(
         self, dog_id: str, distance: float = 0.0
-    ) -> Optional[WalkSession]:
+    ) -> WalkSession | None:
         """End the current walk for ``dog_id`` and return the session."""
         session = self._active.pop(dog_id, None)
         if not session:
@@ -57,6 +56,6 @@ class WalkManager:
         session.distance = distance
         return session
 
-    async def async_get_walks(self, dog_id: str) -> List[WalkSession]:
+    async def async_get_walks(self, dog_id: str) -> list[WalkSession]:
         """Return a copy of the walk history for ``dog_id``."""
         return [copy.copy(session) for session in self._history.get(dog_id, [])]

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -60,7 +60,7 @@ class PawControlDataStorage:
         """
         self.hass = hass
         self.config_entry = config_entry
-        self._stores: Dict[str, storage.Store] = {}
+        self._stores: dict[str, storage.Store] = {}
 
         # Initialize storage for each data type
         self._initialize_stores()
@@ -88,7 +88,7 @@ class PawControlDataStorage:
                 atomic_writes=True,
             )
 
-    async def async_load_all_data(self) -> Dict[str, Any]:
+    async def async_load_all_data(self) -> dict[str, Any]:
         """Load all stored data for the integration.
 
         Returns:
@@ -120,7 +120,7 @@ class PawControlDataStorage:
             _LOGGER.error("Failed to load integration data: %s", err)
             raise HomeAssistantError(f"Data loading failed: {err}") from err
 
-    async def _load_store_data(self, store_key: str) -> Dict[str, Any]:
+    async def _load_store_data(self, store_key: str) -> dict[str, Any]:
         """Load data from a specific store.
 
         Args:
@@ -140,7 +140,7 @@ class PawControlDataStorage:
             _LOGGER.error("Failed to load %s store: %s", store_key, err)
             return {}
 
-    async def async_save_data(self, store_key: str, data: Dict[str, Any]) -> None:
+    async def async_save_data(self, store_key: str, data: dict[str, Any]) -> None:
         """Save data to a specific store.
 
         Args:
@@ -183,8 +183,8 @@ class PawControlDataStorage:
                 _LOGGER.error("Failed to cleanup %s data: %s", store_key, err)
 
     def _cleanup_store_data(
-        self, data: Dict[str, Any], cutoff_date: datetime
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], cutoff_date: datetime
+    ) -> dict[str, Any]:
         """Remove entries older than cutoff date from store data.
 
         Args:
@@ -231,8 +231,8 @@ class PawControlData:
         self.hass = hass
         self.config_entry = config_entry
         self.storage = PawControlDataStorage(hass, config_entry)
-        self._data: Dict[str, Any] = {}
-        self._dogs: List[Dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
+        self._data: dict[str, Any] = {}
+        self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
 
     async def async_load_data(self) -> None:
         """Load all data from storage.
@@ -256,7 +256,7 @@ class PawControlData:
             }
 
     async def async_log_feeding(
-        self, dog_id: str, feeding_data: Dict[str, Any]
+        self, dog_id: str, feeding_data: dict[str, Any]
     ) -> None:
         """Log a feeding event for a dog.
 
@@ -302,7 +302,7 @@ class PawControlData:
             _LOGGER.error("Failed to log feeding for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to log feeding: {err}") from err
 
-    async def async_start_walk(self, dog_id: str, walk_data: Dict[str, Any]) -> None:
+    async def async_start_walk(self, dog_id: str, walk_data: dict[str, Any]) -> None:
         """Start a walk for a dog.
 
         Args:
@@ -347,7 +347,7 @@ class PawControlData:
             _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to start walk: {err}") from err
 
-    async def async_end_walk(self, dog_id: str) -> Optional[Dict[str, Any]]:
+    async def async_end_walk(self, dog_id: str) -> dict[str, Any] | None:
         """End an active walk for a dog.
 
         Args:
@@ -419,7 +419,7 @@ class PawControlData:
             _LOGGER.error("Failed to end walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to end walk: {err}") from err
 
-    async def async_log_health(self, dog_id: str, health_data: Dict[str, Any]) -> None:
+    async def async_log_health(self, dog_id: str, health_data: dict[str, Any]) -> None:
         """Log health data for a dog.
 
         Args:
@@ -533,7 +533,7 @@ class PawControlNotificationManager:
         """
         self.hass = hass
         self.config_entry = config_entry
-        self._notification_queue: List[Dict[str, Any]] = []
+        self._notification_queue: list[dict[str, Any]] = []
         self._setup_notification_processor()
 
     def _setup_notification_processor(self) -> None:
@@ -571,7 +571,7 @@ class PawControlNotificationManager:
         title: str,
         message: str,
         priority: str = "normal",
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """Send a notification for a specific dog.
 
@@ -602,7 +602,7 @@ class PawControlNotificationManager:
             # Queue normal and low priority notifications
             self._notification_queue.append(notification)
 
-    async def _send_notification_now(self, notification: Dict[str, Any]) -> None:
+    async def _send_notification_now(self, notification: dict[str, Any]) -> None:
         """Send a notification immediately.
 
         Args:

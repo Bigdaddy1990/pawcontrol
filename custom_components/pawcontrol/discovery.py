@@ -173,7 +173,7 @@ class PawControlDiscovery:
 
             return unique_devices
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Device discovery timed out after %ds", scan_timeout)
             return list(self._discovered_devices.values())
         except Exception as err:

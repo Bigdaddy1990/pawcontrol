@@ -350,7 +350,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     len(dogs_config),
                     (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Platform setup timed out after 30 seconds")
                 await _async_cleanup_runtime_data(hass, entry, runtime_data)
                 raise ConfigEntryNotReady("Platform setup timed out") from None
@@ -419,7 +419,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 async with asyncio.timeout(10):  # Reduced from 30s to 10s
                     await coordinator.async_config_entry_first_refresh()
                 _LOGGER.debug("Initial data refresh completed successfully")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning(
                     "Initial data refresh timed out after 10s, integration will continue with cached data"
                 )
@@ -595,7 +595,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         return unload_success
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         _LOGGER.error("Timeout during platform unloading")
         return False
     except Exception as err:
@@ -685,7 +685,7 @@ async def _async_cleanup_runtime_data(
         try:
             async with asyncio.timeout(20):
                 await asyncio.gather(*shutdown_tasks, return_exceptions=True)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Component cleanup timed out")
 
 
