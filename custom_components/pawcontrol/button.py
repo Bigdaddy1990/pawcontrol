@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.const import STATE_UNKNOWN
 
 from .exceptions import (
     WalkAlreadyInProgressError,
@@ -741,7 +742,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             if walk_data and walk_data.get("walk_in_progress", False):
                 raise WalkAlreadyInProgressError(
                     dog_id=self._dog_id,
-                    walk_id=walk_data.get("current_walk_id", "unknown"),
+                    walk_id=walk_data.get("current_walk_id", STATE_UNKNOWN),
                     start_time=walk_data.get("current_walk_start"),
                 )
 

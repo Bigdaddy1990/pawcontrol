@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import (
