@@ -1,35 +1,35 @@
 """Tests for the Paw Control config flow."""
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Any
 
+from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+from custom_components.pawcontrol.config_flow import (
+    DOG_ID_PATTERN,
+    MAX_DOGS_PER_ENTRY,
+    PawControlConfigFlow,
+    PawControlOptionsFlow,
+)
+from custom_components.pawcontrol.const import (
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_MODULES,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.config_flow import (
-    PawControlConfigFlow,
-    PawControlOptionsFlow,
-    DOG_ID_PATTERN,
-    MAX_DOGS_PER_ENTRY,
-)
-from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_AGE,
-    CONF_DOG_WEIGHT,
-    CONF_DOG_SIZE,
-    CONF_DOG_BREED,
-    CONF_MODULES,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_VISITOR,
-    MODULE_FEEDING,
-    MODULE_WALK,
-    MODULE_NOTIFICATIONS,
-)
 
 
 class TestPawControlConfigFlow:
@@ -60,14 +60,15 @@ class TestPawControlConfigFlow:
 
         user_input = {"name": "My Paw Control"}
 
-        with patch.object(flow, "_generate_unique_id", return_value="my_paw_control"), \
-             patch.object(flow, "async_set_unique_id"), \
-             patch.object(flow, "_abort_if_unique_id_configured"), \
-             patch.object(flow, "async_step_add_dog") as mock_add_dog:
-
+        with (
+            patch.object(flow, "_generate_unique_id", return_value="my_paw_control"),
+            patch.object(flow, "async_set_unique_id"),
+            patch.object(flow, "_abort_if_unique_id_configured"),
+            patch.object(flow, "async_step_add_dog") as mock_add_dog,
+        ):
             mock_add_dog.return_value = {"type": FlowResultType.FORM}
-            
-            result = await flow.async_step_user(user_input)
+
+            await flow.async_step_user(user_input)
 
             assert flow._integration_name == "My Paw Control"
             mock_add_dog.assert_called_once()
@@ -127,8 +128,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_step_add_another_dog") as mock_add_another:
             mock_add_another.return_value = {"type": FlowResultType.FORM}
-            
-            result = await flow.async_step_add_dog(user_input)
+
+            await flow.async_step_add_dog(user_input)
 
             assert len(flow._dogs) == 1
             assert flow._dogs[0][CONF_DOG_ID] == "test_dog"
@@ -157,7 +158,7 @@ class TestPawControlConfigFlow:
         """Test add dog step with duplicate dog ID."""
         flow = PawControlConfigFlow()
         flow.hass = hass
-        
+
         # Add first dog
         flow._dogs = [{"dog_id": "test_dog", "dog_name": "First Dog"}]
 
@@ -201,8 +202,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_step_add_dog") as mock_add_dog:
             mock_add_dog.return_value = {"type": FlowResultType.FORM}
-            
-            result = await flow.async_step_add_another_dog(user_input)
+
+            await flow.async_step_add_another_dog(user_input)
 
             mock_add_dog.assert_called_once()
 
@@ -217,8 +218,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_step_configure_modules") as mock_configure:
             mock_configure.return_value = {"type": FlowResultType.FORM}
-            
-            result = await flow.async_step_add_another_dog(user_input)
+
+            await flow.async_step_add_another_dog(user_input)
 
             mock_configure.assert_called_once()
 
@@ -227,7 +228,7 @@ class TestPawControlConfigFlow:
         """Test add another dog when at limit."""
         flow = PawControlConfigFlow()
         flow.hass = hass
-        
+
         # Fill up to limit
         flow._dogs = [
             {"dog_id": f"dog_{i}", "dog_name": f"Dog {i}"}
@@ -263,15 +264,15 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_step_final_setup") as mock_final:
             mock_final.return_value = {"type": FlowResultType.CREATE_ENTRY}
-            
-            result = await flow.async_step_configure_modules(user_input)
+
+            await flow.async_step_configure_modules(user_input)
 
             # Check that modules were configured
             dog_modules = flow._dogs[0][CONF_MODULES]
             assert dog_modules[MODULE_GPS] is True
             assert dog_modules[MODULE_HEALTH] is True
             assert dog_modules[MODULE_VISITOR] is True
-            
+
             mock_final.assert_called_once()
 
     @pytest.mark.asyncio
@@ -283,8 +284,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_step_final_setup") as mock_final:
             mock_final.return_value = {"type": FlowResultType.ABORT}
-            
-            result = await flow.async_step_configure_modules()
+
+            await flow.async_step_configure_modules()
 
             mock_final.assert_called_once()
 
@@ -304,8 +305,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_create_entry") as mock_create:
             mock_create.return_value = {"type": FlowResultType.CREATE_ENTRY}
-            
-            result = await flow.async_step_final_setup()
+
+            await flow.async_step_final_setup()
 
             mock_create.assert_called_once()
             call_args = mock_create.call_args
@@ -321,8 +322,8 @@ class TestPawControlConfigFlow:
 
         with patch.object(flow, "async_abort") as mock_abort:
             mock_abort.return_value = {"type": FlowResultType.ABORT}
-            
-            result = await flow.async_step_final_setup()
+
+            await flow.async_step_final_setup()
 
             mock_abort.assert_called_once_with(reason="no_dogs_configured")
 
@@ -366,7 +367,7 @@ class TestPawControlConfigFlow:
 
         # First call
         result1 = await flow._async_validate_dog_config(user_input)
-        
+
         # Second call should use cache
         with patch("asyncio.get_event_loop") as mock_loop:
             mock_loop.return_value.time.return_value = 0  # Same timestamp
@@ -417,11 +418,15 @@ class TestPawControlConfigFlow:
         assert suggestion == "buddy"
 
         # Test multi-word name
-        suggestion = await flow._generate_smart_dog_id_suggestion({"dog_name": "Max Cooper"})
+        suggestion = await flow._generate_smart_dog_id_suggestion(
+            {"dog_name": "Max Cooper"}
+        )
         assert suggestion == "max_c"
 
         # Test name with special characters
-        suggestion = await flow._generate_smart_dog_id_suggestion({"dog_name": "Rex-123!"})
+        suggestion = await flow._generate_smart_dog_id_suggestion(
+            {"dog_name": "Rex-123!"}
+        )
         assert suggestion == "rex123"
 
         # Test empty or no name
@@ -432,11 +437,13 @@ class TestPawControlConfigFlow:
         assert suggestion == ""
 
     @pytest.mark.asyncio
-    async def test_generate_smart_dog_id_suggestion_conflict_resolution(self, hass: HomeAssistant):
+    async def test_generate_smart_dog_id_suggestion_conflict_resolution(
+        self, hass: HomeAssistant
+    ):
         """Test dog ID suggestion conflict resolution."""
         flow = PawControlConfigFlow()
         flow.hass = hass
-        
+
         # Add existing dog
         flow._dogs = [{"dog_id": "buddy", "dog_name": "Existing Buddy"}]
 
@@ -504,7 +511,7 @@ class TestPawControlConfigFlow:
                 "dog_name": "Small Puppy",
                 "dog_size": "small",
                 "dog_age": 1,
-            }
+            },
         ]
 
         summary = flow._get_dogs_module_summary()
@@ -524,9 +531,9 @@ class TestPawControlConfigFlow:
                     "modules": {"gps": True, "feeding": True},
                 },
                 {
-                    "dog_size": "small", 
+                    "dog_size": "small",
                     "modules": {"gps": False, "feeding": True},
-                }
+                },
             ]
         }
 
@@ -642,7 +649,7 @@ class TestConfigFlowValidation:
 
         with patch("asyncio.get_event_loop") as mock_loop:
             mock_loop.return_value.time.return_value = 12345
-            
+
             dog_config = await flow._create_dog_config(user_input)
 
         assert dog_config[CONF_DOG_ID] == "test_dog"
@@ -672,7 +679,7 @@ class TestConfigFlowValidation:
     def test_get_feature_summary(self):
         """Test feature summary generation."""
         flow = PawControlConfigFlow()
-        
+
         summary = flow._get_feature_summary()
         assert "🐕 Multi-dog management" in summary
         assert "📍 GPS tracking" in summary
@@ -693,7 +700,11 @@ class TestConfigFlowErrors:
             CONF_DOG_NAME: "Test Dog",
         }
 
-        with patch.object(flow, "_async_validate_dog_config", side_effect=Exception("Validation error")):
+        with patch.object(
+            flow,
+            "_async_validate_dog_config",
+            side_effect=Exception("Validation error"),
+        ):
             result = await flow.async_step_add_dog(user_input)
 
             assert result["type"] == FlowResultType.FORM
@@ -708,7 +719,10 @@ class TestConfigFlowErrors:
         flow._integration_name = "Test"
         flow._dogs = [{"dog_id": "test", "dog_name": "Test"}]
 
-        with patch("custom_components.pawcontrol.config_flow.is_dog_config_valid", side_effect=Exception("Validation error")):
+        with patch(
+            "custom_components.pawcontrol.config_flow.is_dog_config_valid",
+            side_effect=Exception("Validation error"),
+        ):
             result = await flow.async_step_final_setup()
 
             assert result["type"] == FlowResultType.ABORT

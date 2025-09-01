@@ -12,7 +12,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from homeassistant.components.number import NumberEntity, NumberDeviceClass, NumberMode
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
@@ -32,11 +32,11 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOGS,
     CONF_DOG_AGE,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_WEIGHT,
+    CONF_DOGS,
     DOMAIN,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,

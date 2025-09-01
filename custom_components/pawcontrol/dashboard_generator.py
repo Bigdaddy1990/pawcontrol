@@ -20,8 +20,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
-from homeassistant.util import slugify
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify
 
 from .const import (
     CONF_DOG_ID,
@@ -48,7 +48,7 @@ class PawControlDashboardGenerator:
     - Lazy loading to reduce memory usage
     - Async rendering to prevent blocking
     - Modular card generators for maintainability
-    
+
     Performance improvements over original implementation:
     - ~70% reduction in main class size
     - Template caching reduces generation time by ~60%
@@ -65,20 +65,20 @@ class PawControlDashboardGenerator:
         """
         self.hass = hass
         self.entry = entry
-        
+
         # Initialize storage with versioning
         self._store = Store[dict[str, Any]](
             hass,
             DASHBOARD_STORAGE_VERSION,
             f"{DASHBOARD_STORAGE_KEY}_{entry.entry_id}",
         )
-        
+
         # Initialize renderer (handles heavy lifting)
         self._renderer = DashboardRenderer(hass)
-        
+
         # Dashboard registry
         self._dashboards: dict[str, dict[str, Any]] = {}
-        
+
         # State management
         self._initialized = False
         self._lock = asyncio.Lock()
@@ -111,8 +111,8 @@ class PawControlDashboardGenerator:
 
             except Exception as err:
                 _LOGGER.warning(
-                    "Dashboard initialization error: %s, continuing with empty state", 
-                    err
+                    "Dashboard initialization error: %s, continuing with empty state",
+                    err,
                 )
                 self._dashboards = {}
 
@@ -343,7 +343,7 @@ class PawControlDashboardGenerator:
                         "icon": dashboard_info.get("icon", DEFAULT_DASHBOARD_ICON),
                         "show_in_sidebar": dashboard_info.get("show_in_sidebar", True),
                         "updated": dt_util.utcnow().isoformat(),
-                    }
+                    },
                 )
 
                 # Update metadata
@@ -517,7 +517,8 @@ class PawControlDashboardGenerator:
                 if stored_version < DASHBOARD_STORAGE_VERSION:
                     _LOGGER.info(
                         "Dashboard %s has old version %d, will need regeneration",
-                        url, stored_version
+                        url,
+                        stored_version,
                     )
 
             except Exception as err:

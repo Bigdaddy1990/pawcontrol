@@ -18,6 +18,11 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.core import callback
 
+from .config_flow_base import INTEGRATION_SCHEMA, PawControlBaseConfigFlow
+from .config_flow_dashboard_extension import DashboardFlowMixin
+from .config_flow_dogs import DogManagementMixin
+from .config_flow_external import ExternalEntityConfigurationMixin
+from .config_flow_modules import ModuleConfigurationMixin
 from .const import (
     CONF_DOGS,
     CONF_GPS_ACCURACY_FILTER,
@@ -35,14 +40,8 @@ from .const import (
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
-    DOMAIN,
     MODULE_GPS,
 )
-from .config_flow_base import INTEGRATION_SCHEMA, PawControlBaseConfigFlow
-from .config_flow_dogs import DogManagementMixin
-from .config_flow_external import ExternalEntityConfigurationMixin
-from .config_flow_modules import ModuleConfigurationMixin
-from .config_flow_dashboard_extension import DashboardFlowMixin
 from .options_flow import PawControlOptionsFlow
 from .types import is_dog_config_valid
 
@@ -198,9 +197,7 @@ class PawControlConfigFlow(
         # Analyze configuration for intelligent defaults
         has_gps = any(dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs)
         has_multiple_dogs = len(dogs) > 1
-        has_large_dogs = any(
-            dog.get("dog_size") in ("large", "giant") for dog in dogs
-        )
+        has_large_dogs = any(dog.get("dog_size") in ("large", "giant") for dog in dogs)
 
         # Performance mode based on complexity
         if has_multiple_dogs and has_gps:
@@ -229,9 +226,7 @@ class PawControlConfigFlow(
             CONF_GPS_UPDATE_INTERVAL: update_interval,
             CONF_GPS_ACCURACY_FILTER: DEFAULT_GPS_ACCURACY_FILTER,
             CONF_GPS_DISTANCE_FILTER: DEFAULT_GPS_DISTANCE_FILTER,
-            "dashboard_mode": DEFAULT_DASHBOARD_MODE
-            if has_multiple_dogs
-            else "cards",
+            "dashboard_mode": DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
             "performance_mode": performance_mode,
             "data_retention_days": 90,
             "auto_backup": has_multiple_dogs,

@@ -13,8 +13,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.components.device_tracker import SourceType
+from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_BATTERY_LEVEL,
@@ -34,9 +34,9 @@ from homeassistant.util.location import distance
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_GPS,
 )

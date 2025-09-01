@@ -30,9 +30,9 @@ from homeassistant.helpers.typing import ConfigType
 from .const import (
     CONF_DASHBOARD_AUTO_CREATE,
     CONF_DASHBOARD_ENABLED,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
     CONF_NAME,
     DEFAULT_DASHBOARD_AUTO_CREATE,
     DEFAULT_DASHBOARD_ENABLED,
@@ -42,8 +42,8 @@ from .const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
-    MODULE_WALK,
     MODULE_VISITOR,
+    MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
 from .dashboard_generator import PawControlDashboardGenerator
@@ -53,13 +53,12 @@ from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .types import DogConfigData, PawControlRuntimeData
 from .utils import (
+    performance_monitor,
     safe_convert,
     validate_dog_id,
-    validate_weight_enhanced,
     validate_enum_value,
-    performance_monitor,
+    validate_weight_enhanced,
 )
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -364,7 +363,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Register services using the new service manager
             service_manager = PawControlServiceManager(hass)
             await service_manager.async_register_services()
-            
+
             # Store service manager in runtime data for cleanup
             runtime_data["service_manager"] = service_manager
             hass.data[DOMAIN][entry.entry_id]["service_manager"] = service_manager
@@ -725,7 +724,9 @@ async def _async_cleanup_legacy_entry_data(entry_data: dict[str, Any]) -> None:
             if hasattr(component, "async_unregister_services"):
                 try:
                     await component.async_unregister_services()
-                    _LOGGER.debug("Successfully unregistered services for %s", component_name)
+                    _LOGGER.debug(
+                        "Successfully unregistered services for %s", component_name
+                    )
                 except Exception as err:
                     _LOGGER.warning(
                         "Error unregistering services for %s: %s", component_name, err

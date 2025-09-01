@@ -16,10 +16,15 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
+from .config_flow_base import (
+    DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+)
 from .const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -42,12 +47,6 @@ from .const import (
     MODULE_VISITOR,
     MODULE_WALK,
 )
-from .config_flow_base import (
-    DOG_ID_PATTERN,
-    ENTITY_CREATION_DELAY,
-    MAX_DOGS_PER_ENTRY,
-    VALIDATION_SEMAPHORE,
-)
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class DogManagementMixin:
     """Mixin for dog management functionality in configuration flow.
-    
+
     This mixin provides all the methods needed for adding, validating,
     and configuring dogs during the initial setup process with enhanced
     validation and user experience.

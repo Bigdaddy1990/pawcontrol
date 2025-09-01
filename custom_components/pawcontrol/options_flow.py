@@ -16,19 +16,18 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
-from homeassistant.config_entries import ConfigEntry, OptionsFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
 from homeassistant.helpers import selector
 
 from .const import (
     CONF_DASHBOARD_MODE,
-    CONF_DOGS,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_DOGS,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
     CONF_GPS_UPDATE_INTERVAL,
@@ -90,7 +89,7 @@ class PawControlOptionsFlow(OptionsFlow):
             step_id="init",
             menu_options=[
                 "manage_dogs",
-                "gps_settings", 
+                "gps_settings",
                 "notifications",
                 "feeding_settings",
                 "health_settings",
@@ -131,7 +130,7 @@ class PawControlOptionsFlow(OptionsFlow):
                             else "No dogs to edit",
                             "remove_dog": "Remove dog"
                             if current_dogs
-                            else "No dogs to remove", 
+                            else "No dogs to remove",
                             "back": "Back to main menu",
                         }
                     )

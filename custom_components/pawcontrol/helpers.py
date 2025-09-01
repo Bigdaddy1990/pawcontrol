@@ -19,8 +19,8 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DOGS,
     CONF_DOG_ID,
+    CONF_DOGS,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
