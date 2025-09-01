@@ -8,7 +8,7 @@ src = ["custom_components"]
 # Base: pycodestyle (E), pyflakes (F)
 # Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
 # Start with core correctness + imports
-select = ["E4", "E7", "E9", "F", "I", "UP"]
+select = ["E4", "E7", "E9", "F", "I"]
 # Ignore long lines initially; ruff format will wrap many cases
 #select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 ignore = ["E501"]
