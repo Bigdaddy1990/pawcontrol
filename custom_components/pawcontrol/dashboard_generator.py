@@ -25,7 +25,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 from homeassistant.util import slugify
-from homeassistant.util.dt import utcnow
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_ID,
@@ -196,7 +196,7 @@ class PawControlDashboardGenerator:
                     "url": dashboard_url,
                     "title": dashboard_title,
                     "path": dashboard_path,
-                    "created": utcnow().isoformat(),
+                    "created": dt_util.utcnow().isoformat(),
                     "type": "main",
                     "dogs": [
                         dog[CONF_DOG_ID] for dog in dogs_config if dog.get(CONF_DOG_ID)
@@ -278,7 +278,7 @@ class PawControlDashboardGenerator:
                     "url": dashboard_url,
                     "title": dashboard_title,
                     "path": dashboard_path,
-                    "created": utcnow().isoformat(),
+                    "created": dt_util.utcnow().isoformat(),
                     "type": "dog",
                     "dog_id": dog_id,
                     "dog_name": dog_name,
@@ -360,7 +360,7 @@ class PawControlDashboardGenerator:
                 )
 
                 # Update stored info
-                dashboard_info["updated"] = utcnow().isoformat()
+                dashboard_info["updated"] = dt_util.utcnow().isoformat()
                 if options:
                     dashboard_info["options"] = options
 
@@ -1491,7 +1491,7 @@ class PawControlDashboardGenerator:
 
             # Update configuration
             dashboard_data["data"]["config"] = config
-            dashboard_data["data"]["updated"] = utcnow().isoformat()
+            dashboard_data["data"]["updated"] = dt_util.utcnow().isoformat()
 
             # Write updated dashboard
             async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as file:
@@ -1533,7 +1533,7 @@ class PawControlDashboardGenerator:
             await self._store.async_save(
                 {
                     "dashboards": self._dashboards,
-                    "updated": utcnow().isoformat(),
+                    "updated": dt_util.utcnow().isoformat(),
                     "version": DASHBOARD_STORAGE_VERSION,
                     "entry_id": self.entry.entry_id,
                 }

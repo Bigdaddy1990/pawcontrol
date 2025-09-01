@@ -18,12 +18,13 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Final
 
-from homeassistant.components import bluetooth, usb
+from homeassistant.components import bluetooth, dhcp, usb, zeroconf
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
+from .const import DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -377,6 +378,13 @@ class PawControlDiscovery:
         discovered = []
 
         try:
+            # Ensure zeroconf integration is initialized
+            try:
+                await zeroconf.async_get_instance(self.hass)
+            except Exception:
+                _LOGGER.debug("Zeroconf not available for discovery", exc_info=True)
+                return discovered
+
             # Zeroconf service patterns for dog devices
             service_patterns = {
                 "_petnet._tcp.local.": {
@@ -454,6 +462,13 @@ class PawControlDiscovery:
         discovered = []
 
         try:
+            # Ensure DHCP integration is initialized
+            try:
+                await dhcp.async_get_dhcp_entries(self.hass)
+            except Exception:
+                _LOGGER.debug("DHCP not available for discovery", exc_info=True)
+                return discovered
+
             # DHCP hostname patterns for dog devices
             hostname_patterns = {
                 r"tractive.*": {
@@ -751,6 +766,7 @@ async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, An
         List of discovered devices in legacy format
     """
     discovery = PawControlDiscovery(hass)
+    hass.data.setdefault(DOMAIN, {})["legacy_discovery"] = discovery
 
     try:
         await discovery.async_initialize()
@@ -779,6 +795,7 @@ async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, An
         return []
     finally:
         await discovery.async_shutdown()
+        hass.data[DOMAIN].pop("legacy_discovery", None)
 
 
 async def async_start_discovery() -> bool:
