@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 from homeassistant.components.button import ButtonEntity, ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.const import STATE_UNKNOWN
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .exceptions import (
     WalkAlreadyInProgressError,
