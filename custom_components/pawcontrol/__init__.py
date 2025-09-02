@@ -70,6 +70,11 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Legacy: All platforms (kept for reference and fallback)
 ALL_PLATFORMS: Final[list[Platform]] = PLATFORMS
 
+# OPTIMIZATION: Reduced timeouts for modern hardware (from 15s/10s to 8s/5s)
+SETUP_TIMEOUT_FAST = 8  # seconds for component initialization
+SETUP_TIMEOUT_NORMAL = 12  # seconds for platform setup
+REFRESH_TIMEOUT = 5  # seconds for initial data refresh
+
 
 def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
     """Ermittelt nur die benötigten Plattformen basierend auf aktivierten Modulen.
@@ -172,11 +177,6 @@ def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:
     return platforms_list
 
 
-# OPTIMIZATION: Rate limiting für Entity Registry Updates
-_PLATFORM_SETUP_LOCK = asyncio.Lock()
-_PLATFORM_SETUP_DELAY = 0.1  # 100ms zwischen Platform-Setups bei mehreren Hunden
-
-
 # Enhanced error handling with detailed context
 class PawControlSetupError(HomeAssistantError):
     """Exception raised when Paw Control setup fails."""
@@ -258,8 +258,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Enhanced dog configuration validation
             await _async_validate_dogs_configuration(dogs_config)
 
+            # OPTIMIZATION: Reduced timeout from 15s to 8s for faster setup
             # Initialize core components with optimized timeouts for faster setup
-            async with asyncio.timeout(15):  # Reduced from 45s to 15s for faster setup
+            async with asyncio.timeout(SETUP_TIMEOUT_FAST):
                 # Initialize coordinator with enhanced configuration
                 coordinator = PawControlCoordinator(hass, entry)
 
@@ -300,7 +301,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             # Setup platforms using modulares Loading für optimale Performance und Entity Registry
             try:
-                # ✅ LÖSUNG: Modulares Platform Loading basierend auf aktivierten Modulen
+                # OPTIMIZATION: Paralleles Platform Loading mit asyncio.gather
                 needed_platforms = get_platforms_for_modules(dogs_config)
 
                 # Fallback auf alle Plattformen falls keine Module konfiguriert (Safety)
@@ -310,41 +311,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     )
                     needed_platforms = ALL_PLATFORMS
 
-                # FIX: Rate-limited platform setup to prevent Entity Registry flooding
-                async with _PLATFORM_SETUP_LOCK:
-                    # Bei mehreren Hunden: Gestaffelte Platform-Initialisierung
-                    if len(dogs_config) > 2:
-                        # Teile Platforms in kleinere Gruppen auf
+                # OPTIMIZATION: Parallel platform setup instead of sequential
+                async with asyncio.timeout(SETUP_TIMEOUT_NORMAL):
+                    if len(dogs_config) > 3:
+                        # Für viele Hunde: Batch-basiertes paralleles Laden
                         platform_groups = [
                             needed_platforms[i : i + 3]
                             for i in range(0, len(needed_platforms), 3)
                         ]
-
-                        for group_idx, platform_group in enumerate(platform_groups):
-                            async with asyncio.timeout(15):  # Timeout pro Gruppe
-                                await hass.config_entries.async_forward_entry_setups(
+                        
+                        # Paralleles Laden der Platform-Gruppen
+                        setup_tasks = []
+                        for platform_group in platform_groups:
+                            setup_tasks.append(
+                                hass.config_entries.async_forward_entry_setups(
                                     entry, platform_group
                                 )
-
-                            # Verzögerung zwischen Gruppen bei vielen Hunden
-                            if group_idx < len(platform_groups) - 1:
-                                await asyncio.sleep(_PLATFORM_SETUP_DELAY)
-                    else:
-                        # Wenige Hunde: Normal setup
-                        async with asyncio.timeout(30):
-                            await hass.config_entries.async_forward_entry_setups(
-                                entry, needed_platforms
                             )
+                        
+                        # Alle Gruppen parallel ausführen
+                        await asyncio.gather(*setup_tasks)
+                    else:
+                        # Wenige Hunde: Direktes paralleles Setup aller Plattformen
+                        await hass.config_entries.async_forward_entry_setups(
+                            entry, needed_platforms
+                        )
 
                 _LOGGER.info(
-                    "Modulares Setup erfolgreich: %d von %d Plattformen für %d Hunde (%.0f%% optimiert)",
+                    "Optimiertes Setup erfolgreich: %d von %d Plattformen für %d Hunde (%.0f%% reduziert)",
                     len(needed_platforms),
                     len(ALL_PLATFORMS),
                     len(dogs_config),
                     (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100,
                 )
             except asyncio.TimeoutError:
-                _LOGGER.error("Platform setup timed out after 30 seconds")
+                _LOGGER.error("Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL)
                 await _async_cleanup_runtime_data(hass, entry, runtime_data)
                 raise ConfigEntryNotReady("Platform setup timed out") from None
             except Exception as err:
@@ -373,29 +374,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     if entry.options.get(
                         CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE
                     ):
-                        dashboard_url = await dashboard_generator.async_create_dashboard(
-                            dogs_config,
-                            options={
-                                "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
-                                "theme": entry.options.get(
-                                    "dashboard_theme", "default"
-                                ),
-                                "mode": entry.options.get("dashboard_mode", "full"),
-                            },
-                        )
-                        _LOGGER.info("Created dashboard at: %s", dashboard_url)
+                        # OPTIMIZATION: Dashboard creation in background task
+                        async def create_dashboards():
+                            try:
+                                dashboard_url = await dashboard_generator.async_create_dashboard(
+                                    dogs_config,
+                                    options={
+                                        "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
+                                        "theme": entry.options.get(
+                                            "dashboard_theme", "default"
+                                        ),
+                                        "mode": entry.options.get("dashboard_mode", "full"),
+                                    },
+                                )
+                                _LOGGER.info("Created dashboard at: %s", dashboard_url)
 
-                        # Create individual dog dashboards if configured
-                        if entry.options.get("dashboard_per_dog", False):
-                            for dog in dogs_config:
-                                dog_url = await dashboard_generator.async_create_dog_dashboard(
-                                    dog
-                                )
-                                _LOGGER.info(
-                                    "Created dog dashboard for %s at: %s",
-                                    dog[CONF_DOG_NAME],
-                                    dog_url,
-                                )
+                                # Create individual dog dashboards if configured
+                                if entry.options.get("dashboard_per_dog", False):
+                                    for dog in dogs_config:
+                                        dog_url = await dashboard_generator.async_create_dog_dashboard(
+                                            dog
+                                        )
+                                        _LOGGER.info(
+                                            "Created dog dashboard for %s at: %s",
+                                            dog[CONF_DOG_NAME],
+                                            dog_url,
+                                        )
+                            except Exception as err:
+                                _LOGGER.error("Dashboard creation failed: %s", err)
+                        
+                        # Start dashboard creation in background
+                        asyncio.create_task(create_dashboards())
 
                     # Update runtime data with dashboard generator
                     runtime_data["dashboard_generator"] = dashboard_generator
@@ -407,14 +416,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     _LOGGER.error("Failed to setup dashboard: %s", err)
                     # Dashboard failure is non-critical, continue setup
 
+            # OPTIMIZATION: Reduced timeout from 10s to 5s for initial refresh
             # Perform initial data refresh with shorter timeout for faster setup
             try:
-                async with asyncio.timeout(10):  # Reduced from 30s to 10s
+                async with asyncio.timeout(REFRESH_TIMEOUT):
                     await coordinator.async_config_entry_first_refresh()
                 _LOGGER.debug("Initial data refresh completed successfully")
             except asyncio.TimeoutError:
                 _LOGGER.warning(
-                    "Initial data refresh timed out after 10s, integration will continue with cached data"
+                    "Initial data refresh timed out after %ds, integration will continue with cached data",
+                    REFRESH_TIMEOUT
                 )
             except Exception as err:
                 _LOGGER.warning(

@@ -2,14 +2,9 @@
   "domain": "pawcontrol",
   "name": "Paw Control",
   "after_dependencies": [
-    "mobile_app",
     "person",
     "zone",
-    "device_tracker",
-    "bluetooth",
-    "usb",
-    "zeroconf",
-    "dhcp"
+    "device_tracker"
   ],
   "bluetooth": [
     {
@@ -51,14 +46,7 @@
     "custom_components.pawcontrol"
   ],
   "quality_scale": "platinum",
-  "requirements": [
-    "aiofiles>=23.1.0",
-    "asyncio-mqtt>=0.16.0",
-    "aiodiscover>=2.0.0",
-    "aiousbwatcher>=1.1.0",
-    "aiodhcpwatcher>=1.2.1",
-    "pyserial>=3.5"
-  ],
+  "requirements": [],
   "usb": [
     {
       "vid": "1234",
