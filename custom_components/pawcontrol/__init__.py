@@ -267,6 +267,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 data_manager = PawControlDataManager(hass, entry.entry_id)
                 await data_manager.async_initialize()
 
+                # Wire coordinator with the data manager
+                coordinator._data_manager = data_manager
+
                 # Initialize notification manager with full async support
                 notification_manager = PawControlNotificationManager(
                     hass, entry.entry_id

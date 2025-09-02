@@ -470,6 +470,15 @@ class TestPawControlCoordinator:
         assert data["source"] == "device_tracker"
 
     @pytest.mark.asyncio
+    async def test_fetch_gps_data_no_manager(self, coordinator):
+        """Test GPS data fetch when no data manager is configured."""
+
+        data = await coordinator._fetch_gps_data("test_dog")
+
+        assert data["available"] is False
+        assert data["error"] == "GPS data not available"
+
+    @pytest.mark.asyncio
     async def test_fetch_gps_data_unavailable(self, coordinator):
         """Test GPS data fetch when GPS is unavailable."""
         mock_data_manager = AsyncMock()
