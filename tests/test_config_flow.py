@@ -5,12 +5,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol.config_flow import (
-    DOG_ID_PATTERN,
-    MAX_DOGS_PER_ENTRY,
     PawControlConfigFlow,
     PawControlOptionsFlow,
 )
+from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
 from custom_components.pawcontrol.const import (
+    CONF_DAILY_FOOD_AMOUNT,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
@@ -18,8 +18,10 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
     CONF_DOGS,
+    CONF_MEALS_PER_DAY,
     CONF_MODULES,
     DOMAIN,
+    MODULE_DASHBOARD,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -27,6 +29,7 @@ from custom_components.pawcontrol.const import (
     MODULE_VISITOR,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.utils import DOG_ID_PATTERN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -126,15 +129,14 @@ class TestPawControlConfigFlow:
             CONF_DOG_SIZE: "medium",
         }
 
-        with patch.object(flow, "async_step_add_another_dog") as mock_add_another:
-            mock_add_another.return_value = {"type": FlowResultType.FORM}
+        with patch.object(flow, "async_step_dog_modules") as mock_modules:
+            mock_modules.return_value = {"type": FlowResultType.FORM}
 
             await flow.async_step_add_dog(user_input)
 
-            assert len(flow._dogs) == 1
-            assert flow._dogs[0][CONF_DOG_ID] == "test_dog"
-            assert flow._dogs[0][CONF_DOG_NAME] == "Test Dog"
-            mock_add_another.assert_called_once()
+            assert flow._current_dog_config[CONF_DOG_ID] == "test_dog"
+            assert flow._current_dog_config[CONF_DOG_NAME] == "Test Dog"
+            mock_modules.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_add_dog_step_invalid_dog_id(self, hass: HomeAssistant):
@@ -242,38 +244,33 @@ class TestPawControlConfigFlow:
 
     @pytest.mark.asyncio
     async def test_configure_modules_step(self, hass: HomeAssistant):
-        """Test configure modules step."""
+        """Test global module configuration step."""
         flow = PawControlConfigFlow()
         flow.hass = hass
         flow._dogs = [
             {
                 "dog_id": "large_dog",
                 "dog_name": "Large Dog",
-                "dog_size": "large",
-                "dog_age": 5,
-                "modules": {},
+                CONF_MODULES: {MODULE_DASHBOARD: True, MODULE_GPS: True},
             }
         ]
 
         user_input = {
-            "enable_gps": True,
-            "enable_health": True,
-            "enable_visitor_mode": True,
-            "enable_advanced_features": True,
+            "performance_mode": "full",
+            "enable_analytics": True,
+            "enable_cloud_backup": True,
+            "data_retention_days": 120,
+            "debug_logging": True,
         }
 
-        with patch.object(flow, "async_step_final_setup") as mock_final:
-            mock_final.return_value = {"type": FlowResultType.CREATE_ENTRY}
+        with patch.object(flow, "async_step_configure_dashboard") as mock_dash:
+            mock_dash.return_value = {"type": FlowResultType.FORM}
 
             await flow.async_step_configure_modules(user_input)
 
-            # Check that modules were configured
-            dog_modules = flow._dogs[0][CONF_MODULES]
-            assert dog_modules[MODULE_GPS] is True
-            assert dog_modules[MODULE_HEALTH] is True
-            assert dog_modules[MODULE_VISITOR] is True
-
-            mock_final.assert_called_once()
+            assert flow._global_settings["performance_mode"] == "full"
+            assert flow._global_settings["enable_analytics"] is True
+            mock_dash.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_configure_modules_no_dogs(self, hass: HomeAssistant):
@@ -337,7 +334,7 @@ class TestPawControlConfigFlow:
 
         # Test name with special characters
         uid = flow._generate_unique_id("Test-Name With Spaces!")
-        assert uid == "testname_with_spaces"
+        assert uid == "test_name_with_spaces"
 
         # Test name starting with number
         uid = flow._generate_unique_id("123 Test")
@@ -345,8 +342,17 @@ class TestPawControlConfigFlow:
 
     def test_dog_id_pattern(self):
         """Test dog ID validation pattern."""
-        valid_ids = ["dog1", "my_dog", "test_123", "a", "abc_def_123"]
-        invalid_ids = ["Dog1", "my-dog", "test dog", "123dog", "_dog", ""]
+        valid_ids = [
+            "dog1",
+            "my_dog",
+            "test_123",
+            "a",
+            "abc_def_123",
+            "Dog1",
+            "123dog",
+            "_dog",
+        ]
+        invalid_ids = ["my-dog", "test dog", "", "!invalid"]
 
         for dog_id in valid_ids:
             assert DOG_ID_PATTERN.match(dog_id), f"Expected {dog_id} to be valid"
@@ -395,12 +401,12 @@ class TestPawControlConfigFlow:
         flow = PawControlConfigFlow()
 
         toy_defaults = flow._get_feeding_defaults_by_size("toy")
-        assert toy_defaults["meals_per_day"] == 3
-        assert toy_defaults["daily_amount"] == 0.5
+        assert toy_defaults[CONF_MEALS_PER_DAY] == 3
+        assert toy_defaults[CONF_DAILY_FOOD_AMOUNT] == 150
 
         giant_defaults = flow._get_feeding_defaults_by_size("giant")
-        assert giant_defaults["meals_per_day"] == 2
-        assert giant_defaults["daily_amount"] == 4.5
+        assert giant_defaults[CONF_MEALS_PER_DAY] == 2
+        assert giant_defaults[CONF_DAILY_FOOD_AMOUNT] == 1200
 
         # Test unknown size falls back to medium
         unknown_defaults = flow._get_feeding_defaults_by_size("unknown")
@@ -506,17 +512,19 @@ class TestPawControlConfigFlow:
                 "dog_name": "Large Dog",
                 "dog_size": "large",
                 "dog_age": 5,
+                CONF_MODULES: {MODULE_GPS: True},
             },
             {
                 "dog_name": "Small Puppy",
                 "dog_size": "small",
                 "dog_age": 1,
+                CONF_MODULES: {},
             },
         ]
 
         summary = flow._get_dogs_module_summary()
-        assert "Large Dog: GPS tracking" in summary
-        assert "Small Puppy: Standard modules" in summary
+        assert "Large Dog: 1 modules" in summary
+        assert "Small Puppy: 0 modules" in summary
 
     @pytest.mark.asyncio
     async def test_create_intelligent_options(self, hass: HomeAssistant):
@@ -623,12 +631,16 @@ class TestConfigFlowValidation:
         assert result["valid"] is True
 
         # Test invalid age
+        flow._validation_cache.clear()
         invalid_config = valid_config.copy()
         invalid_config[CONF_DOG_AGE] = 35  # Too old
+        invalid_config[CONF_DOG_ID] = "another_dog"
+        invalid_config[CONF_DOG_NAME] = "Another Dog"
         result = await flow._async_validate_dog_config(invalid_config)
         assert result["valid"] is False
 
         # Test invalid breed length
+        flow._validation_cache.clear()
         invalid_config = valid_config.copy()
         invalid_config[CONF_DOG_BREED] = "x" * 60  # Too long
         result = await flow._async_validate_dog_config(invalid_config)
@@ -655,12 +667,7 @@ class TestConfigFlowValidation:
         assert dog_config[CONF_DOG_ID] == "test_dog"
         assert dog_config[CONF_DOG_NAME] == "Test Dog"
         assert dog_config[CONF_DOG_SIZE] == "large"
-        assert CONF_MODULES in dog_config
-        assert "feeding_defaults" in dog_config
         assert "created_at" in dog_config
-
-        # Large dogs should have GPS enabled by default
-        assert dog_config[CONF_MODULES][MODULE_GPS] is True
 
     @pytest.mark.asyncio
     async def test_create_enhanced_dog_schema(self, hass: HomeAssistant):

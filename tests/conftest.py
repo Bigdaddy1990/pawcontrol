@@ -1,6 +1,7 @@
 """Test configuration and fixtures for Paw Control integration."""
 
 from datetime import datetime, timedelta
+from types import MappingProxyType
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -45,6 +46,8 @@ def mock_config_entry():
         entry_id="test_entry_id",
         source="test",
         unique_id="test_unique_id",
+        discovery_keys=MappingProxyType({}),
+        subentries_data=[],
     )
 
 
