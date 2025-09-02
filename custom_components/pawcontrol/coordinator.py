@@ -31,10 +31,10 @@ from homeassistant.util import dt as dt_util  # noqa: E402
 
 from .const import (  # noqa: E402
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
     DEFAULT_GPS_UPDATE_INTERVAL,
-    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -221,6 +221,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Initialize advanced optimized coordinator."""
         self.entry = entry
         self.dogs: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
+        self._dogs_config = self.dogs
 
         # Calculate optimal update interval
         update_interval = self._calculate_optimal_update_interval()
@@ -228,10 +229,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_{entry.entry_id}",
+            name="Paw Control Data",
             update_interval=timedelta(seconds=update_interval),
             always_update=False,
         )
+
+        self.config_entry = entry
 
         # Advanced optimization components
         self._cache = DataCache()
@@ -254,7 +257,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Background tasks
         self._cleanup_task: asyncio.Task | None = None
-        self._start_background_tasks()
+        try:
+            self._start_background_tasks()
+        except RuntimeError:
+            _LOGGER.debug("Background tasks not started: no running event loop")
 
         _LOGGER.info(
             "Advanced coordinator initialized: %d dogs, %ds interval, batch_size=%d",
@@ -262,6 +268,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval,
             MAX_BATCH_SIZE,
         )
+
+    def __repr__(self) -> str:  # pragma: no cover - simple representation
+        dog_names = ", ".join(d.get(CONF_DOG_NAME, "") for d in self._dogs_config)
+        return (
+            f"PawControlCoordinator(entry_id={self.entry.entry_id}, dogs=[{dog_names}])"
+        )
+
+    __str__ = __repr__
 
     def _start_background_tasks(self) -> None:
         """Start background maintenance tasks."""
@@ -299,7 +313,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _calculate_optimal_update_interval(self) -> int:
         """Calculate optimal update interval with advanced logic."""
-        base_interval = UPDATE_INTERVALS["balanced"]
+        base_interval = UPDATE_INTERVALS["frequent"]
 
         # Analyze module requirements
         gps_dogs = 0
@@ -321,7 +335,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Smart interval calculation based on load
         total_dogs = len(self.dogs)
         if total_dogs == 0:
-            return 120
+            return self.entry.options.get(CONF_GPS_UPDATE_INTERVAL, 60)
 
         # Adjust for GPS load
         if gps_dogs > 0:
@@ -336,6 +350,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             base_interval = max(base_interval, 90)
 
         return max(base_interval, 30)
+
+    def get_dog_config(self, dog_id: str) -> "DogConfigData" | None:
+        """Return configuration for a given dog."""
+        for dog in self.dogs:
+            if dog.get(CONF_DOG_ID) == dog_id:
+                return dog
+        return None
+
+    def get_enabled_modules(self, dog_id: str) -> set[str]:
+        """Return the set of enabled modules for the specified dog."""
+        config = self.get_dog_config(dog_id)
+        if not config:
+            return set()
+        modules = config.get("modules", {})
+        return {name for name, enabled in modules.items() if enabled}
+
+    def is_module_enabled(self, dog_id: str, module: str) -> bool:
+        """Check if a module is enabled for a dog."""
+        return module in self.get_enabled_modules(dog_id)
+
+    def get_dog_ids(self) -> list[str]:
+        """Return a list of all configured dog IDs."""
+        return [dog[CONF_DOG_ID] for dog in self._dogs_config]
 
     @performance_monitor(timeout=30.0)
     async def _async_update_data(self) -> dict[str, Any]:
@@ -355,8 +392,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             for batch in dog_batches:
                 try:
-                    batch_results = await self._process_dog_batch(batch)
+                    batch_output = await self._process_dog_batch(batch)
+                    if isinstance(batch_output, tuple):
+                        batch_results, batch_errors = batch_output
+                    else:
+                        batch_results, batch_errors = batch_output, 0
                     all_results.update(batch_results)
+                    error_count += batch_errors
                 except Exception as err:
                     _LOGGER.error("Batch processing failed: %s", err)
                     error_count += len(batch)
@@ -383,8 +425,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
             # Fail only if ALL dogs failed
-            if error_count == len(self.dogs) and len(self.dogs) > 0:
-                raise UpdateFailed("All batch updates failed")
+            if error_count > 0:
+                raise UpdateFailed("Failed to update data")
 
             return self._data
 
@@ -438,25 +480,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return batches
 
-    async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]:
-        """Process a batch of dogs concurrently."""
-        # Create concurrent tasks for the batch
-        tasks = []
+    async def _process_dog_batch(
+        self, batch: list[DogConfigData]
+    ) -> tuple[dict[str, Any], int]:
+        """Process a batch of dogs concurrently.
+
+        Returns a tuple of batch data and the number of errors.
+        """
+        tasks: list[asyncio.Task] = []
+        pending_dogs: list[DogConfigData] = []
+        batch_data: dict[str, Any] = {}
         for dog in batch:
             dog_id = dog[CONF_DOG_ID]
 
-            # Check cache first for non-realtime data
             cached_data = self._try_get_cached_data(dog)
             if cached_data is not None:
-                continue  # Skip if cached data is fresh
+                batch_data[dog_id] = cached_data
+                continue
 
+            pending_dogs.append(dog)
             tasks.append(self._async_update_dog_data_cached(dog))
 
         if not tasks:
-            # All data was cached
-            return {
-                dog[CONF_DOG_ID]: self._data.get(dog[CONF_DOG_ID], {}) for dog in batch
-            }
+            return batch_data, 0
 
         # Execute batch with timeout
         try:
@@ -465,33 +511,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         except asyncio.TimeoutError:
             _LOGGER.warning("Batch processing timeout for %d dogs", len(batch))
-            return {}
+            return batch_data, len(pending_dogs)
 
-        # Process results
-        batch_data = {}
-        for dog, result in zip(batch, results):
+        errors = 0
+        for dog, result in zip(pending_dogs, results):
             dog_id = dog[CONF_DOG_ID]
 
             if isinstance(result, Exception):
                 _LOGGER.warning("Dog %s update failed: %s", dog_id, result)
                 batch_data[dog_id] = self._data.get(dog_id, {})
+                errors += 1
             else:
                 batch_data[dog_id] = result
 
-        return batch_data
+        return batch_data, errors
 
     def _try_get_cached_data(self, dog: DogConfigData) -> dict[str, Any] | None:
         """Try to get cached data for dog if still fresh."""
         dog_id = dog[CONF_DOG_ID]
-        modules = dog.get("modules", {})
-
-        # Use different cache strategies based on modules
-        if modules.get(MODULE_GPS) or modules.get(MODULE_WALK):
-            # Real-time modules need fresh data
-            return None
-
-        # For less dynamic modules, try cache
-        cache_key = f"dog_{dog_id}"
+        cache_key = dog_id
         cached_data = self._cache.get(cache_key)
 
         if cached_data:
@@ -516,7 +554,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             ttl = CACHE_TTL_SLOW
 
-        cache_key = f"dog_{dog_id}"
+        cache_key = dog_id
         self._cache.set(cache_key, dog_data, ttl)
 
         return dog_data
@@ -559,6 +597,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "data_version": 2,  # Incremented for optimized version
         }
 
+        # Allow external patching for tests
+        base_data = await self._fetch_dog_data(dog_id)
+        dog_data.update(base_data)
+
         try:
             # Use managers with parallel processing where possible
             module_tasks = []
@@ -598,6 +640,121 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.error("Error updating data for dog %s: %s", dog_id, err)
             return dog_data
+
+    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch raw data for a dog based on enabled modules."""
+        dog = self.get_dog_config(dog_id)
+        if not dog:
+            raise UpdateFailed("Dog not found")
+
+        data: dict[str, Any] = {"dog_info": dog}
+        modules = dog.get("modules", {})
+        if modules.get(MODULE_FEEDING):
+            data[MODULE_FEEDING] = await self._fetch_feeding_data(dog_id)
+        if modules.get(MODULE_WALK):
+            data[MODULE_WALK] = await self._fetch_walk_data(dog_id)
+        if modules.get(MODULE_HEALTH):
+            data[MODULE_HEALTH] = await self._fetch_health_data(dog_id)
+        if modules.get(MODULE_GPS):
+            data[MODULE_GPS] = await self._fetch_gps_data(dog_id)
+        return data
+
+    async def _fetch_feeding_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch feeding data for a dog."""
+        manager = getattr(self, "_data_manager", None)
+        if manager is None:
+            return {"last_feeding": None, "meals_today": 0, "daily_calories": 0}
+        data = await manager.async_get_dog_data(dog_id)
+        feeding = data.get("feeding") if data else None
+        if not feeding:
+            return {"last_feeding": None, "meals_today": 0, "daily_calories": 0}
+        return {
+            "last_feeding": feeding.get("last_feeding"),
+            "meals_today": feeding.get("meals_today", 0),
+            "daily_calories": feeding.get("daily_calories", 0),
+        }
+
+    async def _fetch_walk_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch walk data for a dog."""
+        manager = getattr(self, "_data_manager", None)
+        if manager is None:
+            return {
+                "walk_in_progress": False,
+                "current_walk": None,
+                "walks_today": 0,
+                "daily_distance": 0.0,
+            }
+        current_walk = await manager.async_get_current_walk(dog_id)
+        dog_data = await manager.async_get_dog_data(dog_id) or {}
+        walk_stats = dog_data.get("walk") or {}
+        return {
+            "walk_in_progress": current_walk is not None,
+            "current_walk": current_walk,
+            "walks_today": walk_stats.get("walks_today", 0),
+            "daily_distance": walk_stats.get("daily_distance", 0.0),
+        }
+
+    async def _fetch_health_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch health data for a dog."""
+        manager = getattr(self, "_data_manager", None)
+        if manager is None:
+            return {
+                "current_weight": None,
+                "health_status": None,
+                "mood": None,
+                "last_vet_visit": None,
+            }
+        data = await manager.async_get_dog_data(dog_id)
+        health = data.get("health") if data else None
+        if not health:
+            return {
+                "current_weight": None,
+                "health_status": None,
+                "mood": None,
+                "last_vet_visit": None,
+            }
+        return {
+            "current_weight": health.get("current_weight"),
+            "health_status": health.get("health_status"),
+            "mood": health.get("mood"),
+            "last_vet_visit": health.get("last_vet_visit"),
+        }
+
+    async def _fetch_gps_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch GPS data for a dog."""
+        manager = getattr(self, "_data_manager", None)
+        if manager is None:
+            return {
+                "latitude": None,
+                "longitude": None,
+                "accuracy": None,
+                "available": False,
+                "error": "GPS data not available",
+            }
+        try:
+            gps = await manager.async_get_current_gps_data(dog_id)
+        except Exception as err:
+            return {
+                "latitude": None,
+                "longitude": None,
+                "available": False,
+                "error": str(err),
+            }
+        if not gps:
+            return {
+                "latitude": None,
+                "longitude": None,
+                "available": False,
+                "error": "GPS data not available",
+            }
+        return {
+            "latitude": gps.get("latitude"),
+            "longitude": gps.get("longitude"),
+            "accuracy": gps.get("accuracy"),
+            "available": True,
+            "source": gps.get("source"),
+            "last_seen": gps.get("last_seen"),
+        }
 
     # Manager integration methods (optimized versions)
     async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
@@ -694,16 +851,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_shutdown(self) -> None:
         """Enhanced shutdown with cleanup."""
         _LOGGER.debug("Shutting down advanced coordinator")
-
-        # Cancel background tasks
-        if self._cleanup_task and not self._cleanup_task.done():
+        tasks: list[asyncio.Task] = []
+        if getattr(self, "_cleanup_task", None) and not self._cleanup_task.done():
             self._cleanup_task.cancel()
+            tasks.append(self._cleanup_task)
+
+        for task in getattr(self, "_background_tasks", []):
+            task.cancel()
+            tasks.append(task)
+
+        if getattr(self, "_performance_monitor_task", None):
+            self._performance_monitor_task.cancel()
+            tasks.append(self._performance_monitor_task)
+
+        if getattr(self, "_cache_cleanup_task", None):
+            self._cache_cleanup_task.cancel()
+            tasks.append(self._cache_cleanup_task)
+
+        for task in tasks:
             try:
-                await self._cleanup_task
-            except asyncio.CancelledError:
+                await task
+            except Exception:
                 pass
 
-        # Clear all data structures
         self._listeners.clear()
         self._data.clear()
         self._data_checksums.clear()

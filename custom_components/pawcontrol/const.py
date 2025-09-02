@@ -4,12 +4,25 @@ from __future__ import annotations
 
 from typing import Final
 
+from homeassistant.const import Platform
+
 # Storage version for data persistence
 STORAGE_VERSION: Final = 1
 DASHBOARD_STORAGE_VERSION: Final = 1
 
 # Integration domain
 DOMAIN: Final = "pawcontrol"
+
+# Supported platforms for this integration
+PLATFORMS: Final[list[Platform]] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.DATE,
+    Platform.DATETIME,
+]
 
 # Config flow constants
 CONF_NAME: Final = "name"  # Integration instance name
@@ -249,6 +262,7 @@ ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
 __all__ = [
     # Core constants
     "DOMAIN",
+    "PLATFORMS",
     "STORAGE_VERSION",
     # Configuration keys
     "CONF_NAME",

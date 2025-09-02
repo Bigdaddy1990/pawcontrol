@@ -126,20 +126,21 @@ class PawControlDataManager:
         _LOGGER.debug("Shutting down data manager")
 
         try:
-            # Cancel background tasks
             if self._cleanup_task:
                 self._cleanup_task.cancel()
-                try:
-                    await self._cleanup_task
-                except asyncio.CancelledError:
-                    pass
+                if isinstance(self._cleanup_task, asyncio.Task):
+                    try:
+                        await self._cleanup_task
+                    except asyncio.CancelledError:
+                        pass
 
             if self._backup_task:
                 self._backup_task.cancel()
-                try:
-                    await self._backup_task
-                except asyncio.CancelledError:
-                    pass
+                if isinstance(self._backup_task, asyncio.Task):
+                    try:
+                        await self._backup_task
+                    except asyncio.CancelledError:
+                        pass
 
             # Final data save
             await self._flush_cache_to_storage()
@@ -362,7 +363,7 @@ class PawControlDataManager:
         Returns:
             List of feeding entries
         """
-        start_date = dt_util.utcnow() - timedelta(days=days)
+        start_date = datetime.now() - timedelta(days=days)
         return await self.async_get_module_data(
             "feeding", dog_id, start_date=start_date
         )
