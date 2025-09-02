@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.exceptions import (
-    EXCEPTION_MAP,
     ConfigurationError,
     DataExportError,
     DataImportError,
