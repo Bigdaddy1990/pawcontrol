@@ -36,7 +36,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_FEEDING_TIMES,
     CONF_FOOD_TYPE,
     CONF_GPS_SOURCE,
     CONF_LUNCH_TIME,
@@ -101,10 +100,10 @@ class DogManagementMixin:
                 if validation_result["valid"]:
                     # Create dog configuration with enhanced defaults
                     dog_config = await self._create_dog_config(user_input)
-                    
+
                     # Store temporarily for module configuration
                     self._current_dog_config = dog_config
-                    
+
                     # Small delay after adding dog to prevent registry flooding
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
 
@@ -113,7 +112,7 @@ class DogManagementMixin:
                         dog_config[CONF_DOG_NAME],
                         dog_config[CONF_DOG_ID],
                     )
-                    
+
                     # Continue to module selection for this specific dog
                     return await self.async_step_dog_modules()
                 else:
@@ -175,9 +174,9 @@ class DogManagementMixin:
                 MODULE_MEDICATION: user_input.get("enable_medication", False),
                 MODULE_TRAINING: user_input.get("enable_training", False),
             }
-            
+
             self._current_dog_config[CONF_MODULES] = modules
-            
+
             # Continue to GPS configuration if enabled
             if modules[MODULE_GPS]:
                 return await self.async_step_dog_gps()
@@ -195,23 +194,39 @@ class DogManagementMixin:
         # Suggest modules based on dog characteristics
         dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
         dog_age = self._current_dog_config.get(CONF_DOG_AGE, 3)
-        
+
         suggested_gps = dog_size in ("large", "giant")
         suggested_visitor = dog_age >= 2
         suggested_medication = dog_age >= 7  # Older dogs more likely to need medication
 
         schema = vol.Schema(
             {
-                vol.Optional("enable_feeding", default=True): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_feeding", default=True
+                ): selector.BooleanSelector(),
                 vol.Optional("enable_walk", default=True): selector.BooleanSelector(),
                 vol.Optional("enable_health", default=True): selector.BooleanSelector(),
-                vol.Optional("enable_gps", default=suggested_gps): selector.BooleanSelector(),
-                vol.Optional("enable_notifications", default=True): selector.BooleanSelector(),
-                vol.Optional("enable_dashboard", default=True): selector.BooleanSelector(),
-                vol.Optional("enable_visitor", default=suggested_visitor): selector.BooleanSelector(),
-                vol.Optional("enable_grooming", default=True): selector.BooleanSelector(),
-                vol.Optional("enable_medication", default=suggested_medication): selector.BooleanSelector(),
-                vol.Optional("enable_training", default=False): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_gps", default=suggested_gps
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_notifications", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_dashboard", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_visitor", default=suggested_visitor
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_grooming", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_medication", default=suggested_medication
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_training", default=False
+                ): selector.BooleanSelector(),
             }
         )
 
@@ -247,7 +262,7 @@ class DogManagementMixin:
                 "enable_geofencing": user_input.get("enable_geofencing", True),
                 "home_zone_radius": user_input.get("home_zone_radius", 50),
             }
-            
+
             # Continue to feeding configuration if enabled
             if self._current_dog_config[CONF_MODULES].get(MODULE_FEEDING):
                 return await self.async_step_dog_feeding()
@@ -262,9 +277,9 @@ class DogManagementMixin:
         # Get available GPS sources
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
-        
+
         gps_options = [{"value": "manual", "label": "📝 Manual GPS (configure later)"}]
-        
+
         if device_trackers:
             gps_options.extend(
                 [
@@ -272,7 +287,7 @@ class DogManagementMixin:
                     for entity_id, name in device_trackers.items()
                 ]
             )
-        
+
         if person_entities:
             gps_options.extend(
                 [
@@ -280,23 +295,29 @@ class DogManagementMixin:
                     for entity_id, name in person_entities.items()
                 ]
             )
-        
+
         # Add per-dog GPS device options
-        gps_options.extend([
-            {"value": "webhook", "label": "🌐 Webhook (REST API)"},
-            {"value": "mqtt", "label": "📡 MQTT Topic"},
-            {"value": "tractive", "label": "🐕 Tractive GPS Collar"},
-        ])
+        gps_options.extend(
+            [
+                {"value": "webhook", "label": "🌐 Webhook (REST API)"},
+                {"value": "mqtt", "label": "📡 MQTT Topic"},
+                {"value": "tractive", "label": "🐕 Tractive GPS Collar"},
+            ]
+        )
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_GPS_SOURCE, default="manual"): selector.SelectSelector(
+                vol.Required(
+                    CONF_GPS_SOURCE, default="manual"
+                ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=gps_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("gps_update_interval", default=60): selector.NumberSelector(
+                vol.Optional(
+                    "gps_update_interval", default=60
+                ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=30,
                         max=600,
@@ -305,7 +326,9 @@ class DogManagementMixin:
                         unit_of_measurement="seconds",
                     )
                 ),
-                vol.Optional("gps_accuracy_filter", default=100): selector.NumberSelector(
+                vol.Optional(
+                    "gps_accuracy_filter", default=100
+                ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
                         max=500,
@@ -314,7 +337,9 @@ class DogManagementMixin:
                         unit_of_measurement="meters",
                     )
                 ),
-                vol.Optional("enable_geofencing", default=True): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_geofencing", default=True
+                ): selector.BooleanSelector(),
                 vol.Optional("home_zone_radius", default=50): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=10,
@@ -354,7 +379,7 @@ class DogManagementMixin:
             meals_per_day = user_input.get(CONF_MEALS_PER_DAY, 2)
             daily_amount = user_input.get(CONF_DAILY_FOOD_AMOUNT, 500)
             portion_size = daily_amount / meals_per_day
-            
+
             # Store feeding configuration for this dog
             feeding_config = {
                 CONF_MEALS_PER_DAY: meals_per_day,
@@ -363,27 +388,36 @@ class DogManagementMixin:
                 CONF_FOOD_TYPE: user_input.get(CONF_FOOD_TYPE, "dry_food"),
                 "feeding_schedule": user_input.get("feeding_schedule", "flexible"),
                 "enable_reminders": user_input.get("enable_reminders", True),
-                "reminder_minutes_before": user_input.get("reminder_minutes_before", 15),
+                "reminder_minutes_before": user_input.get(
+                    "reminder_minutes_before", 15
+                ),
             }
-            
+
             # Add meal times based on selection
             if user_input.get("breakfast_enabled", meals_per_day >= 1):
-                feeding_config[CONF_BREAKFAST_TIME] = user_input.get(CONF_BREAKFAST_TIME, "07:00:00")
-            
+                feeding_config[CONF_BREAKFAST_TIME] = user_input.get(
+                    CONF_BREAKFAST_TIME, "07:00:00"
+                )
+
             if user_input.get("lunch_enabled", meals_per_day >= 3):
-                feeding_config[CONF_LUNCH_TIME] = user_input.get(CONF_LUNCH_TIME, "12:00:00")
-            
+                feeding_config[CONF_LUNCH_TIME] = user_input.get(
+                    CONF_LUNCH_TIME, "12:00:00"
+                )
+
             if user_input.get("dinner_enabled", meals_per_day >= 2):
-                feeding_config[CONF_DINNER_TIME] = user_input.get(CONF_DINNER_TIME, "18:00:00")
-            
+                feeding_config[CONF_DINNER_TIME] = user_input.get(
+                    CONF_DINNER_TIME, "18:00:00"
+                )
+
             if user_input.get("snacks_enabled", False):
                 feeding_config[CONF_SNACK_TIMES] = ["10:00:00", "15:00:00", "20:00:00"]
-            
+
             self._current_dog_config["feeding_config"] = feeding_config
-            
+
             # Continue to health configuration if enabled
-            if self._current_dog_config[CONF_MODULES].get(MODULE_HEALTH) or \
-               self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
+            if self._current_dog_config[CONF_MODULES].get(
+                MODULE_HEALTH
+            ) or self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
                 return await self.async_step_dog_health()
             else:
                 # Finalize dog configuration
@@ -405,7 +439,9 @@ class DogManagementMixin:
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
-                vol.Required(CONF_DAILY_FOOD_AMOUNT, default=suggested_amount): selector.NumberSelector(
+                vol.Required(
+                    CONF_DAILY_FOOD_AMOUNT, default=suggested_amount
+                ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=50,
                         max=2000,
@@ -414,7 +450,9 @@ class DogManagementMixin:
                         unit_of_measurement="g",
                     )
                 ),
-                vol.Optional(CONF_FOOD_TYPE, default="dry_food"): selector.SelectSelector(
+                vol.Optional(
+                    CONF_FOOD_TYPE, default="dry_food"
+                ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": "dry_food", "label": "🥜 Dry Food"},
@@ -426,7 +464,9 @@ class DogManagementMixin:
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("feeding_schedule", default="flexible"): selector.SelectSelector(
+                vol.Optional(
+                    "feeding_schedule", default="flexible"
+                ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": "flexible", "label": "⏰ Flexible Times"},
@@ -436,15 +476,33 @@ class DogManagementMixin:
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("breakfast_enabled", default=True): selector.BooleanSelector(),
-                vol.Optional(CONF_BREAKFAST_TIME, default="07:00:00"): selector.TimeSelector(),
-                vol.Optional("lunch_enabled", default=False): selector.BooleanSelector(),
-                vol.Optional(CONF_LUNCH_TIME, default="12:00:00"): selector.TimeSelector(),
-                vol.Optional("dinner_enabled", default=True): selector.BooleanSelector(),
-                vol.Optional(CONF_DINNER_TIME, default="18:00:00"): selector.TimeSelector(),
-                vol.Optional("snacks_enabled", default=False): selector.BooleanSelector(),
-                vol.Optional("enable_reminders", default=True): selector.BooleanSelector(),
-                vol.Optional("reminder_minutes_before", default=15): selector.NumberSelector(
+                vol.Optional(
+                    "breakfast_enabled", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_BREAKFAST_TIME, default="07:00:00"
+                ): selector.TimeSelector(),
+                vol.Optional(
+                    "lunch_enabled", default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_LUNCH_TIME, default="12:00:00"
+                ): selector.TimeSelector(),
+                vol.Optional(
+                    "dinner_enabled", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_DINNER_TIME, default="18:00:00"
+                ): selector.TimeSelector(),
+                vol.Optional(
+                    "snacks_enabled", default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_reminders", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "reminder_minutes_before", default=15
+                ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
                         max=60,
@@ -489,9 +547,11 @@ class DogManagementMixin:
                 "last_vet_visit": user_input.get("last_vet_visit"),
                 "next_checkup": user_input.get("next_checkup"),
                 "weight_tracking": user_input.get("weight_tracking", True),
-                "target_weight": user_input.get("target_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)),
+                "target_weight": user_input.get(
+                    "target_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)
+                ),
             }
-            
+
             # Vaccination data
             vaccinations = {}
             if user_input.get("rabies_vaccination"):
@@ -499,49 +559,57 @@ class DogManagementMixin:
                     "date": user_input.get("rabies_vaccination"),
                     "next_due": user_input.get("rabies_next"),
                 }
-            
+
             if user_input.get("dhpp_vaccination"):
                 vaccinations["dhpp"] = {
                     "date": user_input.get("dhpp_vaccination"),
                     "next_due": user_input.get("dhpp_next"),
                 }
-            
+
             if user_input.get("bordetella_vaccination"):
                 vaccinations["bordetella"] = {
                     "date": user_input.get("bordetella_vaccination"),
                     "next_due": user_input.get("bordetella_next"),
                 }
-            
+
             if vaccinations:
                 health_config["vaccinations"] = vaccinations
-            
+
             # Medication data
             if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
                 medications = []
-                
+
                 if user_input.get("medication_1_name"):
-                    medications.append({
-                        "name": user_input.get("medication_1_name"),
-                        "dosage": user_input.get("medication_1_dosage", ""),
-                        "frequency": user_input.get("medication_1_frequency", "daily"),
-                        "time": user_input.get("medication_1_time", "08:00:00"),
-                        "notes": user_input.get("medication_1_notes", ""),
-                    })
-                
+                    medications.append(
+                        {
+                            "name": user_input.get("medication_1_name"),
+                            "dosage": user_input.get("medication_1_dosage", ""),
+                            "frequency": user_input.get(
+                                "medication_1_frequency", "daily"
+                            ),
+                            "time": user_input.get("medication_1_time", "08:00:00"),
+                            "notes": user_input.get("medication_1_notes", ""),
+                        }
+                    )
+
                 if user_input.get("medication_2_name"):
-                    medications.append({
-                        "name": user_input.get("medication_2_name"),
-                        "dosage": user_input.get("medication_2_dosage", ""),
-                        "frequency": user_input.get("medication_2_frequency", "daily"),
-                        "time": user_input.get("medication_2_time", "20:00:00"),
-                        "notes": user_input.get("medication_2_notes", ""),
-                    })
-                
+                    medications.append(
+                        {
+                            "name": user_input.get("medication_2_name"),
+                            "dosage": user_input.get("medication_2_dosage", ""),
+                            "frequency": user_input.get(
+                                "medication_2_frequency", "daily"
+                            ),
+                            "time": user_input.get("medication_2_time", "20:00:00"),
+                            "notes": user_input.get("medication_2_notes", ""),
+                        }
+                    )
+
                 if medications:
                     health_config["medications"] = medications
-            
+
             self._current_dog_config["health_config"] = health_config
-            
+
             # Finalize dog configuration
             self._dogs.append(self._current_dog_config)
             return await self.async_step_add_another_dog()
@@ -559,7 +627,7 @@ class DogManagementMixin:
             vol.Optional("weight_tracking", default=True): selector.BooleanSelector(),
             vol.Optional(
                 "target_weight",
-                default=self._current_dog_config.get(CONF_DOG_WEIGHT, 20)
+                default=self._current_dog_config.get(CONF_DOG_WEIGHT, 20),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=MIN_DOG_WEIGHT,
@@ -570,52 +638,63 @@ class DogManagementMixin:
                 )
             ),
         }
-        
+
         # Add vaccination fields
-        schema_dict.update({
-            vol.Optional("rabies_vaccination"): selector.DateSelector(),
-            vol.Optional("rabies_next"): selector.DateSelector(),
-            vol.Optional("dhpp_vaccination"): selector.DateSelector(),
-            vol.Optional("dhpp_next"): selector.DateSelector(),
-            vol.Optional("bordetella_vaccination"): selector.DateSelector(),
-            vol.Optional("bordetella_next"): selector.DateSelector(),
-        })
-        
+        schema_dict.update(
+            {
+                vol.Optional("rabies_vaccination"): selector.DateSelector(),
+                vol.Optional("rabies_next"): selector.DateSelector(),
+                vol.Optional("dhpp_vaccination"): selector.DateSelector(),
+                vol.Optional("dhpp_next"): selector.DateSelector(),
+                vol.Optional("bordetella_vaccination"): selector.DateSelector(),
+                vol.Optional("bordetella_next"): selector.DateSelector(),
+            }
+        )
+
         # Add medication fields if module is enabled
         if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
-            schema_dict.update({
-                vol.Optional("medication_1_name"): selector.TextSelector(),
-                vol.Optional("medication_1_dosage"): selector.TextSelector(),
-                vol.Optional("medication_1_frequency", default="daily"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "daily", "label": "Daily"},
-                            {"value": "twice_daily", "label": "Twice Daily"},
-                            {"value": "weekly", "label": "Weekly"},
-                            {"value": "as_needed", "label": "As Needed"},
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("medication_1_time", default="08:00:00"): selector.TimeSelector(),
-                vol.Optional("medication_1_notes"): selector.TextSelector(),
-                
-                vol.Optional("medication_2_name"): selector.TextSelector(),
-                vol.Optional("medication_2_dosage"): selector.TextSelector(),
-                vol.Optional("medication_2_frequency", default="daily"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "daily", "label": "Daily"},
-                            {"value": "twice_daily", "label": "Twice Daily"},
-                            {"value": "weekly", "label": "Weekly"},
-                            {"value": "as_needed", "label": "As Needed"},
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("medication_2_time", default="20:00:00"): selector.TimeSelector(),
-                vol.Optional("medication_2_notes"): selector.TextSelector(),
-            })
+            schema_dict.update(
+                {
+                    vol.Optional("medication_1_name"): selector.TextSelector(),
+                    vol.Optional("medication_1_dosage"): selector.TextSelector(),
+                    vol.Optional(
+                        "medication_1_frequency", default="daily"
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {"value": "daily", "label": "Daily"},
+                                {"value": "twice_daily", "label": "Twice Daily"},
+                                {"value": "weekly", "label": "Weekly"},
+                                {"value": "as_needed", "label": "As Needed"},
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                    vol.Optional(
+                        "medication_1_time", default="08:00:00"
+                    ): selector.TimeSelector(),
+                    vol.Optional("medication_1_notes"): selector.TextSelector(),
+                    vol.Optional("medication_2_name"): selector.TextSelector(),
+                    vol.Optional("medication_2_dosage"): selector.TextSelector(),
+                    vol.Optional(
+                        "medication_2_frequency", default="daily"
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {"value": "daily", "label": "Daily"},
+                                {"value": "twice_daily", "label": "Twice Daily"},
+                                {"value": "weekly", "label": "Weekly"},
+                                {"value": "as_needed", "label": "As Needed"},
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                    vol.Optional(
+                        "medication_2_time", default="20:00:00"
+                    ): selector.TimeSelector(),
+                    vol.Optional("medication_2_notes"): selector.TextSelector(),
+                }
+            )
 
         schema = vol.Schema(schema_dict)
 
@@ -625,7 +704,9 @@ class DogManagementMixin:
             description_placeholders={
                 "dog_name": self._current_dog_config[CONF_DOG_NAME],
                 "dog_age": str(self._current_dog_config.get(CONF_DOG_AGE, 3)),
-                "medication_enabled": "yes" if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION) else "no",
+                "medication_enabled": "yes"
+                if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION)
+                else "no",
             },
         )
 
@@ -769,7 +850,7 @@ class DogManagementMixin:
         """
         # Basic calculation: 2-3% of body weight for adult dogs
         base_amount = weight * 25  # 2.5% of body weight in grams
-        
+
         # Adjust for size (smaller dogs have higher metabolism)
         size_multipliers = {
             "toy": 1.3,
@@ -778,10 +859,10 @@ class DogManagementMixin:
             "large": 0.9,
             "giant": 0.85,
         }
-        
+
         multiplier = size_multipliers.get(size, 1.0)
         suggested = int(base_amount * multiplier)
-        
+
         # Round to nearest 10g
         return round(suggested / 10) * 10
 
@@ -821,7 +902,7 @@ class DogManagementMixin:
                 "portion_size": 600,
             },
         }
-        
+
         return feeding_defaults.get(dog_size, feeding_defaults["medium"])
 
     async def _create_enhanced_dog_schema(
