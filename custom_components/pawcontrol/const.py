@@ -18,11 +18,8 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
-    Platform.SWITCH,
     Platform.NUMBER,
     Platform.SELECT,
-    Platform.TEXT,
-    Platform.DEVICE_TRACKER,
     Platform.DATE,
     Platform.DATETIME,
 ]
@@ -265,6 +262,7 @@ ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
 __all__ = [
     # Core constants
     "DOMAIN",
+    "PLATFORMS",
     "STORAGE_VERSION",
     "PLATFORMS",
     # Configuration keys

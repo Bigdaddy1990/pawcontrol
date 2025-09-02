@@ -254,13 +254,16 @@ class GPSError(PawControlError):
             location: GPS location data if available
             **kwargs: Additional arguments for parent class
         """
+        extra_context = kwargs.pop("context", {})
+        context = {
+            "dog_id": dog_id,
+            "location": location.__dict__ if location else None,
+            **extra_context,
+        }
         super().__init__(
             message,
             category=ErrorCategory.GPS,
-            context={
-                "dog_id": dog_id,
-                "location": location.__dict__ if location else None,
-            },
+            context=context,
             **kwargs,
         )
 
