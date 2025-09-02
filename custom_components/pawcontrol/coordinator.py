@@ -432,7 +432,24 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._performance_monitor.record_update(0, len(self.dogs))
             raise UpdateFailed("Failed to update data") from err
 
-    async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]:
+async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]:
+    dog_ids = [dog[CONF_DOG_ID] for dog in batch]
+    tasks = [self._fetch_dog_data(dog_id) for dog_id in dog_ids]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    batch_data: dict[str, Any] = {}
+    errors = 0
+    for dog_id, result in zip(dog_ids, results):
+        if isinstance(result, Exception):
+            _LOGGER.warning("Failed to update data for dog %s: %s", dog_id, result)
+            batch_data[dog_id] = self._data.get(dog_id, {})
+            errors += 1
+        else:
+            batch_data[dog_id] = result
+
+    if errors == len(batch):
+        raise UpdateFailed("All dogs in batch failed to update")
+    return batch_data
         """Process a batch of dogs concurrently."""
 
         dog_ids = [dog[CONF_DOG_ID] for dog in batch]
