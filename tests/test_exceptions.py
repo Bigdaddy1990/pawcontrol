@@ -5,30 +5,36 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.exceptions import (
-    ConfigurationError,
-    DataExportError,
-    DataImportError,
-    DogNotFoundError,
-    ErrorCategory,
-    ErrorSeverity,
-    GPSError,
-    GPSUnavailableError,
-    InvalidCoordinatesError,
-    InvalidMealTypeError,
-    InvalidWeightError,
-    NotificationError,
+    # Base classes and enums
     PawControlError,
-    RateLimitError,
-    StorageError,
-    ValidationError,
-    WalkAlreadyInProgressError,
+    ErrorSeverity,
+    ErrorCategory,
+    
+    # Specific exceptions
+    ConfigurationError,
+    DogNotFoundError,
+    GPSError,
+    InvalidCoordinatesError,
+    GPSUnavailableError,
     WalkError,
     WalkNotInProgressError,
-    create_error_context,
+    WalkAlreadyInProgressError,
+    ValidationError,
+    InvalidMealTypeError,
+    InvalidWeightError,
+    StorageError,
+    RateLimitError,
+    NotificationError,
+    DataExportError,
+    DataImportError,
+    
+    # Helper functions
     get_exception_class,
-    handle_exception_gracefully,
     raise_from_error_code,
-)
+    handle_exception_gracefully,
+    create_error_context,
+    EXCEPTION_MAP,
+    )
 
 
 class TestErrorSeverity:
