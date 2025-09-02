@@ -101,7 +101,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
     """
 
     VERSION: Final = 1
-    MINOR_VERSION: Final = 1
+    MINOR_VERSION: Final = 2  # Increased for new per-dog configuration features
 
     def __init__(self) -> None:
         """Initialize base configuration flow."""
@@ -109,6 +109,12 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         self._integration_name = "Paw Control"
         self._errors: dict[str, str] = {}
         self._validation_cache: dict[str, dict[str, Any]] = {}
+        # New: Current dog being configured
+        self._current_dog_config: DogConfigData | None = None
+        # New: Global settings
+        self._global_settings: dict[str, Any] = {}
+        # New: Dashboard configuration
+        self._dashboard_config: dict[str, Any] = {}
 
     def _generate_unique_id(self, integration_name: str) -> str:
         """Generate a unique ID for the integration with collision avoidance.
@@ -137,14 +143,15 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             Formatted feature list string
         """
         features = [
-            "🐕 Multi-dog management",
-            "📍 GPS tracking & geofencing",
-            "🍽️ Feeding schedules & logging",
-            "🏥 Health monitoring & vet reminders",
-            "🚶 Walk tracking with routes",
-            "🔔 Smart notifications",
-            "📊 Dashboard & analytics",
-            "🏠 Visitor mode",
+            "🐕 Multi-dog management with individual settings",
+            "📍 Per-dog GPS tracking & geofencing",
+            "🍽️ Customizable feeding schedules & reminders",
+            "💊 Medication tracking & vaccination reminders",
+            "🏥 Health monitoring & vet appointment tracking",
+            "🚶 Walk tracking with automatic detection",
+            "🔔 Smart notifications with quiet hours",
+            "📊 Beautiful dashboards with multiple themes",
+            "🏠 Visitor mode for dog sitters",
             "📱 Mobile app integration",
         ]
         return "\n".join(features)
@@ -213,28 +220,33 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         feeding_configs = {
             "toy": {
                 "meals_per_day": 3,
-                "daily_amount": 0.5,
-                "feeding_times": ["07:00", "12:00", "18:00"],
+                "daily_amount": 150,  # grams
+                "feeding_times": ["07:00:00", "12:00:00", "18:00:00"],
+                "portion_size": 50,
             },
             "small": {
                 "meals_per_day": 2,
-                "daily_amount": 1.0,
-                "feeding_times": ["07:30", "18:00"],
+                "daily_amount": 300,
+                "feeding_times": ["07:30:00", "18:00:00"],
+                "portion_size": 150,
             },
             "medium": {
                 "meals_per_day": 2,
-                "daily_amount": 2.0,
-                "feeding_times": ["07:30", "18:00"],
+                "daily_amount": 500,
+                "feeding_times": ["07:30:00", "18:00:00"],
+                "portion_size": 250,
             },
             "large": {
                 "meals_per_day": 2,
-                "daily_amount": 3.0,
-                "feeding_times": ["07:00", "18:30"],
+                "daily_amount": 800,
+                "feeding_times": ["07:00:00", "18:30:00"],
+                "portion_size": 400,
             },
             "giant": {
                 "meals_per_day": 2,
-                "daily_amount": 4.5,
-                "feeding_times": ["07:00", "18:30"],
+                "daily_amount": 1200,
+                "feeding_times": ["07:00:00", "18:30:00"],
+                "portion_size": 600,
             },
         }
 
@@ -271,12 +283,24 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             # Enabled modules count
             modules = dog.get("modules", {})
             enabled_count = sum(1 for enabled in modules.values() if enabled)
+            
+            # Special configurations
+            special_configs = []
+            if dog.get("gps_config"):
+                special_configs.append("📍 GPS")
+            if dog.get("feeding_config"):
+                special_configs.append("🍽️ Feeding")
+            if dog.get("health_config"):
+                special_configs.append("🏥 Health")
+            
+            special_text = " | ".join(special_configs) if special_configs else ""
 
             dogs_list.append(
                 f"{i}. {size_emoji} **{dog[CONF_DOG_NAME]}** ({dog[CONF_DOG_ID]})\n"
                 f"   {dog.get(CONF_DOG_SIZE, 'medium').title()} {breed_info}, "
                 f"{dog.get(CONF_DOG_AGE, 'unknown')} years, {dog.get(CONF_DOG_WEIGHT, 'unknown')}kg\n"
                 f"   {enabled_count}/{len(modules)} modules enabled"
+                + (f"\n   {special_text}" if special_text else "")
             )
 
         return "\n\n".join(dogs_list)
@@ -294,10 +318,19 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             return ""
 
         name = user_input.get(CONF_DOG_NAME, "").lower()
-        user_input.get(CONF_DOG_SIZE, "")
-        user_input.get(CONF_DOG_WEIGHT, 0)
+        size = user_input.get(CONF_DOG_SIZE, "")
+        weight = user_input.get(CONF_DOG_WEIGHT, 0)
 
-        # Simple breed suggestions based on common patterns
+        # Size-based breed suggestions
+        size_breeds = {
+            "toy": ["Chihuahua", "Yorkshire Terrier", "Pomeranian", "Maltese"],
+            "small": ["Beagle", "Cocker Spaniel", "French Bulldog", "Dachshund"],
+            "medium": ["Border Collie", "Australian Shepherd", "Labrador", "Bulldog"],
+            "large": ["German Shepherd", "Golden Retriever", "Rottweiler", "Boxer"],
+            "giant": ["Great Dane", "Saint Bernard", "Mastiff", "Newfoundland"],
+        }
+
+        # Name-based breed hints
         breed_hints = {
             "max": "German Shepherd",
             "buddy": "Golden Retriever",
@@ -309,9 +342,15 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             "rocky": "Boxer",
         }
 
-        # Check name patterns
+        # Check name patterns first
         for hint_name, breed in breed_hints.items():
             if hint_name in name:
+                return breed
+
+        # Use size-based suggestion if available
+        if size in size_breeds:
+            # Return first breed that roughly matches weight
+            for breed in size_breeds[size]:
                 return breed
 
         return ""
@@ -455,25 +494,24 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         return notify_services
 
     def _get_dogs_module_summary(self) -> str:
-        """Get a summary of dogs and their suggested modules.
+        """Get a summary of dogs and their configured modules.
 
         Returns:
-            Formatted summary of dog module recommendations
+            Formatted summary of dog module configurations
         """
         summaries = []
         for dog in self._dogs:
-            size = dog.get(CONF_DOG_SIZE, "medium")
-            age = dog.get(CONF_DOG_AGE, 0)
+            modules = dog.get("modules", {})
+            enabled_modules = [name for name, enabled in modules.items() if enabled]
+            
+            if enabled_modules:
+                modules_text = ", ".join(enabled_modules[:3])
+                if len(enabled_modules) > 3:
+                    modules_text += f" +{len(enabled_modules) - 3} more"
+            else:
+                modules_text = "Basic monitoring"
 
-            suggestions = []
-            if size in ("large", "giant"):
-                suggestions.append("GPS tracking")
-            if age >= 2:
-                suggestions.append("Visitor mode")
-            if not suggestions:
-                suggestions = ["Standard modules"]
-
-            summaries.append(f"• {dog[CONF_DOG_NAME]}: {', '.join(suggestions)}")
+            summaries.append(f"• {dog[CONF_DOG_NAME]}: {modules_text}")
 
         return "\n".join(summaries)
 
@@ -486,16 +524,15 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Comma-separated feature string for dashboard descriptions.
         """
-        features = ["Statistics", "Alerts", "Mobile-Friendly"]
+        features = ["Statistics", "Alerts", "Mobile-Friendly", "Multiple Themes"]
         if has_gps:
             features.insert(0, "GPS Maps")
+        if len(self._dogs) > 1:
+            features.append("Multi-Dog Overview")
         return ", ".join(features)
 
-    def _get_dashboard_setup_info(self, enabled_modules: dict[str, bool]) -> str:
+    def _get_dashboard_setup_info(self) -> str:
         """Get dashboard setup information for display.
-
-        Args:
-            enabled_modules: Currently enabled modules
 
         Returns:
             Formatted dashboard information string
@@ -504,10 +541,29 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             "🎨 Dashboard will be automatically created after setup",
             "📊 Includes cards for each dog and their activities",
             "📱 Mobile-friendly and responsive design",
+            "🎭 Multiple visual themes available (Modern, Playful, Minimal, Dark)",
         ]
 
-        if enabled_modules.get("gps", False):
+        # Check enabled modules across all dogs
+        has_gps = any(
+            dog.get("modules", {}).get("gps", False) or dog.get("gps_config")
+            for dog in self._dogs
+        )
+        has_feeding = any(
+            dog.get("modules", {}).get("feeding", False) or dog.get("feeding_config")
+            for dog in self._dogs
+        )
+        has_health = any(
+            dog.get("modules", {}).get("health", False) or dog.get("health_config")
+            for dog in self._dogs
+        )
+
+        if has_gps:
             info.append("🗺️ GPS maps and location tracking")
+        if has_feeding:
+            info.append("🍽️ Feeding schedules and meal tracking")
+        if has_health:
+            info.append("📈 Health charts and medication reminders")
 
         if len(self._dogs) > 1:
             info.append(

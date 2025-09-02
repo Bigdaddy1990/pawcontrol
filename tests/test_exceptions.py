@@ -5,31 +5,36 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.exceptions import (
-    EXCEPTION_MAP,
-    ConfigurationError,
-    DataExportError,
-    DataImportError,
-    DogNotFoundError,
-    ErrorCategory,
-    ErrorSeverity,
-    GPSError,
-    GPSUnavailableError,
-    InvalidCoordinatesError,
-    InvalidMealTypeError,
-    InvalidWeightError,
-    NotificationError,
+    # Base classes and enums
     PawControlError,
-    RateLimitError,
-    StorageError,
-    ValidationError,
-    WalkAlreadyInProgressError,
+    ErrorSeverity,
+    ErrorCategory,
+    
+    # Specific exceptions
+    ConfigurationError,
+    DogNotFoundError,
+    GPSError,
+    InvalidCoordinatesError,
+    GPSUnavailableError,
     WalkError,
     WalkNotInProgressError,
-    create_error_context,
+    WalkAlreadyInProgressError,
+    ValidationError,
+    InvalidMealTypeError,
+    InvalidWeightError,
+    StorageError,
+    RateLimitError,
+    NotificationError,
+    DataExportError,
+    DataImportError,
+    
+    # Helper functions
     get_exception_class,
-    handle_exception_gracefully,
     raise_from_error_code,
-)
+    handle_exception_gracefully,
+    create_error_context,
+    EXCEPTION_MAP,
+    )
 
 
 class TestErrorSeverity:
@@ -436,12 +441,12 @@ class TestInvalidMealTypeError:
     def test_invalid_meal_type_error(self):
         """Test invalid meal type error."""
         valid_types = ["breakfast", "lunch", "dinner"]
-        error = InvalidMealTypeError("brunch", valid_types)
+        error = InvalidMealTypeError("branch", valid_types)
 
-        assert error.meal_type == "brunch"
+        assert error.meal_type == "branch"
         assert error.valid_types == valid_types
         assert error.field == "meal_type"
-        assert error.value == "brunch"
+        assert error.value == "branch"
         assert error.valid_values == valid_types
 
 
