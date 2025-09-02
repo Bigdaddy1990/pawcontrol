@@ -351,10 +351,6 @@ class GPSUnavailableError(GPSError):
             location=last_known_location,
             error_code="gps_unavailable",
             severity=ErrorSeverity.LOW,
-            context={
-                "reason": reason,
-                "has_last_known_location": last_known_location is not None,
-            },
             recovery_suggestions=[
                 "Check if GPS tracking is enabled for this dog",
                 "Verify GPS device battery and connectivity",

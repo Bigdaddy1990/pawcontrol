@@ -53,7 +53,11 @@
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=23.1.0",
-    "asyncio-mqtt>=0.16.0"
+    "asyncio-mqtt>=0.16.0",
+    "aiodiscover>=2.0.0",
+    "aiousbwatcher>=1.1.0",
+    "aiodhcpwatcher>=1.2.1",
+    "pyserial>=3.5"
   ],
   "usb": [
     {
