@@ -1,0 +1,160 @@
+blueprint:
+  name: Paw Control - Walk Detection
+  description: Automatically detect and track walks based on door sensor and presence
+  domain: automation
+  source_url: https://github.com/yourusername/pawcontrol/blob/main/blueprints/automation/walk_detection.yaml
+  input:
+    dog_id:
+      name: Dog ID
+      description: The ID of your dog in Paw Control
+      selector:
+        text:
+    name:
+      name: Dog Name
+      description: Display name of your dog
+      default: "your dog"
+      selector:
+        text:
+    door_sensor:
+      name: Door Sensor
+      description: Door sensor that triggers walk detection
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+    person_entity:
+      name: Person Entity
+      description: Person entity to track for walk detection
+      selector:
+        entity:
+          domain: person
+    walk_in_progress_sensor:
+      name: Walk In Progress Sensor
+      description: Binary sensor indicating if walk is in progress
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: pawcontrol
+    detection_delay:
+      name: Detection Delay
+      description: Wait time after door opens before checking (seconds)
+      default: 30
+      selector:
+        number:
+          min: 10
+          max: 120
+          step: 10
+          unit_of_measurement: "sec"
+    auto_end_timeout:
+      name: Auto End Timeout
+      description: Automatically end walk after returning home (minutes)
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+          unit_of_measurement: "min"
+    notify_service:
+      name: Notification Service
+      description: Service to send notifications (optional)
+      default: ""
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input door_sensor
+    from: "off"
+    to: "on"
+    id: door_opened
+  - platform: state
+    entity_id: !input person_entity
+    from: "home"
+    to: "not_home"
+    id: person_left
+  - platform: state
+    entity_id: !input person_entity
+    from: "not_home"
+    to: "home"
+    id: person_returned
+    for:
+      minutes: !input auto_end_timeout
+
+condition: []
+
+action:
+  - choose:
+      # Door opened - potential walk start
+      - conditions:
+          - condition: trigger
+            id: door_opened
+          - condition: state
+            entity_id: !input walk_in_progress_sensor
+            state: "off"
+        sequence:
+          - delay:
+              seconds: !input detection_delay
+          - condition: state
+            entity_id: !input person_entity
+            state: "not_home"
+          - service: pawcontrol.start_walk
+            data:
+              dog_id: !input dog_id
+              source: "door"
+          - condition: template
+            value_template: "{{ !input notify_service != '' }}"
+          - service: !input notify_service
+            data:
+              title: "🚶 Walk Started"
+              message: "{{ !input name | title }}'s walk has started automatically"
+              data:
+                tag: "pawcontrol_walk_{{ !input dog_id }}"
+
+      # Person left - confirm walk start
+      - conditions:
+          - condition: trigger
+            id: person_left
+          - condition: state
+            entity_id: !input walk_in_progress_sensor
+            state: "off"
+        sequence:
+          - service: pawcontrol.start_walk
+            data:
+              dog_id: !input dog_id
+              source: "gps"
+          - condition: template
+            value_template: "{{ !input notify_service != '' }}"
+          - service: !input notify_service
+            data:
+              title: "🚶 Walk Started"
+              message: "{{ !input name | title }}'s walk tracked via GPS"
+              data:
+                tag: "pawcontrol_walk_{{ !input dog_id }}"
+
+      # Person returned - end walk
+      - conditions:
+          - condition: trigger
+            id: person_returned
+          - condition: state
+            entity_id: !input walk_in_progress_sensor
+            state: "on"
+        sequence:
+          - service: pawcontrol.end_walk
+            data:
+              dog_id: !input dog_id
+              reason: "home"
+          - condition: template
+            value_template: "{{ !input notify_service != '' }}"
+          - service: !input notify_service
+            data:
+              title: "🏠 Walk Ended"
+              message: |
+                {{ !input name | title }}'s walk completed!
+                Duration: {{ states('sensor.pawcontrol_' ~ !input dog_id ~ '_walk_duration') }} min
+                Distance: {{ states('sensor.pawcontrol_' ~ !input dog_id ~ '_walk_distance') }} m
+              data:
+                tag: "pawcontrol_walk_{{ !input dog_id }}"
+
+mode: single
+max_exceeded: silent

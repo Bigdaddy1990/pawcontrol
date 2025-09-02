@@ -1,8 +1,8 @@
-"""Dashboard template caching system for Paw Control.
+"""Dashboard template caching system for Paw Control with multiple themes.
 
 This module provides efficient template caching and management for dashboard
-card generation. It implements LRU caching, template validation, and async
-template loading to significantly improve dashboard generation performance.
+card generation with multiple visual themes and layouts. It implements LRU 
+caching, template validation, and async template loading with various styles.
 
 Quality Scale: Platinum
 Home Assistant: 2025.8.3+
@@ -137,10 +137,10 @@ class TemplateCache:
 
 
 class DashboardTemplates:
-    """Dashboard template manager with caching and lazy loading.
+    """Dashboard template manager with caching, themes, and multiple layouts.
 
     Provides efficient template generation and caching for dashboard cards
-    with automatic optimization based on usage patterns.
+    with automatic optimization based on usage patterns and multiple visual themes.
     """
 
     def __init__(self, hass: HomeAssistant) -> None:
@@ -212,24 +212,161 @@ class DashboardTemplates:
                 "conditions": [],
                 "card": {},
             },
+            "gauge": {
+                "type": "gauge",
+                "min": 0,
+                "max": 100,
+                "unit": "%",
+            },
+            "picture_elements": {
+                "type": "picture-elements",
+                "elements": [],
+            },
+            "custom:mushroom-entity": {
+                "type": "custom:mushroom-entity",
+                "icon_color": "blue",
+                "fill_container": True,
+            },
+            "custom:mini-graph-card": {
+                "type": "custom:mini-graph-card",
+                "hours_to_show": 24,
+                "points_per_hour": 2,
+                "line_width": 2,
+            },
         }
 
         return base_templates.get(card_type, {"type": card_type})
 
+    def _get_theme_styles(self, theme: str = "modern") -> dict[str, Any]:
+        """Get theme-specific styling options.
+
+        Args:
+            theme: Theme name (modern, playful, minimal, dark)
+
+        Returns:
+            Theme styling dictionary
+        """
+        themes = {
+            "modern": {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(250,250,250,0.95) 100%);
+                            border-radius: 16px;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                            transition: all 0.3s ease;
+                        }
+                        ha-card:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+                        }
+                    """
+                },
+                "colors": {
+                    "primary": "#2196F3",
+                    "accent": "#FF5722",
+                    "background": "#FAFAFA",
+                    "text": "#212121",
+                },
+                "icons": {
+                    "style": "rounded",
+                    "animated": True,
+                },
+            },
+            "playful": {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(45deg, #FF6B6B 0%, #4ECDC4 100%);
+                            border-radius: 24px;
+                            border: 3px solid white;
+                            box-shadow: 0 8px 32px rgba(31,38,135,0.37);
+                            backdrop-filter: blur(4px);
+                            animation: float 6s ease-in-out infinite;
+                        }
+                        @keyframes float {
+                            0% { transform: translateY(0px); }
+                            50% { transform: translateY(-10px); }
+                            100% { transform: translateY(0px); }
+                        }
+                    """
+                },
+                "colors": {
+                    "primary": "#FF6B6B",
+                    "accent": "#4ECDC4",
+                    "background": "#FFE66D",
+                    "text": "#292F36",
+                },
+                "icons": {
+                    "style": "emoji",
+                    "animated": True,
+                    "bounce": True,
+                },
+            },
+            "minimal": {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: white;
+                            border-radius: 4px;
+                            border: 1px solid #E0E0E0;
+                            box-shadow: none;
+                        }
+                    """
+                },
+                "colors": {
+                    "primary": "#000000",
+                    "accent": "#666666",
+                    "background": "#FFFFFF",
+                    "text": "#000000",
+                },
+                "icons": {
+                    "style": "outlined",
+                    "animated": False,
+                },
+            },
+            "dark": {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                            border-radius: 12px;
+                            border: 1px solid rgba(255,255,255,0.1);
+                            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                        }
+                    """
+                },
+                "colors": {
+                    "primary": "#0F3460",
+                    "accent": "#E94560",
+                    "background": "#1A1A2E",
+                    "text": "#FFFFFF",
+                },
+                "icons": {
+                    "style": "filled",
+                    "animated": True,
+                    "glow": True,
+                },
+            },
+        }
+
+        return themes.get(theme, themes["modern"])
+
     async def get_dog_status_card_template(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool]
+        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
     ) -> dict[str, Any]:
-        """Get optimized dog status card template.
+        """Get themed dog status card template.
 
         Args:
             dog_id: Dog identifier
             dog_name: Dog display name
             modules: Enabled modules for the dog
+            theme: Visual theme to apply
 
         Returns:
-            Complete status card template
+            Complete status card template with theme
         """
-        cache_key = f"dog_status_{dog_id}_{hash(frozenset(modules.items()))}"
+        cache_key = f"dog_status_{dog_id}_{hash(frozenset(modules.items()))}_{theme}"
 
         # Try cache first
         cached = await self._cache.get(cache_key)
@@ -237,7 +374,7 @@ class DashboardTemplates:
             return cached
 
         # Generate template
-        template = await self._generate_dog_status_template(dog_id, dog_name, modules)
+        template = await self._generate_dog_status_template(dog_id, dog_name, modules, theme)
 
         # Cache for future use
         await self._cache.set(cache_key, template)
@@ -245,19 +382,21 @@ class DashboardTemplates:
         return template
 
     async def _generate_dog_status_template(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool]
+        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
     ) -> dict[str, Any]:
-        """Generate dog status card template.
+        """Generate themed dog status card template.
 
         Args:
             dog_id: Dog identifier
             dog_name: Dog display name
             modules: Enabled modules
+            theme: Visual theme
 
         Returns:
-            Status card template
+            Status card template with theme styling
         """
         base_template = self._get_base_card_template("status")
+        theme_styles = self._get_theme_styles(theme)
 
         # Core entities - always present
         entities = [
@@ -271,6 +410,7 @@ class DashboardTemplates:
                 [
                     f"sensor.{dog_id}_last_fed",
                     f"sensor.{dog_id}_meals_today",
+                    f"sensor.{dog_id}_daily_food_consumed",
                 ]
             )
 
@@ -279,6 +419,7 @@ class DashboardTemplates:
                 [
                     f"binary_sensor.{dog_id}_is_walking",
                     f"sensor.{dog_id}_last_walk",
+                    f"sensor.{dog_id}_daily_walk_time",
                 ]
             )
 
@@ -287,6 +428,7 @@ class DashboardTemplates:
                 [
                     f"sensor.{dog_id}_weight",
                     f"sensor.{dog_id}_health_status",
+                    f"sensor.{dog_id}_health_score",
                 ]
             )
 
@@ -295,30 +437,60 @@ class DashboardTemplates:
                 [
                     f"device_tracker.{dog_id}_location",
                     f"sensor.{dog_id}_distance_from_home",
+                    f"sensor.{dog_id}_current_speed",
                 ]
             )
 
+        # Build template with theme
         template = {
             **base_template,
-            "title": f"{dog_name} Status",
+            "title": f"{self._get_dog_emoji(theme)} {dog_name} Status",
             "entities": entities,
+            "card_mod": theme_styles.get("card_mod", {}),
         }
+
+        # Add theme-specific enhancements
+        if theme == "playful":
+            template["icon"] = "mdi:dog-side"
+            template["icon_color"] = theme_styles["colors"]["primary"]
+        elif theme == "modern":
+            template["show_state"] = True
+            template["state_color"] = True
 
         return template
 
+    def _get_dog_emoji(self, theme: str) -> str:
+        """Get theme-appropriate dog emoji.
+
+        Args:
+            theme: Theme name
+
+        Returns:
+            Dog emoji for the theme
+        """
+        emojis = {
+            "modern": "🐕",
+            "playful": "🐶",
+            "minimal": "•",
+            "dark": "🌙",
+        }
+        return emojis.get(theme, "🐕")
+
     async def get_action_buttons_template(
-        self, dog_id: str, modules: dict[str, bool]
+        self, dog_id: str, modules: dict[str, bool], theme: str = "modern", layout: str = "cards"
     ) -> list[dict[str, Any]]:
-        """Get action buttons template for dog.
+        """Get themed action buttons template for dog.
 
         Args:
             dog_id: Dog identifier
             modules: Enabled modules
+            theme: Visual theme
+            layout: Layout type (cards, panels, grid, timeline)
 
         Returns:
             List of button card templates
         """
-        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}"
+        cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
         # Try cache first
         cached = await self._cache.get(cache_key)
@@ -327,14 +499,54 @@ class DashboardTemplates:
 
         buttons = []
         base_button = self._get_base_card_template("button")
+        theme_styles = self._get_theme_styles(theme)
+
+        # Style buttons based on theme
+        button_style = {}
+        if theme == "modern":
+            button_style = {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border-radius: 12px;
+                            transition: all 0.3s;
+                        }
+                        ha-card:hover {
+                            transform: scale(1.05);
+                        }
+                    """
+                }
+            }
+        elif theme == "playful":
+            button_style = {
+                "card_mod": {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+                            color: white;
+                            border-radius: 50px;
+                            animation: pulse 2s infinite;
+                        }
+                        @keyframes pulse {
+                            0% { box-shadow: 0 0 0 0 rgba(245,87,108,0.7); }
+                            70% { box-shadow: 0 0 0 10px rgba(245,87,108,0); }
+                            100% { box-shadow: 0 0 0 0 rgba(245,87,108,0); }
+                        }
+                    """
+                }
+            }
 
         # Feeding button
         if modules.get("feeding"):
             buttons.append(
                 {
                     **base_button,
+                    **button_style,
                     "name": "Feed",
-                    "icon": "mdi:food-drumstick",
+                    "icon": "mdi:food-drumstick" if theme != "playful" else "mdi:bone",
+                    "icon_color": theme_styles["colors"]["accent"],
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.feed_dog",
@@ -348,6 +560,12 @@ class DashboardTemplates:
 
         # Walk buttons (conditional based on walking state)
         if modules.get("walk"):
+            walk_button_style = button_style.copy()
+            if theme == "modern":
+                walk_button_style["card_mod"]["style"] = walk_button_style["card_mod"]["style"].replace(
+                    "#667eea", "#00bfa5"
+                ).replace("#764ba2", "#00acc1")
+
             buttons.extend(
                 [
                     {
@@ -360,8 +578,10 @@ class DashboardTemplates:
                         ],
                         "card": {
                             **base_button,
+                            **walk_button_style,
                             "name": "Start Walk",
                             "icon": "mdi:walk",
+                            "icon_color": theme_styles["colors"]["primary"],
                             "tap_action": {
                                 "action": "call-service",
                                 "service": f"{DOMAIN}.start_walk",
@@ -379,8 +599,10 @@ class DashboardTemplates:
                         ],
                         "card": {
                             **base_button,
+                            **walk_button_style,
                             "name": "End Walk",
                             "icon": "mdi:stop",
+                            "icon_color": "red",
                             "tap_action": {
                                 "action": "call-service",
                                 "service": f"{DOMAIN}.end_walk",
@@ -393,11 +615,19 @@ class DashboardTemplates:
 
         # Health button
         if modules.get("health"):
+            health_button_style = button_style.copy()
+            if theme == "modern":
+                health_button_style["card_mod"]["style"] = health_button_style["card_mod"]["style"].replace(
+                    "#667eea", "#e91e63"
+                ).replace("#764ba2", "#f06292")
+
             buttons.append(
                 {
                     **base_button,
-                    "name": "Log Health",
+                    **health_button_style,
+                    "name": "Health Check",
                     "icon": "mdi:heart-pulse",
+                    "icon_color": theme_styles["colors"]["accent"],
                     "tap_action": {
                         "action": "call-service",
                         "service": f"{DOMAIN}.log_health",
@@ -406,44 +636,414 @@ class DashboardTemplates:
                 }
             )
 
+        # Layout-specific wrapping
+        if layout == "grid":
+            # Return grid layout
+            return [{
+                "type": "grid",
+                "columns": 3,
+                "cards": buttons,
+            }]
+        elif layout == "panels":
+            # Return side-by-side panels
+            return [{
+                "type": "horizontal-stack",
+                "cards": buttons[:3],
+            }]
+
         template = {"buttons": buttons}
         await self._cache.set(cache_key, template)
 
         return buttons
 
     async def get_map_card_template(
-        self, dog_id: str, options: dict[str, Any] | None = None
+        self, dog_id: str, options: dict[str, Any] | None = None, theme: str = "modern"
     ) -> dict[str, Any]:
-        """Get GPS map card template.
+        """Get themed GPS map card template.
 
         Args:
             dog_id: Dog identifier
             options: Map display options
+            theme: Visual theme
 
         Returns:
-            Map card template
+            Map card template with theme styling
         """
         options = options or {}
+        theme_styles = self._get_theme_styles(theme)
 
         template = {
             **self._get_base_card_template("map"),
             "entities": [f"device_tracker.{dog_id}_location"],
             "default_zoom": options.get("zoom", 15),
-            "dark_mode": options.get("dark_mode", False),
+            "dark_mode": theme == "dark" or options.get("dark_mode", False),
             "hours_to_show": options.get("hours_to_show", 2),
+        }
+
+        # Add theme-specific map styling
+        if theme == "modern":
+            template["card_mod"] = {
+                "style": """
+                    ha-card {
+                        border-radius: 16px;
+                        overflow: hidden;
+                    }
+                """
+            }
+        elif theme == "playful":
+            template["card_mod"] = {
+                "style": """
+                    ha-card {
+                        border-radius: 24px;
+                        border: 4px solid #4ECDC4;
+                    }
+                """
+            }
+
+        return template
+
+    async def get_statistics_card_template(
+        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
+    ) -> dict[str, Any]:
+        """Get themed statistics card template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog name
+            modules: Enabled modules
+            theme: Visual theme
+
+        Returns:
+            Statistics card template
+        """
+        theme_styles = self._get_theme_styles(theme)
+
+        # Build statistics based on enabled modules
+        stats_content = f"## 📊 {dog_name} Statistics\n\n"
+
+        if modules.get("feeding"):
+            stats_content += """
+### 🍖 Feeding
+- **Today's Meals**: {{{{ states('sensor.{}_meals_today') }}}}
+- **Daily Amount**: {{{{ states('sensor.{}_daily_food_consumed') }}}}g
+- **Schedule Adherence**: {{{{ states('sensor.{}_feeding_schedule_adherence') }}}}%
+""".format(dog_id, dog_id, dog_id)
+
+        if modules.get("walk"):
+            stats_content += """
+### 🚶 Walking
+- **Daily Walk Time**: {{{{ states('sensor.{}_daily_walk_time') }}}} min
+- **Daily Distance**: {{{{ states('sensor.{}_daily_walk_distance') }}}} km
+- **Walk Goal**: {{{{ states('sensor.{}_walk_goal_progress') }}}}%
+""".format(dog_id, dog_id, dog_id)
+
+        if modules.get("health"):
+            stats_content += """
+### ❤️ Health
+- **Weight**: {{{{ states('sensor.{}_weight') }}}} kg
+- **Health Score**: {{{{ states('sensor.{}_health_score') }}}}/100
+- **Activity Level**: {{{{ states('sensor.{}_activity_level') }}}}
+""".format(dog_id, dog_id, dog_id)
+
+        template = {
+            "type": "markdown",
+            "content": stats_content,
+            "card_mod": theme_styles.get("card_mod", {}),
+        }
+
+        return template
+
+    async def get_feeding_schedule_template(
+        self, dog_id: str, theme: str = "modern"
+    ) -> dict[str, Any]:
+        """Get themed feeding schedule template.
+
+        Args:
+            dog_id: Dog identifier
+            theme: Visual theme
+
+        Returns:
+            Feeding schedule card template
+        """
+        theme_styles = self._get_theme_styles(theme)
+
+        if theme == "modern":
+            # Use a clean timeline view
+            template = {
+                "type": "custom:scheduler-card",
+                "title": "🍽️ Feeding Schedule",
+                "discover_existing": False,
+                "standard_configuration": True,
+                "entities": [f"sensor.{dog_id}_feeding_schedule"],
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+        elif theme == "playful":
+            # Use colorful meal buttons
+            template = await self.get_feeding_controls_template(dog_id, theme)
+        else:
+            # Minimal text-based schedule
+            template = {
+                "type": "entities",
+                "title": "Feeding Schedule",
+                "entities": [
+                    f"sensor.{dog_id}_breakfast_time",
+                    f"sensor.{dog_id}_lunch_time",
+                    f"sensor.{dog_id}_dinner_time",
+                ],
+            }
+
+        return template
+
+    async def get_feeding_controls_template(
+        self, dog_id: str, theme: str = "modern"
+    ) -> dict[str, Any]:
+        """Get themed feeding control buttons template.
+
+        Args:
+            dog_id: Dog identifier
+            theme: Visual theme
+
+        Returns:
+            Feeding controls template
+        """
+        base_button = self._get_base_card_template("button")
+        theme_styles = self._get_theme_styles(theme)
+
+        meal_types = [
+            ("breakfast", "Breakfast", "mdi:weather-sunny", "#FFA726"),
+            ("lunch", "Lunch", "mdi:weather-partly-cloudy", "#66BB6A"),
+            ("dinner", "Dinner", "mdi:weather-night", "#5C6BC0"),
+            ("snack", "Snack", "mdi:cookie", "#EC407A"),
+        ]
+
+        buttons = []
+        for meal_type, name, icon, color in meal_types:
+            button_style = {}
+            
+            if theme == "modern":
+                button_style = {
+                    "card_mod": {
+                        "style": f"""
+                            ha-card {{
+                                background: linear-gradient(135deg, {color} 0%, {color}CC 100%);
+                                color: white;
+                                border-radius: 12px;
+                            }}
+                        """
+                    }
+                }
+            elif theme == "playful":
+                button_style = {
+                    "card_mod": {
+                        "style": f"""
+                            ha-card {{
+                                background: {color};
+                                color: white;
+                                border-radius: 50%;
+                                width: 80px;
+                                height: 80px;
+                                animation: bounce 1s infinite;
+                            }}
+                            @keyframes bounce {{
+                                0%, 100% {{ transform: translateY(0); }}
+                                50% {{ transform: translateY(-10px); }}
+                            }}
+                        """
+                    }
+                }
+
+            buttons.append(
+                {
+                    **base_button,
+                    **button_style,
+                    "name": name,
+                    "icon": icon,
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_dog",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": meal_type,
+                        },
+                    },
+                }
+            )
+
+        # Group buttons based on theme
+        if theme == "playful":
+            # Circular arrangement
+            return {
+                "type": "horizontal-stack",
+                "cards": buttons,
+            }
+        else:
+            # Grid arrangement
+            grouped_buttons = []
+            for i in range(0, len(buttons), 2):
+                button_pair = buttons[i : i + 2]
+                grouped_buttons.append(
+                    {
+                        "type": "horizontal-stack",
+                        "cards": button_pair,
+                    }
+                )
+
+            return {
+                "type": "vertical-stack",
+                "cards": grouped_buttons,
+            }
+
+    async def get_health_charts_template(
+        self, dog_id: str, theme: str = "modern"
+    ) -> dict[str, Any]:
+        """Get themed health charts template.
+
+        Args:
+            dog_id: Dog identifier
+            theme: Visual theme
+
+        Returns:
+            Health charts template
+        """
+        theme_styles = self._get_theme_styles(theme)
+
+        if theme in ["modern", "dark"]:
+            # Use advanced graph card
+            template = {
+                "type": "custom:mini-graph-card",
+                "name": "Health Metrics",
+                "entities": [
+                    {
+                        "entity": f"sensor.{dog_id}_weight",
+                        "name": "Weight",
+                        "color": theme_styles["colors"]["primary"],
+                    },
+                    {
+                        "entity": f"sensor.{dog_id}_health_score",
+                        "name": "Health Score",
+                        "color": theme_styles["colors"]["accent"],
+                        "y_axis": "secondary",
+                    },
+                ],
+                "hours_to_show": 168,  # 1 week
+                "points_per_hour": 0.5,
+                "line_width": 3,
+                "animate": True,
+                "show": {
+                    "labels": True,
+                    "points": True,
+                    "legend": True,
+                    "average": True,
+                    "extrema": True,
+                },
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+        elif theme == "playful":
+            # Use colorful gauge cards
+            template = {
+                "type": "horizontal-stack",
+                "cards": [
+                    {
+                        "type": "gauge",
+                        "entity": f"sensor.{dog_id}_health_score",
+                        "name": "Health",
+                        "min": 0,
+                        "max": 100,
+                        "severity": {
+                            "green": 70,
+                            "yellow": 40,
+                            "red": 0,
+                        },
+                        "card_mod": {
+                            "style": """
+                                ha-card {
+                                    background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+                                    border-radius: 50%;
+                                }
+                            """
+                        },
+                    },
+                    {
+                        "type": "gauge",
+                        "entity": f"sensor.{dog_id}_activity_level",
+                        "name": "Activity",
+                        "min": 0,
+                        "max": 100,
+                        "severity": {
+                            "green": 60,
+                            "yellow": 30,
+                            "red": 0,
+                        },
+                        "card_mod": {
+                            "style": """
+                                ha-card {
+                                    background: linear-gradient(45deg, #4ECDC4, #FFE66D);
+                                    border-radius: 50%;
+                                }
+                            """
+                        },
+                    },
+                ],
+            }
+        else:
+            # Minimal line graph
+            template = {
+                "type": "history-graph",
+                "title": "Health Trends",
+                "entities": [
+                    f"sensor.{dog_id}_weight",
+                    f"sensor.{dog_id}_health_score",
+                ],
+                "hours_to_show": 168,
+            }
+
+        return template
+
+    async def get_timeline_template(
+        self, dog_id: str, dog_name: str, theme: str = "modern"
+    ) -> dict[str, Any]:
+        """Get activity timeline template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog name
+            theme: Visual theme
+
+        Returns:
+            Timeline template
+        """
+        theme_styles = self._get_theme_styles(theme)
+
+        timeline_content = f"""
+## 📅 {dog_name}'s Activity Timeline
+
+### Today
+{{{{ states.sensor.{dog_id}_last_activity.attributes.timeline | default('No activities yet') }}}}
+
+### Recent Events
+- **Last Fed**: {{{{ states('sensor.{dog_id}_last_fed') }}}}
+- **Last Walk**: {{{{ states('sensor.{dog_id}_last_walk') }}}}
+- **Last Health Check**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
+"""
+
+        template = {
+            "type": "markdown",
+            "content": timeline_content,
+            "card_mod": theme_styles.get("card_mod", {}),
         }
 
         return template
 
     async def get_history_graph_template(
-        self, entities: list[str], title: str, hours_to_show: int = 24
+        self, entities: list[str], title: str, hours_to_show: int = 24, theme: str = "modern"
     ) -> dict[str, Any]:
-        """Get history graph template.
+        """Get themed history graph template.
 
         Args:
             entities: Entity IDs to display
             title: Graph title
             hours_to_show: Hours of history to show
+            theme: Visual theme
 
         Returns:
             History graph template
@@ -458,11 +1058,14 @@ class DashboardTemplates:
                 "content": f"**{title}**\n\nNo data available",
             }
 
+        theme_styles = self._get_theme_styles(theme)
+
         template = {
             **self._get_base_card_template("history_graph"),
             "title": title,
             "entities": valid_entities,
             "hours_to_show": hours_to_show,
+            "card_mod": theme_styles.get("card_mod", {}),
         }
 
         return template
@@ -484,58 +1087,6 @@ class DashboardTemplates:
                 valid_entities.append(entity_id)
 
         return valid_entities
-
-    async def get_feeding_controls_template(self, dog_id: str) -> dict[str, Any]:
-        """Get feeding control buttons template.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Feeding controls template
-        """
-        base_button = self._get_base_card_template("button")
-
-        meal_types = [
-            ("breakfast", "Breakfast", "mdi:weather-sunny"),
-            ("lunch", "Lunch", "mdi:weather-partly-cloudy"),
-            ("dinner", "Dinner", "mdi:weather-night"),
-            ("snack", "Snack", "mdi:cookie"),
-        ]
-
-        buttons = []
-        for meal_type, name, icon in meal_types:
-            buttons.append(
-                {
-                    **base_button,
-                    "name": name,
-                    "icon": icon,
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.feed_dog",
-                        "service_data": {
-                            "dog_id": dog_id,
-                            "meal_type": meal_type,
-                        },
-                    },
-                }
-            )
-
-        # Group buttons in pairs for better layout
-        grouped_buttons = []
-        for i in range(0, len(buttons), 2):
-            button_pair = buttons[i : i + 2]
-            grouped_buttons.append(
-                {
-                    "type": "horizontal-stack",
-                    "cards": button_pair,
-                }
-            )
-
-        return {
-            "type": "vertical-stack",
-            "cards": grouped_buttons,
-        }
 
     async def cleanup(self) -> None:
         """Clean up template cache and resources."""
