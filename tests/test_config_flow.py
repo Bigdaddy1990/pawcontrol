@@ -1,5 +1,6 @@
 """Tests for the Paw Control config flow."""
 
+import aiofiles
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
