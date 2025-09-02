@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import aiofiles
+import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
