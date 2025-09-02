@@ -1,7 +1,7 @@
 """Dashboard template caching system for Paw Control with multiple themes.
 
 This module provides efficient template caching and management for dashboard
-card generation with multiple visual themes and layouts. It implements LRU 
+card generation with multiple visual themes and layouts. It implements LRU
 caching, template validation, and async template loading with various styles.
 
 Quality Scale: Platinum
@@ -353,7 +353,11 @@ class DashboardTemplates:
         return themes.get(theme, themes["modern"])
 
     async def get_dog_status_card_template(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
+        self,
+        dog_id: str,
+        dog_name: str,
+        modules: dict[str, bool],
+        theme: str = "modern",
     ) -> dict[str, Any]:
         """Get themed dog status card template.
 
@@ -374,7 +378,9 @@ class DashboardTemplates:
             return cached
 
         # Generate template
-        template = await self._generate_dog_status_template(dog_id, dog_name, modules, theme)
+        template = await self._generate_dog_status_template(
+            dog_id, dog_name, modules, theme
+        )
 
         # Cache for future use
         await self._cache.set(cache_key, template)
@@ -382,7 +388,11 @@ class DashboardTemplates:
         return template
 
     async def _generate_dog_status_template(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
+        self,
+        dog_id: str,
+        dog_name: str,
+        modules: dict[str, bool],
+        theme: str = "modern",
     ) -> dict[str, Any]:
         """Generate themed dog status card template.
 
@@ -477,7 +487,11 @@ class DashboardTemplates:
         return emojis.get(theme, "🐕")
 
     async def get_action_buttons_template(
-        self, dog_id: str, modules: dict[str, bool], theme: str = "modern", layout: str = "cards"
+        self,
+        dog_id: str,
+        modules: dict[str, bool],
+        theme: str = "modern",
+        layout: str = "cards",
     ) -> list[dict[str, Any]]:
         """Get themed action buttons template for dog.
 
@@ -562,9 +576,11 @@ class DashboardTemplates:
         if modules.get("walk"):
             walk_button_style = button_style.copy()
             if theme == "modern":
-                walk_button_style["card_mod"]["style"] = walk_button_style["card_mod"]["style"].replace(
-                    "#667eea", "#00bfa5"
-                ).replace("#764ba2", "#00acc1")
+                walk_button_style["card_mod"]["style"] = (
+                    walk_button_style["card_mod"]["style"]
+                    .replace("#667eea", "#00bfa5")
+                    .replace("#764ba2", "#00acc1")
+                )
 
             buttons.extend(
                 [
@@ -617,9 +633,11 @@ class DashboardTemplates:
         if modules.get("health"):
             health_button_style = button_style.copy()
             if theme == "modern":
-                health_button_style["card_mod"]["style"] = health_button_style["card_mod"]["style"].replace(
-                    "#667eea", "#e91e63"
-                ).replace("#764ba2", "#f06292")
+                health_button_style["card_mod"]["style"] = (
+                    health_button_style["card_mod"]["style"]
+                    .replace("#667eea", "#e91e63")
+                    .replace("#764ba2", "#f06292")
+                )
 
             buttons.append(
                 {
@@ -639,17 +657,21 @@ class DashboardTemplates:
         # Layout-specific wrapping
         if layout == "grid":
             # Return grid layout
-            return [{
-                "type": "grid",
-                "columns": 3,
-                "cards": buttons,
-            }]
+            return [
+                {
+                    "type": "grid",
+                    "columns": 3,
+                    "cards": buttons,
+                }
+            ]
         elif layout == "panels":
             # Return side-by-side panels
-            return [{
-                "type": "horizontal-stack",
-                "cards": buttons[:3],
-            }]
+            return [
+                {
+                    "type": "horizontal-stack",
+                    "cards": buttons[:3],
+                }
+            ]
 
         template = {"buttons": buttons}
         await self._cache.set(cache_key, template)
@@ -703,7 +725,11 @@ class DashboardTemplates:
         return template
 
     async def get_statistics_card_template(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool], theme: str = "modern"
+        self,
+        dog_id: str,
+        dog_name: str,
+        modules: dict[str, bool],
+        theme: str = "modern",
     ) -> dict[str, Any]:
         """Get themed statistics card template.
 
@@ -819,7 +845,7 @@ class DashboardTemplates:
         buttons = []
         for meal_type, name, icon, color in meal_types:
             button_style = {}
-            
+
             if theme == "modern":
                 button_style = {
                     "card_mod": {
@@ -1035,7 +1061,11 @@ class DashboardTemplates:
         return template
 
     async def get_history_graph_template(
-        self, entities: list[str], title: str, hours_to_show: int = 24, theme: str = "modern"
+        self,
+        entities: list[str],
+        title: str,
+        hours_to_show: int = 24,
+        theme: str = "modern",
     ) -> dict[str, Any]:
         """Get themed history graph template.
 

@@ -283,7 +283,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             # Enabled modules count
             modules = dog.get("modules", {})
             enabled_count = sum(1 for enabled in modules.values() if enabled)
-            
+
             # Special configurations
             special_configs = []
             if dog.get("gps_config"):
@@ -292,7 +292,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
                 special_configs.append("🍽️ Feeding")
             if dog.get("health_config"):
                 special_configs.append("🏥 Health")
-            
+
             special_text = " | ".join(special_configs) if special_configs else ""
 
             dogs_list.append(
@@ -503,7 +503,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         for dog in self._dogs:
             modules = dog.get("modules", {})
             enabled_modules = [name for name, enabled in modules.items() if enabled]
-            
+
             if enabled_modules:
                 modules_text = ", ".join(enabled_modules[:3])
                 if len(enabled_modules) > 3:
