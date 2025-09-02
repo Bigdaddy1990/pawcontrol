@@ -43,6 +43,7 @@ from .const import (  # noqa: E402
 from .utils import performance_monitor  # noqa: E402
 
 if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
     from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -269,6 +270,8 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.walk_manager = None
         self.feeding_manager = None
         self.health_calculator = None
+        # Will be set during component setup
+        self._data_manager: PawControlDataManager | None = None
 
         # Background tasks
         self._cleanup_task: asyncio.Task | None = None
@@ -396,29 +399,6 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
 
         return max(base_interval, 30)
 
-    def get_dog_config(self, dog_id: str) -> "DogConfigData" | None:
-        """Return configuration for a given dog."""
-        for dog in self.dogs:
-            if dog.get(CONF_DOG_ID) == dog_id:
-                return dog
-        return None
-
-    def get_enabled_modules(self, dog_id: str) -> set[str]:
-        """Return the set of enabled modules for the specified dog."""
-        config = self.get_dog_config(dog_id)
-        if not config:
-            return set()
-        modules = config.get("modules", {})
-        return {name for name, enabled in modules.items() if enabled}
-
-    def is_module_enabled(self, dog_id: str, module: str) -> bool:
-        """Check if a module is enabled for a dog."""
-        return module in self.get_enabled_modules(dog_id)
-
-    def get_dog_ids(self) -> list[str]:
-        """Return a list of all configured dog IDs."""
-        return [dog[CONF_DOG_ID] for dog in self._dogs_config]
-
     @performance_monitor(timeout=30.0)
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data for all dogs using batch processing."""
@@ -544,92 +524,6 @@ async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]
                 _LOGGER.debug("Data changed for dog %s", dog_id)
 
         return updated_count
-
-    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
-        """Fetch data for a dog based on enabled modules."""
-
-        dog = self.get_dog_config(dog_id)
-        if not dog:
-            return {}
-
-        enabled_modules = dog.get("modules", {})
-        dog_data: dict[str, Any] = {"dog_id": dog_id, "dog_info": dog}
-
-        if enabled_modules.get(MODULE_GPS, False):
-            dog_data["gps"] = await self._fetch_gps_data(dog_id)
-
-        if enabled_modules.get(MODULE_FEEDING, False):
-            dog_data["feeding"] = await self._fetch_feeding_data(dog_id)
-
-        if enabled_modules.get(MODULE_HEALTH, False):
-            dog_data["health"] = await self._fetch_health_data(dog_id)
-
-        if enabled_modules.get(MODULE_WALK, False):
-            dog_data["walk"] = await self._fetch_walk_data(dog_id)
-
-        return dog_data
-
-    async def _fetch_gps_data(self, dog_id: str) -> dict[str, Any]:
-        if self._data_manager and hasattr(
-            self._data_manager, "async_get_current_gps_data"
-        ):
-            try:
-                result = await self._data_manager.async_get_current_gps_data(dog_id)
-            except Exception as err:
-                return {
-                    "latitude": None,
-                    "longitude": None,
-                    "available": False,
-                    "error": str(err),
-                }
-            if not result:
-                return {
-                    "latitude": None,
-                    "longitude": None,
-                    "available": False,
-                    "error": "GPS data not available",
-                }
-            result["available"] = True
-            return result
-        return {
-            "latitude": None,
-            "longitude": None,
-            "available": False,
-            "error": "GPS manager unavailable",
-        }
-
-    async def _fetch_feeding_data(self, dog_id: str) -> dict[str, Any]:
-        if self._data_manager and hasattr(self._data_manager, "async_get_dog_data"):
-            result = await self._data_manager.async_get_dog_data(dog_id)
-            feeding = result.get("feeding", {}) if result else {}
-            return {
-                "last_feeding": feeding.get("last_feeding"),
-                "meals_today": feeding.get("meals_today", 0),
-                "daily_calories": feeding.get("daily_calories", 0),
-            }
-        return {
-            "last_feeding": None,
-            "meals_today": 0,
-            "daily_calories": 0,
-        }
-
-    async def _fetch_health_data(self, dog_id: str) -> dict[str, Any]:
-        if self._data_manager and hasattr(self._data_manager, "async_get_dog_data"):
-            result = await self._data_manager.async_get_dog_data(dog_id)
-            return result.get("health", {}) if result else {}
-        return {}
-
-    async def _fetch_walk_data(self, dog_id: str) -> dict[str, Any]:
-        data: dict[str, Any] = {"walk_in_progress": False, "current_walk": None}
-        if self._data_manager and hasattr(self._data_manager, "async_get_current_walk"):
-            current = await self._data_manager.async_get_current_walk(dog_id)
-            data["walk_in_progress"] = current is not None
-            data["current_walk"] = current
-        if self._data_manager and hasattr(self._data_manager, "async_get_dog_data"):
-            result = await self._data_manager.async_get_dog_data(dog_id)
-            if result and "walk" in result:
-                data.update(result["walk"])
-        return data
 
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Fetch raw data for a dog based on enabled modules."""
