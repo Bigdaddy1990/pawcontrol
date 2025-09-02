@@ -31,11 +31,10 @@ from homeassistant.util import dt as dt_util  # noqa: E402
 
 from .const import (  # noqa: E402
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
     DEFAULT_GPS_UPDATE_INTERVAL,
-    DOMAIN,
-    CONF_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -272,7 +271,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         dog_names = ", ".join(d.get(CONF_DOG_NAME, "") for d in self._dogs_config)
-        return f"PawControlCoordinator(entry_id={self.entry.entry_id}, dogs=[{dog_names}])"
+        return (
+            f"PawControlCoordinator(entry_id={self.entry.entry_id}, dogs=[{dog_names}])"
+        )
 
     __str__ = __repr__
 
@@ -479,7 +480,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return batches
 
-    async def _process_dog_batch(self, batch: list[DogConfigData]) -> tuple[dict[str, Any], int]:
+    async def _process_dog_batch(
+        self, batch: list[DogConfigData]
+    ) -> tuple[dict[str, Any], int]:
         """Process a batch of dogs concurrently.
 
         Returns a tuple of batch data and the number of errors.
