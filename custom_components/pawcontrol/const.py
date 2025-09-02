@@ -264,7 +264,6 @@ __all__ = [
     "DOMAIN",
     "PLATFORMS",
     "STORAGE_VERSION",
-    "PLATFORMS",
     # Configuration keys
     "CONF_NAME",
     "CONF_DOGS",

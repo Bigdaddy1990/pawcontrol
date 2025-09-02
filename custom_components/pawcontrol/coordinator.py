@@ -34,16 +34,16 @@ from .const import (  # noqa: E402
     CONF_DOG_NAME,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
-    DEFAULT_GPS_UPDATE_INTERVAL,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
+    UPDATE_INTERVALS,
 )
 from .utils import performance_monitor  # noqa: E402
 
 if TYPE_CHECKING:
-    from .data_manager import PawControlDataManager
+    from .data_manager import DataManager
     from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -217,7 +217,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     - Memory-efficient operations
     """
 
-def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize advanced optimized coordinator."""
         self.config_entry = entry
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
@@ -233,25 +233,8 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
             update_interval=timedelta(seconds=update_interval),
             always_update=False,
         )
-        """Initialize advanced optimized coordinator."""
+        # Restore entry after super().__init__ to avoid overwrite
         self.config_entry = entry
-        self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-        self.dogs = self._dogs_config
-
-        # Calculate optimal update interval
-        update_interval = self._calculate_optimal_update_interval()
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="Paw Control Data",
-            update_interval=timedelta(seconds=update_interval),
-            always_update=False,
-        )
-        self.config_entry = entry
-
-        self.config_entry = entry
-
         # Advanced optimization components
         self._cache = DataCache()
         self._batch_manager = BatchUpdateManager()
@@ -270,8 +253,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.walk_manager = None
         self.feeding_manager = None
         self.health_calculator = None
-        # Will be set during component setup
-        self._data_manager: PawControlDataManager | None = None
+        self._data_manager: "DataManager" | None = None
 
         # Background tasks
         self._cleanup_task: asyncio.Task | None = None
@@ -289,9 +271,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         dog_names = ", ".join(d.get(CONF_DOG_NAME, "") for d in self._dogs_config)
-        return (
-            f"PawControlCoordinator(entry_id={self.entry.entry_id}, dogs=[{dog_names}])"
-        )
+        return f"PawControlCoordinator(entry_id={self.config_entry.entry_id}, dogs=[{dog_names}])"
 
     __str__ = __repr__
 
@@ -361,7 +341,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     def _calculate_optimal_update_interval(self) -> int:
         """Calculate optimal update interval with advanced logic."""
-        base_interval = DEFAULT_GPS_UPDATE_INTERVAL
+        base_interval = UPDATE_INTERVALS["frequent"]
 
         # Analyze module requirements
         gps_dogs = 0
@@ -372,7 +352,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
             if modules.get(MODULE_GPS, False):
                 gps_dogs += 1
                 gps_interval = self.config_entry.options.get(
-                    CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL
+                    CONF_GPS_UPDATE_INTERVAL, UPDATE_INTERVALS["frequent"]
                 )
                 base_interval = min(base_interval, gps_interval)
 
@@ -383,7 +363,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Smart interval calculation based on load
         total_dogs = len(self.dogs)
         if total_dogs == 0:
-            return DEFAULT_GPS_UPDATE_INTERVAL
+            return UPDATE_INTERVALS["frequent"]
 
         # Adjust for GPS load
         if gps_dogs > 0:
@@ -397,7 +377,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         elif total_dogs > 20:
             base_interval = max(base_interval, 90)
 
-        return max(base_interval, 30)
+        return max(base_interval, UPDATE_INTERVALS["real_time"])
 
     @performance_monitor(timeout=30.0)
     async def _async_update_data(self) -> dict[str, Any]:
@@ -408,7 +388,12 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
             if not self.dogs:
                 return {}
 
-            all_results = await self._process_dog_batch(self.dogs)
+            dog_batches = self._create_optimized_batches()
+            all_results: dict[str, Any] = {}
+            for batch in dog_batches:
+                batch_results = await self._process_dog_batch(batch)
+                all_results.update(batch_results)
+
             updated_dogs = self._apply_selective_updates(all_results)
             update_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_monitor.record_update(update_time, 0)
@@ -427,24 +412,7 @@ def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
             self._performance_monitor.record_update(0, len(self.dogs))
             raise UpdateFailed("Failed to update data") from err
 
-async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]:
-    dog_ids = [dog[CONF_DOG_ID] for dog in batch]
-    tasks = [self._fetch_dog_data(dog_id) for dog_id in dog_ids]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    batch_data: dict[str, Any] = {}
-    errors = 0
-    for dog_id, result in zip(dog_ids, results):
-        if isinstance(result, Exception):
-            _LOGGER.warning("Failed to update data for dog %s: %s", dog_id, result)
-            batch_data[dog_id] = self._data.get(dog_id, {})
-            errors += 1
-        else:
-            batch_data[dog_id] = result
-
-    if errors == len(batch):
-        raise UpdateFailed("All dogs in batch failed to update")
-    return batch_data
+    async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]:
         """Process a batch of dogs concurrently."""
 
         dog_ids = [dog[CONF_DOG_ID] for dog in batch]
@@ -452,11 +420,17 @@ async def _process_dog_batch(self, batch: list[DogConfigData]) -> dict[str, Any]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         batch_data: dict[str, Any] = {}
+        errors = 0
         for dog_id, result in zip(dog_ids, results):
             if isinstance(result, Exception):
-                raise result
-            batch_data[dog_id] = result
+                _LOGGER.warning("Failed to update data for dog %s: %s", dog_id, result)
+                batch_data[dog_id] = self._data.get(dog_id, {})
+                errors += 1
+            else:
+                batch_data[dog_id] = result
 
+        if errors == len(batch):
+            raise UpdateFailed("All dogs in batch failed to update")
         return batch_data
 
     def _create_optimized_batches(self) -> list[list[DogConfigData]]:
