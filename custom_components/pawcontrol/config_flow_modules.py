@@ -19,17 +19,10 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_DASHBOARD_MODE,
-    CONF_DOG_AGE,
-    CONF_DOG_SIZE,
-    CONF_DOGS,
     CONF_MODULES,
-    DEFAULT_DASHBOARD_ENABLED,
     MODULE_DASHBOARD,
     MODULE_GPS,
     MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_VISITOR,
 )
 
 _LOGGER = logging.getLogger(__name__)

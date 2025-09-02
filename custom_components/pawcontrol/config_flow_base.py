@@ -319,7 +319,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
 
         name = user_input.get(CONF_DOG_NAME, "").lower()
         size = user_input.get(CONF_DOG_SIZE, "")
-        weight = user_input.get(CONF_DOG_WEIGHT, 0)
+        user_input.get(CONF_DOG_WEIGHT, 0)
 
         # Size-based breed suggestions
         size_breeds = {

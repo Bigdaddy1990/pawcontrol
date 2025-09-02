@@ -36,7 +36,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_FEEDING_TIMES,
     CONF_FOOD_TYPE,
     CONF_GPS_SOURCE,
     CONF_LUNCH_TIME,

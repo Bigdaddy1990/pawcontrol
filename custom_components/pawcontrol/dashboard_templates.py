@@ -670,7 +670,7 @@ class DashboardTemplates:
             Map card template with theme styling
         """
         options = options or {}
-        theme_styles = self._get_theme_styles(theme)
+        self._get_theme_styles(theme)
 
         template = {
             **self._get_base_card_template("map"),
@@ -807,7 +807,7 @@ class DashboardTemplates:
             Feeding controls template
         """
         base_button = self._get_base_card_template("button")
-        theme_styles = self._get_theme_styles(theme)
+        self._get_theme_styles(theme)
 
         meal_types = [
             ("breakfast", "Breakfast", "mdi:weather-sunny", "#FFA726"),
