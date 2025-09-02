@@ -44,6 +44,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
     MODULE_WALK,
+    PLATFORMS,
 )
 from .coordinator import PawControlCoordinator
 from .dashboard_generator import PawControlDashboardGenerator
@@ -67,18 +68,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # Ordered platform loading for optimal dependency resolution
 # Legacy: All platforms (kept for reference and fallback)
-ALL_PLATFORMS: Final[list[Platform]] = [
-    Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.SWITCH,
-    Platform.NUMBER,
-    Platform.SELECT,
-    Platform.TEXT,
-    Platform.DEVICE_TRACKER,
-    Platform.DATE,
-    Platform.DATETIME,
-]
+ALL_PLATFORMS: Final[list[Platform]] = PLATFORMS
 
 
 def get_platforms_for_modules(dogs: list[DogConfigData]) -> list[Platform]:

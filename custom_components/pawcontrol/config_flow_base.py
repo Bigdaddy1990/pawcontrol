@@ -144,8 +144,8 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         features = [
             "🐕 Multi-dog management with individual settings",
-            "📍 Per-dog GPS tracking & geofencing",
-            "🍽️ Customizable feeding schedules & reminders",
+            "📍 GPS tracking",
+            "🍽️ Feeding schedules",
             "💊 Medication tracking & vaccination reminders",
             "🏥 Health monitoring & vet appointment tracking",
             "🚶 Walk tracking with automatic detection",
