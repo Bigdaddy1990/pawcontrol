@@ -6,7 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "pawcontrol"
 version = "1.0.0"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "aiofiles>=23.1.0",
+    "aiodiscover>=2.0.0",
+    "aiousbwatcher>=1.1.0",
+    "asyncio-mqtt>=0.16.0",
+    "pyserial>=3.5",
+    "aiodhcpwatcher>=1.2.1",
+]
 
 [tool.pytest.ini_options]
 addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95"
