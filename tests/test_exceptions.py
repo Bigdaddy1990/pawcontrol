@@ -436,12 +436,12 @@ class TestInvalidMealTypeError:
     def test_invalid_meal_type_error(self):
         """Test invalid meal type error."""
         valid_types = ["breakfast", "lunch", "dinner"]
-        error = InvalidMealTypeError("brunch", valid_types)
+        error = InvalidMealTypeError("branch", valid_types)
 
-        assert error.meal_type == "brunch"
+        assert error.meal_type == "branch"
         assert error.valid_types == valid_types
         assert error.field == "meal_type"
-        assert error.value == "brunch"
+        assert error.value == "branch"
         assert error.valid_values == valid_types
 
 
