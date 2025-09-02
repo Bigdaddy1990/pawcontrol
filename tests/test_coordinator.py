@@ -1,6 +1,7 @@
 """Tests for the Paw Control coordinator module."""
 
 import asyncio
+import aiofiles
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
