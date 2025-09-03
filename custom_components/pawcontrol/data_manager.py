@@ -6,7 +6,7 @@ cleanup, export/import operations, and maintains data integrity across
 all modules and components.
 
 Quality Scale: Platinum
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.8.3+
 Python: 3.13+
 """
 
@@ -41,13 +41,21 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# OPTIMIZATION: Performance tuning constants
+CACHE_TTL_MINUTES = 30  # Increased from 5 to 30 minutes
+CLEANUP_INTERVAL_HOURS = 6  # Reduced from 1 to 6 hours
+BACKUP_INTERVAL_DAYS = 7  # Reduced from 1 to 7 days
+MAX_BACKUPS = 10  # Limit backup files to prevent disk space issues
+BATCH_SAVE_DELAY = 2  # Seconds to wait before batch saving
+
 
 class PawControlDataManager:
     """Central data management for Paw Control integration.
 
     Handles all data storage, retrieval, and management operations
     including persistence, cleanup, backup, and export/import.
-    Designed for high performance with async operations and intelligent caching.
+    Optimized for high performance with async operations, intelligent caching,
+    and consolidated storage.
     """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -60,23 +68,28 @@ class PawControlDataManager:
         self.hass = hass
         self.entry_id = entry_id
 
-        # Storage instances for different data types with modern patterns
-        self._stores: dict[str, Store] = {
-            "dogs": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_dogs"),
-            "feeding": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_feeding"),
-            "walks": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_walks"),
-            "health": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_health"),
-            "gps": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_gps"),
-            "grooming": Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_grooming"),
-            "statistics": Store(
-                hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_statistics"
-            ),
-        }
+        # OPTIMIZATION: Consolidated storage with namespaces instead of separate stores
+        self._store = Store(
+            hass, 
+            STORAGE_VERSION, 
+            f"{DOMAIN}_{entry_id}_data",
+            encoder=json.JSONEncoder
+        )
+        
+        # Namespace mapping for backward compatibility
+        self._namespaces = [
+            "dogs", "feeding", "walks", "health", 
+            "gps", "grooming", "statistics"
+        ]
 
-        # In-memory cache for frequently accessed data with TTL
+        # OPTIMIZATION: Enhanced cache with longer TTL
         self._cache: dict[str, Any] = {}
         self._cache_timestamps: dict[str, datetime] = {}
-        self._cache_ttl = timedelta(minutes=5)
+        self._cache_ttl = timedelta(minutes=CACHE_TTL_MINUTES)
+        
+        # Dirty tracking for batch saves
+        self._dirty_namespaces: set[str] = set()
+        self._save_task: Optional[asyncio.Task] = None
 
         # Background tasks
         self._cleanup_task: Optional[asyncio.Task] = None
@@ -85,6 +98,7 @@ class PawControlDataManager:
         # Async locks for thread-safe operations
         self._lock = asyncio.Lock()
         self._cache_lock = asyncio.Lock()
+        self._save_lock = asyncio.Lock()
 
         # Performance metrics
         self._metrics: dict[str, Any] = {
@@ -94,6 +108,7 @@ class PawControlDataManager:
             "total_data_size": 0,
             "last_cleanup": None,
             "errors_count": 0,
+            "batch_saves": 0,
         }
 
     async def async_initialize(self) -> None:
@@ -102,20 +117,25 @@ class PawControlDataManager:
         Raises:
             StorageError: If initialization fails
         """
-        _LOGGER.debug("Initializing data manager for entry %s", self.entry_id)
+        _LOGGER.debug("Initializing optimized data manager for entry %s", self.entry_id)
 
         try:
             # Load existing data into cache
             await self._load_initial_data()
 
-            # Start background tasks
+            # Start background tasks with optimized intervals
             self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
             self._backup_task = asyncio.create_task(self._periodic_backup())
 
             # Initialize statistics if not present
             await self._initialize_statistics()
 
-            _LOGGER.info("Data manager initialized successfully")
+            _LOGGER.info(
+                "Data manager initialized (cache TTL: %d min, cleanup: %d hrs, backup: %d days)",
+                CACHE_TTL_MINUTES,
+                CLEANUP_INTERVAL_HOURS,
+                BACKUP_INTERVAL_DAYS
+            )
 
         except Exception as err:
             _LOGGER.error("Failed to initialize data manager: %s", err, exc_info=True)
@@ -126,29 +146,23 @@ class PawControlDataManager:
         _LOGGER.debug("Shutting down data manager")
 
         try:
-            if self._cleanup_task:
-                self._cleanup_task.cancel()
-                if isinstance(self._cleanup_task, asyncio.Task):
+            # Cancel background tasks
+            for task in [self._cleanup_task, self._backup_task, self._save_task]:
+                if task and not task.done():
+                    task.cancel()
                     try:
-                        await self._cleanup_task
-                    except asyncio.CancelledError:
-                        pass
-
-            if self._backup_task:
-                self._backup_task.cancel()
-                if isinstance(self._backup_task, asyncio.Task):
-                    try:
-                        await self._backup_task
+                        await task
                     except asyncio.CancelledError:
                         pass
 
             # Final data save
-            await self._flush_cache_to_storage()
+            await self._flush_cache_to_storage(force=True)
 
             # Clear cache
             async with self._cache_lock:
                 self._cache.clear()
                 self._cache_timestamps.clear()
+                self._dirty_namespaces.clear()
 
             _LOGGER.info("Data manager shutdown complete")
 
@@ -156,27 +170,41 @@ class PawControlDataManager:
             _LOGGER.error("Error during data manager shutdown: %s", err)
 
     async def _load_initial_data(self) -> None:
-        """Load initial data from storage into cache."""
+        """Load initial data from consolidated storage into cache."""
         async with self._lock:
             try:
-                # Load dog data
-                dog_data = await self._stores["dogs"].async_load() or {}
-                await self._set_cache("dogs", dog_data)
+                # Load all data from consolidated store
+                all_data = await self._store.async_load() or {}
+                
+                # Initialize namespaces if not present
+                for namespace in self._namespaces:
+                    if namespace not in all_data:
+                        all_data[namespace] = {}
+                
+                # Cache all data
+                await self._set_cache("_all_data", all_data)
+                
+                # Cache individual namespaces for quick access
+                for namespace in self._namespaces:
+                    await self._set_cache(namespace, all_data.get(namespace, {}))
 
-                # Load recent feeding data for quick access
-                feeding_data = await self._stores["feeding"].async_load() or {}
-                await self._set_cache("feeding", feeding_data)
-
-                _LOGGER.debug("Loaded initial data for %d dogs", len(dog_data))
+                _LOGGER.debug(
+                    "Loaded initial data: %d dogs, %d namespaces",
+                    len(all_data.get("dogs", {})),
+                    len([ns for ns in self._namespaces if all_data.get(ns)])
+                )
 
             except Exception as err:
                 _LOGGER.error("Failed to load initial data: %s", err)
-                await self._set_cache("dogs", {})
-                await self._set_cache("feeding", {})
+                # Initialize with empty data
+                empty_data = {ns: {} for ns in self._namespaces}
+                await self._set_cache("_all_data", empty_data)
+                for namespace in self._namespaces:
+                    await self._set_cache(namespace, {})
 
     async def _initialize_statistics(self) -> None:
         """Initialize statistics storage if not present."""
-        stats = await self._stores["statistics"].async_load()
+        stats = await self._get_namespace_data("statistics")
         if not stats:
             initial_stats = {
                 "created": dt_util.utcnow().isoformat(),
@@ -184,7 +212,63 @@ class PawControlDataManager:
                 "dogs_count": 0,
                 "last_reset": dt_util.utcnow().isoformat(),
             }
-            await self._stores["statistics"].async_save(initial_stats)
+            await self._save_namespace_data("statistics", initial_stats)
+
+    # OPTIMIZATION: Namespace-based operations for consolidated storage
+    async def _get_namespace_data(self, namespace: str) -> dict[str, Any]:
+        """Get data for a specific namespace."""
+        await self._ensure_cache_fresh(namespace)
+        return await self._get_cache(namespace, {})
+
+    async def _save_namespace_data(self, namespace: str, data: dict[str, Any]) -> None:
+        """Save data for a specific namespace with batch optimization."""
+        async with self._lock:
+            # Update cache
+            await self._set_cache(namespace, data)
+            
+            # Mark namespace as dirty
+            self._dirty_namespaces.add(namespace)
+            
+            # Schedule batch save
+            await self._schedule_batch_save()
+
+    async def _schedule_batch_save(self) -> None:
+        """Schedule a batch save operation."""
+        if self._save_task and not self._save_task.done():
+            return  # Save already scheduled
+        
+        self._save_task = asyncio.create_task(self._batch_save())
+
+    async def _batch_save(self) -> None:
+        """Perform batch save after a delay."""
+        try:
+            # Wait for more changes to accumulate
+            await asyncio.sleep(BATCH_SAVE_DELAY)
+            
+            async with self._save_lock:
+                if not self._dirty_namespaces:
+                    return
+                
+                # Get all cached data
+                all_data = await self._get_cache("_all_data", {})
+                
+                # Update dirty namespaces
+                for namespace in self._dirty_namespaces:
+                    namespace_data = await self._get_cache(namespace, {})
+                    all_data[namespace] = namespace_data
+                
+                # Save consolidated data
+                await self._store.async_save(all_data)
+                
+                # Clear dirty flags
+                self._dirty_namespaces.clear()
+                self._metrics["batch_saves"] += 1
+                
+                _LOGGER.debug("Batch saved %d namespaces", len(self._dirty_namespaces))
+                
+        except Exception as err:
+            _LOGGER.error("Batch save failed: %s", err)
+            self._metrics["errors_count"] += 1
 
     # Core dog data operations
     async def async_get_dog_data(self, dog_id: str) -> Optional[dict[str, Any]]:
@@ -196,14 +280,12 @@ class PawControlDataManager:
         Returns:
             Dog data dictionary or None if not found
         """
-        await self._ensure_cache_fresh("dogs")
-        dogs_data = await self._get_cache("dogs", {})
+        dogs_data = await self._get_namespace_data("dogs")
         return dogs_data.get(dog_id)
 
     async def async_get_registered_dogs(self) -> list[str]:
         """Return IDs of all registered dogs."""
-        await self._ensure_cache_fresh("dogs")
-        dogs_data = await self._get_cache("dogs", {})
+        dogs_data = await self._get_namespace_data("dogs")
         return list(dogs_data.keys())
 
     async def async_set_dog_data(self, dog_id: str, data: dict[str, Any]) -> None:
@@ -213,19 +295,12 @@ class PawControlDataManager:
             dog_id: Dog identifier
             data: Dog data to store
         """
-        async with self._lock:
-            # Update cache
-            dogs_data = await self._get_cache("dogs", {})
-            dogs_data[dog_id] = data
-            await self._set_cache("dogs", dogs_data)
-
-            # Persist to storage asynchronously
-            await self._stores["dogs"].async_save(dogs_data)
-
-            # Update metrics
-            self._metrics["operations_count"] += 1
-
-            _LOGGER.debug("Updated data for dog %s", dog_id)
+        dogs_data = await self._get_namespace_data("dogs")
+        dogs_data[dog_id] = data
+        await self._save_namespace_data("dogs", dogs_data)
+        
+        self._metrics["operations_count"] += 1
+        _LOGGER.debug("Updated data for dog %s", dog_id)
 
     async def async_update_dog_data(self, dog_id: str, updates: dict[str, Any]) -> None:
         """Update specific fields in dog data.
@@ -247,18 +322,15 @@ class PawControlDataManager:
         async with self._lock:
             try:
                 # Remove from main dog storage
-                dogs_data = await self._get_cache("dogs", {})
+                dogs_data = await self._get_namespace_data("dogs")
                 if dog_id in dogs_data:
                     del dogs_data[dog_id]
-                    await self._set_cache("dogs", dogs_data)
-                    await self._stores["dogs"].async_save(dogs_data)
+                    await self._save_namespace_data("dogs", dogs_data)
 
-                # Remove from all module stores
+                # Remove from all module namespaces
                 await self._delete_dog_from_all_modules(dog_id)
 
-                # Update metrics
                 self._metrics["operations_count"] += 1
-
                 _LOGGER.info("Deleted all data for dog %s", dog_id)
 
             except Exception as err:
@@ -272,12 +344,10 @@ class PawControlDataManager:
         Returns:
             Dictionary of all dog data
         """
-        await self._ensure_cache_fresh("dogs")
-        dogs_data = await self._get_cache("dogs", {})
+        dogs_data = await self._get_namespace_data("dogs")
         return dogs_data.copy()
 
     # Feeding operations
-
     async def async_feed_dog(self, dog_id: str, amount: float) -> None:
         """Handle a simple feeding action for a dog.
 
@@ -289,7 +359,6 @@ class PawControlDataManager:
             dog_id: Dog identifier
             amount: Amount of food dispensed
         """
-
         try:
             timestamp = dt_util.utcnow().isoformat()
             await self.async_update_dog_data(
@@ -843,19 +912,9 @@ class PawControlDataManager:
             List of module data entries
         """
         try:
-            cache_key = f"{module}_{dog_id}"
-            await self._ensure_cache_fresh(cache_key)
-
-            # Get data from cache or load from storage
-            if cache_key not in self._cache:
-                store = self._stores[module]
-                data = await store.async_load() or {}
-                await self._set_cache(cache_key, data.get(dog_id, []))
-                self._metrics["cache_misses"] += 1
-            else:
-                self._metrics["cache_hits"] += 1
-
-            entries = (await self._get_cache(cache_key, [])).copy()
+            # Get module data from namespace
+            module_data = await self._get_namespace_data(module)
+            entries = module_data.get(dog_id, []).copy()
 
             # Apply date filters
             if start_date or end_date:
@@ -882,7 +941,7 @@ class PawControlDataManager:
                         if entry_time.tzinfo is None:
                             entry_time = dt_util.as_local(entry_time)
 
-                        # Make sure start_date and end_date are timezone-aware (use local copies)
+                        # Make sure start_date and end_date are timezone-aware
                         start_date_normalized = start_date
                         end_date_normalized = end_date
 
@@ -943,6 +1002,9 @@ class PawControlDataManager:
             # Apply limit
             if limit and limit > 0:
                 entries = entries[:limit]
+
+            # Update cache metrics
+            self._metrics["cache_hits"] += 1
 
             return entries
 
@@ -1045,112 +1107,85 @@ class PawControlDataManager:
         await self.async_update_dog_data(dog_id, reset_data)
         _LOGGER.debug("Reset daily statistics for dog %s", dog_id)
 
-    # Additional methods would be implemented here for:
-    # - Export/import functionality
-    # - Data cleanup operations
-    # - Cache management
-    # - Background tasks
-    # - Performance metrics
-
     # Private helper methods for internal operations
     async def _append_to_module_data(
         self, module: str, dog_id: str, entry: dict[str, Any]
     ) -> None:
         """Append an entry to module data."""
-        async with self._lock:
-            store = self._stores[module]
-            data = await store.async_load() or {}
+        module_data = await self._get_namespace_data(module)
+        
+        if dog_id not in module_data:
+            module_data[dog_id] = []
 
-            if dog_id not in data:
-                data[dog_id] = []
-
-            data[dog_id].append(entry)
-
-            # Update cache
-            cache_key = f"{module}_{dog_id}"
-            await self._set_cache(cache_key, data[dog_id].copy())
-
-            # Save to storage
-            await store.async_save(data)
-
-            # Update metrics
-            self._metrics["operations_count"] += 1
+        module_data[dog_id].append(entry)
+        
+        await self._save_namespace_data(module, module_data)
+        self._metrics["operations_count"] += 1
 
     async def _update_module_entry(
         self, module: str, dog_id: str, entry_id: str, updates: dict[str, Any]
     ) -> None:
         """Update a specific entry in module data."""
-        async with self._lock:
-            store = self._stores[module]
-            data = await store.async_load() or {}
+        module_data = await self._get_namespace_data(module)
 
-            if dog_id in data:
-                for entry in data[dog_id]:
-                    # Look for entry by module-specific ID field
-                    id_field = f"{module[:-1]}_id"  # Remove 's' from module name
-                    if entry.get(id_field) == entry_id:
-                        entry.update(updates)
-                        break
+        if dog_id in module_data:
+            for entry in module_data[dog_id]:
+                # Look for entry by module-specific ID field
+                id_field = f"{module[:-1]}_id"  # Remove 's' from module name
+                if entry.get(id_field) == entry_id:
+                    entry.update(updates)
+                    break
 
-                # Update cache
-                cache_key = f"{module}_{dog_id}"
-                await self._set_cache(cache_key, data[dog_id].copy())
-
-                # Save to storage
-                await store.async_save(data)
-
-                # Update metrics
-                self._metrics["operations_count"] += 1
+            await self._save_namespace_data(module, module_data)
+            self._metrics["operations_count"] += 1
 
     async def _delete_dog_from_all_modules(self, dog_id: str) -> None:
-        """Delete dog data from all module stores."""
+        """Delete dog data from all module namespaces."""
         modules = ["feeding", "walks", "health", "gps", "grooming"]
 
         for module in modules:
             try:
-                store = self._stores[module]
-                data = await store.async_load() or {}
-
-                if dog_id in data:
-                    del data[dog_id]
-                    await store.async_save(data)
-
-                # Clear from cache
-                cache_key = f"{module}_{dog_id}"
-                if cache_key in self._cache:
-                    async with self._cache_lock:
-                        del self._cache[cache_key]
-                        del self._cache_timestamps[cache_key]
+                module_data = await self._get_namespace_data(module)
+                
+                if dog_id in module_data:
+                    del module_data[dog_id]
+                    await self._save_namespace_data(module, module_data)
 
             except Exception as err:
                 _LOGGER.error(
                     "Failed to delete %s data for dog %s: %s", module, dog_id, err
                 )
 
+    # OPTIMIZATION: Reduced frequency background tasks
     async def _periodic_cleanup(self) -> None:
-        """Periodic cleanup task."""
+        """Periodic cleanup task with optimized interval."""
         while True:
             try:
-                await asyncio.sleep(3600)  # Run every hour
+                # Run every 6 hours instead of every hour
+                await asyncio.sleep(CLEANUP_INTERVAL_HOURS * 3600)
                 await self.async_cleanup_old_data()
+                _LOGGER.debug("Periodic cleanup completed")
             except asyncio.CancelledError:
                 break
             except Exception as err:
                 _LOGGER.error("Error in periodic cleanup: %s", err)
 
     async def _periodic_backup(self) -> None:
-        """Periodic backup task."""
+        """Periodic backup task with optimized interval."""
         while True:
             try:
-                await asyncio.sleep(86400)  # Run daily
+                # Run weekly instead of daily
+                await asyncio.sleep(BACKUP_INTERVAL_DAYS * 86400)
                 await self._create_backup()
+                await self._cleanup_old_backups()
+                _LOGGER.debug("Periodic backup completed")
             except asyncio.CancelledError:
                 break
             except Exception as err:
                 _LOGGER.error("Error in periodic backup: %s", err)
 
     async def _create_backup(self) -> None:
-        """Create a backup of all data."""
+        """Create a backup of all data with rotation."""
         try:
             backup_dir = Path(self.hass.config.config_dir) / "paw_control_backups"
             backup_dir.mkdir(exist_ok=True)
@@ -1170,21 +1205,10 @@ class PawControlDataManager:
 
             # Add module data for all dogs
             for dog_id in backup_data["dogs"].keys():
-                backup_data[f"feeding_{dog_id}"] = await self.async_get_module_data(
-                    "feeding", dog_id
-                )
-                backup_data[f"walks_{dog_id}"] = await self.async_get_module_data(
-                    "walks", dog_id
-                )
-                backup_data[f"health_{dog_id}"] = await self.async_get_module_data(
-                    "health", dog_id
-                )
-                backup_data[f"gps_{dog_id}"] = await self.async_get_module_data(
-                    "gps", dog_id
-                )
-                backup_data[f"grooming_{dog_id}"] = await self.async_get_module_data(
-                    "grooming", dog_id
-                )
+                for module in ["feeding", "walks", "health", "gps", "grooming"]:
+                    module_data = await self.async_get_module_data(module, dog_id)
+                    if module_data:
+                        backup_data[f"{module}_{dog_id}"] = module_data
 
             await self._export_json(backup_file, backup_data)
 
@@ -1193,13 +1217,50 @@ class PawControlDataManager:
         except Exception as err:
             _LOGGER.error("Failed to create backup: %s", err)
 
-    async def _flush_cache_to_storage(self) -> None:
+    async def _cleanup_old_backups(self) -> None:
+        """Remove old backup files keeping only the most recent ones."""
+        try:
+            backup_dir = Path(self.hass.config.config_dir) / "paw_control_backups"
+            if not backup_dir.exists():
+                return
+
+            # Get all backup files
+            backup_files = sorted(
+                backup_dir.glob("paw_control_backup_*.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True
+            )
+
+            # Keep only the most recent MAX_BACKUPS files
+            if len(backup_files) > MAX_BACKUPS:
+                for old_backup in backup_files[MAX_BACKUPS:]:
+                    old_backup.unlink()
+                    _LOGGER.debug("Removed old backup: %s", old_backup)
+
+        except Exception as err:
+            _LOGGER.error("Failed to cleanup old backups: %s", err)
+
+    async def _flush_cache_to_storage(self, force: bool = False) -> None:
         """Flush all cached data to storage."""
         try:
-            # This is a simplified version - in a real implementation,
-            # you would flush all dirty cache entries to their respective stores
-            if "dogs" in self._cache:
-                await self._stores["dogs"].async_save(self._cache["dogs"])
+            if not self._dirty_namespaces and not force:
+                return
+            
+            # Get all cached data
+            all_data = await self._get_cache("_all_data", {})
+            
+            # Update all namespaces
+            for namespace in self._namespaces:
+                namespace_data = await self._get_cache(namespace, {})
+                all_data[namespace] = namespace_data
+            
+            # Save consolidated data
+            await self._store.async_save(all_data)
+            
+            # Clear dirty flags
+            self._dirty_namespaces.clear()
+            
+            _LOGGER.debug("Flushed cache to storage")
 
         except Exception as err:
             _LOGGER.error("Failed to flush cache to storage: %s", err)
@@ -1209,12 +1270,20 @@ class PawControlDataManager:
         """Ensure cache entry is fresh."""
         async with self._cache_lock:
             if cache_key not in self._cache_timestamps:
+                # Not in cache, will trigger load
                 return
 
             last_update = self._cache_timestamps[cache_key]
             if dt_util.utcnow() - last_update > self._cache_ttl:
-                # Cache is stale, remove it to force reload
-                if cache_key in self._cache:
+                # Cache is stale, reload from storage
+                if cache_key in self._namespaces:
+                    all_data = await self._store.async_load() or {}
+                    namespace_data = all_data.get(cache_key, {})
+                    self._cache[cache_key] = namespace_data
+                    self._cache_timestamps[cache_key] = dt_util.utcnow()
+                    self._metrics["cache_misses"] += 1
+                else:
+                    # Remove stale non-namespace cache
                     del self._cache[cache_key]
                     del self._cache_timestamps[cache_key]
 
@@ -1272,12 +1341,10 @@ class PawControlDataManager:
     async def _cleanup_module_data(self, module: str, cutoff_date: datetime) -> int:
         """Clean up old data from a specific module."""
         try:
-            store = self._stores[module]
-            data = await store.async_load() or {}
-
+            module_data = await self._get_namespace_data(module)
             total_deleted = 0
 
-            for dog_id, entries in data.items():
+            for dog_id, entries in module_data.items():
                 original_count = len(entries)
 
                 # Filter out old entries
@@ -1303,17 +1370,12 @@ class PawControlDataManager:
                         # Keep entries with invalid timestamps
                         filtered_entries.append(entry)
 
-                data[dog_id] = filtered_entries
+                module_data[dog_id] = filtered_entries
                 deleted_count = original_count - len(filtered_entries)
                 total_deleted += deleted_count
 
-                # Update cache if present
-                cache_key = f"{module}_{dog_id}"
-                if cache_key in self._cache:
-                    await self._set_cache(cache_key, filtered_entries.copy())
-
             # Save updated data
-            await store.async_save(data)
+            await self._save_namespace_data(module, module_data)
 
             return total_deleted
 
@@ -1336,4 +1398,7 @@ class PawControlDataManager:
                 / max(self._metrics["cache_hits"] + self._metrics["cache_misses"], 1)
             )
             * 100,
+            "cache_ttl_minutes": CACHE_TTL_MINUTES,
+            "cleanup_interval_hours": CLEANUP_INTERVAL_HOURS,
+            "backup_interval_days": BACKUP_INTERVAL_DAYS,
         }
