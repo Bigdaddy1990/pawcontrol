@@ -21,7 +21,7 @@ repos:
         # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
         args: [--unsafe, --allow-multiple-documents]
         # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(tests/)
+        exclude: ^(tests/*,docs/*)
       - id: check-json
       - id: check-toml
       - id: end-of-file-fixer
@@ -41,6 +41,7 @@ repos:
           (?x)^(
             tests/fixtures/|
             tests/|
+            docs/|
             .*/snapshots/|
             .*/translations/|
             .*/.git/|
