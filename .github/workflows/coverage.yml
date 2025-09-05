@@ -24,11 +24,7 @@ jobs:
         run: |
           pytest --fixtures [testpath]
           pytest --cov-report=xml
-  #    - name: Upload coverage to Codecov
-  #      uses: codecov/codecov-action@v5
-  #      with:
-  #        files: coverage.xml
-  #        fail_ci_if_error: true
+          pytest --cov --junitxml=junit.xml -o junit_family=legacy
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
