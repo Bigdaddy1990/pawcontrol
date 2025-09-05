@@ -15,3 +15,5 @@ jobs:
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files
+      - name: Claude Code Action Official
+        uses: anthropics/claude-code-action@v1
