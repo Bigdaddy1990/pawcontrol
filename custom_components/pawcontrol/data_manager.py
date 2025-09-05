@@ -70,23 +70,25 @@ class PawControlDataManager:
 
         # OPTIMIZATION: Consolidated storage with namespaces instead of separate stores
         self._store = Store(
-            hass, 
-            STORAGE_VERSION, 
-            f"{DOMAIN}_{entry_id}_data",
-            encoder=json.JSONEncoder
+            hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_data", encoder=json.JSONEncoder
         )
-        
+
         # Namespace mapping for backward compatibility
         self._namespaces = [
-            "dogs", "feeding", "walks", "health", 
-            "gps", "grooming", "statistics"
+            "dogs",
+            "feeding",
+            "walks",
+            "health",
+            "gps",
+            "grooming",
+            "statistics",
         ]
 
         # OPTIMIZATION: Enhanced cache with longer TTL
         self._cache: dict[str, Any] = {}
         self._cache_timestamps: dict[str, datetime] = {}
         self._cache_ttl = timedelta(minutes=CACHE_TTL_MINUTES)
-        
+
         # Dirty tracking for batch saves
         self._dirty_namespaces: set[str] = set()
         self._save_task: Optional[asyncio.Task] = None
@@ -134,7 +136,7 @@ class PawControlDataManager:
                 "Data manager initialized (cache TTL: %d min, cleanup: %d hrs, backup: %d days)",
                 CACHE_TTL_MINUTES,
                 CLEANUP_INTERVAL_HOURS,
-                BACKUP_INTERVAL_DAYS
+                BACKUP_INTERVAL_DAYS,
             )
 
         except Exception as err:
@@ -175,15 +177,15 @@ class PawControlDataManager:
             try:
                 # Load all data from consolidated store
                 all_data = await self._store.async_load() or {}
-                
+
                 # Initialize namespaces if not present
                 for namespace in self._namespaces:
                     if namespace not in all_data:
                         all_data[namespace] = {}
-                
+
                 # Cache all data
                 await self._set_cache("_all_data", all_data)
-                
+
                 # Cache individual namespaces for quick access
                 for namespace in self._namespaces:
                     await self._set_cache(namespace, all_data.get(namespace, {}))
@@ -191,7 +193,7 @@ class PawControlDataManager:
                 _LOGGER.debug(
                     "Loaded initial data: %d dogs, %d namespaces",
                     len(all_data.get("dogs", {})),
-                    len([ns for ns in self._namespaces if all_data.get(ns)])
+                    len([ns for ns in self._namespaces if all_data.get(ns)]),
                 )
 
             except Exception as err:
@@ -225,10 +227,10 @@ class PawControlDataManager:
         async with self._lock:
             # Update cache
             await self._set_cache(namespace, data)
-            
+
             # Mark namespace as dirty
             self._dirty_namespaces.add(namespace)
-            
+
             # Schedule batch save
             await self._schedule_batch_save()
 
@@ -236,7 +238,7 @@ class PawControlDataManager:
         """Schedule a batch save operation."""
         if self._save_task and not self._save_task.done():
             return  # Save already scheduled
-        
+
         self._save_task = asyncio.create_task(self._batch_save())
 
     async def _batch_save(self) -> None:
@@ -244,28 +246,28 @@ class PawControlDataManager:
         try:
             # Wait for more changes to accumulate
             await asyncio.sleep(BATCH_SAVE_DELAY)
-            
+
             async with self._save_lock:
                 if not self._dirty_namespaces:
                     return
-                
+
                 # Get all cached data
                 all_data = await self._get_cache("_all_data", {})
-                
+
                 # Update dirty namespaces
                 for namespace in self._dirty_namespaces:
                     namespace_data = await self._get_cache(namespace, {})
                     all_data[namespace] = namespace_data
-                
+
                 # Save consolidated data
                 await self._store.async_save(all_data)
-                
+
                 # Clear dirty flags
                 self._dirty_namespaces.clear()
                 self._metrics["batch_saves"] += 1
-                
+
                 _LOGGER.debug("Batch saved %d namespaces", len(self._dirty_namespaces))
-                
+
         except Exception as err:
             _LOGGER.error("Batch save failed: %s", err)
             self._metrics["errors_count"] += 1
@@ -298,7 +300,7 @@ class PawControlDataManager:
         dogs_data = await self._get_namespace_data("dogs")
         dogs_data[dog_id] = data
         await self._save_namespace_data("dogs", dogs_data)
-        
+
         self._metrics["operations_count"] += 1
         _LOGGER.debug("Updated data for dog %s", dog_id)
 
@@ -1113,12 +1115,12 @@ class PawControlDataManager:
     ) -> None:
         """Append an entry to module data."""
         module_data = await self._get_namespace_data(module)
-        
+
         if dog_id not in module_data:
             module_data[dog_id] = []
 
         module_data[dog_id].append(entry)
-        
+
         await self._save_namespace_data(module, module_data)
         self._metrics["operations_count"] += 1
 
@@ -1146,7 +1148,7 @@ class PawControlDataManager:
         for module in modules:
             try:
                 module_data = await self._get_namespace_data(module)
-                
+
                 if dog_id in module_data:
                     del module_data[dog_id]
                     await self._save_namespace_data(module, module_data)
@@ -1228,7 +1230,7 @@ class PawControlDataManager:
             backup_files = sorted(
                 backup_dir.glob("paw_control_backup_*.json"),
                 key=lambda p: p.stat().st_mtime,
-                reverse=True
+                reverse=True,
             )
 
             # Keep only the most recent MAX_BACKUPS files
@@ -1245,21 +1247,21 @@ class PawControlDataManager:
         try:
             if not self._dirty_namespaces and not force:
                 return
-            
+
             # Get all cached data
             all_data = await self._get_cache("_all_data", {})
-            
+
             # Update all namespaces
             for namespace in self._namespaces:
                 namespace_data = await self._get_cache(namespace, {})
                 all_data[namespace] = namespace_data
-            
+
             # Save consolidated data
             await self._store.async_save(all_data)
-            
+
             # Clear dirty flags
             self._dirty_namespaces.clear()
-            
+
             _LOGGER.debug("Flushed cache to storage")
 
         except Exception as err:

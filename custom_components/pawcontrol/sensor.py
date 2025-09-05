@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Optional, Union
 
 from homeassistant.components.sensor import (
@@ -73,7 +73,7 @@ async def async_setup_entry(
 
     # OPTIMIZATION: Parallel entity creation for multiple dogs
     entities_by_dog: dict[str, list[PawControlSensorBase]] = {}
-    
+
     # Create entity lists for each dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
@@ -123,21 +123,24 @@ async def async_setup_entry(
         async def add_entity_batch(entities: list[PawControlSensorBase]) -> None:
             """Add a batch of entities asynchronously."""
             async_add_entities(entities, update_before_add=False)
-        
+
         # Create tasks for parallel entity addition
         tasks = []
         batch_count = 0
-        
+
         for dog_id, dog_entities in entities_by_dog.items():
             for i in range(0, len(dog_entities), MAX_ENTITIES_PER_BATCH):
                 batch = dog_entities[i : i + MAX_ENTITIES_PER_BATCH]
                 tasks.append(add_entity_batch(batch))
                 batch_count += 1
-                
+
                 # Add small delay every few batches to prevent overwhelming
-                if batch_count % 5 == 0 and batch_count < total_entities // MAX_ENTITIES_PER_BATCH:
+                if (
+                    batch_count % 5 == 0
+                    and batch_count < total_entities // MAX_ENTITIES_PER_BATCH
+                ):
                     await asyncio.sleep(ENTITY_CREATION_DELAY)
-        
+
         # Execute all tasks
         if tasks:
             await asyncio.gather(*tasks)
@@ -221,7 +224,7 @@ def _create_health_sensors(
 
 class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntity):
     """Base sensor class with optimized data access and caching."""
-    
+
     _attr_should_poll = False
     _attr_has_entity_name = True
 
@@ -257,7 +260,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
             "sw_version": "1.0.0",
             "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
-        
+
         # OPTIMIZATION: Per-update module data cache
         self._module_cache: dict[str, Any] = {}
         self._cache_timestamp: Optional[datetime] = None
@@ -299,14 +302,14 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
             # Cache expired or first access
             self._module_cache.clear()
             self._cache_timestamp = now
-        
+
         if module not in self._module_cache:
             dog_data = self._get_dog_data()
             if dog_data:
                 self._module_cache[module] = dog_data.get(module, {})
             else:
                 self._module_cache[module] = None
-        
+
         return self._module_cache[module]
 
     @property
@@ -315,6 +318,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
 
 
 # Sensor implementations
+
 
 class PawControlLastActionSensor(PawControlSensorBase):
     """Sensor for tracking the last action timestamp."""
@@ -419,10 +423,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         if (
             self._cached_score is not None
             and self._score_cache_time is not None
-            and (now - self._score_cache_time).total_seconds() < ACTIVITY_SCORE_CACHE_TTL
+            and (now - self._score_cache_time).total_seconds()
+            < ACTIVITY_SCORE_CACHE_TTL
         ):
             return self._cached_score
-        
+
         # Calculate new score
         dog_data = self._get_dog_data()
         if not dog_data:
@@ -449,11 +454,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         weighted_sum = sum(score * weight for _, score, weight in score_components)
 
         score = round((weighted_sum / total_weight) if total_weight > 0 else 0, 1)
-        
+
         # Cache the result
         self._cached_score = score
         self._score_cache_time = now
-        
+
         return score
 
     def _calculate_walk_score(self, walk_data: dict) -> Optional[float]:
@@ -501,6 +506,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
 
 # Feeding Sensors
+
 
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
@@ -696,6 +702,7 @@ class PawControlFeedingCountTodaySensor(PawControlSensorBase):
 
 # Walk Sensors
 
+
 class PawControlLastWalkSensor(PawControlSensorBase):
     """Sensor for last walk timestamp."""
 
@@ -846,6 +853,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
 
 # GPS Sensors
+
 
 class PawControlCurrentSpeedSensor(PawControlSensorBase):
     """Sensor for current speed."""
@@ -1001,6 +1009,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
 
 
 # Health Sensors
+
 
 class PawControlWeightSensor(PawControlSensorBase):
     """Sensor for dog weight."""

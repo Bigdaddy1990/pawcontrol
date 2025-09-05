@@ -319,7 +319,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             needed_platforms[i : i + 3]
                             for i in range(0, len(needed_platforms), 3)
                         ]
-                        
+
                         # Paralleles Laden der Platform-Gruppen
                         setup_tasks = []
                         for platform_group in platform_groups:
@@ -328,7 +328,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     entry, platform_group
                                 )
                             )
-                        
+
                         # Alle Gruppen parallel ausführen
                         await asyncio.gather(*setup_tasks)
                     else:
@@ -345,7 +345,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100,
                 )
             except asyncio.TimeoutError:
-                _LOGGER.error("Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL)
+                _LOGGER.error(
+                    "Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL
+                )
                 await _async_cleanup_runtime_data(hass, entry, runtime_data)
                 raise ConfigEntryNotReady("Platform setup timed out") from None
             except Exception as err:
@@ -384,7 +386,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                         "theme": entry.options.get(
                                             "dashboard_theme", "default"
                                         ),
-                                        "mode": entry.options.get("dashboard_mode", "full"),
+                                        "mode": entry.options.get(
+                                            "dashboard_mode", "full"
+                                        ),
                                     },
                                 )
                                 _LOGGER.info("Created dashboard at: %s", dashboard_url)
@@ -402,7 +406,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                         )
                             except Exception as err:
                                 _LOGGER.error("Dashboard creation failed: %s", err)
-                        
+
                         # Start dashboard creation in background
                         asyncio.create_task(create_dashboards())
 
@@ -425,7 +429,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             except asyncio.TimeoutError:
                 _LOGGER.warning(
                     "Initial data refresh timed out after %ds, integration will continue with cached data",
-                    REFRESH_TIMEOUT
+                    REFRESH_TIMEOUT,
                 )
             except Exception as err:
                 _LOGGER.warning(

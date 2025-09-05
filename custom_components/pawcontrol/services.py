@@ -54,9 +54,10 @@ from .utils import performance_monitor
 
 _LOGGER = logging.getLogger(__name__)
 
+
 # OPTIMIZATION: Schema builder for common patterns
 def _build_dog_service_schema(
-    additional_fields: dict[vol.Marker, Any] | None = None
+    additional_fields: dict[vol.Marker, Any] | None = None,
 ) -> vol.Schema:
     """Build service schema with dog_id and optional additional fields."""
     base_schema = {
@@ -66,104 +67,144 @@ def _build_dog_service_schema(
         base_schema.update(additional_fields)
     return vol.Schema(base_schema)
 
+
 # OPTIMIZATION: Consolidated service schemas with builder pattern
-SERVICE_FEED_DOG_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional(ATTR_MEAL_TYPE, default="snack"): vol.In(MEAL_TYPES),
-    vol.Optional(ATTR_PORTION_SIZE, default=0.0): vol.All(
-        vol.Coerce(float), vol.Range(min=0.0, max=10000.0)
-    ),
-    vol.Optional("food_type", default="dry_food"): vol.In(FOOD_TYPES),
-    vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
-    vol.Optional("calories"): vol.All(
-        vol.Coerce(float), vol.Range(min=0.0, max=5000.0)
-    ),
-})
+SERVICE_FEED_DOG_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional(ATTR_MEAL_TYPE, default="snack"): vol.In(MEAL_TYPES),
+        vol.Optional(ATTR_PORTION_SIZE, default=0.0): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=10000.0)
+        ),
+        vol.Optional("food_type", default="dry_food"): vol.In(FOOD_TYPES),
+        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
+        vol.Optional("calories"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=5000.0)
+        ),
+    }
+)
 
-SERVICE_WALK_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional("label", default=""): vol.All(cv.string, vol.Length(max=100)),
-    vol.Optional("location", default=""): vol.All(cv.string, vol.Length(max=200)),
-    vol.Optional("walk_type", default="regular"): vol.In(
-        ["regular", "training", "exercise", "socialization", "bathroom", "adventure"]
-    ),
-})
+SERVICE_WALK_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional("label", default=""): vol.All(cv.string, vol.Length(max=100)),
+        vol.Optional("location", default=""): vol.All(cv.string, vol.Length(max=200)),
+        vol.Optional("walk_type", default="regular"): vol.In(
+            [
+                "regular",
+                "training",
+                "exercise",
+                "socialization",
+                "bathroom",
+                "adventure",
+            ]
+        ),
+    }
+)
 
-SERVICE_END_WALK_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional("distance", default=0.0): vol.All(
-        vol.Coerce(float), vol.Range(min=0.0, max=50000.0)
-    ),
-    vol.Optional("duration", default=0): vol.All(
-        vol.Coerce(int), vol.Range(min=0, max=28800)
-    ),
-    vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
-})
+SERVICE_END_WALK_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional("distance", default=0.0): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=50000.0)
+        ),
+        vol.Optional("duration", default=0): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=28800)
+        ),
+        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
+    }
+)
 
-SERVICE_HEALTH_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional("weight"): vol.All(
-        vol.Coerce(float), vol.Range(min=0.1, max=200.0)
-    ),
-    vol.Optional("temperature"): vol.All(
-        vol.Coerce(float), vol.Range(min=35.0, max=42.0)
-    ),
-    vol.Optional("mood", default=""): vol.In([""] + list(MOOD_OPTIONS)),
-    vol.Optional("activity_level", default=""): vol.In([""] + list(ACTIVITY_LEVELS)),
-    vol.Optional("health_status", default=""): vol.In([""] + list(HEALTH_STATUS_OPTIONS)),
-    vol.Optional("note", default=""): vol.All(cv.string, vol.Length(max=1000)),
-})
+SERVICE_HEALTH_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional("weight"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.1, max=200.0)
+        ),
+        vol.Optional("temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=35.0, max=42.0)
+        ),
+        vol.Optional("mood", default=""): vol.In([""] + list(MOOD_OPTIONS)),
+        vol.Optional("activity_level", default=""): vol.In(
+            [""] + list(ACTIVITY_LEVELS)
+        ),
+        vol.Optional("health_status", default=""): vol.In(
+            [""] + list(HEALTH_STATUS_OPTIONS)
+        ),
+        vol.Optional("note", default=""): vol.All(cv.string, vol.Length(max=1000)),
+    }
+)
 
-SERVICE_MEDICATION_SCHEMA: Final = _build_dog_service_schema({
-    vol.Required("medication_name"): vol.All(cv.string, vol.Length(min=1, max=100)),
-    vol.Required("dosage"): vol.All(cv.string, vol.Length(min=1, max=50)),
-    vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
-})
+SERVICE_MEDICATION_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Required("medication_name"): vol.All(cv.string, vol.Length(min=1, max=100)),
+        vol.Required("dosage"): vol.All(cv.string, vol.Length(min=1, max=50)),
+        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
+    }
+)
 
-SERVICE_GROOMING_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional("type", default="general"): vol.In(
-        ["bath", "brush", "nails", "teeth", "ears", "trim", "full_grooming", "general"]
-    ),
-    vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
-})
+SERVICE_GROOMING_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional("type", default="general"): vol.In(
+            [
+                "bath",
+                "brush",
+                "nails",
+                "teeth",
+                "ears",
+                "trim",
+                "full_grooming",
+                "general",
+            ]
+        ),
+        vol.Optional("notes", default=""): vol.All(cv.string, vol.Length(max=500)),
+    }
+)
 
-SERVICE_NOTIFY_TEST_SCHEMA: Final = _build_dog_service_schema({
-    vol.Optional("message", default="Test notification"): vol.All(
-        cv.string, vol.Length(min=1, max=200)
-    ),
-    vol.Optional("priority", default="normal"): vol.In(
-        ["low", "normal", "high", "urgent"]
-    ),
-})
+SERVICE_NOTIFY_TEST_SCHEMA: Final = _build_dog_service_schema(
+    {
+        vol.Optional("message", default="Test notification"): vol.All(
+            cv.string, vol.Length(min=1, max=200)
+        ),
+        vol.Optional("priority", default="normal"): vol.In(
+            ["low", "normal", "high", "urgent"]
+        ),
+    }
+)
 
-SERVICE_DAILY_RESET_SCHEMA: Final = vol.Schema({
-    vol.Optional("force", default=False): cv.boolean,
-    vol.Optional("dog_ids"): vol.All(cv.ensure_list, [cv.string]),
-})
+SERVICE_DAILY_RESET_SCHEMA: Final = vol.Schema(
+    {
+        vol.Optional("force", default=False): cv.boolean,
+        vol.Optional("dog_ids"): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
 
 
 # OPTIMIZATION: Service handler decorator for consistent error handling
 def service_handler(require_dog: bool = True):
     """Decorator for service handlers with unified error handling and validation."""
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, call: ServiceCall) -> None:
             dog_id = call.data.get(ATTR_DOG_ID) if require_dog else None
-            
+
             try:
                 if require_dog:
                     if not dog_id:
                         raise ServiceValidationError("dog_id is required")
-                    
+
                     # OPTIMIZATION: Use cached runtime data lookup
                     runtime_data = self._get_runtime_data_cached(dog_id)
                     if not runtime_data:
                         raise DogNotFoundError(dog_id, self._get_available_dog_ids())
-                    
+
                     # Call handler with runtime data
                     await func(self, call, dog_id, runtime_data)
                 else:
                     # Call handler without dog validation
                     await func(self, call)
-                    
+
             except PawControlError as err:
-                _LOGGER.error("PawControl error in %s: %s", func.__name__, err.to_dict())
+                _LOGGER.error(
+                    "PawControl error in %s: %s", func.__name__, err.to_dict()
+                )
                 raise ServiceValidationError(err.user_message) from err
             except ServiceValidationError:
                 raise
@@ -172,8 +213,9 @@ def service_handler(require_dog: bool = True):
                     "Unexpected error in %s: %s", func.__name__, err, exc_info=True
                 )
                 raise ServiceValidationError(f"Service failed: {err}") from err
-        
+
         return wrapper
+
     return decorator
 
 
@@ -194,7 +236,7 @@ class PawControlServiceManager:
 
     async def async_register_services(self) -> None:
         """Register all Paw Control services with batch registration."""
-        
+
         # Check if services are already registered
         if SERVICE_FEED_DOG in self._registered_services:
             _LOGGER.debug("Services already registered, skipping registration")
@@ -207,11 +249,26 @@ class PawControlServiceManager:
             SERVICE_FEED_DOG: (self._handle_feed_dog_service, SERVICE_FEED_DOG_SCHEMA),
             SERVICE_START_WALK: (self._handle_start_walk_service, SERVICE_WALK_SCHEMA),
             SERVICE_END_WALK: (self._handle_end_walk_service, SERVICE_END_WALK_SCHEMA),
-            SERVICE_LOG_HEALTH: (self._handle_log_health_service, SERVICE_HEALTH_SCHEMA),
-            SERVICE_LOG_MEDICATION: (self._handle_log_medication_service, SERVICE_MEDICATION_SCHEMA),
-            SERVICE_START_GROOMING: (self._handle_start_grooming_service, SERVICE_GROOMING_SCHEMA),
-            SERVICE_DAILY_RESET: (self._handle_daily_reset_service, SERVICE_DAILY_RESET_SCHEMA),
-            SERVICE_NOTIFY_TEST: (self._handle_notify_test_service, SERVICE_NOTIFY_TEST_SCHEMA),
+            SERVICE_LOG_HEALTH: (
+                self._handle_log_health_service,
+                SERVICE_HEALTH_SCHEMA,
+            ),
+            SERVICE_LOG_MEDICATION: (
+                self._handle_log_medication_service,
+                SERVICE_MEDICATION_SCHEMA,
+            ),
+            SERVICE_START_GROOMING: (
+                self._handle_start_grooming_service,
+                SERVICE_GROOMING_SCHEMA,
+            ),
+            SERVICE_DAILY_RESET: (
+                self._handle_daily_reset_service,
+                SERVICE_DAILY_RESET_SCHEMA,
+            ),
+            SERVICE_NOTIFY_TEST: (
+                self._handle_notify_test_service,
+                SERVICE_NOTIFY_TEST_SCHEMA,
+            ),
         }
 
         # Register all services at once
@@ -224,9 +281,11 @@ class PawControlServiceManager:
                     schema=schema,
                 )
                 self._registered_services.add(service_name)
-                
-            _LOGGER.info("Successfully registered %d Paw Control services", len(services))
-            
+
+            _LOGGER.info(
+                "Successfully registered %d Paw Control services", len(services)
+            )
+
         except Exception as err:
             _LOGGER.error("Failed to register services: %s", err)
             # Cleanup any partially registered services
@@ -252,18 +311,18 @@ class PawControlServiceManager:
     def _get_runtime_data_cached(self, dog_id: str) -> PawControlRuntimeData | None:
         """Get runtime data with caching to reduce lookups."""
         now = dt_util.utcnow().timestamp()
-        
+
         # Check cache
         if dog_id in self._runtime_cache:
             cached_data, cache_time = self._runtime_cache[dog_id]
             if now - cache_time < self._cache_ttl:
                 return cached_data
-        
+
         # Cache miss, do full lookup
         runtime_data = self._get_runtime_data_for_dog(dog_id)
         if runtime_data:
             self._runtime_cache[dog_id] = (runtime_data, now)
-        
+
         return runtime_data
 
     # OPTIMIZATION: Calorie estimation extracted to separate method
@@ -305,8 +364,11 @@ class PawControlServiceManager:
             "meal_type": meal_type,
             "portion_size": portion_size,
             "food_type": food_type,
-            "calories": calories or (
-                self._estimate_calories(portion_size, food_type) if portion_size > 0 else 0
+            "calories": calories
+            or (
+                self._estimate_calories(portion_size, food_type)
+                if portion_size > 0
+                else 0
             ),
             "calories_estimated": calories == 0 and portion_size > 0,
             "logged_by": "service_call",
@@ -346,7 +408,7 @@ class PawControlServiceManager:
         _LOGGER.debug("Processing start_walk service for %s: %s", dog_id, walk_type)
 
         data_manager = runtime_data["data_manager"]
-        
+
         walk_data = {
             "label": call.data.get("label", ""),
             "location": call.data.get("location", ""),
@@ -379,7 +441,7 @@ class PawControlServiceManager:
         _LOGGER.debug("Processing end_walk service for %s", dog_id)
 
         data_manager = runtime_data["data_manager"]
-        
+
         walk_data = {
             "distance": distance,
             "duration_minutes": duration,
@@ -409,10 +471,11 @@ class PawControlServiceManager:
         _LOGGER.debug("Processing log_health service for %s", dog_id)
 
         data_manager = runtime_data["data_manager"]
-        
+
         # Collect only non-empty health data
         health_data = {
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "weight": call.data.get("weight"),
                 "temperature": call.data.get("temperature"),
                 "mood": call.data.get("mood", ""),
@@ -420,7 +483,8 @@ class PawControlServiceManager:
                 "health_status": call.data.get("health_status", ""),
                 "note": call.data.get("note", ""),
                 "logged_by": "service_call",
-            }.items() if v is not None and v != ""
+            }.items()
+            if v is not None and v != ""
         }
 
         await data_manager.async_log_health(dog_id, health_data)
@@ -449,7 +513,7 @@ class PawControlServiceManager:
         )
 
         data_manager = runtime_data["data_manager"]
-        
+
         medication_data = {
             "type": "medication",
             "medication_name": medication_name,
@@ -477,7 +541,7 @@ class PawControlServiceManager:
         )
 
         data_manager = runtime_data["data_manager"]
-        
+
         grooming_data = {
             "type": grooming_type,
             "notes": call.data.get("notes", ""),
@@ -495,7 +559,7 @@ class PawControlServiceManager:
 
         # Reset daily statistics for all dogs
         all_dogs = self._get_available_dog_ids()
-        
+
         # OPTIMIZATION: Batch reset with asyncio.gather
         reset_tasks = []
         for dog_id in all_dogs:
@@ -511,7 +575,7 @@ class PawControlServiceManager:
                 _LOGGER.warning(
                     "Daily reset completed with %d failures out of %d dogs",
                     failures,
-                    len(all_dogs)
+                    len(all_dogs),
                 )
             else:
                 _LOGGER.info(
@@ -529,7 +593,7 @@ class PawControlServiceManager:
         _LOGGER.debug("Processing notify_test service for %s", dog_id)
 
         notification_manager = runtime_data["notification_manager"]
-        
+
         success = await notification_manager.async_send_test_notification(
             dog_id, message, priority
         )
