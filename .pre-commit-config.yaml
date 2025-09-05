@@ -21,7 +21,7 @@ repos:
         # Home Assistant nutzt Custom-Tags wie !input → per --unsafe erlauben
         args: [--unsafe, --allow-multiple-documents]
         # Blueprints & Beispiele optional ausnehmen (enthalten teils bewusst spezielle Syntax)
-        exclude: ^(tests/*,docs/*)
+        exclude: ^(tests/*,docs/*,example*)
       - id: check-json
       - id: check-toml
       - id: end-of-file-fixer
@@ -35,13 +35,14 @@ repos:
       - id: codespell
         args:
           - --ignore-words-list=hass,hassio,homeassistant,zigbee,zha,ist,ende,alle,adresse,unter,als,startet,sie,oder,manuell,tage,ordner,probleme,ser
-          - --skip=./.*,*.csv,*.json,*.min.js,*.map,*.md
+          - --skip=./.*,*.csv,*.json,*.min.js,*.map,*.md,*.yaml,*example*
           - --quiet-level=2
         exclude: |
           (?x)^(
             tests/fixtures/|
             tests/|
             docs/|
+            .github/*|
             .*/snapshots/|
             .*/translations/|
             .*/.git/|
