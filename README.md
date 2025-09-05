@@ -4,6 +4,7 @@
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Niveau-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![codecov](https://codecov.io/github/Bigdaddy1990/pawcontrol/graph/badge.svg?token=Y8IFVQ0KDD)](https://codecov.io/github/Bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
