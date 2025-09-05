@@ -2,9 +2,11 @@
   "domain": "pawcontrol",
   "name": "Paw Control",
   "after_dependencies": [
+    "bluetooth",
+    "device_tracker",
+    "usb",
     "person",
-    "zone",
-    "device_tracker"
+    "zone"
   ],
   "bluetooth": [
     {
