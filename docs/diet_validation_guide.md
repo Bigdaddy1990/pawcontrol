@@ -61,7 +61,7 @@ Example: "Max cannot have both puppy and senior formulas"
 
 #### Weight Management Conflicts
 ```yaml
-Conflict: weight_control + puppy_formula  
+Conflict: weight_control + puppy_formula
 Reason: Weight restriction conflicts with growth needs
 Action: 5% portion increase (prioritizes puppy growth)
 Warning: Requires careful veterinary monitoring
@@ -114,7 +114,7 @@ portion_grams = final_calories ÷ food_calories_per_gram ÷ meals_per_day
 
 **Dog Profile:**
 - Weight: 18kg, Age: 9 years, Activity: Low
-- Health: Diabetes, Arthritis  
+- Health: Diabetes, Arthritis
 - Diet: `senior_formula` + `diabetic` + `joint_support`
 
 **Step-by-Step:**
@@ -123,7 +123,7 @@ portion_grams = final_calories ÷ food_calories_per_gram ÷ meals_per_day
 base_calories = 70 × (18kg)^0.75 × 0.85 (senior) × 0.9 (low activity)
              = 70 × 9.17 × 0.85 × 0.9 = 492 kcal/day
 
-# 2. Health Conditions  
+# 2. Health Conditions
 health_adjusted = 492 × 0.9 (diabetes) × 0.9 (arthritis) = 398 kcal/day
 
 # 3. Diet Validation (multiple prescription warning)
@@ -144,7 +144,7 @@ PawControl recommends veterinary consultation when:
 - ✅ Raw diet + serious medical conditions
 - ✅ Puppy with weight control requirements
 
-#### 🟡 Medium Priority (Regular Consultation) 
+#### 🟡 Medium Priority (Regular Consultation)
 - ✅ 2+ prescription diets
 - ✅ Complex diet combinations (4+ types)
 - ✅ Senior dogs with multiple conditions
@@ -174,13 +174,13 @@ PawControl provides comprehensive dashboard monitoring:
 ```yaml
 sensor.dog_diet_validation_status:
   states: [validated_safe, warnings_present, conflicts_detected, no_validation]
-  
+
 sensor.dog_diet_conflict_count:
   range: 0-5+ (higher = more serious)
-  
+
 sensor.dog_diet_warning_count:
   range: 0-10+ (monitor trends)
-  
+
 sensor.dog_vet_consultation_recommended:
   states: [not_needed, recommended]
   urgency: [low, medium, high]
@@ -194,7 +194,7 @@ sensor.dog_diet_validation_adjustment:
     - percentage_adjustment: -20% to +10%
     - adjustment_direction: [increase, decrease, none]
     - safety_factor: [conservative, normal]
-    
+
 sensor.dog_diet_compatibility_score:
   range: 0-100% (higher = better compatibility)
   levels: [poor, concerning, acceptable, good, excellent]
@@ -212,7 +212,7 @@ entities:
   - sensor.max_vet_consultation_recommended
   - sensor.max_diet_compatibility_score
 
-# Portion Monitoring Card  
+# Portion Monitoring Card
 type: gauge
 entity: sensor.max_diet_compatibility_score
 min: 0
@@ -239,7 +239,7 @@ dog_config:
   health_conditions:
     - arthritis
   weight_goal: "lose"
-  
+
 # Result: No conflicts, good compatibility
 # Adjustment: -15% (weight loss) + -5% (low fat) = 0.8x total
 ```
@@ -259,7 +259,7 @@ dog_config:
     - diabetes
     - kidney_disease
     - allergies
-    
+
 # Result: Multiple prescription warning
 # Adjustment: -10% (diabetes) + -15% (kidney) + -5% (prescription warning) = 0.72x
 # Recommendation: Veterinary nutritionist consultation
@@ -275,7 +275,7 @@ dog_config:
   special_diet:
     - puppy_formula
     - weight_control  # CONFLICT!
-  
+
 # Result: Age conflict detected + weight puppy warning
 # Adjustment: +15% (puppy needs) + 5% (growth priority) = 1.2x
 # Recommendation: Immediate veterinary consultation for growth vs weight management
@@ -305,7 +305,7 @@ Check:
   - Activity level settings
   - Multiple restrictive diets
   - Health condition adjustments
-  
+
 Solution:
   - Verify dog measurements
   - Consider higher calorie food
@@ -319,7 +319,7 @@ Check:
   - Conflicting diet combinations
   - Age-inappropriate diets
   - Too many special requirements
-  
+
 Solution:
   - Remove non-essential diets
   - Prioritize medical requirements
@@ -335,7 +335,7 @@ Prepare for consultation:
   - Weight history
   - Any symptoms or concerns
   - Complete diet list
-  
+
 Bring:
   - PawControl feeding reports
   - Health tracking data

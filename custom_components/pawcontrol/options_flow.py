@@ -50,7 +50,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
-from .entity_factory import EntityFactory, ENTITY_PROFILES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class PawControlOptionsFlow(OptionsFlow):
     of their Paw Control configuration after initial setup. It provides
     organized menu-driven navigation and extensive customization options
     with modern UI patterns and enhanced validation.
-    
+
     UPDATED: Includes entity profile management for performance optimization
     """
 
@@ -80,9 +80,11 @@ class PawControlOptionsFlow(OptionsFlow):
         ]
         self._navigation_stack: list[str] = []
         self._unsaved_changes: dict[str, Any] = {}
-        
+
         # Initialize entity factory for profile calculations
-        self._entity_factory = EntityFactory(None)  # Will set coordinator later if needed
+        self._entity_factory = EntityFactory(
+            None
+        )  # Will set coordinator later if needed
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -101,9 +103,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_menu(
             step_id="init",
             menu_options=[
-                "entity_profiles",      # NEW: Profile management
+                "entity_profiles",  # NEW: Profile management
                 "manage_dogs",
-                "performance_settings", # NEW: Performance & profiles
+                "performance_settings",  # NEW: Performance & profiles
                 "gps_settings",
                 "notifications",
                 "feeding_settings",
@@ -119,7 +121,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure entity profiles for performance optimization.
-        
+
         NEW: Allows users to select entity profiles that determine
         how many entities are created per dog.
         """
@@ -127,17 +129,19 @@ class PawControlOptionsFlow(OptionsFlow):
             try:
                 current_profile = user_input.get("entity_profile", "standard")
                 preview_estimate = user_input.get("preview_estimate", False)
-                
+
                 if preview_estimate:
                     # Show entity count preview
-                    return await self.async_step_profile_preview({"profile": current_profile})
-                
+                    return await self.async_step_profile_preview(
+                        {"profile": current_profile}
+                    )
+
                 # Save the profile selection
                 new_options = {**self._config_entry.options}
                 new_options["entity_profile"] = current_profile
-                
+
                 return self.async_create_entry(title="", data=new_options)
-                
+
             except Exception as err:
                 _LOGGER.error("Error updating entity profile: %s", err)
                 return self.async_show_form(
@@ -147,7 +151,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
         return self.async_show_form(
-            step_id="entity_profiles", 
+            step_id="entity_profiles",
             data_schema=self._get_entity_profiles_schema(),
             description_placeholders=self._get_profile_description_placeholders(),
         )
@@ -159,26 +163,26 @@ class PawControlOptionsFlow(OptionsFlow):
         current_options = self._config_entry.options
         current_values = user_input or {}
         current_profile = current_values.get(
-            "entity_profile", 
-            current_options.get("entity_profile", "standard")
+            "entity_profile", current_options.get("entity_profile", "standard")
         )
-        
+
         # Create profile options with descriptions
         profile_options = []
         for profile_name, profile_config in ENTITY_PROFILES.items():
             max_entities = profile_config["max_entities"]
             description = profile_config["description"]
-            
-            profile_options.append({
-                "value": profile_name,
-                "label": f"{profile_name.title()} ({max_entities} entities/dog) - {description}"
-            })
+
+            profile_options.append(
+                {
+                    "value": profile_name,
+                    "label": f"{profile_name.title()} ({max_entities} entities/dog) - {description}",
+                }
+            )
 
         return vol.Schema(
             {
                 vol.Required(
-                    "entity_profile", 
-                    default=current_profile
+                    "entity_profile", default=current_profile
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=profile_options,
@@ -186,11 +190,8 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
                 vol.Optional(
-                    "preview_estimate", 
-                    default=False
-                ): selector.BooleanSelector(
-                    selector.BooleanSelectorConfig()
-                ),
+                    "preview_estimate", default=False
+                ): selector.BooleanSelector(selector.BooleanSelectorConfig()),
             }
         )
 
@@ -198,23 +199,27 @@ class PawControlOptionsFlow(OptionsFlow):
         """Get description placeholders for profile selection."""
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
         current_profile = self._config_entry.options.get("entity_profile", "standard")
-        
+
         # Calculate current entity count estimate
         total_estimate = 0
         for dog in current_dogs:
             modules = dog.get("modules", {})
-            estimate = self._entity_factory.estimate_entity_count(current_profile, modules)
+            estimate = self._entity_factory.estimate_entity_count(
+                current_profile, modules
+            )
             total_estimate += estimate
-        
+
         profile_info = ENTITY_PROFILES.get(current_profile, ENTITY_PROFILES["standard"])
-        
+
         return {
             "current_profile": current_profile,
             "current_description": profile_info["description"],
             "dogs_count": str(len(current_dogs)),
             "estimated_entities": str(total_estimate),
             "max_entities_per_dog": str(profile_info["max_entities"]),
-            "performance_impact": self._get_performance_impact_description(current_profile),
+            "performance_impact": self._get_performance_impact_description(
+                current_profile
+            ),
         }
 
     def _get_performance_impact_description(self, profile: str) -> str:
@@ -232,7 +237,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Show entity count preview for selected profile.
-        
+
         NEW: Provides detailed breakdown of entity counts per dog
         """
         if user_input is not None:
@@ -249,19 +254,19 @@ class PawControlOptionsFlow(OptionsFlow):
         # Calculate detailed entity breakdown
         profile = user_input.get("profile", "standard") if user_input else "standard"
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        
+
         entity_breakdown = []
         total_entities = 0
-        
+
         for dog in current_dogs:
             dog_name = dog.get(CONF_DOG_NAME, "Unknown")
             modules = dog.get("modules", {})
-            
+
             estimate = self._entity_factory.estimate_entity_count(profile, modules)
             total_entities += estimate
-            
+
             enabled_modules = [m for m, enabled in modules.items() if enabled]
-            
+
             entity_breakdown.append(
                 f"• {dog_name}: {estimate} entities (modules: {', '.join(enabled_modules)})"
             )
@@ -271,23 +276,35 @@ class PawControlOptionsFlow(OptionsFlow):
         current_total = 0
         for dog in current_dogs:
             modules = dog.get("modules", {})
-            current_total += self._entity_factory.estimate_entity_count(current_profile, modules)
-        
+            current_total += self._entity_factory.estimate_entity_count(
+                current_profile, modules
+            )
+
         entity_difference = total_entities - current_total
-        performance_change = "same" if entity_difference == 0 else ("better" if entity_difference < 0 else "higher resource usage")
+        performance_change = (
+            "same"
+            if entity_difference == 0
+            else ("better" if entity_difference < 0 else "higher resource usage")
+        )
 
         return self.async_show_form(
             step_id="profile_preview",
-            data_schema=vol.Schema({
-                vol.Required("profile", default=profile): vol.In([profile]),
-                vol.Optional("apply_profile", default=False): selector.BooleanSelector(),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("profile", default=profile): vol.In([profile]),
+                    vol.Optional(
+                        "apply_profile", default=False
+                    ): selector.BooleanSelector(),
+                }
+            ),
             description_placeholders={
                 "profile_name": profile,
                 "total_entities": str(total_entities),
                 "entity_breakdown": "\n".join(entity_breakdown),
                 "current_total": str(current_total),
-                "entity_difference": f"{entity_difference:+d}" if entity_difference != 0 else "0",
+                "entity_difference": f"{entity_difference:+d}"
+                if entity_difference != 0
+                else "0",
                 "performance_change": performance_change,
                 "profile_description": ENTITY_PROFILES[profile]["description"],
             },
@@ -297,22 +314,26 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure performance and optimization settings.
-        
+
         NEW: Combines entity profiles with other performance settings
         """
         if user_input is not None:
             try:
                 new_options = {**self._config_entry.options}
-                new_options.update({
-                    "entity_profile": user_input.get("entity_profile", "standard"),
-                    "performance_mode": user_input.get("performance_mode", "balanced"),
-                    "batch_size": user_input.get("batch_size", 15),
-                    "cache_ttl": user_input.get("cache_ttl", 300),
-                    "selective_refresh": user_input.get("selective_refresh", True),
-                })
-                
+                new_options.update(
+                    {
+                        "entity_profile": user_input.get("entity_profile", "standard"),
+                        "performance_mode": user_input.get(
+                            "performance_mode", "balanced"
+                        ),
+                        "batch_size": user_input.get("batch_size", 15),
+                        "cache_ttl": user_input.get("cache_ttl", 300),
+                        "selective_refresh": user_input.get("selective_refresh", True),
+                    }
+                )
+
                 return self.async_create_entry(title="", data=new_options)
-                
+
             except Exception as err:
                 _LOGGER.error("Error updating performance settings: %s", err)
                 return self.async_show_form(
@@ -332,24 +353,26 @@ class PawControlOptionsFlow(OptionsFlow):
         """Get performance settings schema."""
         current_options = self._config_entry.options
         current_values = user_input or {}
-        
+
         # Profile options
         profile_options = []
         for profile_name, profile_config in ENTITY_PROFILES.items():
             max_entities = profile_config["max_entities"]
             description = profile_config["description"]
-            profile_options.append({
-                "value": profile_name,
-                "label": f"{profile_name.title()} ({max_entities}/dog) - {description}"
-            })
+            profile_options.append(
+                {
+                    "value": profile_name,
+                    "label": f"{profile_name.title()} ({max_entities}/dog) - {description}",
+                }
+            )
 
         return vol.Schema(
             {
                 vol.Required(
                     "entity_profile",
                     default=current_values.get(
-                        "entity_profile", 
-                        current_options.get("entity_profile", "standard")
+                        "entity_profile",
+                        current_options.get("entity_profile", "standard"),
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -366,8 +389,14 @@ class PawControlOptionsFlow(OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "minimal", "label": "Minimal - Lowest resource usage"},
-                            {"value": "balanced", "label": "Balanced - Good performance"},
+                            {
+                                "value": "minimal",
+                                "label": "Minimal - Lowest resource usage",
+                            },
+                            {
+                                "value": "balanced",
+                                "label": "Balanced - Good performance",
+                            },
                             {"value": "full", "label": "Full - Maximum responsiveness"},
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -376,23 +405,27 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "batch_size",
                     default=current_values.get(
-                        "batch_size", 
-                        current_options.get("batch_size", 15)
+                        "batch_size", current_options.get("batch_size", 15)
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=5, max=50, step=5, mode=selector.NumberSelectorMode.BOX,
+                        min=5,
+                        max=50,
+                        step=5,
+                        mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
                 vol.Optional(
                     "cache_ttl",
                     default=current_values.get(
-                        "cache_ttl", 
-                        current_options.get("cache_ttl", 300)
+                        "cache_ttl", current_options.get("cache_ttl", 300)
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=60, max=3600, step=60, mode=selector.NumberSelectorMode.BOX,
+                        min=60,
+                        max=3600,
+                        step=60,
+                        mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement="seconds",
                     )
                 ),
@@ -464,7 +497,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Select which dog to configure modules for.
-        
+
         NEW: Allows per-dog module configuration
         """
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
@@ -514,7 +547,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure modules for the selected dog.
-        
+
         NEW: Per-dog module configuration with entity count preview
         """
         if not self._current_dog:
@@ -547,7 +580,7 @@ class PawControlOptionsFlow(OptionsFlow):
                         "medication": user_input.get("module_medication", False),
                         "training": user_input.get("module_training", False),
                     }
-                    
+
                     current_dogs[dog_index]["modules"] = updated_modules
 
                     # Update config entry
@@ -559,7 +592,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
 
                 return await self.async_step_manage_dogs()
-                
+
             except Exception as err:
                 _LOGGER.error("Error configuring dog modules: %s", err)
                 return self.async_show_form(
@@ -569,7 +602,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
         return self.async_show_form(
-            step_id="configure_dog_modules", 
+            step_id="configure_dog_modules",
             data_schema=self._get_dog_modules_schema(),
             description_placeholders=self._get_module_description_placeholders(),
         )
@@ -633,10 +666,12 @@ class PawControlOptionsFlow(OptionsFlow):
 
         current_profile = self._config_entry.options.get("entity_profile", "standard")
         current_modules = self._current_dog.get("modules", {})
-        
+
         # Calculate current entity count
-        current_estimate = self._entity_factory.estimate_entity_count(current_profile, current_modules)
-        
+        current_estimate = self._entity_factory.estimate_entity_count(
+            current_profile, current_modules
+        )
+
         # Module descriptions
         module_descriptions = {
             MODULE_FEEDING: "Food tracking, scheduling, portion control",
@@ -661,11 +696,13 @@ class PawControlOptionsFlow(OptionsFlow):
             "dog_name": self._current_dog.get(CONF_DOG_NAME, "Unknown"),
             "current_profile": current_profile,
             "current_entities": str(current_estimate),
-            "enabled_modules": "\n".join(enabled_modules) if enabled_modules else "No modules enabled",
+            "enabled_modules": "\n".join(enabled_modules)
+            if enabled_modules
+            else "No modules enabled",
         }
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
-    
+
     async def async_step_add_new_dog(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
