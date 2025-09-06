@@ -53,16 +53,16 @@ class TestDietValidationAdjustments:
                 {
                     "type": "age_conflict",
                     "message": "Puppy formula with senior formula",
-                    "diets": ["puppy_formula", "senior_formula"],
+                    "diets": ["puppy_formula", "senior_formula"]
                 }
             ],
-            "warnings": [],
+            "warnings": []
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             diet_validation, ["puppy_formula", "senior_formula"]
         )
-
+        
         assert adjustment == 0.9  # 10% reduction for age conflicts
 
     def test_multiple_prescription_warning_adjustment(self) -> None:
@@ -73,15 +73,15 @@ class TestDietValidationAdjustments:
                 {
                     "type": "multiple_prescription_warning",
                     "message": "Multiple prescription diets need vet coordination",
-                    "diets": ["diabetic", "kidney_support"],
+                    "diets": ["diabetic", "kidney_support"]
                 }
-            ],
+            ]
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             diet_validation, ["diabetic", "kidney_support"]
         )
-
+        
         assert adjustment == 0.95  # 5% reduction for prescription warning
 
     def test_raw_medical_warning_adjustment(self) -> None:
@@ -92,15 +92,15 @@ class TestDietValidationAdjustments:
                 {
                     "type": "raw_medical_warning",
                     "message": "Raw diet with kidney disease",
-                    "diets": ["raw_diet", "kidney_support"],
+                    "diets": ["raw_diet", "kidney_support"]
                 }
-            ],
+            ]
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             diet_validation, ["raw_diet", "kidney_support"]
         )
-
+        
         assert adjustment == 0.95  # 5% reduction for safety
 
     def test_weight_puppy_warning_increases_portion(self) -> None:
@@ -111,15 +111,15 @@ class TestDietValidationAdjustments:
                 {
                     "type": "weight_puppy_warning",
                     "message": "Weight control diet for growing puppy",
-                    "diets": ["weight_control", "puppy_formula"],
+                    "diets": ["weight_control", "puppy_formula"]
                 }
-            ],
+            ]
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             diet_validation, ["weight_control", "puppy_formula"]
         )
-
+        
         assert adjustment == 1.05  # 5% increase for growing puppy
 
     def test_complex_diet_combination_adjustment(self) -> None:
@@ -129,24 +129,17 @@ class TestDietValidationAdjustments:
             "warnings": [
                 {
                     "type": "hypoallergenic_warning",
-                    "message": "Hypoallergenic with multiple other diets",
+                    "message": "Hypoallergenic with multiple other diets"
                 }
             ],
             "total_diets": 5,  # Very complex
-            "recommended_vet_consultation": True,
+            "recommended_vet_consultation": True
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
-            diet_validation,
-            [
-                "hypoallergenic",
-                "grain_free",
-                "senior_formula",
-                "joint_support",
-                "low_fat",
-            ],
+            diet_validation, ["hypoallergenic", "grain_free", "senior_formula", "joint_support", "low_fat"]
         )
-
+        
         # Should apply: hypoallergenic warning (0.98) + complex diet (0.97) + vet consultation (0.95)
         expected = 0.98 * 0.97 * 0.95
         assert abs(adjustment - expected) < 0.001
@@ -156,20 +149,17 @@ class TestDietValidationAdjustments:
         diet_validation = {
             "conflicts": [
                 {"type": "age_conflict", "message": "Age conflict 1"},
-                {"type": "age_conflict", "message": "Age conflict 2"},
+                {"type": "age_conflict", "message": "Age conflict 2"}
             ],
             "warnings": [
-                {
-                    "type": "multiple_prescription_warning",
-                    "message": "Prescription warning",
-                }
-            ],
+                {"type": "multiple_prescription_warning", "message": "Prescription warning"}
+            ]
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             diet_validation, ["puppy_formula", "senior_formula", "diabetic"]
         )
-
+        
         # Should apply multiple 0.9 reductions and one 0.95, but bounded at 0.8
         assert adjustment >= 0.8  # Lower bound
         assert adjustment < 1.0
@@ -181,13 +171,13 @@ class TestDietValidationAdjustments:
             "conflicts": [{"type": "age_conflict"}] * 10,  # Many conflicts
             "warnings": [{"type": "multiple_prescription_warning"}] * 10,
             "total_diets": 10,
-            "recommended_vet_consultation": True,
+            "recommended_vet_consultation": True
         }
-
+        
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
             extreme_validation, ["multiple", "diets"]
         )
-
+        
         assert adjustment >= 0.8
         assert adjustment <= 1.1
 
@@ -202,9 +192,9 @@ class TestPortionSafetyValidation:
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=["grain_free"],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         assert safety_result["safe"] is True
         assert len(safety_result["warnings"]) == 0
         assert safety_result["portion_per_kg"] == 20.0
@@ -216,9 +206,9 @@ class TestPortionSafetyValidation:
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=[],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         assert len(safety_result["warnings"]) > 0
         assert "too small" in safety_result["warnings"][0]
         assert "increasing portion" in safety_result["recommendations"][0]
@@ -230,9 +220,9 @@ class TestPortionSafetyValidation:
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=[],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         assert safety_result["safe"] is False
         assert len(safety_result["warnings"]) > 0
         assert "too large" in safety_result["warnings"][0]
@@ -245,17 +235,17 @@ class TestPortionSafetyValidation:
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=[],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         puppy_result = HealthCalculator.validate_portion_safety(
             calculated_portion=400.0,  # 40g/kg
             dog_weight=10.0,
             life_stage=LifeStage.PUPPY,
             special_diets=[],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         # Should be safer for puppies (higher threshold)
         assert len(puppy_result["warnings"]) <= len(adult_result["warnings"])
 
@@ -266,9 +256,9 @@ class TestPortionSafetyValidation:
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=["prescription", "diabetic"],
-            diet_validation=None,
+            diet_validation=None
         )
-
+        
         recommendations = " ".join(safety_result["recommendations"])
         assert "veterinarian" in recommendations.lower()
 
@@ -276,17 +266,17 @@ class TestPortionSafetyValidation:
         """Diet conflicts should add monitoring warnings."""
         diet_validation = {
             "conflicts": [{"type": "age_conflict", "message": "Conflicting diets"}],
-            "warnings": [],
+            "warnings": []
         }
-
+        
         safety_result = HealthCalculator.validate_portion_safety(
             calculated_portion=200.0,
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=["puppy_formula", "senior_formula"],
-            diet_validation=diet_validation,
+            diet_validation=diet_validation
         )
-
+        
         assert safety_result["safe"] is False  # Conflicts make it unsafe
         warnings_text = " ".join(safety_result["warnings"])
         assert "conflict" in warnings_text.lower()
@@ -296,17 +286,17 @@ class TestPortionSafetyValidation:
         diet_validation = {
             "conflicts": [],
             "warnings": [],
-            "recommended_vet_consultation": True,
+            "recommended_vet_consultation": True
         }
-
+        
         safety_result = HealthCalculator.validate_portion_safety(
             calculated_portion=200.0,
             dog_weight=10.0,
             life_stage=LifeStage.ADULT,
             special_diets=["raw_diet", "kidney_support"],
-            diet_validation=diet_validation,
+            diet_validation=diet_validation
         )
-
+        
         recommendations_text = " ".join(safety_result["recommendations"])
         assert "veterinary consultation" in recommendations_text.lower()
 
@@ -321,13 +311,13 @@ class TestPortionAdjustmentFactorIntegration:
             ideal_weight=20.0,
             body_condition_score=BodyConditionScore.IDEAL,
             health_conditions=[],
-            special_diet=[],
+            special_diet=[]
         )
-
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals=None, diet_validation=None
         )
-
+        
         assert adjustment == 1.0
 
     def test_overweight_dog_with_diet_conflicts_compounds_reduction(self) -> None:
@@ -337,15 +327,18 @@ class TestPortionAdjustmentFactorIntegration:
             ideal_weight=20.0,
             body_condition_score=BodyConditionScore.OVERWEIGHT,
             health_conditions=[],
-            special_diet=["weight_control", "senior_formula"],
+            special_diet=["weight_control", "senior_formula"]
         )
-
-        diet_validation = {"conflicts": [{"type": "age_conflict"}], "warnings": []}
-
+        
+        diet_validation = {
+            "conflicts": [{"type": "age_conflict"}],
+            "warnings": []
+        }
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals=None, diet_validation=diet_validation
         )
-
+        
         # Should be less than 1.0 due to both BCS and diet conflicts
         assert adjustment < 1.0
         assert adjustment >= 0.5  # Reasonable lower bound
@@ -358,18 +351,18 @@ class TestPortionAdjustmentFactorIntegration:
             body_condition_score=BodyConditionScore.UNDERWEIGHT,
             life_stage=LifeStage.PUPPY,
             health_conditions=[],
-            special_diet=["weight_control", "puppy_formula"],
+            special_diet=["weight_control", "puppy_formula"]
         )
-
+        
         diet_validation = {
             "conflicts": [],
-            "warnings": [{"type": "weight_puppy_warning"}],
+            "warnings": [{"type": "weight_puppy_warning"}]
         }
-
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals=None, diet_validation=diet_validation
         )
-
+        
         # Underweight BCS increases portions, puppy warning also increases
         # Should be above 1.0 despite weight control diet
         assert adjustment >= 1.0
@@ -381,20 +374,20 @@ class TestPortionAdjustmentFactorIntegration:
             ideal_weight=15.0,
             body_condition_score=BodyConditionScore.IDEAL,
             health_conditions=["diabetes"],
-            special_diet=["diabetic", "prescription"],
+            special_diet=["diabetic", "prescription"]
         )
-
+        
         diet_validation = {
             "conflicts": [],
             "warnings": [{"type": "multiple_prescription_warning"}],
-            "recommended_vet_consultation": True,
+            "recommended_vet_consultation": True
         }
-
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals=None, diet_validation=diet_validation
         )
-
-        # Multiple reductions: diabetes (0.9), diabetic diet (0.85),
+        
+        # Multiple reductions: diabetes (0.9), diabetic diet (0.85), 
         # prescription warning (0.95), vet consultation (0.95)
         assert adjustment < 0.9  # Should be quite conservative
 
@@ -405,18 +398,21 @@ class TestPortionAdjustmentFactorIntegration:
             ideal_weight=25.0,
             body_condition_score=BodyConditionScore.HEAVY,
             health_conditions=[],
-            special_diet=["weight_control", "low_fat"],
+            special_diet=["weight_control", "low_fat"]
         )
-
-        diet_validation = {"conflicts": [{"type": "age_conflict"}], "warnings": []}
-
+        
+        diet_validation = {
+            "conflicts": [{"type": "age_conflict"}],
+            "warnings": []
+        }
+        
         feeding_goals = {"weight_goal": "lose"}
-
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals, diet_validation
         )
-
-        # Should combine: BCS reduction (0.8), weight loss goal (0.8),
+        
+        # Should combine: BCS reduction (0.8), weight loss goal (0.8), 
         # age conflict (0.9), special diets (0.85 * 0.9)
         assert adjustment < 0.7  # Should be quite low for weight loss
 
@@ -428,21 +424,21 @@ class TestPortionAdjustmentFactorIntegration:
             ideal_weight=20.0,  # Severely underweight
             body_condition_score=BodyConditionScore.EMACIATED,
             health_conditions=["cancer"],  # Increases calories
-            special_diet=["puppy_formula"],  # Increases calories
+            special_diet=["puppy_formula"]  # Increases calories
         )
-
+        
         diet_validation = {
             "conflicts": [],
             "warnings": [{"type": "weight_puppy_warning"}],  # Increases
-            "recommended_vet_consultation": False,
+            "recommended_vet_consultation": False
         }
-
+        
         feeding_goals = {"weight_goal": "gain"}  # Increases
-
+        
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals, diet_validation
         )
-
+        
         # Even with many increases, should be bounded
         assert adjustment <= 2.0
         assert adjustment >= 0.5
@@ -455,9 +451,9 @@ class TestDietInteractionEffects:
     def test_synergistic_diets_detected(self) -> None:
         """Synergistic diet combinations should be detected."""
         special_diets = ["senior_formula", "joint_support", "low_fat"]
-
+        
         interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
-
+        
         # Should detect senior + joint support and senior + low fat synergies
         assert len(interactions["synergistic"]) >= 2
         assert interactions["risk_level"] == "low"
@@ -465,9 +461,9 @@ class TestDietInteractionEffects:
     def test_conflicting_diets_detected(self) -> None:
         """Conflicting diet combinations should be detected."""
         special_diets = ["puppy_formula", "senior_formula"]
-
+        
         interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
-
+        
         # Should detect puppy vs senior conflict
         assert len(interactions["conflicting"]) >= 1
         assert interactions["risk_level"] == "high"
@@ -475,9 +471,9 @@ class TestDietInteractionEffects:
     def test_caution_combinations_detected(self) -> None:
         """Combinations requiring caution should be detected."""
         special_diets = ["raw_diet", "prescription"]
-
+        
         interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
-
+        
         # Should detect raw + prescription caution
         assert len(interactions["caution"]) >= 1
         assert interactions["risk_level"] == "medium"
@@ -485,16 +481,13 @@ class TestDietInteractionEffects:
     def test_complex_diet_combination_analysis(self) -> None:
         """Complex diet combinations should be properly analyzed."""
         special_diets = [
-            "senior_formula",
-            "joint_support",  # Synergistic
-            "low_fat",
-            "weight_control",  # Synergistic
-            "raw_diet",
-            "prescription",  # Caution
+            "senior_formula", "joint_support",  # Synergistic
+            "low_fat", "weight_control",        # Synergistic  
+            "raw_diet", "prescription"          # Caution
         ]
-
+        
         interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
-
+        
         assert interactions["overall_complexity"] == 6
         assert len(interactions["synergistic"]) >= 2
         assert len(interactions["caution"]) >= 1
