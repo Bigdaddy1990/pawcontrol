@@ -70,19 +70,24 @@ DIET_COMPATIBILITY_RULES = {
     "age_exclusive": {
         "groups": [["puppy_formula", "senior_formula"]],
         "type": "conflict",
-        "message": "Age-specific formulas are mutually exclusive"
+        "message": "Age-specific formulas are mutually exclusive",
     },
     "prescription_warnings": {
         "groups": [["prescription", "diabetic", "kidney_support"]],
-        "type": "warning", 
+        "type": "warning",
         "max_concurrent": 1,
-        "message": "Multiple prescription diets require veterinary coordination"
+        "message": "Multiple prescription diets require veterinary coordination",
     },
     "raw_medical_caution": {
-        "incompatible_with_raw": ["prescription", "kidney_support", "diabetic", "sensitive_stomach"],
+        "incompatible_with_raw": [
+            "prescription",
+            "kidney_support",
+            "diabetic",
+            "sensitive_stomach",
+        ],
         "type": "warning",
-        "message": "Raw diets may require veterinary supervision with medical conditions"
-    }
+        "message": "Raw diets may require veterinary supervision with medical conditions",
+    },
 }
 
 
@@ -570,17 +575,14 @@ class DogManagementMixin:
                 "last_vet_visit": user_input.get("last_vet_visit"),
                 "next_checkup": user_input.get("next_checkup"),
                 "weight_tracking": user_input.get("weight_tracking", True),
-                
                 # Health-aware feeding integration
                 "ideal_weight": user_input.get(
-                    "ideal_weight", 
-                    self._current_dog_config.get(CONF_DOG_WEIGHT)
+                    "ideal_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)
                 ),
                 "body_condition_score": user_input.get("body_condition_score", 5),
                 "activity_level": user_input.get("activity_level", "moderate"),
                 "weight_goal": user_input.get("weight_goal", "maintain"),
                 "spayed_neutered": user_input.get("spayed_neutered", True),
-                
                 # Health conditions that affect feeding
                 "health_conditions": self._collect_health_conditions(user_input),
                 "special_diet_requirements": self._collect_special_diet(user_input),
@@ -623,7 +625,9 @@ class DogManagementMixin:
                             ),
                             "time": user_input.get("medication_1_time", "08:00:00"),
                             "notes": user_input.get("medication_1_notes", ""),
-                            "with_meals": user_input.get("medication_1_with_meals", False),
+                            "with_meals": user_input.get(
+                                "medication_1_with_meals", False
+                            ),
                         }
                     )
 
@@ -637,7 +641,9 @@ class DogManagementMixin:
                             ),
                             "time": user_input.get("medication_2_time", "20:00:00"),
                             "notes": user_input.get("medication_2_notes", ""),
-                            "with_meals": user_input.get("medication_2_with_meals", False),
+                            "with_meals": user_input.get(
+                                "medication_2_with_meals", False
+                            ),
                         }
                     )
 
@@ -645,43 +651,50 @@ class DogManagementMixin:
                     health_config["medications"] = medications
 
             self._current_dog_config["health_config"] = health_config
-            
+
             # Update feeding config with health data for portion calculation
             if "feeding_config" in self._current_dog_config:
                 feeding_config = self._current_dog_config["feeding_config"]
-                
+
                 # Validate diet combinations and log results
                 diet_validation = self._validate_diet_combinations(
                     health_config["special_diet_requirements"]
                 )
-                
+
                 # Add health integration to feeding config
-                feeding_config.update({
-                    "health_aware_portions": user_input.get("health_aware_portions", True),
-                    "dog_weight": self._current_dog_config.get(CONF_DOG_WEIGHT),
-                    "ideal_weight": health_config["ideal_weight"],
-                    "age_months": self._current_dog_config.get(CONF_DOG_AGE, 3) * 12,
-                    "breed_size": self._current_dog_config.get(CONF_DOG_SIZE, "medium"),
-                    "activity_level": health_config["activity_level"],
-                    "body_condition_score": health_config["body_condition_score"],
-                    "health_conditions": health_config["health_conditions"],
-                    "weight_goal": health_config["weight_goal"],
-                    "spayed_neutered": health_config["spayed_neutered"],
-                    "special_diet": health_config["special_diet_requirements"],
-                    "diet_validation": diet_validation,
-                    "medication_with_meals": any(
-                        med.get("with_meals", False) 
-                        for med in health_config.get("medications", [])
-                    ),
-                })
-                
+                feeding_config.update(
+                    {
+                        "health_aware_portions": user_input.get(
+                            "health_aware_portions", True
+                        ),
+                        "dog_weight": self._current_dog_config.get(CONF_DOG_WEIGHT),
+                        "ideal_weight": health_config["ideal_weight"],
+                        "age_months": self._current_dog_config.get(CONF_DOG_AGE, 3)
+                        * 12,
+                        "breed_size": self._current_dog_config.get(
+                            CONF_DOG_SIZE, "medium"
+                        ),
+                        "activity_level": health_config["activity_level"],
+                        "body_condition_score": health_config["body_condition_score"],
+                        "health_conditions": health_config["health_conditions"],
+                        "weight_goal": health_config["weight_goal"],
+                        "spayed_neutered": health_config["spayed_neutered"],
+                        "special_diet": health_config["special_diet_requirements"],
+                        "diet_validation": diet_validation,
+                        "medication_with_meals": any(
+                            med.get("with_meals", False)
+                            for med in health_config.get("medications", [])
+                        ),
+                    }
+                )
+
                 # Log diet validation results for portion calculation optimization
                 if diet_validation["recommended_vet_consultation"]:
                     _LOGGER.info(
                         "Diet validation for %s recommends veterinary consultation: %s conflicts, %s warnings",
                         self._current_dog_config[CONF_DOG_NAME],
                         len(diet_validation["conflicts"]),
-                        len(diet_validation["warnings"])
+                        len(diet_validation["warnings"]),
                     )
 
             # Finalize dog configuration
@@ -692,13 +705,13 @@ class DogManagementMixin:
         dog_age = self._current_dog_config.get(CONF_DOG_AGE, 3)
         dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
         dog_weight = self._current_dog_config.get(CONF_DOG_WEIGHT, 20.0)
-        
+
         # Suggest ideal weight (typically 95-105% of current weight for healthy dogs)
         suggested_ideal_weight = round(dog_weight * 1.0, 1)
-        
+
         # Suggest activity level based on age and size
         suggested_activity = self._suggest_activity_level(dog_age, dog_size)
-        
+
         # Build comprehensive schema with ALL special diet options from const.py
         schema_dict = {
             # Basic vet information
@@ -711,7 +724,6 @@ class DogManagementMixin:
             vol.Optional("last_vet_visit"): selector.DateSelector(),
             vol.Optional("next_checkup"): selector.DateSelector(),
             vol.Optional("weight_tracking", default=True): selector.BooleanSelector(),
-            
             # Health-aware feeding configuration
             vol.Optional(
                 "health_aware_portions", default=True
@@ -727,9 +739,7 @@ class DogManagementMixin:
                     unit_of_measurement="kg",
                 )
             ),
-            vol.Optional(
-                "body_condition_score", default=5
-            ): selector.NumberSelector(
+            vol.Optional("body_condition_score", default=5): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1,
                     max=9,
@@ -742,18 +752,31 @@ class DogManagementMixin:
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {"value": "very_low", "label": "🛌 Very Low - Inactive, elderly, or sick"},
-                        {"value": "low", "label": "🚶 Low - Light exercise, mostly indoor"},
-                        {"value": "moderate", "label": "🏃 Moderate - Regular walks and play"},
-                        {"value": "high", "label": "🏋️ High - Very active, long walks/runs"},
-                        {"value": "very_high", "label": "🏆 Very High - Working or athletic dogs"},
+                        {
+                            "value": "very_low",
+                            "label": "🛌 Very Low - Inactive, elderly, or sick",
+                        },
+                        {
+                            "value": "low",
+                            "label": "🚶 Low - Light exercise, mostly indoor",
+                        },
+                        {
+                            "value": "moderate",
+                            "label": "🏃 Moderate - Regular walks and play",
+                        },
+                        {
+                            "value": "high",
+                            "label": "🏋️ High - Very active, long walks/runs",
+                        },
+                        {
+                            "value": "very_high",
+                            "label": "🏆 Very High - Working or athletic dogs",
+                        },
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            vol.Optional(
-                "weight_goal", default="maintain"
-            ): selector.SelectSelector(
+            vol.Optional("weight_goal", default="maintain"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
                         {"value": "lose", "label": "📉 Weight Loss"},
@@ -763,26 +786,17 @@ class DogManagementMixin:
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            vol.Optional(
-                "spayed_neutered", default=True
-            ): selector.BooleanSelector(),
-            
+            vol.Optional("spayed_neutered", default=True): selector.BooleanSelector(),
             # Health conditions affecting feeding
-            vol.Optional(
-                "has_diabetes", default=False
-            ): selector.BooleanSelector(),
+            vol.Optional("has_diabetes", default=False): selector.BooleanSelector(),
             vol.Optional(
                 "has_kidney_disease", default=False
             ): selector.BooleanSelector(),
             vol.Optional(
                 "has_heart_disease", default=False
             ): selector.BooleanSelector(),
-            vol.Optional(
-                "has_arthritis", default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "has_allergies", default=False
-            ): selector.BooleanSelector(),
+            vol.Optional("has_arthritis", default=False): selector.BooleanSelector(),
+            vol.Optional("has_allergies", default=False): selector.BooleanSelector(),
             vol.Optional(
                 "has_digestive_issues", default=False
             ): selector.BooleanSelector(),
@@ -790,38 +804,57 @@ class DogManagementMixin:
                 "other_health_conditions", default=""
             ): selector.TextSelector(),
         }
-        
+
         # Add ALL special diet options from const.SPECIAL_DIET_OPTIONS
         # Organized by category for better UX
-        
+
         # Health/Medical diet requirements
-        medical_diets = ["prescription", "diabetic", "kidney_support", "low_fat", "weight_control", "sensitive_stomach"]
+        medical_diets = [
+            "prescription",
+            "diabetic",
+            "kidney_support",
+            "low_fat",
+            "weight_control",
+            "sensitive_stomach",
+        ]
         for diet in medical_diets:
             if diet in SPECIAL_DIET_OPTIONS:
-                schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
-        
+                schema_dict[vol.Optional(diet, default=False)] = (
+                    selector.BooleanSelector()
+                )
+
         # Age-based diet requirements
-        age_diets = ["senior_formula", "puppy_formula"] 
+        age_diets = ["senior_formula", "puppy_formula"]
         for diet in age_diets:
             if diet in SPECIAL_DIET_OPTIONS:
-                default_value = (diet == "senior_formula" and dog_age >= 7) or (diet == "puppy_formula" and dog_age < 2)
-                schema_dict[vol.Optional(diet, default=default_value)] = selector.BooleanSelector()
-        
+                default_value = (diet == "senior_formula" and dog_age >= 7) or (
+                    diet == "puppy_formula" and dog_age < 2
+                )
+                schema_dict[vol.Optional(diet, default=default_value)] = (
+                    selector.BooleanSelector()
+                )
+
         # Allergy/Sensitivity diet requirements
         allergy_diets = ["grain_free", "hypoallergenic"]
         for diet in allergy_diets:
             if diet in SPECIAL_DIET_OPTIONS:
-                schema_dict[vol.Optional(diet, default=False)] = selector.BooleanSelector()
-        
+                schema_dict[vol.Optional(diet, default=False)] = (
+                    selector.BooleanSelector()
+                )
+
         # Lifestyle/Care diet requirements
         lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]
         for diet in lifestyle_diets:
             if diet in SPECIAL_DIET_OPTIONS:
                 # Smart defaults based on dog characteristics
                 default_value = False
-                if diet == "joint_support" and (dog_age >= 7 or dog_size in ("large", "giant")):
+                if diet == "joint_support" and (
+                    dog_age >= 7 or dog_size in ("large", "giant")
+                ):
                     default_value = True
-                schema_dict[vol.Optional(diet, default=default_value)] = selector.BooleanSelector()
+                schema_dict[vol.Optional(diet, default=default_value)] = (
+                    selector.BooleanSelector()
+                )
 
         # Add vaccination fields
         schema_dict.update(
@@ -889,8 +922,10 @@ class DogManagementMixin:
         schema = vol.Schema(schema_dict)
 
         # Generate diet compatibility info
-        diet_compatibility_info = self._get_diet_compatibility_guidance(dog_age, dog_size)
-        
+        diet_compatibility_info = self._get_diet_compatibility_guidance(
+            dog_age, dog_size
+        )
+
         return self.async_show_form(
             step_id="dog_health",
             data_schema=schema,
@@ -1248,37 +1283,37 @@ class DogManagementMixin:
         }
 
         return self.async_show_form(
-        step_id="add_another_dog",
-        data_schema=schema,
-        description_placeholders=description_placeholders,
+            step_id="add_another_dog",
+            data_schema=schema,
+            description_placeholders=description_placeholders,
         )
-    
+
     def _collect_health_conditions(self, user_input: dict[str, Any]) -> list[str]:
         """Collect health conditions from user input for feeding calculations.
-        
+
         Args:
             user_input: User form input data
-            
+
         Returns:
             List of health conditions affecting feeding
         """
         conditions = []
-        
+
         # Map form fields to health condition names
         condition_mapping = {
             "has_diabetes": "diabetes",
-            "has_kidney_disease": "kidney_disease", 
+            "has_kidney_disease": "kidney_disease",
             "has_heart_disease": "heart_disease",
             "has_arthritis": "arthritis",
             "has_allergies": "allergies",
             "has_digestive_issues": "digestive_issues",
         }
-        
+
         # Add selected conditions
         for field, condition in condition_mapping.items():
             if user_input.get(field, False):
                 conditions.append(condition)
-        
+
         # Add other conditions from text field
         other_conditions = user_input.get("other_health_conditions", "").strip()
         if other_conditions:
@@ -1289,129 +1324,160 @@ class DogManagementMixin:
                 if cond.strip()
             ]
             conditions.extend(additional)
-        
+
         return conditions
-    
+
     def _collect_special_diet(self, user_input: dict[str, Any]) -> list[str]:
         """Collect special diet requirements from user input.
-        
+
         Uses SPECIAL_DIET_OPTIONS from const.py to ensure consistency
         across the integration and capture all 14 diet options.
-        
+
         Args:
             user_input: User form input data
-            
+
         Returns:
             List of special diet requirements matching const.SPECIAL_DIET_OPTIONS
         """
         diet_requirements = []
-        
+
         # Use SPECIAL_DIET_OPTIONS as authoritative source
         # Direct 1:1 mapping from form fields to diet requirement names
         for diet_option in SPECIAL_DIET_OPTIONS:
             if user_input.get(diet_option, False):
                 diet_requirements.append(diet_option)
-        
+
         # Validate diet combinations for conflicts
         validation_result = self._validate_diet_combinations(diet_requirements)
         if validation_result["conflicts"]:
             _LOGGER.warning(
-                "Conflicting diet combinations detected: %s", 
-                validation_result["conflicts"]
+                "Conflicting diet combinations detected: %s",
+                validation_result["conflicts"],
             )
             # Log conflicts but don't prevent configuration - user might have vet guidance
-        
+
         _LOGGER.debug(
             "Collected special diet requirements: %s from input: %s",
             diet_requirements,
-            {k: v for k, v in user_input.items() if k in SPECIAL_DIET_OPTIONS and v}
+            {k: v for k, v in user_input.items() if k in SPECIAL_DIET_OPTIONS and v},
         )
-        
+
         return diet_requirements
-    
-    def _validate_diet_combinations(self, diet_requirements: list[str]) -> dict[str, Any]:
+
+    def _validate_diet_combinations(
+        self, diet_requirements: list[str]
+    ) -> dict[str, Any]:
         """Validate special diet combinations for conflicts and incompatibilities.
-        
+
         Args:
             diet_requirements: List of selected diet requirements
-            
+
         Returns:
             Dictionary with validation results and conflict information
         """
         conflicts = []
         warnings = []
-        
+
         # Age-based diet conflicts
-        if "puppy_formula" in diet_requirements and "senior_formula" in diet_requirements:
-            conflicts.append({
-                "type": "age_conflict",
-                "diets": ["puppy_formula", "senior_formula"],
-                "message": "Puppy and senior formulas are mutually exclusive"
-            })
-        
-        # Weight management conflicts  
-        if "weight_control" in diet_requirements and "puppy_formula" in diet_requirements:
-            warnings.append({
-                "type": "weight_puppy_warning",
-                "diets": ["weight_control", "puppy_formula"],
-                "message": "Weight control diets are typically not recommended for growing puppies"
-            })
-        
+        if (
+            "puppy_formula" in diet_requirements
+            and "senior_formula" in diet_requirements
+        ):
+            conflicts.append(
+                {
+                    "type": "age_conflict",
+                    "diets": ["puppy_formula", "senior_formula"],
+                    "message": "Puppy and senior formulas are mutually exclusive",
+                }
+            )
+
+        # Weight management conflicts
+        if (
+            "weight_control" in diet_requirements
+            and "puppy_formula" in diet_requirements
+        ):
+            warnings.append(
+                {
+                    "type": "weight_puppy_warning",
+                    "diets": ["weight_control", "puppy_formula"],
+                    "message": "Weight control diets are typically not recommended for growing puppies",
+                }
+            )
+
         # Raw diet with certain medical conditions
         if "raw_diet" in diet_requirements:
-            medical_conflicts = ["prescription", "kidney_support", "diabetic", "sensitive_stomach"]
-            conflicting_medical = [diet for diet in medical_conflicts if diet in diet_requirements]
+            medical_conflicts = [
+                "prescription",
+                "kidney_support",
+                "diabetic",
+                "sensitive_stomach",
+            ]
+            conflicting_medical = [
+                diet for diet in medical_conflicts if diet in diet_requirements
+            ]
             if conflicting_medical:
-                warnings.append({
-                    "type": "raw_medical_warning",
-                    "diets": ["raw_diet"] + conflicting_medical,
-                    "message": "Raw diets may require veterinary supervision with medical conditions"
-                })
-        
+                warnings.append(
+                    {
+                        "type": "raw_medical_warning",
+                        "diets": ["raw_diet"] + conflicting_medical,
+                        "message": "Raw diets may require veterinary supervision with medical conditions",
+                    }
+                )
+
         # Multiple prescription-level diets
         prescription_diets = ["prescription", "diabetic", "kidney_support"]
-        selected_prescriptions = [diet for diet in prescription_diets if diet in diet_requirements]
+        selected_prescriptions = [
+            diet for diet in prescription_diets if diet in diet_requirements
+        ]
         if len(selected_prescriptions) > 1:
-            warnings.append({
-                "type": "multiple_prescription_warning",
-                "diets": selected_prescriptions,
-                "message": "Multiple prescription diets should be coordinated with veterinarian"
-            })
-        
+            warnings.append(
+                {
+                    "type": "multiple_prescription_warning",
+                    "diets": selected_prescriptions,
+                    "message": "Multiple prescription diets should be coordinated with veterinarian",
+                }
+            )
+
         # Hypoallergenic conflicts
         if "hypoallergenic" in diet_requirements:
             potential_allergen_diets = ["organic", "raw_diet"]
-            conflicting_allergens = [diet for diet in potential_allergen_diets if diet in diet_requirements]
+            conflicting_allergens = [
+                diet for diet in potential_allergen_diets if diet in diet_requirements
+            ]
             if conflicting_allergens:
-                warnings.append({
-                    "type": "hypoallergenic_warning",
-                    "diets": ["hypoallergenic"] + conflicting_allergens,
-                    "message": "Hypoallergenic diets should be carefully managed with other diet types"
-                })
-        
+                warnings.append(
+                    {
+                        "type": "hypoallergenic_warning",
+                        "diets": ["hypoallergenic"] + conflicting_allergens,
+                        "message": "Hypoallergenic diets should be carefully managed with other diet types",
+                    }
+                )
+
         # Low fat with high-activity requirements
         if "low_fat" in diet_requirements and "joint_support" in diet_requirements:
-            warnings.append({
-                "type": "low_fat_activity_warning",
-                "diets": ["low_fat", "joint_support"],
-                "message": "Low fat diets may need calorie adjustments for active dogs needing joint support"
-            })
-        
+            warnings.append(
+                {
+                    "type": "low_fat_activity_warning",
+                    "diets": ["low_fat", "joint_support"],
+                    "message": "Low fat diets may need calorie adjustments for active dogs needing joint support",
+                }
+            )
+
         return {
             "valid": len(conflicts) == 0,
             "conflicts": conflicts,
             "warnings": warnings,
             "total_diets": len(diet_requirements),
-            "recommended_vet_consultation": len(warnings) > 0 or len(conflicts) > 0
+            "recommended_vet_consultation": len(warnings) > 0 or len(conflicts) > 0,
         }
-    
+
     def _suggest_activity_level(self, dog_age: int, dog_size: str) -> str:
         """Suggest activity level based on dog characteristics.
-        
+
         Args:
             dog_age: Dog age in years
             dog_size: Dog size category
-            
+
         Returns:
             Suggested activity level
         """
@@ -1422,65 +1488,79 @@ class DogManagementMixin:
             return "low"  # Senior dogs generally less active
         elif dog_age >= 7:
             return "moderate"  # Older adults
-        
+
         # Size-based activity suggestions for adult dogs
         size_activity_map = {
-            "toy": "moderate",      # Small dogs, moderate exercise needs
-            "small": "moderate",    # Good for apartments, regular walks
-            "medium": "high",       # Active breeds, need regular exercise
-            "large": "high",        # Working breeds, high energy
-            "giant": "moderate",    # Large but often calmer temperament
+            "toy": "moderate",  # Small dogs, moderate exercise needs
+            "small": "moderate",  # Good for apartments, regular walks
+            "medium": "high",  # Active breeds, need regular exercise
+            "large": "high",  # Working breeds, high energy
+            "giant": "moderate",  # Large but often calmer temperament
         }
-        
+
         return size_activity_map.get(dog_size, "moderate")
-    
+
     def _get_diet_compatibility_guidance(self, dog_age: int, dog_size: str) -> str:
         """Get guidance text about diet compatibility based on dog characteristics.
-        
+
         Args:
             dog_age: Dog age in years
             dog_size: Dog size category
-            
+
         Returns:
             Formatted guidance text for diet selection
         """
         guidance_points = []
-        
+
         # Age-specific guidance
         if dog_age < 2:
-            guidance_points.append("🐶 Puppies: Consider puppy_formula, avoid weight_control")
+            guidance_points.append(
+                "🐶 Puppies: Consider puppy_formula, avoid weight_control"
+            )
         elif dog_age >= 7:
-            guidance_points.append("👴 Seniors: Consider senior_formula, joint_support may be beneficial")
-        
+            guidance_points.append(
+                "👴 Seniors: Consider senior_formula, joint_support may be beneficial"
+            )
+
         # Size-specific guidance
         if dog_size in ("large", "giant"):
-            guidance_points.append("🦴 Large breeds: Joint_support recommended, watch for food allergies")
+            guidance_points.append(
+                "🦴 Large breeds: Joint_support recommended, watch for food allergies"
+            )
         elif dog_size == "toy":
-            guidance_points.append("🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size")
-        
+            guidance_points.append(
+                "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size"
+            )
+
         # General compatibility warnings
-        guidance_points.extend([
-            "⚠️ Multiple prescription diets need vet coordination",
-            "🥩 Raw diets require careful handling with medical conditions",
-            "🏥 Prescription diets override lifestyle preferences"
-        ])
-        
-        return "\n".join(guidance_points) if guidance_points else "No specific compatibility concerns detected"
-    
+        guidance_points.extend(
+            [
+                "⚠️ Multiple prescription diets need vet coordination",
+                "🥩 Raw diets require careful handling with medical conditions",
+                "🏥 Prescription diets override lifestyle preferences",
+            ]
+        )
+
+        return (
+            "\n".join(guidance_points)
+            if guidance_points
+            else "No specific compatibility concerns detected"
+        )
+
     async def async_step_configure_modules(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure global module settings after all dogs are added.
-        
+
         UPDATED: Now redirects to entity profile selection for performance optimization.
-        
+
         This step allows configuration of integration-wide settings
         that affect all dogs, such as notification preferences and
         performance optimization.
-        
+
         Args:
             user_input: Global module configuration
-            
+
         Returns:
             Configuration flow result for entity profile selection
         """
@@ -1494,35 +1574,33 @@ class DogManagementMixin:
                 "auto_backup": user_input.get("auto_backup", False),
                 "debug_logging": user_input.get("debug_logging", False),
             }
-            
+
             # UPDATED: Redirect to entity profile selection for performance optimization
             _LOGGER.info(
                 "Global modules configured for %d dogs, proceeding to entity profile selection",
-                len(self._dogs)
+                len(self._dogs),
             )
             return await self.async_step_entity_profile()
-        
+
         # Analyze configured dogs to suggest global settings
         total_dogs = len(self._dogs)
         has_gps_dogs = sum(
-            1 for dog in self._dogs 
-            if dog.get("modules", {}).get(MODULE_GPS, False)
+            1 for dog in self._dogs if dog.get("modules", {}).get(MODULE_GPS, False)
         )
         has_health_tracking = sum(
-            1 for dog in self._dogs
-            if dog.get("modules", {}).get(MODULE_HEALTH, False)
+            1 for dog in self._dogs if dog.get("modules", {}).get(MODULE_HEALTH, False)
         )
-        
+
         # Suggest performance mode based on complexity
         suggested_performance = "minimal"
         if total_dogs >= 3 or has_gps_dogs >= 2:
             suggested_performance = "balanced"
         elif total_dogs >= 5 or has_gps_dogs >= 3:
             suggested_performance = "full"
-        
+
         # Suggest auto-backup for complex setups
         suggested_backup = total_dogs >= 2 or has_health_tracking >= 1
-        
+
         schema = vol.Schema(
             {
                 vol.Optional(
@@ -1536,9 +1614,18 @@ class DogManagementMixin:
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "minimal", "label": "⚡ Minimal - Low resource usage"},
-                            {"value": "balanced", "label": "⚖️ Balanced - Good performance and features"},
-                            {"value": "full", "label": "🚀 Full - Maximum features and responsiveness"},
+                            {
+                                "value": "minimal",
+                                "label": "⚡ Minimal - Low resource usage",
+                            },
+                            {
+                                "value": "balanced",
+                                "label": "⚖️ Balanced - Good performance and features",
+                            },
+                            {
+                                "value": "full",
+                                "label": "🚀 Full - Maximum features and responsiveness",
+                            },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
@@ -1562,7 +1649,7 @@ class DogManagementMixin:
                 ): selector.BooleanSelector(),
             }
         )
-        
+
         return self.async_show_form(
             step_id="configure_modules",
             data_schema=schema,
@@ -1575,19 +1662,18 @@ class DogManagementMixin:
                 "next_step_info": "Next: Entity profile selection for performance optimization",
             },
         )
-    
+
     def _get_setup_complexity_info(self) -> str:
         """Get information about setup complexity for user guidance.
-        
+
         Returns:
             Formatted complexity information string
         """
         total_dogs = len(self._dogs)
         total_modules = sum(
-            len([m for m in dog.get("modules", {}).values() if m])
-            for dog in self._dogs
+            len([m for m in dog.get("modules", {}).values() if m]) for dog in self._dogs
         )
-        
+
         if total_dogs == 1 and total_modules <= 5:
             return "Simple setup - minimal resources needed"
         elif total_dogs <= 2 and total_modules <= 10:

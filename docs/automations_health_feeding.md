@@ -20,7 +20,7 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ trigger.from_state.state != 'unknown' and 
+      {{ trigger.from_state.state != 'unknown' and
          trigger.to_state.state != 'unknown' and
          trigger.from_state.state != trigger.to_state.state }}
 action:
@@ -70,7 +70,7 @@ action:
             data:
               title: "⚠️ Calorie Goal Exceeded"
               message: >
-                Rex has consumed {{ states('sensor.rex_calories_consumed_today') }} calories 
+                Rex has consumed {{ states('sensor.rex_calories_consumed_today') }} calories
                 ({{ states('sensor.rex_calorie_goal_progress') }}% of target).
                 Consider reducing evening portion.
               data:
@@ -92,7 +92,7 @@ action:
             data:
               title: "📈 Low Calorie Intake"
               message: >
-                Rex has only consumed {{ states('sensor.rex_calorie_goal_progress') }}% 
+                Rex has only consumed {{ states('sensor.rex_calorie_goal_progress') }}%
                 of daily calorie target. Consider adding healthy snack.
               data:
                 actions:
@@ -106,7 +106,7 @@ action:
         data:
           title: "✅ Calorie Goal On Track"
           message: >
-            Rex's calorie intake is perfect at {{ states('sensor.rex_calorie_goal_progress') }}% 
+            Rex's calorie intake is perfect at {{ states('sensor.rex_calorie_goal_progress') }}%
             of target ({{ states('sensor.rex_calories_consumed_today') }} calories).
 ```
 
@@ -137,8 +137,8 @@ action:
             data:
               title: "🎉 Weight Goal Progress!"
               message: >
-                Great news! Rex's weight goal progress improved by 
-                {{ (trigger.to_state.state | float - trigger.from_state.state | float) | round(1) }}% 
+                Great news! Rex's weight goal progress improved by
+                {{ (trigger.to_state.state | float - trigger.from_state.state | float) | round(1) }}%
                 over the last 3 days.
               data:
                 actions:
@@ -161,7 +161,7 @@ action:
             data:
               title: "⚠️ Weight Goal Setback"
               message: >
-                Rex's weight progress declined by 
+                Rex's weight progress declined by
                 {{ (trigger.from_state.state | float - trigger.to_state.state | float) | round(1) }}%.
                 Feeding plan adjusted automatically.
               data:
@@ -205,7 +205,7 @@ action:
             data:
               title: "🩺 Diabetic Feeding Mode"
               message: "Diabetes detected. Activated strict feeding schedule with precise portions."
-      
+
       # Kidney disease - modified protein/phosphorus
       - conditions:
           - condition: template
@@ -221,7 +221,7 @@ action:
             data:
               title: "🫘 Kidney Support Diet"
               message: "Kidney disease detected. Modified portions for renal support."
-      
+
       # Heart disease - weight management critical
       - conditions:
           - condition: template
@@ -260,7 +260,7 @@ action:
     data:
       title: "💊 Medication Feeding Time"
       message: >
-        Rex's medication is due in 15 minutes. 
+        Rex's medication is due in 15 minutes.
         Portion: {{ states('sensor.rex_medication_meal_portion') }}g
         Medication: {{ states('sensor.rex_current_medication') }}
       data:
@@ -286,7 +286,7 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ trigger.from_state.state != 'unknown' and 
+      {{ trigger.from_state.state != 'unknown' and
          trigger.to_state.state != 'unknown' and
          trigger.from_state.state != trigger.to_state.state }}
 action:
@@ -306,7 +306,7 @@ action:
             data:
               title: "🏃 High Activity Detected"
               message: "Rex had very high activity today. Increased calories by 30%."
-      
+
       # Low activity - reduce calories
       - conditions:
           - condition: state
@@ -322,7 +322,7 @@ action:
             data:
               title: "😴 Low Activity Day"
               message: "Rex was less active today. Reduced calories by 10%."
-    
+
     # Normal activity - maintain baseline
     default:
       - service: pawcontrol.reset_activity_adjustments
@@ -417,7 +417,7 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ trigger.from_state.state != 'unknown' and 
+      {{ trigger.from_state.state != 'unknown' and
          trigger.to_state.state != 'unknown' and
          trigger.from_state.state != trigger.to_state.state }}
 action:
@@ -432,7 +432,7 @@ action:
     data:
       title: "🥘 Diet Transition Started"
       message: >
-        Starting 7-day transition from {{ trigger.from_state.state }} 
+        Starting 7-day transition from {{ trigger.from_state.state }}
         to {{ trigger.to_state.state }} diet.
         Today's mix: {{ states('sensor.rex_diet_transition_ratio') }}
       data:
@@ -481,7 +481,7 @@ action:
                     title: "Fix Issues 🔧"
                   - action: "SIMPLIFY_PLAN"
                     title: "Simplify Plan 📝"
-      
+
       # Excellent compliance
       - conditions:
           - condition: numeric_state
@@ -533,7 +533,7 @@ action:
             data:
               title: "✅ Fed with Medication"
               message: "Rex fed with health-calculated portion and medication given."
-      
+
       # Reduce portions
       - conditions:
           - condition: template
@@ -548,7 +548,7 @@ action:
             data:
               title: "📉 Portions Reduced"
               message: "Daily portions reduced by 10% due to calorie excess."
-      
+
       # Add healthy snack
       - conditions:
           - condition: template

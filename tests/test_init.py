@@ -24,25 +24,25 @@ from custom_components.pawcontrol.const import (
     EVENT_FEEDING_LOGGED,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
     PLATFORMS,
     SERVICE_DAILY_RESET,
     SERVICE_END_WALK,
     SERVICE_FEED_DOG,
     SERVICE_LOG_HEALTH,
     SERVICE_START_WALK,
-    MODULE_FEEDING,
-    MODULE_WALK,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_DASHBOARD,
-    MODULE_NOTIFICATIONS,
-    MODULE_VISITOR,
 )
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
     DogNotFoundError,
 )
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -165,7 +165,7 @@ class TestAsyncSetupEntry:
         """Test setup entry with profile system integration."""
         # Set profile in options
         mock_config_entry.options = {"entity_profile": "basic"}
-        
+
         with (
             patch(
                 "custom_components.pawcontrol.PawControlCoordinator",
@@ -194,12 +194,12 @@ class TestAsyncSetupEntry:
             result = await async_setup_entry(hass, mock_config_entry)
 
             assert result is True
-            
+
             # Verify profile was passed to platform determination
             mock_get_platforms.assert_called_once()
             call_args = mock_get_platforms.call_args
             assert call_args[1] == "basic"  # entity_profile parameter
-            
+
             # Verify runtime data includes profile
             assert hasattr(mock_config_entry, "runtime_data")
             assert mock_config_entry.runtime_data["entity_profile"] == "basic"
@@ -243,7 +243,7 @@ class TestAsyncSetupEntry:
         """Test setup with unknown profile falls back to standard."""
         # Set unknown profile
         mock_config_entry.options = {"entity_profile": "unknown_profile"}
-        
+
         with (
             patch(
                 "custom_components.pawcontrol.PawControlCoordinator",
@@ -425,12 +425,12 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: True,
                     MODULE_GPS: False,
                     MODULE_HEALTH: False,
-                }
+                },
             }
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "basic")
-        
+
         # Basic profile should have minimal platforms
         expected_platforms = {Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR}
         assert set(platforms).issubset(expected_platforms)
@@ -447,12 +447,12 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: True,
                     MODULE_GPS: True,
                     MODULE_HEALTH: True,
-                }
+                },
             }
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "standard")
-        
+
         # Standard profile should have moderate platforms
         assert Platform.SENSOR in platforms
         assert Platform.BUTTON in platforms
@@ -470,12 +470,12 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: True,
                     MODULE_GPS: True,
                     MODULE_HEALTH: True,
-                }
+                },
             }
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "advanced")
-        
+
         # Advanced profile should have all platforms
         assert len(platforms) >= 6  # Should have many platforms
         assert Platform.SENSOR in platforms
@@ -492,12 +492,12 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: True,
                     MODULE_GPS: True,
                     MODULE_HEALTH: False,
-                }
+                },
             }
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "gps_focus")
-        
+
         # GPS focus should prioritize location tracking
         assert Platform.DEVICE_TRACKER in platforms
         assert Platform.SENSOR in platforms
@@ -513,12 +513,12 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: False,
                     MODULE_GPS: False,
                     MODULE_HEALTH: True,
-                }
+                },
             }
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "health_focus")
-        
+
         # Health focus should prioritize health monitoring
         assert Platform.DATE in platforms  # Health dates
         assert Platform.NUMBER in platforms  # Health metrics
@@ -527,7 +527,7 @@ class TestProfileBasedPlatformSelection:
     def test_get_platforms_for_profile_no_dogs(self):
         """Test platform selection with empty dogs list."""
         platforms = get_platforms_for_profile_and_modules([], "standard")
-        
+
         # Should have core platforms at minimum
         assert Platform.SENSOR in platforms
         assert Platform.BUTTON in platforms
@@ -535,18 +535,12 @@ class TestProfileBasedPlatformSelection:
     def test_get_platforms_for_profile_multiple_dogs(self):
         """Test platform selection with multiple dogs."""
         dogs = [
-            {
-                "dog_id": "dog1",
-                "modules": {MODULE_GPS: True, MODULE_FEEDING: True}
-            },
-            {
-                "dog_id": "dog2", 
-                "modules": {MODULE_HEALTH: True, MODULE_WALK: True}
-            }
+            {"dog_id": "dog1", "modules": {MODULE_GPS: True, MODULE_FEEDING: True}},
+            {"dog_id": "dog2", "modules": {MODULE_HEALTH: True, MODULE_WALK: True}},
         ]
-        
+
         platforms = get_platforms_for_profile_and_modules(dogs, "standard")
-        
+
         # Should include platforms for all enabled modules across dogs
         assert Platform.DEVICE_TRACKER in platforms  # GPS from dog1
         assert Platform.DATE in platforms  # Health from dog2
@@ -561,16 +555,16 @@ class TestProfileBasedPlatformSelection:
                     MODULE_WALK: True,
                     MODULE_GPS: True,
                     MODULE_HEALTH: True,
-                }
+                },
             }
         ]
-        
+
         basic_platforms = get_platforms_for_profile_and_modules(dogs, "basic")
         advanced_platforms = get_platforms_for_profile_and_modules(dogs, "advanced")
-        
+
         # Advanced should have more platforms than basic
         assert len(advanced_platforms) > len(basic_platforms)
-        
+
         # But both should be less than all possible platforms
         assert len(basic_platforms) < len(PLATFORMS)
         assert len(advanced_platforms) <= len(PLATFORMS)
@@ -595,7 +589,7 @@ class TestProfileBasedSetupOptimization:
             "gps_focus": 10,
             "health_focus": 10,
         }
-        
+
         base = base_counts.get(profile, 12)
         enabled_modules = sum(1 for enabled in modules.values() if enabled)
         return min(base, base + enabled_modules)
@@ -614,7 +608,7 @@ class TestProfileBasedSetupOptimization:
                 {
                     CONF_DOG_ID: "test_dog",
                     CONF_DOG_NAME: "Test Dog",
-                    "modules": {MODULE_FEEDING: True, MODULE_WALK: True}
+                    "modules": {MODULE_FEEDING: True, MODULE_WALK: True},
                 }
             ]
         }
@@ -627,18 +621,23 @@ class TestProfileBasedSetupOptimization:
             patch("custom_components.pawcontrol.WalkManager"),
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
-            patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True),
+            patch(
+                "custom_components.pawcontrol.EntityFactory",
+                return_value=mock_entity_factory,
+            ),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", return_value=True
+            ),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
         ):
             result = await async_setup_entry(hass, mock_config_entry)
-            
+
             assert result is True
-            
+
             # Verify entity count estimation was called
             mock_entity_factory.estimate_entity_count.assert_called()
-            
+
             # Verify basic profile was used
             runtime_data = mock_config_entry.runtime_data
             assert runtime_data["entity_profile"] == "basic"
@@ -657,13 +656,13 @@ class TestProfileBasedSetupOptimization:
                 {
                     CONF_DOG_ID: "dog1",
                     CONF_DOG_NAME: "Dog 1",
-                    "modules": {MODULE_FEEDING: True, MODULE_GPS: True}
+                    "modules": {MODULE_FEEDING: True, MODULE_GPS: True},
                 },
                 {
                     CONF_DOG_ID: "dog2",
                     CONF_DOG_NAME: "Dog 2",
-                    "modules": {MODULE_HEALTH: True, MODULE_WALK: True}
-                }
+                    "modules": {MODULE_HEALTH: True, MODULE_WALK: True},
+                },
             ]
         }
 
@@ -675,15 +674,20 @@ class TestProfileBasedSetupOptimization:
             patch("custom_components.pawcontrol.WalkManager"),
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
-            patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True),
+            patch(
+                "custom_components.pawcontrol.EntityFactory",
+                return_value=mock_entity_factory,
+            ),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", return_value=True
+            ),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
         ):
             result = await async_setup_entry(hass, mock_config_entry)
-            
+
             assert result is True
-            
+
             # Should estimate entities for each dog
             assert mock_entity_factory.estimate_entity_count.call_count == 2
 
@@ -699,11 +703,11 @@ class TestProfileBasedSetupOptimization:
             {
                 CONF_DOG_ID: f"dog_{i}",
                 CONF_DOG_NAME: f"Dog {i}",
-                "modules": {MODULE_FEEDING: True}
+                "modules": {MODULE_FEEDING: True},
             }
             for i in range(5)  # More than 3 dogs
         ]
-        
+
         entry = Mock()
         entry.entry_id = "test_entry"
         entry.options = {"entity_profile": "standard"}
@@ -717,16 +721,21 @@ class TestProfileBasedSetupOptimization:
             patch("custom_components.pawcontrol.WalkManager"),
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
-            patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True) as mock_forward,
+            patch(
+                "custom_components.pawcontrol.EntityFactory",
+                return_value=mock_entity_factory,
+            ),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", return_value=True
+            ),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
             patch("asyncio.gather") as mock_gather,
         ):
             result = await async_setup_entry(hass, entry)
-            
+
             assert result is True
-            
+
             # Should use batch-based parallel loading for many dogs
             mock_gather.assert_called()
 
@@ -755,7 +764,7 @@ class TestAsyncUnloadEntry:
 
         with patch.object(
             hass.config_entries, "async_unload_platforms", return_value=True
-        ) as mock_unload:
+        ):
             result = await async_unload_entry(hass, mock_config_entry)
 
             assert result is True
@@ -774,7 +783,7 @@ class TestAsyncUnloadEntry:
                 {
                     CONF_DOG_ID: "test_dog",
                     CONF_DOG_NAME: "Test Dog",
-                    "modules": {MODULE_FEEDING: True}
+                    "modules": {MODULE_FEEDING: True},
                 }
             ]
         }
@@ -785,15 +794,19 @@ class TestAsyncUnloadEntry:
         with (
             patch(
                 "custom_components.pawcontrol.get_platforms_for_profile_and_modules",
-                return_value=[Platform.SENSOR, Platform.BUTTON]
+                return_value=[Platform.SENSOR, Platform.BUTTON],
             ) as mock_get_platforms,
-            patch.object(hass.config_entries, "async_unload_platforms", return_value=True) as mock_unload,
+            patch.object(
+                hass.config_entries, "async_unload_platforms", return_value=True
+            ) as mock_unload,
         ):
             result = await async_unload_entry(hass, entry)
 
             assert result is True
             mock_get_platforms.assert_called_once()
-            mock_unload.assert_called_once_with(entry, [Platform.SENSOR, Platform.BUTTON])
+            mock_unload.assert_called_once_with(
+                entry, [Platform.SENSOR, Platform.BUTTON]
+            )
 
     @pytest.mark.asyncio
     async def test_unload_entry_platform_failure(
@@ -829,7 +842,7 @@ class TestAsyncReloadEntry:
     async def test_reload_entry_success(self, hass: HomeAssistant, mock_config_entry):
         """Test successful entry reload."""
         mock_config_entry.options = {"entity_profile": "advanced"}
-        
+
         with (
             patch(
                 "custom_components.pawcontrol.async_unload_entry", return_value=True
@@ -859,7 +872,13 @@ class TestProfileSystemValidation:
 
     def test_all_profiles_exist(self):
         """Test that all expected profiles are defined."""
-        expected_profiles = ["basic", "standard", "advanced", "gps_focus", "health_focus"]
+        expected_profiles = [
+            "basic",
+            "standard",
+            "advanced",
+            "gps_focus",
+            "health_focus",
+        ]
         assert set(ENTITY_PROFILES.keys()) == set(expected_profiles)
 
     def test_profile_configuration_validity(self):
@@ -868,7 +887,7 @@ class TestProfileSystemValidation:
             assert "max_entities" in profile_config
             assert "description" in profile_config
             assert "modules" in profile_config
-            
+
             assert isinstance(profile_config["max_entities"], int)
             assert profile_config["max_entities"] > 0
             assert isinstance(profile_config["description"], str)
@@ -880,10 +899,10 @@ class TestProfileSystemValidation:
         basic_limit = ENTITY_PROFILES["basic"]["max_entities"]
         standard_limit = ENTITY_PROFILES["standard"]["max_entities"]
         advanced_limit = ENTITY_PROFILES["advanced"]["max_entities"]
-        
+
         # Should show progression: basic < standard < advanced
         assert basic_limit < standard_limit < advanced_limit
-        
+
         # Limits should be reasonable
         assert 5 <= basic_limit <= 10
         assert 10 <= standard_limit <= 15
@@ -893,10 +912,10 @@ class TestProfileSystemValidation:
         """Test that focused profiles enable appropriate modules."""
         gps_profile = ENTITY_PROFILES["gps_focus"]
         health_profile = ENTITY_PROFILES["health_focus"]
-        
+
         # GPS focus should enable GPS and related modules
         assert gps_profile["modules"][MODULE_GPS] is True
-        
+
         # Health focus should enable health and feeding
         assert health_profile["modules"][MODULE_HEALTH] is True
         assert health_profile["modules"][MODULE_FEEDING] is True
@@ -911,7 +930,9 @@ class TestEntityFactoryIntegration:
         factory = Mock()
         factory.estimate_entity_count = Mock(return_value=12)
         factory.create_entities_for_dog = Mock(return_value=[Mock(), Mock(), Mock()])
-        factory.get_profile_info = Mock(return_value={"description": "Test profile", "max_entities": 12})
+        factory.get_profile_info = Mock(
+            return_value={"description": "Test profile", "max_entities": 12}
+        )
         return factory
 
     @pytest.mark.asyncio
@@ -923,7 +944,7 @@ class TestEntityFactoryIntegration:
     ):
         """Test that EntityFactory is properly integrated in setup."""
         mock_config_entry.options = {"entity_profile": "standard"}
-        
+
         with (
             patch("custom_components.pawcontrol.PawControlCoordinator"),
             patch("custom_components.pawcontrol.PawControlDataManager"),
@@ -932,18 +953,23 @@ class TestEntityFactoryIntegration:
             patch("custom_components.pawcontrol.WalkManager"),
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
-            patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory_with_methods),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True),
+            patch(
+                "custom_components.pawcontrol.EntityFactory",
+                return_value=mock_entity_factory_with_methods,
+            ),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", return_value=True
+            ),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
         ):
             result = await async_setup_entry(hass, mock_config_entry)
-            
+
             assert result is True
-            
+
             # Verify EntityFactory was created and used
             assert "entity_factory" in mock_config_entry.runtime_data
-            
+
             # Verify entity count estimation was called for each dog
             mock_entity_factory_with_methods.estimate_entity_count.assert_called()
 
@@ -963,20 +989,27 @@ class TestEntityFactoryIntegration:
             patch("custom_components.pawcontrol.WalkManager"),
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
-            patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory_with_methods),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True),
+            patch(
+                "custom_components.pawcontrol.EntityFactory",
+                return_value=mock_entity_factory_with_methods,
+            ),
+            patch.object(
+                hass.config_entries, "async_forward_entry_setups", return_value=True
+            ),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
         ):
             await async_setup_entry(hass, mock_config_entry)
-            
+
             # Check both runtime_data and legacy storage
             assert "entity_factory" in mock_config_entry.runtime_data
             assert "entity_factory" in hass.data[DOMAIN][mock_config_entry.entry_id]
-            
+
             # Verify they're the same object
-            assert (mock_config_entry.runtime_data["entity_factory"] == 
-                    hass.data[DOMAIN][mock_config_entry.entry_id]["entity_factory"])
+            assert (
+                mock_config_entry.runtime_data["entity_factory"]
+                == hass.data[DOMAIN][mock_config_entry.entry_id]["entity_factory"]
+            )
 
 
 class TestPerformanceMetrics:
@@ -995,20 +1028,26 @@ class TestPerformanceMetrics:
                     MODULE_NOTIFICATIONS: True,
                     MODULE_DASHBOARD: True,
                     MODULE_VISITOR: True,
-                }
+                },
             }
         ]
-        
-        basic_platforms = get_platforms_for_profile_and_modules(all_dogs_all_modules, "basic")
-        advanced_platforms = get_platforms_for_profile_and_modules(all_dogs_all_modules, "advanced")
-        
+
+        basic_platforms = get_platforms_for_profile_and_modules(
+            all_dogs_all_modules, "basic"
+        )
+        advanced_platforms = get_platforms_for_profile_and_modules(
+            all_dogs_all_modules, "advanced"
+        )
+
         total_platforms = len(PLATFORMS)
         basic_reduction = (total_platforms - len(basic_platforms)) / total_platforms
-        advanced_reduction = (total_platforms - len(advanced_platforms)) / total_platforms
-        
+        advanced_reduction = (
+            total_platforms - len(advanced_platforms)
+        ) / total_platforms
+
         # Basic should have significant reduction (at least 30%)
         assert basic_reduction >= 0.3
-        
+
         # Advanced should have some reduction but less than basic
         assert 0 <= advanced_reduction < basic_reduction
 
@@ -1020,13 +1059,13 @@ class TestPerformanceMetrics:
             "standard": ENTITY_PROFILES["standard"]["max_entities"],
             "advanced": ENTITY_PROFILES["advanced"]["max_entities"],
         }
-        
+
         # Calculate theoretical reduction vs legacy (assume 54 entities was legacy)
         legacy_count = 54
-        
+
         for profile, limit in profile_limits.items():
             reduction = (legacy_count - limit) / legacy_count
-            
+
             if profile == "basic":
                 assert reduction >= 0.7  # At least 70% reduction
             elif profile == "standard":
@@ -1056,7 +1095,7 @@ class TestServiceHandlers:
         coordinator = Mock()
         data_manager = AsyncMock()
         notification_manager = AsyncMock()
-        
+
         return {
             "coordinator": coordinator,
             "data_manager": data_manager,

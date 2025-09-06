@@ -53,13 +53,12 @@ from .coordinator import PawControlCoordinator
 from .dashboard_generator import PawControlDashboardGenerator
 from .data_manager import PawControlDataManager
 from .dog_data_manager import DogDataManager
-from .entity_factory import EntityFactory, ENTITY_PROFILES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
-from .walk_manager import WalkManager
 from .types import DogConfigData, PawControlRuntimeData
 from .utils import (
     performance_monitor,
@@ -68,6 +67,7 @@ from .utils import (
     validate_enum_value,
     validate_weight_enhanced,
 )
+from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -173,17 +173,27 @@ def get_platforms_for_profile_and_modules(
     PROFILE_PLATFORM_PRIORITIES = {
         "basic": [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR],
         "standard": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.SELECT, Platform.SWITCH
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.SELECT,
+            Platform.SWITCH,
         ],
         "advanced": list(Platform),  # All platforms for advanced users
         "gps_focus": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.DEVICE_TRACKER, Platform.NUMBER
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.DEVICE_TRACKER,
+            Platform.NUMBER,
         ],
         "health_focus": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.NUMBER, Platform.DATE, Platform.TEXT
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.NUMBER,
+            Platform.DATE,
+            Platform.TEXT,
         ],
     }
 
@@ -204,7 +214,7 @@ def get_platforms_for_profile_and_modules(
 
     # Apply profile-based filtering
     profile_priorities = PROFILE_PLATFORM_PRIORITIES.get(entity_profile, Platform)
-    
+
     if entity_profile != "advanced":
         # Filter platforms based on profile priorities
         filtered_platforms = []
@@ -215,16 +225,16 @@ def get_platforms_for_profile_and_modules(
 
     # Define optimal loading order for performance
     platform_order = [
-        Platform.SENSOR,        # Core sensors first
-        Platform.BINARY_SENSOR, # Binary sensors
-        Platform.BUTTON,        # Action buttons
-        Platform.SWITCH,        # Control switches
-        Platform.SELECT,        # Selection controls
-        Platform.NUMBER,        # Numeric inputs
-        Platform.TEXT,          # Text inputs
-        Platform.DEVICE_TRACKER,# Location tracking
-        Platform.DATE,          # Date inputs
-        Platform.DATETIME,      # DateTime inputs
+        Platform.SENSOR,  # Core sensors first
+        Platform.BINARY_SENSOR,  # Binary sensors
+        Platform.BUTTON,  # Action buttons
+        Platform.SWITCH,  # Control switches
+        Platform.SELECT,  # Selection controls
+        Platform.NUMBER,  # Numeric inputs
+        Platform.TEXT,  # Text inputs
+        Platform.DEVICE_TRACKER,  # Location tracking
+        Platform.DATE,  # Date inputs
+        Platform.DATETIME,  # DateTime inputs
     ]
 
     # Filter and sort based on optimal order
@@ -332,12 +342,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             # NEW: Get entity profile from options for optimization
             entity_profile = entry.options.get("entity_profile", "standard")
-            
+
             # Validate profile exists
             if entity_profile not in ENTITY_PROFILES:
                 _LOGGER.warning(
-                    "Unknown entity profile '%s', falling back to 'standard'", 
-                    entity_profile
+                    "Unknown entity profile '%s', falling back to 'standard'",
+                    entity_profile,
                 )
                 entity_profile = "standard"
 
@@ -345,8 +355,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info(
                 "Using entity profile '%s': %s (max %d entities/dog)",
                 entity_profile,
-                profile_info["description"], 
-                profile_info["max_entities"]
+                profile_info["description"],
+                profile_info["max_entities"],
             )
 
             # Initialize core components with optimized timeouts
@@ -361,13 +371,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # Initialize specialized managers for refactored architecture
                 dog_data_manager = DogDataManager()
                 await dog_data_manager.async_initialize(dogs_config)
-                
+
                 walk_manager = WalkManager()
-                await walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config])
-                
+                await walk_manager.async_initialize(
+                    [dog[CONF_DOG_ID] for dog in dogs_config]
+                )
+
                 feeding_manager = FeedingManager()
                 await feeding_manager.async_initialize(dogs_config)
-                
+
                 health_calculator = HealthCalculator()
 
                 # NEW: Initialize entity factory with profile
@@ -379,9 +391,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     dog_data_manager=dog_data_manager,
                     walk_manager=walk_manager,
                     feeding_manager=feeding_manager,
-                    health_calculator=health_calculator
+                    health_calculator=health_calculator,
                 )
-                
+
                 # Start background tasks for the refactored coordinator
                 await coordinator.async_start_background_tasks()
 
@@ -436,7 +448,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if not needed_platforms:
                     _LOGGER.warning(
                         "No platforms determined for profile '%s', using core platforms only",
-                        entity_profile
+                        entity_profile,
                     )
                     needed_platforms = [Platform.SENSOR, Platform.BUTTON]
 
@@ -453,7 +465,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "Profile-based setup: %d dogs, estimated %d total entities (profile: %s)",
                     total_dogs,
                     estimated_entities,
-                    entity_profile
+                    entity_profile,
                 )
 
                 # Optimized platform setup with parallel loading
@@ -464,7 +476,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             needed_platforms[i : i + 3]
                             for i in range(0, len(needed_platforms), 3)
                         ]
-                        
+
                         setup_tasks = []
                         for platform_group in platform_groups:
                             setup_tasks.append(
@@ -472,7 +484,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     entry, platform_group
                                 )
                             )
-                        
+
                         await asyncio.gather(*setup_tasks)
                     else:
                         # Few dogs: Direct parallel setup
@@ -485,7 +497,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 platform_reduction = int(
                     (1 - len(needed_platforms) / total_possible_platforms) * 100
                 )
-                
+
                 _LOGGER.info(
                     "Profile-optimized setup completed: profile='%s', %d/%d platforms (%d%% reduction), "
                     "estimated %d entities for %d dogs",
@@ -498,7 +510,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
 
             except asyncio.TimeoutError:
-                _LOGGER.error("Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL)
+                _LOGGER.error(
+                    "Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL
+                )
                 await _async_cleanup_runtime_data(hass, entry, runtime_data)
                 raise ConfigEntryNotReady("Platform setup timed out") from None
             except Exception as err:
@@ -533,8 +547,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     dogs_config,
                                     options={
                                         "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
-                                        "theme": entry.options.get("dashboard_theme", "default"),
-                                        "mode": entry.options.get("dashboard_mode", "full"),
+                                        "theme": entry.options.get(
+                                            "dashboard_theme", "default"
+                                        ),
+                                        "mode": entry.options.get(
+                                            "dashboard_mode", "full"
+                                        ),
                                         "entity_profile": entity_profile,  # NEW: Pass profile
                                     },
                                 )
@@ -553,13 +571,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                         )
                             except Exception as err:
                                 _LOGGER.error("Dashboard creation failed: %s", err)
-                        
+
                         # Start dashboard creation in background
                         asyncio.create_task(create_dashboards())
 
                     # Update runtime data with dashboard generator
                     runtime_data["dashboard_generator"] = dashboard_generator
-                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = dashboard_generator
+                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = (
+                        dashboard_generator
+                    )
 
                 except Exception as err:
                     _LOGGER.error("Failed to setup dashboard: %s", err)
@@ -573,7 +593,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             except asyncio.TimeoutError:
                 _LOGGER.warning(
                     "Initial data refresh timed out after %ds, continuing with cached data",
-                    REFRESH_TIMEOUT
+                    REFRESH_TIMEOUT,
                 )
             except Exception as err:
                 _LOGGER.warning(
@@ -715,11 +735,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Get profile and dogs for proper platform determination
         dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         entity_profile = entry.options.get("entity_profile", "standard")
-        
+
         # Determine loaded platforms based on profile and configuration
         loaded_platforms = (
-            get_platforms_for_profile_and_modules(dogs_config, entity_profile) 
-            if dogs_config 
+            get_platforms_for_profile_and_modules(dogs_config, entity_profile)
+            if dogs_config
             else ALL_PLATFORMS
         )
 
@@ -747,7 +767,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if hasattr(entry, "runtime_data"):
                 delattr(entry, "runtime_data")
 
-            _LOGGER.info("Paw Control integration unloaded successfully (profile: %s)", entity_profile)
+            _LOGGER.info(
+                "Paw Control integration unloaded successfully (profile: %s)",
+                entity_profile,
+            )
         else:
             _LOGGER.error("Failed to unload Paw Control platforms")
 
@@ -774,9 +797,9 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     entity_profile = entry.options.get("entity_profile", "standard")
     _LOGGER.info(
-        "Reloading Paw Control integration entry: %s (profile: %s)", 
-        entry.entry_id, 
-        entity_profile
+        "Reloading Paw Control integration entry: %s (profile: %s)",
+        entry.entry_id,
+        entity_profile,
     )
 
     try:
@@ -834,19 +857,23 @@ async def _async_cleanup_runtime_data(
     feeding_manager = runtime_data.get("feeding_manager")
     if feeding_manager and hasattr(feeding_manager, "async_cleanup"):
         shutdown_tasks.append(
-            _async_shutdown_component("feeding_manager", feeding_manager.async_cleanup())
+            _async_shutdown_component(
+                "feeding_manager", feeding_manager.async_cleanup()
+            )
         )
-    
+
     walk_manager = runtime_data.get("walk_manager")
     if walk_manager and hasattr(walk_manager, "async_cleanup"):
         shutdown_tasks.append(
             _async_shutdown_component("walk_manager", walk_manager.async_cleanup())
         )
-    
+
     dog_data_manager = runtime_data.get("dog_data_manager")
     if dog_data_manager and hasattr(dog_data_manager, "async_cleanup"):
         shutdown_tasks.append(
-            _async_shutdown_component("dog_data_manager", dog_data_manager.async_cleanup())
+            _async_shutdown_component(
+                "dog_data_manager", dog_data_manager.async_cleanup()
+            )
         )
 
     # Entity factory cleanup (no async cleanup needed)
@@ -913,7 +940,9 @@ async def _async_cleanup_legacy_entry_data(entry_data: dict[str, Any]) -> None:
             if hasattr(component, "async_unregister_services"):
                 try:
                     await component.async_unregister_services()
-                    _LOGGER.debug("Successfully unregistered services for %s", component_name)
+                    _LOGGER.debug(
+                        "Successfully unregistered services for %s", component_name
+                    )
                 except Exception as err:
                     _LOGGER.warning(
                         "Error unregistering services for %s: %s", component_name, err
