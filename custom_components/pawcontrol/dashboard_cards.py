@@ -419,13 +419,283 @@ class DogCardGenerator(BaseCardGenerator):
         )
 
 
+class HealthAwareFeedingCardGenerator(BaseCardGenerator):
+    """Generator for health-integrated feeding dashboard cards."""
+
+    async def generate_health_feeding_overview(
+        self, dog_config: dict[str, Any], options: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Generate comprehensive health-aware feeding overview cards.
+        
+        Args:
+            dog_config: Dog configuration including health data
+            options: Display options
+            
+        Returns:
+            List of health feeding overview cards
+        """
+        cards = []
+        dog_id = dog_config["dog_id"]
+        dog_name = dog_config["dog_name"]
+        
+        # Health-aware feeding status card
+        health_status_card = await self._generate_health_feeding_status_card(
+            dog_id, dog_name, options
+        )
+        if health_status_card:
+            cards.append(health_status_card)
+        
+        # Calorie tracking card
+        calorie_card = await self._generate_calorie_tracking_card(dog_id, options)
+        if calorie_card:
+            cards.append(calorie_card)
+        
+        # Body condition and weight goal card
+        weight_card = await self._generate_weight_management_card(dog_id, options)
+        if weight_card:
+            cards.append(weight_card)
+        
+        # Health-aware portion calculator card  
+        portion_card = await self._generate_portion_calculator_card(dog_id, options)
+        if portion_card:
+            cards.append(portion_card)
+        
+        return cards
+
+    async def _generate_health_feeding_status_card(
+        self, dog_id: str, dog_name: str, options: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        """Generate health-integrated feeding status card."""
+        # Check if health-aware feeding is enabled
+        if not await self._entity_exists(f"sensor.{dog_id}_health_feeding_status"):
+            return None
+            
+        return {
+            "type": "entities",
+            "title": f"🔬 {dog_name} Health Feeding",
+            "entities": [
+                {
+                    "entity": f"sensor.{dog_id}_health_feeding_status",
+                    "name": "Health Status",
+                    "icon": "mdi:heart-pulse"
+                },
+                {
+                    "entity": f"sensor.{dog_id}_daily_calorie_target", 
+                    "name": "Calorie Target",
+                    "icon": "mdi:fire"
+                },
+                {
+                    "entity": f"sensor.{dog_id}_calories_consumed_today",
+                    "name": "Calories Today", 
+                    "icon": "mdi:counter"
+                },
+                {
+                    "entity": f"sensor.{dog_id}_portion_adjustment_factor",
+                    "name": "Portion Adjustment",
+                    "icon": "mdi:scale-balance"
+                }
+            ],
+            "state_color": True,
+            "show_header_toggle": False
+        }
+
+    async def _generate_calorie_tracking_card(
+        self, dog_id: str, options: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        """Generate calorie tracking and progress card."""
+        calorie_entities = [
+            f"sensor.{dog_id}_calories_consumed_today",
+            f"sensor.{dog_id}_daily_calorie_target",
+            f"sensor.{dog_id}_calorie_goal_progress"
+        ]
+        
+        valid_entities = await self._validate_entities(calorie_entities)
+        if not valid_entities:
+            return None
+            
+        return {
+            "type": "history-graph",
+            "title": "📊 Calorie Tracking",
+            "entities": [
+                f"sensor.{dog_id}_calories_consumed_today",
+                f"sensor.{dog_id}_daily_calorie_target"
+            ],
+            "hours_to_show": 24,
+            "refresh_interval": 0
+        }
+
+    async def _generate_weight_management_card(
+        self, dog_id: str, options: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        """Generate weight management and body condition tracking card."""
+        weight_entities = [
+            f"sensor.{dog_id}_current_weight",
+            f"sensor.{dog_id}_ideal_weight", 
+            f"sensor.{dog_id}_body_condition_score",
+            f"sensor.{dog_id}_weight_goal_progress"
+        ]
+        
+        valid_entities = await self._validate_entities(weight_entities)
+        if not valid_entities:
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "entities",
+                    "title": "⚖️ Weight Management",
+                    "entities": [
+                        {
+                            "entity": f"sensor.{dog_id}_current_weight",
+                            "name": "Current Weight",
+                            "icon": "mdi:weight-kilogram"
+                        },
+                        {
+                            "entity": f"sensor.{dog_id}_ideal_weight",
+                            "name": "Ideal Weight", 
+                            "icon": "mdi:target"
+                        },
+                        {
+                            "entity": f"sensor.{dog_id}_body_condition_score",
+                            "name": "Body Condition (1-9)",
+                            "icon": "mdi:dog-side"
+                        }
+                    ],
+                    "state_color": True
+                },
+                {
+                    "type": "gauge",
+                    "entity": f"sensor.{dog_id}_weight_goal_progress",
+                    "name": "Weight Goal Progress",
+                    "min": 0,
+                    "max": 100,
+                    "unit": "%",
+                    "severity": {
+                        "green": 80,
+                        "yellow": 50,
+                        "red": 0
+                    }
+                }
+            ]
+        }
+
+    async def _generate_portion_calculator_card(
+        self, dog_id: str, options: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        """Generate interactive health-aware portion calculator card."""
+        if not await self._entity_exists(f"sensor.{dog_id}_health_aware_portions"):
+            return None
+            
+        return {
+            "type": "vertical-stack", 
+            "cards": [
+                {
+                    "type": "markdown",
+                    "content": f"""
+## 🧮 Health-Aware Portion Calculator
+
+**Current Recommendations:**
+- **Breakfast**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
+- **Lunch**: {{{{ states('sensor.{dog_id}_lunch_portion_size') }}}}g  
+- **Dinner**: {{{{ states('sensor.{dog_id}_dinner_portion_size') }}}}g
+- **Daily Total**: {{{{ states('sensor.{dog_id}_daily_food_target') }}}}g
+
+**Health Adjustments:**
+- Body Condition Factor: {{{{ states('sensor.{dog_id}_bcs_adjustment_factor') }}}}
+- Activity Factor: {{{{ states('sensor.{dog_id}_activity_adjustment_factor') }}}}
+- Overall Adjustment: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
+                    """
+                },
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        {
+                            "type": "button",
+                            "name": "Recalculate",
+                            "icon": "mdi:calculator-variant",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": f"{DOMAIN}.recalculate_portions",
+                                "service_data": {"dog_id": dog_id}
+                            }
+                        },
+                        {
+                            "type": "button", 
+                            "name": "Update Health",
+                            "icon": "mdi:heart-pulse",
+                            "tap_action": {
+                                "action": "call-service", 
+                                "service": f"{DOMAIN}.update_health_data",
+                                "service_data": {"dog_id": dog_id}
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+    async def generate_health_feeding_controls(
+        self, dog_config: dict[str, Any], options: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Generate health-aware feeding control cards."""
+        cards = []
+        dog_id = dog_config["dog_id"]
+        
+        # Smart feeding buttons with health integration
+        smart_buttons_card = await self._generate_smart_feeding_buttons(dog_id, options)
+        if smart_buttons_card:
+            cards.append(smart_buttons_card)
+        
+        return cards
+
+    async def _generate_smart_feeding_buttons(
+        self, dog_id: str, options: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+        """Generate smart feeding buttons with health-calculated portions."""
+        return {
+            "type": "grid",
+            "columns": 2,
+            "cards": [
+                {
+                    "type": "button",
+                    "name": "Smart Breakfast",
+                    "icon": "mdi:weather-sunny",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_health_aware",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": "breakfast",
+                            "use_health_calculation": True
+                        }
+                    }
+                },
+                {
+                    "type": "button",
+                    "name": "Smart Dinner",
+                    "icon": "mdi:weather-night", 
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.feed_health_aware",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "meal_type": "dinner", 
+                            "use_health_calculation": True
+                        }
+                    }
+                }
+            ]
+        }
+
+
 class ModuleCardGenerator(BaseCardGenerator):
     """Generator for module-specific dashboard cards."""
 
     async def generate_feeding_cards(
         self, dog_config: dict[str, Any], options: dict[str, Any]
     ) -> list[dict[str, Any]]:
-        """Generate feeding module cards.
+        """Generate feeding module cards with health-aware integration.
 
         Args:
             dog_config: Dog configuration
@@ -436,31 +706,48 @@ class ModuleCardGenerator(BaseCardGenerator):
         """
         cards = []
         dog_id = dog_config[CONF_DOG_ID]
+        modules = dog_config.get("modules", {})
 
-        # Feeding schedule status
-        schedule_entities = [
-            f"sensor.{dog_id}_next_meal_time",
-            f"sensor.{dog_id}_meals_today",
-            f"sensor.{dog_id}_calories_today",
-            f"sensor.{dog_id}_last_fed",
-        ]
-
-        valid_entities = await self._validate_entities(schedule_entities)
-        if valid_entities:
-            cards.append(
-                {
-                    "type": "entities",
-                    "title": "Feeding Schedule",
-                    "entities": valid_entities,
-                    "state_color": True,
-                }
+        # Check if health-aware feeding is enabled
+        if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
+            # Use health-aware feeding card generator
+            health_generator = HealthAwareFeedingCardGenerator(self.hass, self.templates)
+            health_cards = await health_generator.generate_health_feeding_overview(
+                dog_config, options
             )
+            cards.extend(health_cards)
+            
+            # Add health feeding controls
+            control_cards = await health_generator.generate_health_feeding_controls(
+                dog_config, options
+            )
+            cards.extend(control_cards)
+        else:
+            # Standard feeding cards
+            # Feeding schedule status
+            schedule_entities = [
+                f"sensor.{dog_id}_next_meal_time",
+                f"sensor.{dog_id}_meals_today",
+                f"sensor.{dog_id}_calories_today",
+                f"sensor.{dog_id}_last_fed",
+            ]
 
-        # Feeding controls
-        feeding_controls = await self.templates.get_feeding_controls_template(dog_id)
-        cards.append(feeding_controls)
+            valid_entities = await self._validate_entities(schedule_entities)
+            if valid_entities:
+                cards.append(
+                    {
+                        "type": "entities",
+                        "title": "Feeding Schedule",
+                        "entities": valid_entities,
+                        "state_color": True,
+                    }
+                )
 
-        # Feeding history graph
+            # Feeding controls
+            feeding_controls = await self.templates.get_feeding_controls_template(dog_id)
+            cards.append(feeding_controls)
+
+        # Feeding history graph (always include)
         history_entities = [
             f"sensor.{dog_id}_meals_today",
             f"sensor.{dog_id}_calories_today",

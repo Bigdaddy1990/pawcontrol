@@ -1,11 +1,14 @@
-"""Options flow for Paw Control integration.
+"""Options flow for Paw Control integration with profile-based entity management.
 
 This module provides comprehensive post-setup configuration options for the
 Paw Control integration. It allows users to modify all aspects of their
 configuration after initial setup with organized menu-driven navigation.
 
+UPDATED: Adds entity profile selection for performance optimization
+Integrates with EntityFactory for intelligent entity management
+
 Quality Scale: Platinum
-Home Assistant: 2025.8.2+
+Home Assistant: 2025.9.0+
 Python: 3.13+
 """
 
@@ -42,7 +45,12 @@ from .const import (
     DEFAULT_GPS_UPDATE_INTERVAL,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
 )
+from .entity_factory import EntityFactory, ENTITY_PROFILES
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +63,8 @@ class PawControlOptionsFlow(OptionsFlow):
     of their Paw Control configuration after initial setup. It provides
     organized menu-driven navigation and extensive customization options
     with modern UI patterns and enhanced validation.
+    
+    UPDATED: Includes entity profile management for performance optimization
     """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
@@ -70,6 +80,9 @@ class PawControlOptionsFlow(OptionsFlow):
         ]
         self._navigation_stack: list[str] = []
         self._unsaved_changes: dict[str, Any] = {}
+        
+        # Initialize entity factory for profile calculations
+        self._entity_factory = EntityFactory(None)  # Will set coordinator later if needed
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -88,7 +101,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_menu(
             step_id="init",
             menu_options=[
+                "entity_profiles",      # NEW: Profile management
                 "manage_dogs",
+                "performance_settings", # NEW: Performance & profiles
                 "gps_settings",
                 "notifications",
                 "feeding_settings",
@@ -98,6 +113,297 @@ class PawControlOptionsFlow(OptionsFlow):
                 "advanced_settings",
                 "import_export",
             ],
+        )
+
+    async def async_step_entity_profiles(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure entity profiles for performance optimization.
+        
+        NEW: Allows users to select entity profiles that determine
+        how many entities are created per dog.
+        """
+        if user_input is not None:
+            try:
+                current_profile = user_input.get("entity_profile", "standard")
+                preview_estimate = user_input.get("preview_estimate", False)
+                
+                if preview_estimate:
+                    # Show entity count preview
+                    return await self.async_step_profile_preview({"profile": current_profile})
+                
+                # Save the profile selection
+                new_options = {**self._config_entry.options}
+                new_options["entity_profile"] = current_profile
+                
+                return self.async_create_entry(title="", data=new_options)
+                
+            except Exception as err:
+                _LOGGER.error("Error updating entity profile: %s", err)
+                return self.async_show_form(
+                    step_id="entity_profiles",
+                    data_schema=self._get_entity_profiles_schema(user_input),
+                    errors={"base": "profile_update_failed"},
+                )
+
+        return self.async_show_form(
+            step_id="entity_profiles", 
+            data_schema=self._get_entity_profiles_schema(),
+            description_placeholders=self._get_profile_description_placeholders(),
+        )
+
+    def _get_entity_profiles_schema(
+        self, user_input: dict[str, Any] | None = None
+    ) -> vol.Schema:
+        """Get entity profiles schema with current values."""
+        current_options = self._config_entry.options
+        current_values = user_input or {}
+        current_profile = current_values.get(
+            "entity_profile", 
+            current_options.get("entity_profile", "standard")
+        )
+        
+        # Create profile options with descriptions
+        profile_options = []
+        for profile_name, profile_config in ENTITY_PROFILES.items():
+            max_entities = profile_config["max_entities"]
+            description = profile_config["description"]
+            
+            profile_options.append({
+                "value": profile_name,
+                "label": f"{profile_name.title()} ({max_entities} entities/dog) - {description}"
+            })
+
+        return vol.Schema(
+            {
+                vol.Required(
+                    "entity_profile", 
+                    default=current_profile
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=profile_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "preview_estimate", 
+                    default=False
+                ): selector.BooleanSelector(
+                    selector.BooleanSelectorConfig()
+                ),
+            }
+        )
+
+    def _get_profile_description_placeholders(self) -> dict[str, str]:
+        """Get description placeholders for profile selection."""
+        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        
+        # Calculate current entity count estimate
+        total_estimate = 0
+        for dog in current_dogs:
+            modules = dog.get("modules", {})
+            estimate = self._entity_factory.estimate_entity_count(current_profile, modules)
+            total_estimate += estimate
+        
+        profile_info = ENTITY_PROFILES.get(current_profile, ENTITY_PROFILES["standard"])
+        
+        return {
+            "current_profile": current_profile,
+            "current_description": profile_info["description"],
+            "dogs_count": str(len(current_dogs)),
+            "estimated_entities": str(total_estimate),
+            "max_entities_per_dog": str(profile_info["max_entities"]),
+            "performance_impact": self._get_performance_impact_description(current_profile),
+        }
+
+    def _get_performance_impact_description(self, profile: str) -> str:
+        """Get performance impact description for profile."""
+        impact_descriptions = {
+            "basic": "Minimal resource usage, fastest startup",
+            "standard": "Balanced performance and features",
+            "advanced": "Full features, higher resource usage",
+            "gps_focus": "Optimized for GPS tracking",
+            "health_focus": "Optimized for health monitoring",
+        }
+        return impact_descriptions.get(profile, "Balanced performance")
+
+    async def async_step_profile_preview(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show entity count preview for selected profile.
+        
+        NEW: Provides detailed breakdown of entity counts per dog
+        """
+        if user_input is not None:
+            if user_input.get("apply_profile"):
+                # Apply the previewed profile
+                profile = user_input["profile"]
+                new_options = {**self._config_entry.options}
+                new_options["entity_profile"] = profile
+                return self.async_create_entry(title="", data=new_options)
+            else:
+                # Go back to profile selection
+                return await self.async_step_entity_profiles()
+
+        # Calculate detailed entity breakdown
+        profile = user_input.get("profile", "standard") if user_input else "standard"
+        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        
+        entity_breakdown = []
+        total_entities = 0
+        
+        for dog in current_dogs:
+            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+            modules = dog.get("modules", {})
+            
+            estimate = self._entity_factory.estimate_entity_count(profile, modules)
+            total_entities += estimate
+            
+            enabled_modules = [m for m, enabled in modules.items() if enabled]
+            
+            entity_breakdown.append(
+                f"• {dog_name}: {estimate} entities (modules: {', '.join(enabled_modules)})"
+            )
+
+        # Calculate comparison with current profile
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_total = 0
+        for dog in current_dogs:
+            modules = dog.get("modules", {})
+            current_total += self._entity_factory.estimate_entity_count(current_profile, modules)
+        
+        entity_difference = total_entities - current_total
+        performance_change = "same" if entity_difference == 0 else ("better" if entity_difference < 0 else "higher resource usage")
+
+        return self.async_show_form(
+            step_id="profile_preview",
+            data_schema=vol.Schema({
+                vol.Required("profile", default=profile): vol.In([profile]),
+                vol.Optional("apply_profile", default=False): selector.BooleanSelector(),
+            }),
+            description_placeholders={
+                "profile_name": profile,
+                "total_entities": str(total_entities),
+                "entity_breakdown": "\n".join(entity_breakdown),
+                "current_total": str(current_total),
+                "entity_difference": f"{entity_difference:+d}" if entity_difference != 0 else "0",
+                "performance_change": performance_change,
+                "profile_description": ENTITY_PROFILES[profile]["description"],
+            },
+        )
+
+    async def async_step_performance_settings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure performance and optimization settings.
+        
+        NEW: Combines entity profiles with other performance settings
+        """
+        if user_input is not None:
+            try:
+                new_options = {**self._config_entry.options}
+                new_options.update({
+                    "entity_profile": user_input.get("entity_profile", "standard"),
+                    "performance_mode": user_input.get("performance_mode", "balanced"),
+                    "batch_size": user_input.get("batch_size", 15),
+                    "cache_ttl": user_input.get("cache_ttl", 300),
+                    "selective_refresh": user_input.get("selective_refresh", True),
+                })
+                
+                return self.async_create_entry(title="", data=new_options)
+                
+            except Exception as err:
+                _LOGGER.error("Error updating performance settings: %s", err)
+                return self.async_show_form(
+                    step_id="performance_settings",
+                    data_schema=self._get_performance_settings_schema(user_input),
+                    errors={"base": "performance_update_failed"},
+                )
+
+        return self.async_show_form(
+            step_id="performance_settings",
+            data_schema=self._get_performance_settings_schema(),
+        )
+
+    def _get_performance_settings_schema(
+        self, user_input: dict[str, Any] | None = None
+    ) -> vol.Schema:
+        """Get performance settings schema."""
+        current_options = self._config_entry.options
+        current_values = user_input or {}
+        
+        # Profile options
+        profile_options = []
+        for profile_name, profile_config in ENTITY_PROFILES.items():
+            max_entities = profile_config["max_entities"]
+            description = profile_config["description"]
+            profile_options.append({
+                "value": profile_name,
+                "label": f"{profile_name.title()} ({max_entities}/dog) - {description}"
+            })
+
+        return vol.Schema(
+            {
+                vol.Required(
+                    "entity_profile",
+                    default=current_values.get(
+                        "entity_profile", 
+                        current_options.get("entity_profile", "standard")
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=profile_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "performance_mode",
+                    default=current_values.get(
+                        "performance_mode",
+                        current_options.get("performance_mode", "balanced"),
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "minimal", "label": "Minimal - Lowest resource usage"},
+                            {"value": "balanced", "label": "Balanced - Good performance"},
+                            {"value": "full", "label": "Full - Maximum responsiveness"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "batch_size",
+                    default=current_values.get(
+                        "batch_size", 
+                        current_options.get("batch_size", 15)
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=5, max=50, step=5, mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    "cache_ttl",
+                    default=current_values.get(
+                        "cache_ttl", 
+                        current_options.get("cache_ttl", 300)
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=60, max=3600, step=60, mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="seconds",
+                    )
+                ),
+                vol.Optional(
+                    "selective_refresh",
+                    default=current_values.get(
+                        "selective_refresh",
+                        current_options.get("selective_refresh", True),
+                    ),
+                ): selector.BooleanSelector(),
+            }
         )
 
     async def async_step_manage_dogs(
@@ -112,6 +418,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 return await self.async_step_select_dog_to_edit()
             elif action == "remove_dog":
                 return await self.async_step_select_dog_to_remove()
+            elif action == "configure_modules":  # NEW: Module configuration
+                return await self.async_step_select_dog_for_modules()
             else:
                 return await self.async_step_init()
 
@@ -128,6 +436,9 @@ class PawControlOptionsFlow(OptionsFlow):
                             "edit_dog": "Edit existing dog"
                             if current_dogs
                             else "No dogs to edit",
+                            "configure_modules": "Configure dog modules"  # NEW
+                            if current_dogs
+                            else "No dogs to configure",
                             "remove_dog": "Remove dog"
                             if current_dogs
                             else "No dogs to remove",
@@ -149,6 +460,212 @@ class PawControlOptionsFlow(OptionsFlow):
             },
         )
 
+    async def async_step_select_dog_for_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Select which dog to configure modules for.
+        
+        NEW: Allows per-dog module configuration
+        """
+        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+
+        if not current_dogs:
+            return await self.async_step_manage_dogs()
+
+        if user_input is not None:
+            selected_dog_id = user_input.get("dog_id")
+            self._current_dog = next(
+                (
+                    dog
+                    for dog in current_dogs
+                    if dog.get(CONF_DOG_ID) == selected_dog_id
+                ),
+                None,
+            )
+            if self._current_dog:
+                return await self.async_step_configure_dog_modules()
+            else:
+                return await self.async_step_manage_dogs()
+
+        # Create selection options
+        dog_options = [
+            {
+                "value": dog.get(CONF_DOG_ID),
+                "label": f"{dog.get(CONF_DOG_NAME)} ({dog.get(CONF_DOG_ID)})",
+            }
+            for dog in current_dogs
+        ]
+
+        return self.async_show_form(
+            step_id="select_dog_for_modules",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("dog_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=dog_options,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_configure_dog_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure modules for the selected dog.
+        
+        NEW: Per-dog module configuration with entity count preview
+        """
+        if not self._current_dog:
+            return await self.async_step_manage_dogs()
+
+        if user_input is not None:
+            try:
+                # Update the dog's modules in the config entry
+                current_dogs = list(self._config_entry.data.get(CONF_DOGS, []))
+                dog_index = next(
+                    (
+                        i
+                        for i, dog in enumerate(current_dogs)
+                        if dog.get(CONF_DOG_ID) == self._current_dog.get(CONF_DOG_ID)
+                    ),
+                    -1,
+                )
+
+                if dog_index >= 0:
+                    # Update modules
+                    updated_modules = {
+                        MODULE_FEEDING: user_input.get("module_feeding", True),
+                        MODULE_WALK: user_input.get("module_walk", True),
+                        MODULE_GPS: user_input.get("module_gps", False),
+                        MODULE_HEALTH: user_input.get("module_health", True),
+                        "notifications": user_input.get("module_notifications", True),
+                        "dashboard": user_input.get("module_dashboard", True),
+                        "visitor": user_input.get("module_visitor", False),
+                        "grooming": user_input.get("module_grooming", False),
+                        "medication": user_input.get("module_medication", False),
+                        "training": user_input.get("module_training", False),
+                    }
+                    
+                    current_dogs[dog_index]["modules"] = updated_modules
+
+                    # Update config entry
+                    new_data = {**self._config_entry.data}
+                    new_data[CONF_DOGS] = current_dogs
+
+                    self.hass.config_entries.async_update_entry(
+                        self._config_entry, data=new_data
+                    )
+
+                return await self.async_step_manage_dogs()
+                
+            except Exception as err:
+                _LOGGER.error("Error configuring dog modules: %s", err)
+                return self.async_show_form(
+                    step_id="configure_dog_modules",
+                    data_schema=self._get_dog_modules_schema(),
+                    errors={"base": "module_config_failed"},
+                )
+
+        return self.async_show_form(
+            step_id="configure_dog_modules", 
+            data_schema=self._get_dog_modules_schema(),
+            description_placeholders=self._get_module_description_placeholders(),
+        )
+
+    def _get_dog_modules_schema(self) -> vol.Schema:
+        """Get modules configuration schema for current dog."""
+        if not self._current_dog:
+            return vol.Schema({})
+
+        current_modules = self._current_dog.get("modules", {})
+
+        return vol.Schema(
+            {
+                vol.Optional(
+                    "module_feeding",
+                    default=current_modules.get(MODULE_FEEDING, True),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_walk",
+                    default=current_modules.get(MODULE_WALK, True),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_gps",
+                    default=current_modules.get(MODULE_GPS, False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_health",
+                    default=current_modules.get(MODULE_HEALTH, True),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_notifications",
+                    default=current_modules.get("notifications", True),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_dashboard",
+                    default=current_modules.get("dashboard", True),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_visitor",
+                    default=current_modules.get("visitor", False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_grooming",
+                    default=current_modules.get("grooming", False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_medication",
+                    default=current_modules.get("medication", False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_training",
+                    default=current_modules.get("training", False),
+                ): selector.BooleanSelector(),
+            }
+        )
+
+    def _get_module_description_placeholders(self) -> dict[str, str]:
+        """Get description placeholders for module configuration."""
+        if not self._current_dog:
+            return {}
+
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_modules = self._current_dog.get("modules", {})
+        
+        # Calculate current entity count
+        current_estimate = self._entity_factory.estimate_entity_count(current_profile, current_modules)
+        
+        # Module descriptions
+        module_descriptions = {
+            MODULE_FEEDING: "Food tracking, scheduling, portion control",
+            MODULE_WALK: "Walk tracking, duration, distance monitoring",
+            MODULE_GPS: "Location tracking, geofencing, route recording",
+            MODULE_HEALTH: "Weight tracking, vet reminders, medication",
+            "notifications": "Alerts, reminders, status notifications",
+            "dashboard": "Custom dashboard generation",
+            "visitor": "Visitor mode for reduced monitoring",
+            "grooming": "Grooming schedule and tracking",
+            "medication": "Medication reminders and tracking",
+            "training": "Training progress and notes",
+        }
+
+        enabled_modules = [
+            f"• {module}: {module_descriptions.get(module, 'Module functionality')}"
+            for module, enabled in current_modules.items()
+            if enabled
+        ]
+
+        return {
+            "dog_name": self._current_dog.get(CONF_DOG_NAME, "Unknown"),
+            "current_profile": current_profile,
+            "current_entities": str(current_estimate),
+            "enabled_modules": "\n".join(enabled_modules) if enabled_modules else "No modules enabled",
+        }
+
+    # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
+    
     async def async_step_add_new_dog(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -168,13 +685,16 @@ class PawControlOptionsFlow(OptionsFlow):
                     CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 20.0),
                     CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, "medium"),
                     "modules": {
-                        "feeding": True,
-                        "walk": True,
-                        "health": True,
+                        MODULE_FEEDING: True,
+                        MODULE_WALK: True,
+                        MODULE_HEALTH: True,
                         "notifications": True,
                         "dashboard": True,
-                        "gps": False,
+                        MODULE_GPS: False,
                         "visitor": False,
+                        "grooming": False,
+                        "medication": False,
+                        "training": False,
                     },
                     "created_at": asyncio.get_event_loop().time(),
                 }
@@ -452,6 +972,7 @@ class PawControlOptionsFlow(OptionsFlow):
             },
         )
 
+    # GPS Settings (existing method, unchanged)
     async def async_step_gps_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -555,6 +1076,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
             }
         )
+
+    # All other existing methods remain unchanged...
+    # (notifications, feeding_settings, health_settings, system_settings, dashboard_settings, advanced_settings, import_export)
 
     async def async_step_notifications(
         self, user_input: dict[str, Any] | None = None

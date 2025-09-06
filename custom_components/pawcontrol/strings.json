@@ -100,6 +100,21 @@
           "quiet_hours_end": "Quiet Hours End"
         }
       },
+      "configure_feeding_details": {
+        "title": "Feeding Configuration Details",
+        "description": "Configure feeding settings for {dog_count} dogs with feeding enabled.\n\n{feeding_summary}\n\nThese settings will be used as defaults and can be customized per dog later.",
+        "data": {
+          "daily_food_amount": "Daily Food Amount (grams)",
+          "meals_per_day": "Meals Per Day",
+          "food_type": "Primary Food Type",
+          "special_diet": "Special Diet Requirements",
+          "feeding_schedule_type": "Feeding Schedule Type",
+          "portion_calculation": "Enable Automatic Portion Calculation",
+          "medication_with_meals": "Link Medications to Meals",
+          "feeding_reminders": "Enable Feeding Reminders",
+          "portion_tolerance": "Portion Size Tolerance (%)"
+        }
+      },
       "advanced": {
         "title": "Advanced Settings",
         "description": "Advanced configuration options for power users. These settings fine-tune the integration behavior.",
@@ -756,6 +771,25 @@
           "teeth": "Teeth",
           "trim": "Trim",
           "full_grooming": "Full Grooming"
+        }
+      },
+      "special_diet": {
+        "name": "Special Diet",
+        "state": {
+          "grain_free": "Grain Free",
+          "hypoallergenic": "Hypoallergenic",
+          "low_fat": "Low Fat",
+          "senior_formula": "Senior Formula",
+          "puppy_formula": "Puppy Formula",
+          "weight_control": "Weight Control",
+          "sensitive_stomach": "Sensitive Stomach",
+          "organic": "Organic",
+          "raw_diet": "Raw Diet",
+          "prescription": "Prescription",
+          "diabetic": "Diabetic",
+          "kidney_support": "Kidney Support",
+          "dental_care": "Dental Care",
+          "joint_support": "Joint Support"
         }
       }
     },

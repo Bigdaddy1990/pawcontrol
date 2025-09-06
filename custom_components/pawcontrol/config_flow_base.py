@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from typing import Any, Final
 
 import voluptuous as vol
@@ -416,7 +417,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             # Prevent infinite loops
             if counter > 100:
                 suggestion = (
-                    f"{original_suggestion}_{asyncio.get_event_loop().time():.0f}"[-20:]
+                    f"{original_suggestion}_{time.time():.0f}"[-20:]
                 )
                 break
 

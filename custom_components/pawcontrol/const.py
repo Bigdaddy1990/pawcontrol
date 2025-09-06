@@ -85,6 +85,10 @@ CONF_SNACK_TIMES: Final = "snack_times"
 CONF_DAILY_FOOD_AMOUNT: Final = "daily_food_amount"
 CONF_MEALS_PER_DAY: Final = "meals_per_day"
 CONF_FOOD_TYPE: Final = "food_type"
+CONF_SPECIAL_DIET: Final = "special_diet"
+CONF_FEEDING_SCHEDULE_TYPE: Final = "feeding_schedule_type"
+CONF_PORTION_CALCULATION: Final = "portion_calculation"
+CONF_MEDICATION_WITH_MEALS: Final = "medication_with_meals"
 
 # Health configuration
 CONF_HEALTH_TRACKING: Final = "health_tracking"
@@ -112,6 +116,27 @@ DEFAULT_GROOMING_INTERVAL: Final = 28  # days
 
 # Feeding types
 FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
+
+# Special diet options for feeding configuration
+SPECIAL_DIET_OPTIONS: Final = [
+    "grain_free",         # Getreidefrei
+    "hypoallergenic",     # Hypoallergen
+    "low_fat",            # Fettarm
+    "senior_formula",     # Seniorenfutter
+    "puppy_formula",      # Welpenfutter
+    "weight_control",     # Gewichtskontrolle
+    "sensitive_stomach",  # Magenschonend
+    "organic",            # Bio/Öko
+    "raw_diet",           # Rohfütterung/BARF
+    "prescription",       # Verschreibungspflichtig
+    "diabetic",           # Diabetiker-Diät
+    "kidney_support",     # Nierenunterstützung
+    "dental_care",        # Zahnpflege
+    "joint_support",      # Gelenkunterstützung
+]
+
+# Feeding schedule types
+FEEDING_SCHEDULE_TYPES: Final = ["flexible", "strict", "custom"]
 
 # Meal types
 MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
@@ -274,6 +299,12 @@ __all__ = [
     "CONF_DOG_WEIGHT",
     "CONF_DOG_SIZE",
     "CONF_DOG_COLOR",
+    # Feeding configuration
+    "CONF_FOOD_TYPE",
+    "CONF_SPECIAL_DIET",
+    "CONF_FEEDING_SCHEDULE_TYPE",
+    "CONF_PORTION_CALCULATION",
+    "CONF_MEDICATION_WITH_MEALS",
     # Module constants
     "MODULE_GPS",
     "MODULE_FEEDING",
@@ -288,6 +319,8 @@ __all__ = [
     # Validation lists (primary source)
     "MEAL_TYPES",
     "FOOD_TYPES",
+    "SPECIAL_DIET_OPTIONS",
+    "FEEDING_SCHEDULE_TYPES",
     "DOG_SIZES",
     "GPS_SOURCES",
     "HEALTH_STATUS_OPTIONS",

@@ -20,9 +20,20 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_MODULES,
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_FEEDING_SCHEDULE_TYPE,
+    CONF_FOOD_TYPE,
+    CONF_MEALS_PER_DAY,
+    CONF_MEDICATION_WITH_MEALS,
+    CONF_PORTION_CALCULATION,
+    CONF_SPECIAL_DIET,
+    FEEDING_SCHEDULE_TYPES,
+    FOOD_TYPES,
     MODULE_DASHBOARD,
+    MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    SPECIAL_DIET_OPTIONS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,6 +79,14 @@ class ModuleConfigurationMixin:
 
             if dashboard_enabled:
                 return await self.async_step_configure_dashboard()
+
+            # Check if feeding details need configuration
+            feeding_enabled = any(
+                dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False) for dog in self._dogs
+            )
+
+            if feeding_enabled:
+                return await self.async_step_configure_feeding_details()
 
             # Check if we need external entity configuration
             gps_enabled = any(
@@ -445,6 +464,155 @@ class ModuleConfigurationMixin:
             features.append("multi-dog overview")
 
         return ", ".join(features)
+
+    async def async_step_configure_feeding_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure detailed feeding settings when feeding module is enabled.
+
+        Args:
+            user_input: Feeding configuration choices
+
+        Returns:
+            Configuration flow result for next step
+        """
+        if user_input is not None:
+            # Store feeding configuration
+            self._feeding_config = {
+                "default_daily_food_amount": user_input.get("daily_food_amount", 500.0),
+                "default_meals_per_day": user_input.get("meals_per_day", 2),
+                "default_food_type": user_input.get("food_type", "dry_food"),
+                "default_special_diet": user_input.get("special_diet", []),
+                "default_feeding_schedule_type": user_input.get("feeding_schedule_type", "flexible"),
+                "auto_portion_calculation": user_input.get("portion_calculation", True),
+                "medication_with_meals": user_input.get("medication_with_meals", False),
+                "feeding_reminders": user_input.get("feeding_reminders", True),
+                "portion_tolerance": user_input.get("portion_tolerance", 10),  # percentage
+            }
+
+            # Continue to GPS configuration if needed
+            if self._has_gps_dogs():
+                return await self.async_step_configure_external_entities()
+
+            return await self.async_step_final_setup()
+
+        # Get feeding dogs for context
+        feeding_dogs = [
+            dog
+            for dog in self._dogs
+            if dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False)
+        ]
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "daily_food_amount", default=500.0
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=50.0,
+                        max=2000.0,
+                        step=10.0,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="g",
+                    )
+                ),
+                vol.Optional(
+                    "meals_per_day", default=2
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1,
+                        max=6,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    "food_type", default="dry_food"
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": ft, "label": ft.replace("_", " ").title()}
+                            for ft in FOOD_TYPES
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "special_diet", default=[]
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": sd, "label": sd.replace("_", " ").title()}
+                            for sd in SPECIAL_DIET_OPTIONS
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
+                vol.Optional(
+                    "feeding_schedule_type", default="flexible"
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": fst, "label": fst.title()}
+                            for fst in FEEDING_SCHEDULE_TYPES
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "portion_calculation", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "medication_with_meals", default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "feeding_reminders", default=True
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "portion_tolerance", default=10
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=5,
+                        max=25,
+                        step=5,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="%",
+                    )
+                ),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="configure_feeding_details",
+            data_schema=schema,
+            description_placeholders={
+                "dog_count": len(feeding_dogs),
+                "feeding_summary": self._get_feeding_summary(feeding_dogs),
+            },
+        )
+
+    def _get_feeding_summary(self, feeding_dogs: list[dict[str, Any]]) -> str:
+        """Get summary of dogs with feeding enabled.
+
+        Args:
+            feeding_dogs: List of dogs with feeding module enabled
+
+        Returns:
+            Feeding summary string
+        """
+        if not feeding_dogs:
+            return "No dogs with feeding tracking"
+
+        if len(feeding_dogs) == 1:
+            dog_name = feeding_dogs[0].get("dog_name", "Unknown")
+            return f"Feeding configuration for {dog_name}"
+
+        dog_names = [dog.get("dog_name", "Unknown") for dog in feeding_dogs[:3]]
+        if len(feeding_dogs) > 3:
+            dog_names.append(f"...and {len(feeding_dogs) - 3} more")
+
+        return f"Feeding configuration for: {', '.join(dog_names)}"
 
     def _get_dogs_module_summary(self) -> str:
         """Get summary of dogs and their modules.
