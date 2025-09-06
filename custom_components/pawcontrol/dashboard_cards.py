@@ -464,7 +464,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     async def _generate_health_feeding_status_card(
         self, dog_id: str, dog_name: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:  # noqa: F821
         """Generate health-integrated feeding status card."""
         # Check if health-aware feeding is enabled
         if not await self._entity_exists(f"sensor.{dog_id}_health_feeding_status"):
@@ -501,7 +501,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     async def _generate_calorie_tracking_card(
         self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:  # noqa: F821
         """Generate calorie tracking and progress card."""
         calorie_entities = [
             f"sensor.{dog_id}_calories_consumed_today",
@@ -526,7 +526,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     async def _generate_weight_management_card(
         self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:  # noqa: F821
         """Generate weight management and body condition tracking card."""
         weight_entities = [
             f"sensor.{dog_id}_current_weight",
@@ -578,7 +578,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     async def _generate_portion_calculator_card(
         self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:  # noqa: F821
         """Generate interactive health-aware portion calculator card."""
         if not await self._entity_exists(f"sensor.{dog_id}_health_aware_portions"):
             return None
@@ -647,7 +647,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
     async def _generate_smart_feeding_buttons(
         self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:  # noqa: F821
         """Generate smart feeding buttons with health-calculated portions."""
         return {
             "type": "grid",

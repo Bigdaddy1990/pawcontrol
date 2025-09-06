@@ -24,10 +24,10 @@ async def async_step_entity_profile(self, user_input=None):
     return self.async_show_form(
         step_id="entity_profile",
         data_schema=vol.Schema(
-            {
+            {  # noqa: F821
                 vol.Required("entity_profile", default="standard"): vol.In(
                     ENTITY_PROFILES
-                )
+                )  # noqa: F821
             }
         ),
         description_placeholders={

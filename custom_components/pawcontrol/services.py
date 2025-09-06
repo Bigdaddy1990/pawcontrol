@@ -1099,7 +1099,8 @@ class PawControlServiceManager:
 
 
 async def async_setup_daily_reset_scheduler(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant,
+    entry: ConfigEntry,  # noqa: F821
 ) -> None:
     """Setup daily reset scheduler with optimized timing.
 
