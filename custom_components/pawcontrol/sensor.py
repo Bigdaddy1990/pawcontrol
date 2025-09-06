@@ -70,38 +70,35 @@ async def async_setup_entry(
 
     # Initialize entity factory
     entity_factory = EntityFactory(coordinator)
-    
+
     # Get profile from options (default to 'standard')
     profile = entry.options.get("entity_profile", "standard")
-    
-    _LOGGER.info(
-        "Setting up sensors with profile '%s' for %d dogs",
-        profile, len(dogs)
-    )
+
+    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs", profile, len(dogs))
 
     # PERFORMANCE OPTIMIZATION: Profile-based entity creation
     all_entities = []
     total_entities_created = 0
-    
+
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
-        
+
         # Create profile-based entities using factory
         dog_entities = entity_factory.create_entities_for_dog(
-            dog_id=dog_id,
-            dog_name=dog_name,
-            profile=profile,
-            modules=modules
+            dog_id=dog_id, dog_name=dog_name, profile=profile, modules=modules
         )
-        
+
         all_entities.extend(dog_entities)
         total_entities_created += len(dog_entities)
-        
+
         _LOGGER.info(
             "Created %d entities for dog: %s (%s) with profile '%s'",
-            len(dog_entities), dog_name, dog_id, profile
+            len(dog_entities),
+            dog_name,
+            dog_id,
+            profile,
         )
 
     # OPTIMIZATION: Smart batching based on reduced entity count
@@ -111,24 +108,26 @@ async def async_setup_entry(
         _LOGGER.info(
             "Created %d sensor entities (single batch) - %d%% reduction from legacy count",
             total_entities_created,
-            int((1 - total_entities_created / (len(dogs) * 54)) * 100)  # 54 was legacy count
+            int(
+                (1 - total_entities_created / (len(dogs) * 54)) * 100
+            ),  # 54 was legacy count
         )
     else:
         # Large setup: Batch creation with minimal delays
         async def add_entity_batch(entities: list[PawControlSensorBase]) -> None:
             """Add a batch of entities asynchronously."""
             async_add_entities(entities, update_before_add=False)
-        
+
         # Create tasks for parallel entity addition
         tasks = []
         for i in range(0, len(all_entities), MAX_ENTITIES_PER_BATCH):
             batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
             tasks.append(add_entity_batch(batch))
-            
+
             # Add small delay between batches
             if i + MAX_ENTITIES_PER_BATCH < len(all_entities):
                 await asyncio.sleep(ENTITY_CREATION_DELAY)
-        
+
         # Execute all tasks
         if tasks:
             await asyncio.gather(*tasks)
@@ -137,7 +136,7 @@ async def async_setup_entry(
             "Created %d sensor entities for %d dogs (profile-based batching) - %d%% performance improvement",
             total_entities_created,
             len(dogs),
-            int((1 - total_entities_created / (len(dogs) * 54)) * 100)
+            int((1 - total_entities_created / (len(dogs) * 54)) * 100),
         )
 
     # Log profile statistics
@@ -147,13 +146,13 @@ async def async_setup_entry(
         profile,
         profile_info["description"],
         total_entities_created / len(dogs),
-        profile_info["max_entities"]
+        profile_info["max_entities"],
     )
 
 
 class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntity):
     """Base sensor class with optimized data access and caching."""
-    
+
     _attr_should_poll = False
     _attr_has_entity_name = True
 
@@ -189,7 +188,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
             "sw_version": "2.0.0",  # Updated version for profile-based system
             "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
-        
+
         # OPTIMIZATION: Per-update module data cache
         self._module_cache: dict[str, Any] = {}
         self._cache_timestamp: Optional[datetime] = None
@@ -211,14 +210,14 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
             # Cache expired or first access
             self._module_cache.clear()
             self._cache_timestamp = now
-        
+
         if module not in self._module_cache:
             dog_data = self._get_dog_data()
             if dog_data:
                 self._module_cache[module] = dog_data.get(module, {})
             else:
                 self._module_cache[module] = None
-        
+
         return self._module_cache[module]
 
     @property
@@ -247,6 +246,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
 
 
 # Core Sensor Implementations (Always Created)
+
 
 class PawControlLastActionSensor(PawControlSensorBase):
     """Sensor for tracking the last action timestamp."""
@@ -351,10 +351,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         if (
             self._cached_score is not None
             and self._score_cache_time is not None
-            and (now - self._score_cache_time).total_seconds() < ACTIVITY_SCORE_CACHE_TTL
+            and (now - self._score_cache_time).total_seconds()
+            < ACTIVITY_SCORE_CACHE_TTL
         ):
             return self._cached_score
-        
+
         # Calculate new score
         dog_data = self._get_dog_data()
         if not dog_data:
@@ -381,11 +382,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         weighted_sum = sum(score * weight for _, score, weight in score_components)
 
         score = round((weighted_sum / total_weight) if total_weight > 0 else 0, 1)
-        
+
         # Cache the result
         self._cached_score = score
         self._score_cache_time = now
-        
+
         return score
 
     def _calculate_walk_score(self, walk_data: dict) -> Optional[float]:
@@ -433,6 +434,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
 
 # Essential Feeding Sensors
+
 
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
@@ -498,7 +500,9 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
 class PawControlHealthAwarePortionSensor(PawControlSensorBase):
     """Sensor for health-aware calculated portion size."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -515,19 +519,19 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return None
-        
+
         # Get health-aware portion from feeding manager
         health_portion = feeding_data.get("health_aware_portion")
         if health_portion is not None:
             return round(float(health_portion), 1)
-            
+
         # Fallback to basic portion calculation
         daily_amount = feeding_data.get("daily_amount_target", 500)
         meals_per_day = feeding_data.get("config", {}).get("meals_per_day", 2)
-        
+
         if meals_per_day > 0:
             return round(daily_amount / meals_per_day, 1)
-        
+
         return None
 
 
@@ -579,7 +583,9 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
 class PawControlFeedingRecommendationSensor(PawControlSensorBase):
     """Sensor for feeding recommendations based on health analysis."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -594,14 +600,14 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return "No data available"
-        
+
         # Get feeding analysis
         analysis = feeding_data.get("feeding_analysis", {})
         recommendations = analysis.get("recommendations", [])
-        
+
         if recommendations:
             return recommendations[0]  # Primary recommendation
-        
+
         # Default based on adherence
         adherence = feeding_data.get("schedule_adherence", 100)
         if adherence >= 90:
@@ -615,7 +621,9 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
 class PawControlDietValidationStatusSensor(PawControlSensorBase):
     """Sensor for overall diet validation status."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -630,11 +638,11 @@ class PawControlDietValidationStatusSensor(PawControlSensorBase):
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return "no_data"
-        
+
         diet_validation = feeding_data.get("diet_validation_summary")
         if not diet_validation:
             return "no_validation"
-        
+
         if diet_validation.get("conflict_count", 0) > 0:
             return "conflicts_detected"
         elif diet_validation.get("warning_count", 0) > 0:
@@ -644,6 +652,7 @@ class PawControlDietValidationStatusSensor(PawControlSensorBase):
 
 
 # Essential Walk Sensors
+
 
 class PawControlLastWalkSensor(PawControlSensorBase):
     """Sensor for last walk timestamp."""
@@ -776,6 +785,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
 # Essential GPS Sensors
 
+
 class PawControlCurrentZoneSensor(PawControlSensorBase):
     """Sensor for current zone."""
 
@@ -891,6 +901,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
 
 # Essential Health Sensors
 
+
 class PawControlHealthStatusSensor(PawControlSensorBase):
     """Sensor for overall health status."""
 
@@ -935,7 +946,9 @@ class PawControlWeightSensor(PawControlSensorBase):
 class PawControlBodyConditionScoreSensor(PawControlSensorBase):
     """Sensor for body condition score (1-9 scale)."""
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         super().__init__(
             coordinator,
             dog_id,
@@ -951,7 +964,7 @@ class PawControlBodyConditionScoreSensor(PawControlSensorBase):
         health_data = self._get_module_data("health")
         if not health_data:
             return None
-            
+
         return health_data.get("body_condition_score")
 
 
@@ -1005,6 +1018,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
 
 
 # Advanced Feeding Sensors (for detailed meal tracking)
+
 
 class PawControlFeedingCountTodaySensor(PawControlSensorBase):
     """Sensor for feeding count by meal type with strict type validation."""
@@ -1079,14 +1093,14 @@ class PawControlMealPortionSensor(PawControlSensorBase):
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return None
-        
+
         # Try to get health-aware portion for this meal type
         meal_portion_key = f"{self._meal_type}_portion"
         meal_portion = feeding_data.get(meal_portion_key)
-        
+
         if meal_portion is not None:
             return round(float(meal_portion), 1)
-        
+
         # Fallback to calculated portion
         base_portion = feeding_data.get("health_aware_portion")
         if base_portion:
@@ -1099,7 +1113,7 @@ class PawControlMealPortionSensor(PawControlSensorBase):
             }
             multiplier = multipliers.get(self._meal_type, 1.0)
             return round(base_portion * multiplier, 1)
-        
+
         return None
 
 
