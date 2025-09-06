@@ -1,60 +1,20 @@
 """Comprehensive tests for PawControl select platform."""
 
 import asyncio
-from unittest.mock import AsyncMock, Mock, patch
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.select import (
-    PawControlSelectBase,
-    PawControlDogSizeSelect,
-    PawControlPerformanceModeSelect,
-    PawControlNotificationPrioritySelect,
-    PawControlFoodTypeSelect,
-    PawControlFeedingScheduleSelect,
-    PawControlDefaultMealTypeSelect,
-    PawControlFeedingModeSelect,
-    PawControlWalkModeSelect,
-    PawControlWeatherPreferenceSelect,
-    PawControlWalkIntensitySelect,
-    PawControlGPSSourceSelect,
-    PawControlTrackingModeSelect,
-    PawControlLocationAccuracySelect,
-    PawControlHealthStatusSelect,
-    PawControlActivityLevelSelect,
-    PawControlMoodSelect,
-    PawControlGroomingTypeSelect,
-    async_setup_entry,
-    _async_add_entities_in_batches,
-    _create_base_selects,
-    _create_feeding_selects,
-    _create_walk_selects,
-    _create_gps_selects,
-    _create_health_selects,
-    WALK_MODES,
-    NOTIFICATION_PRIORITIES,
-    TRACKING_MODES,
-    FEEDING_SCHEDULES,
-    GROOMING_TYPES,
-    WEATHER_CONDITIONS,
-)
 from custom_components.pawcontrol.const import (
+    ACTIVITY_LEVELS,
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOGS,
-    DOMAIN,
     DOG_SIZES,
+    DOMAIN,
     FOOD_TYPES,
     GPS_SOURCES,
     HEALTH_STATUS_OPTIONS,
@@ -65,9 +25,48 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
     MOOD_OPTIONS,
     PERFORMANCE_MODES,
-    ACTIVITY_LEVELS,
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.select import (
+    FEEDING_SCHEDULES,
+    GROOMING_TYPES,
+    NOTIFICATION_PRIORITIES,
+    TRACKING_MODES,
+    WALK_MODES,
+    WEATHER_CONDITIONS,
+    PawControlActivityLevelSelect,
+    PawControlDefaultMealTypeSelect,
+    PawControlDogSizeSelect,
+    PawControlFeedingModeSelect,
+    PawControlFeedingScheduleSelect,
+    PawControlFoodTypeSelect,
+    PawControlGPSSourceSelect,
+    PawControlGroomingTypeSelect,
+    PawControlHealthStatusSelect,
+    PawControlLocationAccuracySelect,
+    PawControlMoodSelect,
+    PawControlNotificationPrioritySelect,
+    PawControlPerformanceModeSelect,
+    PawControlSelectBase,
+    PawControlTrackingModeSelect,
+    PawControlWalkIntensitySelect,
+    PawControlWalkModeSelect,
+    PawControlWeatherPreferenceSelect,
+    _async_add_entities_in_batches,
+    _create_base_selects,
+    _create_feeding_selects,
+    _create_gps_selects,
+    _create_health_selects,
+    _create_walk_selects,
+    async_setup_entry,
+)
+from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 class TestAsyncSetupEntry:

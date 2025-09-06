@@ -50,7 +50,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
-from .entity_factory import EntityFactory, ENTITY_PROFILES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

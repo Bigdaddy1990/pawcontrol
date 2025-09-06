@@ -2,43 +2,35 @@
 
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, patch
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN, ButtonDeviceClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.button import (
-    ProfileAwareButtonFactory,
-    PawControlButtonBase,
-    PawControlTestNotificationButton,
-    PawControlResetDailyStatsButton,
-    PawControlToggleVisitorModeButton,
-    PawControlMarkFedButton,
-    PawControlFeedMealButton,
-    PawControlLogCustomFeedingButton,
-    PawControlStartWalkButton,
-    PawControlEndWalkButton,
-    PawControlQuickWalkButton,
-    PawControlLogWalkManuallyButton,
-    PawControlRefreshLocationButton,
-    PawControlExportRouteButton,
-    PawControlCenterMapButton,
-    PawControlCallDogButton,
-    PawControlLogWeightButton,
-    PawControlLogMedicationButton,
-    PawControlStartGroomingButton,
-    PawControlScheduleVetButton,
-    PawControlHealthCheckButton,
-    async_setup_entry,
-    PROFILE_BUTTON_LIMITS,
     BUTTON_PRIORITIES,
+    PROFILE_BUTTON_LIMITS,
+    PawControlButtonBase,
+    PawControlCallDogButton,
+    PawControlCenterMapButton,
+    PawControlEndWalkButton,
+    PawControlExportRouteButton,
+    PawControlFeedMealButton,
+    PawControlHealthCheckButton,
+    PawControlLogCustomFeedingButton,
+    PawControlLogMedicationButton,
+    PawControlLogWalkManuallyButton,
+    PawControlLogWeightButton,
+    PawControlMarkFedButton,
+    PawControlQuickWalkButton,
+    PawControlRefreshLocationButton,
+    PawControlResetDailyStatsButton,
+    PawControlScheduleVetButton,
+    PawControlStartGroomingButton,
+    PawControlStartWalkButton,
+    PawControlTestNotificationButton,
+    PawControlToggleVisitorModeButton,
+    ProfileAwareButtonFactory,
+    async_setup_entry,
 )
 from custom_components.pawcontrol.const import (
     ATTR_DOG_ID,
@@ -63,6 +55,14 @@ from custom_components.pawcontrol.exceptions import (
     WalkAlreadyInProgressError,
     WalkNotInProgressError,
 )
+from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
+from homeassistant.components.button import ButtonDeviceClass
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 class TestProfileAwareButtonFactory:
@@ -591,7 +591,7 @@ class TestPawControlButtonBase:
     def test_cache_cleanup(self, button_base):
         """Test cache cleanup after TTL."""
         # Get data to populate cache
-        data1 = button_base._get_dog_data_cached()
+        button_base._get_dog_data_cached()
         
         # Manually expire cache by manipulating timestamp
         cache_key = f"{button_base._dog_id}_data"

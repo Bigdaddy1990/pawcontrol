@@ -2,32 +2,10 @@
 
 import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock, Mock, patch
 from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN, SwitchDeviceClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.switch import (
-    ProfileOptimizedSwitchFactory,
-    OptimizedSwitchBase,
-    PawControlMainPowerSwitch,
-    PawControlDoNotDisturbSwitch,
-    PawControlVisitorModeSwitch,
-    PawControlModuleSwitch,
-    PawControlFeatureSwitch,
-    async_setup_entry,
-    _async_add_entities_in_batches,
-    BATCH_SIZE,
-    BATCH_DELAY,
-    MAX_CONCURRENT_BATCHES,
-)
 from custom_components.pawcontrol.const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
@@ -37,15 +15,37 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
+    MODULE_GROOMING,
     MODULE_HEALTH,
+    MODULE_MEDICATION,
     MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
     MODULE_VISITOR,
     MODULE_WALK,
-    MODULE_GROOMING,
-    MODULE_MEDICATION,
-    MODULE_TRAINING,
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import (
+    BATCH_DELAY,
+    BATCH_SIZE,
+    MAX_CONCURRENT_BATCHES,
+    OptimizedSwitchBase,
+    PawControlDoNotDisturbSwitch,
+    PawControlFeatureSwitch,
+    PawControlMainPowerSwitch,
+    PawControlModuleSwitch,
+    PawControlVisitorModeSwitch,
+    ProfileOptimizedSwitchFactory,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.components.switch import SwitchDeviceClass
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 class TestProfileOptimizedSwitchFactory:
@@ -1118,7 +1118,6 @@ class TestSwitchErrorHandling:
         switch._state_cache[cache_key] = (True, old_timestamp)
         
         # Should refresh cache due to expired TTL
-        state = switch.is_on
         
         # Cache should be updated with new timestamp
         _, new_timestamp = switch._state_cache[cache_key]

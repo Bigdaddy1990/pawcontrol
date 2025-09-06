@@ -17,8 +17,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOG_ID
-
 _LOGGER = logging.getLogger(__name__)
 
 

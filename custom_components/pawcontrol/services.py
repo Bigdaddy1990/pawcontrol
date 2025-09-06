@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Final, Optional
+from typing import Any, Callable, Final
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, callback
@@ -346,7 +346,6 @@ class PawControlServiceManager:
         
         # OPTIMIZATION: Batch registration
         try:
-            tasks = []
             for service_name, (handler, schema, _) in self._service_registry.items():
                 # Register service without blocking
                 self.hass.services.async_register(
@@ -676,7 +675,7 @@ class PawControlServiceManager:
     @service_handler(require_dog=False, cache_priority=3, timeout=10.0)
     async def _handle_daily_reset_service(self, call: ServiceCall) -> None:
         """Handle daily_reset service."""
-        force = call.data.get("force", False)
+        call.data.get("force", False)
         dog_ids = call.data.get("dog_ids", [])
         
         # Get all entries if no specific dogs
@@ -720,7 +719,7 @@ class PawControlServiceManager:
     ) -> None:
         """Handle recalculate_health_portions service."""
         trigger_reason = call.data.get("trigger_reason", "manual")
-        force_update = call.data.get("force_update", False)
+        call.data.get("force_update", False)
         
         # Get feeding manager
         feeding_manager = runtime_data.get("feeding_manager")
@@ -1028,7 +1027,7 @@ class PawControlServiceManager:
 
 async def async_setup_daily_reset_scheduler(
     hass: HomeAssistant,
-    entry: ConfigEntry
+    entry: ConfigEntry  # noqa: F821
 ) -> None:
     """Setup daily reset scheduler with optimized timing.
     

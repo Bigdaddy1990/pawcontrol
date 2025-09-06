@@ -53,13 +53,12 @@ from .coordinator import PawControlCoordinator
 from .dashboard_generator import PawControlDashboardGenerator
 from .data_manager import PawControlDataManager
 from .dog_data_manager import DogDataManager
-from .entity_factory import EntityFactory, ENTITY_PROFILES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
-from .walk_manager import WalkManager
 from .types import DogConfigData, PawControlRuntimeData
 from .utils import (
     performance_monitor,
@@ -68,6 +67,7 @@ from .utils import (
     validate_enum_value,
     validate_weight_enhanced,
 )
+from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
 

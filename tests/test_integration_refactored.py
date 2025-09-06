@@ -4,16 +4,10 @@ Validates that entities can properly access data through the refactored coordina
 with manager delegation.
 """
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, Mock, patch
 
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.sensor import (
-    PawControlLastFeedingSensor,
-    PawControlDietValidationStatusSensor,
-    PawControlHealthAwarePortionSensor,
-)
+import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -22,6 +16,12 @@ from custom_components.pawcontrol.const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.sensor import (
+    PawControlDietValidationStatusSensor,
+    PawControlHealthAwarePortionSensor,
+    PawControlLastFeedingSensor,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -397,12 +397,11 @@ class TestRefactoredCoordinatorIntegration:
         await coordinator._async_update_data()
         
         # Sensor should handle missing feeding data
-        sensor = PawControlLastFeedingSensor(
+        PawControlLastFeedingSensor(
             coordinator, "integration_test_dog", "Test Dog"
         )
         
         # Should not crash, might return None
-        value = sensor.native_value
         # Value might be None due to error, but should not raise exception
         
         # Other modules should still work

@@ -199,9 +199,9 @@ class EntityFactory:
     def _create_core_entities(self, dog_id: str, dog_name: str) -> list[dict[str, Any]]:
         """Create core entities (always included) - FIXED: Only existing classes."""
         from .sensor import (
+            PawControlActivityScoreSensor,
             PawControlDogStatusSensor,
             PawControlLastActionSensor,
-            PawControlActivityScoreSensor,
         )
         
         return [
@@ -227,15 +227,15 @@ class EntityFactory:
     ) -> list[dict[str, Any]]:
         """Create feeding entities based on profile - FIXED: Only existing classes."""
         from .sensor import (
-            PawControlLastFeedingSensor,
-            PawControlFeedingScheduleAdherenceSensor,
-            PawControlHealthAwarePortionSensor,
-            PawControlTotalFeedingsTodaySensor,
             PawControlDailyCaloriesSensor,
-            PawControlFeedingRecommendationSensor,
             PawControlDietValidationStatusSensor,
             PawControlFeedingCountTodaySensor,
+            PawControlFeedingRecommendationSensor,
+            PawControlFeedingScheduleAdherenceSensor,
+            PawControlHealthAwarePortionSensor,
+            PawControlLastFeedingSensor,
             PawControlMealPortionSensor,
+            PawControlTotalFeedingsTodaySensor,
         )
         
         entities = []
@@ -317,12 +317,12 @@ class EntityFactory:
     ) -> list[dict[str, Any]]:
         """Create walk entities based on profile - FIXED: Only existing classes."""
         from .sensor import (
-            PawControlLastWalkSensor,
-            PawControlWalkCountTodaySensor,
-            PawControlLastWalkDurationSensor,
-            PawControlTotalWalkTimeTodaySensor,
-            PawControlWeeklyWalkCountSensor,
             PawControlAverageWalkDurationSensor,
+            PawControlLastWalkDurationSensor,
+            PawControlLastWalkSensor,
+            PawControlTotalWalkTimeTodaySensor,
+            PawControlWalkCountTodaySensor,
+            PawControlWeeklyWalkCountSensor,
         )
         
         entities = []
@@ -378,12 +378,12 @@ class EntityFactory:
     ) -> list[dict[str, Any]]:
         """Create GPS entities based on profile - FIXED: Only existing classes."""
         from .sensor import (
+            PawControlCurrentSpeedSensor,
             PawControlCurrentZoneSensor,
             PawControlDistanceFromHomeSensor,
-            PawControlCurrentSpeedSensor,
             PawControlGPSAccuracySensor,
-            PawControlTotalDistanceTodaySensor,
             PawControlGPSBatteryLevelSensor,
+            PawControlTotalDistanceTodaySensor,
         )
         
         entities = []
@@ -439,11 +439,11 @@ class EntityFactory:
     ) -> list[dict[str, Any]]:
         """Create health entities based on profile - FIXED: Only existing classes."""
         from .sensor import (
-            PawControlHealthStatusSensor,
-            PawControlWeightSensor,
             PawControlBodyConditionScoreSensor,
-            PawControlWeightTrendSensor,
+            PawControlHealthStatusSensor,
             PawControlLastVetVisitSensor,
+            PawControlWeightSensor,
+            PawControlWeightTrendSensor,
         )
         
         entities = []

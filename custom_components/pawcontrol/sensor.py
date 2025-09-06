@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Optional, Union
 
 from homeassistant.components.sensor import (
@@ -31,10 +31,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory

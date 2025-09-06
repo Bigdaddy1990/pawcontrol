@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -33,13 +33,13 @@ from .const import (
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
+    MODULE_GROOMING,
     MODULE_HEALTH,
+    MODULE_MEDICATION,
     MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
     MODULE_VISITOR,
     MODULE_WALK,
-    MODULE_GROOMING,
-    MODULE_MEDICATION,
-    MODULE_TRAINING,
 )
 from .coordinator import PawControlCoordinator
 

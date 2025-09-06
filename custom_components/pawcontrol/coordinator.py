@@ -14,7 +14,7 @@ import asyncio
 import hashlib
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -25,7 +25,7 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.util import dt as dt_util
 
 from .batch_manager import BatchManager
-from .cache_manager import CacheManager, CACHE_TTL_MEDIUM
+from .cache_manager import CACHE_TTL_MEDIUM, CacheManager
 from .const import (
     CONF_DOG_ID,
     CONF_DOGS,
@@ -43,8 +43,8 @@ if TYPE_CHECKING:
     from .data_manager import DataManager
     from .dog_data_manager import DogDataManager
     from .feeding_manager import FeedingManager
-    from .walk_manager import WalkManager
     from .types import DogConfigData
+    from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
 
