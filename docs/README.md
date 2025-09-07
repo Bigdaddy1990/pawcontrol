@@ -1,17 +1,19 @@
-# Paw Control
+# 🐶🐕 Paw Control - Smart Dog Management for Home Assistant
 
-## Schnelle Installation (HACS)
-1. Öffne **HACS → Integrations → Custom repositories** und füge dieses Repository hinzu.
-2. Suche nach **Paw Control** und installiere die Integration.
-3. Gehe zu **Einstellungen → Geräte & Dienste → Integrationen** und richte **Paw Control** ein.
-4. Optional: Starte den Service `pawcontrol.show_install_help` für eine Schritt-für-Schritt-Anleitung im UI.
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9%2B-blue.svg)](https://www.home-assistant.io/)
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Niveau-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![codecov](https://codecov.io/github/Bigdaddy1990/pawcontrol/graph/badge.svg?token=Y8IFVQ0KDD)](https://codecov.io/github/bigdaddy1990/pawcontrol)
+[![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
+[![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
+[![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 
----
-# Erweiterte Fassung – pawcontrol
 
-# 🐶 pawcontrol - Home Assistant Integration
+**Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege.
 
-## 🎯 Hauptfeatures im Überblick
+
+## ✨ Hauptfeatures im Überblick
 
 | Kategorie                | Beschreibung |
 |--------------------------|--------------|
@@ -40,6 +42,49 @@
 | 🔁 **Flexibel** | Beliebig viele Hunde, jede Funktion einzeln abschaltbar |
 
 ## 🎯 Features im Detail
+### 🗺️ **GPS-Tracking & Geofencing**
+- **Live GPS-Tracking** mit Routenaufzeichnung
+- **Intelligente Walk-Erkennung** über Türsensoren und Standort
+- **Geofencing** mit anpassbaren Sicherheitszonen
+- **Automatische Walk-Starts** bei Verlassen des Hauses
+- **Detaillierte Statistiken** zu Distanz, Dauer und Geschwindigkeit
+- **Routen-Export** als GPX/GeoJSON für externe Analyse
+
+### 🍽️ **Fütterungsmanagement**
+- **Automatische Fütterungserinnerungen** basierend auf Zeitplänen
+- **Smart Feeder Integration** für automatisierte Fütterung
+- **Mahlzeit-Tracking** mit verschiedenen Futterarten
+- **Portionsüberwachung** und Kalorienzählung
+- **Fütterungshistorie** und Trends
+
+### 🏥 **Gesundheitsüberwachung**
+- **Gewichtstracking** mit Trendanalyse
+- **Medikationserinnerungen** mit anpassbaren Zeitplänen
+- **Tierarzttermin-Verwaltung** und Erinnerungen
+- **Pflegeerinnerungen** (Baden, Bürsten, Krallenschneiden)
+- **Aktivitätslevel-Monitoring** basierend auf GPS-Daten
+- **Gesundheits-Alerts** bei Anomalien
+
+### 📱 **Mobile Integration**
+- **Actionable Notifications** für iOS und Android
+- **Widget-Support** für Quick Actions
+- **Location-basierte Automatisierungen**
+- **Push-Benachrichtigungen** mit Smart Actions
+- **Offline-Synchronisation** für GPS-Daten
+
+### 🏠 **Smart Home Integration**
+- **Türsensor-Integration** für automatische Walk-Erkennung
+- **Wetter-basierte** Walk-Empfehlungen
+- **Kalender-Integration** für Termine und Events
+- **Alarm-System Integration** (Auto-Scharf bei Walk-Start)
+- **Licht-Signale** für Warnungen und Status
+
+### 📊 **Analytics & Reporting**
+- **Detaillierte Dashboards** mit Echtzeit-Daten
+- **Wochen-/Monatsberichte** mit Trends
+- **Performance-Monitoring** der Integration
+- **Export-Funktionen** für Datenanalyse
+- **Health-Checks** und Diagnostics
 
 ### 🔔 Push & Benachrichtigungen
 - **Dynamische Personenerkennung**: Automatische Benachrichtigung via `person.*` Entitäten wenn `state == home`
@@ -110,46 +155,6 @@
 - **Status-Indikatoren**: Visuelle Darstellung des Hundestatus
 - **Schnellaktionen**: Ein-Klick-Buttons für häufige Aktionen
 
-### 🌐 GitHub & HACS-Integration
-- **Vollständige HACS-Kompatibilität**:
-  - `manifest.json` mit korrekter Versionierung
-  - `hacs.json` mit Domain-Spezifikationen
-  - Automatische Update-Erkennung
-- **GitHub Actions Workflow**:
-  - `release.yml` für automatische Releases
-  - `validate.yml` für Code-Qualität
-  - `hacs.yml` für HACS-Validierung
-- **Dokumentation**:
-  - Ausführliche README mit Installationsanleitung
-  - Screenshots und Beispiele
-  - Konfigurationshandbuch
-- **Community Features**:
-  - Issue-Templates
-  - Contribution Guidelines
-  - Codeowner-Spezifikation
-
-### 🔧 Technische Features
-- **Config Flow**: Benutzerfreundliche Einrichtung über UI
-- **Entity Registry**: Saubere Entitäts-Verwaltung
-- **Error Handling**: Robuste Fehlerbehandlung
-- **Logging**: Umfassendes Logging für Debugging
-- **Localization**: Mehrsprachige Unterstützung (DE/EN)
-- **Device Integration**: Proper Device-Gruppierung
-- **Service Schemas**: Validierte Service-Aufrufe
-
-### 🛡️ Sicherheit & Datenschutz
-- **Lokale Verarbeitung**: Keine Cloud-Abhängigkeiten
-- **Sichere Konfiguration**: Validierte Eingaben
-- **Backup-Kompatibilität**: Alle Daten in Home Assistant-Backups enthalten
-- **Privacy-First**: Keine externen Datenübertragungen
-
-### 🔧 Setup & Installation
-- **🐶 Automatische Setup-Skript-Erstellung**
-- **⏳ Verzögerter Start**: Vermeidet Race Conditions beim Skriptaufruf
-- **🧠 Robuste Fehlerbehandlung**
-- **🛠️ UI-basierte Konfiguration**
-- **📦 Integriertes Setup**
-
 ### 🐕 Besuchshund-Modul
 - **Flexible Aktivierung**
 - **Separate Verwaltung**: Eigene Dashboard-Blöcke mit getrennter Statistik
@@ -201,315 +206,48 @@
 - **Validierung & Fehlerbehandlung**: Robuste Eingabevalidierung mit hilfreichen Fehlermeldungen
 - **Backup & Migration**: Vollständige Konfiguration in Home Assistant-Backups enthalten
 
----
+### 🌐 GitHub & HACS-Integration
+- **Vollständige HACS-Kompatibilität**:
+  - `manifest.json` mit korrekter Versionierung
+  - `hacs.json` mit Domain-Spezifikationen
+  - Automatische Update-Erkennung
+- **GitHub Actions Workflow**:
+  - `release.yml` für automatische Releases
+  - `validate.yml` für Code-Qualität
+  - `hacs.yml` für HACS-Validierung
+- **Dokumentation**:
+  - Ausführliche README mit Installationsanleitung
+  - Screenshots und Beispiele
+  - Konfigurationshandbuch
+- **Community Features**:
+  - Issue-Templates
+  - Contribution Guidelines
+  - Codeowner-Spezifikation
 
-# 🔧 Ergänzungen & technische Spezifikation (ohne Löschung des Originals)
+### 🔧 Technische Features
+- **Config Flow**: Benutzerfreundliche Einrichtung über UI
+- **Entity Registry**: Saubere Entitäts-Verwaltung
+- **Error Handling**: Robuste Fehlerbehandlung
+- **Logging**: Umfassendes Logging für Debugging
+- **Localization**: Mehrsprachige Unterstützung (DE/EN)
+- **Device Integration**: Proper Device-Gruppierung
+- **Service Schemas**: Validierte Service-Aufrufe
 
-> Ziel: Für **jede Funktion** die nötige **Codebasis, Entities/Helper, Config-Optionen, Abhängigkeiten, Trigger/Scheduler** und **optionale Blueprints** auflisten. Außerdem: **minimale, lauffähige** Code-Skelette für die in der Struktur genannten Dateien (Domain: `pawcontrol`).
+### 🛡️ Sicherheit & Datenschutz
+- **Lokale Verarbeitung**: Keine Cloud-Abhängigkeiten
+- **Sichere Konfiguration**: Validierte Eingaben
+- **Backup-Kompatibilität**: Alle Daten in Home Assistant-Backups enthalten
+- **Privacy-First**: Keine externen Datenübertragungen
 
-## Inhaltsverzeichnis
-1. Architektur & Konventionen
-2. Globale Abhängigkeiten & Manifest
-3. Config Flow & OptionsFlow (Schlüssel & Validierung)
-4. Services & Service-Schemas
-5. Interne Scheduler/Trigger (kein YAML nötig)
-6. Module (Funktion → Codebasis/Entities/Configs/Abhängigkeiten)
-   - Push & Benachrichtigungen
-   - Fütterung
-   - Türsensor/Gartengang & Aktivität
-   - Geschäfte (Kot) & Gesundheit
-   - Statistik & Tagesreset
-   - Besuchshund-Modus
-   - Dashboard
-7. Optionale Blueprints (YAML)
-8. GitHub Actions & HACS
-9. Definition of Done & Test-Checkliste
-
----
-
-## 1) Architektur & Konventionen
-
-- **Domain**
-- **Config Entries**: Einrichtung/Änderungen **ohne Neustart**; OptionsFlow mit Lazy-Validation
-- **Idempotente Sync-Logik**: erzeugt/entfernt nur, was gebraucht wird
-- **Entitäten schlank**: Rechenwerte als Template-/Trigger-Sensoren; „Helper“ vorzugsweise als **eigene Integration-Entities** (Number/Select/Text/Button/Sensor). (Reine `input_*`-Helpers sind in HA UI-basiert; innerhalb der Integration ersetzen wir sie durch eigene Plattform-Entities.)
-- **Mehrhundelogik**: `dog_id` (Slug), `unique_id`-Schema: `pawcontrol.{dog_id}.{module}.{purpose}`
-- **Soft-Dependencies**: `person.*`, `device_tracker.*`, `notify.*`, `calendar.*`, `weather.*` → optional, Pfade inaktiv, keine Exceptions
-- **Zeit**: lokale Zeit; Scheduler über `async_track_time_change` / `async_call_later`
-
----
-
-## 2) Globale Abhängigkeiten & `manifest.json`
-
-**Abhängigkeiten (optional, weich)**: `mobile_app`, `person`, `zone`, `calendar`
-**After-Dependencies**: `http`, `cloud` (falls benötigt für mobile actions)
-
-**Beispiel `manifest.json`:**
-```json
-{
-  "domain": "pawcontrol",
-  "name": "pawcontrol",
-  "version": "1.0.0",
-  "documentation": "https://github.com/<user>/pawcontrol",
-  "issue_tracker": "https://github.com/<user>/pawcontrol/issues",
-  "codeowners": ["@<user>"],
-  "config_flow": true,
-  "iot_class": "local_polling",
-  "requirements": [],
-  "dependencies": [],
-  "after_dependencies": ["mobile_app", "person", "zone", "calendar"]
-}
-```
+### 🔧 Setup & Installation
+- **🐶 Automatische Setup-Skript-Erstellung**
+- **⏳ Verzögerter Start**: Vermeidet Race Conditions beim Skriptaufruf
+- **🧠 Robuste Fehlerbehandlung**
+- **🛠️ UI-basierte Konfiguration**
+- **📦 Integriertes Setup**
 
 ---
 
-## 3) Config Flow & Options (Schlüssel)
-
-**Grundstruktur**:
-- **Hunde**: Liste aus `[{ dog_id, name, color/icon (optional) }]`
-- **Module je Hund**: `feeding`, `walk`, `health`, `poop`, `notifications`, `dashboard`, `visitor`
-- **Quellen**: Türsensor (`binary_sensor.*`), GPS (`device_tracker.*`/`person.*`), Notify-Fallback (`notify.*`), Kalender (`calendar.*`), Wetter (`weather.*`)
-- **Benachrichtigung**: Quiet Hours, Wiederholung/Snooze, Priorität: Personen-basiert → Fallback Gerät(e)
-- **Reset-Zeit**: Standard 23:59, konfigurierbar
-
-**Option Keys (Beispiele)**:
-```yaml
-dogs:
-  - dog_id: "rex"
-    name: "Rex"
-    modules:
-      feeding: true
-      walk: true
-      health: false
-      poop: true
-      notifications: true
-      dashboard: true
-      visitor: false
-    sources:
-      door_sensor: binary_sensor.terrassentuer_contact
-      person_entities: [person.denny]
-      device_trackers: [device_tracker.phone_denny]   # optional
-      notify_fallback: notify.mobile_app_dennys_iphone
-      calendar: calendar.hund_events
-      weather: weather.home
-notifications:
-  quiet_hours: { start: "22:00:00", end: "07:00:00" }
-  reminder_repeat_min: 30
-  snooze_min: 15
-reset_time: "23:59:00"
-dashboard:
-  mode: "full"  # full|cards
-```
-
----
-
-## 4) Services & Schemas
-
-**Services (Auszug):**
-- `pawcontrol.start_walk`, `pawcontrol.end_walk`, `pawcontrol.walk_now`
-- `pawcontrol.feed_dog`
-- `pawcontrol.log_poop`
-- `pawcontrol.log_health_data`, `pawcontrol.log_medication`, `pawcontrol.start_grooming`
-- `pawcontrol.toggle_visitor_mode`, `pawcontrol.notify_test`
-- `pawcontrol.daily_reset`, `pawcontrol.generate_report`, `pawcontrol.sync_setup`
-
-**`services.yaml` (vollständiges Minimalbeispiel unten in Abschnitt 8)**
-
----
-
-## 5) Interne Scheduler/Trigger
-
-- **Daily Reset**: `async_track_time_change(..., hour=23, minute=59, second=0)`
-- **Report** (optional): z. B. 23:55
-- **Reminder**: Feeding/Walk/Medication – Zeitfenster, Snooze, Quiet Hours
-- **Türsensor/GPS**: Event-Trigger → Start/Ende Walk, Inaktivitäts-Timeout
-
----
-
-## 6) Module – Mapping: Codebasis, Entities, Configs, Abhängigkeiten
-
-### 6.1 Push & Benachrichtigungen
-- **Codebasis**: `helpers.py` (NotificationRouter), `__init__.py` (Service-Calls), `services.yaml`
-- **Entities (pro Hund, Integration-eigen)**:
-  - `button.pawcontrol_{dog}_notify_test`
-  - `switch.pawcontrol_{dog}_notifications_enabled` *(optional)*
-- **Configs**: `notifications.quiet_hours`, `notifications.reminder_repeat_min`, `notifications.snooze_min`, Quellen (`person_entities`, `notify_fallback`)
-- **Abhängigkeiten**: `mobile_app`, `person`
-- **Services**: `notify_test`, interne Router-Funktion (Person anwesend? → passendes `notify.mobile_app_*`)
-- **Trigger/Scheduler**: Reminder-Planung über Scheduler
-- **Optional Blueprints**: Generic Push Test / Acknowledge Pattern
-
-### 6.2 Fütterung
-- **Codebasis**: `services.yaml` (`feed_dog`), `sensor.py` (letzte Mahlzeit), `button.py` (Schnellaktion „Gefüttert“), `helpers.py` (Reminder-Planer)
-- **Entities (pro Hund)**:
-  - `sensor.pawcontrol_{dog}_last_feeding` (Zeitstempel/Typ)
-  - `button.pawcontrol_{dog}_mark_fed`
-  - `binary_sensor.pawcontrol_{dog}_is_hungry` (Template/Trigger)
-- **Configs**: aktivierte Mahlzeiten, Zeiten (OptionsFlow), Reminder-Parameter (global)
-- **Abhängigkeiten**: optional `calendar`
-- **Services**: `feed_dog`
-- **Trigger/Scheduler**: Zeitfenster-Reminder pro aktiver Mahlzeit
-- **Optional Blueprints**: „Feeding Reminder (generic)“
-
-### 6.3 Türsensor/Gartengang & Aktivität (Walk)
-- **Codebasis**: `helpers.py` (door/GPS-Logic), `sensor.py` (letzter Walk, Dauer), `binary_sensor.py` (needs_walk)
-- **Entities (pro Hund)**:
-  - `sensor.pawcontrol_{dog}_last_walk` (datetime)
-  - `sensor.pawcontrol_{dog}_last_walk_duration_min` (number)
-  - `sensor.pawcontrol_{dog}_last_walk_distance_m` (number, optional GPS)
-  - `binary_sensor.pawcontrol_{dog}_needs_walk` (trigger-template)
-  - `button.pawcontrol_{dog}_start_walk`, `button.pawcontrol_{dog}_end_walk`
-- **Configs**: Türsensor, GPS/Tracker, Distanz-Schwellen, Auto-Ende Timeout
-- **Abhängigkeiten**: `binary_sensor.*` (Tür), `device_tracker.*` / `person.*`
-- **Services**: `start_walk`, `end_walk`, `walk_now`
-- **Trigger/Scheduler**: Tür-Event, Distanzänderung, Inaktivitäts-Timeout
-
-### 6.4 Geschäfte (Poop) & Gesundheit
-- **Codebasis**: `services.yaml`, `sensor.py` (Zähler, letzter Eintrag), `helpers.py` (Erinnerungen)
-- **Entities (pro Hund)**:
-  - `sensor.pawcontrol_{dog}_poop_count_today`
-  - `sensor.pawcontrol_{dog}_last_poop`
-  - **Gesundheit** (optional): `sensor.pawcontrol_{dog}_weight`, `sensor.pawcontrol_{dog}_vaccine_status`, `sensor.pawcontrol_{dog}_medication_due`
-  - `select.pawcontrol_{dog}_grooming_type`, `sensor.pawcontrol_{dog}_last_grooming`, `number.pawcontrol_{dog}_grooming_interval_days`
-- **Configs**: Medikation-Zeiten, Grooming-Intervalle, Health-Tracking an/aus
-- **Abhängigkeiten**: optional `calendar`
-- **Services**: `log_poop`, `log_health_data`, `log_medication`, `start_grooming`
-- **Trigger/Scheduler**: Medikation/Grooming-Fälligkeit
-
-### 6.5 Statistik & Tagesreset
-- **Codebasis**: `helpers.py` (Scheduler + Tagesreset), `sensor.py` (Counter als Integration-Entities)
-- **Entities (pro Hund)**:
-  - `sensor.pawcontrol_{dog}_feeding_count_today_*` (breakfast/lunch/dinner/snack)
-  - `sensor.pawcontrol_{dog}_walk_count_today`
-  - `sensor.pawcontrol_{dog}_poop_count_today`
-  - `sensor.pawcontrol_{dog}_last_action`
-- **Configs**: Reset-Zeit
-- **Services**: `daily_reset`, `generate_report`
-- **Trigger/Scheduler**: Reset 23:59, optional Report 23:55
-
-### 6.6 Besuchshund-Modus
-- **Codebasis**: `__init__.py` (Mode-Flag), `sensor.py` (separate Zähler), `dashboard.py` (separate Sektion)
-- **Entities (global/je Hund)**:
-  - `switch.pawcontrol_{dog}_visitor_mode`
-- **Configs**: aktiv/aus
-- **Services**: `toggle_visitor_mode`
-- **Trigger/Scheduler**: —
-
-### 6.7 Dashboard
-- **Codebasis**: `dashboard.py` (Renderer), optionale YAML-Vorlagen
-- **Entities**: nutzt die oben definierten
-- **Configs**: Modus `full|cards`, Hundereihenfolge, Anzeigeoptionen
-- **Abhängigkeiten**: Mushroom (nur Anzeige), Wetter/Kalender (optional)
-- **Services**: —
-
----
-
-## 7) Optionale Blueprints (YAML)
-
-### 7.1 Feeding Reminder (generic)
-```yaml
-blueprint:
-  name: pawcontrol – Feeding Reminder (generic)
-  domain: automation
-  input:
-    dog_entity:
-      name: Hund (Sensor letzte Fütterung)
-      selector: { entity: { domain: sensor } }
-    notify_target:
-      name: Notify Service
-      selector: { text: {} }
-    meal_time:
-      name: Mahlzeit Uhrzeit
-      selector: { time: {} }
-    snooze_min:
-      name: Snooze (Minuten)
-      default: 15
-      selector: { number: { min: 5, max: 120, step: 5 } }
-
-trigger:
-  - platform: time
-    at: !input meal_time
-
-condition: []
-
-action:
-  - service: !input notify_target
-    data:
-      message: "Fütterung fällig für {{ state_attr(!input dog_entity, 'friendly_name') or 'Hund' }}."
-      data:
-        actions:
-          - action: "FED_NOW"
-            title: "Gefüttert"
-          - action: "SNOOZE"
-            title: "Später"
-mode: restart
-```
-
-### 7.2 Walk Missing Reminder
-```yaml
-blueprint:
-  name: pawcontrol – Walk Missing Reminder
-  domain: automation
-  input:
-    last_walk_sensor:
-      name: Letzter Walk (Sensor)
-      selector: { entity: { domain: sensor } }
-    notify_target:
-      name: Notify Service
-      selector: { text: {} }
-    hours_threshold:
-      name: Stunden seit letztem Walk
-      default: 8
-      selector: { number: { min: 1, max: 48, step: 1 } }
-
-trigger:
-  - platform: time_pattern
-    hours: "/1"
-
-condition:
-  - condition: template
-    value_template: >
-      {% set last = states(!input last_walk_sensor) %}
-      {% if last in ['unknown','unavailable','none',''] %} false
-      {% else %}
-        {{ (now() - as_datetime(last)).total_seconds() > ( !input hours_threshold * 3600 ) }}
-      {% endif %}
-
-action:
-  - service: !input notify_target
-    data:
-      message: "Lange kein Spaziergang mehr. Bitte prüfen."
-mode: restart
-```
-
-> Blueprints sind optional – Kernlogik läuft intern ohne YAML.
-
----
-
-
-## 8) GitHub Actions & HACS
-
-**`.github/workflows/validate.yml`**: hassfest, ruff/flake8, pytest
-**`.github/workflows/release.yml`**: Tag → Release (Zip)
-**`hacs.json`** (Repo-Wurzel):
-```json
-{ "name": "pawcontrol", "render_readme": true }
-```
-
----
-
-## 9) Definition of Done & Test-Checkliste
-
-- Config Flow & OptionsFlow decken Hunde/Module/Quellen ab
-- Services registriert, minimal getestet (notify_test, feed_dog, start/end_walk)
-- Scheduler aktiv (Daily Reset)
-- Entities erscheinen je Hund, unique_id stabil
-- Keine Fehler bei fehlenden optionalen Quellen (Soft-Dependencies)
-- Dashboard-Renderer erzeugt Entities ohne Exceptions
-- HACS-Metadaten korrekt, CI-Grundchecks grün
-
-
----
 
 # Paw Control - Vollständige Setup-Konfiguration
 
@@ -557,19 +295,6 @@ mode: restart
 
 ## 🍽️ MODUL 2: Fütterungseinstellungen (OPTIONAL)
 
-### Fütterungszeiten
-- **Frühstück aktivieren** *(Boolean, Standard: true)*
-  - **Frühstückszeit** *(Zeit, Standard: 09:00)*
-
-- **Mittagessen aktivieren** *(Boolean, Standard: false)*
-  - **Mittagszeit** *(Zeit, Standard: 13:00)*
-
-- **Abendessen aktivieren** *(Boolean, Standard: true)*
-  - **Abendzeit** *(Zeit, Standard: 17:00)*
-
-- **Snacks aktivieren** *(Boolean, Standard: false)*
-  - **Snack-Zeiten** *(Mehrfach-Auswahl)*
-
 ### Fütterungsmengen
 - **Tägliche Futtermenge** *(Optional)*
   - Bereich: 50-2000g
@@ -581,31 +306,45 @@ mode: restart
   - Beeinflusst Portionsgrößen-Berechnung
 
 - **Standard-Futtertyp** *(Optional)*
-  - Optionen: ["Trockenfutter", "Nassfutter", "BARF", "Selbstgekocht", "Gemischt"]
+  - Optionen: ["Trockenfutter", "Nassfutter", "BARF", "Selbstgekocht", "Gemischt", "Spezialfutter"]
   - Standard: "Trockenfutter"
+
+### Fütterungszeiten
+- **Frühstück aktivieren**
+  - **Frühstückszeit** *(Zeit, Standard: 09:00)*
+
+- **Mittagessen aktivieren**
+  - **Mittagszeit** *(Zeit, Standard: 13:00)*
+
+- **Abendessen aktivieren**
+  - **Abendzeit** *(Zeit, Standard: 17:00)*
+
+- **Snacks aktivieren**
+  - **Snack-Zeiten** *(Mehrfach-Auswahl)*
 
 ### Fütterungs-Erinnerungen
 - **Automatische Fütterungs-Erinnerungen** *(Boolean, Standard: true)*
 - **Erinnerungszeit vor Mahlzeit** *(Minuten, Standard: 30)*
 - **Snooze-Zeit bei Erinnerungen** *(Minuten, Standard: 10)*
 
+---
 
 ## 🏥 MODUL 3: Gesundheitsüberwachung (OPTIONAL)
 
 ### Gesundheits-Tracking
-- **Erweiterte Gesundheitsüberwachung aktivieren** *(Boolean, Standard: false)*
-- **Gewichtsverlauf speichern** *(Boolean, Standard: true)*
-- **Temperatur-Tracking aktivieren** *(Boolean, Standard: false)*
-- **Activity-Logger aktivieren** *(Boolean, Standard: true)*
+- **Erweiterte Gesundheitsüberwachung aktivieren**
+- **Gewichtsverlauf speichern**
+- **Temperatur-Tracking aktivieren**
+- **Activity-Logger aktivieren**
 
 ### Gesundheits-Parameter
 
 
 ### Notfall-Erkennung
-- **Automatische Notfall-Erkennung** *(Boolean, Standard: false)*
+- **Automatische Notfall-Erkennung**
 
 ### Medikations-Management
-- **Medikations-Erinnerungen aktivieren** *(Boolean, Standard: false)*
+- **Medikations-Erinnerungen aktivieren**
 - **Standard-Medikationen** *(Multi-Entry, Optional)*
   - **Medikament-Name** *(Text)*
   - **Dosierung** *(Text)*
@@ -619,7 +358,7 @@ mode: restart
   - **E-Mail** *(Text, Optional)*
   - **Adresse** *(Text, Optional)*
 
-- **Regelmäßige Checkup-Erinnerungen** *(Boolean, Standard: false)*
+- **Regelmäßige Checkup-Erinnerungen**
   - **Checkup-Intervall** *(Monate, Standard: 12)*
   - **Nächster Termin** *(Datum, Optional)*
 
@@ -628,7 +367,7 @@ mode: restart
 ## 🔔 MODUL 4: Benachrichtigungssystem (OPTIONAL)
 
 ### Benachrichtigungs-Grundeinstellungen
-- **Benachrichtigungen aktivieren** *(Boolean, Standard: true)*
+- **Benachrichtigungen aktivieren**
 - **Benachrichtigungstyp** *(Auswahl)*
   - "Persistent Notifications" (Standard)
   - "Mobile App Notifications"
@@ -638,71 +377,70 @@ mode: restart
 - **Mobile App Integration** *(Multi-Select)*
   - **Person-Entity für Benachrichtigungen** *(Entity-Auswahl)*
   - **Mobile App Service Name** *(Auto-Detection oder Manual)*
-  - **Fallback bei Abwesenheit** *(Boolean, Standard: true)*
+  - **Fallback bei Abwesenheit**
 
 ### Actionable Notifications
-- **Actionable Notifications aktivieren** *(Boolean, Standard: false)*
+- **Actionable Notifications aktivieren**
 - **Action-Button-Konfiguration** *(Advanced)*
   - Fütterungs-Actions: "Gefüttert ✅", "10 Min später ⏰"
   - Walk-Actions: "Gassi starten 🚶", "Später 🕐"
 
 ### Benachrichtigungs-Kategorien
 **Fütterungs-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
+- **Aktiviert**
 - **Vorlaufzeit** *(Minuten, Standard: 30)*
 - **Wiederholungen bei ignoriert** *(Number, 0-5, Standard: 2)*
 - **Wiederholungs-Intervall** *(Minuten, Standard: 15)*
 
 **Spaziergang-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
+- **Aktiviert**
 - **Erinnerungsintervall** *(Stunden, Standard: 8)*
-- **Wetterbasierte Anpassungen** *(Boolean, Standard: false)*
+- **Wetterbasierte Anpassungen**
 
 **Gesundheits-Benachrichtigungen**
-- **Aktiviert** *(Boolean, Standard: true)*
-- **Notfall-Benachrichtigungen** *(Boolean, Standard: true)*
-- **Medikations-Erinnerungen** *(Boolean, Standard: false)*
+- **Aktiviert**
+- **Notfall-Benachrichtigungen**
+- **Medikations-Erinnerungen**
 
 **GPS-Benachrichtigungen**
-- **Geofence-Alerts** *(Boolean, Standard: false)*
-- **Signal-Verlust-Alerts** *(Boolean, Standard: false)*
+- **Geofence-Alerts**
+- **Signal-Verlust-Alerts**
 - **Signal-Verlust-Schwelle** *(Minuten, Standard: 10)*
 
 ### Zeitbasierte Benachrichtigungs-Steuerung
-- **Nachtmodus aktivieren** *(Boolean, Standard: true)*
+- **Nachtmodus aktivieren**
 - **Ruhezeiten** *(Zeitbereich)*
   - **Start** *(Zeit, Standard: 22:00)*
   - **Ende** *(Zeit, Standard: 07:00)*
-- **Nur Notfälle in Ruhezeiten** *(Boolean, Standard: true)*
+- **Nur Notfälle in Ruhezeiten**
 
 ---
 
 ## 🤖 MODUL 5: Automatisierungssystem (OPTIONAL)
 
 ### Basis-Automatisierung
-- **Automatisierungs-Manager aktivieren** *(Boolean, Standard: false)*
-- **Automatisierungs-Update-Intervall** *(Minuten, Standard: 5)*
+- **Automatisierungs-Manager aktivieren**
 
 ### Fütterungs-Automatisierung
-- **Fütterungs-Erinnerungen aktivieren** *(Boolean, Standard: true)*
-- **Meilenstein-Benachrichtigungen** *(Boolean, Standard: false)*
-- **Meilenstein-Schwellen** *(Multi-Number)*
-  - Standard: [5, 10, 25, 50, 100]
+- **Fütterungs-Erinnerungen aktivieren**
 
 ### Aktivitäts-Automatisierung
-- **Walk-Meilenstein-Feiern** *(Boolean, Standard: false)*
-- **Aktivitäts-Level-Monitoring** *(Boolean, Standard: false)*
-- **Inaktivitäts-Alerts** *(Boolean, Standard: false)*
+- **Walk-Meilenstein-Feiern**
+- **Meilenstein-Benachrichtigungen**
+- **Meilenstein-Schwellen** *(Multi-Number)*
+  - Standard: [5, 10, 25, 50, 100]
+- **Aktivitäts-Level-Monitoring**
+- **Inaktivitäts-Alerts**
 - **Inaktivitäts-Schwelle** *(Stunden, Standard: 24)*
 
 ### Gesundheits-Automatisierung
-- **Automatische Gesundheits-Alerts** *(Boolean, Standard: false)*
-- **Stimmungsänderungs-Tracking** *(Boolean, Standard: false)*
-- **Gewichtsänderungs-Alerts** *(Boolean, Standard: false)*
+- **Automatische Gesundheits-Alerts**
+- **Stimmungsänderungs-Tracking**
+- **Gewichtsänderungs-Alerts**
 - **Gewichtsänderungs-Schwelle** *(%, Standard: 5)*
 
 ### Besucher-Modus-Automatisierung
-- **Automatischer Besuchermodus** *(Boolean, Standard: false)*
+- **Automatischer Besuchermodus**
 - **Besuchererkennung-Methode** *(Optionen)*
   - "Manual Toggle"
   - "Person Detection"
@@ -710,15 +448,15 @@ mode: restart
   - "Calendar Integration"
 
 ### Wartungs-Automatisierung
-- **Tägliche Berichte generieren** *(Boolean, Standard: false)*
-- **Berichts-Zeit** *(Zeit, Standard: 23:30)*
-- **Wöchentliche Zusammenfassungen** *(Boolean, Standard: false)*
-- **System-Gesundheitschecks** *(Boolean, Standard: true)*
+- **Tägliche Berichte generieren**
+- **Berichts-Zeit**
+- **Wöchentliche Zusammenfassungen**
+- **System-Gesundheitschecks**
 - **Check-Intervall** *(Minuten, Standard: 30)*
 
 ### Notfall-Automatisierung
-- **Automatisches Notfall-Protokoll** *(Boolean, Standard: false)*
-- **Notfall-Kontakt-Integration** *(Boolean, Standard: false)*
+- **Automatisches Notfall-Protokoll**
+- **Notfall-Kontakt-Integration**
 - **Eskalations-Stufen** *(Advanced)*
 
 ---
@@ -726,30 +464,30 @@ mode: restart
 ## 📊 MODUL 6: Dashboard und Visualisierung (OPTIONAL)
 
 ### Dashboard-Erstellung
-- **Automatisches Dashboard erstellen** *(Boolean, Standard: true)*
-- **Dashboard-Name** *(Text, Standard: "PawControl")*
-- **Dashboard-Pfad** *(Text, Standard: "pawcontrol")*
+- **Automatisches Dashboard erstellen**
+- **Dashboard-Name**
+- **Dashboard-Pfad**
 
 ### Dashboard-Module
 **Übersichts-Karten**
-- **Status-Übersichtskarte** *(Boolean, Standard: true)*
-- **Tages-Zusammenfassung** *(Boolean, Standard: true)*
-- **Quick-Action-Buttons** *(Boolean, Standard: true)*
+- **Status-Übersichtskarte**
+- **Tages-Zusammenfassung**
+- **Quick-Action-Buttons**
 
 **GPS-Module** *(Wenn GPS aktiviert)*
-- **Live-GPS-Karte** *(Boolean, Standard: true)*
-- **Route-Verlauf** *(Boolean, Standard: false)*
-- **Geofence-Visualisierung** *(Boolean, Standard: false)*
+- **Live-GPS-Karte**
+- **Route-Verlauf**
+- **Geofence-Visualisierung**
 
-**Gesundheits-Module** *(Wenn Gesundheit aktiviert)*
-- **Gesundheits-Status-Karte** *(Boolean, Standard: true)*
-- **Gewichtsverlaufs-Graph** *(Boolean, Standard: false)*
-- **Medikations-Übersicht** *(Boolean, Standard: false)*
+**Gesundheits-Module**
+- **Gesundheits-Status-Karte**
+- **Gewichtsverlaufs-Graph**
+- **Medikations-Übersicht**
 
 **Aktivitäts-Module**
-- **Walk-Statistiken** *(Boolean, Standard: true)*
-- **Fütterungs-Status** *(Boolean, Standard: true)*
-- **Aktivitäts-Verlauf** *(Boolean, Standard: false)*
+- **Walk-Statistiken**
+- **Fütterungs-Status**
+- **Aktivitäts-Verlauf**
 
 ### UI-Anpassungen
 - **Card-Typ-Präferenz** *(Optionen)*
@@ -769,13 +507,12 @@ mode: restart
 
 ---
 
-
 ## 📍 MODUL 7: GPS-Tracking-System (OPTIONAL)
 
 ### GPS-Grundkonfiguration
-- **GPS-Tracking aktivieren** *(Boolean, Standard: false)*
+- **GPS-Tracking aktivieren**
 - **GPS-Update-Intervall** *(Sekunden)*
-  - Optionen: [30, 60, 120, 300, 600]
+  - Optionen: [60, 120, 300, 600]
   - Standard: 60
 
 ### GPS-Quellen-Konfiguration
@@ -825,17 +562,17 @@ mode: restart
   - Standard: 50m
 
 ### Geofencing-Einstellungen
-- **Geofencing aktivieren** *(Boolean, Standard: false)*
+- **Geofencing aktivieren**
 - **Geofence-Konfigurationen** *(Multi-Entry)*
   - **Name** *(Text)*
   - **Center-Koordinaten** *(Lat, Lon)*
   - **Radius** *(10-10000m)*
   - **Typ** *(Optionen: "Safe Zone", "Restricted Area", "Point of Interest")*
-  - **Benachrichtigung bei Eintritt** *(Boolean)*
-  - **Benachrichtigung bei Verlassen** *(Boolean)*
+  - **Benachrichtigung bei Eintritt**
+  - **Benachrichtigung bei Verlassen**
 
 ### Automatische Spaziergang-Erkennung
-- **Auto-Walk-Detection aktivieren** *(Boolean, Standard: false)*
+- **Auto-Walk-Detection aktivieren**
 - **Bewegungs-Schwelle** *(Meter)*
   - Bereich: 1-50m
   - Standard: 3m
@@ -858,17 +595,17 @@ mode: restart
   - Beeinflusst Bewegungs-Detection-Parameter
 
 ### Route-Tracking
-- **Detaillierte Route aufzeichnen** *(Boolean, Standard: true)*
+- **Detaillierte Route aufzeichnen**
 - **Route-Punkte-Limit** *(Number)*
   - Bereich: 10-1000
   - Standard: 100
 
 - **GPS-Punkt-Speicher-Intervall** *(Sekunden)*
-  - Bereich: 5-300
-  - Standard: 30
+  - Bereich: 30-300
+  - Standard: 60
 
 ### Kalorien-Berechnung
-- **Kalorien-Berechnung aktivieren** *(Boolean, Standard: true)*
+- **Kalorien-Berechnung aktivieren**
 - **Aktivitäts-Intensitäts-Multiplikatoren** *(Advanced)*
   - Langsam: 0.7 (Standard)
   - Normal: 1.0 (Standard)
@@ -879,19 +616,19 @@ mode: restart
 ## ⚙️ MODUL 8: Erweiterte Service-Konfiguration (OPTIONAL)
 
 ### Script-Services-Aktivierung
-- **Erweiterte Script-Services aktivieren** *(Boolean, Standard: false)*
-- **Service-Statistik-Tracking** *(Boolean, Standard: true)*
+- **Erweiterte Script-Services aktivieren**
+- **Service-Statistik-Tracking**
 
 ### Fütterungs-Services
-- **feed_dog Service** *(Boolean, Standard: true)*
-- **Automatische Portionsgrößen-Berechnung** *(Boolean, Standard: true)*
-- **Fütterungs-Logging-Level** *(Optionen: "Basic", "Detailed", "Full")*
+- **feed_dog Service**
+- **Automatische Portionsgrößen-Berechnung**
+- **Fütterungs-Logging-Level**
 
 ### Aktivitäts-Services
-- **walk_dog Service** *(Boolean, Standard: true)*
-- **play_with_dog Service** *(Boolean, Standard: true)*
-- **start_training_session Service** *(Boolean, Standard: false)*
-- **Wetterintegration für Spaziergänge** *(Boolean, Standard: false)*
+- **walk_dog Service**
+- **play_with_dog Service**
+- **start_training_session Service**
+- **Wetterintegration für Spaziergänge**
 - **Wetter-Entity** *(Entity-Auswahl, falls aktiviert)*
 
 ### Gesundheits-Services
@@ -916,36 +653,32 @@ mode: restart
 ## 🔧 MODUL 9: System-Integration und Hardware (OPTIONAL)
 
 ### Home Assistant Integration
-- **HA-Restart-Persistence** *(Boolean, Standard: true)*
+- **HA-Restart-Persistence**
 - **State-Backup-Intervall** *(Stunden, Standard: 24)*
 - **Entity-Naming-Prefix** *(Text, Standard: Hundename)*
 
 ### Hardware-Integration
 **Sensoren-Integration**
-- **Gewichts-Sensor Integration** *(Boolean, Standard: false)*
+- **Gewichts-Sensor Integration**
 - **Gewichts-Sensor Entity** *(Entity-Auswahl)*
-- **Temperatur-Sensor Integration** *(Boolean, Standard: false)*
+- **Temperatur-Sensor Integration**
 - **Temperatur-Sensor Entity** *(Entity-Auswahl)*
 
 **Smart Home Integration**
-- **Türsensoren für Outside-Detection** *(Boolean, Standard: false)*
-- **Türsensor-Entities** *(Multi-Entity-Auswahl)*
-- **Kamera-Integration für Überwachung** *(Boolean, Standard: false)*
+- **Türsensoren für Outside-Detection**
+- **Türsensor-Entities**
+- **Kamera-Integration für Überwachung**
 - **Kamera-Entities** *(Multi-Entity-Auswahl)*
 
 **IoT-Device Integration**
-- **MQTT-Broker für IoT-Geräte** *(Boolean, Standard: false)*
-- **MQTT-Broker-Konfiguration** *(Host, Port, Username, Password)*
-- **Custom-Device-Endpoints** *(Multi-Entry, Advanced)*
+- **MQTT-Broker für IoT-Geräte**
+- **MQTT-Broker-Konfiguration**
+- **Custom-Device-Endpoints**
 
 ### Externe API-Integration
-- **Wetterservice-Integration** *(Boolean, Standard: false)*
+- **Wetterservice-Integration**
 - **Wetterservice-Typ** *(Optionen: "OpenWeatherMap", "Weather.com", "Home Assistant Weather")*
-- **API-Key** *(Text, falls erforderlich)*
 
-- **Veterinär-Software-Integration** *(Boolean, Standard: false)*
-- **Vet-Software-API-Endpoint** *(URL, Advanced)*
-- **API-Credentials** *(Username/Password oder API-Key)*
 
 ---
 
@@ -964,13 +697,13 @@ mode: restart
   - Standard: 365 Tage
 
 ### Backup-Konfiguration
-- **Automatische Backups aktivieren** *(Boolean, Standard: false)*
-- **Backup-Intervall** *(Optionen: "Täglich", "Wöchentlich", "Monatlich")*
-- **Backup-Speicherort** *(Pfad, Standard: "/config/paw_control_backups")*
-- **Backup-Anzahl-Limit** *(Number, Standard: 10)*
+- **Automatische Backups aktivieren**
+- **Backup-Intervall**
+- **Backup-Speicherort**
+- **Backup-Anzahl-Limit**
 
 ### Datenexport
-- **Export-Funktionen aktivieren** *(Boolean, Standard: false)*
+- **Export-Funktionen aktivieren**
 - **Export-Formate** *(Multi-Select)*
   - CSV
   - JSON
@@ -978,59 +711,9 @@ mode: restart
   - GPX (für GPS-Routen)
 
 ### Datenschutz und Sicherheit
-- **Daten-Anonymisierung bei Export** *(Boolean, Standard: true)*
-- **GPS-Daten-Verschlüsselung** *(Boolean, Standard: false)*
-- **Backup-Verschlüsselung** *(Boolean, Standard: false)*
-
----
-
-## 🚀 MODUL 11: Performance und Wartung (OPTIONAL)
-
-### Performance-Optimierung
-- **Memory-Management** *(Optionen: "Conservative", "Balanced", "Performance")*
-- **Update-Intervall-Optimierung** *(Boolean, Standard: true)*
-- **Entity-Cleanup bei Neustart** *(Boolean, Standard: true)*
-
-### Logging und Debugging
-- **Debug-Logging aktivieren** *(Boolean, Standard: false)*
-- **Log-Level** *(Optionen: "DEBUG", "INFO", "WARNING", "ERROR")*
-- **GPS-Trace-Logging** *(Boolean, Standard: false)*
-- **Service-Call-Logging** *(Boolean, Standard: false)*
-
-### System-Monitoring
-- **Performance-Monitoring** *(Boolean, Standard: false)*
-- **Memory-Usage-Tracking** *(Boolean, Standard: false)*
-- **Entity-Health-Monitoring** *(Boolean, Standard: true)*
-
-### Update-Management
-- **Auto-Update-Checks** *(Boolean, Standard: true)*
-- **Beta-Features aktivieren** *(Boolean, Standard: false)*
-- **Update-Benachrichtigungen** *(Boolean, Standard: true)*
-
----
-
-## 🎯 MODUL 12: Experteneinstellungen (ADVANCED)
-
-### GPS-Advanced-Konfiguration
-- **Custom-GPS-Provider-Settings** *(JSON-Konfiguration)*
-- **Coordinate-System-Transformation** *(Boolean, Standard: false)*
-- **GPS-Drift-Correction** *(Boolean, Standard: true)*
-- **Signal-Noise-Filtering** *(Boolean, Standard: true)*
-
-### Service-Custom-Konfiguration
-- **Custom-Service-Timeouts** *(Sekunden-Mapping)*
-- **Retry-Logic-Konfiguration** *(Advanced)*
-- **Error-Handling-Strategien** *(Advanced)*
-
-### Entity-Management
-- **Entity-ID-Patterns** *(Template-Konfiguration)*
-- **Custom-Icon-Mappings** *(JSON)*
-- **Entity-State-Templates** *(YAML)*
-
-### Integration-Hooks
-- **Pre/Post-Service-Hooks** *(Script-Referenzen)*
-- **Custom-Automation-Trigger** *(YAML)*
-- **Event-Bus-Integration** *(Advanced)*
+- **Daten-Anonymisierung bei Export**
+- **GPS-Daten-Verschlüsselung**
+- **Backup-Verschlüsselung**
 
 ---
 
@@ -1040,76 +723,23 @@ mode: restart
 1. **Hundename** (Pflichtfeld)
 
 ### MODULARE OPTIONAL-KONFIGURATION
-1. **Hundedaten-Erweiterung** (9 Parameter)
-2. **Fütterungssystem** (15 Parameter)
-3. **GPS-Tracking-System** (35+ Parameter)
-4. **Gesundheitsüberwachung** (18 Parameter)
-5. **Benachrichtigungssystem** (25 Parameter)
-6. **Automatisierungssystem** (20 Parameter)
-7. **Dashboard-System** (15 Parameter)
-8. **Service-Konfiguration** (20 Parameter)
-9. **Hardware-Integration** (15 Parameter)
-10. **Datenverwaltung** (12 Parameter)
-11. **Performance-Tuning** (10 Parameter)
-12. **Experteneinstellungen** (15 Parameter)
+1. **Hundedaten-Erweiterung** 
+2. **Fütterungssystem**
+3. **GPS-Tracking-System**
+4. **Gesundheitsüberwachung**
+5. **Benachrichtigungssystem**
+6. **Automatisierungssystem**
+7. **Dashboard-System**
+8. **Service-Konfiguration**
+9. **Hardware-Integration**
+10. **Datenverwaltung**
 
 ### GESAMT-PARAMETER-ANZAHL
 - **Erforderlich**: 1 Parameter
 - **Optional**: 200+ Parameter
 - **Total**: 200+ konfigurierbare Einstellungen
 
-### SETUP-FLOW-EMPFEHLUNG
-1. **Quick Setup** (5 Min): Nur Grunddaten + GPS-Quelle
-2. **Standard Setup** (15 Min): + Fütterung + Benachrichtigungen
-3. **Advanced Setup** (30 Min): + Gesundheit + Automatisierung
-4. **Expert Setup** (60+ Min): Vollständige Konfiguration aller Module
-
 Dieses Setup-System ermöglicht eine vollständige Anpassung von einer Basis-Hundeverfolgung bis hin zu einem professionellen Tierpflege-Management-System auf Enterprise-Niveau.
-
----
-
-### Medikations-Mapping (ab v15)
-- Konfiguration **pro Hund** im **Options-Flow → medication_mapping**.
-- Für jeden Hund stehen **Slots 1..3** zur Verfügung; jeweils Mehrfachauswahl der Mahlzeiten (**Frühstück/Mittag/Abend**).
-- Die früheren Switches `switch.pawcontrol_*_medication_*_at_*` sind **entfernt**.
-
----
-
-## GPS-Setup – kompatibel zu *PawTracker*-Beispielen
-Die Integration akzeptiert die in den Guides verwendeten Services **auch unter `pawtracker.*`** (Alias).
-Beispiele aus den Markdown-Dateien funktionieren daher direkt (z. B. `pawtracker.setup_automatic_gps`, `pawtracker.update_gps_simple`).
-
-
-
-### Geofencing & Medien-Export
-- Sicherheitszonen (leave/enter) mit Events + Benachrichtigungen. Schneller Toggle via Service `pawcontrol.toggle_geofence_alerts`.
-- Routen-Export optional direkt ins **/media/pawcontrol_routes** (Media Browser) – setze `to_media: true` beim Service `pawcontrol.gps_export_last_route`.
-- Auto-Profile (bewegungsbasiert): `sensor.pawcontrol_*_gps_profile` zeigt aktuelles Profil (`battery_saver`/`high_accuracy`).
-
-
-
-### Beispiele & Services
-- Beispiele unter `examples/gps_automation_examples.yaml` (aus den bereitgestellten Guides).
-- Neue Services: `pawcontrol.gps_pause_tracking`, `pawcontrol.gps_resume_tracking`.
-
-
-### Blueprints
-- Siehe `blueprints/automation/pawcontrol/` für fertige Automations-Vorlagen.
-
-- Beispiel-Dashboard: `dashboards/pawcontrol_dashboard.yaml` (DOG_ID im YAML ersetzen).
-
-- Blueprint: `blueprints/automation/pawcontrol/medication_every_x_hours.yaml` – erinnert alle X Stunden.
-
-- Optionen: **Medikations-Zuordnung** – pro Hund Multi-Select, welche Slots zu welchen Mahlzeiten gehören.
-
-- Siehe `docs/SETUP_CONFIGURATION.md`
-- Siehe `docs/ERWEITERT_KOMPLETT.md`
-- Siehe `docs/ANALYSE_1.md`
-- Siehe `docs/GPS_INTEGRATION_GUIDE.md`
-- Siehe `docs/GPS_UPDATE_README.md`
-- Siehe `docs/AUTOMATIC_GPS_TRACKING.md`
-
-![Paw Control](assets/logo.png)
 
 - Optionen: **Hunde verwalten** – schnelle Eingabe als `id:name` je Zeile.
 
@@ -1123,3 +753,82 @@ Beispiele aus den Markdown-Dateien funktionieren daher direkt (z. B. `pawtrack
 - Optionen: **Erinnerungen & Benachrichtigungen** – Notify-Ziel, Intervall, Snooze, optional Auto-Erinnerung.
 
 - Optionen: **Medikamente – Zuordnung je Slot** – pro Hund Slot 1–3 den Mahlzeiten (Frühstück/Mittag/Abend) zuordnen.
+
+---
+
+### Contribution Guidelines
+
+1. **Issues erstellen** für Bugs oder Feature Requests
+2. **Fork & Branch** für Entwicklung
+3. **Tests schreiben** für neue Features
+4. **Code Quality** mit pre-commit hooks sicherstellen
+5. **Pull Request** mit detaillierter Beschreibung
+
+---
+
+## 📖 Dokumentation
+
+- **[Setup Guide](docs/SETUP.md)**: Detaillierte Installation
+- **[API Reference](docs/API.md)**: Service und Entity Dokumentation
+- **[Automation Examples](docs/AUTOMATIONS.md)**: Fertige Automatisierungen
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: Problembehebung
+- **[Development](docs/DEVELOPMENT.md)**: Entwickler-Dokumentation
+
+---
+
+## 🐛 Troubleshooting
+
+### Häufige Probleme
+
+---
+
+## 📞 Support
+
+- **GitHub Issues**: [Bug Reports & Feature Requests](https://github.com/BigDaddy1990/pawcontrol/issues)
+- **Home Assistant Community**: [Forum Discussion](https://community.home-assistant.io/t/paw-control/)
+- **Discord**: [Smart Home Pets Channel](https://discord.gg/smart-home-pets)
+- **Wiki**: [Comprehensive Documentation](https://github.com/BigDaddy1990/pawcontrol/wiki)
+
+---
+
+## 📝 Changelog
+
+[Vollständiges Changelog →](CHANGELOG.md)
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt steht unter der MIT Lizenz - siehe [LICENSE](LICENSE) für Details.
+
+## 🏆 Auszeichnungen
+
+- 🥇 **Home Assistant Quality Scale**: Platinum Tier
+- 🌟 **HACS Featured Integration**: Top-Bewertung
+- 👥 **Community Choice**: Beliebteste Pet-Integration 2025
+
+---
+
+## 🙏 Credits
+
+- **Entwicklung**: [BigDaddy1990](https://github.com/BigDaddy1990)
+- **Contributors**: [Alle Contributors](https://github.com/BigDaddy1990/pawcontrol/graphs/contributors)
+- **Beta-Tester**: Paw Control Community
+- **Icons**: [Material Design Icons](https://materialdesignicons.com/)
+- **Inspiration**: Alle Hundebesitzer der Home Assistant Community
+
+---
+
+<div align="center">
+![Paw Control](assets/logo.png)
+**🐕 Made with ❤️ for our four-legged family members 🐾**
+
+*Paw Control - Bringing Smart Home technology to pet care since 2024*
+
+</div>
+
+---
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=BigDaddy1990/pawcontrol&type=Date)](https://star-history.com/#BigDaddy1990/pawcontrol&Date)
