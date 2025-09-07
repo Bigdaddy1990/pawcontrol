@@ -14,6 +14,8 @@ Test Coverage:
 - Module-specific date entity creation
 - Integration scenarios and coordinator interaction
 - Performance testing with large setups
+- Performance monitor decorator integration
+- Exception handling and edge cases
 """
 
 import asyncio
@@ -128,6 +130,24 @@ class TestAsyncAddEntitiesInBatches:
         
         # Should be called 12 times (140 / 12 = 11.67 -> 12 batches)
         assert mock_add_entities.call_count == 12
+
+    @pytest.mark.asyncio
+    async def test_async_add_entities_in_batches_custom_delay(self):
+        """Test batching with custom delay between batches."""
+        mock_add_entities = Mock()
+        entities = [Mock() for _ in range(25)]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            await _async_add_entities_in_batches(
+                mock_add_entities, entities, batch_size=10, delay_between_batches=0.2
+            )
+
+        # Should be called 3 times (10 + 10 + 5)
+        assert mock_add_entities.call_count == 3
+        
+        # Check custom delay was used
+        assert mock_sleep.call_count == 2
+        mock_sleep.assert_called_with(0.2)
 
 
 class TestAsyncSetupEntry:
@@ -256,8 +276,11 @@ class TestAsyncSetupEntry:
         # No coordinator in hass.data should raise PawControlError
         mock_add_entities = Mock()
 
-        with pytest.raises(PawControlError):
+        with pytest.raises(PawControlError) as exc_info:
             await async_setup_entry(hass, entry, mock_add_entities)
+        
+        assert exc_info.value.error_code == "platform_setup_error"
+        assert "Date platform setup failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_async_setup_entry_no_dogs_configured(self, hass: HomeAssistant, mock_coordinator):
@@ -278,6 +301,81 @@ class TestAsyncSetupEntry:
         args, kwargs = mock_batch_add.call_args
         entities = args[1]
         assert len(entities) == 0
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_exception_during_setup(self, hass: HomeAssistant, mock_coordinator):
+        """Test setup entry when exception occurs during setup."""
+        entry = Mock(spec=ConfigEntry)
+        entry.runtime_data = {
+            "coordinator": mock_coordinator,
+            "dogs": [
+                {
+                    CONF_DOG_ID: "dog1",
+                    CONF_DOG_NAME: "Buddy",
+                    "modules": {MODULE_HEALTH: True}
+                }
+            ]
+        }
+        
+        mock_add_entities = Mock()
+
+        # Mock exception during entity creation
+        with patch("custom_components.pawcontrol.date.PawControlBirthdateDate", side_effect=Exception("Entity creation failed")):
+            with pytest.raises(PawControlError) as exc_info:
+                await async_setup_entry(hass, entry, mock_add_entities)
+        
+        assert exc_info.value.error_code == "platform_setup_error"
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_missing_coordinator_in_legacy_data(self, hass: HomeAssistant):
+        """Test setup entry when coordinator is missing from legacy data structure."""
+        hass.data[DOMAIN] = {
+            "test_entry": {}  # Missing coordinator
+        }
+        
+        entry = Mock(spec=ConfigEntry)
+        entry.entry_id = "test_entry"
+        entry.runtime_data = None
+        
+        mock_add_entities = Mock()
+
+        with pytest.raises(PawControlError):
+            await async_setup_entry(hass, entry, mock_add_entities)
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_partial_dog_configuration(self, hass: HomeAssistant, mock_coordinator):
+        """Test setup entry with partially configured dogs."""
+        entry = Mock(spec=ConfigEntry)
+        entry.runtime_data = {
+            "coordinator": mock_coordinator,
+            "dogs": [
+                {
+                    CONF_DOG_ID: "dog1",
+                    CONF_DOG_NAME: "Buddy",
+                    "modules": {MODULE_FEEDING: True}  # Only feeding module
+                },
+                {
+                    CONF_DOG_ID: "dog2",
+                    CONF_DOG_NAME: "Max",
+                    "modules": {}  # No modules enabled
+                }
+            ]
+        }
+        
+        mock_add_entities = Mock()
+
+        with patch("custom_components.pawcontrol.date._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+            await async_setup_entry(hass, entry, mock_add_entities)
+
+        # Should still call batching function
+        mock_batch_add.assert_called_once()
+        args, kwargs = mock_batch_add.call_args
+        entities = args[1]
+        
+        # Dog1: 2 core + 2 feeding = 4 entities
+        # Dog2: 2 core = 2 entities  
+        # Total: 6 entities
+        assert len(entities) == 6
 
 
 class TestPawControlDateBase:
@@ -320,6 +418,7 @@ class TestPawControlDateBase:
         assert device_info["model"] == "Smart Dog Management"
         assert device_info["sw_version"] == "2025.8.2"
         assert "configuration_url" in device_info
+        assert device_info["suggested_area"] == "Pet Area"
 
     def test_native_value_default(self, base_date_entity):
         """Test native value when no value is set."""
@@ -486,6 +585,23 @@ class TestPawControlDateBase:
         
         assert "Failed to set date: Handler error" in exc_info.value.reason
 
+    @pytest.mark.asyncio
+    async def test_async_set_value_with_performance_monitor(self, hass: HomeAssistant, base_date_entity):
+        """Test performance monitor decorator integration."""
+        base_date_entity.hass = hass
+        test_date = date(2023, 7, 20)
+        
+        with patch("custom_components.pawcontrol.utils.performance_monitor") as mock_decorator:
+            # Mock the decorator to return the original function
+            mock_decorator.return_value = lambda func: func
+            
+            with patch.object(base_date_entity, 'async_write_ha_state'):
+                with patch.object(base_date_entity, '_async_handle_date_set', new_callable=AsyncMock):
+                    await base_date_entity.async_set_value(test_date)
+        
+        # Performance monitor should have been called with timeout
+        mock_decorator.assert_called_with(timeout=5.0)
+
     def test_handle_coordinator_update_with_data(self, base_date_entity, mock_coordinator):
         """Test coordinator update with valid data."""
         test_date = date(2023, 8, 1)
@@ -619,6 +735,24 @@ class TestPawControlBirthdateDate:
         
         birthdate_entity.coordinator.config_entry = Mock()
         birthdate_entity.coordinator.config_entry.runtime_data = None
+        
+        # Should not raise exception
+        await birthdate_entity._async_handle_date_set(test_date)
+
+    @pytest.mark.asyncio
+    async def test_async_handle_date_set_data_manager_exception(self, birthdate_entity):
+        """Test birthdate handling when data manager raises exception."""
+        test_date = date(2020, 5, 15)
+        
+        mock_data_manager = AsyncMock()
+        mock_data_manager.async_update_dog_profile.side_effect = Exception("Update failed")
+        
+        mock_runtime_data = {
+            "data_manager": mock_data_manager
+        }
+        
+        birthdate_entity.coordinator.config_entry = Mock()
+        birthdate_entity.coordinator.config_entry.runtime_data = mock_runtime_data
         
         # Should not raise exception
         await birthdate_entity._async_handle_date_set(test_date)
@@ -1173,3 +1307,81 @@ class TestDateEntityIntegrationScenarios:
                 await entity.async_added_to_hass()
                 
                 assert entity._current_value == expected_result
+
+    @pytest.mark.asyncio
+    async def test_service_integration_comprehensive(self, hass: HomeAssistant, mock_coordinator):
+        """Test comprehensive service integration scenarios."""
+        entities_with_services = [
+            (PawControlLastVetVisitDate(mock_coordinator, "dog1", "Buddy"), "log_health_data"),
+            (PawControlVaccinationDate(mock_coordinator, "dog1", "Buddy"), "log_health_data"),
+            (PawControlDewormingDate(mock_coordinator, "dog1", "Buddy"), "log_health_data"),
+        ]
+        
+        for entity, expected_service in entities_with_services:
+            entity.hass = hass
+            test_date = date(2023, 6, 15)
+            
+            with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
+                await entity._async_handle_date_set(test_date)
+            
+            # Each entity should call its expected service
+            mock_service_call.assert_called_once()
+            args, kwargs = mock_service_call.call_args
+            assert args[0] == DOMAIN
+            assert args[1] == expected_service
+
+    @pytest.mark.asyncio
+    async def test_exception_handling_in_async_set_value(self, hass: HomeAssistant, mock_coordinator):
+        """Test comprehensive exception handling in async_set_value."""
+        entity = PawControlBirthdateDate(mock_coordinator, "dog1", "Buddy")
+        entity.hass = hass
+        
+        # Test with None value
+        with pytest.raises(ValidationError):
+            await entity.async_set_value(None)
+        
+        # Test with string value
+        with pytest.raises(ValidationError):
+            await entity.async_set_value("2023-06-15")
+        
+        # Test with integer value
+        with pytest.raises(ValidationError):
+            await entity.async_set_value(20230615)
+        
+        # Test with datetime object (should fail for date entity)
+        from datetime import datetime
+        with pytest.raises(ValidationError):
+            await entity.async_set_value(datetime(2023, 6, 15))
+
+    def test_coordinator_data_extraction_edge_cases(self, mock_coordinator):
+        """Test coordinator data extraction with various edge cases."""
+        entity = PawControlLastVetVisitDate(mock_coordinator, "dog1", "Buddy")
+        
+        edge_cases = [
+            ({}, None),  # Empty dict
+            ({"health": {}}, None),  # Empty health dict
+            ({"health": {"last_vet_visit": None}}, None),  # None value
+            ({"health": {"last_vet_visit": ""}}, None),  # Empty string
+            ({"health": {"other_field": "value"}}, None),  # Missing field
+            ({"health": {"last_vet_visit": "2023-13-40"}}, None),  # Invalid date
+            ({"health": {"last_vet_visit": "2023-02-29"}}, None),  # Invalid leap year
+        ]
+        
+        for dog_data, expected_result in edge_cases:
+            result = entity._extract_date_from_dog_data(dog_data)
+            assert result == expected_result
+
+    @pytest.mark.asyncio
+    async def test_async_added_to_hass_exception_handling(self, hass: HomeAssistant, mock_coordinator):
+        """Test exception handling in async_added_to_hass."""
+        entity = PawControlBirthdateDate(mock_coordinator, "dog1", "Buddy")
+        entity.hass = hass
+        entity.entity_id = "date.buddy_birthdate"
+        
+        # Mock async_get_last_state to raise exception
+        with patch.object(entity, 'async_get_last_state', side_effect=Exception("State error")):
+            # Should not raise exception
+            await entity.async_added_to_hass()
+            
+        # Should still have None value
+        assert entity._current_value is None

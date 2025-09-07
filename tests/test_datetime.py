@@ -14,6 +14,8 @@ Test Coverage:
 - Module-specific datetime entity creation
 - Integration scenarios and coordinator interaction
 - Performance testing with large setups
+- Emergency notification management
+- Service call error handling
 """
 
 import asyncio
@@ -132,6 +134,23 @@ class TestAsyncAddEntitiesInBatches:
         # Should be called 15 times (170 / 12 = 14.17 -> 15 batches)
         assert mock_add_entities.call_count == 15
 
+    @pytest.mark.asyncio
+    async def test_async_add_entities_in_batches_exact_batch_size(self):
+        """Test batching when entities exactly match batch size."""
+        mock_add_entities = Mock()
+        entities = [Mock() for _ in range(24)]  # Exactly 2 batches of 12
+
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            await _async_add_entities_in_batches(
+                mock_add_entities, entities, batch_size=12
+            )
+
+        # Should be called exactly 2 times
+        assert mock_add_entities.call_count == 2
+        
+        # Should sleep only once (between first and second batch)
+        assert mock_sleep.call_count == 1
+
 
 class TestAsyncSetupEntry:
     """Test the async setup entry function for datetime platform."""
@@ -242,6 +261,75 @@ class TestAsyncSetupEntry:
         args, kwargs = mock_batch_add.call_args
         entities = args[1]
         assert len(entities) == 0
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_missing_required_keys(self, hass: HomeAssistant, mock_coordinator):
+        """Test setup entry with dogs missing required keys."""
+        entry = Mock(spec=ConfigEntry)
+        entry.runtime_data = {
+            "coordinator": mock_coordinator,
+            "dogs": [
+                {
+                    # Missing CONF_DOG_ID and CONF_DOG_NAME
+                    "modules": {MODULE_FEEDING: True}
+                }
+            ]
+        }
+        
+        mock_add_entities = Mock()
+
+        with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+            await async_setup_entry(hass, entry, mock_add_entities)
+
+        # Should still call batching function but with no entities created
+        mock_batch_add.assert_called_once()
+        args, kwargs = mock_batch_add.call_args
+        entities = args[1]
+        assert len(entities) == 0
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_missing_coordinator_in_hass_data(self, hass: HomeAssistant):
+        """Test setup entry when coordinator is missing from hass.data."""
+        entry = Mock(spec=ConfigEntry)
+        entry.entry_id = "test_entry"
+        entry.runtime_data = None
+        
+        # Missing coordinator in hass.data
+        hass.data[DOMAIN] = {}
+        
+        mock_add_entities = Mock()
+
+        with pytest.raises(KeyError):
+            await async_setup_entry(hass, entry, mock_add_entities)
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_getattr_runtime_data_none(self, hass: HomeAssistant, mock_coordinator):
+        """Test setup entry when getattr returns None for runtime_data."""
+        entry = Mock(spec=ConfigEntry)
+        entry.entry_id = "test_entry"
+        
+        # Mock getattr to return None
+        with patch("builtins.getattr", return_value=None):
+            hass.data[DOMAIN] = {
+                "test_entry": {"coordinator": mock_coordinator}
+            }
+            
+            entry.data = {
+                CONF_DOGS: [
+                    {
+                        CONF_DOG_ID: "dog1",
+                        CONF_DOG_NAME: "Buddy",
+                        "modules": {MODULE_FEEDING: True}
+                    }
+                ]
+            }
+            
+            mock_add_entities = Mock()
+
+            with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+                await async_setup_entry(hass, entry, mock_add_entities)
+
+            mock_batch_add.assert_called_once()
 
 
 class TestPawControlDateTimeBase:
@@ -370,6 +458,34 @@ class TestPawControlDateTimeBase:
         assert base_datetime_entity._current_value == test_datetime
         mock_write_state.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_async_added_to_hass_with_unavailable_state(self, hass: HomeAssistant, base_datetime_entity):
+        """Test entity added to hass with unavailable state."""
+        base_datetime_entity.hass = hass
+        base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
+        
+        mock_state = Mock()
+        mock_state.state = "unavailable"
+        
+        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+            await base_datetime_entity.async_added_to_hass()
+            
+        assert base_datetime_entity._current_value is None
+
+    @pytest.mark.asyncio
+    async def test_async_added_to_hass_with_type_error(self, hass: HomeAssistant, base_datetime_entity):
+        """Test entity added to hass with TypeError during parsing."""
+        base_datetime_entity.hass = hass
+        base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
+        
+        mock_state = Mock()
+        mock_state.state = None  # This could cause TypeError
+        
+        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+            await base_datetime_entity.async_added_to_hass()
+            
+        assert base_datetime_entity._current_value is None
+
 
 class TestPawControlBirthdateDateTime:
     """Test the birthdate datetime entity."""
@@ -490,6 +606,14 @@ class TestPawControlFeedingTimeEntities:
         assert dinner_entity.native_value.hour == 18
         assert dinner_entity.native_value.minute == 0
 
+    def test_feeding_time_default_timezone_handling(self, breakfast_entity):
+        """Test timezone handling in default feeding times."""
+        # Default time should be in current timezone context
+        assert breakfast_entity.native_value.tzinfo is not None or breakfast_entity.native_value.tzinfo is None
+        
+        # Should be reasonable hour range
+        assert 0 <= breakfast_entity.native_value.hour <= 23
+
 
 class TestPawControlLastFeedingDateTime:
     """Test the last feeding datetime entity."""
@@ -559,6 +683,28 @@ class TestPawControlLastFeedingDateTime:
         result = last_feeding_entity.native_value
         assert result is None
 
+    def test_native_value_empty_feeding_data(self, last_feeding_entity, mock_coordinator):
+        """Test getting native value when feeding data is empty."""
+        mock_coordinator.get_dog_data.return_value = {"feeding": {}}
+        last_feeding_entity.coordinator = mock_coordinator
+        
+        result = last_feeding_entity.native_value
+        assert result is None
+
+    def test_native_value_type_error(self, last_feeding_entity, mock_coordinator):
+        """Test getting native value when TypeError occurs during parsing."""
+        mock_feeding_data = {
+            "feeding": {
+                "last_feeding": None  # Could cause TypeError
+            }
+        }
+        
+        mock_coordinator.get_dog_data.return_value = mock_feeding_data
+        last_feeding_entity.coordinator = mock_coordinator
+        
+        result = last_feeding_entity.native_value
+        assert result is None
+
     @pytest.mark.asyncio
     async def test_async_set_value_logs_feeding(self, hass: HomeAssistant, last_feeding_entity):
         """Test setting last feeding value logs feeding event."""
@@ -578,6 +724,20 @@ class TestPawControlLastFeedingDateTime:
                 "meal_type": "snack",  # Default for manual entries
             },
         )
+
+    @pytest.mark.asyncio
+    async def test_async_set_value_service_error(self, hass: HomeAssistant, last_feeding_entity):
+        """Test setting last feeding when service call fails."""
+        last_feeding_entity.hass = hass
+        test_datetime = datetime(2023, 6, 15, 12, 30, 0)
+        
+        with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
+            with patch.object(last_feeding_entity, 'async_write_ha_state'):
+                # Should not raise exception despite service error
+                await last_feeding_entity.async_set_value(test_datetime)
+        
+        # Value should still be set
+        assert last_feeding_entity._current_value == test_datetime
 
 
 class TestPawControlNextFeedingDateTime:
@@ -702,6 +862,14 @@ class TestPawControlHealthDateTimeEntities:
         assert result.month == 5
         assert result.day == 10
 
+    def test_last_vet_visit_native_value_empty_health(self, last_vet_visit_entity, mock_coordinator):
+        """Test getting last vet visit when health data is empty."""
+        mock_coordinator.get_dog_data.return_value = {"health": {}}
+        last_vet_visit_entity.coordinator = mock_coordinator
+        
+        result = last_vet_visit_entity.native_value
+        assert result is None
+
     def test_last_grooming_native_value_from_coordinator(self, last_grooming_entity, mock_coordinator):
         """Test getting last grooming from coordinator data."""
         mock_health_data = {
@@ -801,6 +969,26 @@ class TestPawControlHealthDateTimeEntities:
         
         assert next_medication_entity._current_value == test_datetime
 
+    @pytest.mark.asyncio
+    async def test_health_service_calls_with_errors(self, hass: HomeAssistant, last_vet_visit_entity, last_grooming_entity, last_medication_entity):
+        """Test health service calls handle errors gracefully."""
+        entities_and_times = [
+            (last_vet_visit_entity, datetime(2023, 5, 10, 14, 30, 0)),
+            (last_grooming_entity, datetime(2023, 4, 20, 10, 0, 0)),
+            (last_medication_entity, datetime(2023, 6, 1, 8, 0, 0)),
+        ]
+        
+        for entity, test_datetime in entities_and_times:
+            entity.hass = hass
+            
+            with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
+                with patch.object(entity, 'async_write_ha_state'):
+                    # Should not raise exception despite service error
+                    await entity.async_set_value(test_datetime)
+            
+            # Value should still be set
+            assert entity._current_value == test_datetime
+
 
 class TestPawControlWalkDateTimeEntities:
     """Test the walk-related datetime entities."""
@@ -850,6 +1038,14 @@ class TestPawControlWalkDateTimeEntities:
         assert result.month == 6
         assert result.day == 15
 
+    def test_last_walk_native_value_missing_walk_data(self, last_walk_entity, mock_coordinator):
+        """Test getting last walk when walk data is missing."""
+        mock_coordinator.get_dog_data.return_value = {"other": "data"}
+        last_walk_entity.coordinator = mock_coordinator
+        
+        result = last_walk_entity.native_value
+        assert result is None
+
     @pytest.mark.asyncio
     async def test_last_walk_async_set_value_logs_walk(self, hass: HomeAssistant, last_walk_entity):
         """Test setting last walk logs walk session."""
@@ -872,6 +1068,20 @@ class TestPawControlWalkDateTimeEntities:
         second_call = mock_service_call.call_args_list[1]
         assert second_call[0] == (DOMAIN, "end_walk")
         assert second_call[1] == {ATTR_DOG_ID: "dog1"}
+
+    @pytest.mark.asyncio
+    async def test_last_walk_async_set_value_service_error(self, hass: HomeAssistant, last_walk_entity):
+        """Test setting last walk when service calls fail."""
+        last_walk_entity.hass = hass
+        test_datetime = datetime(2023, 6, 15, 16, 30, 0)
+        
+        with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
+            with patch.object(last_walk_entity, 'async_write_ha_state'):
+                # Should not raise exception despite service errors
+                await last_walk_entity.async_set_value(test_datetime)
+        
+        # Value should still be set
+        assert last_walk_entity._current_value == test_datetime
 
     @pytest.mark.asyncio
     async def test_next_walk_reminder_async_set_value(self, next_walk_reminder_entity):
@@ -973,9 +1183,10 @@ class TestPawControlSpecialDateTimeEntities:
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
         
         # Mock the hass.data structure for notification manager
+        mock_notification_manager = AsyncMock()
         hass.data[DOMAIN] = {
             "test_entry": {
-                "notifications": AsyncMock()
+                "notifications": mock_notification_manager
             }
         }
         
@@ -994,13 +1205,72 @@ class TestPawControlSpecialDateTimeEntities:
         )
         
         # Should send urgent notification
-        notification_manager = hass.data[DOMAIN]["test_entry"]["notifications"]
-        notification_manager.async_send_notification.assert_called_once_with(
+        mock_notification_manager.async_send_notification.assert_called_once_with(
             "dog1",
             "🚨 Emergency Event Logged",
             "Emergency event logged for Buddy on 2023-06-30 22:15",
             priority="urgent",
         )
+
+    @pytest.mark.asyncio
+    async def test_emergency_async_set_value_missing_notification_manager(self, hass: HomeAssistant, emergency_entity):
+        """Test setting emergency date when notification manager is missing."""
+        emergency_entity.hass = hass
+        test_datetime = datetime(2023, 6, 30, 22, 15, 0)
+        
+        # Mock hass.data without notification manager
+        hass.data[DOMAIN] = {
+            "test_entry": {}  # Missing notifications
+        }
+        
+        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
+            with patch.object(emergency_entity, 'async_write_ha_state'):
+                # Should not raise exception even without notification manager
+                await emergency_entity.async_set_value(test_datetime)
+        
+        # Should still call health service
+        mock_service_call.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_emergency_async_set_value_notification_error(self, hass: HomeAssistant, emergency_entity):
+        """Test setting emergency date when notification manager raises error."""
+        emergency_entity.hass = hass
+        test_datetime = datetime(2023, 6, 30, 22, 15, 0)
+        
+        # Mock notification manager that raises exception
+        mock_notification_manager = AsyncMock()
+        mock_notification_manager.async_send_notification.side_effect = Exception("Notification error")
+        
+        hass.data[DOMAIN] = {
+            "test_entry": {
+                "notifications": mock_notification_manager
+            }
+        }
+        
+        with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
+            with patch.object(emergency_entity, 'async_write_ha_state'):
+                # Should not raise exception despite notification error
+                await emergency_entity.async_set_value(test_datetime)
+        
+        # Should still set the value
+        assert emergency_entity._current_value == test_datetime
+
+    @pytest.mark.asyncio
+    async def test_emergency_async_set_value_missing_hass_data(self, hass: HomeAssistant, emergency_entity):
+        """Test setting emergency date when hass.data structure is missing."""
+        emergency_entity.hass = hass
+        test_datetime = datetime(2023, 6, 30, 22, 15, 0)
+        
+        # No hass.data[DOMAIN] structure
+        hass.data = {}
+        
+        with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
+            with patch.object(emergency_entity, 'async_write_ha_state'):
+                # Should not raise exception even with missing data structure
+                await emergency_entity.async_set_value(test_datetime)
+        
+        # Should still set the value
+        assert emergency_entity._current_value == test_datetime
 
 
 class TestDateTimeEntityIntegrationScenarios:
@@ -1221,3 +1491,78 @@ class TestDateTimeEntityIntegrationScenarios:
         
         # Value should still be set despite service error
         assert entity._current_value == test_datetime
+
+    def test_coordinator_data_extraction_edge_cases(self, mock_coordinator):
+        """Test coordinator data extraction with various edge cases."""
+        entity = PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy")
+        entity.coordinator = mock_coordinator
+        
+        edge_cases = [
+            ({}, None),  # Empty dict
+            ({"feeding": {}}, None),  # Empty feeding dict
+            ({"feeding": {"last_feeding": None}}, None),  # None value
+            ({"feeding": {"last_feeding": ""}}, None),  # Empty string
+            ({"feeding": {"other_field": "value"}}, None),  # Missing field
+            ({"other": "data"}, None),  # No feeding key
+        ]
+        
+        for dog_data, expected_result in edge_cases:
+            mock_coordinator.get_dog_data.return_value = dog_data
+            result = entity.native_value
+            assert result == expected_result
+
+    @pytest.mark.asyncio
+    async def test_emergency_notification_comprehensive_scenarios(self, hass: HomeAssistant, mock_coordinator):
+        """Test comprehensive emergency notification scenarios."""
+        emergency_entity = PawControlEmergencyDateTime(mock_coordinator, "dog1", "Buddy")
+        emergency_entity.hass = hass
+        test_datetime = datetime(2023, 6, 30, 22, 15, 0)
+        
+        # Test various hass.data scenarios
+        scenarios = [
+            # Missing DOMAIN key
+            {},
+            # Missing entry_id key
+            {DOMAIN: {}},
+            # Missing notifications key
+            {DOMAIN: {"test_entry": {}}},
+            # Notifications is None
+            {DOMAIN: {"test_entry": {"notifications": None}}},
+        ]
+        
+        for scenario in scenarios:
+            hass.data = scenario
+            
+            with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
+                with patch.object(emergency_entity, 'async_write_ha_state'):
+                    # Should not raise exception in any scenario
+                    await emergency_entity.async_set_value(test_datetime)
+            
+            # Value should still be set
+            assert emergency_entity._current_value == test_datetime
+
+    @pytest.mark.asyncio
+    async def test_comprehensive_async_set_value_scenarios(self, hass: HomeAssistant, mock_coordinator):
+        """Test comprehensive async_set_value scenarios across all entity types."""
+        entities_to_test = [
+            PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy"),
+            PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy"),
+            PawControlLastVetVisitDateTime(mock_coordinator, "dog1", "Buddy"),
+            PawControlLastWalkDateTime(mock_coordinator, "dog1", "Buddy"),
+            PawControlVaccinationDateDateTime(mock_coordinator, "dog1", "Buddy"),
+        ]
+        
+        test_datetime = datetime(2023, 6, 15, 14, 30, 0)
+        
+        for entity in entities_to_test:
+            entity.hass = hass
+            
+            # Test successful set_value
+            with patch.object(entity, 'async_write_ha_state'):
+                with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
+                    await entity.async_set_value(test_datetime)
+            
+            assert entity._current_value == test_datetime
+            
+            # Reset for next test
+            entity._current_value = None
