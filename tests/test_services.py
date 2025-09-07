@@ -43,7 +43,6 @@ from custom_components.pawcontrol.exceptions import (
     PawControlError,
 )
 from custom_components.pawcontrol.services import (
-    PawControlServiceManager,
     SERVICE_DAILY_RESET_SCHEMA,
     SERVICE_FEED_DOG_SCHEMA,
     SERVICE_GROOMING_SCHEMA,
@@ -51,6 +50,7 @@ from custom_components.pawcontrol.services import (
     SERVICE_MEDICATION_SCHEMA,
     SERVICE_NOTIFY_TEST_SCHEMA,
     SERVICE_WALK_SCHEMA,
+    PawControlServiceManager,
     _build_dog_service_schema,
     _get_cached_schema,
     async_setup_daily_reset_scheduler,
@@ -224,7 +224,7 @@ class TestServiceHandlerDecorator:
     def test_service_handler_decorator_basic(self, mock_service_manager):
         """Test basic service handler decoration."""
         @service_handler(require_dog=True)
-        async def test_handler(self, call, dog_id, runtime_data):
+        async def test_handler(self, call, dog_id, runtime_data):  # noqa: F811
             return f"handled {dog_id}"
         
         # Verify decorator was applied
@@ -242,7 +242,7 @@ class TestServiceHandlerDecorator:
             assert runtime_data == mock_runtime_data
             return "success"
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         result = await test_handler(mock_service_manager, call)
@@ -255,7 +255,7 @@ class TestServiceHandlerDecorator:
         async def test_handler(self, call, dog_id, runtime_data):
             return "success"
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {}
         
         with pytest.raises(ServiceValidationError, match="dog_id is required"):
@@ -270,7 +270,7 @@ class TestServiceHandlerDecorator:
         async def test_handler(self, call, dog_id, runtime_data):
             return "success"
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "nonexistent_dog"}
         
         with pytest.raises(ServiceValidationError):
@@ -283,7 +283,7 @@ class TestServiceHandlerDecorator:
         async def test_handler(self, call):
             return "success"
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {}
         
         result = await test_handler(mock_service_manager, call)
@@ -297,7 +297,7 @@ class TestServiceHandlerDecorator:
             await asyncio.sleep(0.2)
             return "success"
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {}
         
         with pytest.raises(ServiceValidationError, match="timed out"):
@@ -310,7 +310,7 @@ class TestServiceHandlerDecorator:
         async def test_handler(self, call):
             raise PawControlError("Test error", "TEST_CODE")
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {}
         
         with pytest.raises(ServiceValidationError):
@@ -323,7 +323,7 @@ class TestServiceHandlerDecorator:
         async def test_handler(self, call):
             raise ValueError("Unexpected error")
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {}
         
         with pytest.raises(ServiceValidationError, match="Service failed"):
@@ -594,7 +594,7 @@ class TestServiceHandlers:
     @pytest.mark.asyncio
     async def test_handle_feed_dog_service(self, service_manager, mock_runtime_data):
         """Test feed dog service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             ATTR_MEAL_TYPE: "breakfast",
@@ -624,7 +624,7 @@ class TestServiceHandlers:
         self, service_manager, mock_runtime_data
     ):
         """Test feed dog service with calorie estimation."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             ATTR_PORTION_SIZE: 100.0,
@@ -644,7 +644,7 @@ class TestServiceHandlers:
         """Test start walk service handler."""
         mock_runtime_data["data_manager"].async_get_current_walk.return_value = None
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "label": "Morning walk",
@@ -678,7 +678,7 @@ class TestServiceHandlers:
             "walk_id": "existing_walk"
         }
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         with pytest.raises(ServiceValidationError, match="Walk already in progress"):
@@ -693,7 +693,7 @@ class TestServiceHandlers:
             "walk_id": "walk_123"
         }
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "distance": 2000.0,
@@ -727,7 +727,7 @@ class TestServiceHandlers:
         """Test end walk service when no walk is active."""
         mock_runtime_data["data_manager"].async_get_current_walk.return_value = None
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         with pytest.raises(ServiceValidationError, match="No active walk"):
@@ -738,7 +738,7 @@ class TestServiceHandlers:
     @pytest.mark.asyncio
     async def test_handle_log_health_service(self, service_manager, mock_runtime_data):
         """Test log health service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "weight": 25.5,
@@ -774,7 +774,7 @@ class TestServiceHandlers:
     @pytest.mark.asyncio
     async def test_handle_log_medication_service(self, service_manager, mock_runtime_data):
         """Test log medication service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "medication_name": "Flea Treatment",
@@ -795,7 +795,7 @@ class TestServiceHandlers:
     @pytest.mark.asyncio
     async def test_handle_start_grooming_service(self, service_manager, mock_runtime_data):
         """Test start grooming service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "type": "bath",
@@ -850,7 +850,7 @@ class TestServiceHandlers:
     @pytest.mark.asyncio
     async def test_handle_notify_test_service(self, service_manager, mock_runtime_data):
         """Test notify test service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "message": "Test notification",
@@ -918,7 +918,7 @@ class TestHealthAwareFeedingServices:
         self, service_manager, mock_runtime_data_with_feeding
     ):
         """Test recalculate health portions service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "trigger_reason": "weight_change",
@@ -946,7 +946,7 @@ class TestHealthAwareFeedingServices:
         # Remove config
         mock_runtime_data_with_feeding["feeding_manager"]._configs = {}
         
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         with pytest.raises(ServiceValidationError, match="No feeding configuration"):
@@ -959,7 +959,7 @@ class TestHealthAwareFeedingServices:
         self, service_manager, mock_runtime_data_with_feeding
     ):
         """Test health-aware feeding service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "meal_type": "breakfast",
@@ -983,7 +983,7 @@ class TestHealthAwareFeedingServices:
         self, service_manager, mock_runtime_data_with_feeding
     ):
         """Test health-aware feeding with manual portion override."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "meal_type": "dinner",
@@ -1003,7 +1003,7 @@ class TestHealthAwareFeedingServices:
         self, service_manager, mock_runtime_data_with_feeding
     ):
         """Test update health data service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "weight": 26.0,
@@ -1030,7 +1030,7 @@ class TestHealthAwareFeedingServices:
         self, service_manager, mock_runtime_data_with_feeding
     ):
         """Test feed with medication service handler."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             "medication_name": "Joint Supplement",
@@ -1180,7 +1180,7 @@ class TestServiceIntegration:
         service_manager = PawControlServiceManager(mock_hass)
         
         # Create realistic call object
-        call = ServiceCall(
+        call = ServiceCall(  # noqa: F811
             domain=DOMAIN,
             service=SERVICE_FEED_DOG,
             data={
@@ -1268,7 +1268,7 @@ class TestServiceErrorHandling:
     @pytest.mark.asyncio
     async def test_service_with_dog_not_found_error(self, service_manager):
         """Test service error when dog is not found."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "nonexistent_dog"}
         
         mock_runtime_data = None
@@ -1287,7 +1287,7 @@ class TestServiceErrorHandling:
     @pytest.mark.asyncio
     async def test_service_with_data_manager_error(self, service_manager):
         """Test service error when data manager fails."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         mock_runtime_data = {
@@ -1306,7 +1306,7 @@ class TestServiceErrorHandling:
     @pytest.mark.asyncio
     async def test_service_with_missing_feeding_manager(self, service_manager):
         """Test health-aware service when feeding manager is missing."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         mock_runtime_data = {"coordinator": Mock()}  # No feeding_manager
@@ -1352,7 +1352,7 @@ class TestServiceErrorHandling:
     @pytest.mark.asyncio
     async def test_service_concurrent_access(self, service_manager):
         """Test service handling under concurrent access."""
-        call = Mock()
+        call = Mock()  # noqa: F811
         call.data = {ATTR_DOG_ID: "test_dog"}
         
         mock_runtime_data = {

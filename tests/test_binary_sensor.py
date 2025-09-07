@@ -22,16 +22,6 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    DOMAIN as BINARY_SENSOR_DOMAIN,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.binary_sensor import (
     PawControlActivityLevelConcernBinarySensor,
     PawControlAttentionNeededBinarySensor,
@@ -39,9 +29,9 @@ from custom_components.pawcontrol.binary_sensor import (
     PawControlDailyFeedingGoalMetBinarySensor,
     PawControlFeedingDueBinarySensor,
     PawControlFeedingScheduleOnTrackBinarySensor,
+    PawControlGeofenceAlertBinarySensor,
     PawControlGPSAccuratelyTrackedBinarySensor,
     PawControlGPSBatteryLowBinarySensor,
-    PawControlGeofenceAlertBinarySensor,
     PawControlGroomingDueBinarySensor,
     PawControlHealthAlertBinarySensor,
     PawControlInSafeZoneBinarySensor,
@@ -78,6 +68,17 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from homeassistant.components.binary_sensor import (
+    DOMAIN as BINARY_SENSOR_DOMAIN,
+)
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.util import dt as dt_util
 
 
 class TestAsyncAddEntitiesInBatches:

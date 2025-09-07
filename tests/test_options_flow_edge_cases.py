@@ -19,46 +19,45 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 import time
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
-from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
-from custom_components.pawcontrol.entity_factory import EntityFactory, ENTITY_PROFILES
+import pytest
 from custom_components.pawcontrol.const import (
+    CONF_DASHBOARD_MODE,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
     CONF_DOGS,
-    CONF_MODULES,
-    CONF_GPS_UPDATE_INTERVAL,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
+    CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
     CONF_NOTIFICATIONS,
+    CONF_QUIET_END,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
-    CONF_QUIET_END,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
-    CONF_DASHBOARD_MODE,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_DISTANCE_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_REMINDER_REPEAT_MIN,
+    DEFAULT_RESET_TIME,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
-    DEFAULT_GPS_UPDATE_INTERVAL,
-    DEFAULT_GPS_ACCURACY_FILTER,
-    DEFAULT_GPS_DISTANCE_FILTER,
-    DEFAULT_REMINDER_REPEAT_MIN,
-    DEFAULT_RESET_TIME,
 )
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
+from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 
 @pytest.fixture
@@ -495,7 +494,7 @@ class TestDogManagementOperations:
             CONF_DOG_WEIGHT: 22.0,
         }
         
-        result = await options_flow.async_step_edit_dog(update_data)
+        await options_flow.async_step_edit_dog(update_data)
         
         options_flow.hass.config_entries.async_update_entry.assert_called()
 
@@ -527,7 +526,7 @@ class TestDogManagementOperations:
     @pytest.mark.asyncio
     async def test_select_dog_to_remove_confirmation(self, options_flow):
         """Test dog removal with confirmation."""
-        result = await options_flow.async_step_select_dog_to_remove({
+        await options_flow.async_step_select_dog_to_remove({
             "dog_id": "test_dog_1",
             "confirm_remove": True
         })
@@ -589,7 +588,7 @@ class TestModuleConfiguration:
             "module_training": True,
         }
         
-        result = await options_flow.async_step_configure_dog_modules(module_config)
+        await options_flow.async_step_configure_dog_modules(module_config)
         
         options_flow.hass.config_entries.async_update_entry.assert_called()
 
@@ -876,7 +875,7 @@ class TestSettingsCategories:
                 "data": {}
             })()
             
-            result = await options_flow.async_step_advanced_settings(advanced_settings)
+            await options_flow.async_step_advanced_settings(advanced_settings)
             
             mock_save.assert_called_once()
 

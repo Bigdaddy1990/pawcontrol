@@ -24,25 +24,25 @@ from custom_components.pawcontrol.const import (
     EVENT_FEEDING_LOGGED,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
     PLATFORMS,
     SERVICE_DAILY_RESET,
     SERVICE_END_WALK,
     SERVICE_FEED_DOG,
     SERVICE_LOG_HEALTH,
     SERVICE_START_WALK,
-    MODULE_FEEDING,
-    MODULE_WALK,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_DASHBOARD,
-    MODULE_NOTIFICATIONS,
-    MODULE_VISITOR,
 )
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import (
     ConfigurationError,
     DogNotFoundError,
 )
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -718,7 +718,7 @@ class TestProfileBasedSetupOptimization:
             patch("custom_components.pawcontrol.FeedingManager"),
             patch("custom_components.pawcontrol.HealthCalculator"),
             patch("custom_components.pawcontrol.EntityFactory", return_value=mock_entity_factory),
-            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True) as mock_forward,
+            patch.object(hass.config_entries, "async_forward_entry_setups", return_value=True),
             patch("custom_components.pawcontrol.PawControlServiceManager"),
             patch("custom_components.pawcontrol.async_setup_daily_reset_scheduler"),
             patch("asyncio.gather") as mock_gather,
@@ -755,7 +755,7 @@ class TestAsyncUnloadEntry:
 
         with patch.object(
             hass.config_entries, "async_unload_platforms", return_value=True
-        ) as mock_unload:
+        ):
             result = await async_unload_entry(hass, mock_config_entry)
 
             assert result is True
@@ -1042,7 +1042,7 @@ class TestServiceHandlers:
     @pytest.fixture
     def mock_service_call(self):
         """Return a mock service call."""
-        call = Mock(spec=ServiceCall)
+        call = Mock(spec=ServiceCall)  # noqa: F811
         call.data = {
             ATTR_DOG_ID: "test_dog",
             ATTR_MEAL_TYPE: "breakfast",

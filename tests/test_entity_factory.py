@@ -1,17 +1,18 @@
 """Tests for the EntityFactory with profile-based optimization."""
 
-import pytest
 from unittest.mock import Mock, patch
-from custom_components.pawcontrol.entity_factory import (
-    EntityFactory,
-    ENTITY_PROFILES,
-    ENTITY_PRIORITIES,
-)
+
+import pytest
 from custom_components.pawcontrol.const import (
     MODULE_FEEDING,
-    MODULE_WALK,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.entity_factory import (
+    ENTITY_PRIORITIES,
+    ENTITY_PROFILES,
+    EntityFactory,
 )
 
 

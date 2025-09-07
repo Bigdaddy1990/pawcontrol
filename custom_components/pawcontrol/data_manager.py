@@ -13,10 +13,8 @@ import json
 import logging
 from collections import deque
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Deque, Optional
 
-import aiofiles
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -188,7 +186,7 @@ class AdaptiveCache:
         try:
             # Serialize to estimate size
             return len(json.dumps(value, default=str).encode())
-        except:
+        except:  # noqa: E722
             # Fallback to rough estimate
             return 1024  # 1KB default
     
@@ -321,7 +319,7 @@ class OptimizedStorage:
                                     "timestamp": entry_time.replace(hour=12).isoformat(),
                                 }
                             daily_summary[day_key]["count"] += 1
-                    except:
+                    except:  # noqa: E722
                         new_entries.append(entry)
                 
                 # Add summaries
@@ -670,7 +668,6 @@ class PawControlDataManager:
         """Get module data with optimized filtering."""
         try:
             # Check index for quick stats
-            index_key = f"{module}:{dog_id}"
             index_info = self._storage.query_index(module, dog_id)
             
             # Get module data
@@ -689,7 +686,7 @@ class PawControlDataManager:
                         if first_time > start_date:
                             # All entries are after start_date
                             start_date = None
-                    except:
+                    except:  # noqa: E722
                         pass
             
             # Filter if needed
@@ -752,7 +749,7 @@ class PawControlDataManager:
                     
                     filtered.append(entry)
                     
-                except:
+                except:  # noqa: E722
                     filtered.append(entry)
         
         return filtered
@@ -834,7 +831,7 @@ class PawControlDataManager:
                 else:
                     right = mid - 1
                     
-            except:
+            except:  # noqa: E722
                 right = mid - 1
         
         return left
@@ -923,7 +920,7 @@ class PawControlDataManager:
             try:
                 start_time = datetime.fromisoformat(start_str)
                 duration_minutes = int((timestamp - start_time).total_seconds() / 60)
-            except:
+            except:  # noqa: E722
                 pass
         
         # Update walk entry

@@ -21,22 +21,21 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import pytest
 import random
-import time
 import threading
+import time
 from collections import deque
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.performance_manager import (
-    PerformanceMonitor,
-    PERFORMANCE_ALERT_THRESHOLD,
     HISTORY_SIZE,
+    PERFORMANCE_ALERT_THRESHOLD,
+    PerformanceMonitor,
 )
+from homeassistant.util import dt as dt_util
 
 
 class TestHighLoadScenarios:
@@ -887,7 +886,7 @@ class TestRealisticsScenarios:
         # Analyze results
         stats = monitor.get_stats()
         health = monitor.get_performance_health_score()
-        trend = monitor.analyze_performance_trend()
+        monitor.analyze_performance_trend()
         
         # Verify realistic performance characteristics
         assert stats["average_update_time"] < 10.0  # Should be reasonable

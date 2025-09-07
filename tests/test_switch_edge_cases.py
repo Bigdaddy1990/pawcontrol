@@ -17,42 +17,41 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.switch import (
-    _async_add_entities_in_batches,
-    async_setup_entry,
-    OptimizedSwitchBase,
-    PawControlMainPowerSwitch,
-    PawControlDoNotDisturbSwitch,
-    PawControlVisitorModeSwitch,
-    PawControlModuleSwitch,
-    PawControlFeatureSwitch,
-    ProfileOptimizedSwitchFactory,
-    BATCH_SIZE,
-    BATCH_DELAY,
-    MAX_CONCURRENT_BATCHES,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import (
+    BATCH_DELAY,
+    BATCH_SIZE,
+    MAX_CONCURRENT_BATCHES,
+    OptimizedSwitchBase,
+    PawControlDoNotDisturbSwitch,
+    PawControlFeatureSwitch,
+    PawControlMainPowerSwitch,
+    PawControlModuleSwitch,
+    PawControlVisitorModeSwitch,
+    ProfileOptimizedSwitchFactory,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture

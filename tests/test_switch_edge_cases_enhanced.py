@@ -20,47 +20,46 @@ from __future__ import annotations
 
 import asyncio
 import gc
-import pytest
 import weakref
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
-from contextlib import contextmanager
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity_registry import EntityRegistry
-from homeassistant.helpers.device_registry import DeviceRegistry
-from homeassistant.util import dt as dt_util
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-
-from custom_components.pawcontrol.switch import (
-    _async_add_entities_in_batches,
-    async_setup_entry,
-    OptimizedSwitchBase,
-    PawControlMainPowerSwitch,
-    PawControlDoNotDisturbSwitch,
-    PawControlVisitorModeSwitch,
-    PawControlModuleSwitch,
-    PawControlFeatureSwitch,
-    ProfileOptimizedSwitchFactory,
-    BATCH_SIZE,
-    BATCH_DELAY,
-    MAX_CONCURRENT_BATCHES,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import (
+    BATCH_DELAY,
+    BATCH_SIZE,
+    MAX_CONCURRENT_BATCHES,
+    OptimizedSwitchBase,
+    PawControlDoNotDisturbSwitch,
+    PawControlFeatureSwitch,
+    PawControlMainPowerSwitch,
+    PawControlModuleSwitch,
+    PawControlVisitorModeSwitch,
+    ProfileOptimizedSwitchFactory,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceRegistry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_registry import EntityRegistry
+from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture
@@ -869,7 +868,6 @@ class TestConfigurationMigrationEdgeCases:
     def test_module_configuration_migration(self, mock_coordinator):
         """Test migration of module configuration formats."""
         # Test various module configuration formats
-        old_format_modules = ["feeding", "gps", "health"]  # List format
         new_format_modules = {MODULE_FEEDING: True, MODULE_GPS: True, MODULE_HEALTH: True}  # Dict format
         
         # Should handle both formats

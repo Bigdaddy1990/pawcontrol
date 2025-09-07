@@ -5,20 +5,20 @@ Validates that specialized managers improve performance and don't introduce regr
 
 import asyncio
 import time
-import pytest
 from statistics import mean, stdev
 from unittest.mock import AsyncMock, Mock
 
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
     MODULE_FEEDING,
-    MODULE_WALK,
-    MODULE_HEALTH,
     MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -34,8 +34,8 @@ class TestCoordinatorPerformanceBenchmark:
         entry.data = {
             CONF_DOGS: [
                 {
-                    CONF_DOG_ID: f"dog_1",
-                    CONF_DOG_NAME: f"Dog 1",
+                    CONF_DOG_ID: "dog_1",
+                    CONF_DOG_NAME: "Dog 1",
                     "modules": {
                         MODULE_FEEDING: True,
                         MODULE_WALK: True,
@@ -468,8 +468,8 @@ class TestCoordinatorPerformanceBenchmark:
                 dog_data = coordinator.get_dog_data("dog_1")
                 if dog_data:
                     # Simulate sensor attribute access
-                    feeding_data = dog_data.get("feeding", {})
-                    health_data = dog_data.get("health", {})
+                    dog_data.get("feeding", {})
+                    dog_data.get("health", {})
                 await asyncio.sleep(0.001)  # Small delay
         
         # Run concurrent coordinator updates and sensor access

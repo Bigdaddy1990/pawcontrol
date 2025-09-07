@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.util import dt as dt_util

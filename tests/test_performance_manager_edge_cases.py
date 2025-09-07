@@ -10,19 +10,18 @@ Python: 3.13+
 """
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.performance_manager import (
-    PerformanceMonitor,
-    PERFORMANCE_ALERT_THRESHOLD,
     HISTORY_SIZE,
+    PERFORMANCE_ALERT_THRESHOLD,
+    PerformanceMonitor,
 )
+from homeassistant.util import dt as dt_util
 
 
 class TestPerformanceManagerStressScenarios:
@@ -41,7 +40,6 @@ class TestPerformanceManagerStressScenarios:
         start_time = time.time()
         
         # Each dog updates every 30 seconds, simulate 1 hour = 120 updates per dog
-        total_updates = 50 * 120  # 6000 updates
         
         # Generate realistic update times with variance
         update_patterns = []
@@ -102,8 +100,8 @@ class TestPerformanceManagerStressScenarios:
 
     def test_concurrent_access_stress(self, performance_monitor):
         """Test concurrent access to performance monitor."""
-        import threading
         import random
+        import threading
         
         results = []
         errors = []
@@ -257,8 +255,8 @@ class TestPerformanceManagerEdgeCaseValidation:
         """Test percentile cache behavior with edge cases."""
         # Fill cache with different percentiles
         p50_1 = populated_monitor._get_percentile(50)
-        p95_1 = populated_monitor._get_percentile(95)
-        p99_1 = populated_monitor._get_percentile(99)
+        populated_monitor._get_percentile(95)
+        populated_monitor._get_percentile(99)
         
         # Should return cached values
         p50_2 = populated_monitor._get_percentile(50)
@@ -268,7 +266,7 @@ class TestPerformanceManagerEdgeCaseValidation:
         populated_monitor.record_update(10.0, 0)
         
         # Should recalculate percentiles
-        p50_3 = populated_monitor._get_percentile(50)
+        populated_monitor._get_percentile(50)
         # Might be different due to new data
         
         # Test cache expiration
@@ -671,7 +669,7 @@ async def test_comprehensive_performance_manager_integration():
     assert trend["trend_direction"] in ["improving", "degrading", "stable"]
     
     # 6. Test threshold updates
-    old_threshold = stats["alert_threshold"]
+    stats["alert_threshold"]
     new_threshold = 2.5
     impact = monitor.update_alert_threshold(new_threshold)
     assert impact["new_threshold"] == new_threshold

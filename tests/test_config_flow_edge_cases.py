@@ -19,57 +19,56 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.const import CONF_NAME
-
+import pytest
 from custom_components.pawcontrol.config_flow import (
+    ENTITY_PROFILES,
+    MAX_CONCURRENT_VALIDATIONS,
+    PROFILE_SCHEMA,
+    VALIDATION_CACHE_TTL,
+    VALIDATION_TIMEOUT,
     PawControlConfigFlow,
     ValidationCache,
-    ENTITY_PROFILES,
-    VALIDATION_CACHE_TTL,
-    MAX_CONCURRENT_VALIDATIONS,
-    VALIDATION_TIMEOUT,
-    PROFILE_SCHEMA,
 )
 from custom_components.pawcontrol.config_flow_base import (
-    INTEGRATION_SCHEMA,
     DOG_BASE_SCHEMA,
     DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    INTEGRATION_SCHEMA,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
-    ENTITY_CREATION_DELAY,
 )
 from custom_components.pawcontrol.config_flow_dogs import (
     DIET_COMPATIBILITY_RULES,
 )
 from custom_components.pawcontrol.const import (
-    DOMAIN,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
     CONF_MODULES,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
     SPECIAL_DIET_OPTIONS,
-    DOG_SIZES,
-    MIN_DOG_WEIGHT,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MAX_DOG_AGE,
 )
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 
 class TestValidationCacheEdgeCases:
@@ -957,7 +956,7 @@ class TestComplexUserWorkflows:
         ]
         
         # Test profile selection
-        result = await config_flow.async_step_entity_profile({
+        await config_flow.async_step_entity_profile({
             "entity_profile": "advanced"
         })
         

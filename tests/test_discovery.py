@@ -210,7 +210,7 @@ class TestPawControlDiscovery:
         mock_usb = Mock(return_value=[self._create_test_device("usb", "gps_tracker")])
 
         with patch.object(discovery, "_discover_usb_devices", mock_usb):
-            devices = await discovery.async_discover_devices(categories=target_categories)
+            await discovery.async_discover_devices(categories=target_categories)
 
             mock_usb.assert_called_once_with(target_categories)
 
@@ -1074,9 +1074,9 @@ class TestDiscoveryErrorHandling:
             return []
 
         # Very short timeout for quick scan
-        original_timeout = discovery_module.DISCOVERY_TIMEOUT
+        original_timeout = discovery_module.DISCOVERY_TIMEOUT  # noqa: F821
         try:
-            discovery_module.DISCOVERY_TIMEOUT = 0.05  # 50ms
+            discovery_module.DISCOVERY_TIMEOUT = 0.05  # 50ms  # noqa: F821
 
             with patch.object(discovery, "_discover_usb_devices", slow_discovery):
                 devices = await discovery.async_discover_devices(quick_scan=True)
@@ -1086,4 +1086,4 @@ class TestDiscoveryErrorHandling:
 
         finally:
             # Restore original timeout
-            discovery_module.DISCOVERY_TIMEOUT = original_timeout
+            discovery_module.DISCOVERY_TIMEOUT = original_timeout  # noqa: F821

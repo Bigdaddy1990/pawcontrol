@@ -17,64 +17,63 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.select import (
-    _async_add_entities_in_batches,
-    async_setup_entry,
-    _create_base_selects,
-    _create_feeding_selects,
-    _create_walk_selects,
-    _create_gps_selects,
-    _create_health_selects,
-    PawControlSelectBase,
-    PawControlDogSizeSelect,
-    PawControlPerformanceModeSelect,
-    PawControlNotificationPrioritySelect,
-    PawControlFoodTypeSelect,
-    PawControlFeedingScheduleSelect,
-    PawControlDefaultMealTypeSelect,
-    PawControlFeedingModeSelect,
-    PawControlWalkModeSelect,
-    PawControlWeatherPreferenceSelect,
-    PawControlWalkIntensitySelect,
-    PawControlGPSSourceSelect,
-    PawControlTrackingModeSelect,
-    PawControlLocationAccuracySelect,
-    PawControlHealthStatusSelect,
-    PawControlActivityLevelSelect,
-    PawControlMoodSelect,
-    PawControlGroomingTypeSelect,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
+    ACTIVITY_LEVELS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
+    CONF_DOGS,
     DOG_SIZES,
+    DOMAIN,
     FOOD_TYPES,
     GPS_SOURCES,
     HEALTH_STATUS_OPTIONS,
     MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
     MOOD_OPTIONS,
     PERFORMANCE_MODES,
-    ACTIVITY_LEVELS,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.select import (
+    PawControlActivityLevelSelect,
+    PawControlDefaultMealTypeSelect,
+    PawControlDogSizeSelect,
+    PawControlFeedingModeSelect,
+    PawControlFeedingScheduleSelect,
+    PawControlFoodTypeSelect,
+    PawControlGPSSourceSelect,
+    PawControlGroomingTypeSelect,
+    PawControlHealthStatusSelect,
+    PawControlLocationAccuracySelect,
+    PawControlMoodSelect,
+    PawControlNotificationPrioritySelect,
+    PawControlPerformanceModeSelect,
+    PawControlSelectBase,
+    PawControlTrackingModeSelect,
+    PawControlWalkIntensitySelect,
+    PawControlWalkModeSelect,
+    PawControlWeatherPreferenceSelect,
+    _async_add_entities_in_batches,
+    _create_base_selects,
+    _create_feeding_selects,
+    _create_gps_selects,
+    _create_health_selects,
+    _create_walk_selects,
+    async_setup_entry,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture

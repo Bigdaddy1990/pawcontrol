@@ -20,21 +20,20 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 import random
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.cache_manager import (
-    CacheManager,
     CACHE_TTL_FAST,
     CACHE_TTL_MEDIUM,
     CACHE_TTL_SLOW,
+    CacheManager,
 )
+from homeassistant.util import dt as dt_util
 
 
 class TestConcurrentAccess:
@@ -557,7 +556,7 @@ class TestHotKeyManagement:
         # Check final hot key status
         burst_details = await cache.get_cache_entry_details("burst_key")
         gradual_details = await cache.get_cache_entry_details("gradual_key")
-        intermittent_details = await cache.get_cache_entry_details("intermittent_key")
+        await cache.get_cache_entry_details("intermittent_key")
         
         assert burst_details["is_hot_key"] is True
         assert gradual_details["is_hot_key"] is True

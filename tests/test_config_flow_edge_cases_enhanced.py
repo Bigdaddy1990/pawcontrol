@@ -24,58 +24,57 @@ from __future__ import annotations
 import asyncio
 import gc
 import json
-import pytest
+import logging
 import time
 import weakref
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
-from contextlib import asynccontextmanager
-import logging
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
-from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.const import CONF_NAME
-
+import pytest
 from custom_components.pawcontrol.config_flow import (
+    ENTITY_PROFILES,
+    MAX_CONCURRENT_VALIDATIONS,
+    PROFILE_SCHEMA,
+    VALIDATION_CACHE_TTL,
+    VALIDATION_TIMEOUT,
     PawControlConfigFlow,
     ValidationCache,
-    ENTITY_PROFILES,
-    VALIDATION_CACHE_TTL,
-    MAX_CONCURRENT_VALIDATIONS,
-    VALIDATION_TIMEOUT,
-    PROFILE_SCHEMA,
 )
 from custom_components.pawcontrol.config_flow_base import (
-    INTEGRATION_SCHEMA,
     DOG_BASE_SCHEMA,
     DOG_ID_PATTERN,
+    INTEGRATION_SCHEMA,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
     PawControlBaseConfigFlow,
 )
 from custom_components.pawcontrol.const import (
-    DOMAIN,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_MODULES,
     CONF_DOGS,
+    CONF_MODULES,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
-    DOG_SIZES,
-    MIN_DOG_WEIGHT,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MAX_DOG_AGE,
 )
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
 
 
 @pytest.fixture
@@ -220,7 +219,7 @@ class TestAdvancedValidationCacheCorruption:
         
         # Cache should handle corrupted timestamps gracefully
         for key, _ in corrupted_entries:
-            result = await corrupted_cache.get(key)
+            await corrupted_cache.get(key)
             # Should return None for corrupted entries or handle gracefully
             # Implementation may vary on how corruption is handled
 
@@ -839,7 +838,7 @@ class TestSecurityValidationBypassAttempts:
                     mock_validate.side_effect = nested_slow_operation
                     
                     start_time = time.time()
-                    result = await config_flow.async_step_user({CONF_NAME: "Timeout Bypass"})
+                    await config_flow.async_step_user({CONF_NAME: "Timeout Bypass"})
                     end_time = time.time()
                     
                     # Should respect timeout regardless of nested operations
@@ -1261,7 +1260,7 @@ class TestExtremeStressScenarios:
         for flow in flows:
             try:
                 await flow._validation_cache.clear()
-            except:
+            except:  # noqa: E722
                 pass
 
     @pytest.mark.asyncio

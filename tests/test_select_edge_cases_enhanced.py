@@ -20,70 +20,69 @@ from __future__ import annotations
 
 import asyncio
 import gc
-import pytest
+import json
 import weakref
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
-from contextlib import contextmanager
-import json
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity_registry import EntityRegistry
-from homeassistant.helpers.device_registry import DeviceRegistry
-from homeassistant.util import dt as dt_util
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-
-from custom_components.pawcontrol.select import (
-    _async_add_entities_in_batches,
-    async_setup_entry,
-    _create_base_selects,
-    _create_feeding_selects,
-    _create_walk_selects,
-    _create_gps_selects,
-    _create_health_selects,
-    PawControlSelectBase,
-    PawControlDogSizeSelect,
-    PawControlPerformanceModeSelect,
-    PawControlNotificationPrioritySelect,
-    PawControlFoodTypeSelect,
-    PawControlFeedingScheduleSelect,
-    PawControlDefaultMealTypeSelect,
-    PawControlFeedingModeSelect,
-    PawControlWalkModeSelect,
-    PawControlWeatherPreferenceSelect,
-    PawControlWalkIntensitySelect,
-    PawControlGPSSourceSelect,
-    PawControlTrackingModeSelect,
-    PawControlLocationAccuracySelect,
-    PawControlHealthStatusSelect,
-    PawControlActivityLevelSelect,
-    PawControlMoodSelect,
-    PawControlGroomingTypeSelect,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
+    ACTIVITY_LEVELS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
+    CONF_DOGS,
     DOG_SIZES,
+    DOMAIN,
     FOOD_TYPES,
     GPS_SOURCES,
     HEALTH_STATUS_OPTIONS,
     MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
     MOOD_OPTIONS,
     PERFORMANCE_MODES,
-    ACTIVITY_LEVELS,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.select import (
+    PawControlActivityLevelSelect,
+    PawControlDefaultMealTypeSelect,
+    PawControlDogSizeSelect,
+    PawControlFeedingModeSelect,
+    PawControlFeedingScheduleSelect,
+    PawControlFoodTypeSelect,
+    PawControlGPSSourceSelect,
+    PawControlGroomingTypeSelect,
+    PawControlHealthStatusSelect,
+    PawControlLocationAccuracySelect,
+    PawControlMoodSelect,
+    PawControlNotificationPrioritySelect,
+    PawControlPerformanceModeSelect,
+    PawControlSelectBase,
+    PawControlTrackingModeSelect,
+    PawControlWalkIntensitySelect,
+    PawControlWalkModeSelect,
+    PawControlWeatherPreferenceSelect,
+    _async_add_entities_in_batches,
+    _create_base_selects,
+    _create_feeding_selects,
+    _create_gps_selects,
+    _create_health_selects,
+    _create_walk_selects,
+    async_setup_entry,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceRegistry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_registry import EntityRegistry
+from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture
@@ -322,7 +321,7 @@ class TestDynamicOptionListUpdates:
     def test_option_list_modification_during_runtime(self, dynamic_select):
         """Test modifying option list during runtime."""
         # Modify options list
-        original_options = dynamic_select.options.copy()
+        dynamic_select.options.copy()
         dynamic_select._attr_options = ["new1", "new2", "new3"]
         
         # Should reflect new options

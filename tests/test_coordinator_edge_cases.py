@@ -10,21 +10,12 @@ Python: 3.13+
 """
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.coordinator import (
-    PawControlCoordinator,
-    MAINTENANCE_INTERVAL,
-)
+import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -36,6 +27,14 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
     UPDATE_INTERVALS,
 )
+from custom_components.pawcontrol.coordinator import (
+    MAINTENANCE_INTERVAL,
+    PawControlCoordinator,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.util import dt as dt_util
 
 
 class TestCoordinatorMassiveEntityLoadScenarios:
@@ -265,7 +264,7 @@ class TestCoordinatorMassiveEntityLoadScenarios:
         import sys
         
         # Get baseline memory
-        baseline_memory = sys.getsizeof(dict())
+        sys.getsizeof(dict())
         
         coordinator = PawControlCoordinator(hass, massive_config_entry)
         coordinator.set_managers(**mock_managers)
@@ -502,7 +501,6 @@ class TestCoordinatorPerformanceStressScenarios:
     @pytest.fixture
     def realistic_managers(self):
         """Create managers with realistic performance characteristics."""
-        managers = {}
         
         # Feeding manager with variable response times
         feeding_manager = AsyncMock()
@@ -780,7 +778,6 @@ class TestCoordinatorBackgroundTaskManagement:
         coordinator = task_test_coordinator
         
         # Mock short maintenance interval for testing
-        original_interval = MAINTENANCE_INTERVAL
         
         with patch('custom_components.pawcontrol.coordinator.MAINTENANCE_INTERVAL', 0.1):
             maintenance_calls = []

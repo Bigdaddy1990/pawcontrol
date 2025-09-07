@@ -24,12 +24,6 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.restore_state import RestoreStateData
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
@@ -65,6 +59,11 @@ from custom_components.pawcontrol.datetime import (
     _async_add_entities_in_batches,
     async_setup_entry,
 )
+from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.restore_state import RestoreStateData
+from homeassistant.util import dt as dt_util
 
 
 class TestAsyncAddEntitiesInBatches:

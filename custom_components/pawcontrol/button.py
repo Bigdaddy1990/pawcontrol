@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.config_entries import ConfigEntry
