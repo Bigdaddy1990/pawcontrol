@@ -8,6 +8,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bigdaddy1990)
 
 **Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege.
 
