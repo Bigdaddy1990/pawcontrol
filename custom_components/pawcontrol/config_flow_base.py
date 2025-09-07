@@ -416,7 +416,9 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
 
             # Prevent infinite loops
             if counter > 100:
-                suggestion = f"{original_suggestion}_{time.time():.0f}"[-20:]
+                suggestion = (
+                    f"{original_suggestion}_{time.time():.0f}"[-20:]
+                )
                 break
 
         return suggestion

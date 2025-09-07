@@ -119,20 +119,20 @@ FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
 
 # Special diet options for feeding configuration
 SPECIAL_DIET_OPTIONS: Final = [
-    "grain_free",  # Getreidefrei
-    "hypoallergenic",  # Hypoallergen
-    "low_fat",  # Fettarm
-    "senior_formula",  # Seniorenfutter
-    "puppy_formula",  # Welpenfutter
-    "weight_control",  # Gewichtskontrolle
+    "grain_free",         # Getreidefrei
+    "hypoallergenic",     # Hypoallergen
+    "low_fat",            # Fettarm
+    "senior_formula",     # Seniorenfutter
+    "puppy_formula",      # Welpenfutter
+    "weight_control",     # Gewichtskontrolle
     "sensitive_stomach",  # Magenschonend
-    "organic",  # Bio/Öko
-    "raw_diet",  # Rohfütterung/BARF
-    "prescription",  # Verschreibungspflichtig
-    "diabetic",  # Diabetiker-Diät
-    "kidney_support",  # Nierenunterstützung
-    "dental_care",  # Zahnpflege
-    "joint_support",  # Gelenkunterstützung
+    "organic",            # Bio/Öko
+    "raw_diet",           # Rohfütterung/BARF
+    "prescription",       # Verschreibungspflichtig
+    "diabetic",           # Diabetiker-Diät
+    "kidney_support",     # Nierenunterstützung
+    "dental_care",        # Zahnpflege
+    "joint_support",      # Gelenkunterstützung
 ]
 
 # Feeding schedule types

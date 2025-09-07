@@ -20,6 +20,108 @@
           "dog_size": "Size category"
         }
       },
+      "dog_modules": {
+        "title": "Enable Modules for {dog_name}",
+        "description": "Choose which modules to enable for {dog_name} ({dog_size}, {dog_age} years old).\n\nOnly selected modules will create entities for this dog.",
+        "data": {
+          "enable_feeding": "Feeding Management",
+          "enable_walk": "Walk Tracking", 
+          "enable_health": "Health Monitoring",
+          "enable_gps": "GPS Location Tracking",
+          "enable_notifications": "Smart Notifications",
+          "enable_dashboard": "Dashboard Integration",
+          "enable_visitor": "Visitor Mode",
+          "enable_grooming": "Grooming Reminders",
+          "enable_medication": "Medication Tracking",
+          "enable_training": "Training Progress"
+        }
+      },
+      "dog_gps": {
+        "title": "GPS Configuration for {dog_name}",
+        "description": "Configure GPS tracking settings for {dog_name}.\n\nSelect your preferred GPS source and adjust tracking parameters for optimal battery life and accuracy.",
+        "data": {
+          "gps_source": "GPS Source",
+          "gps_update_interval": "Update Interval (seconds)",
+          "gps_accuracy_filter": "Accuracy Filter (meters)",
+          "enable_geofencing": "Enable Geofencing",
+          "home_zone_radius": "Home Zone Radius (meters)"
+        }
+      },
+      "dog_feeding": {
+        "title": "Feeding Configuration for {dog_name}",
+        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\n{portion_info}",
+        "data": {
+          "meals_per_day": "Meals per Day",
+          "daily_food_amount": "Daily Food Amount (grams)",
+          "food_type": "Food Type",
+          "feeding_schedule": "Feeding Schedule",
+          "breakfast_enabled": "Enable Breakfast",
+          "breakfast_time": "Breakfast Time",
+          "lunch_enabled": "Enable Lunch", 
+          "lunch_time": "Lunch Time",
+          "dinner_enabled": "Enable Dinner",
+          "dinner_time": "Dinner Time",
+          "snacks_enabled": "Enable Snacks",
+          "enable_reminders": "Feeding Reminders",
+          "reminder_minutes_before": "Reminder Minutes Before Meal"
+        }
+      },
+      "dog_health": {
+        "title": "Health & Diet Configuration for {dog_name}",
+        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\n{health_diet_info}",
+        "data": {
+          "vet_name": "Veterinarian Name",
+          "vet_phone": "Veterinarian Phone",
+          "last_vet_visit": "Last Vet Visit",
+          "next_checkup": "Next Checkup",
+          "weight_tracking": "Enable Weight Tracking",
+          "health_aware_portions": "Health-Aware Portion Calculation",
+          "ideal_weight": "Ideal Weight (kg)",
+          "body_condition_score": "Body Condition Score (1-9)",
+          "activity_level": "Activity Level",
+          "weight_goal": "Weight Goal",
+          "spayed_neutered": "Spayed/Neutered",
+          "has_diabetes": "Has Diabetes",
+          "has_kidney_disease": "Has Kidney Disease", 
+          "has_heart_disease": "Has Heart Disease",
+          "has_arthritis": "Has Arthritis",
+          "has_allergies": "Has Allergies",
+          "has_digestive_issues": "Has Digestive Issues",
+          "other_health_conditions": "Other Health Conditions",
+          "prescription": "🏥 Prescription Diet",
+          "diabetic": "🩺 Diabetic Diet",
+          "kidney_support": "🫘 Kidney Support Diet",
+          "low_fat": "🥗 Low Fat Diet",
+          "weight_control": "⚖️ Weight Control Diet",
+          "sensitive_stomach": "🌿 Sensitive Stomach Diet",
+          "senior_formula": "👴 Senior Formula",
+          "puppy_formula": "🐶 Puppy Formula",
+          "grain_free": "🌾 Grain-Free Diet",
+          "hypoallergenic": "🛡️ Hypoallergenic Diet",
+          "organic": "🌱 Organic Food",
+          "raw_diet": "🥩 Raw Diet (BARF)",
+          "dental_care": "🦷 Dental Care Formula",
+          "joint_support": "🦴 Joint Support Formula",
+          "rabies_vaccination": "Rabies Vaccination Date",
+          "rabies_next": "Next Rabies Vaccination",
+          "dhpp_vaccination": "DHPP Vaccination Date",
+          "dhpp_next": "Next DHPP Vaccination",
+          "bordetella_vaccination": "Bordetella Vaccination Date",
+          "bordetella_next": "Next Bordetella Vaccination",
+          "medication_1_name": "Medication 1 Name",
+          "medication_1_dosage": "Medication 1 Dosage",
+          "medication_1_frequency": "Medication 1 Frequency",
+          "medication_1_time": "Medication 1 Time",
+          "medication_1_with_meals": "Medication 1 With Meals",
+          "medication_1_notes": "Medication 1 Notes",
+          "medication_2_name": "Medication 2 Name",
+          "medication_2_dosage": "Medication 2 Dosage",
+          "medication_2_frequency": "Medication 2 Frequency",
+          "medication_2_time": "Medication 2 Time",
+          "medication_2_with_meals": "Medication 2 With Meals",
+          "medication_2_notes": "Medication 2 Notes"
+        }
+      },
       "add_another_dog": {
         "title": "Add Another Dog?",
         "description": "Dogs configured: {dogs_list} Would you like to add another dog? Remaining spots: {remaining_spots}/{max_dogs}",
@@ -28,14 +130,15 @@
         }
       },
       "configure_modules": {
-        "title": "Enable Modules",
-        "description": "Choose which monitoring modules to enable for your dogs. These can be changed later.\n\n🐕 {dog_count} dogs configured\n🔧 {gps_suggestion} GPS tracking based on dog sizes\n👥 {visitor_suggestion} Visitor mode based on dog maturity\n\nModule suggestions:\n{dogs_summary}",
+        "title": "Global Settings",
+        "description": "Configure integration-wide settings for {total_dogs} dogs.\n\n📊 GPS dogs: {gps_dogs}\n🏥 Health tracking: {health_dogs}\n\nRecommended performance mode: {suggested_performance}\n{complexity_info}",
         "data": {
-          "enable_gps": "GPS Location Tracking",
-          "enable_health": "Health Monitoring",
-          "enable_visitor_mode": "Visitor Mode",
-          "enable_dashboard": "Dashboard",
-          "enable_advanced_features": "Advanced Features (Dashboard, Enhanced Notifications)"
+          "enable_notifications": "Global Notifications",
+          "enable_dashboard": "Dashboard Auto-Creation", 
+          "performance_mode": "Performance Mode",
+          "data_retention_days": "Data Retention (days)",
+          "auto_backup": "Automatic Backups",
+          "debug_logging": "Debug Logging"
         }
       },
       "configure_dashboard": {
@@ -90,6 +193,7 @@
       "no_dogs_configured": "At least one dog must be configured",
       "setup_failed": "Setup failed due to configuration error",
       "validation_error": "Configuration validation failed",
+      "validation_timeout": "Configuration validation timed out",
       "gps_entity_not_found": "The selected GPS source entity was not found",
       "gps_entity_unavailable": "The selected GPS source entity is currently unavailable",
       "door_sensor_not_found": "The selected door sensor entity was not found",
@@ -198,6 +302,29 @@
       "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
       "invalid_time_format": "Invalid time format",
       "invalid_configuration": "Invalid configuration"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "special_diet": {
+        "name": "Special Diet Requirements",
+        "state": {
+          "prescription": "Prescription Diet",
+          "diabetic": "Diabetic Diet",
+          "kidney_support": "Kidney Support",
+          "low_fat": "Low Fat",
+          "weight_control": "Weight Control",
+          "sensitive_stomach": "Sensitive Stomach",
+          "senior_formula": "Senior Formula",
+          "puppy_formula": "Puppy Formula", 
+          "grain_free": "Grain-Free",
+          "hypoallergenic": "Hypoallergenic",
+          "organic": "Organic",
+          "raw_diet": "Raw Diet",
+          "dental_care": "Dental Care",
+          "joint_support": "Joint Support"
+        }
+      }
     }
   },
   "services": {
