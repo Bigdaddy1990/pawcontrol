@@ -138,11 +138,11 @@ class TestAsyncSetupEntry:
 
         # Should have called async_add_entities
         async_add_entities.assert_called()
-        
+
         # Verify entities were created
         call_args = async_add_entities.call_args_list
         total_entities = sum(len(call[0][0]) for call in call_args)
-        
+
         # First dog with all modules: 3 base + 5 feeding + 5 walk + 5 gps + 5 health = 23
         # Second dog with only feeding: 3 base + 5 feeding = 8
         # Total: 31 entities
@@ -155,9 +155,7 @@ class TestAsyncSetupEntry:
         """Test setup with legacy hass.data."""
         # Setup legacy data structure
         mock_entry.runtime_data = None
-        hass.data[DOMAIN] = {
-            "test_entry": {"coordinator": mock_coordinator}
-        }
+        hass.data[DOMAIN] = {"test_entry": {"coordinator": mock_coordinator}}
 
         async_add_entities = AsyncMock()
 
@@ -217,7 +215,7 @@ class TestAsyncSetupEntry:
         total_entities = sum(
             len(call[0][0]) for call in async_add_entities.call_args_list
         )
-        
+
         # Should have base numbers (3) + feeding numbers (5) = 8 entities
         assert total_entities == 8
 
@@ -236,7 +234,9 @@ class TestBatchingFunction:
         )
 
         # Should call once with all entities
-        async_add_entities_func.assert_called_once_with(entities, update_before_add=False)
+        async_add_entities_func.assert_called_once_with(
+            entities, update_before_add=False
+        )
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -250,12 +250,12 @@ class TestBatchingFunction:
 
         # Should call 3 times (10 + 10 + 5)
         assert async_add_entities_func.call_count == 3
-        
+
         # Verify batch sizes
         call_args = async_add_entities_func.call_args_list
         assert len(call_args[0][0][0]) == 10  # First batch
         assert len(call_args[1][0][0]) == 10  # Second batch
-        assert len(call_args[2][0][0]) == 5   # Third batch
+        assert len(call_args[2][0][0]) == 5  # Third batch
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_empty_list(self):
@@ -529,9 +529,10 @@ class TestPawControlNumberBase:
     @pytest.mark.asyncio
     async def test_async_set_native_value_valid(self, base_number):
         """Test setting valid native value."""
-        with patch.object(base_number, "_async_set_number_value") as mock_set, \
-             patch.object(base_number, "async_write_ha_state") as mock_write:
-            
+        with (
+            patch.object(base_number, "_async_set_number_value") as mock_set,
+            patch.object(base_number, "async_write_ha_state") as mock_write,
+        ):
             await base_number.async_set_native_value(50.0)
 
             mock_set.assert_called_once_with(50.0)
@@ -541,13 +542,17 @@ class TestPawControlNumberBase:
     @pytest.mark.asyncio
     async def test_async_set_native_value_too_low(self, base_number):
         """Test setting value below minimum."""
-        with pytest.raises(HomeAssistantError, match="Value .* is outside allowed range"):
+        with pytest.raises(
+            HomeAssistantError, match="Value .* is outside allowed range"
+        ):
             await base_number.async_set_native_value(0.5)  # Below minimum of 1.0
 
     @pytest.mark.asyncio
     async def test_async_set_native_value_too_high(self, base_number):
         """Test setting value above maximum."""
-        with pytest.raises(HomeAssistantError, match="Value .* is outside allowed range"):
+        with pytest.raises(
+            HomeAssistantError, match="Value .* is outside allowed range"
+        ):
             await base_number.async_set_native_value(150.0)  # Above maximum of 100.0
 
     @pytest.mark.asyncio
@@ -639,7 +644,9 @@ class TestDogWeightNumber:
         # Should trigger dog refresh
         mock_coordinator.async_refresh_dog.assert_called_once_with("test_dog")
 
-    def test_extra_state_attributes_with_health_data(self, weight_number, mock_coordinator):
+    def test_extra_state_attributes_with_health_data(
+        self, weight_number, mock_coordinator
+    ):
         """Test extra state attributes with health data."""
         # Mock health module data
         mock_coordinator.get_module_data.return_value = {
@@ -656,7 +663,9 @@ class TestDogWeightNumber:
         assert attrs["last_weight_date"] == "2025-01-15"
         assert attrs["target_weight"] == 27.0
 
-    def test_extra_state_attributes_no_health_data(self, weight_number, mock_coordinator):
+    def test_extra_state_attributes_no_health_data(
+        self, weight_number, mock_coordinator
+    ):
         """Test extra state attributes without health data."""
         mock_coordinator.get_module_data.return_value = None
 
@@ -675,15 +684,15 @@ class TestDogAgeNumber:
         """Create a mock coordinator with config entry."""
         coordinator = Mock(spec=PawControlCoordinator)
         coordinator.available = True
-        
+
         # Mock config entry with runtime_data
         mock_entry = Mock()
         mock_data_manager = Mock()
         mock_data_manager.async_update_dog_data = AsyncMock()
-        
+
         mock_entry.runtime_data = {"data_manager": mock_data_manager}
         coordinator.config_entry = mock_entry
-        
+
         return coordinator
 
     @pytest.fixture
@@ -707,7 +716,9 @@ class TestDogAgeNumber:
         assert age_number._value == 5
 
     @pytest.mark.asyncio
-    async def test_async_set_number_value_with_data_manager(self, age_number, mock_coordinator):
+    async def test_async_set_number_value_with_data_manager(
+        self, age_number, mock_coordinator
+    ):
         """Test setting age value with data manager."""
         # Mock dog data
         mock_coordinator.get_dog_data.return_value = {"profile": {}}
@@ -725,7 +736,7 @@ class TestDogAgeNumber:
         """Test setting age value without data manager."""
         # Remove data manager from runtime_data
         mock_coordinator.config_entry.runtime_data = {}
-        
+
         dog_config = {CONF_DOG_AGE: 5}
         age_number = PawControlDogAgeNumber(
             mock_coordinator, "test_dog", "Test Dog", dog_config
@@ -738,11 +749,13 @@ class TestDogAgeNumber:
         await age_number._async_set_number_value(6.0)
 
     @pytest.mark.asyncio
-    async def test_async_set_number_value_data_manager_error(self, age_number, mock_coordinator):
+    async def test_async_set_number_value_data_manager_error(
+        self, age_number, mock_coordinator
+    ):
         """Test setting age value with data manager error."""
         # Mock dog data
         mock_coordinator.get_dog_data.return_value = {"profile": {}}
-        
+
         # Make data manager throw error
         data_manager = mock_coordinator.config_entry.runtime_data["data_manager"]
         data_manager.async_update_dog_data.side_effect = Exception("Database error")
@@ -790,9 +803,7 @@ class TestFeedingNumbers:
         """Create a mock coordinator."""
         coordinator = Mock(spec=PawControlCoordinator)
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 25.0}
-        }
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
         return coordinator
 
     def test_daily_food_amount_number(self, mock_coordinator):
@@ -819,7 +830,7 @@ class TestFeedingNumbers:
 
         assert "recommended_amount" in attrs
         assert "current_vs_recommended" in attrs
-        
+
         # Should calculate based on 25kg weight
         expected_recommended = 25.0 * 22.5  # 562.5g
         assert attrs["recommended_amount"] == expected_recommended
@@ -929,9 +940,7 @@ class TestWalkNumbers:
 
     def test_max_walk_speed_number(self, mock_coordinator):
         """Test max walk speed number."""
-        number = PawControlMaxWalkSpeedNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
+        number = PawControlMaxWalkSpeedNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "max_walk_speed"
         assert number._attr_native_unit_of_measurement == "km/h"
@@ -1016,9 +1025,7 @@ class TestHealthNumbers:
 
     def test_target_weight_number(self, mock_coordinator):
         """Test target weight number."""
-        number = PawControlTargetWeightNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
+        number = PawControlTargetWeightNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "target_weight"
         assert number._attr_device_class == NumberDeviceClass.WEIGHT
@@ -1122,7 +1129,9 @@ class TestNumberIntegration:
         # Create multiple numbers for the same dog
         numbers = []
         dog_config = {CONF_DOG_WEIGHT: 25.0, CONF_DOG_AGE: 5}
-        numbers.extend(_create_base_numbers(coordinator, "test_dog", "Test Dog", dog_config))
+        numbers.extend(
+            _create_base_numbers(coordinator, "test_dog", "Test Dog", dog_config)
+        )
         numbers.extend(_create_feeding_numbers(coordinator, "test_dog", "Test Dog"))
         numbers.extend(_create_walk_numbers(coordinator, "test_dog", "Test Dog"))
 
@@ -1138,7 +1147,7 @@ class TestNumberIntegration:
         # Create numbers for two different dogs
         dog1_config = {CONF_DOG_WEIGHT: 25.0, CONF_DOG_AGE: 5}
         dog2_config = {CONF_DOG_WEIGHT: 15.0, CONF_DOG_AGE: 3}
-        
+
         dog1_numbers = _create_base_numbers(coordinator, "dog1", "Dog 1", dog1_config)
         dog2_numbers = _create_base_numbers(coordinator, "dog2", "Dog 2", dog2_config)
 
@@ -1305,18 +1314,20 @@ class TestNumberPerformance:
         # Create many dogs to test batching
         dogs = []
         for i in range(10):  # 10 dogs with all modules
-            dogs.append({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                CONF_DOG_WEIGHT: 20.0 + i,
-                CONF_DOG_AGE: 3 + (i % 5),
-                "modules": {
-                    MODULE_FEEDING: True,
-                    MODULE_WALK: True,
-                    MODULE_GPS: True,
-                    MODULE_HEALTH: True,
-                },
-            })
+            dogs.append(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    CONF_DOG_WEIGHT: 20.0 + i,
+                    CONF_DOG_AGE: 3 + (i % 5),
+                    "modules": {
+                        MODULE_FEEDING: True,
+                        MODULE_WALK: True,
+                        MODULE_GPS: True,
+                        MODULE_HEALTH: True,
+                    },
+                }
+            )
 
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry"
@@ -1343,7 +1354,7 @@ class TestNumberPerformance:
     def test_number_memory_efficiency(self):
         """Test that numbers don't store unnecessary data."""
         coordinator = Mock(spec=PawControlCoordinator)
-        
+
         dog_config = {CONF_DOG_WEIGHT: 25.0}
         weight_number = PawControlDogWeightNumber(
             coordinator, "test_dog", "Test Dog", dog_config
@@ -1351,29 +1362,40 @@ class TestNumberPerformance:
 
         # Check that only essential attributes are stored
         essential_attrs = {
-            '_dog_id', '_dog_name', '_number_type', '_value',
-            '_attr_unique_id', '_attr_name', '_attr_device_class',
-            '_attr_mode', '_attr_native_unit_of_measurement',
-            '_attr_native_min_value', '_attr_native_max_value',
-            '_attr_native_step', '_attr_icon', '_attr_entity_category',
-            '_attr_device_info'
+            "_dog_id",
+            "_dog_name",
+            "_number_type",
+            "_value",
+            "_attr_unique_id",
+            "_attr_name",
+            "_attr_device_class",
+            "_attr_mode",
+            "_attr_native_unit_of_measurement",
+            "_attr_native_min_value",
+            "_attr_native_max_value",
+            "_attr_native_step",
+            "_attr_icon",
+            "_attr_entity_category",
+            "_attr_device_info",
         }
 
         # Get all attributes that don't start with '__'
         actual_attrs = {
-            attr for attr in dir(weight_number) 
-            if not attr.startswith('__') and hasattr(weight_number, attr)
+            attr
+            for attr in dir(weight_number)
+            if not attr.startswith("__") and hasattr(weight_number, attr)
         }
 
         # Most attributes should be essential or inherited
         non_essential = actual_attrs - essential_attrs
-        
+
         # Filter out inherited methods and properties
         non_essential = {
-            attr for attr in non_essential 
+            attr
+            for attr in non_essential
             if not callable(getattr(weight_number, attr, None))
-            and not attr.startswith('_attr_')
-            and attr not in ['coordinator', 'registry_entry', 'platform', 'hass']
+            and not attr.startswith("_attr_")
+            and attr not in ["coordinator", "registry_entry", "platform", "hass"]
         }
 
         # Should have minimal non-essential attributes

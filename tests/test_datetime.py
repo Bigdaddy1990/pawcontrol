@@ -75,9 +75,7 @@ class TestAsyncAddEntitiesInBatches:
         mock_add_entities = Mock()
         entities = [Mock() for _ in range(10)]
 
-        await _async_add_entities_in_batches(
-            mock_add_entities, entities, batch_size=15
-        )
+        await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=15)
 
         # Should be called once with all entities
         mock_add_entities.assert_called_once_with(entities, update_before_add=False)
@@ -95,7 +93,7 @@ class TestAsyncAddEntitiesInBatches:
 
         # Should be called 3 times (12 + 12 + 11)
         assert mock_add_entities.call_count == 3
-        
+
         # Check that sleep was called between batches (2 times for 3 batches)
         assert mock_sleep.call_count == 2
         mock_sleep.assert_called_with(0.05)
@@ -119,7 +117,7 @@ class TestAsyncAddEntitiesInBatches:
         entities = [Mock() for _ in range(170)]
 
         start_time = asyncio.get_event_loop().time()
-        
+
         with patch("asyncio.sleep", new_callable=AsyncMock):
             await _async_add_entities_in_batches(
                 mock_add_entities, entities, batch_size=12
@@ -129,7 +127,7 @@ class TestAsyncAddEntitiesInBatches:
 
         # Should complete quickly even with large entity count
         assert end_time - start_time < 1.0
-        
+
         # Should be called 15 times (170 / 12 = 14.17 -> 15 batches)
         assert mock_add_entities.call_count == 15
 
@@ -146,7 +144,7 @@ class TestAsyncAddEntitiesInBatches:
 
         # Should be called exactly 2 times
         assert mock_add_entities.call_count == 2
-        
+
         # Should sleep only once (between first and second batch)
         assert mock_sleep.call_count == 1
 
@@ -175,52 +173,57 @@ class TestAsyncSetupEntry:
                         MODULE_FEEDING: True,
                         MODULE_HEALTH: True,
                         MODULE_WALK: True,
-                    }
+                    },
                 },
                 {
-                    CONF_DOG_ID: "dog2", 
+                    CONF_DOG_ID: "dog2",
                     CONF_DOG_NAME: "Max",
                     "modules": {
                         MODULE_FEEDING: True,
                         MODULE_HEALTH: False,
                         MODULE_WALK: False,
-                    }
-                }
+                    },
+                },
             ]
         }
         entry.runtime_data = {
             "coordinator": mock_coordinator,
-            "dogs": entry.data[CONF_DOGS]
+            "dogs": entry.data[CONF_DOGS],
         }
         return entry
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_with_runtime_data(self, hass: HomeAssistant, mock_config_entry, mock_coordinator):
+    async def test_async_setup_entry_with_runtime_data(
+        self, hass: HomeAssistant, mock_config_entry, mock_coordinator
+    ):
         """Test setup entry using runtime_data structure."""
         mock_add_entities = Mock()
 
-        with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+        with patch(
+            "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
+            new_callable=AsyncMock,
+        ) as mock_batch_add:
             await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
         # Should call batching function
         mock_batch_add.assert_called_once()
-        
+
         # Get the entities that were passed to batching
         args, kwargs = mock_batch_add.call_args
         entities = args[1]  # Second argument is the entities list
-        
+
         # Dog1 has all modules: 2 basic + 5 feeding + 6 health + 2 walk = 15 entities
         # Dog2 has limited modules: 2 basic + 5 feeding = 7 entities
         # Total: 22 entities
         assert len(entities) == 22
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_with_legacy_data_structure(self, hass: HomeAssistant, mock_coordinator):
+    async def test_async_setup_entry_with_legacy_data_structure(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test setup entry using legacy data structure in hass.data."""
-        hass.data[DOMAIN] = {
-            "test_entry": {"coordinator": mock_coordinator}
-        }
-        
+        hass.data[DOMAIN] = {"test_entry": {"coordinator": mock_coordinator}}
+
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry"
         entry.data = {
@@ -228,31 +231,36 @@ class TestAsyncSetupEntry:
                 {
                     CONF_DOG_ID: "dog1",
                     CONF_DOG_NAME: "Buddy",
-                    "modules": {MODULE_FEEDING: True}
+                    "modules": {MODULE_FEEDING: True},
                 }
             ]
         }
         entry.runtime_data = None
-        
+
         mock_add_entities = Mock()
 
-        with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+        with patch(
+            "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
+            new_callable=AsyncMock,
+        ) as mock_batch_add:
             await async_setup_entry(hass, entry, mock_add_entities)
 
         mock_batch_add.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_no_dogs_configured(self, hass: HomeAssistant, mock_coordinator):
+    async def test_async_setup_entry_no_dogs_configured(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test setup entry with no dogs configured."""
         entry = Mock(spec=ConfigEntry)
-        entry.runtime_data = {
-            "coordinator": mock_coordinator,
-            "dogs": []
-        }
-        
+        entry.runtime_data = {"coordinator": mock_coordinator, "dogs": []}
+
         mock_add_entities = Mock()
 
-        with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+        with patch(
+            "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
+            new_callable=AsyncMock,
+        ) as mock_batch_add:
             await async_setup_entry(hass, entry, mock_add_entities)
 
         # Should still call batching function but with empty entity list
@@ -262,7 +270,9 @@ class TestAsyncSetupEntry:
         assert len(entities) == 0
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_missing_required_keys(self, hass: HomeAssistant, mock_coordinator):
+    async def test_async_setup_entry_missing_required_keys(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test setup entry with dogs missing required keys."""
         entry = Mock(spec=ConfigEntry)
         entry.runtime_data = {
@@ -272,12 +282,15 @@ class TestAsyncSetupEntry:
                     # Missing CONF_DOG_ID and CONF_DOG_NAME
                     "modules": {MODULE_FEEDING: True}
                 }
-            ]
+            ],
         }
-        
+
         mock_add_entities = Mock()
 
-        with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+        with patch(
+            "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
+            new_callable=AsyncMock,
+        ) as mock_batch_add:
             await async_setup_entry(hass, entry, mock_add_entities)
 
         # Should still call batching function but with no entities created
@@ -287,45 +300,50 @@ class TestAsyncSetupEntry:
         assert len(entities) == 0
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_missing_coordinator_in_hass_data(self, hass: HomeAssistant):
+    async def test_async_setup_entry_missing_coordinator_in_hass_data(
+        self, hass: HomeAssistant
+    ):
         """Test setup entry when coordinator is missing from hass.data."""
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry"
         entry.runtime_data = None
-        
+
         # Missing coordinator in hass.data
         hass.data[DOMAIN] = {}
-        
+
         mock_add_entities = Mock()
 
         with pytest.raises(KeyError):
             await async_setup_entry(hass, entry, mock_add_entities)
 
     @pytest.mark.asyncio
-    async def test_async_setup_entry_getattr_runtime_data_none(self, hass: HomeAssistant, mock_coordinator):
+    async def test_async_setup_entry_getattr_runtime_data_none(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test setup entry when getattr returns None for runtime_data."""
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry"
-        
+
         # Mock getattr to return None
         with patch("builtins.getattr", return_value=None):
-            hass.data[DOMAIN] = {
-                "test_entry": {"coordinator": mock_coordinator}
-            }
-            
+            hass.data[DOMAIN] = {"test_entry": {"coordinator": mock_coordinator}}
+
             entry.data = {
                 CONF_DOGS: [
                     {
                         CONF_DOG_ID: "dog1",
                         CONF_DOG_NAME: "Buddy",
-                        "modules": {MODULE_FEEDING: True}
+                        "modules": {MODULE_FEEDING: True},
                     }
                 ]
             }
-            
+
             mock_add_entities = Mock()
 
-            with patch("custom_components.pawcontrol.datetime._async_add_entities_in_batches", new_callable=AsyncMock) as mock_batch_add:
+            with patch(
+                "custom_components.pawcontrol.datetime._async_add_entities_in_batches",
+                new_callable=AsyncMock,
+            ) as mock_batch_add:
                 await async_setup_entry(hass, entry, mock_add_entities)
 
             mock_batch_add.assert_called_once()
@@ -345,10 +363,7 @@ class TestPawControlDateTimeBase:
     def base_datetime_entity(self, mock_coordinator):
         """Create a base datetime entity for testing."""
         return PawControlDateTimeBase(
-            mock_coordinator,
-            "dog1",
-            "Buddy",
-            "test_datetime"
+            mock_coordinator, "dog1", "Buddy", "test_datetime"
         )
 
     def test_base_datetime_entity_initialization(self, base_datetime_entity):
@@ -362,7 +377,7 @@ class TestPawControlDateTimeBase:
     def test_base_datetime_entity_device_info(self, base_datetime_entity):
         """Test device info configuration."""
         device_info = base_datetime_entity._attr_device_info
-        
+
         assert device_info["identifiers"] == {(DOMAIN, "dog1")}
         assert device_info["name"] == "Buddy"
         assert device_info["manufacturer"] == "Paw Control"
@@ -378,111 +393,139 @@ class TestPawControlDateTimeBase:
         """Test native value when value is set."""
         test_datetime = datetime(2023, 6, 15, 14, 30, 0)
         base_datetime_entity._current_value = test_datetime
-        
+
         assert base_datetime_entity.native_value == test_datetime
 
     def test_extra_state_attributes(self, base_datetime_entity):
         """Test extra state attributes."""
         attrs = base_datetime_entity.extra_state_attributes
-        
+
         assert attrs[ATTR_DOG_ID] == "dog1"
         assert attrs[ATTR_DOG_NAME] == "Buddy"
         assert attrs["datetime_type"] == "test_datetime"
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_without_previous_state(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_without_previous_state(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass without previous state."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=None):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=None
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is None
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_with_valid_previous_state(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_with_valid_previous_state(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass with valid previous state."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
+
         mock_state = Mock()
         mock_state.state = "2023-06-15T14:30:00+00:00"
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=mock_state
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is not None
         assert base_datetime_entity._current_value.year == 2023
         assert base_datetime_entity._current_value.month == 6
         assert base_datetime_entity._current_value.day == 15
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_with_invalid_previous_state(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_with_invalid_previous_state(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass with invalid previous state."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
+
         mock_state = Mock()
         mock_state.state = "invalid-datetime-format"
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=mock_state
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is None
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_with_unknown_state(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_with_unknown_state(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass with unknown state."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
+
         mock_state = Mock()
         mock_state.state = "unknown"
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=mock_state
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is None
 
     @pytest.mark.asyncio
-    async def test_async_set_value_valid_datetime(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_set_value_valid_datetime(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test setting valid datetime value."""
         base_datetime_entity.hass = hass
         test_datetime = datetime(2023, 7, 20, 16, 45, 0)
-        
-        with patch.object(base_datetime_entity, 'async_write_ha_state') as mock_write_state:
+
+        with patch.object(
+            base_datetime_entity, "async_write_ha_state"
+        ) as mock_write_state:
             await base_datetime_entity.async_set_value(test_datetime)
-        
+
         assert base_datetime_entity._current_value == test_datetime
         mock_write_state.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_with_unavailable_state(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_with_unavailable_state(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass with unavailable state."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
+
         mock_state = Mock()
         mock_state.state = "unavailable"
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=mock_state
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is None
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_with_type_error(self, hass: HomeAssistant, base_datetime_entity):
+    async def test_async_added_to_hass_with_type_error(
+        self, hass: HomeAssistant, base_datetime_entity
+    ):
         """Test entity added to hass with TypeError during parsing."""
         base_datetime_entity.hass = hass
         base_datetime_entity.entity_id = "datetime.buddy_test_datetime"
-        
+
         mock_state = Mock()
         mock_state.state = None  # This could cause TypeError
-        
-        with patch.object(base_datetime_entity, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(
+            base_datetime_entity, "async_get_last_state", return_value=mock_state
+        ):
             await base_datetime_entity.async_added_to_hass()
-            
+
         assert base_datetime_entity._current_value is None
 
 
@@ -507,13 +550,15 @@ class TestPawControlBirthdateDateTime:
         assert birthdate_datetime_entity._attr_icon == "mdi:cake"
 
     @pytest.mark.asyncio
-    async def test_async_set_value_birthdate_with_age_calculation(self, birthdate_datetime_entity):
+    async def test_async_set_value_birthdate_with_age_calculation(
+        self, birthdate_datetime_entity
+    ):
         """Test setting birthdate with age calculation."""
         test_datetime = datetime(2020, 5, 15, 10, 30, 0)
-        
-        with patch.object(birthdate_datetime_entity, 'async_write_ha_state'):
+
+        with patch.object(birthdate_datetime_entity, "async_write_ha_state"):
             await birthdate_datetime_entity.async_set_value(test_datetime)
-        
+
         assert birthdate_datetime_entity._current_value == test_datetime
 
 
@@ -591,16 +636,18 @@ class TestPawControlFeedingTimeEntities:
         assert dinner_entity._current_value is not None
         assert dinner_entity._current_value.hour == 18
 
-    def test_feeding_time_default_values(self, breakfast_entity, lunch_entity, dinner_entity):
+    def test_feeding_time_default_values(
+        self, breakfast_entity, lunch_entity, dinner_entity
+    ):
         """Test that feeding times have appropriate default values."""
         # Breakfast should be at 8:00
         assert breakfast_entity.native_value.hour == 8
         assert breakfast_entity.native_value.minute == 0
-        
+
         # Lunch should be at 13:00
         assert lunch_entity.native_value.hour == 13
         assert lunch_entity.native_value.minute == 0
-        
+
         # Dinner should be at 18:00
         assert dinner_entity.native_value.hour == 18
         assert dinner_entity.native_value.minute == 0
@@ -608,8 +655,11 @@ class TestPawControlFeedingTimeEntities:
     def test_feeding_time_default_timezone_handling(self, breakfast_entity):
         """Test timezone handling in default feeding times."""
         # Default time should be in current timezone context
-        assert breakfast_entity.native_value.tzinfo is not None or breakfast_entity.native_value.tzinfo is None
-        
+        assert (
+            breakfast_entity.native_value.tzinfo is not None
+            or breakfast_entity.native_value.tzinfo is None
+        )
+
         # Should be reasonable hour range
         assert 0 <= breakfast_entity.native_value.hour <= 23
 
@@ -635,42 +685,40 @@ class TestPawControlLastFeedingDateTime:
         assert last_feeding_entity._datetime_type == "last_feeding"
         assert last_feeding_entity._attr_icon == "mdi:food-drumstick"
 
-    def test_native_value_from_coordinator_data(self, last_feeding_entity, mock_coordinator):
+    def test_native_value_from_coordinator_data(
+        self, last_feeding_entity, mock_coordinator
+    ):
         """Test getting native value from coordinator data."""
-        mock_feeding_data = {
-            "feeding": {
-                "last_feeding": "2023-06-15T12:30:00+00:00"
-            }
-        }
-        
+        mock_feeding_data = {"feeding": {"last_feeding": "2023-06-15T12:30:00+00:00"}}
+
         mock_coordinator.get_dog_data.return_value = mock_feeding_data
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is not None
         assert result.year == 2023
         assert result.month == 6
         assert result.day == 15
 
-    def test_native_value_from_coordinator_data_invalid(self, last_feeding_entity, mock_coordinator):
+    def test_native_value_from_coordinator_data_invalid(
+        self, last_feeding_entity, mock_coordinator
+    ):
         """Test getting native value with invalid coordinator data."""
-        mock_feeding_data = {
-            "feeding": {
-                "last_feeding": "invalid-datetime"
-            }
-        }
-        
+        mock_feeding_data = {"feeding": {"last_feeding": "invalid-datetime"}}
+
         mock_coordinator.get_dog_data.return_value = mock_feeding_data
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is None
 
-    def test_native_value_no_coordinator_data(self, last_feeding_entity, mock_coordinator):
+    def test_native_value_no_coordinator_data(
+        self, last_feeding_entity, mock_coordinator
+    ):
         """Test getting native value when no coordinator data available."""
         mock_coordinator.get_dog_data.return_value = None
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is None
 
@@ -678,15 +726,17 @@ class TestPawControlLastFeedingDateTime:
         """Test getting native value when no feeding data available."""
         mock_coordinator.get_dog_data.return_value = {"other": "data"}
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is None
 
-    def test_native_value_empty_feeding_data(self, last_feeding_entity, mock_coordinator):
+    def test_native_value_empty_feeding_data(
+        self, last_feeding_entity, mock_coordinator
+    ):
         """Test getting native value when feeding data is empty."""
         mock_coordinator.get_dog_data.return_value = {"feeding": {}}
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is None
 
@@ -697,23 +747,27 @@ class TestPawControlLastFeedingDateTime:
                 "last_feeding": None  # Could cause TypeError
             }
         }
-        
+
         mock_coordinator.get_dog_data.return_value = mock_feeding_data
         last_feeding_entity.coordinator = mock_coordinator
-        
+
         result = last_feeding_entity.native_value
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_async_set_value_logs_feeding(self, hass: HomeAssistant, last_feeding_entity):
+    async def test_async_set_value_logs_feeding(
+        self, hass: HomeAssistant, last_feeding_entity
+    ):
         """Test setting last feeding value logs feeding event."""
         last_feeding_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 12, 30, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(last_feeding_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(last_feeding_entity, "async_write_ha_state"):
                 await last_feeding_entity.async_set_value(test_datetime)
-        
+
         # Should call feed_dog service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -725,16 +779,20 @@ class TestPawControlLastFeedingDateTime:
         )
 
     @pytest.mark.asyncio
-    async def test_async_set_value_service_error(self, hass: HomeAssistant, last_feeding_entity):
+    async def test_async_set_value_service_error(
+        self, hass: HomeAssistant, last_feeding_entity
+    ):
         """Test setting last feeding when service call fails."""
         last_feeding_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 12, 30, 0)
-        
-        with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
-            with patch.object(last_feeding_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", side_effect=Exception("Service error")
+        ):
+            with patch.object(last_feeding_entity, "async_write_ha_state"):
                 # Should not raise exception despite service error
                 await last_feeding_entity.async_set_value(test_datetime)
-        
+
         # Value should still be set
         assert last_feeding_entity._current_value == test_datetime
 
@@ -763,10 +821,10 @@ class TestPawControlNextFeedingDateTime:
     async def test_async_set_value_schedules_reminder(self, next_feeding_entity):
         """Test setting next feeding value schedules reminder."""
         test_datetime = datetime(2023, 6, 15, 18, 0, 0)
-        
-        with patch.object(next_feeding_entity, 'async_write_ha_state'):
+
+        with patch.object(next_feeding_entity, "async_write_ha_state"):
             await next_feeding_entity.async_set_value(test_datetime)
-        
+
         assert next_feeding_entity._current_value == test_datetime
 
 
@@ -822,64 +880,68 @@ class TestPawControlHealthDateTimeEntities:
         """Create a mock coordinator."""
         return Mock(spec=PawControlCoordinator)
 
-    def test_health_entities_initialization(self, last_vet_visit_entity, next_vet_appointment_entity, 
-                                          last_grooming_entity, next_grooming_entity,
-                                          last_medication_entity, next_medication_entity):
+    def test_health_entities_initialization(
+        self,
+        last_vet_visit_entity,
+        next_vet_appointment_entity,
+        last_grooming_entity,
+        next_grooming_entity,
+        last_medication_entity,
+        next_medication_entity,
+    ):
         """Test health datetime entities initialization."""
         assert last_vet_visit_entity._datetime_type == "last_vet_visit"
         assert last_vet_visit_entity._attr_icon == "mdi:medical-bag"
-        
+
         assert next_vet_appointment_entity._datetime_type == "next_vet_appointment"
         assert next_vet_appointment_entity._attr_icon == "mdi:calendar-medical"
-        
+
         assert last_grooming_entity._datetime_type == "last_grooming"
         assert last_grooming_entity._attr_icon == "mdi:content-cut"
-        
+
         assert next_grooming_entity._datetime_type == "next_grooming"
         assert next_grooming_entity._attr_icon == "mdi:calendar-clock"
-        
+
         assert last_medication_entity._datetime_type == "last_medication"
         assert last_medication_entity._attr_icon == "mdi:pill"
-        
+
         assert next_medication_entity._datetime_type == "next_medication"
         assert next_medication_entity._attr_icon == "mdi:alarm-plus"
 
-    def test_last_vet_visit_native_value_from_coordinator(self, last_vet_visit_entity, mock_coordinator):
+    def test_last_vet_visit_native_value_from_coordinator(
+        self, last_vet_visit_entity, mock_coordinator
+    ):
         """Test getting last vet visit from coordinator data."""
-        mock_health_data = {
-            "health": {
-                "last_vet_visit": "2023-05-10T14:30:00+00:00"
-            }
-        }
-        
+        mock_health_data = {"health": {"last_vet_visit": "2023-05-10T14:30:00+00:00"}}
+
         mock_coordinator.get_dog_data.return_value = mock_health_data
         last_vet_visit_entity.coordinator = mock_coordinator
-        
+
         result = last_vet_visit_entity.native_value
         assert result is not None
         assert result.year == 2023
         assert result.month == 5
         assert result.day == 10
 
-    def test_last_vet_visit_native_value_empty_health(self, last_vet_visit_entity, mock_coordinator):
+    def test_last_vet_visit_native_value_empty_health(
+        self, last_vet_visit_entity, mock_coordinator
+    ):
         """Test getting last vet visit when health data is empty."""
         mock_coordinator.get_dog_data.return_value = {"health": {}}
         last_vet_visit_entity.coordinator = mock_coordinator
-        
+
         result = last_vet_visit_entity.native_value
         assert result is None
 
-    def test_last_grooming_native_value_from_coordinator(self, last_grooming_entity, mock_coordinator):
+    def test_last_grooming_native_value_from_coordinator(
+        self, last_grooming_entity, mock_coordinator
+    ):
         """Test getting last grooming from coordinator data."""
-        mock_health_data = {
-            "health": {
-                "last_grooming": "2023-04-20T10:00:00+00:00"
-            }
-        }
-        
+        mock_health_data = {"health": {"last_grooming": "2023-04-20T10:00:00+00:00"}}
+
         mock_coordinator.get_dog_data.return_value = mock_health_data
         last_grooming_entity.coordinator = mock_coordinator
-        
+
         result = last_grooming_entity.native_value
         assert result is not None
         assert result.year == 2023
@@ -887,15 +949,19 @@ class TestPawControlHealthDateTimeEntities:
         assert result.day == 20
 
     @pytest.mark.asyncio
-    async def test_last_vet_visit_async_set_value_logs_health(self, hass: HomeAssistant, last_vet_visit_entity):
+    async def test_last_vet_visit_async_set_value_logs_health(
+        self, hass: HomeAssistant, last_vet_visit_entity
+    ):
         """Test setting last vet visit logs health data."""
         last_vet_visit_entity.hass = hass
         test_datetime = datetime(2023, 5, 10, 14, 30, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(last_vet_visit_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(last_vet_visit_entity, "async_write_ha_state"):
                 await last_vet_visit_entity.async_set_value(test_datetime)
-        
+
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -907,15 +973,19 @@ class TestPawControlHealthDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_last_grooming_async_set_value_logs_grooming(self, hass: HomeAssistant, last_grooming_entity):
+    async def test_last_grooming_async_set_value_logs_grooming(
+        self, hass: HomeAssistant, last_grooming_entity
+    ):
         """Test setting last grooming logs grooming session."""
         last_grooming_entity.hass = hass
         test_datetime = datetime(2023, 4, 20, 10, 0, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(last_grooming_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(last_grooming_entity, "async_write_ha_state"):
                 await last_grooming_entity.async_set_value(test_datetime)
-        
+
         # Should call start_grooming service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -928,15 +998,19 @@ class TestPawControlHealthDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_last_medication_async_set_value_logs_medication(self, hass: HomeAssistant, last_medication_entity):
+    async def test_last_medication_async_set_value_logs_medication(
+        self, hass: HomeAssistant, last_medication_entity
+    ):
         """Test setting last medication logs medication."""
         last_medication_entity.hass = hass
         test_datetime = datetime(2023, 6, 1, 8, 0, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(last_medication_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(last_medication_entity, "async_write_ha_state"):
                 await last_medication_entity.async_set_value(test_datetime)
-        
+
         # Should call log_medication service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -949,42 +1023,52 @@ class TestPawControlHealthDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_next_vet_appointment_async_set_value(self, next_vet_appointment_entity):
+    async def test_next_vet_appointment_async_set_value(
+        self, next_vet_appointment_entity
+    ):
         """Test setting next vet appointment."""
         test_datetime = datetime(2023, 7, 15, 10, 0, 0)
-        
-        with patch.object(next_vet_appointment_entity, 'async_write_ha_state'):
+
+        with patch.object(next_vet_appointment_entity, "async_write_ha_state"):
             await next_vet_appointment_entity.async_set_value(test_datetime)
-        
+
         assert next_vet_appointment_entity._current_value == test_datetime
 
     @pytest.mark.asyncio
     async def test_next_medication_async_set_value(self, next_medication_entity):
         """Test setting next medication reminder."""
         test_datetime = datetime(2023, 6, 2, 8, 0, 0)
-        
-        with patch.object(next_medication_entity, 'async_write_ha_state'):
+
+        with patch.object(next_medication_entity, "async_write_ha_state"):
             await next_medication_entity.async_set_value(test_datetime)
-        
+
         assert next_medication_entity._current_value == test_datetime
 
     @pytest.mark.asyncio
-    async def test_health_service_calls_with_errors(self, hass: HomeAssistant, last_vet_visit_entity, last_grooming_entity, last_medication_entity):
+    async def test_health_service_calls_with_errors(
+        self,
+        hass: HomeAssistant,
+        last_vet_visit_entity,
+        last_grooming_entity,
+        last_medication_entity,
+    ):
         """Test health service calls handle errors gracefully."""
         entities_and_times = [
             (last_vet_visit_entity, datetime(2023, 5, 10, 14, 30, 0)),
             (last_grooming_entity, datetime(2023, 4, 20, 10, 0, 0)),
             (last_medication_entity, datetime(2023, 6, 1, 8, 0, 0)),
         ]
-        
+
         for entity, test_datetime in entities_and_times:
             entity.hass = hass
-            
-            with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
-                with patch.object(entity, 'async_write_ha_state'):
+
+            with patch.object(
+                hass.services, "async_call", side_effect=Exception("Service error")
+            ):
+                with patch.object(entity, "async_write_ha_state"):
                     # Should not raise exception despite service error
                     await entity.async_set_value(test_datetime)
-            
+
             # Value should still be set
             assert entity._current_value == test_datetime
 
@@ -1012,73 +1096,83 @@ class TestPawControlWalkDateTimeEntities:
         """Create a mock coordinator."""
         return Mock(spec=PawControlCoordinator)
 
-    def test_walk_entities_initialization(self, last_walk_entity, next_walk_reminder_entity):
+    def test_walk_entities_initialization(
+        self, last_walk_entity, next_walk_reminder_entity
+    ):
         """Test walk datetime entities initialization."""
         assert last_walk_entity._datetime_type == "last_walk"
         assert last_walk_entity._attr_icon == "mdi:walk"
-        
+
         assert next_walk_reminder_entity._datetime_type == "next_walk_reminder"
         assert next_walk_reminder_entity._attr_icon == "mdi:bell-ring"
 
-    def test_last_walk_native_value_from_coordinator(self, last_walk_entity, mock_coordinator):
+    def test_last_walk_native_value_from_coordinator(
+        self, last_walk_entity, mock_coordinator
+    ):
         """Test getting last walk from coordinator data."""
-        mock_walk_data = {
-            "walk": {
-                "last_walk": "2023-06-15T16:30:00+00:00"
-            }
-        }
-        
+        mock_walk_data = {"walk": {"last_walk": "2023-06-15T16:30:00+00:00"}}
+
         mock_coordinator.get_dog_data.return_value = mock_walk_data
         last_walk_entity.coordinator = mock_coordinator
-        
+
         result = last_walk_entity.native_value
         assert result is not None
         assert result.year == 2023
         assert result.month == 6
         assert result.day == 15
 
-    def test_last_walk_native_value_missing_walk_data(self, last_walk_entity, mock_coordinator):
+    def test_last_walk_native_value_missing_walk_data(
+        self, last_walk_entity, mock_coordinator
+    ):
         """Test getting last walk when walk data is missing."""
         mock_coordinator.get_dog_data.return_value = {"other": "data"}
         last_walk_entity.coordinator = mock_coordinator
-        
+
         result = last_walk_entity.native_value
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_last_walk_async_set_value_logs_walk(self, hass: HomeAssistant, last_walk_entity):
+    async def test_last_walk_async_set_value_logs_walk(
+        self, hass: HomeAssistant, last_walk_entity
+    ):
         """Test setting last walk logs walk session."""
         last_walk_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 16, 30, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(last_walk_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(last_walk_entity, "async_write_ha_state"):
                 await last_walk_entity.async_set_value(test_datetime)
-        
+
         # Should call start_walk and end_walk services
         assert mock_service_call.call_count == 2
-        
+
         # First call should be start_walk
         first_call = mock_service_call.call_args_list[0]
         assert first_call[0] == (DOMAIN, "start_walk")
         assert first_call[1] == {ATTR_DOG_ID: "dog1"}
-        
+
         # Second call should be end_walk
         second_call = mock_service_call.call_args_list[1]
         assert second_call[0] == (DOMAIN, "end_walk")
         assert second_call[1] == {ATTR_DOG_ID: "dog1"}
 
     @pytest.mark.asyncio
-    async def test_last_walk_async_set_value_service_error(self, hass: HomeAssistant, last_walk_entity):
+    async def test_last_walk_async_set_value_service_error(
+        self, hass: HomeAssistant, last_walk_entity
+    ):
         """Test setting last walk when service calls fail."""
         last_walk_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 16, 30, 0)
-        
-        with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
-            with patch.object(last_walk_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", side_effect=Exception("Service error")
+        ):
+            with patch.object(last_walk_entity, "async_write_ha_state"):
                 # Should not raise exception despite service errors
                 await last_walk_entity.async_set_value(test_datetime)
-        
+
         # Value should still be set
         assert last_walk_entity._current_value == test_datetime
 
@@ -1086,10 +1180,10 @@ class TestPawControlWalkDateTimeEntities:
     async def test_next_walk_reminder_async_set_value(self, next_walk_reminder_entity):
         """Test setting next walk reminder."""
         test_datetime = datetime(2023, 6, 16, 8, 0, 0)
-        
-        with patch.object(next_walk_reminder_entity, 'async_write_ha_state'):
+
+        with patch.object(next_walk_reminder_entity, "async_write_ha_state"):
             await next_walk_reminder_entity.async_set_value(test_datetime)
-        
+
         assert next_walk_reminder_entity._current_value == test_datetime
 
 
@@ -1124,27 +1218,33 @@ class TestPawControlSpecialDateTimeEntities:
         """Create a mock coordinator."""
         return Mock(spec=PawControlCoordinator)
 
-    def test_special_entities_initialization(self, vaccination_entity, training_entity, emergency_entity):
+    def test_special_entities_initialization(
+        self, vaccination_entity, training_entity, emergency_entity
+    ):
         """Test special datetime entities initialization."""
         assert vaccination_entity._datetime_type == "vaccination_date"
         assert vaccination_entity._attr_icon == "mdi:needle"
-        
+
         assert training_entity._datetime_type == "training_session"
         assert training_entity._attr_icon == "mdi:school"
-        
+
         assert emergency_entity._datetime_type == "emergency_date"
         assert emergency_entity._attr_icon == "mdi:alert"
 
     @pytest.mark.asyncio
-    async def test_vaccination_async_set_value_logs_health(self, hass: HomeAssistant, vaccination_entity):
+    async def test_vaccination_async_set_value_logs_health(
+        self, hass: HomeAssistant, vaccination_entity
+    ):
         """Test setting vaccination date logs health data."""
         vaccination_entity.hass = hass
         test_datetime = datetime(2023, 6, 20, 11, 0, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(vaccination_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(vaccination_entity, "async_write_ha_state"):
                 await vaccination_entity.async_set_value(test_datetime)
-        
+
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -1156,15 +1256,19 @@ class TestPawControlSpecialDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_training_async_set_value_logs_health(self, hass: HomeAssistant, training_entity):
+    async def test_training_async_set_value_logs_health(
+        self, hass: HomeAssistant, training_entity
+    ):
         """Test setting training session logs health data."""
         training_entity.hass = hass
         test_datetime = datetime(2023, 6, 25, 15, 0, 0)
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(training_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(training_entity, "async_write_ha_state"):
                 await training_entity.async_set_value(test_datetime)
-        
+
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -1176,23 +1280,23 @@ class TestPawControlSpecialDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_emergency_async_set_value_logs_and_notifies(self, hass: HomeAssistant, emergency_entity):
+    async def test_emergency_async_set_value_logs_and_notifies(
+        self, hass: HomeAssistant, emergency_entity
+    ):
         """Test setting emergency date logs health data and sends notification."""
         emergency_entity.hass = hass
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
-        
+
         # Mock the hass.data structure for notification manager
         mock_notification_manager = AsyncMock()
-        hass.data[DOMAIN] = {
-            "test_entry": {
-                "notifications": mock_notification_manager
-            }
-        }
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(emergency_entity, 'async_write_ha_state'):
+        hass.data[DOMAIN] = {"test_entry": {"notifications": mock_notification_manager}}
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(emergency_entity, "async_write_ha_state"):
                 await emergency_entity.async_set_value(test_datetime)
-        
+
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
             DOMAIN,
@@ -1202,7 +1306,7 @@ class TestPawControlSpecialDateTimeEntities:
                 "note": "EMERGENCY EVENT recorded for 2023-06-30 22:15",
             },
         )
-        
+
         # Should send urgent notification
         mock_notification_manager.async_send_notification.assert_called_once_with(
             "dog1",
@@ -1212,62 +1316,68 @@ class TestPawControlSpecialDateTimeEntities:
         )
 
     @pytest.mark.asyncio
-    async def test_emergency_async_set_value_missing_notification_manager(self, hass: HomeAssistant, emergency_entity):
+    async def test_emergency_async_set_value_missing_notification_manager(
+        self, hass: HomeAssistant, emergency_entity
+    ):
         """Test setting emergency date when notification manager is missing."""
         emergency_entity.hass = hass
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
-        
+
         # Mock hass.data without notification manager
         hass.data[DOMAIN] = {
             "test_entry": {}  # Missing notifications
         }
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock) as mock_service_call:
-            with patch.object(emergency_entity, 'async_write_ha_state'):
+
+        with patch.object(
+            hass.services, "async_call", new_callable=AsyncMock
+        ) as mock_service_call:
+            with patch.object(emergency_entity, "async_write_ha_state"):
                 # Should not raise exception even without notification manager
                 await emergency_entity.async_set_value(test_datetime)
-        
+
         # Should still call health service
         mock_service_call.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_emergency_async_set_value_notification_error(self, hass: HomeAssistant, emergency_entity):
+    async def test_emergency_async_set_value_notification_error(
+        self, hass: HomeAssistant, emergency_entity
+    ):
         """Test setting emergency date when notification manager raises error."""
         emergency_entity.hass = hass
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
-        
+
         # Mock notification manager that raises exception
         mock_notification_manager = AsyncMock()
-        mock_notification_manager.async_send_notification.side_effect = Exception("Notification error")
-        
-        hass.data[DOMAIN] = {
-            "test_entry": {
-                "notifications": mock_notification_manager
-            }
-        }
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
-            with patch.object(emergency_entity, 'async_write_ha_state'):
+        mock_notification_manager.async_send_notification.side_effect = Exception(
+            "Notification error"
+        )
+
+        hass.data[DOMAIN] = {"test_entry": {"notifications": mock_notification_manager}}
+
+        with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+            with patch.object(emergency_entity, "async_write_ha_state"):
                 # Should not raise exception despite notification error
                 await emergency_entity.async_set_value(test_datetime)
-        
+
         # Should still set the value
         assert emergency_entity._current_value == test_datetime
 
     @pytest.mark.asyncio
-    async def test_emergency_async_set_value_missing_hass_data(self, hass: HomeAssistant, emergency_entity):
+    async def test_emergency_async_set_value_missing_hass_data(
+        self, hass: HomeAssistant, emergency_entity
+    ):
         """Test setting emergency date when hass.data structure is missing."""
         emergency_entity.hass = hass
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
-        
+
         # No hass.data[DOMAIN] structure
         hass.data = {}
-        
-        with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
-            with patch.object(emergency_entity, 'async_write_ha_state'):
+
+        with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+            with patch.object(emergency_entity, "async_write_ha_state"):
                 # Should not raise exception even with missing data structure
                 await emergency_entity.async_set_value(test_datetime)
-        
+
         # Should still set the value
         assert emergency_entity._current_value == test_datetime
 
@@ -1285,7 +1395,7 @@ class TestDateTimeEntityIntegrationScenarios:
     def test_coordinator_unavailable_affects_all_entities(self, mock_coordinator):
         """Test that coordinator unavailability affects all datetime entities."""
         mock_coordinator.available = False
-        
+
         entities = [
             PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy"),
             PawControlBreakfastTimeDateTime(mock_coordinator, "dog1", "Buddy"),
@@ -1293,28 +1403,28 @@ class TestDateTimeEntityIntegrationScenarios:
             PawControlLastVetVisitDateTime(mock_coordinator, "dog1", "Buddy"),
             PawControlLastWalkDateTime(mock_coordinator, "dog1", "Buddy"),
         ]
-        
+
         for entity in entities:
             assert entity.coordinator.available is False
 
     def test_multiple_dogs_unique_entities(self, mock_coordinator):
         """Test that multiple dogs create unique datetime entities."""
-        dogs = [
-            ("dog1", "Buddy"),
-            ("dog2", "Max"),
-            ("dog3", "Luna")
-        ]
-        
+        dogs = [("dog1", "Buddy"), ("dog2", "Max"), ("dog3", "Luna")]
+
         entities = []
         for dog_id, dog_name in dogs:
-            entities.append(PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name))
-            entities.append(PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name))
-        
+            entities.append(
+                PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name)
+            )
+            entities.append(
+                PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name)
+            )
+
         unique_ids = [entity._attr_unique_id for entity in entities]
-        
+
         # All unique IDs should be different
         assert len(unique_ids) == len(set(unique_ids))
-        
+
         # Verify format
         assert "pawcontrol_dog1_birthdate" in unique_ids
         assert "pawcontrol_dog2_birthdate" in unique_ids
@@ -1325,21 +1435,21 @@ class TestDateTimeEntityIntegrationScenarios:
         # Create multiple entities of same type for different dogs
         entity1 = PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy")
         entity2 = PawControlBirthdateDateTime(mock_coordinator, "dog2", "Max")
-        
+
         datetime1 = datetime(2020, 5, 15, 10, 30, 0)
         datetime2 = datetime(2019, 8, 22, 14, 45, 0)
-        
+
         entity1._current_value = datetime1
         entity2._current_value = datetime2
-        
+
         # Entities should return different values
         assert entity1.native_value == datetime1
         assert entity2.native_value == datetime2
-        
+
         # Attributes should be isolated
         attrs1 = entity1.extra_state_attributes
         attrs2 = entity2.extra_state_attributes
-        
+
         assert attrs1[ATTR_DOG_ID] == "dog1"
         assert attrs2[ATTR_DOG_ID] == "dog2"
         assert attrs1[ATTR_DOG_NAME] == "Buddy"
@@ -1348,17 +1458,17 @@ class TestDateTimeEntityIntegrationScenarios:
     def test_datetime_validation_edge_cases(self, mock_coordinator):
         """Test datetime validation with edge cases."""
         entity = PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy")
-        
+
         # Test timezone-aware datetime
         tz_datetime = dt_util.now()
         entity._current_value = tz_datetime
         assert entity.native_value == tz_datetime
-        
+
         # Test naive datetime
         naive_datetime = datetime(2023, 6, 15, 14, 30, 0)
         entity._current_value = naive_datetime
         assert entity.native_value == naive_datetime
-        
+
         # Test datetime with microseconds
         micro_datetime = datetime(2023, 6, 15, 14, 30, 45, 123456)
         entity._current_value = micro_datetime
@@ -1368,41 +1478,55 @@ class TestDateTimeEntityIntegrationScenarios:
     async def test_performance_with_many_entities(self, mock_coordinator):
         """Test performance with large number of datetime entities."""
         import time
-        
+
         start_time = time.time()
-        
+
         entities = []
         for dog_num in range(10):
             dog_id = f"dog{dog_num}"
             dog_name = f"Dog{dog_num}"
-            
+
             # Create all datetime entity types for this dog (17 entities per dog)
-            entities.extend([
-                PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlAdoptionDateDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLunchTimeDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlDinnerTimeDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLastFeedingDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlNextFeedingDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLastVetVisitDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlNextVetAppointmentDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLastGroomingDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlNextGroomingDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLastMedicationDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlNextMedicationDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlLastWalkDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlNextWalkReminderDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlVaccinationDateDateTime(mock_coordinator, dog_id, dog_name),
-                PawControlTrainingSessionDateTime(mock_coordinator, dog_id, dog_name),
-            ])
-        
+            entities.extend(
+                [
+                    PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlAdoptionDateDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLunchTimeDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlDinnerTimeDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLastFeedingDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlNextFeedingDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLastVetVisitDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlNextVetAppointmentDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                    PawControlLastGroomingDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlNextGroomingDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLastMedicationDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                    PawControlNextMedicationDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                    PawControlLastWalkDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlNextWalkReminderDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                    PawControlVaccinationDateDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                    PawControlTrainingSessionDateTime(
+                        mock_coordinator, dog_id, dog_name
+                    ),
+                ]
+            )
+
         creation_time = time.time() - start_time
-        
+
         # Should create 170 entities quickly (under 1 second)
         assert len(entities) == 170
         assert creation_time < 1.0
-        
+
         # Test that all entities have unique IDs
         unique_ids = [entity._attr_unique_id for entity in entities]
         assert len(unique_ids) == len(set(unique_ids))
@@ -1412,45 +1536,47 @@ class TestDateTimeEntityIntegrationScenarios:
         # Mock malformed data that could cause exceptions
         mock_coordinator.get_dog_data.return_value = {
             "invalid_structure": "malformed",
-            "feeding": {
-                "last_feeding": "not-a-datetime"
-            }
+            "feeding": {"last_feeding": "not-a-datetime"},
         }
-        
+
         entity = PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy")
         entity.coordinator = mock_coordinator
-        
+
         # Should not raise exception and return None for invalid data
         try:
             result = entity.native_value
             assert result is None
         except Exception as e:
-            pytest.fail(f"Entity should handle malformed data gracefully, but raised: {e}")
+            pytest.fail(
+                f"Entity should handle malformed data gracefully, but raised: {e}"
+            )
 
     @pytest.mark.asyncio
-    async def test_state_restoration_comprehensive(self, hass: HomeAssistant, mock_coordinator):
+    async def test_state_restoration_comprehensive(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test comprehensive state restoration scenarios."""
         entity = PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy")
         entity.hass = hass
         entity.entity_id = "datetime.buddy_birthdate"
-        
+
         # Test various state restoration scenarios
         test_cases = [
             ("2020-05-15T10:30:00+00:00", datetime),  # Valid datetime
-            ("unknown", None),                        # Unknown state
-            ("unavailable", None),                   # Unavailable state
-            ("", None),                              # Empty string
-            ("invalid-format", None),                # Invalid format
+            ("unknown", None),  # Unknown state
+            ("unavailable", None),  # Unavailable state
+            ("", None),  # Empty string
+            ("invalid-format", None),  # Invalid format
         ]
-        
+
         for state_value, expected_type in test_cases:
             mock_state = Mock()
             mock_state.state = state_value
-            
-            with patch.object(entity, 'async_get_last_state', return_value=mock_state):
+
+            with patch.object(entity, "async_get_last_state", return_value=mock_state):
                 entity._current_value = None  # Reset
                 await entity.async_added_to_hass()
-                
+
                 if expected_type is None:
                     assert entity._current_value is None
                 else:
@@ -1461,33 +1587,37 @@ class TestDateTimeEntityIntegrationScenarios:
         breakfast = PawControlBreakfastTimeDateTime(mock_coordinator, "dog1", "Buddy")
         lunch = PawControlLunchTimeDateTime(mock_coordinator, "dog1", "Buddy")
         dinner = PawControlDinnerTimeDateTime(mock_coordinator, "dog1", "Buddy")
-        
+
         # All should have default times set
         assert breakfast.native_value is not None
         assert lunch.native_value is not None
         assert dinner.native_value is not None
-        
+
         # Times should be in logical order
         assert breakfast.native_value.hour < lunch.native_value.hour
         assert lunch.native_value.hour < dinner.native_value.hour
-        
+
         # All should be on the same day
         assert breakfast.native_value.date() == lunch.native_value.date()
         assert lunch.native_value.date() == dinner.native_value.date()
 
     @pytest.mark.asyncio
-    async def test_service_integration_error_handling(self, hass: HomeAssistant, mock_coordinator):
+    async def test_service_integration_error_handling(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test service integration with error handling."""
         entity = PawControlLastVetVisitDateTime(mock_coordinator, "dog1", "Buddy")
         entity.hass = hass
         test_datetime = datetime(2023, 5, 10, 14, 30, 0)
-        
+
         # Mock service call to raise exception
-        with patch.object(hass.services, 'async_call', side_effect=Exception("Service error")):
-            with patch.object(entity, 'async_write_ha_state'):
+        with patch.object(
+            hass.services, "async_call", side_effect=Exception("Service error")
+        ):
+            with patch.object(entity, "async_write_ha_state"):
                 # Should not raise exception - service errors should be handled gracefully
                 await entity.async_set_value(test_datetime)
-        
+
         # Value should still be set despite service error
         assert entity._current_value == test_datetime
 
@@ -1495,7 +1625,7 @@ class TestDateTimeEntityIntegrationScenarios:
         """Test coordinator data extraction with various edge cases."""
         entity = PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy")
         entity.coordinator = mock_coordinator
-        
+
         edge_cases = [
             ({}, None),  # Empty dict
             ({"feeding": {}}, None),  # Empty feeding dict
@@ -1504,19 +1634,23 @@ class TestDateTimeEntityIntegrationScenarios:
             ({"feeding": {"other_field": "value"}}, None),  # Missing field
             ({"other": "data"}, None),  # No feeding key
         ]
-        
+
         for dog_data, expected_result in edge_cases:
             mock_coordinator.get_dog_data.return_value = dog_data
             result = entity.native_value
             assert result == expected_result
 
     @pytest.mark.asyncio
-    async def test_emergency_notification_comprehensive_scenarios(self, hass: HomeAssistant, mock_coordinator):
+    async def test_emergency_notification_comprehensive_scenarios(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test comprehensive emergency notification scenarios."""
-        emergency_entity = PawControlEmergencyDateTime(mock_coordinator, "dog1", "Buddy")
+        emergency_entity = PawControlEmergencyDateTime(
+            mock_coordinator, "dog1", "Buddy"
+        )
         emergency_entity.hass = hass
         test_datetime = datetime(2023, 6, 30, 22, 15, 0)
-        
+
         # Test various hass.data scenarios
         scenarios = [
             # Missing DOMAIN key
@@ -1528,20 +1662,22 @@ class TestDateTimeEntityIntegrationScenarios:
             # Notifications is None
             {DOMAIN: {"test_entry": {"notifications": None}}},
         ]
-        
+
         for scenario in scenarios:
             hass.data = scenario
-            
-            with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
-                with patch.object(emergency_entity, 'async_write_ha_state'):
+
+            with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+                with patch.object(emergency_entity, "async_write_ha_state"):
                     # Should not raise exception in any scenario
                     await emergency_entity.async_set_value(test_datetime)
-            
+
             # Value should still be set
             assert emergency_entity._current_value == test_datetime
 
     @pytest.mark.asyncio
-    async def test_comprehensive_async_set_value_scenarios(self, hass: HomeAssistant, mock_coordinator):
+    async def test_comprehensive_async_set_value_scenarios(
+        self, hass: HomeAssistant, mock_coordinator
+    ):
         """Test comprehensive async_set_value scenarios across all entity types."""
         entities_to_test = [
             PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy"),
@@ -1550,18 +1686,18 @@ class TestDateTimeEntityIntegrationScenarios:
             PawControlLastWalkDateTime(mock_coordinator, "dog1", "Buddy"),
             PawControlVaccinationDateDateTime(mock_coordinator, "dog1", "Buddy"),
         ]
-        
+
         test_datetime = datetime(2023, 6, 15, 14, 30, 0)
-        
+
         for entity in entities_to_test:
             entity.hass = hass
-            
+
             # Test successful set_value
-            with patch.object(entity, 'async_write_ha_state'):
-                with patch.object(hass.services, 'async_call', new_callable=AsyncMock):
+            with patch.object(entity, "async_write_ha_state"):
+                with patch.object(hass.services, "async_call", new_callable=AsyncMock):
                     await entity.async_set_value(test_datetime)
-            
+
             assert entity._current_value == test_datetime
-            
+
             # Reset for next test
             entity._current_value = None

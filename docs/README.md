@@ -723,7 +723,7 @@
 1. **Hundename** (Pflichtfeld)
 
 ### MODULARE OPTIONAL-KONFIGURATION
-1. **Hundedaten-Erweiterung** 
+1. **Hundedaten-Erweiterung**
 2. **Fütterungssystem**
 3. **GPS-Tracking-System**
 4. **Gesundheitsüberwachung**

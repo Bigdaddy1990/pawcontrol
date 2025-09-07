@@ -132,7 +132,7 @@ def mock_entry():
                     MODULE_HEALTH: True,
                     MODULE_WALK: False,
                 },
-            }
+            },
         ]
     }
     return entry
@@ -157,34 +157,46 @@ class TestSelectBaseEdgeCases:
     @pytest.mark.asyncio
     async def test_invalid_option_selection(self, base_select):
         """Test selecting an invalid option raises error."""
-        with pytest.raises(HomeAssistantError, match="Invalid option 'invalid_option' for test_select"):
+        with pytest.raises(
+            HomeAssistantError, match="Invalid option 'invalid_option' for test_select"
+        ):
             await base_select.async_select_option("invalid_option")
 
     @pytest.mark.asyncio
     async def test_empty_string_option_selection(self, base_select):
         """Test selecting empty string option."""
-        with pytest.raises(HomeAssistantError, match="Invalid option '' for test_select"):
+        with pytest.raises(
+            HomeAssistantError, match="Invalid option '' for test_select"
+        ):
             await base_select.async_select_option("")
 
     @pytest.mark.asyncio
     async def test_none_option_selection(self, base_select):
         """Test selecting None option."""
-        with pytest.raises(HomeAssistantError, match="Invalid option 'None' for test_select"):
+        with pytest.raises(
+            HomeAssistantError, match="Invalid option 'None' for test_select"
+        ):
             await base_select.async_select_option(None)
 
     @pytest.mark.asyncio
     async def test_case_sensitive_option_validation(self, base_select):
         """Test that option validation is case-sensitive."""
-        with pytest.raises(HomeAssistantError, match="Invalid option 'OPTION1' for test_select"):
+        with pytest.raises(
+            HomeAssistantError, match="Invalid option 'OPTION1' for test_select"
+        ):
             await base_select.async_select_option("OPTION1")
 
     @pytest.mark.asyncio
     async def test_option_selection_with_service_failure(self, base_select):
         """Test option selection when underlying service fails."""
-        with patch.object(base_select, '_async_set_select_option', side_effect=Exception("Service failed")):
+        with patch.object(
+            base_select,
+            "_async_set_select_option",
+            side_effect=Exception("Service failed"),
+        ):
             with pytest.raises(HomeAssistantError, match="Failed to set test_select"):
                 await base_select.async_select_option("option2")
-        
+
         # Option should not change on failure
         assert base_select.current_option == "option1"
 
@@ -192,7 +204,7 @@ class TestSelectBaseEdgeCases:
     async def test_successful_option_selection(self, base_select):
         """Test successful option selection updates state."""
         await base_select.async_select_option("option2")
-        
+
         assert base_select.current_option == "option2"
 
     @pytest.mark.asyncio
@@ -200,10 +212,10 @@ class TestSelectBaseEdgeCases:
         """Test state restoration with valid previous option."""
         mock_state = Mock()
         mock_state.state = "option2"
-        
-        with patch.object(base_select, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(base_select, "async_get_last_state", return_value=mock_state):
             await base_select.async_added_to_hass()
-        
+
         assert base_select.current_option == "option2"
 
     @pytest.mark.asyncio
@@ -211,38 +223,38 @@ class TestSelectBaseEdgeCases:
         """Test state restoration with invalid previous option."""
         mock_state = Mock()
         mock_state.state = "invalid_option"
-        
-        with patch.object(base_select, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(base_select, "async_get_last_state", return_value=mock_state):
             await base_select.async_added_to_hass()
-        
+
         # Should keep initial option
         assert base_select.current_option == "option1"
 
     @pytest.mark.asyncio
     async def test_state_restoration_with_none_state(self, base_select):
         """Test state restoration when no previous state exists."""
-        with patch.object(base_select, 'async_get_last_state', return_value=None):
+        with patch.object(base_select, "async_get_last_state", return_value=None):
             await base_select.async_added_to_hass()
-        
+
         # Should keep initial option
         assert base_select.current_option == "option1"
 
     def test_availability_with_coordinator_unavailable(self, base_select):
         """Test availability when coordinator is unavailable."""
         base_select.coordinator.available = False
-        
+
         assert base_select.available is False
 
     def test_availability_with_missing_dog_data(self, base_select):
         """Test availability when dog data is missing."""
         base_select.coordinator.get_dog_data.return_value = None
-        
+
         assert base_select.available is False
 
     def test_extra_attributes_with_full_data(self, base_select):
         """Test extra attributes with complete dog data."""
         attrs = base_select.extra_state_attributes
-        
+
         assert attrs["dog_id"] == "test_dog"
         assert attrs["dog_name"] == "Test Dog"
         assert attrs["select_type"] == "test_select"
@@ -255,9 +267,9 @@ class TestSelectBaseEdgeCases:
     def test_extra_attributes_with_missing_dog_info(self, base_select):
         """Test extra attributes when dog_info is missing."""
         base_select.coordinator.get_dog_data.return_value = {}
-        
+
         attrs = base_select.extra_state_attributes
-        
+
         # Should have basic attributes
         assert attrs["dog_id"] == "test_dog"
         assert attrs["dog_name"] == "Test Dog"
@@ -267,9 +279,9 @@ class TestSelectBaseEdgeCases:
     def test_extra_attributes_with_none_dog_data(self, base_select):
         """Test extra attributes when dog data is None."""
         base_select.coordinator.get_dog_data.return_value = None
-        
+
         attrs = base_select.extra_state_attributes
-        
+
         # Should have basic attributes
         assert attrs["dog_id"] == "test_dog"
         assert attrs["dog_name"] == "Test Dog"
@@ -279,9 +291,9 @@ class TestSelectBaseEdgeCases:
     def test_get_module_data_with_unavailable_coordinator(self, base_select):
         """Test module data retrieval with unavailable coordinator."""
         base_select.coordinator.available = False
-        
+
         result = base_select._get_module_data("health")
-        
+
         assert result is None
 
 
@@ -292,14 +304,14 @@ class TestBatchingEdgeCasesSelect:
     async def test_empty_entity_list(self):
         """Test batching with empty entity list."""
         add_entities_mock = Mock()
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             [],  # Empty list
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should not call add_entities
         add_entities_mock.assert_not_called()
 
@@ -307,7 +319,7 @@ class TestBatchingEdgeCasesSelect:
     async def test_single_entity_batching(self, mock_coordinator):
         """Test batching with single entity."""
         add_entities_mock = Mock()
-        
+
         entity = PawControlSelectBase(
             coordinator=mock_coordinator,
             dog_id="test",
@@ -315,14 +327,14 @@ class TestBatchingEdgeCasesSelect:
             select_type="test",
             options=["option1", "option2"],
         )
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             [entity],
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities once
         add_entities_mock.assert_called_once()
         add_entities_mock.assert_called_with([entity], update_before_add=False)
@@ -331,7 +343,7 @@ class TestBatchingEdgeCasesSelect:
     async def test_exact_batch_size_entities(self, mock_coordinator):
         """Test batching when entity count exactly matches batch size."""
         add_entities_mock = Mock()
-        
+
         # Create exactly 10 entities
         entities = []
         for i in range(10):
@@ -343,14 +355,14 @@ class TestBatchingEdgeCasesSelect:
                 options=["option1", "option2"],
             )
             entities.append(entity)
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities once with all entities
         add_entities_mock.assert_called_once()
         assert len(add_entities_mock.call_args[0][0]) == 10
@@ -359,7 +371,7 @@ class TestBatchingEdgeCasesSelect:
     async def test_oversized_batch_handling(self, mock_coordinator):
         """Test batching with more entities than batch size."""
         add_entities_mock = Mock()
-        
+
         # Create 25 entities (more than default batch size of 10)
         entities = []
         for i in range(25):
@@ -371,28 +383,28 @@ class TestBatchingEdgeCasesSelect:
                 options=["option1", "option2"],
             )
             entities.append(entity)
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities 3 times (10 + 10 + 5)
         assert add_entities_mock.call_count == 3
-        
+
         # Verify batch sizes
         calls = add_entities_mock.call_args_list
         assert len(calls[0][0][0]) == 10  # First batch
         assert len(calls[1][0][0]) == 10  # Second batch
-        assert len(calls[2][0][0]) == 5   # Final batch
+        assert len(calls[2][0][0]) == 5  # Final batch
 
     @pytest.mark.asyncio
     async def test_batching_timing_delay(self, mock_coordinator):
         """Test that batching respects timing delays."""
         add_entities_mock = Mock()
-        
+
         # Create entities requiring multiple batches
         entities = []
         for i in range(15):
@@ -404,18 +416,18 @@ class TestBatchingEdgeCasesSelect:
                 options=["option1", "option2"],
             )
             entities.append(entity)
-        
+
         start_time = dt_util.utcnow()
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.01,  # 10ms delay
         )
-        
+
         end_time = dt_util.utcnow()
-        
+
         # Should have taken at least the delay time
         duration = (end_time - start_time).total_seconds()
         assert duration >= 0.01  # At least one delay
@@ -424,7 +436,7 @@ class TestBatchingEdgeCasesSelect:
     async def test_registry_overload_prevention(self, mock_coordinator):
         """Test that batching prevents entity registry overload."""
         add_entities_mock = Mock()
-        
+
         # Create many entities to simulate registry stress
         entities = []
         for i in range(250):  # More than 200 entities
@@ -436,17 +448,17 @@ class TestBatchingEdgeCasesSelect:
                 options=["option1", "option2"],
             )
             entities.append(entity)
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.1,
         )
-        
+
         # Should use many small batches
         assert add_entities_mock.call_count == 25  # 250 / 10 = 25 batches
-        
+
         # Each call should have update_before_add=False to reduce registry load
         for call in add_entities_mock.call_args_list:
             assert call[1]["update_before_add"] is False
@@ -458,14 +470,14 @@ class TestSpecificSelectEdgeCases:
     def test_dog_size_select_with_invalid_initial_size(self, mock_coordinator):
         """Test dog size select with invalid initial size."""
         dog_config = {CONF_DOG_SIZE: "invalid_size"}
-        
+
         select = PawControlDogSizeSelect(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
             dog_config=dog_config,
         )
-        
+
         # Should handle gracefully
         assert select.current_option == "invalid_size"  # Keep invalid but log it
         assert "medium" in select.options  # Should have valid options
@@ -473,42 +485,42 @@ class TestSpecificSelectEdgeCases:
     def test_dog_size_select_missing_size_config(self, mock_coordinator):
         """Test dog size select with missing size configuration."""
         dog_config = {}  # No size specified
-        
+
         select = PawControlDogSizeSelect(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
             dog_config=dog_config,
         )
-        
+
         # Should use default
         assert select.current_option == "medium"
 
     def test_dog_size_select_size_info_unknown_size(self, mock_coordinator):
         """Test size info retrieval for unknown size."""
         dog_config = {CONF_DOG_SIZE: "medium"}
-        
+
         select = PawControlDogSizeSelect(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
             dog_config=dog_config,
         )
-        
+
         size_info = select._get_size_info("unknown_size")
         assert size_info == {}  # Should return empty dict for unknown
 
     def test_dog_size_select_size_info_all_valid_sizes(self, mock_coordinator):
         """Test size info for all valid dog sizes."""
         dog_config = {CONF_DOG_SIZE: "medium"}
-        
+
         select = PawControlDogSizeSelect(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
             dog_config=dog_config,
         )
-        
+
         # Test all valid sizes have info
         for size in DOG_SIZES:
             size_info = select._get_size_info(size)
@@ -523,7 +535,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         mode_info = select._get_performance_mode_info("unknown_mode")
         assert mode_info == {}
 
@@ -534,7 +546,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Test all valid modes have info
         for mode in PERFORMANCE_MODES:
             mode_info = select._get_performance_mode_info(mode)
@@ -549,7 +561,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         food_info = select._get_food_type_info("unknown_food")
         assert food_info == {}
 
@@ -560,7 +572,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Test all valid food types have info
         for food_type in FOOD_TYPES:
             food_info = select._get_food_type_info(food_type)
@@ -576,7 +588,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         mode_info = select._get_walk_mode_info("unknown_mode")
         assert mode_info == {}
 
@@ -587,7 +599,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         valid_modes = ["automatic", "manual", "hybrid"]
         for mode in valid_modes:
             mode_info = select._get_walk_mode_info(mode)
@@ -602,7 +614,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         source_info = select._get_gps_source_info("unknown_source")
         assert source_info == {}
 
@@ -613,7 +625,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Test all valid GPS sources have info
         for source in GPS_SOURCES:
             source_info = select._get_gps_source_info(source)
@@ -628,7 +640,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         grooming_info = select._get_grooming_type_info("unknown_grooming")
         assert grooming_info == {}
 
@@ -639,7 +651,7 @@ class TestSpecificSelectEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         valid_types = ["bath", "brush", "nails", "teeth", "trim", "full_grooming"]
         for grooming_type in valid_types:
             grooming_info = select._get_grooming_type_info(grooming_type)
@@ -658,12 +670,10 @@ class TestHealthSelectDataIntegration:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock health data
-        mock_coordinator.get_module_data.return_value = {
-            "health_status": "excellent"
-        }
-        
+        mock_coordinator.get_module_data.return_value = {"health_status": "excellent"}
+
         assert select.current_option == "excellent"
 
     def test_health_status_select_missing_module_data(self, mock_coordinator):
@@ -673,10 +683,10 @@ class TestHealthSelectDataIntegration:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock no module data
         mock_coordinator.get_module_data.return_value = None
-        
+
         assert select.current_option == "good"  # Should fall back to initial
 
     def test_health_status_select_missing_status_in_data(self, mock_coordinator):
@@ -686,12 +696,10 @@ class TestHealthSelectDataIntegration:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock module data without health_status
-        mock_coordinator.get_module_data.return_value = {
-            "other_data": "value"
-        }
-        
+        mock_coordinator.get_module_data.return_value = {"other_data": "value"}
+
         assert select.current_option == "good"  # Should fall back to initial
 
     def test_activity_level_select_from_coordinator_data(self, mock_coordinator):
@@ -701,12 +709,10 @@ class TestHealthSelectDataIntegration:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock health data
-        mock_coordinator.get_module_data.return_value = {
-            "activity_level": "high"
-        }
-        
+        mock_coordinator.get_module_data.return_value = {"activity_level": "high"}
+
         assert select.current_option == "high"
 
     def test_activity_level_select_missing_data(self, mock_coordinator):
@@ -716,10 +722,10 @@ class TestHealthSelectDataIntegration:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock no data
         mock_coordinator.get_module_data.return_value = None
-        
+
         assert select.current_option == "normal"  # Should fall back
 
 
@@ -727,23 +733,27 @@ class TestSetupEntryEdgeCases:
     """Test async_setup_entry edge cases for select platform."""
 
     @pytest.mark.asyncio
-    async def test_setup_with_runtime_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_runtime_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with runtime_data format."""
         # Setup runtime_data format
         mock_entry.runtime_data = {
             "coordinator": mock_coordinator,
             "dogs": mock_entry.data[CONF_DOGS],
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should create entities using batching
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_legacy_hass_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_legacy_hass_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with legacy hass.data format."""
         # Setup legacy format
         hass.data[DOMAIN] = {
@@ -751,16 +761,18 @@ class TestSetupEntryEdgeCases:
                 "coordinator": mock_coordinator,
             }
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should create entities
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_no_dogs(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_no_dogs(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with no dogs configured."""
         # Empty dogs list
         mock_entry.data = {CONF_DOGS: []}
@@ -768,16 +780,18 @@ class TestSetupEntryEdgeCases:
             "coordinator": mock_coordinator,
             "dogs": [],
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should still call add_entities (with empty list)
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_malformed_dog_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_malformed_dog_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with malformed dog data."""
         # Malformed dog data
         mock_entry.data = {
@@ -794,14 +808,16 @@ class TestSetupEntryEdgeCases:
                 },
             ]
         }
-        
+
         add_entities_mock = Mock()
-        
+
         # Should handle gracefully without crashing
         await async_setup_entry(hass, mock_entry, add_entities_mock)
 
     @pytest.mark.asyncio
-    async def test_setup_with_disabled_modules(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_disabled_modules(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with various disabled modules."""
         # Dogs with different module configurations
         mock_entry.data = {
@@ -818,48 +834,52 @@ class TestSetupEntryEdgeCases:
                 },
             ]
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should create different numbers of entities based on enabled modules
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_performance_with_many_dogs(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_performance_with_many_dogs(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry performance with many dogs and modules."""
         # Create many dogs to test performance
         many_dogs = []
         for i in range(30):  # 30 dogs
-            many_dogs.append({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                CONF_DOG_SIZE: DOG_SIZES[i % len(DOG_SIZES)],
-                "modules": {
-                    MODULE_FEEDING: i % 2 == 0,  # Alternate modules
-                    MODULE_GPS: i % 3 == 0,
-                    MODULE_HEALTH: i % 4 == 0,
-                    MODULE_WALK: i % 5 == 0,
-                },
-            })
-        
+            many_dogs.append(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    CONF_DOG_SIZE: DOG_SIZES[i % len(DOG_SIZES)],
+                    "modules": {
+                        MODULE_FEEDING: i % 2 == 0,  # Alternate modules
+                        MODULE_GPS: i % 3 == 0,
+                        MODULE_HEALTH: i % 4 == 0,
+                        MODULE_WALK: i % 5 == 0,
+                    },
+                }
+            )
+
         mock_entry.data = {CONF_DOGS: many_dogs}
         mock_entry.runtime_data = {
             "coordinator": mock_coordinator,
             "dogs": many_dogs,
         }
-        
+
         add_entities_mock = Mock()
-        
+
         start_time = dt_util.utcnow()
         await async_setup_entry(hass, mock_entry, add_entities_mock)
         end_time = dt_util.utcnow()
-        
+
         # Should complete in reasonable time
         duration = (end_time - start_time).total_seconds()
         assert duration < 2.0  # Should be fast even with many dogs
-        
+
         # Should use batching for large numbers of entities
         assert add_entities_mock.call_count > 1  # Multiple batches
 
@@ -870,17 +890,17 @@ class TestSelectFactoryFunctionsEdgeCases:
     def test_create_base_selects_missing_dog_size(self, mock_coordinator):
         """Test creating base selects with missing dog size."""
         dog_config = {}  # No dog size
-        
+
         selects = _create_base_selects(
             mock_coordinator,
             "test_dog",
             "Test Dog",
             dog_config,
         )
-        
+
         # Should create selects despite missing size
         assert len(selects) == 3  # Size, performance, notification selects
-        
+
         # Size select should handle missing config
         size_select = next(s for s in selects if isinstance(s, PawControlDogSizeSelect))
         assert size_select.current_option == "medium"  # Default value
@@ -888,10 +908,10 @@ class TestSelectFactoryFunctionsEdgeCases:
     def test_create_feeding_selects_consistency(self, mock_coordinator):
         """Test feeding selects creation consistency."""
         selects = _create_feeding_selects(mock_coordinator, "test_dog", "Test Dog")
-        
+
         # Should create all feeding-related selects
         assert len(selects) == 4  # Food type, schedule, meal type, mode
-        
+
         # Verify all are feeding-related
         select_types = [type(s).__name__ for s in selects]
         assert "PawControlFoodTypeSelect" in select_types
@@ -902,10 +922,10 @@ class TestSelectFactoryFunctionsEdgeCases:
     def test_create_walk_selects_consistency(self, mock_coordinator):
         """Test walk selects creation consistency."""
         selects = _create_walk_selects(mock_coordinator, "test_dog", "Test Dog")
-        
+
         # Should create all walk-related selects
         assert len(selects) == 3  # Mode, weather, intensity
-        
+
         # Verify all are walk-related
         select_types = [type(s).__name__ for s in selects]
         assert "PawControlWalkModeSelect" in select_types
@@ -915,10 +935,10 @@ class TestSelectFactoryFunctionsEdgeCases:
     def test_create_gps_selects_consistency(self, mock_coordinator):
         """Test GPS selects creation consistency."""
         selects = _create_gps_selects(mock_coordinator, "test_dog", "Test Dog")
-        
+
         # Should create all GPS-related selects
         assert len(selects) == 3  # Source, tracking mode, accuracy
-        
+
         # Verify all are GPS-related
         select_types = [type(s).__name__ for s in selects]
         assert "PawControlGPSSourceSelect" in select_types
@@ -928,10 +948,10 @@ class TestSelectFactoryFunctionsEdgeCases:
     def test_create_health_selects_consistency(self, mock_coordinator):
         """Test health selects creation consistency."""
         selects = _create_health_selects(mock_coordinator, "test_dog", "Test Dog")
-        
+
         # Should create all health-related selects
         assert len(selects) == 4  # Status, activity, mood, grooming
-        
+
         # Verify all are health-related
         select_types = [type(s).__name__ for s in selects]
         assert "PawControlHealthStatusSelect" in select_types
@@ -953,7 +973,7 @@ class TestPerformanceAndStressScenarios:
             select_type="test",
             options=["option1", "option2", "option3"],
         )
-        
+
         # Rapid option changes
         for i in range(100):
             option = f"option{(i % 3) + 1}"
@@ -973,15 +993,15 @@ class TestPerformanceAndStressScenarios:
                 options=["option1", "option2", "option3"],
             )
             selects.append(select)
-        
+
         async def change_options(select, start_option):
             for j in range(10):
                 option_num = ((start_option + j) % 3) + 1
                 await select.async_select_option(f"option{option_num}")
-        
+
         # Run concurrent operations
         await asyncio.gather(*[change_options(s, i) for i, s in enumerate(selects)])
-        
+
         # All selects should be in valid states
         for select in selects:
             assert select.current_option in select.options
@@ -989,7 +1009,7 @@ class TestPerformanceAndStressScenarios:
     def test_memory_usage_with_many_selects(self, mock_coordinator):
         """Test memory usage doesn't grow excessively with many selects."""
         selects = []
-        
+
         # Create many selects
         for i in range(200):
             select = PawControlSelectBase(
@@ -1001,12 +1021,12 @@ class TestPerformanceAndStressScenarios:
                 initial_option="option1",
             )
             selects.append(select)
-        
+
         # Each select should be independent
         for i, select in enumerate(selects[:10]):  # Test first 10
             option_num = (i % 3) + 1
             select._current_option = f"option{option_num}"
-        
+
         # Verify states are correct
         for i, select in enumerate(selects[:10]):
             option_num = (i % 3) + 1
@@ -1020,7 +1040,7 @@ class TestPerformanceAndStressScenarios:
         all_selects = []
         for i in range(25):  # 25 dogs
             dog_config = {CONF_DOG_SIZE: DOG_SIZES[i % len(DOG_SIZES)]}
-            
+
             # Create all types of selects
             base_selects = _create_base_selects(
                 mock_coordinator, f"dog_{i}", f"Dog {i}", dog_config
@@ -1031,28 +1051,26 @@ class TestPerformanceAndStressScenarios:
             walk_selects = _create_walk_selects(
                 mock_coordinator, f"dog_{i}", f"Dog {i}"
             )
-            gps_selects = _create_gps_selects(
-                mock_coordinator, f"dog_{i}", f"Dog {i}"
-            )
+            gps_selects = _create_gps_selects(mock_coordinator, f"dog_{i}", f"Dog {i}")
             health_selects = _create_health_selects(
                 mock_coordinator, f"dog_{i}", f"Dog {i}"
             )
-            
+
             all_selects.extend(base_selects)
             all_selects.extend(feeding_selects)
             all_selects.extend(walk_selects)
             all_selects.extend(gps_selects)
             all_selects.extend(health_selects)
-        
+
         # Should create reasonable number of selects
         assert len(all_selects) > 300  # Many selects for 25 dogs
         assert len(all_selects) < 1000  # Not excessive
-        
+
         # All selects should be valid
         for select in all_selects:
-            assert hasattr(select, '_dog_id')
-            assert hasattr(select, '_select_type')
-            assert hasattr(select, 'unique_id')
+            assert hasattr(select, "_dog_id")
+            assert hasattr(select, "_select_type")
+            assert hasattr(select, "unique_id")
             assert len(select.options) > 0
 
     def test_unique_id_collision_prevention(self, mock_coordinator):
@@ -1060,18 +1078,20 @@ class TestPerformanceAndStressScenarios:
         dog_id = "test_dog"
         dog_name = "Test Dog"
         dog_config = {CONF_DOG_SIZE: "medium"}
-        
+
         # Create all types of selects
         all_selects = []
-        all_selects.extend(_create_base_selects(mock_coordinator, dog_id, dog_name, dog_config))
+        all_selects.extend(
+            _create_base_selects(mock_coordinator, dog_id, dog_name, dog_config)
+        )
         all_selects.extend(_create_feeding_selects(mock_coordinator, dog_id, dog_name))
         all_selects.extend(_create_walk_selects(mock_coordinator, dog_id, dog_name))
         all_selects.extend(_create_gps_selects(mock_coordinator, dog_id, dog_name))
         all_selects.extend(_create_health_selects(mock_coordinator, dog_id, dog_name))
-        
+
         # Collect all unique IDs
         unique_ids = [select.unique_id for select in all_selects]
-        
+
         # Should not have any duplicate unique IDs
         assert len(unique_ids) == len(set(unique_ids))
 
