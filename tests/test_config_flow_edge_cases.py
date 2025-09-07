@@ -19,57 +19,56 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.const import CONF_NAME
-
+import pytest
 from custom_components.pawcontrol.config_flow import (
+    ENTITY_PROFILES,
+    MAX_CONCURRENT_VALIDATIONS,
+    PROFILE_SCHEMA,
+    VALIDATION_CACHE_TTL,
+    VALIDATION_TIMEOUT,
     PawControlConfigFlow,
     ValidationCache,
-    ENTITY_PROFILES,
-    VALIDATION_CACHE_TTL,
-    MAX_CONCURRENT_VALIDATIONS,
-    VALIDATION_TIMEOUT,
-    PROFILE_SCHEMA,
 )
 from custom_components.pawcontrol.config_flow_base import (
-    INTEGRATION_SCHEMA,
     DOG_BASE_SCHEMA,
     DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    INTEGRATION_SCHEMA,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
-    ENTITY_CREATION_DELAY,
 )
 from custom_components.pawcontrol.config_flow_dogs import (
     DIET_COMPATIBILITY_RULES,
 )
 from custom_components.pawcontrol.const import (
-    DOMAIN,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
     CONF_MODULES,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
     SPECIAL_DIET_OPTIONS,
-    DOG_SIZES,
-    MIN_DOG_WEIGHT,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MAX_DOG_AGE,
 )
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 
 class TestValidationCacheEdgeCases:
@@ -85,14 +84,14 @@ class TestValidationCacheEdgeCases:
         """Test cache TTL expiration behavior."""
         # Set initial value
         await cache.set("test_key", "test_value")
-        
+
         # Should return value immediately
         result = await cache.get("test_key")
         assert result == "test_value"
-        
+
         # Wait for TTL expiration
         await asyncio.sleep(1.1)
-        
+
         # Should return None after expiration
         result = await cache.get("test_key")
         assert result is None
@@ -100,11 +99,12 @@ class TestValidationCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_cache_concurrent_access(self, cache):
         """Test cache thread safety with concurrent access."""
+
         async def set_values():
             for i in range(10):
                 await cache.set(f"key_{i}", f"value_{i}")
                 await asyncio.sleep(0.01)
-        
+
         async def get_values():
             results = []
             for i in range(10):
@@ -112,7 +112,7 @@ class TestValidationCacheEdgeCases:
                 results.append(result)
                 await asyncio.sleep(0.01)
             return results
-        
+
         # Run concurrent operations
         await asyncio.gather(
             set_values(),
@@ -120,7 +120,7 @@ class TestValidationCacheEdgeCases:
             get_values(),
             get_values(),
         )
-        
+
         # Cache should remain consistent
         for i in range(10):
             result = await cache.get(f"key_{i}")
@@ -133,13 +133,13 @@ class TestValidationCacheEdgeCases:
         # Add many entries
         for i in range(100):
             await cache.set(f"key_{i}", f"value_{i}")
-        
+
         # Wait for expiration
         await asyncio.sleep(1.1)
-        
+
         # Access one entry to trigger cleanup
         await cache.get("key_50")
-        
+
         # Cache should have cleaned up expired entries
         # (Implementation detail - checking internals)
         assert len(cache._cache) <= 1
@@ -149,10 +149,10 @@ class TestValidationCacheEdgeCases:
         """Test cache overwrite and update behavior."""
         # Set initial value
         await cache.set("test_key", "initial_value")
-        
+
         # Overwrite with new value
         await cache.set("test_key", "new_value")
-        
+
         # Should return new value
         result = await cache.get("test_key")
         assert result == "new_value"
@@ -164,10 +164,10 @@ class TestValidationCacheEdgeCases:
         await cache.set("key1", "value1")
         await cache.set("key2", "value2")
         await cache.set("key3", "value3")
-        
+
         # Clear cache
         await cache.clear()
-        
+
         # All entries should be gone
         assert await cache.get("key1") is None
         assert await cache.get("key2") is None
@@ -185,7 +185,7 @@ class TestValidationCacheEdgeCases:
             "unicode_key_🐕",
             "very_long_key_" + "x" * 1000,
         ]
-        
+
         for key in edge_case_keys:
             await cache.set(key, f"value_for_{key}")
             result = await cache.get(key)
@@ -195,7 +195,7 @@ class TestValidationCacheEdgeCases:
     async def test_cache_none_and_false_values(self, cache):
         """Test cache with None and falsy values."""
         test_values = [None, False, 0, "", [], {}]
-        
+
         for i, value in enumerate(test_values):
             key = f"test_key_{i}"
             await cache.set(key, value)
@@ -217,7 +217,7 @@ class TestEntityProfileEdgeCases:
     def test_profile_estimates_empty_dogs(self, config_flow):
         """Test profile estimates with no dogs configured."""
         estimates = config_flow._calculate_profile_estimates()
-        
+
         # Should handle empty dogs list gracefully
         for profile in ENTITY_PROFILES:
             assert profile in estimates
@@ -245,9 +245,9 @@ class TestEntityProfileEdgeCases:
                 "gps_config": {"geofencing": True},
             }
         ]
-        
+
         estimates = config_flow._calculate_profile_estimates()
-        
+
         # All profiles should respect their limits
         for profile_name, estimate in estimates.items():
             max_entities = ENTITY_PROFILES[profile_name]["max_entities"]
@@ -262,30 +262,36 @@ class TestEntityProfileEdgeCases:
             # Only one module
             {"modules": {MODULE_FEEDING: True}},
             # All modules disabled explicitly
-            {"modules": {
-                MODULE_FEEDING: False,
-                MODULE_GPS: False,
-                MODULE_HEALTH: False,
-                MODULE_WALK: False,
-            }},
+            {
+                "modules": {
+                    MODULE_FEEDING: False,
+                    MODULE_GPS: False,
+                    MODULE_HEALTH: False,
+                    MODULE_WALK: False,
+                }
+            },
             # Mixed enabled/disabled
-            {"modules": {
-                MODULE_FEEDING: True,
-                MODULE_GPS: False,
-                MODULE_HEALTH: True,
-                MODULE_WALK: False,
-            }},
+            {
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_GPS: False,
+                    MODULE_HEALTH: True,
+                    MODULE_WALK: False,
+                }
+            },
         ]
-        
+
         for i, dog_config in enumerate(edge_cases):
-            config_flow._dogs = [{
-                CONF_DOG_ID: f"test_dog_{i}",
-                CONF_DOG_NAME: f"Test Dog {i}",
-                **dog_config,
-            }]
-            
+            config_flow._dogs = [
+                {
+                    CONF_DOG_ID: f"test_dog_{i}",
+                    CONF_DOG_NAME: f"Test Dog {i}",
+                    **dog_config,
+                }
+            ]
+
             estimates = config_flow._calculate_profile_estimates()
-            
+
             # Should handle all edge cases without errors
             for profile in ENTITY_PROFILES:
                 assert estimates[profile] >= 0
@@ -296,7 +302,7 @@ class TestEntityProfileEdgeCases:
         config_flow._dogs = []
         recommendation = config_flow._get_recommended_profile()
         assert recommendation == "standard"
-        
+
         # Test with complex configurations
         test_cases = [
             # Single basic dog
@@ -324,14 +330,22 @@ class TestEntityProfileEdgeCases:
             },
             # Complex feeding configuration
             {
-                "dogs": [{"modules": {
-                    MODULE_FEEDING: True,
-                    "special_diet": ["prescription", "diabetic", "kidney_support"],
-                }}],
+                "dogs": [
+                    {
+                        "modules": {
+                            MODULE_FEEDING: True,
+                            "special_diet": [
+                                "prescription",
+                                "diabetic",
+                                "kidney_support",
+                            ],
+                        }
+                    }
+                ],
                 "expected": "standard",
             },
         ]
-        
+
         for case in test_cases:
             config_flow._dogs = [
                 {
@@ -341,25 +355,30 @@ class TestEntityProfileEdgeCases:
                 }
                 for i, dog in enumerate(case["dogs"])
             ]
-            
+
             recommendation = config_flow._get_recommended_profile()
             # Recommendation should be sensible
             assert recommendation in ENTITY_PROFILES
 
     def test_performance_comparison_generation(self, config_flow):
         """Test performance comparison text generation."""
-        config_flow._dogs = [{
-            CONF_DOG_ID: "test_dog",
-            CONF_DOG_NAME: "Test Dog",
-            "modules": {MODULE_FEEDING: True, MODULE_GPS: True},
-        }]
-        
+        config_flow._dogs = [
+            {
+                CONF_DOG_ID: "test_dog",
+                CONF_DOG_NAME: "Test Dog",
+                "modules": {MODULE_FEEDING: True, MODULE_GPS: True},
+            }
+        ]
+
         comparison = config_flow._get_performance_comparison()
-        
+
         # Should contain all profiles
         for profile_name in ENTITY_PROFILES:
-            assert profile_name in comparison or ENTITY_PROFILES[profile_name]["name"] in comparison
-        
+            assert (
+                profile_name in comparison
+                or ENTITY_PROFILES[profile_name]["name"] in comparison
+            )
+
         # Should contain entity counts and percentages
         assert "entities" in comparison
         assert "%" in comparison
@@ -370,11 +389,11 @@ class TestEntityProfileEdgeCases:
         for profile in ENTITY_PROFILES:
             validated = PROFILE_SCHEMA({"entity_profile": profile})
             assert validated["entity_profile"] == profile
-        
+
         # Invalid profile should raise error
         with pytest.raises(Exception):
             PROFILE_SCHEMA({"entity_profile": "invalid_profile"})
-        
+
         # Default value
         validated = PROFILE_SCHEMA({})
         assert validated["entity_profile"] == "standard"
@@ -394,14 +413,17 @@ class TestAsyncValidationEdgeCases:
     @pytest.mark.asyncio
     async def test_validation_timeout_handling(self, config_flow):
         """Test validation timeout scenarios."""
+
         # Mock slow validation
         async def slow_validation(*args):
             await asyncio.sleep(2)  # Longer than VALIDATION_TIMEOUT
             return {"valid": True, "errors": {}}
-        
-        with patch.object(config_flow, '_async_validate_integration_name', side_effect=slow_validation):
+
+        with patch.object(
+            config_flow, "_async_validate_integration_name", side_effect=slow_validation
+        ):
             result = await config_flow.async_step_user({CONF_NAME: "Test Integration"})
-        
+
         # Should handle timeout gracefully
         assert result["type"] == FlowResultType.FORM
         assert "errors" in result
@@ -414,7 +436,7 @@ class TestAsyncValidationEdgeCases:
         # Track concurrent validations
         concurrent_count = 0
         max_concurrent = 0
-        
+
         async def track_validation(*args):
             nonlocal concurrent_count, max_concurrent
             concurrent_count += 1
@@ -422,16 +444,20 @@ class TestAsyncValidationEdgeCases:
             await asyncio.sleep(0.1)
             concurrent_count -= 1
             return {"valid": True, "errors": {}}
-        
-        with patch.object(config_flow, '_async_validate_integration_name', side_effect=track_validation):
+
+        with patch.object(
+            config_flow,
+            "_async_validate_integration_name",
+            side_effect=track_validation,
+        ):
             # Start many validations concurrently
             tasks = []
             for i in range(10):
                 task = config_flow.async_step_user({CONF_NAME: f"Test {i}"})
                 tasks.append(task)
-            
+
             await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Should not exceed semaphore limit
         assert max_concurrent <= MAX_CONCURRENT_VALIDATIONS
 
@@ -439,35 +465,44 @@ class TestAsyncValidationEdgeCases:
     async def test_validation_cache_integration(self, config_flow):
         """Test validation cache integration in real flow."""
         validation_calls = 0
-        
+
         async def count_validation(*args):
             nonlocal validation_calls
             validation_calls += 1
             return {"valid": True, "errors": {}}
-        
-        with patch.object(config_flow, '_async_validate_integration_name', side_effect=count_validation):
+
+        with patch.object(
+            config_flow,
+            "_async_validate_integration_name",
+            side_effect=count_validation,
+        ):
             # First validation - should call function
             await config_flow.async_step_user({CONF_NAME: "Test Integration"})
-            
+
             # Second validation with same name - should use cache
             await config_flow.async_step_user({CONF_NAME: "Test Integration"})
-        
+
         # Should only call validation function once due to caching
         assert validation_calls == 1
 
     @pytest.mark.asyncio
     async def test_validation_error_propagation(self, config_flow):
         """Test validation error propagation."""
+
         # Mock validation errors
         async def error_validation(*args):
             return {
                 "valid": False,
                 "errors": {"base": "custom_error"},
             }
-        
-        with patch.object(config_flow, '_async_validate_integration_name', side_effect=error_validation):
+
+        with patch.object(
+            config_flow,
+            "_async_validate_integration_name",
+            side_effect=error_validation,
+        ):
             result = await config_flow.async_step_user({CONF_NAME: "Test Integration"})
-        
+
         # Should propagate validation errors
         assert result["type"] == FlowResultType.FORM
         assert result["errors"]["base"] == "custom_error"
@@ -475,13 +510,18 @@ class TestAsyncValidationEdgeCases:
     @pytest.mark.asyncio
     async def test_validation_exception_handling(self, config_flow):
         """Test validation exception handling."""
+
         # Mock validation exception
         async def exception_validation(*args):
             raise Exception("Validation failed")
-        
-        with patch.object(config_flow, '_async_validate_integration_name', side_effect=exception_validation):
+
+        with patch.object(
+            config_flow,
+            "_async_validate_integration_name",
+            side_effect=exception_validation,
+        ):
             result = await config_flow.async_step_user({CONF_NAME: "Test Integration"})
-        
+
         # Should handle exceptions gracefully
         assert result["type"] == FlowResultType.FORM
         assert "errors" in result
@@ -520,20 +560,24 @@ class TestDogConfigurationEdgeCases:
             ("dog123", True),
             ("my_awesome_dog", True),
         ]
-        
+
         for dog_id, should_be_valid in edge_cases:
-            validation_result = await config_flow._async_validate_dog_config({
-                CONF_DOG_ID: dog_id,
-                CONF_DOG_NAME: "Test Dog",
-                CONF_DOG_SIZE: "medium",
-                CONF_DOG_WEIGHT: 20.0,
-                CONF_DOG_AGE: 3,
-            })
-            
+            validation_result = await config_flow._async_validate_dog_config(
+                {
+                    CONF_DOG_ID: dog_id,
+                    CONF_DOG_NAME: "Test Dog",
+                    CONF_DOG_SIZE: "medium",
+                    CONF_DOG_WEIGHT: 20.0,
+                    CONF_DOG_AGE: 3,
+                }
+            )
+
             if should_be_valid:
                 assert validation_result["valid"], f"Expected {dog_id} to be valid"
             else:
-                assert not validation_result["valid"], f"Expected {dog_id} to be invalid"
+                assert not validation_result["valid"], (
+                    f"Expected {dog_id} to be invalid"
+                )
 
     @pytest.mark.asyncio
     async def test_dog_weight_size_compatibility(self, config_flow):
@@ -553,49 +597,61 @@ class TestDogConfigurationEdgeCases:
             ("small", 15.0, True),  # Upper range of small
             ("medium", 8.0, True),  # Lower range of medium
         ]
-        
+
         for size, weight, should_be_valid in test_cases:
-            validation_result = await config_flow._async_validate_dog_config({
-                CONF_DOG_ID: "test_dog",
-                CONF_DOG_NAME: "Test Dog",
-                CONF_DOG_SIZE: size,
-                CONF_DOG_WEIGHT: weight,
-                CONF_DOG_AGE: 3,
-            })
-            
+            validation_result = await config_flow._async_validate_dog_config(
+                {
+                    CONF_DOG_ID: "test_dog",
+                    CONF_DOG_NAME: "Test Dog",
+                    CONF_DOG_SIZE: size,
+                    CONF_DOG_WEIGHT: weight,
+                    CONF_DOG_AGE: 3,
+                }
+            )
+
             if should_be_valid:
-                assert validation_result["valid"], f"Expected {size} + {weight}kg to be valid"
+                assert validation_result["valid"], (
+                    f"Expected {size} + {weight}kg to be valid"
+                )
             else:
-                assert not validation_result["valid"], f"Expected {size} + {weight}kg to be invalid"
+                assert not validation_result["valid"], (
+                    f"Expected {size} + {weight}kg to be invalid"
+                )
 
     @pytest.mark.asyncio
     async def test_duplicate_detection(self, config_flow):
         """Test duplicate dog detection."""
         # Add first dog
-        config_flow._dogs = [{
-            CONF_DOG_ID: "existing_dog",
-            CONF_DOG_NAME: "Existing Dog",
-        }]
-        
+        config_flow._dogs = [
+            {
+                CONF_DOG_ID: "existing_dog",
+                CONF_DOG_NAME: "Existing Dog",
+            }
+        ]
+
         # Test duplicate ID
-        validation_result = await config_flow._async_validate_dog_config({
-            CONF_DOG_ID: "existing_dog",
-            CONF_DOG_NAME: "Different Name",
-            CONF_DOG_SIZE: "medium",
-            CONF_DOG_WEIGHT: 20.0,
-            CONF_DOG_AGE: 3,
-        })
+        validation_result = await config_flow._async_validate_dog_config(
+            {
+                CONF_DOG_ID: "existing_dog",
+                CONF_DOG_NAME: "Different Name",
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_WEIGHT: 20.0,
+                CONF_DOG_AGE: 3,
+            }
+        )
         assert not validation_result["valid"]
         assert "dog_id_already_exists" in validation_result["errors"][CONF_DOG_ID]
-        
+
         # Test duplicate name (case insensitive)
-        validation_result = await config_flow._async_validate_dog_config({
-            CONF_DOG_ID: "different_id",
-            CONF_DOG_NAME: "EXISTING DOG",  # Different case
-            CONF_DOG_SIZE: "medium",
-            CONF_DOG_WEIGHT: 20.0,
-            CONF_DOG_AGE: 3,
-        })
+        validation_result = await config_flow._async_validate_dog_config(
+            {
+                CONF_DOG_ID: "different_id",
+                CONF_DOG_NAME: "EXISTING DOG",  # Different case
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_WEIGHT: 20.0,
+                CONF_DOG_AGE: 3,
+            }
+        )
         assert not validation_result["valid"]
         assert "dog_name_already_exists" in validation_result["errors"][CONF_DOG_NAME]
 
@@ -608,10 +664,10 @@ class TestDogConfigurationEdgeCases:
             (20.0, "medium", 400, 600),  # Typical case
             (5.5, "small", 130, 180),  # Decimal weight
         ]
-        
+
         for weight, size, min_expected, max_expected in edge_cases:
             result = config_flow._calculate_suggested_food_amount(weight, size)
-            
+
             assert min_expected <= result <= max_expected
             assert result % 10 == 0  # Should be rounded to nearest 10g
 
@@ -629,12 +685,12 @@ class TestDogConfigurationEdgeCases:
             ("Ümlaut Dog", "mlautdog"),  # Unicode characters
             ("A" * 100, "a" * 20),  # Very long name
         ]
-        
+
         for name, expected_pattern in edge_cases:
-            suggestion = await config_flow._generate_smart_dog_id_suggestion({
-                CONF_DOG_NAME: name
-            })
-            
+            suggestion = await config_flow._generate_smart_dog_id_suggestion(
+                {CONF_DOG_NAME: name}
+            )
+
             if name:
                 assert len(suggestion) > 0
                 assert suggestion.islower()
@@ -651,11 +707,11 @@ class TestDogConfigurationEdgeCases:
             {CONF_DOG_ID: "max_2", CONF_DOG_NAME: "Max 2"},
             {CONF_DOG_ID: "max2", CONF_DOG_NAME: "Max2"},
         ]
-        
-        suggestion = await config_flow._generate_smart_dog_id_suggestion({
-            CONF_DOG_NAME: "Max"
-        })
-        
+
+        suggestion = await config_flow._generate_smart_dog_id_suggestion(
+            {CONF_DOG_NAME: "Max"}
+        )
+
         # Should suggest non-conflicting ID
         assert suggestion not in ["max", "max_2", "max2"]
         assert "max" in suggestion  # Should be based on original name
@@ -671,10 +727,10 @@ class TestDogConfigurationEdgeCases:
             }
             for i in range(MAX_DOGS_PER_ENTRY)
         ]
-        
+
         # Try to add another dog step
         result = await config_flow.async_step_add_another_dog({"add_another": True})
-        
+
         # Should either prevent adding or handle gracefully
         assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
@@ -695,7 +751,7 @@ class TestDietValidationEdgeCases:
         # Test each diet option individually
         for diet_option in SPECIAL_DIET_OPTIONS:
             validation = config_flow._validate_diet_combinations([diet_option])
-            
+
             # Single diet should generally be valid
             assert validation["total_diets"] == 1
             # Conflicts are possible but warnings might exist
@@ -713,10 +769,10 @@ class TestDietValidationEdgeCases:
             (["raw_diet", "prescription"], False),
             (["raw_diet", "diabetic"], False),
         ]
-        
+
         for diet_combination, should_have_conflicts in conflict_cases:
             validation = config_flow._validate_diet_combinations(diet_combination)
-            
+
             if should_have_conflicts:
                 assert len(validation["conflicts"]) > 0
             # Note: Some combinations produce warnings instead of conflicts
@@ -732,10 +788,10 @@ class TestDietValidationEdgeCases:
             ["low_fat", "joint_support"],
             ["weight_control", "puppy_formula"],
         ]
-        
+
         for diet_combination in warning_cases:
             validation = config_flow._validate_diet_combinations(diet_combination)
-            
+
             # Should generate warnings for complex combinations
             # Note: Some may not generate warnings depending on rules
             assert isinstance(validation["warnings"], list)
@@ -749,11 +805,11 @@ class TestDietValidationEdgeCases:
             SPECIAL_DIET_OPTIONS,  # All diets at once
             ["prescription"] * 5,  # Duplicate diets
         ]
-        
+
         for diet_list in edge_cases:
             # Should not raise exceptions
             validation = config_flow._validate_diet_combinations(diet_list)
-            
+
             assert isinstance(validation, dict)
             assert "valid" in validation
             assert "conflicts" in validation
@@ -767,19 +823,19 @@ class TestDietValidationEdgeCases:
             (8, "large"),  # Senior, large
             (12, "giant"),  # Very senior, giant
         ]
-        
+
         for age, size in test_cases:
             guidance = config_flow._get_diet_compatibility_guidance(age, size)
-            
+
             assert isinstance(guidance, str)
             assert len(guidance) > 0
-            
+
             # Should contain relevant info for age/size
             if age < 2:
                 assert "puppy" in guidance.lower() or "young" in guidance.lower()
             elif age >= 7:
                 assert "senior" in guidance.lower() or "older" in guidance.lower()
-            
+
             if size in ("large", "giant"):
                 assert "large" in guidance.lower() or "joint" in guidance.lower()
 
@@ -794,19 +850,19 @@ class TestDietValidationEdgeCases:
             "has_digestive_issues": False,
             "other_health_conditions": "hip dysplasia, anxiety",
         }
-        
+
         conditions = config_flow._collect_health_conditions(test_input)
-        
+
         # Should include selected conditions
         assert "diabetes" in conditions
         assert "heart_disease" in conditions
         assert "allergies" in conditions
-        
+
         # Should not include unselected conditions
         assert "kidney_disease" not in conditions
         assert "arthritis" not in conditions
         assert "digestive_issues" not in conditions
-        
+
         # Should include parsed other conditions
         assert "hip_dysplasia" in conditions
         assert "anxiety" in conditions
@@ -822,14 +878,14 @@ class TestDietValidationEdgeCases:
             "organic": True,
             "raw_diet": False,
         }
-        
+
         diet_requirements = config_flow._collect_special_diet(test_input)
-        
+
         # Should include selected diets
         assert "prescription" in diet_requirements
         assert "grain_free" in diet_requirements
         assert "organic" in diet_requirements
-        
+
         # Should not include unselected diets
         assert "diabetic" not in diet_requirements
         assert "senior_formula" not in diet_requirements
@@ -846,10 +902,10 @@ class TestDietValidationEdgeCases:
             (8, "large", "moderate"),  # Older large dog
             (12, "giant", "low"),  # Senior giant dog
         ]
-        
+
         for age, size, expected_level in test_cases:
             suggestion = config_flow._suggest_activity_level(age, size)
-            
+
             assert suggestion in ["very_low", "low", "moderate", "high", "very_high"]
             # Note: Exact matches may vary based on implementation
 
@@ -870,49 +926,49 @@ class TestComplexUserWorkflows:
     async def test_complete_workflow_single_dog(self, config_flow):
         """Test complete workflow with single dog configuration."""
         # Step 1: User input
-        result = await config_flow.async_step_user({
-            CONF_NAME: "Test Integration"
-        })
+        result = await config_flow.async_step_user({CONF_NAME: "Test Integration"})
         assert result["type"] == FlowResultType.FORM
-        
+
         # Mock validation to succeed
-        with patch.object(config_flow, '_async_validate_integration_name') as mock_validate:
+        with patch.object(
+            config_flow, "_async_validate_integration_name"
+        ) as mock_validate:
             mock_validate.return_value = {"valid": True, "errors": {}}
-            
+
             # Step 2: Add dog
-            result = await config_flow.async_step_user({
-                CONF_NAME: "Test Integration"
-            })
-            
+            result = await config_flow.async_step_user({CONF_NAME: "Test Integration"})
+
             # Should proceed to add_dog step
             # Note: Actual flow depends on implementation details
 
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_workflow_interruption_and_recovery(self, config_flow):
         """Test workflow interruption and recovery scenarios."""
         # Start configuration
-        config_flow._dogs = [{
-            CONF_DOG_ID: "test_dog",
-            CONF_DOG_NAME: "Test Dog",
-            "modules": {MODULE_FEEDING: True},
-        }]
-        
+        config_flow._dogs = [
+            {
+                CONF_DOG_ID: "test_dog",
+                CONF_DOG_NAME: "Test Dog",
+                "modules": {MODULE_FEEDING: True},
+            }
+        ]
+
         # Test various interruption points
         interruption_points = [
             "add_dog",
-            "dog_modules", 
+            "dog_modules",
             "dog_feeding",
             "dog_health",
             "configure_modules",
             "entity_profile",
         ]
-        
+
         for step in interruption_points:
             # Each step should handle None input gracefully
             if hasattr(config_flow, f"async_step_{step}"):
                 step_method = getattr(config_flow, f"async_step_{step}")
                 result = await step_method(None)
-                
+
                 # Should return a form for user input
                 assert result["type"] == FlowResultType.FORM
 
@@ -927,11 +983,13 @@ class TestComplexUserWorkflows:
             {CONF_DOG_WEIGHT: -5},  # Negative values
             {CONF_DOG_SIZE: "invalid_size"},  # Invalid enum values
         ]
-        
+
         for malformed_input in malformed_inputs:
             # Should handle gracefully without crashing
-            validation_result = await config_flow._async_validate_dog_config(malformed_input)
-            
+            validation_result = await config_flow._async_validate_dog_config(
+                malformed_input
+            )
+
             # Should return validation result with errors
             assert isinstance(validation_result, dict)
             assert "valid" in validation_result
@@ -950,17 +1008,15 @@ class TestComplexUserWorkflows:
                 "modules": {MODULE_FEEDING: True, MODULE_GPS: True},
             },
             {
-                CONF_DOG_ID: "dog2", 
+                CONF_DOG_ID: "dog2",
                 CONF_DOG_NAME: "Dog 2",
                 "modules": {MODULE_HEALTH: True, MODULE_WALK: True},
             },
         ]
-        
+
         # Test profile selection
-        result = await config_flow.async_step_entity_profile({
-            "entity_profile": "advanced"
-        })
-        
+        await config_flow.async_step_entity_profile({"entity_profile": "advanced"})
+
         # Should accept valid profile
         assert config_flow._entity_profile == "advanced"
 
@@ -968,20 +1024,22 @@ class TestComplexUserWorkflows:
     async def test_final_setup_data_integrity(self, config_flow):
         """Test final setup data integrity and validation."""
         # Set up complete configuration
-        config_flow._dogs = [{
-            CONF_DOG_ID: "test_dog",
-            CONF_DOG_NAME: "Test Dog",
-            CONF_DOG_SIZE: "medium",
-            CONF_DOG_WEIGHT: 20.0,
-            CONF_DOG_AGE: 3,
-            "modules": {MODULE_FEEDING: True},
-        }]
+        config_flow._dogs = [
+            {
+                CONF_DOG_ID: "test_dog",
+                CONF_DOG_NAME: "Test Dog",
+                CONF_DOG_SIZE: "medium",
+                CONF_DOG_WEIGHT: 20.0,
+                CONF_DOG_AGE: 3,
+                "modules": {MODULE_FEEDING: True},
+            }
+        ]
         config_flow._entity_profile = "standard"
-        
+
         # Mock validation
-        with patch.object(config_flow, '_validate_dog_config_async', return_value=True):
+        with patch.object(config_flow, "_validate_dog_config_async", return_value=True):
             result = await config_flow.async_step_final_setup({})
-        
+
         # Should create entry with all necessary data
         if result["type"] == FlowResultType.CREATE_ENTRY:
             assert "entity_profile" in result["data"]
@@ -1004,25 +1062,27 @@ class TestPerformanceAndStressScenarios:
         """Test performance with maximum number of dogs."""
         # Add maximum dogs
         for i in range(MAX_DOGS_PER_ENTRY):
-            config_flow._dogs.append({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                CONF_DOG_SIZE: DOG_SIZES[i % len(DOG_SIZES)],
-                CONF_DOG_WEIGHT: 20.0 + i,
-                CONF_DOG_AGE: 3 + (i % 10),
-                "modules": {
-                    MODULE_FEEDING: i % 2 == 0,
-                    MODULE_GPS: i % 3 == 0,
-                    MODULE_HEALTH: i % 4 == 0,
-                    MODULE_WALK: i % 5 == 0,
-                },
-            })
-        
+            config_flow._dogs.append(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    CONF_DOG_SIZE: DOG_SIZES[i % len(DOG_SIZES)],
+                    CONF_DOG_WEIGHT: 20.0 + i,
+                    CONF_DOG_AGE: 3 + (i % 10),
+                    "modules": {
+                        MODULE_FEEDING: i % 2 == 0,
+                        MODULE_GPS: i % 3 == 0,
+                        MODULE_HEALTH: i % 4 == 0,
+                        MODULE_WALK: i % 5 == 0,
+                    },
+                }
+            )
+
         # Test profile calculations with many dogs
         start_time = time.time()
         estimates = config_flow._calculate_profile_estimates()
         calculation_time = time.time() - start_time
-        
+
         # Should complete quickly even with many dogs
         assert calculation_time < 1.0  # Less than 1 second
         assert len(estimates) == len(ENTITY_PROFILES)
@@ -1033,23 +1093,25 @@ class TestPerformanceAndStressScenarios:
         # Create many validation tasks
         validation_tasks = []
         for i in range(20):
-            task = config_flow._async_validate_dog_config({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                CONF_DOG_SIZE: "medium",
-                CONF_DOG_WEIGHT: 20.0,
-                CONF_DOG_AGE: 3,
-            })
+            task = config_flow._async_validate_dog_config(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    CONF_DOG_SIZE: "medium",
+                    CONF_DOG_WEIGHT: 20.0,
+                    CONF_DOG_AGE: 3,
+                }
+            )
             validation_tasks.append(task)
-        
+
         # Run all validations concurrently
         start_time = time.time()
         results = await asyncio.gather(*validation_tasks, return_exceptions=True)
         total_time = time.time() - start_time
-        
+
         # Should complete within reasonable time
         assert total_time < 5.0  # Less than 5 seconds for 20 validations
-        
+
         # All results should be valid (no exceptions)
         for result in results:
             assert not isinstance(result, Exception)
@@ -1059,19 +1121,19 @@ class TestPerformanceAndStressScenarios:
     async def test_cache_performance_under_load(self):
         """Test validation cache performance under load."""
         cache = ValidationCache(ttl=60)
-        
+
         # Add many entries rapidly
         start_time = time.time()
         for i in range(1000):
             await cache.set(f"key_{i}", f"value_{i}")
         set_time = time.time() - start_time
-        
+
         # Retrieve many entries rapidly
         start_time = time.time()
         for i in range(1000):
             await cache.get(f"key_{i}")
         get_time = time.time() - start_time
-        
+
         # Should handle load efficiently
         assert set_time < 2.0  # Less than 2 seconds to set 1000 entries
         assert get_time < 1.0  # Less than 1 second to get 1000 entries
@@ -1100,8 +1162,7 @@ class TestPerformanceAndStressScenarios:
                 "health_config": {
                     "health_conditions": ["diabetes", "arthritis"],
                     "medications": [
-                        {"name": f"Med {j}", "dosage": "5mg"}
-                        for j in range(3)
+                        {"name": f"Med {j}", "dosage": "5mg"} for j in range(3)
                     ],
                     "vaccinations": {
                         "rabies": {"date": "2024-01-01", "next_due": "2025-01-01"},
@@ -1115,12 +1176,12 @@ class TestPerformanceAndStressScenarios:
                 },
             }
             config_flow._dogs.append(complex_dog)
-        
+
         # Test various operations with complex data
         estimates = config_flow._calculate_profile_estimates()
         recommendation = config_flow._get_recommended_profile()
         comparison = config_flow._get_performance_comparison()
-        
+
         # Should handle complex configurations without issues
         assert len(estimates) == len(ENTITY_PROFILES)
         assert recommendation in ENTITY_PROFILES
@@ -1136,23 +1197,27 @@ class TestPerformanceAndStressScenarios:
             ("network", ConnectionError("Network error")),
             ("memory", MemoryError("Out of memory")),
         ]
-        
+
         for error_name, error in error_scenarios:
             # Test error handling doesn't break the flow
-            with patch.object(config_flow, '_async_validate_dog_config', side_effect=error):
+            with patch.object(
+                config_flow, "_async_validate_dog_config", side_effect=error
+            ):
                 try:
-                    result = await config_flow._async_validate_dog_config({
-                        CONF_DOG_ID: "test_dog",
-                        CONF_DOG_NAME: "Test Dog",
-                        CONF_DOG_SIZE: "medium",
-                        CONF_DOG_WEIGHT: 20.0,
-                        CONF_DOG_AGE: 3,
-                    })
-                    
+                    result = await config_flow._async_validate_dog_config(
+                        {
+                            CONF_DOG_ID: "test_dog",
+                            CONF_DOG_NAME: "Test Dog",
+                            CONF_DOG_SIZE: "medium",
+                            CONF_DOG_WEIGHT: 20.0,
+                            CONF_DOG_AGE: 3,
+                        }
+                    )
+
                     # Should return error result, not raise exception
                     assert not result["valid"]
                     assert "errors" in result
-                    
+
                 except Exception:
                     # Some errors might still propagate, which is acceptable
                     pass
@@ -1167,7 +1232,7 @@ class TestExternalEntityIntegration:
         flow = PawControlConfigFlow()
         flow.hass = hass
         flow._dogs = []
-        
+
         # Mock entity availability
         mock_states = MagicMock()
         mock_states.async_entity_ids.return_value = [
@@ -1178,14 +1243,14 @@ class TestExternalEntityIntegration:
             "binary_sensor.front_door",
             "binary_sensor.garage_door",
         ]
-        
+
         mock_state = MagicMock()
         mock_state.state = "home"
         mock_state.attributes = {"friendly_name": "Test Device"}
         mock_states.get.return_value = mock_state
-        
+
         hass.states = mock_states
-        
+
         # Mock notification services
         mock_services = MagicMock()
         mock_services.async_services.return_value = {
@@ -1196,7 +1261,7 @@ class TestExternalEntityIntegration:
             }
         }
         hass.services = mock_services
-        
+
         return flow
 
     def test_available_device_trackers_edge_cases(self, config_flow):
@@ -1208,18 +1273,20 @@ class TestExternalEntityIntegration:
             "device_tracker.unknown": "unknown",
             "device_tracker.home_assistant": "home",  # Should be filtered
         }
-        
+
         def mock_get_state(entity_id):
             state = MagicMock()
             state.state = entity_states.get(entity_id, "home")
             state.attributes = {"friendly_name": f"Friendly {entity_id}"}
             return state
-        
+
         config_flow.hass.states.get.side_effect = mock_get_state
-        config_flow.hass.states.async_entity_ids.return_value = list(entity_states.keys())
-        
+        config_flow.hass.states.async_entity_ids.return_value = list(
+            entity_states.keys()
+        )
+
         device_trackers = config_flow._get_available_device_trackers()
-        
+
         # Should include available devices, exclude unavailable/unknown
         assert "device_tracker.available" in device_trackers
         assert "device_tracker.unavailable" not in device_trackers
@@ -1230,10 +1297,10 @@ class TestExternalEntityIntegration:
     def test_available_person_entities_edge_cases(self, config_flow):
         """Test person entity availability with edge cases."""
         person_entities = config_flow._get_available_person_entities()
-        
+
         # Should return dict with entity_id -> friendly_name mapping
         assert isinstance(person_entities, dict)
-        
+
         # With mocked data should find person entities
         if person_entities:
             for entity_id, friendly_name in person_entities.items():
@@ -1242,44 +1309,45 @@ class TestExternalEntityIntegration:
 
     def test_available_door_sensors_filtering(self, config_flow):
         """Test door sensor filtering by device class."""
+
         # Mock binary sensors with different device classes
         def mock_get_state(entity_id):
             state = MagicMock()
             state.state = "off"
-            
+
             device_classes = {
                 "binary_sensor.door": "door",
-                "binary_sensor.window": "window", 
+                "binary_sensor.window": "window",
                 "binary_sensor.motion": "motion",  # Should be excluded
                 "binary_sensor.garage": "garage_door",
                 "binary_sensor.opening": "opening",
             }
-            
+
             state.attributes = {
                 "friendly_name": f"Friendly {entity_id}",
                 "device_class": device_classes.get(entity_id),
             }
             return state
-        
+
         config_flow.hass.states.get.side_effect = mock_get_state
         config_flow.hass.states.async_entity_ids.return_value = [
             "binary_sensor.door",
-            "binary_sensor.window", 
+            "binary_sensor.window",
             "binary_sensor.motion",
             "binary_sensor.garage",
             "binary_sensor.opening",
         ]
-        
+
         door_sensors = config_flow._get_available_door_sensors()
-        
+
         # Should include door-like sensors, exclude others
         expected_sensors = [
             "binary_sensor.door",
             "binary_sensor.window",
-            "binary_sensor.garage", 
+            "binary_sensor.garage",
             "binary_sensor.opening",
         ]
-        
+
         for sensor in expected_sensors:
             assert sensor in door_sensors
         assert "binary_sensor.motion" not in door_sensors
@@ -1287,13 +1355,13 @@ class TestExternalEntityIntegration:
     def test_notification_services_filtering(self, config_flow):
         """Test notification service filtering and naming."""
         notify_services = config_flow._get_available_notify_services()
-        
+
         # Should return dict with service mappings
         assert isinstance(notify_services, dict)
-        
+
         # Should exclude persistent_notification
         assert "notify.persistent_notification" not in notify_services
-        
+
         # Should format service names properly
         for service_id, friendly_name in notify_services.items():
             assert service_id.startswith("notify.")

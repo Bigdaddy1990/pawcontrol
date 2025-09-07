@@ -67,7 +67,7 @@ ENTITY_PROFILES = {
         "recommended_for": "Single dog, basic monitoring",
     },
     "standard": {
-        "name": "Standard (12 entities)", 
+        "name": "Standard (12 entities)",
         "description": "Balanced monitoring with GPS - Good performance",
         "max_entities": 12,
         "performance_impact": "low",
@@ -97,9 +97,13 @@ ENTITY_PROFILES = {
 }
 
 # Profile schema for validation
-PROFILE_SCHEMA = vol.Schema({
-    vol.Required("entity_profile", default="standard"): vol.In(list(ENTITY_PROFILES.keys()))
-})
+PROFILE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_profile", default="standard"): vol.In(
+            list(ENTITY_PROFILES.keys())
+        )
+    }
+)
 
 
 class ValidationCache:
@@ -162,10 +166,10 @@ class PawControlConfigFlow(
     users through configuring their dogs and initial settings. It uses a
     modular architecture with separate mixins for different functionality
     areas while maintaining extensive validation and user-friendly interface.
-    
+
     NEW: Includes entity profile selection for performance optimization.
     Reduces entity count from 54+ to 8-18 per dog based on user needs.
-    
+
     Designed for Home Assistant 2025.9.0+ with Platinum quality standards.
     Optimized for Python 3.13+ with improved async performance and caching.
     """
@@ -178,7 +182,7 @@ class PawControlConfigFlow(
         self._external_entities: dict[str, str] = {}
         self._validation_cache = ValidationCache()
         self._validation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_VALIDATIONS)
-        
+
         # Entity profile configuration
         self._entity_profile: str = "standard"
 
@@ -205,18 +209,25 @@ class PawControlConfigFlow(
                 # Check validation cache first
                 cache_key = f"integration_name_{integration_name}"
                 cached_result = await self._validation_cache.get(cache_key)
-                
+
                 if cached_result is None:
                     # Enhanced validation with async checking and timeout
                     async with self._validation_semaphore:
                         try:
                             async with asyncio.timeout(VALIDATION_TIMEOUT):
-                                validation_result = await self._async_validate_integration_name(
-                                    integration_name
+                                validation_result = (
+                                    await self._async_validate_integration_name(
+                                        integration_name
+                                    )
                                 )
-                            await self._validation_cache.set(cache_key, validation_result)
+                            await self._validation_cache.set(
+                                cache_key, validation_result
+                            )
                         except asyncio.TimeoutError:
-                            _LOGGER.error("Validation timeout for integration name: %s", integration_name)
+                            _LOGGER.error(
+                                "Validation timeout for integration name: %s",
+                                integration_name,
+                            )
                             errors["base"] = "validation_timeout"
                             validation_result = {"valid": False, "errors": errors}
                 else:
@@ -270,7 +281,7 @@ class PawControlConfigFlow(
         if user_input is not None:
             try:
                 profile = user_input["entity_profile"]
-                
+
                 # Validate profile exists
                 if profile not in ENTITY_PROFILES:
                     errors["entity_profile"] = "invalid_profile"
@@ -278,22 +289,29 @@ class PawControlConfigFlow(
                     self._entity_profile = profile
                     _LOGGER.info(
                         "Selected entity profile '%s' for %d dogs - max %d entities per dog",
-                        profile, len(self._dogs), ENTITY_PROFILES[profile]["max_entities"]
+                        profile,
+                        len(self._dogs),
+                        ENTITY_PROFILES[profile]["max_entities"],
                     )
-                    
+
                     # Check if dashboard configuration is needed
-                    if hasattr(self, '_needs_dashboard_config') and self._needs_dashboard_config:
+                    if (
+                        hasattr(self, "_needs_dashboard_config")
+                        and self._needs_dashboard_config
+                    ):
                         return await self.async_step_dashboard()
                     else:
                         return await self.async_step_final_setup()
 
             except Exception as err:
-                _LOGGER.error("Error processing profile selection: %s", err, exc_info=True)
+                _LOGGER.error(
+                    "Error processing profile selection: %s", err, exc_info=True
+                )
                 errors["base"] = "unknown"
 
         # Calculate estimated entity counts for each profile
         profile_estimates = self._calculate_profile_estimates()
-        
+
         # Determine recommended profile based on configuration
         recommended_profile = self._get_recommended_profile()
 
@@ -318,39 +336,59 @@ class PawControlConfigFlow(
             Dictionary mapping profile names to estimated entity counts
         """
         estimates = {}
-        
+
         for profile_name, profile_config in ENTITY_PROFILES.items():
             # Estimate based on enabled modules and profile limits
             base_entities = 3  # Core entities always present
-            
+
             # Count module-based entities for first dog (representative)
             if self._dogs:
                 dog = self._dogs[0]
                 modules = dog.get("modules", {})
-                
+
                 # Estimate feeding entities
                 if modules.get("feeding", False):
-                    feeding_entities = {"basic": 3, "standard": 6, "advanced": 10, "health_focus": 4}.get(profile_name, 3)
+                    feeding_entities = {
+                        "basic": 3,
+                        "standard": 6,
+                        "advanced": 10,
+                        "health_focus": 4,
+                    }.get(profile_name, 3)
                     base_entities += feeding_entities
-                
+
                 # Estimate walk entities
                 if modules.get("walk", False):
-                    walk_entities = {"basic": 2, "standard": 4, "advanced": 6, "gps_focus": 4}.get(profile_name, 2)
+                    walk_entities = {
+                        "basic": 2,
+                        "standard": 4,
+                        "advanced": 6,
+                        "gps_focus": 4,
+                    }.get(profile_name, 2)
                     base_entities += walk_entities
-                
+
                 # Estimate GPS entities
                 if modules.get("gps", False):
-                    gps_entities = {"basic": 2, "standard": 4, "advanced": 5, "gps_focus": 5}.get(profile_name, 2)
+                    gps_entities = {
+                        "basic": 2,
+                        "standard": 4,
+                        "advanced": 5,
+                        "gps_focus": 5,
+                    }.get(profile_name, 2)
                     base_entities += gps_entities
-                
+
                 # Estimate health entities
                 if modules.get("health", False):
-                    health_entities = {"basic": 2, "standard": 4, "advanced": 6, "health_focus": 6}.get(profile_name, 2)
+                    health_entities = {
+                        "basic": 2,
+                        "standard": 4,
+                        "advanced": 6,
+                        "health_focus": 6,
+                    }.get(profile_name, 2)
                     base_entities += health_entities
-            
+
             # Apply profile limit
             estimates[profile_name] = min(base_entities, profile_config["max_entities"])
-        
+
         return estimates
 
     def _get_recommended_profile(self) -> str:
@@ -361,16 +399,18 @@ class PawControlConfigFlow(
         """
         if not self._dogs:
             return "standard"
-        
+
         # Analyze configuration complexity
         has_multiple_dogs = len(self._dogs) > 1
         has_gps = any(dog.get("modules", {}).get("gps", False) for dog in self._dogs)
-        has_health = any(dog.get("modules", {}).get("health", False) for dog in self._dogs)
+        has_health = any(
+            dog.get("modules", {}).get("health", False) for dog in self._dogs
+        )
         has_complex_feeding = any(
-            len(dog.get("modules", {}).get("special_diet", [])) > 2 
+            len(dog.get("modules", {}).get("special_diet", [])) > 2
             for dog in self._dogs
         )
-        
+
         # Recommendation logic
         if has_multiple_dogs and (has_gps or has_complex_feeding):
             return "advanced"
@@ -390,7 +430,7 @@ class PawControlConfigFlow(
             Formatted performance comparison string
         """
         estimates = self._calculate_profile_estimates()
-        
+
         comparison_lines = []
         for profile_name, estimate in estimates.items():
             profile_config = ENTITY_PROFILES[profile_name]
@@ -398,7 +438,7 @@ class PawControlConfigFlow(
             comparison_lines.append(
                 f"• {profile_config['name']}: {estimate} entities (-{reduction}%) - {profile_config['description']}"
             )
-        
+
         return "\n".join(comparison_lines)
 
     async def async_step_final_setup(
@@ -450,13 +490,19 @@ class PawControlConfigFlow(
                         if not is_valid:
                             raise ValueError("Invalid dog configuration detected")
                 except asyncio.TimeoutError:
-                    _LOGGER.warning("Dog config validation timeout, proceeding with caution")
+                    _LOGGER.warning(
+                        "Dog config validation timeout, proceeding with caution"
+                    )
 
             # Calculate final entity estimates for logging
             estimates = self._calculate_profile_estimates()
-            total_estimated_entities = estimates.get(self._entity_profile, 12) * len(self._dogs)
+            total_estimated_entities = estimates.get(self._entity_profile, 12) * len(
+                self._dogs
+            )
             legacy_entities = 54 * len(self._dogs)
-            reduction_percent = int((1 - total_estimated_entities / legacy_entities) * 100)
+            reduction_percent = int(
+                (1 - total_estimated_entities / legacy_entities) * 100
+            )
 
             _LOGGER.info(
                 "Creating Paw Control config entry '%s' with %d dogs, profile '%s' "
@@ -500,15 +546,11 @@ class PawControlConfigFlow(
 
         # Analyze configuration for intelligent defaults with optimized checks
         has_gps = any(
-            dog.get("modules", {}).get(MODULE_GPS, False) or 
-            bool(dog.get("gps_config"))
+            dog.get("modules", {}).get(MODULE_GPS, False) or bool(dog.get("gps_config"))
             for dog in dogs
         )
         has_multiple_dogs = len(dogs) > 1
-        has_large_dogs = any(
-            dog.get("dog_size") in ("large", "giant") 
-            for dog in dogs
-        )
+        has_large_dogs = any(dog.get("dog_size") in ("large", "giant") for dog in dogs)
 
         # Performance mode based on profile and complexity
         performance_mode = self._calculate_performance_mode_with_profile(
@@ -589,11 +631,11 @@ class PawControlConfigFlow(
         if profile == "basic":
             return 180  # Longer intervals for basic profile
         elif profile == "gps_focus" and has_gps:
-            return 30   # Faster updates for GPS focus
+            return 30  # Faster updates for GPS focus
         elif has_gps:
             return 60 if has_multiple_dogs else 45
         elif profile == "advanced":
-            return 60   # Standard for advanced monitoring
+            return 60  # Standard for advanced monitoring
         else:
             return 120  # Conservative for other profiles
 
@@ -608,7 +650,7 @@ class PawControlConfigFlow(
         """
         try:
             # Check if synchronous validation function exists and wrap it
-            if hasattr(self, 'is_dog_config_valid'):
+            if hasattr(self, "is_dog_config_valid"):
                 # Run synchronous validation in executor to avoid blocking
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, is_dog_config_valid, dog_config)

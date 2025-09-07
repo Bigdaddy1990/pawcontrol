@@ -17,42 +17,41 @@ Test Areas:
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.switch import (
-    _async_add_entities_in_batches,
-    async_setup_entry,
-    OptimizedSwitchBase,
-    PawControlMainPowerSwitch,
-    PawControlDoNotDisturbSwitch,
-    PawControlVisitorModeSwitch,
-    PawControlModuleSwitch,
-    PawControlFeatureSwitch,
-    ProfileOptimizedSwitchFactory,
-    BATCH_SIZE,
-    BATCH_DELAY,
-    MAX_CONCURRENT_BATCHES,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+import pytest
 from custom_components.pawcontrol.const import (
-    DOMAIN,
-    CONF_DOGS,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import (
+    BATCH_DELAY,
+    BATCH_SIZE,
+    MAX_CONCURRENT_BATCHES,
+    OptimizedSwitchBase,
+    PawControlDoNotDisturbSwitch,
+    PawControlFeatureSwitch,
+    PawControlMainPowerSwitch,
+    PawControlModuleSwitch,
+    PawControlVisitorModeSwitch,
+    ProfileOptimizedSwitchFactory,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture
@@ -96,7 +95,7 @@ def mock_entry():
                     MODULE_HEALTH: True,
                     MODULE_WALK: False,
                 },
-            }
+            },
         ]
     }
     return entry
@@ -126,17 +125,17 @@ class TestStateCacheEdgeCases:
                 1000.5,  # Within TTL (3 seconds)
                 1004.0,  # Expired TTL
             ]
-            
+
             # Set initial state and cache
             switch._is_on = True
             switch._update_cache(True)
-            
+
             # First call - should use cache
             assert switch.is_on is True
-            
+
             # Cache should still be valid
             assert switch.is_on is True
-            
+
             # Cache should be expired, return stored state
             switch._is_on = False
             assert switch.is_on is False
@@ -156,14 +155,14 @@ class TestStateCacheEdgeCases:
             dog_name="Dog 11",
             switch_type="ower",  # Similar type
         )
-        
+
         # Set different states
         switch1._is_on = True
         switch1._update_cache(True)
-        
+
         switch2._is_on = False
         switch2._update_cache(False)
-        
+
         # Verify no cross-contamination
         assert switch1.is_on is True
         assert switch2.is_on is False
@@ -174,10 +173,10 @@ class TestStateCacheEdgeCases:
         for i in range(1000):
             cache_key = f"dog_{i}_switch_{i}"
             switch._state_cache[cache_key] = (True, dt_util.utcnow().timestamp())
-        
+
         # Verify cache has entries (implementation detail)
         assert len(switch._state_cache) > 0
-        
+
         # Cache should handle large numbers of entries
         switch._update_cache(True)
         assert switch.is_on is True
@@ -185,19 +184,20 @@ class TestStateCacheEdgeCases:
     @pytest.mark.asyncio
     async def test_concurrent_cache_access(self, switch):
         """Test cache thread safety with concurrent access."""
+
         async def toggle_switch():
             for _ in range(10):
                 switch._is_on = not switch._is_on
                 switch._update_cache(switch._is_on)
                 await asyncio.sleep(0.001)
-        
+
         # Run multiple concurrent operations
         await asyncio.gather(
             toggle_switch(),
             toggle_switch(),
             toggle_switch(),
         )
-        
+
         # Cache should remain consistent
         cached_state = switch.is_on
         assert isinstance(cached_state, bool)
@@ -212,9 +212,9 @@ class TestProfileOptimizationEdgeCases:
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
-            modules={}  # No modules enabled
+            modules={},  # No modules enabled
         )
-        
+
         # Should still create base switches
         assert len(switches) >= 2  # MainPower, DoNotDisturb
         switch_types = [s._switch_type for s in switches]
@@ -232,9 +232,9 @@ class TestProfileOptimizationEdgeCases:
                 MODULE_GPS: False,
                 MODULE_HEALTH: False,
                 MODULE_WALK: False,
-            }
+            },
         )
-        
+
         # Should create base switches plus visitor mode (fallback)
         assert len(switches) >= 3
         switch_types = [s._switch_type for s in switches]
@@ -251,15 +251,15 @@ class TestProfileOptimizationEdgeCases:
                 "invalid_module": True,
                 MODULE_FEEDING: True,
                 "future_module": True,
-            }
+            },
         )
-        
+
         # Should create switches for known modules only
         switch_types = [s._switch_type for s in switches]
-        
+
         # Known modules should be present
         assert "module_feeding" in switch_types
-        
+
         # Unknown modules should be ignored gracefully
         unknown_switches = [s for s in switches if "unknown" in s._switch_type]
         assert len(unknown_switches) == 0
@@ -277,14 +277,14 @@ class TestProfileOptimizationEdgeCases:
             "notifications": True,
             "visitor": True,
         }
-        
+
         switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog",
-            modules=all_modules
+            modules=all_modules,
         )
-        
+
         # Should create many switches but stay reasonable
         assert len(switches) > 10  # Many switches
         assert len(switches) < 100  # Not excessive
@@ -301,11 +301,11 @@ class TestProfileOptimizationEdgeCases:
                 MODULE_GPS: True,
                 MODULE_HEALTH: "",  # Empty string should be treated as False
                 MODULE_WALK: 1,  # Truthy non-bool
-            }
+            },
         )
-        
+
         switch_types = [s._switch_type for s in switches]
-        
+
         # Only GPS and WALK should be enabled
         assert "module_gps" in switch_types
         assert "module_walk" in switch_types
@@ -320,14 +320,14 @@ class TestBatchingEdgeCases:
     async def test_empty_entity_list(self):
         """Test batching with empty entity list."""
         add_entities_mock = Mock()
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             [],  # Empty list
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should not call add_entities
         add_entities_mock.assert_not_called()
 
@@ -335,21 +335,21 @@ class TestBatchingEdgeCases:
     async def test_single_entity_batching(self, mock_coordinator):
         """Test batching with single entity."""
         add_entities_mock = Mock()
-        
+
         entity = OptimizedSwitchBase(
             coordinator=mock_coordinator,
             dog_id="test",
             dog_name="Test",
             switch_type="test",
         )
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             [entity],
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities once
         add_entities_mock.assert_called_once()
         add_entities_mock.assert_called_with([entity], update_before_add=False)
@@ -358,7 +358,7 @@ class TestBatchingEdgeCases:
     async def test_oversized_batch(self, mock_coordinator):
         """Test batching with entities exceeding batch size."""
         add_entities_mock = Mock()
-        
+
         # Create 25 entities (more than default batch size)
         entities = []
         for i in range(25):
@@ -369,28 +369,28 @@ class TestBatchingEdgeCases:
                 switch_type="test",
             )
             entities.append(entity)
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities 3 times (10 + 10 + 5)
         assert add_entities_mock.call_count == 3
-        
+
         # Verify batch sizes
         calls = add_entities_mock.call_args_list
         assert len(calls[0][0][0]) == 10  # First batch
         assert len(calls[1][0][0]) == 10  # Second batch
-        assert len(calls[2][0][0]) == 5   # Final batch
+        assert len(calls[2][0][0]) == 5  # Final batch
 
     @pytest.mark.asyncio
     async def test_exact_batch_size_match(self, mock_coordinator):
         """Test batching when entity count exactly matches batch size."""
         add_entities_mock = Mock()
-        
+
         # Create exactly 10 entities
         entities = []
         for i in range(10):
@@ -401,14 +401,14 @@ class TestBatchingEdgeCases:
                 switch_type="test",
             )
             entities.append(entity)
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.001,
         )
-        
+
         # Should call add_entities once with all entities
         add_entities_mock.assert_called_once()
         assert len(add_entities_mock.call_args[0][0]) == 10
@@ -417,7 +417,7 @@ class TestBatchingEdgeCases:
     async def test_batching_timing(self, mock_coordinator):
         """Test batching respects delay timing."""
         add_entities_mock = Mock()
-        
+
         # Create entities requiring multiple batches
         entities = []
         for i in range(15):
@@ -428,18 +428,18 @@ class TestBatchingEdgeCases:
                 switch_type="test",
             )
             entities.append(entity)
-        
+
         start_time = dt_util.utcnow()
-        
+
         await _async_add_entities_in_batches(
             add_entities_mock,
             entities,
             batch_size=10,
             delay_between_batches=0.01,  # 10ms delay
         )
-        
+
         end_time = dt_util.utcnow()
-        
+
         # Should have taken at least the delay time
         duration = (end_time - start_time).total_seconds()
         assert duration >= 0.01  # At least one delay
@@ -448,7 +448,7 @@ class TestBatchingEdgeCases:
     async def test_concurrent_batching_performance(self, mock_coordinator):
         """Test performance with concurrent batching operations."""
         add_entities_mock = Mock()
-        
+
         async def batch_entities(entity_count: int):
             entities = []
             for i in range(entity_count):
@@ -459,25 +459,25 @@ class TestBatchingEdgeCases:
                     switch_type="test",
                 )
                 entities.append(entity)
-            
+
             await _async_add_entities_in_batches(
                 add_entities_mock,
                 entities,
                 batch_size=5,
                 delay_between_batches=0.001,
             )
-        
+
         # Run multiple batching operations concurrently
         start_time = dt_util.utcnow()
-        
+
         await asyncio.gather(
             batch_entities(20),
             batch_entities(15),
             batch_entities(10),
         )
-        
+
         end_time = dt_util.utcnow()
-        
+
         # Should complete in reasonable time
         duration = (end_time - start_time).total_seconds()
         assert duration < 1.0  # Should complete quickly
@@ -499,10 +499,10 @@ class TestErrorHandlingEdgeCases:
     async def test_turn_on_with_unavailable_coordinator(self, switch):
         """Test turn_on when coordinator is unavailable."""
         switch.coordinator.available = False
-        
+
         # Should handle gracefully
         await switch.async_turn_on()
-        
+
         # State should still be updated locally
         assert switch._is_on is True
 
@@ -510,10 +510,14 @@ class TestErrorHandlingEdgeCases:
     async def test_turn_off_with_service_failure(self, switch):
         """Test turn_off when underlying service fails."""
         # Mock service failure
-        with patch.object(switch, '_async_set_state', side_effect=Exception("Service failed")):
-            with pytest.raises(HomeAssistantError, match="Failed to turn off main_power"):
+        with patch.object(
+            switch, "_async_set_state", side_effect=Exception("Service failed")
+        ):
+            with pytest.raises(
+                HomeAssistantError, match="Failed to turn off main_power"
+            ):
                 await switch.async_turn_off()
-        
+
         # State should not change on failure
         assert switch._is_on is False  # Initial state
 
@@ -522,7 +526,7 @@ class TestErrorHandlingEdgeCases:
         """Test turn_on with partial failure scenarios."""
         # Mock data manager unavailable
         switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
-        
+
         # Should handle missing data manager gracefully
         await switch.async_turn_on()
         assert switch._is_on is True
@@ -533,40 +537,40 @@ class TestErrorHandlingEdgeCases:
         # Mock corrupted state
         mock_state = Mock()
         mock_state.state = "invalid_state"  # Not "on" or "off"
-        
-        with patch.object(switch, 'async_get_last_state', return_value=mock_state):
+
+        with patch.object(switch, "async_get_last_state", return_value=mock_state):
             await switch.async_added_to_hass()
-        
+
         # Should use default state
         assert switch._is_on is False
 
     @pytest.mark.asyncio
     async def test_state_restoration_with_none_state(self, switch):
         """Test state restoration when no previous state exists."""
-        with patch.object(switch, 'async_get_last_state', return_value=None):
+        with patch.object(switch, "async_get_last_state", return_value=None):
             await switch.async_added_to_hass()
-        
+
         # Should use initial state
         assert switch._is_on is False
 
     def test_availability_with_missing_dog_data(self, switch):
         """Test availability when dog data is missing."""
         switch.coordinator.get_dog_data.return_value = None
-        
+
         assert switch.available is False
 
     def test_availability_with_coordinator_unavailable(self, switch):
         """Test availability when coordinator is unavailable."""
         switch.coordinator.available = False
-        
+
         assert switch.available is False
 
     def test_extra_attributes_with_missing_data(self, switch):
         """Test extra attributes when data is missing."""
         switch.coordinator.get_dog_data.return_value = None
-        
+
         attrs = switch.extra_state_attributes
-        
+
         # Should have basic attributes
         assert "dog_id" in attrs
         assert "dog_name" in attrs
@@ -585,19 +589,15 @@ class TestSwitchTypeSpecificEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Test with visitor mode active in data
-        mock_coordinator.get_dog_data.return_value = {
-            "visitor_mode_active": True
-        }
-        
+        mock_coordinator.get_dog_data.return_value = {"visitor_mode_active": True}
+
         assert switch.is_on is True
-        
+
         # Test with visitor mode inactive
-        mock_coordinator.get_dog_data.return_value = {
-            "visitor_mode_active": False
-        }
-        
+        mock_coordinator.get_dog_data.return_value = {"visitor_mode_active": False}
+
         assert switch.is_on is False
 
     @pytest.mark.asyncio
@@ -608,10 +608,10 @@ class TestSwitchTypeSpecificEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Test with no data
         mock_coordinator.get_dog_data.return_value = None
-        
+
         assert switch.is_on is False  # Should fall back to stored state
 
     @pytest.mark.asyncio
@@ -626,11 +626,15 @@ class TestSwitchTypeSpecificEdgeCases:
             icon="mdi:food",
             initial_state=True,
         )
-        
+
         # Mock config entry update failure
-        with patch.object(switch.hass.config_entries, 'async_update_entry', side_effect=Exception("Update failed")):
+        with patch.object(
+            switch.hass.config_entries,
+            "async_update_entry",
+            side_effect=Exception("Update failed"),
+        ):
             await switch._async_set_state(False)
-        
+
         # Should handle failure gracefully (logged but not raised)
 
     @pytest.mark.asyncio
@@ -645,10 +649,10 @@ class TestSwitchTypeSpecificEdgeCases:
             icon="mdi:gps",
             module=MODULE_GPS,
         )
-        
+
         # Mock missing data manager
         switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
-        
+
         # Should handle missing data manager gracefully
         await switch._async_set_state(True)
 
@@ -663,9 +667,9 @@ class TestSwitchTypeSpecificEdgeCases:
             icon="mdi:calendar",
             module=MODULE_FEEDING,
         )
-        
+
         attrs = switch.extra_state_attributes
-        
+
         assert attrs["feature_id"] == "feeding_schedule"
         assert attrs["parent_module"] == MODULE_FEEDING
         assert attrs["feature_name"] == "Feeding Schedule"
@@ -678,10 +682,10 @@ class TestSwitchTypeSpecificEdgeCases:
             dog_id="test_dog",
             dog_name="Test Dog",
         )
-        
+
         # Mock missing notification manager
         switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
-        
+
         # Should handle gracefully
         await switch._async_set_state(True)
 
@@ -690,23 +694,27 @@ class TestAsyncSetupEntryEdgeCases:
     """Test async_setup_entry edge cases."""
 
     @pytest.mark.asyncio
-    async def test_setup_with_runtime_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_runtime_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with runtime_data format."""
         # Setup runtime_data format
         mock_entry.runtime_data = {
             "coordinator": mock_coordinator,
             "dogs": mock_entry.data[CONF_DOGS],
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should create entities
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_legacy_hass_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_legacy_hass_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with legacy hass.data format."""
         # Setup legacy format
         hass.data[DOMAIN] = {
@@ -714,16 +722,18 @@ class TestAsyncSetupEntryEdgeCases:
                 "coordinator": mock_coordinator,
             }
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should create entities
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_no_dogs(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_no_dogs(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with no dogs configured."""
         # Empty dogs list
         mock_entry.data = {CONF_DOGS: []}
@@ -731,16 +741,18 @@ class TestAsyncSetupEntryEdgeCases:
             "coordinator": mock_coordinator,
             "dogs": [],
         }
-        
+
         add_entities_mock = Mock()
-        
+
         await async_setup_entry(hass, mock_entry, add_entities_mock)
-        
+
         # Should still call add_entities (with empty list)
         add_entities_mock.assert_called()
 
     @pytest.mark.asyncio
-    async def test_setup_with_malformed_dog_data(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_with_malformed_dog_data(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry with malformed dog data."""
         # Malformed dog data
         mock_entry.data = {
@@ -757,45 +769,49 @@ class TestAsyncSetupEntryEdgeCases:
                 },
             ]
         }
-        
+
         add_entities_mock = Mock()
-        
+
         # Should handle gracefully without crashing
         await async_setup_entry(hass, mock_entry, add_entities_mock)
 
     @pytest.mark.asyncio
-    async def test_setup_performance_with_many_dogs(self, hass: HomeAssistant, mock_entry, mock_coordinator):
+    async def test_setup_performance_with_many_dogs(
+        self, hass: HomeAssistant, mock_entry, mock_coordinator
+    ):
         """Test setup_entry performance with many dogs."""
         # Create many dogs to test performance
         many_dogs = []
         for i in range(50):  # 50 dogs
-            many_dogs.append({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                "modules": {
-                    MODULE_FEEDING: i % 2 == 0,  # Alternate modules
-                    MODULE_GPS: i % 3 == 0,
-                    MODULE_HEALTH: i % 4 == 0,
-                    MODULE_WALK: i % 5 == 0,
-                },
-            })
-        
+            many_dogs.append(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    "modules": {
+                        MODULE_FEEDING: i % 2 == 0,  # Alternate modules
+                        MODULE_GPS: i % 3 == 0,
+                        MODULE_HEALTH: i % 4 == 0,
+                        MODULE_WALK: i % 5 == 0,
+                    },
+                }
+            )
+
         mock_entry.data = {CONF_DOGS: many_dogs}
         mock_entry.runtime_data = {
             "coordinator": mock_coordinator,
             "dogs": many_dogs,
         }
-        
+
         add_entities_mock = Mock()
-        
+
         start_time = dt_util.utcnow()
         await async_setup_entry(hass, mock_entry, add_entities_mock)
         end_time = dt_util.utcnow()
-        
+
         # Should complete in reasonable time
         duration = (end_time - start_time).total_seconds()
         assert duration < 2.0  # Should be fast even with many dogs
-        
+
         # Should use batching
         assert add_entities_mock.call_count > 1  # Multiple batches
 
@@ -812,7 +828,7 @@ class TestPerformanceAndStressScenarios:
             dog_name="Test Dog",
             switch_type="test",
         )
-        
+
         # Rapid state changes
         for i in range(100):
             switch._is_on = i % 2 == 0
@@ -831,17 +847,17 @@ class TestPerformanceAndStressScenarios:
                 switch_type="test",
             )
             switches.append(switch)
-        
+
         async def toggle_switch(switch):
             for _ in range(10):
                 await switch.async_turn_on()
                 await asyncio.sleep(0.001)
                 await switch.async_turn_off()
                 await asyncio.sleep(0.001)
-        
+
         # Run concurrent operations
         await asyncio.gather(*[toggle_switch(s) for s in switches])
-        
+
         # All switches should be in a valid state
         for switch in switches:
             assert isinstance(switch.is_on, bool)
@@ -849,7 +865,7 @@ class TestPerformanceAndStressScenarios:
     def test_memory_usage_with_many_switches(self, mock_coordinator):
         """Test memory usage doesn't grow excessively with many switches."""
         switches = []
-        
+
         # Create many switches
         for i in range(500):
             switch = OptimizedSwitchBase(
@@ -859,12 +875,12 @@ class TestPerformanceAndStressScenarios:
                 switch_type="test",
             )
             switches.append(switch)
-        
+
         # Each switch should be independent
         for i, switch in enumerate(switches[:10]):  # Test first 10
             switch._is_on = i % 2 == 0
             switch._update_cache(switch._is_on)
-        
+
         # Verify states are correct
         for i, switch in enumerate(switches[:10]):
             expected_state = i % 2 == 0
@@ -883,7 +899,7 @@ class TestPerformanceAndStressScenarios:
             "training": True,
             "notifications": True,
         }
-        
+
         # Create switches for many dogs with complex configurations
         all_switches = []
         for i in range(20):  # 20 dogs
@@ -894,16 +910,16 @@ class TestPerformanceAndStressScenarios:
                 modules=complex_modules,
             )
             all_switches.extend(switches)
-        
+
         # Should create reasonable number of switches
         assert len(all_switches) > 40  # At least 2 per dog
         assert len(all_switches) < 1000  # Not excessive
-        
+
         # All switches should be valid
         for switch in all_switches:
-            assert hasattr(switch, '_dog_id')
-            assert hasattr(switch, '_switch_type')
-            assert hasattr(switch, 'unique_id')
+            assert hasattr(switch, "_dog_id")
+            assert hasattr(switch, "_switch_type")
+            assert hasattr(switch, "unique_id")
 
 
 if __name__ == "__main__":

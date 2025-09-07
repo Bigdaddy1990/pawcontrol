@@ -142,11 +142,14 @@ class TestPawControlDiscovery:
     @pytest.mark.asyncio
     async def test_async_initialize_success(self, discovery):
         """Test successful discovery initialization."""
-        with patch.object(
-            discovery, "_start_background_scanning", new_callable=AsyncMock
-        ) as mock_scan, patch.object(
-            discovery, "_register_discovery_listeners", new_callable=AsyncMock
-        ) as mock_listeners:
+        with (
+            patch.object(
+                discovery, "_start_background_scanning", new_callable=AsyncMock
+            ) as mock_scan,
+            patch.object(
+                discovery, "_register_discovery_listeners", new_callable=AsyncMock
+            ) as mock_listeners,
+        ):
             await discovery.async_initialize()
 
             mock_scan.assert_called_once()
@@ -161,7 +164,9 @@ class TestPawControlDiscovery:
             new_callable=AsyncMock,
             side_effect=Exception("Test error"),
         ):
-            with pytest.raises(HomeAssistantError, match="Discovery initialization failed"):
+            with pytest.raises(
+                HomeAssistantError, match="Discovery initialization failed"
+            ):
                 await discovery.async_initialize()
 
     @pytest.mark.asyncio
@@ -210,7 +215,7 @@ class TestPawControlDiscovery:
         mock_usb = Mock(return_value=[self._create_test_device("usb", "gps_tracker")])
 
         with patch.object(discovery, "_discover_usb_devices", mock_usb):
-            devices = await discovery.async_discover_devices(categories=target_categories)
+            await discovery.async_discover_devices(categories=target_categories)
 
             mock_usb.assert_called_once_with(target_categories)
 
@@ -232,17 +237,21 @@ class TestPawControlDiscovery:
     @pytest.mark.asyncio
     async def test_async_discover_devices_timeout(self, discovery):
         """Test discovery timeout handling."""
+
         # Make one discovery method hang
         async def hanging_discovery(categories):
             await asyncio.sleep(DISCOVERY_TIMEOUT + 1)
             return []
 
-        with patch.object(discovery, "_discover_usb_devices", hanging_discovery), patch.multiple(
-            discovery,
-            _discover_bluetooth_devices=Mock(return_value=[]),
-            _discover_zeroconf_devices=Mock(return_value=[]),
-            _discover_dhcp_devices=Mock(return_value=[]),
-            _discover_upnp_devices=Mock(return_value=[]),
+        with (
+            patch.object(discovery, "_discover_usb_devices", hanging_discovery),
+            patch.multiple(
+                discovery,
+                _discover_bluetooth_devices=Mock(return_value=[]),
+                _discover_zeroconf_devices=Mock(return_value=[]),
+                _discover_dhcp_devices=Mock(return_value=[]),
+                _discover_upnp_devices=Mock(return_value=[]),
+            ),
         ):
             # Should return existing devices on timeout, not raise exception
             devices = await discovery.async_discover_devices(quick_scan=True)
@@ -276,7 +285,9 @@ class TestPawControlDiscovery:
         """Test behavior when scan is already active."""
         discovery._scan_active = True
 
-        with patch.object(discovery, "_wait_for_scan_completion", new_callable=AsyncMock):
+        with patch.object(
+            discovery, "_wait_for_scan_completion", new_callable=AsyncMock
+        ):
             devices = await discovery.async_discover_devices()
             assert isinstance(devices, list)
 
@@ -285,7 +296,9 @@ class TestPawControlDiscovery:
         """Test device deduplication."""
         # Create duplicate devices
         device1 = self._create_test_device("usb", "gps_tracker", device_id="device1")
-        device2 = self._create_test_device("bluetooth", "gps_tracker", device_id="device2")
+        device2 = self._create_test_device(
+            "bluetooth", "gps_tracker", device_id="device2"
+        )
         # Same manufacturer/category/name - should be deduplicated
         device2 = device2._replace(
             manufacturer=device1.manufacturer,
@@ -341,7 +354,9 @@ class TestUSBDiscovery:
         """Test successful USB device discovery."""
         categories = ["gps_tracker", "smart_feeder"]
 
-        with patch("custom_components.pawcontrol.discovery.usb.async_get_usb") as mock_usb:
+        with patch(
+            "custom_components.pawcontrol.discovery.usb.async_get_usb"
+        ) as mock_usb:
             mock_usb.return_value = True  # USB available
 
             devices = await discovery._discover_usb_devices(categories)
@@ -355,7 +370,9 @@ class TestUSBDiscovery:
     @pytest.mark.asyncio
     async def test_discover_usb_devices_no_usb(self, discovery):
         """Test USB discovery when USB not available."""
-        with patch("custom_components.pawcontrol.discovery.usb.async_get_usb") as mock_usb:
+        with patch(
+            "custom_components.pawcontrol.discovery.usb.async_get_usb"
+        ) as mock_usb:
             mock_usb.return_value = None
 
             devices = await discovery._discover_usb_devices(["gps_tracker"])
@@ -379,7 +396,9 @@ class TestUSBDiscovery:
         # Request only smart_feeder category
         categories = ["smart_feeder"]
 
-        with patch("custom_components.pawcontrol.discovery.usb.async_get_usb") as mock_usb:
+        with patch(
+            "custom_components.pawcontrol.discovery.usb.async_get_usb"
+        ) as mock_usb:
             mock_usb.return_value = True
 
             devices = await discovery._discover_usb_devices(categories)
@@ -566,7 +585,10 @@ class TestUPnPDiscovery:
     async def test_discover_upnp_devices_exception(self, discovery):
         """Test UPnP discovery exception handling."""
         # Patch something that will cause an exception
-        with patch("custom_components.pawcontrol.discovery.utcnow", side_effect=Exception("UPnP error")):
+        with patch(
+            "custom_components.pawcontrol.discovery.utcnow",
+            side_effect=Exception("UPnP error"),
+        ):
             devices = await discovery._discover_upnp_devices(["smart_feeder"])
 
             assert devices == []
@@ -712,7 +734,9 @@ class TestBackgroundScanning:
         discovery._scan_active = True
 
         # Should timeout and log warning
-        with patch("custom_components.pawcontrol.discovery._LOGGER.warning") as mock_log:
+        with patch(
+            "custom_components.pawcontrol.discovery._LOGGER.warning"
+        ) as mock_log:
             await discovery._wait_for_scan_completion()
 
             mock_log.assert_called()
@@ -879,7 +903,9 @@ class TestLegacyCompatibility:
                 metadata={},
             )
 
-            mock_discovery.async_discover_devices = AsyncMock(return_value=[test_device])
+            mock_discovery.async_discover_devices = AsyncMock(
+                return_value=[test_device]
+            )
             mock_discovery_class.return_value = mock_discovery
 
             result = await async_get_discovered_devices(hass)
@@ -901,7 +927,9 @@ class TestLegacyCompatibility:
             "custom_components.pawcontrol.discovery.PawControlDiscovery"
         ) as mock_discovery_class:
             mock_discovery = Mock()
-            mock_discovery.async_initialize = AsyncMock(side_effect=Exception("Test error"))
+            mock_discovery.async_initialize = AsyncMock(
+                side_effect=Exception("Test error")
+            )
             mock_discovery.async_shutdown = AsyncMock()
             mock_discovery_class.return_value = mock_discovery
 
@@ -928,7 +956,9 @@ class TestDiscoveryManager:
 
         discovery_module._discovery_manager = None
 
-        with patch.object(discovery_module.PawControlDiscovery, "async_initialize") as mock_init:
+        with patch.object(
+            discovery_module.PawControlDiscovery, "async_initialize"
+        ) as mock_init:
             manager = await async_get_discovery_manager(hass)
 
             assert manager is not None
@@ -936,7 +966,9 @@ class TestDiscoveryManager:
             mock_init.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_get_discovery_manager_subsequent_calls(self, hass: HomeAssistant):
+    async def test_async_get_discovery_manager_subsequent_calls(
+        self, hass: HomeAssistant
+    ):
         """Test getting discovery manager on subsequent calls."""
         # Set up existing manager
         import custom_components.pawcontrol.discovery as discovery_module
@@ -1068,15 +1100,16 @@ class TestDiscoveryErrorHandling:
     @pytest.mark.asyncio
     async def test_discovery_timeout_edge_case(self, discovery):
         """Test discovery with very short timeout."""
+
         # Mock a method that takes longer than timeout
         async def slow_discovery(categories):
             await asyncio.sleep(0.1)  # Longer than a very short timeout
             return []
 
         # Very short timeout for quick scan
-        original_timeout = discovery_module.DISCOVERY_TIMEOUT
+        original_timeout = discovery_module.DISCOVERY_TIMEOUT  # noqa: F821
         try:
-            discovery_module.DISCOVERY_TIMEOUT = 0.05  # 50ms
+            discovery_module.DISCOVERY_TIMEOUT = 0.05  # 50ms  # noqa: F821
 
             with patch.object(discovery, "_discover_usb_devices", slow_discovery):
                 devices = await discovery.async_discover_devices(quick_scan=True)
@@ -1086,4 +1119,4 @@ class TestDiscoveryErrorHandling:
 
         finally:
             # Restore original timeout
-            discovery_module.DISCOVERY_TIMEOUT = original_timeout
+            discovery_module.DISCOVERY_TIMEOUT = original_timeout  # noqa: F821

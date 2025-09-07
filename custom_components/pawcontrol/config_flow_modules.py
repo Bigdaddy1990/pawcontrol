@@ -20,13 +20,6 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_MODULES,
-    CONF_DAILY_FOOD_AMOUNT,
-    CONF_FEEDING_SCHEDULE_TYPE,
-    CONF_FOOD_TYPE,
-    CONF_MEALS_PER_DAY,
-    CONF_MEDICATION_WITH_MEALS,
-    CONF_PORTION_CALCULATION,
-    CONF_SPECIAL_DIET,
     FEEDING_SCHEDULE_TYPES,
     FOOD_TYPES,
     MODULE_DASHBOARD,
@@ -82,7 +75,8 @@ class ModuleConfigurationMixin:
 
             # Check if feeding details need configuration
             feeding_enabled = any(
-                dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False) for dog in self._dogs
+                dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False)
+                for dog in self._dogs
             )
 
             if feeding_enabled:
@@ -483,11 +477,15 @@ class ModuleConfigurationMixin:
                 "default_meals_per_day": user_input.get("meals_per_day", 2),
                 "default_food_type": user_input.get("food_type", "dry_food"),
                 "default_special_diet": user_input.get("special_diet", []),
-                "default_feeding_schedule_type": user_input.get("feeding_schedule_type", "flexible"),
+                "default_feeding_schedule_type": user_input.get(
+                    "feeding_schedule_type", "flexible"
+                ),
                 "auto_portion_calculation": user_input.get("portion_calculation", True),
                 "medication_with_meals": user_input.get("medication_with_meals", False),
                 "feeding_reminders": user_input.get("feeding_reminders", True),
-                "portion_tolerance": user_input.get("portion_tolerance", 10),  # percentage
+                "portion_tolerance": user_input.get(
+                    "portion_tolerance", 10
+                ),  # percentage
             }
 
             # Continue to GPS configuration if needed
@@ -516,9 +514,7 @@ class ModuleConfigurationMixin:
                         unit_of_measurement="g",
                     )
                 ),
-                vol.Optional(
-                    "meals_per_day", default=2
-                ): selector.NumberSelector(
+                vol.Optional("meals_per_day", default=2): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1,
                         max=6,
@@ -526,9 +522,7 @@ class ModuleConfigurationMixin:
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
-                vol.Optional(
-                    "food_type", default="dry_food"
-                ): selector.SelectSelector(
+                vol.Optional("food_type", default="dry_food"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": ft, "label": ft.replace("_", " ").title()}
@@ -537,9 +531,7 @@ class ModuleConfigurationMixin:
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional(
-                    "special_diet", default=[]
-                ): selector.SelectSelector(
+                vol.Optional("special_diet", default=[]): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             {"value": sd, "label": sd.replace("_", " ").title()}
@@ -569,9 +561,7 @@ class ModuleConfigurationMixin:
                 vol.Optional(
                     "feeding_reminders", default=True
                 ): selector.BooleanSelector(),
-                vol.Optional(
-                    "portion_tolerance", default=10
-                ): selector.NumberSelector(
+                vol.Optional("portion_tolerance", default=10): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
                         max=25,

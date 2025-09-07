@@ -30,9 +30,9 @@ from custom_components.pawcontrol.text import (
     PawControlAllergiesText,
     PawControlBehaviorNotesText,
     PawControlBreederInfoText,
+    PawControlCurrentWalkLabelText,
     PawControlCustomLabelText,
     PawControlCustomMessageText,
-    PawControlCurrentWalkLabelText,
     PawControlDogNotesText,
     PawControlEmergencyContactText,
     PawControlGroomingNotesText,
@@ -110,11 +110,11 @@ class TestAsyncSetupEntry:
 
         # Should have called async_add_entities
         async_add_entities.assert_called()
-        
+
         # Verify entities were created
         call_args = async_add_entities.call_args_list
         total_entities = sum(len(call[0][0]) for call in call_args)
-        
+
         # First dog with all modules: 2 base + 2 walk + 4 health + 2 notifications = 10
         # Second dog with no modules: 2 base = 2
         # Total: 12 entities
@@ -127,9 +127,7 @@ class TestAsyncSetupEntry:
         """Test setup with legacy hass.data."""
         # Setup legacy data structure
         mock_entry.runtime_data = None
-        hass.data[DOMAIN] = {
-            "test_entry": {"coordinator": mock_coordinator}
-        }
+        hass.data[DOMAIN] = {"test_entry": {"coordinator": mock_coordinator}}
 
         async_add_entities = AsyncMock()
 
@@ -187,7 +185,7 @@ class TestAsyncSetupEntry:
         total_entities = sum(
             len(call[0][0]) for call in async_add_entities.call_args_list
         )
-        
+
         # Should have base texts (2) + health texts (4) = 6 entities
         assert total_entities == 6
 
@@ -206,7 +204,9 @@ class TestBatchingFunction:
         )
 
         # Should call once with all entities
-        async_add_entities_func.assert_called_once_with(entities, update_before_add=False)
+        async_add_entities_func.assert_called_once_with(
+            entities, update_before_add=False
+        )
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -220,7 +220,7 @@ class TestBatchingFunction:
 
         # Should call 3 times (8 + 8 + 4)
         assert async_add_entities_func.call_count == 3
-        
+
         # Verify batch sizes
         call_args = async_add_entities_func.call_args_list
         assert len(call_args[0][0][0]) == 8  # First batch
@@ -372,7 +372,7 @@ class TestPawControlTextBase:
     async def test_async_set_value_too_long(self, base_text):
         """Test setting value that exceeds max length."""
         long_value = "A" * 150  # Longer than max_length of 100
-        
+
         with patch.object(base_text, "async_write_ha_state") as mock_write:
             await base_text.async_set_value(long_value)
 
@@ -486,9 +486,7 @@ class TestWalkNotesText:
     def mock_coordinator(self):
         """Create a mock coordinator."""
         coordinator = Mock(spec=PawControlCoordinator)
-        coordinator.get_dog_data.return_value = {
-            "walk": {"walk_in_progress": True}
-        }
+        coordinator.get_dog_data.return_value = {"walk": {"walk_in_progress": True}}
         return coordinator
 
     @pytest.fixture
@@ -513,7 +511,9 @@ class TestWalkNotesText:
             mock_coordinator.get_dog_data.assert_called_with("test_dog")
 
     @pytest.mark.asyncio
-    async def test_async_set_value_no_active_walk(self, walk_notes_text, mock_coordinator):
+    async def test_async_set_value_no_active_walk(
+        self, walk_notes_text, mock_coordinator
+    ):
         """Test setting walk notes with no active walk."""
         mock_coordinator.get_dog_data.return_value = {
             "walk": {"walk_in_progress": False}
@@ -546,7 +546,9 @@ class TestCurrentWalkLabelText:
         assert current_walk_label_text._attr_native_max == 100
         assert current_walk_label_text._attr_icon == "mdi:tag"
 
-    def test_available_walk_in_progress(self, current_walk_label_text, mock_coordinator):
+    def test_available_walk_in_progress(
+        self, current_walk_label_text, mock_coordinator
+    ):
         """Test availability when walk is in progress."""
         mock_coordinator.get_dog_data.return_value = {
             "walk": {"walk_in_progress": True}
@@ -657,7 +659,9 @@ class TestMedicationNotesText:
         assert medication_notes_text._attr_icon == "mdi:pill"
 
     @pytest.mark.asyncio
-    async def test_async_set_value_meaningful_medication(self, medication_notes_text, mock_hass):
+    async def test_async_set_value_meaningful_medication(
+        self, medication_notes_text, mock_hass
+    ):
         """Test setting meaningful medication notes."""
         medication_notes_text.hass = mock_hass
         medication_content = "Gave arthritis medication 5mg"
@@ -677,7 +681,9 @@ class TestMedicationNotesText:
             )
 
     @pytest.mark.asyncio
-    async def test_async_set_value_short_content(self, medication_notes_text, mock_hass):
+    async def test_async_set_value_short_content(
+        self, medication_notes_text, mock_hass
+    ):
         """Test setting short medication notes."""
         medication_notes_text.hass = mock_hass
 
@@ -765,7 +771,9 @@ class TestGroomingNotesText:
         assert grooming_notes_text._attr_icon == "mdi:content-cut"
 
     @pytest.mark.asyncio
-    async def test_async_set_value_meaningful_content(self, grooming_notes_text, mock_hass):
+    async def test_async_set_value_meaningful_content(
+        self, grooming_notes_text, mock_hass
+    ):
         """Test setting meaningful grooming notes."""
         grooming_notes_text.hass = mock_hass
         grooming_content = "Full grooming session - brushed, bathed, nails trimmed"
@@ -990,7 +998,9 @@ class TestBehaviorNotesText:
         assert behavior_notes_text._attr_icon == "mdi:emoticon-happy"
 
     @pytest.mark.asyncio
-    async def test_async_set_value_meaningful_behavior(self, behavior_notes_text, mock_hass):
+    async def test_async_set_value_meaningful_behavior(
+        self, behavior_notes_text, mock_hass
+    ):
         """Test setting meaningful behavior notes."""
         behavior_notes_text.hass = mock_hass
         behavior_content = "Dog has been more anxious lately during thunderstorms"
@@ -1027,15 +1037,15 @@ class TestLocationDescriptionText:
     def mock_coordinator(self):
         """Create a mock coordinator."""
         coordinator = Mock(spec=PawControlCoordinator)
-        coordinator.get_dog_info.return_value = {
-            "modules": {"gps": True}
-        }
+        coordinator.get_dog_info.return_value = {"modules": {"gps": True}}
         return coordinator
 
     @pytest.fixture
     def location_description_text(self, mock_coordinator):
         """Create a location description text."""
-        return PawControlLocationDescriptionText(mock_coordinator, "test_dog", "Test Dog")
+        return PawControlLocationDescriptionText(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
 
     def test_initialization(self, location_description_text):
         """Test location description text initialization."""
@@ -1044,18 +1054,20 @@ class TestLocationDescriptionText:
         assert location_description_text._attr_mode == TextMode.TEXT
         assert location_description_text._attr_icon == "mdi:map-marker-outline"
 
-    def test_available_with_gps_module(self, location_description_text, mock_coordinator):
+    def test_available_with_gps_module(
+        self, location_description_text, mock_coordinator
+    ):
         """Test availability when GPS module is enabled."""
         mock_coordinator.get_dog_data.return_value = {"test": "data"}
 
         assert location_description_text.available is True
 
-    def test_available_without_gps_module(self, location_description_text, mock_coordinator):
+    def test_available_without_gps_module(
+        self, location_description_text, mock_coordinator
+    ):
         """Test availability when GPS module is disabled."""
         mock_coordinator.get_dog_data.return_value = {"test": "data"}
-        mock_coordinator.get_dog_info.return_value = {
-            "modules": {"gps": False}
-        }
+        mock_coordinator.get_dog_info.return_value = {"modules": {"gps": False}}
 
         assert location_description_text.available is False
 
@@ -1187,7 +1199,9 @@ class TestTextErrorHandling:
     @pytest.mark.asyncio
     async def test_text_max_length_edge_cases(self, mock_coordinator):
         """Test text max length handling at boundaries."""
-        dog_notes_text = PawControlDogNotesText(mock_coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
 
         # Test exact max length
         max_content = "A" * 1000  # Exact max length
@@ -1209,7 +1223,9 @@ class TestTextErrorHandling:
     @pytest.mark.asyncio
     async def test_text_unicode_handling(self, mock_coordinator):
         """Test text handling with unicode characters."""
-        dog_notes_text = PawControlDogNotesText(mock_coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
 
         unicode_content = "Dog is très bien! 🐕 ❤️ 中文测试"
         with patch.object(dog_notes_text, "async_write_ha_state"):
@@ -1219,7 +1235,9 @@ class TestTextErrorHandling:
 
     def test_text_character_count_accuracy(self, mock_coordinator):
         """Test character count accuracy in extra attributes."""
-        dog_notes_text = PawControlDogNotesText(mock_coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
 
         # Test various content lengths
         test_cases = ["", "Short", "Medium length content", "A" * 100]
@@ -1227,7 +1245,7 @@ class TestTextErrorHandling:
         for content in test_cases:
             dog_notes_text._current_value = content
             attrs = dog_notes_text.extra_state_attributes
-            
+
             assert attrs["character_count"] == len(content)
 
     @pytest.mark.asyncio
@@ -1235,9 +1253,13 @@ class TestTextErrorHandling:
         """Test behavior when service calls fail."""
         mock_hass = Mock()
         mock_hass.services = Mock()
-        mock_hass.services.async_call = AsyncMock(side_effect=Exception("Service error"))
+        mock_hass.services.async_call = AsyncMock(
+            side_effect=Exception("Service error")
+        )
 
-        health_notes_text = PawControlHealthNotesText(mock_coordinator, "test_dog", "Test Dog")
+        health_notes_text = PawControlHealthNotesText(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
         health_notes_text.hass = mock_hass
 
         # Should not raise exception even if service call fails
@@ -1318,15 +1340,17 @@ class TestTextPerformance:
         # Create many dogs to test batching
         dogs = []
         for i in range(8):  # 8 dogs with all modules
-            dogs.append({
-                CONF_DOG_ID: f"dog_{i}",
-                CONF_DOG_NAME: f"Dog {i}",
-                "modules": {
-                    MODULE_WALK: True,
-                    MODULE_HEALTH: True,
-                    MODULE_NOTIFICATIONS: True,
-                },
-            })
+            dogs.append(
+                {
+                    CONF_DOG_ID: f"dog_{i}",
+                    CONF_DOG_NAME: f"Dog {i}",
+                    "modules": {
+                        MODULE_WALK: True,
+                        MODULE_HEALTH: True,
+                        MODULE_NOTIFICATIONS: True,
+                    },
+                }
+            )
 
         entry = Mock(spec=ConfigEntry)
         entry.entry_id = "test_entry"
@@ -1353,31 +1377,40 @@ class TestTextPerformance:
     def test_text_memory_efficiency(self):
         """Test that texts don't store unnecessary data."""
         coordinator = Mock(spec=PawControlCoordinator)
-        
+
         dog_notes_text = PawControlDogNotesText(coordinator, "test_dog", "Test Dog")
 
         # Check that only essential attributes are stored
         essential_attrs = {
-            '_dog_id', '_dog_name', '_text_type', '_current_value',
-            '_attr_unique_id', '_attr_name', '_attr_native_max',
-            '_attr_mode', '_attr_icon', '_attr_device_info'
+            "_dog_id",
+            "_dog_name",
+            "_text_type",
+            "_current_value",
+            "_attr_unique_id",
+            "_attr_name",
+            "_attr_native_max",
+            "_attr_mode",
+            "_attr_icon",
+            "_attr_device_info",
         }
 
         # Get all attributes that don't start with '__'
         actual_attrs = {
-            attr for attr in dir(dog_notes_text) 
-            if not attr.startswith('__') and hasattr(dog_notes_text, attr)
+            attr
+            for attr in dir(dog_notes_text)
+            if not attr.startswith("__") and hasattr(dog_notes_text, attr)
         }
 
         # Most attributes should be essential or inherited
         non_essential = actual_attrs - essential_attrs
-        
+
         # Filter out inherited methods and properties
         non_essential = {
-            attr for attr in non_essential 
+            attr
+            for attr in non_essential
             if not callable(getattr(dog_notes_text, attr, None))
-            and not attr.startswith('_attr_')
-            and attr not in ['coordinator', 'registry_entry', 'platform', 'hass']
+            and not attr.startswith("_attr_")
+            and attr not in ["coordinator", "registry_entry", "platform", "hass"]
         }
 
         # Should have minimal non-essential attributes
