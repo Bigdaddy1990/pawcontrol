@@ -313,9 +313,10 @@ class FeedingConfig:
         min_portion = (
             adjusted_daily_grams * MIN_PORTION_SAFETY_FACTOR
         )  # Min 10% of daily amount
+        max_factor = 1.0 if self.meals_per_day == 1 else MAX_PORTION_SAFETY_FACTOR
         max_portion = (
-            adjusted_daily_grams * MAX_PORTION_SAFETY_FACTOR
-        )  # Max 60% of daily amount
+            adjusted_daily_grams * max_factor
+        )  # Max 60% of daily amount (100% if single meal)
         portion = max(min_portion, min(portion, max_portion))
 
         # Log diet validation adjustments if applied
