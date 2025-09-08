@@ -570,7 +570,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get all dogs data (shallow copy for safety)."""
         return self._data.copy()
 
-    def get_module_data(self, dog_id: str, module: str) -> dict[str, Any] | None:
+def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+        """Get data for a specific module of a dog."""
+        return self._data.get(dog_id, {}).get(module, {})
         """Get data for a specific module of a dog."""
         return self._data.get(dog_id, {}).get(module)
 
