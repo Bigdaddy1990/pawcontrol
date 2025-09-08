@@ -653,8 +653,8 @@ def create_device_info(dog_id: str, dog_name: str) -> dict[str, Any]:
         "name": dog_name,
         "manufacturer": "Paw Control",
         "model": "Smart Dog Monitoring",
-        "sw_version": "2.0.0",
-        "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+        "sw_version": "1.0.0",
+        "configuration_url": "https://github.com/bigdaddy1990/pawcontrol",
     }
 
 
