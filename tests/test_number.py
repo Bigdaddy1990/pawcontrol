@@ -63,25 +63,30 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 
+def _create_mock_coordinator(module_data: dict | None = None):
+    """Create a mock coordinator with standard dog info."""
+    coordinator = MagicMock()
+    coordinator.available = True
+    coordinator.get_dog_data.return_value = {
+        "dog_info": {
+            "dog_weight": 25.0,
+            "dog_age": 5,
+            "dog_breed": "Golden Retriever",
+            "dog_size": "large",
+        }
+    }
+    coordinator.get_module_data.return_value = module_data or {}
+    coordinator.async_refresh_dog = AsyncMock()
+    return coordinator
+
+
 class TestNumberPlatformSetup:
     """Test number platform setup and configuration."""
 
     @pytest.fixture
     def mock_coordinator(self):
         """Create a mock coordinator."""
-        coordinator = MagicMock()
-        coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {
-                "dog_weight": 25.0,
-                "dog_age": 5,
-                "dog_breed": "Golden Retriever",
-                "dog_size": "large",
-            }
-        }
-        coordinator.get_module_data.return_value = {}
-        coordinator.async_refresh_dog = AsyncMock()
-        return coordinator
+        return _create_mock_coordinator()
 
     @pytest.fixture
     def mock_config_entry(self):
@@ -223,25 +228,13 @@ class TestNumberPlatformSetup:
         # Verify sleep was called between batches
         assert mock_sleep.call_count >= 1
 
+    class TestPawControlNumberBase:
+        """Test base number entity functionality."""
 
-class TestPawControlNumberBase:
-    """Test base number entity functionality."""
-
-    @pytest.fixture
-    def mock_coordinator(self):
-        """Create a mock coordinator for base tests."""
-        coordinator = MagicMock()
-        coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {
-                "dog_weight": 25.0,
-                "dog_age": 5,
-                "dog_breed": "Golden Retriever",
-                "dog_size": "large",
-            }
-        }
-        coordinator.get_module_data.return_value = {"test": "data"}
-        return coordinator
+        @pytest.fixture
+        def mock_coordinator(self):
+            """Create a mock coordinator for base tests."""
+            return _create_mock_coordinator({"test": "data"})
 
     @pytest.fixture
     def base_number(self, mock_coordinator):
