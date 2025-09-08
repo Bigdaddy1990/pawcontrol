@@ -54,6 +54,7 @@ from custom_components.pawcontrol.services import (
     _build_dog_service_schema,
     _get_cached_schema,
     async_setup_daily_reset_scheduler,
+    async_track_time,
     service_handler,
 )
 from homeassistant.config_entries import ConfigEntry
