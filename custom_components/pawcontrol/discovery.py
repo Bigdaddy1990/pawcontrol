@@ -24,7 +24,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
-from .const import DOMAIN
+from .const import DEVICE_CATEGORIES, DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,20 +33,6 @@ _LOGGER = logging.getLogger(__name__)
 DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_QUICK_SCAN_INTERVAL: Final[timedelta] = timedelta(seconds=30)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
-
-# Supported device categories
-DEVICE_CATEGORIES: Final[list[str]] = [
-    "gps_tracker",
-    "smart_feeder",
-    "activity_monitor",
-    "health_device",
-    "smart_collar",
-    "treat_dispenser",
-    "water_fountain",
-    "camera",
-    "door_sensor",
-]
-
 
 @dataclass(frozen=True)
 class DiscoveredDevice:
