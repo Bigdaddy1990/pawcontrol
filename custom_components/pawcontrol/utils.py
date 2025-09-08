@@ -15,10 +15,11 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import math
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime, time
 from functools import lru_cache, wraps
 from typing import Any, TypeVar, overload
@@ -202,6 +203,30 @@ def validate_enum_value(
         return False, f"{field_name} must be one of: {', '.join(valid_values)}"
 
     return True, None
+
+
+async def async_batch_validate(
+    items: Iterable[
+        tuple[
+            Any,
+            Callable[[Any], ValidationResult]
+            | Callable[[Any], Awaitable[ValidationResult]],
+        ]
+    ],
+    *,
+    fail_fast: bool = False,
+) -> list[ValidationResult]:
+    """Validate a batch of items, optionally stopping on first failure."""
+
+    results: list[ValidationResult] = []
+    for value, validator in items:
+        result = validator(value)
+        if inspect.isawaitable(result):
+            result = await result
+        results.append(result)
+        if fail_fast and not result[0]:
+            break
+    return results
 
 
 # OPTIMIZED: Formatting functions with better performance
@@ -684,6 +709,7 @@ __all__ = (
     "async_validate_coordinates",
     "validate_weight_enhanced",
     "validate_enum_value",
+    "async_batch_validate",
     # Formatting
     "format_duration_optimized",
     "format_distance_adaptive",
