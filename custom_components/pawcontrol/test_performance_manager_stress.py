@@ -19,20 +19,15 @@ Test Areas:
 
 from __future__ import annotations
 
-import asyncio
-import logging
 import random
 import threading
 import time
-from collections import deque
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from custom_components.pawcontrol.performance_manager import (
     HISTORY_SIZE,
-    PERFORMANCE_ALERT_THRESHOLD,
     PerformanceMonitor,
 )
 from homeassistant.util import dt as dt_util
@@ -968,24 +963,26 @@ class TestEntityProfileScalingScenarios:
 
         for profile_name, profile_config in entity_profiles.items():
             monitor = PerformanceMonitor(alert_threshold=5.0)
-            
+
             # Simulate 50+ dogs with this entity profile
             dogs_count = 55
             entities_per_dog = profile_config["max_entities"]
             total_entities = dogs_count * entities_per_dog
             processing_overhead = profile_config["processing_overhead"]
-            
+
             # Test multiple update cycles
             for cycle in range(100):
                 # Calculate realistic update time based on entity profile
                 base_time = 0.1  # 100ms base
                 entity_processing = total_entities * processing_overhead
                 profile_overhead = total_entities * 0.0001  # Additional overhead
-                
+
                 # Add realistic variance
                 variance = random.uniform(0.7, 1.4)
-                update_time = (base_time + entity_processing + profile_overhead) * variance
-                
+                update_time = (
+                    base_time + entity_processing + profile_overhead
+                ) * variance
+
                 # Profile-specific error rates
                 error_probability = {
                     "basic": 0.01,
@@ -994,24 +991,24 @@ class TestEntityProfileScalingScenarios:
                     "gps_focus": 0.06,
                     "health_focus": 0.03,
                 }[profile_name]
-                
+
                 error_count = 1 if random.random() < error_probability else 0
                 monitor.record_update(update_time, error_count)
-            
+
             # Verify scaling characteristics
             stats = monitor.get_stats()
             health = monitor.get_performance_health_score()
-            
+
             # Performance should scale appropriately with entity count
             expected_min_time = 0.1 + (total_entities * processing_overhead * 0.5)
             expected_max_time = expected_min_time * 3  # Allow 3x variance
-            
+
             assert stats["min_update_time"] >= expected_min_time * 0.8
             assert stats["average_update_time"] < expected_max_time
-            
+
             # Health should be reasonable for all profiles
             assert health["overall_score"] > 20  # Minimum acceptable health
-            
+
             # Advanced profiles should have higher processing times but acceptable health
             if profile_name == "advanced":
                 assert stats["average_update_time"] > 1.0  # Should be measurable
@@ -1020,17 +1017,17 @@ class TestEntityProfileScalingScenarios:
     def test_mixed_entity_profile_performance(self):
         """Test performance with mixed entity profiles across dogs."""
         monitor = PerformanceMonitor(alert_threshold=4.0)
-        
+
         # Simulate scenario with mixed profiles
         # 20 basic dogs, 15 standard dogs, 10 advanced dogs, 5 GPS-focused dogs
         dog_profiles = (
-            ["basic"] * 20 +
-            ["standard"] * 15 +
-            ["advanced"] * 10 +
-            ["gps_focus"] * 8 +
-            ["health_focus"] * 7
+            ["basic"] * 20
+            + ["standard"] * 15
+            + ["advanced"] * 10
+            + ["gps_focus"] * 8
+            + ["health_focus"] * 7
         )  # Total: 60 dogs
-        
+
         entity_counts = {
             "basic": 8,
             "standard": 15,
@@ -1038,50 +1035,58 @@ class TestEntityProfileScalingScenarios:
             "gps_focus": 20,
             "health_focus": 18,
         }
-        
+
         # Calculate total entity load
-        total_entities = sum(entity_counts[profile] for profile in dog_profiles)
-        
+        sum(entity_counts[profile] for profile in dog_profiles)
+
         # Simulate coordinated updates across all dogs
         for cycle in range(150):
             # Process all dogs in batches (realistic coordinator behavior)
             batch_size = 15  # Process 15 dogs per update cycle
-            
+
             for batch_start in range(0, len(dog_profiles), batch_size):
-                batch_profiles = dog_profiles[batch_start:batch_start + batch_size]
-                
+                batch_profiles = dog_profiles[batch_start : batch_start + batch_size]
+
                 # Calculate batch processing time
-                batch_entities = sum(entity_counts[profile] for profile in batch_profiles)
-                
+                batch_entities = sum(
+                    entity_counts[profile] for profile in batch_profiles
+                )
+
                 base_time = 0.05  # 50ms base per batch
                 entity_processing = batch_entities * 0.002  # 2ms per entity
                 batch_overhead = len(batch_profiles) * 0.01  # 10ms per dog overhead
-                
+
                 # Add realistic variations
                 if random.random() < 0.15:  # 15% chance of slow batch
                     slow_factor = random.uniform(2.0, 4.0)
                 else:
                     slow_factor = random.uniform(0.8, 1.3)
-                
-                batch_time = (base_time + entity_processing + batch_overhead) * slow_factor
-                
+
+                batch_time = (
+                    base_time + entity_processing + batch_overhead
+                ) * slow_factor
+
                 # Batch error probability increases with complexity
-                complexity_factor = len(set(batch_profiles)) / 5.0  # More profiles = more complexity
+                complexity_factor = (
+                    len(set(batch_profiles)) / 5.0
+                )  # More profiles = more complexity
                 error_probability = 0.02 * complexity_factor
-                error_count = random.randint(0, 2) if random.random() < error_probability else 0
-                
+                error_count = (
+                    random.randint(0, 2) if random.random() < error_probability else 0
+                )
+
                 monitor.record_update(batch_time, error_count)
-        
+
         # Analyze mixed profile performance
         stats = monitor.get_stats()
         health = monitor.get_performance_health_score()
-        trend = monitor.analyze_performance_trend()
-        
+        monitor.analyze_performance_trend()
+
         # Should handle mixed complexity well
         assert stats["total_updates"] > 100
         assert stats["average_update_time"] < 8.0  # Should be manageable
         assert health["overall_score"] > 40  # Reasonable health with complexity
-        
+
         # Error rate should be acceptable
         assert stats["error_rate"] < 8.0  # Under 8% error rate
 
@@ -1092,80 +1097,81 @@ class TestExtendedMemoryLeakDetection:
     def test_long_running_memory_stability(self):
         """Test memory stability over extended operation periods."""
         import gc
-        import sys
-        
+
         monitor = PerformanceMonitor()
-        
+
         # Simulate very long-running operation
         extended_cycles = HISTORY_SIZE * 10  # 10x normal history
-        
+
         # Track memory usage over time
         memory_samples = []
-        
+
         for cycle in range(extended_cycles):
             # Realistic update pattern
             update_time = random.uniform(0.5, 3.0)
             error_count = 1 if random.random() < 0.03 else 0
-            
+
             monitor.record_update(update_time, error_count)
-            
+
             # Sample memory every 100 cycles
             if cycle % 100 == 0:
                 gc.collect()  # Force garbage collection
                 memory_usage = self._get_monitor_memory_usage(monitor)
                 memory_samples.append(memory_usage)
-        
+
         # Analyze memory growth pattern
         if len(memory_samples) > 5:
             # Should not have significant memory growth after initial stabilization
             stabilized_samples = memory_samples[2:]  # Skip initial growth
             memory_growth = max(stabilized_samples) - min(stabilized_samples)
-            
+
             # Memory should be stable (growth < 50% of initial)
-            initial_memory = memory_samples[1] if len(memory_samples) > 1 else memory_samples[0]
+            initial_memory = (
+                memory_samples[1] if len(memory_samples) > 1 else memory_samples[0]
+            )
             assert memory_growth < initial_memory * 0.5
-        
+
         # Verify data structures are properly bounded
         assert len(monitor._update_times) == HISTORY_SIZE
         assert len(monitor._error_counts) == HISTORY_SIZE
-        
+
         # Cache should not grow unbounded
         assert len(monitor._percentile_cache) < 100
 
     def test_memory_pressure_recovery(self):
         """Test recovery from memory pressure situations."""
         import gc
-        
+
         # Create multiple monitors to simulate memory pressure
         monitors = []
-        
+
         try:
             # Create many monitors with full data
             for i in range(50):  # 50 concurrent monitors
                 monitor = PerformanceMonitor()
-                
+
                 # Fill each monitor to capacity
                 for j in range(HISTORY_SIZE):
                     update_time = random.uniform(0.1, 5.0)
                     error_count = random.randint(0, 3)
                     monitor.record_update(update_time, error_count)
-                
+
                 monitors.append(monitor)
-            
+
             # Force memory pressure
             gc.collect()
-            
+
             # All monitors should still function correctly
             for i, monitor in enumerate(monitors):
                 stats = monitor.get_stats()
                 assert stats["total_updates"] == HISTORY_SIZE
                 assert "average_update_time" in stats
-                
+
                 # Add more data to test continued operation
                 monitor.record_update(1.0 + i * 0.01, 0)
                 new_stats = monitor.get_stats()
                 assert new_stats["total_updates"] == HISTORY_SIZE  # Still bounded
-        
+
         finally:
             # Cleanup
             monitors.clear()
@@ -1177,7 +1183,7 @@ class TestExtendedMemoryLeakDetection:
         update_times_size = len(monitor._update_times) * 8  # float64
         error_counts_size = len(monitor._error_counts) * 4  # int32
         cache_size = len(monitor._percentile_cache) * 16  # key + value
-        
+
         return update_times_size + error_counts_size + cache_size
 
 
@@ -1189,52 +1195,56 @@ class TestCrossDogPerformanceImpact:
         # Test different dog counts: 10, 25, 50, 75, 100
         dog_counts = [10, 25, 50, 75, 100]
         scaling_results = []
-        
+
         for dog_count in dog_counts:
             monitor = PerformanceMonitor()
-            
+
             # Simulate realistic entity distribution
             entities_per_dog = 12  # Average
             total_entities = dog_count * entities_per_dog
-            
+
             # Test performance for this scale
             test_cycles = 50
             start_time = time.time()
-            
+
             for cycle in range(test_cycles):
                 # Realistic scaling model: O(n) with some overhead
                 base_time = 0.1
                 linear_time = total_entities * 0.002
                 overhead_time = dog_count * 0.005  # Per-dog overhead
                 network_time = random.uniform(0, 0.2) if random.random() < 0.1 else 0
-                
-                total_time = (base_time + linear_time + overhead_time + network_time) * random.uniform(0.8, 1.3)
-                
+
+                total_time = (
+                    base_time + linear_time + overhead_time + network_time
+                ) * random.uniform(0.8, 1.3)
+
                 monitor.record_update(total_time)
-            
+
             test_duration = time.time() - start_time
             stats = monitor.get_stats()
-            
-            scaling_results.append({
-                "dog_count": dog_count,
-                "total_entities": total_entities,
-                "avg_update_time": stats["average_update_time"],
-                "p95_time": stats["p95"],
-                "test_duration": test_duration,
-            })
-        
+
+            scaling_results.append(
+                {
+                    "dog_count": dog_count,
+                    "total_entities": total_entities,
+                    "avg_update_time": stats["average_update_time"],
+                    "p95_time": stats["p95"],
+                    "test_duration": test_duration,
+                }
+            )
+
         # Analyze scaling characteristics
         for i in range(1, len(scaling_results)):
             current = scaling_results[i]
-            previous = scaling_results[i-1]
-            
+            previous = scaling_results[i - 1]
+
             # Performance should scale sub-linearly (not worse than O(n))
             entity_ratio = current["total_entities"] / previous["total_entities"]
             time_ratio = current["avg_update_time"] / previous["avg_update_time"]
-            
+
             # Time scaling should not be worse than entity scaling
             assert time_ratio <= entity_ratio * 1.5  # Allow 50% overhead
-        
+
         # Final scale (100 dogs) should still be manageable
         final_result = scaling_results[-1]
         assert final_result["avg_update_time"] < 15.0  # Under 15 seconds
@@ -1245,67 +1255,105 @@ class TestCrossDogPerformanceImpact:
         # Define module complexity scenarios
         module_scenarios = [
             {"name": "minimal", "modules": ["feeding"], "complexity": 1.0},
-            {"name": "standard", "modules": ["feeding", "walk", "health"], "complexity": 1.5},
-            {"name": "gps_enabled", "modules": ["feeding", "walk", "health", "gps"], "complexity": 2.0},
-            {"name": "comprehensive", "modules": ["feeding", "walk", "health", "gps", "medication", "grooming"], "complexity": 2.5},
-            {"name": "maximum", "modules": ["feeding", "walk", "health", "gps", "medication", "grooming", "training", "visitor"], "complexity": 3.0},
+            {
+                "name": "standard",
+                "modules": ["feeding", "walk", "health"],
+                "complexity": 1.5,
+            },
+            {
+                "name": "gps_enabled",
+                "modules": ["feeding", "walk", "health", "gps"],
+                "complexity": 2.0,
+            },
+            {
+                "name": "comprehensive",
+                "modules": [
+                    "feeding",
+                    "walk",
+                    "health",
+                    "gps",
+                    "medication",
+                    "grooming",
+                ],
+                "complexity": 2.5,
+            },
+            {
+                "name": "maximum",
+                "modules": [
+                    "feeding",
+                    "walk",
+                    "health",
+                    "gps",
+                    "medication",
+                    "grooming",
+                    "training",
+                    "visitor",
+                ],
+                "complexity": 3.0,
+            },
         ]
-        
+
         scenario_results = []
-        
+
         for scenario in module_scenarios:
             monitor = PerformanceMonitor()
-            
+
             # Simulate 50 dogs with this module configuration
             dogs_count = 50
             entities_per_module = 3  # Average entities per module
             total_entities = dogs_count * len(scenario["modules"]) * entities_per_module
             complexity_factor = scenario["complexity"]
-            
+
             # Test performance with this configuration
             for cycle in range(75):
                 base_time = 0.1
                 module_processing = total_entities * 0.002 * complexity_factor
                 complexity_overhead = dogs_count * 0.01 * complexity_factor
-                
+
                 # Complexity affects variance and error rates
                 variance_factor = 1.0 + (complexity_factor - 1.0) * 0.5
                 variance = random.uniform(1.0 / variance_factor, variance_factor)
-                
-                total_time = (base_time + module_processing + complexity_overhead) * variance
-                
+
+                total_time = (
+                    base_time + module_processing + complexity_overhead
+                ) * variance
+
                 # More complex configurations have higher error rates
                 error_probability = 0.01 * complexity_factor
                 error_count = 1 if random.random() < error_probability else 0
-                
+
                 monitor.record_update(total_time, error_count)
-            
+
             stats = monitor.get_stats()
             health = monitor.get_performance_health_score()
-            
-            scenario_results.append({
-                "scenario": scenario["name"],
-                "complexity": complexity_factor,
-                "total_entities": total_entities,
-                "avg_time": stats["average_update_time"],
-                "p95_time": stats["p95"],
-                "error_rate": stats["error_rate"],
-                "health_score": health["overall_score"],
-            })
-        
+
+            scenario_results.append(
+                {
+                    "scenario": scenario["name"],
+                    "complexity": complexity_factor,
+                    "total_entities": total_entities,
+                    "avg_time": stats["average_update_time"],
+                    "p95_time": stats["p95"],
+                    "error_rate": stats["error_rate"],
+                    "health_score": health["overall_score"],
+                }
+            )
+
         # Verify performance scaling with complexity
         for i in range(1, len(scenario_results)):
             current = scenario_results[i]
-            previous = scenario_results[i-1]
-            
+            previous = scenario_results[i - 1]
+
             # More complex scenarios should take longer but remain manageable
             assert current["avg_time"] >= previous["avg_time"]  # Should increase
             assert current["avg_time"] < 20.0  # But stay under 20 seconds
-            
+
             # Health should decrease with complexity but remain acceptable
-            assert current["health_score"] <= previous["health_score"] + 10  # Allow some variance
+            assert (
+                current["health_score"] <= previous["health_score"] + 10
+            )  # Allow some variance
             assert current["health_score"] > 25  # Minimum acceptable health
-        
+
         # Maximum complexity should still be usable
         max_complexity = scenario_results[-1]
         assert max_complexity["avg_time"] < 18.0
@@ -1319,100 +1367,105 @@ class TestIntegrationWithCoordinatorPatterns:
     def test_coordinator_batch_update_simulation(self):
         """Test performance monitoring with coordinator-style batch updates."""
         monitor = PerformanceMonitor(alert_threshold=5.0)
-        
+
         # Simulate realistic coordinator update patterns
         dogs_count = 60
         batch_size = 15  # Process 15 dogs per batch
-        update_interval = 30  # 30 second update intervals
-        
+
         # Simulate one hour of operations (120 update cycles)
         for hour_cycle in range(120):
             # Each cycle processes all dogs in batches
             for batch_start in range(0, dogs_count, batch_size):
                 batch_end = min(batch_start + batch_size, dogs_count)
                 dogs_in_batch = batch_end - batch_start
-                
+
                 # Simulate batch processing time
                 base_time = 0.1  # 100ms base
                 per_dog_time = dogs_in_batch * 0.05  # 50ms per dog
-                entity_processing = dogs_in_batch * 12 * 0.003  # 3ms per entity (12 entities/dog avg)
-                
+                entity_processing = (
+                    dogs_in_batch * 12 * 0.003
+                )  # 3ms per entity (12 entities/dog avg)
+
                 # Add realistic variations
                 if hour_cycle % 20 == 0:  # Every 10 minutes, slower updates
                     maintenance_overhead = random.uniform(1.0, 2.0)
                 else:
                     maintenance_overhead = 0
-                
+
                 # Network and system variations
                 system_factor = random.uniform(0.7, 1.8)
-                
-                batch_time = (base_time + per_dog_time + entity_processing + maintenance_overhead) * system_factor
-                
+
+                batch_time = (
+                    base_time + per_dog_time + entity_processing + maintenance_overhead
+                ) * system_factor
+
                 # Batch error simulation
                 error_count = 0
                 if random.random() < 0.05:  # 5% chance of batch errors
                     error_count = random.randint(1, dogs_in_batch)
-                
+
                 monitor.record_update(batch_time, error_count)
-        
+
         # Analyze coordinator-style performance
         stats = monitor.get_stats()
         health = monitor.get_performance_health_score()
-        trend = monitor.analyze_performance_trend()
-        
+        monitor.analyze_performance_trend()
+
         # Should handle coordinator patterns well
         total_batches = (120 * dogs_count) // batch_size
         expected_updates = min(total_batches, HISTORY_SIZE)
         assert stats["total_updates"] == expected_updates
-        
+
         # Performance should be reasonable for batch processing
         assert stats["average_update_time"] < 8.0  # Under 8 seconds per batch
         assert stats["p95"] < 15.0  # 95th percentile under 15 seconds
-        
+
         # Health should be good for realistic workload
         assert health["overall_score"] > 50
-        
+
         # Error rate should be low
         assert stats["error_rate"] < 10.0
 
     def test_selective_update_performance(self):
         """Test performance with selective entity updates (realistic optimization)."""
         monitor = PerformanceMonitor()
-        
+
         # Simulate selective updates where only changed entities are updated
         dogs_count = 50
         total_entities = dogs_count * 15  # 15 entities per dog
-        
+
         for cycle in range(200):
             # Realistic selective update: only 20-40% of entities change per cycle
             change_rate = random.uniform(0.2, 0.4)
             entities_to_update = int(total_entities * change_rate)
-            
+
             # Calculate update time based on entities that actually need updating
             base_time = 0.05  # 50ms base
             selective_processing = entities_to_update * 0.004  # 4ms per changed entity
             coordination_overhead = dogs_count * 0.002  # 2ms per dog coordination
-            
+
             # Add variance
             variance = random.uniform(0.8, 1.4)
-            update_time = (base_time + selective_processing + coordination_overhead) * variance
-            
+            update_time = (
+                base_time + selective_processing + coordination_overhead
+            ) * variance
+
             # Selective updates should have lower error rates
             error_count = 1 if random.random() < 0.01 else 0  # 1% error rate
-            
+
             monitor.record_update(update_time, error_count)
-        
+
         stats = monitor.get_stats()
         health = monitor.get_performance_health_score()
-        
+
         # Selective updates should be faster than full updates
         assert stats["average_update_time"] < 5.0  # Should be much faster
         assert stats["p95"] < 8.0  # Even 95th percentile should be reasonable
-        
+
         # Should have excellent health with selective updates
         assert health["overall_score"] > 70
         assert health["health_level"] in ["good", "excellent"]
-        
+
         # Very low error rate
         assert stats["error_rate"] < 3.0
 

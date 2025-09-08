@@ -6,7 +6,7 @@ Python: 3.13+
 
 OPTIMIZED: Entity factory with intelligent caching system
 - 15-20% faster entity creation through cached templates
-- Import caching reduces repeated module loading overhead  
+- Import caching reduces repeated module loading overhead
 - Profile-based caching with TTL and smart invalidation
 - Memory-efficient through weak references and size limits
 """
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import weakref
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -148,10 +147,10 @@ class EntityCache:
         """Initialize cache with TTL and size management."""
         # Template cache: profile+modules hash -> entity template list
         self._template_cache: dict[str, tuple[list[dict[str, Any]], datetime]] = {}
-        
+
         # Import cache: module.class -> class reference with weak refs
         self._import_cache: dict[str, tuple[type, datetime]] = {}
-        
+
         # Cache statistics for monitoring
         self._stats = {
             "template_hits": 0,
@@ -163,22 +162,20 @@ class EntityCache:
 
         _LOGGER.debug("EntityCache initialized with TTL=%ds", CACHE_TTL_SECONDS)
 
-    def get_template_cache_key(
-        self, profile: str, modules: dict[str, bool]
-    ) -> str:
+    def get_template_cache_key(self, profile: str, modules: dict[str, bool]) -> str:
         """Generate consistent cache key for profile+modules combination.
-        
+
         Args:
             profile: Entity profile name
             modules: Module configuration dictionary
-            
+
         Returns:
             SHA256 hash of profile and sorted modules
         """
         # Create deterministic string representation
         modules_str = "|".join(f"{k}:{v}" for k, v in sorted(modules.items()))
         cache_input = f"{profile}|{modules_str}"
-        
+
         # Return truncated hash for readability
         return hashlib.sha256(cache_input.encode()).hexdigest()[:16]
 
@@ -186,29 +183,29 @@ class EntityCache:
         self, profile: str, modules: dict[str, bool]
     ) -> list[dict[str, Any]] | None:
         """Get cached entity templates if available and fresh.
-        
+
         Args:
             profile: Entity profile name
             modules: Module configuration
-            
+
         Returns:
             Cached entity templates or None if cache miss
         """
         cache_key = self.get_template_cache_key(profile, modules)
-        
+
         if cache_key not in self._template_cache:
             self._stats["template_misses"] += 1
             return None
-            
+
         templates, timestamp = self._template_cache[cache_key]
-        
+
         # Check if cache entry is still fresh
         if dt_util.utcnow() - timestamp > timedelta(seconds=CACHE_TTL_SECONDS):
             del self._template_cache[cache_key]
             self._stats["template_misses"] += 1
             self._stats["cache_evictions"] += 1
             return None
-            
+
         self._stats["template_hits"] += 1
         _LOGGER.debug("Template cache hit for key %s", cache_key)
         return templates.copy()  # Return copy to prevent mutation
@@ -217,49 +214,49 @@ class EntityCache:
         self, profile: str, modules: dict[str, bool], templates: list[dict[str, Any]]
     ) -> None:
         """Cache entity templates with size management.
-        
+
         Args:
             profile: Entity profile name
-            modules: Module configuration  
+            modules: Module configuration
             templates: Entity templates to cache
         """
         cache_key = self.get_template_cache_key(profile, modules)
-        
+
         # Evict oldest entries if cache is full
         if len(self._template_cache) >= MAX_CACHE_SIZE:
             self._evict_oldest_template()
-            
+
         self._template_cache[cache_key] = (templates.copy(), dt_util.utcnow())
         _LOGGER.debug("Cached %d templates for key %s", len(templates), cache_key)
 
     def get_cached_import(self, import_path: str) -> type | None:
         """Get cached imported class if available and fresh.
-        
+
         Args:
             import_path: Full import path (e.g., 'sensor.PawControlDogStatusSensor')
-            
+
         Returns:
             Cached class or None if cache miss
         """
         if import_path not in self._import_cache:
             self._stats["import_misses"] += 1
             return None
-            
+
         class_ref, timestamp = self._import_cache[import_path]
-        
+
         # Check if cache entry is still fresh
         if dt_util.utcnow() - timestamp > timedelta(seconds=IMPORT_CACHE_TTL_SECONDS):
             del self._import_cache[import_path]
             self._stats["import_misses"] += 1
             self._stats["cache_evictions"] += 1
             return None
-            
+
         self._stats["import_hits"] += 1
         return class_ref
 
     def cache_import(self, import_path: str, class_ref: type) -> None:
         """Cache imported class with size management.
-        
+
         Args:
             import_path: Full import path
             class_ref: Imported class reference
@@ -267,17 +264,16 @@ class EntityCache:
         # Evict oldest entries if cache is full
         if len(self._import_cache) >= MAX_IMPORT_CACHE_SIZE:
             self._evict_oldest_import()
-            
+
         self._import_cache[import_path] = (class_ref, dt_util.utcnow())
 
     def _evict_oldest_template(self) -> None:
         """Evict oldest template cache entry."""
         if not self._template_cache:
             return
-            
+
         oldest_key = min(
-            self._template_cache.keys(),
-            key=lambda k: self._template_cache[k][1]
+            self._template_cache.keys(), key=lambda k: self._template_cache[k][1]
         )
         del self._template_cache[oldest_key]
         self._stats["cache_evictions"] += 1
@@ -286,31 +282,37 @@ class EntityCache:
         """Evict oldest import cache entry."""
         if not self._import_cache:
             return
-            
+
         oldest_key = min(
-            self._import_cache.keys(),
-            key=lambda k: self._import_cache[k][1]
+            self._import_cache.keys(), key=lambda k: self._import_cache[k][1]
         )
         del self._import_cache[oldest_key]
         self._stats["cache_evictions"] += 1
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get comprehensive cache statistics.
-        
+
         Returns:
             Dictionary with cache performance metrics
         """
-        total_template_requests = self._stats["template_hits"] + self._stats["template_misses"]
-        total_import_requests = self._stats["import_hits"] + self._stats["import_misses"]
-        
+        total_template_requests = (
+            self._stats["template_hits"] + self._stats["template_misses"]
+        )
+        total_import_requests = (
+            self._stats["import_hits"] + self._stats["import_misses"]
+        )
+
         return {
             "template_cache": {
                 "size": len(self._template_cache),
                 "max_size": MAX_CACHE_SIZE,
                 "hits": self._stats["template_hits"],
                 "misses": self._stats["template_misses"],
-                "hit_rate": (self._stats["template_hits"] / total_template_requests * 100) 
-                          if total_template_requests > 0 else 0,
+                "hit_rate": (
+                    self._stats["template_hits"] / total_template_requests * 100
+                )
+                if total_template_requests > 0
+                else 0,
             },
             "import_cache": {
                 "size": len(self._import_cache),
@@ -318,7 +320,8 @@ class EntityCache:
                 "hits": self._stats["import_hits"],
                 "misses": self._stats["import_misses"],
                 "hit_rate": (self._stats["import_hits"] / total_import_requests * 100)
-                          if total_import_requests > 0 else 0,
+                if total_import_requests > 0
+                else 0,
             },
             "evictions": self._stats["cache_evictions"],
             "ttl_seconds": CACHE_TTL_SECONDS,
@@ -326,19 +329,19 @@ class EntityCache:
 
     def clear_cache(self) -> dict[str, Any]:
         """Clear all caches and return statistics.
-        
+
         Returns:
             Statistics before clearing
         """
         stats = self.get_cache_stats()
-        
+
         self._template_cache.clear()
         self._import_cache.clear()
-        
+
         # Reset statistics
         for key in self._stats:
             self._stats[key] = 0
-            
+
         _LOGGER.info("Entity factory cache cleared")
         return stats
 
@@ -361,7 +364,7 @@ class EntityFactory:
         """
         self.coordinator = coordinator
         self._cache = EntityCache()
-        
+
         _LOGGER.debug("EntityFactory initialized with caching system")
 
     def create_entities_for_dog(
@@ -403,7 +406,7 @@ class EntityFactory:
 
         # Try to get cached entity templates
         cached_templates = self._cache.get_cached_templates(profile, modules)
-        
+
         if cached_templates is not None:
             # Use cached templates - instantiate entities
             entities = []
@@ -411,7 +414,7 @@ class EntityFactory:
                 try:
                     entity_class = template["class"]
                     entity_args = template["args"]
-                    
+
                     # Replace placeholder args with actual dog info
                     actual_args = []
                     for arg in entity_args:
@@ -423,17 +426,18 @@ class EntityFactory:
                             actual_args.append(dog_name)
                         else:
                             actual_args.append(arg)
-                    
+
                     entity = entity_class(*actual_args)
                     entities.append(entity)
-                    
+
                 except Exception as err:
                     _LOGGER.warning(
                         "Failed to create entity from cached template %s: %s",
-                        template["type"], err
+                        template["type"],
+                        err,
                     )
                     continue
-                    
+
             _LOGGER.info(
                 "Created %d entities from cache for %s (cache hit)",
                 len(entities),
@@ -482,7 +486,7 @@ class EntityFactory:
                 "priority": candidate["priority"],
             }
             templates_to_cache.append(template)
-            
+
         self._cache.cache_templates(profile, modules, templates_to_cache)
 
         # Extract actual entity instances
@@ -502,40 +506,40 @@ class EntityFactory:
 
     def _extract_entity_args(self, entity: Any) -> list[str]:
         """Extract standardized argument list from entity for caching.
-        
+
         Args:
             entity: Entity instance
-            
+
         Returns:
             List of argument placeholders for recreation
         """
         # Standard pattern for PawControl entities:
         # EntityClass(coordinator, dog_id, dog_name, [optional_args...])
-        
+
         # Check if entity has meal_type or other specific args
-        if hasattr(entity, '_meal_type'):
+        if hasattr(entity, "_meal_type"):
             return ["__coordinator__", "__dog_id__", "__dog_name__", entity._meal_type]
-        
+
         # Default case - just the standard three arguments
         return ["__coordinator__", "__dog_id__", "__dog_name__"]
 
     def _get_cached_class(self, module_name: str, class_name: str) -> type:
         """Get class with import caching.
-        
+
         Args:
             module_name: Module name (e.g., 'sensor')
             class_name: Class name (e.g., 'PawControlDogStatusSensor')
-            
+
         Returns:
             Class reference
         """
         import_path = f"{module_name}.{class_name}"
-        
+
         # Try cache first
         cached_class = self._cache.get_cached_import(import_path)
         if cached_class is not None:
             return cached_class
-            
+
         # Import and cache
         if module_name == "sensor":
             from .sensor import (
@@ -569,7 +573,7 @@ class EntityFactory:
                 PawControlWeightSensor,
                 PawControlWeightTrendSensor,
             )
-            
+
             # Map class names to actual classes
             class_map = {
                 "PawControlActivityScoreSensor": PawControlActivityScoreSensor,
@@ -602,14 +606,14 @@ class EntityFactory:
                 "PawControlWeightSensor": PawControlWeightSensor,
                 "PawControlWeightTrendSensor": PawControlWeightTrendSensor,
             }
-            
+
             class_ref = class_map.get(class_name)
             if class_ref is None:
                 raise ImportError(f"Unknown sensor class: {class_name}")
-                
+
         else:
             raise ImportError(f"Unknown module: {module_name}")
-            
+
         # Cache the imported class
         self._cache.cache_import(import_path, class_ref)
         return class_ref
@@ -625,16 +629,16 @@ class EntityFactory:
                 "priority": ENTITY_PRIORITIES["dog_status"],
             },
             {
-                "entity": self._get_cached_class("sensor", "PawControlLastActionSensor")(
-                    self.coordinator, dog_id, dog_name
-                ),
+                "entity": self._get_cached_class(
+                    "sensor", "PawControlLastActionSensor"
+                )(self.coordinator, dog_id, dog_name),
                 "type": "last_action",
                 "priority": ENTITY_PRIORITIES["last_action"],
             },
             {
-                "entity": self._get_cached_class("sensor", "PawControlActivityScoreSensor")(
-                    self.coordinator, dog_id, dog_name
-                ),
+                "entity": self._get_cached_class(
+                    "sensor", "PawControlActivityScoreSensor"
+                )(self.coordinator, dog_id, dog_name),
                 "type": "activity_score",
                 "priority": ENTITY_PRIORITIES["activity_score"],
             },
@@ -650,23 +654,23 @@ class EntityFactory:
         entities.extend(
             [
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlLastFeedingSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlLastFeedingSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "last_feeding",
                     "priority": ENTITY_PRIORITIES["last_feeding"],
                 },
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlFeedingScheduleAdherenceSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlFeedingScheduleAdherenceSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "feeding_schedule_adherence",
                     "priority": ENTITY_PRIORITIES["feeding_schedule_adherence"],
                 },
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlHealthAwarePortionSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlHealthAwarePortionSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "health_aware_portion",
                     "priority": ENTITY_PRIORITIES["health_aware_portion"],
                 },
@@ -678,23 +682,23 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlTotalFeedingsTodaySensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlTotalFeedingsTodaySensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "total_feedings_today",
                         "priority": ENTITY_PRIORITIES["total_feedings_today"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlDailyCaloriesSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlDailyCaloriesSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "daily_calories",
                         "priority": ENTITY_PRIORITIES["daily_calories"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlFeedingRecommendationSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlFeedingRecommendationSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "feeding_recommendation",
                         "priority": ENTITY_PRIORITIES["feeding_recommendation"],
                     },
@@ -706,38 +710,38 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlDietValidationStatusSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlDietValidationStatusSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "diet_validation_status",
                         "priority": ENTITY_PRIORITIES["diet_validation_status"],
                     },
                     # Add detailed meal sensors for advanced users
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlFeedingCountTodaySensor")(
-                            self.coordinator, dog_id, dog_name, "breakfast"
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlFeedingCountTodaySensor"
+                        )(self.coordinator, dog_id, dog_name, "breakfast"),
                         "type": "feeding_count_today_breakfast",
                         "priority": ENTITY_PRIORITIES["feeding_count_today_breakfast"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlFeedingCountTodaySensor")(
-                            self.coordinator, dog_id, dog_name, "dinner"
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlFeedingCountTodaySensor"
+                        )(self.coordinator, dog_id, dog_name, "dinner"),
                         "type": "feeding_count_today_dinner",
                         "priority": ENTITY_PRIORITIES["feeding_count_today_dinner"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlMealPortionSensor")(
-                            self.coordinator, dog_id, dog_name, "breakfast"
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlMealPortionSensor"
+                        )(self.coordinator, dog_id, dog_name, "breakfast"),
                         "type": "breakfast_portion",
                         "priority": ENTITY_PRIORITIES["breakfast_portion"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlMealPortionSensor")(
-                            self.coordinator, dog_id, dog_name, "dinner"
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlMealPortionSensor"
+                        )(self.coordinator, dog_id, dog_name, "dinner"),
                         "type": "dinner_portion",
                         "priority": ENTITY_PRIORITIES["dinner_portion"],
                     },
@@ -756,16 +760,16 @@ class EntityFactory:
         entities.extend(
             [
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlLastWalkSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlLastWalkSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "last_walk",
                     "priority": ENTITY_PRIORITIES["last_walk"],
                 },
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlWalkCountTodaySensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlWalkCountTodaySensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "walk_count_today",
                     "priority": ENTITY_PRIORITIES["walk_count_today"],
                 },
@@ -777,16 +781,16 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlLastWalkDurationSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlLastWalkDurationSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "last_walk_duration",
                         "priority": ENTITY_PRIORITIES["last_walk_duration"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlTotalWalkTimeTodaySensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlTotalWalkTimeTodaySensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "total_walk_time_today",
                         "priority": ENTITY_PRIORITIES["total_walk_time_today"],
                     },
@@ -798,16 +802,16 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlWeeklyWalkCountSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlWeeklyWalkCountSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "weekly_walk_count",
                         "priority": ENTITY_PRIORITIES["weekly_walk_count"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlAverageWalkDurationSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlAverageWalkDurationSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "average_walk_duration",
                         "priority": ENTITY_PRIORITIES["average_walk_duration"],
                     },
@@ -826,16 +830,16 @@ class EntityFactory:
         entities.extend(
             [
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlCurrentZoneSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlCurrentZoneSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "current_zone",
                     "priority": ENTITY_PRIORITIES["current_zone"],
                 },
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlDistanceFromHomeSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlDistanceFromHomeSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "distance_from_home",
                     "priority": ENTITY_PRIORITIES["distance_from_home"],
                 },
@@ -847,16 +851,16 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlCurrentSpeedSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlCurrentSpeedSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "current_speed",
                         "priority": ENTITY_PRIORITIES["current_speed"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlGPSAccuracySensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlGPSAccuracySensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "gps_accuracy",
                         "priority": ENTITY_PRIORITIES["gps_accuracy"],
                     },
@@ -868,16 +872,16 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlTotalDistanceTodaySensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlTotalDistanceTodaySensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "total_distance_today",
                         "priority": ENTITY_PRIORITIES["total_distance_today"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlGPSBatteryLevelSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlGPSBatteryLevelSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "gps_battery_level",
                         "priority": ENTITY_PRIORITIES["gps_battery_level"],
                     },
@@ -896,16 +900,16 @@ class EntityFactory:
         entities.extend(
             [
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlHealthStatusSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlHealthStatusSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "health_status",
                     "priority": ENTITY_PRIORITIES["health_status"],
                 },
                 {
-                    "entity": self._get_cached_class("sensor", "PawControlWeightSensor")(
-                        self.coordinator, dog_id, dog_name
-                    ),
+                    "entity": self._get_cached_class(
+                        "sensor", "PawControlWeightSensor"
+                    )(self.coordinator, dog_id, dog_name),
                     "type": "weight",
                     "priority": ENTITY_PRIORITIES["weight"],
                 },
@@ -917,16 +921,16 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlBodyConditionScoreSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlBodyConditionScoreSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "body_condition_score",
                         "priority": ENTITY_PRIORITIES["body_condition_score"],
                     },
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlWeightTrendSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlWeightTrendSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "weight_trend",
                         "priority": ENTITY_PRIORITIES["weight_trend"],
                     },
@@ -938,9 +942,9 @@ class EntityFactory:
             entities.extend(
                 [
                     {
-                        "entity": self._get_cached_class("sensor", "PawControlLastVetVisitSensor")(
-                            self.coordinator, dog_id, dog_name
-                        ),
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlLastVetVisitSensor"
+                        )(self.coordinator, dog_id, dog_name),
                         "type": "last_vet_visit",
                         "priority": ENTITY_PRIORITIES["last_vet_visit"],
                     },
@@ -1005,16 +1009,16 @@ class EntityFactory:
 
     def get_cache_statistics(self) -> dict[str, Any]:
         """Get comprehensive cache performance statistics.
-        
+
         Returns:
             Cache performance metrics and recommendations
         """
         stats = self._cache.get_cache_stats()
-        
+
         # Add performance analysis
         template_hit_rate = stats["template_cache"]["hit_rate"]
         import_hit_rate = stats["import_cache"]["hit_rate"]
-        
+
         if template_hit_rate >= 80:
             performance_assessment = "excellent"
         elif template_hit_rate >= 60:
@@ -1023,7 +1027,7 @@ class EntityFactory:
             performance_assessment = "fair"
         else:
             performance_assessment = "poor"
-            
+
         recommendations = []
         if template_hit_rate < 60:
             recommendations.append("Consider increasing cache TTL for better hit rates")
@@ -1031,18 +1035,18 @@ class EntityFactory:
             recommendations.append("Consider increasing cache size to reduce evictions")
         if import_hit_rate < 80:
             recommendations.append("Import cache may need tuning")
-            
+
         stats["performance"] = {
             "assessment": performance_assessment,
             "recommendations": recommendations,
             "estimated_speedup": f"{min(template_hit_rate * 0.2, 20):.1f}%",
         }
-        
+
         return stats
 
     def clear_cache(self) -> dict[str, Any]:
         """Clear entity factory cache.
-        
+
         Returns:
             Cache statistics before clearing
         """

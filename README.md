@@ -11,16 +11,16 @@
 
 ## ✨ Key Features
 
-🔧 **Easy Setup** - Complete UI-based configuration with modular feature selection  
-🍽️ **Smart Feeding** - Automated meal tracking with portion control and health-aware reminders  
-🗺️ **Advanced GPS Tracking** - Real-time location monitoring with geofencing and route recording  
-🏥 **Health Monitoring** - Weight tracking, medication reminders, and veterinary appointment management  
-📱 **Mobile Integration** - Actionable notifications with iOS/Android support and widget compatibility  
-🏠 **Smart Home Integration** - Door sensor integration, weather-aware automations, and device ecosystem  
-📊 **Auto-Generated Dashboards** - Beautiful, responsive UI with detailed analytics and mobile optimization  
-🔔 **Intelligent Notifications** - Context-aware alerts with emergency protocols and quiet hours  
-🤖 **Advanced Automations** - Learning algorithms, predictive alerts, and emergency detection  
-⚡ **Enterprise Performance** - Multi-tier caching, batch processing, and real-time monitoring  
+🔧 **Easy Setup** - Complete UI-based configuration with modular feature selection
+🍽️ **Smart Feeding** - Automated meal tracking with portion control and health-aware reminders
+🗺️ **Advanced GPS Tracking** - Real-time location monitoring with geofencing and route recording
+🏥 **Health Monitoring** - Weight tracking, medication reminders, and veterinary appointment management
+📱 **Mobile Integration** - Actionable notifications with iOS/Android support and widget compatibility
+🏠 **Smart Home Integration** - Door sensor integration, weather-aware automations, and device ecosystem
+📊 **Auto-Generated Dashboards** - Beautiful, responsive UI with detailed analytics and mobile optimization
+🔔 **Intelligent Notifications** - Context-aware alerts with emergency protocols and quiet hours
+🤖 **Advanced Automations** - Learning algorithms, predictive alerts, and emergency detection
+⚡ **Enterprise Performance** - Multi-tier caching, batch processing, and real-time monitoring
 
 ## 🚀 Installation & Setup
 
@@ -34,7 +34,7 @@
 
 **Recommended for Production:**
 - Home Assistant OS/Supervised
-- 1GB+ available RAM  
+- 1GB+ available RAM
 - 500MB+ free storage
 - SSD storage for optimal performance
 
@@ -44,7 +44,7 @@
    ```bash
    # Verify HACS is installed
    ls /config/custom_components/hacs/
-   
+
    # Check Home Assistant version
    # Settings → System → General → Version (must be 2025.9.1+)
    ```
@@ -65,7 +65,7 @@
    ```bash
    # Check installation
    ls /config/custom_components/pawcontrol/
-   
+
    # Should show: __init__.py, manifest.json, and platform files
    ```
 
@@ -75,14 +75,14 @@
    ```bash
    # Navigate to custom_components directory
    cd /config/custom_components/
-   
+
    # Clone repository
    git clone https://github.com/BigDaddy1990/pawcontrol.git temp_pawcontrol
-   
+
    # Move integration files
    mv temp_pawcontrol/custom_components/pawcontrol ./
    rm -rf temp_pawcontrol
-   
+
    # Set permissions (if needed)
    chmod -R 644 pawcontrol/
    chmod 755 pawcontrol/
@@ -116,7 +116,7 @@
 ```yaml
 # Required fields:
 Dog Name: \"Buddy\"
-Dog Breed: \"Golden Retriever\"  
+Dog Breed: \"Golden Retriever\"
 Dog Age: 3 (years)
 Dog Weight: 25.5 (kg)
 Dog Size: \"medium\"  # toy, small, medium, large, giant
@@ -124,7 +124,7 @@ Dog Size: \"medium\"  # toy, small, medium, large, giant
 
 **Module Selection** (choose features you want):
 - ✅ **Feeding Management** - Meal schedules and portion tracking
-- ✅ **Walk Tracking** - GPS monitoring and route recording  
+- ✅ **Walk Tracking** - GPS monitoring and route recording
 - ✅ **Health Monitoring** - Weight tracking and medical records
 - ✅ **GPS Tracking** - Real-time location and geofencing
 - ✅ **Notifications** - Smart alerts and reminders
@@ -137,7 +137,7 @@ Dog Size: \"medium\"  # toy, small, medium, large, giant
 
 **GPS Source Options**:
 - **Device Tracker**: Use existing HA device tracker
-- **Person Entity**: Link to person location  
+- **Person Entity**: Link to person location
 - **Mobile App**: Use HA mobile app GPS
 - **Manual**: Manual location updates
 - **Tractive**: Direct Tractive GPS integration
@@ -145,7 +145,7 @@ Dog Size: \"medium\"  # toy, small, medium, large, giant
 **GPS Settings**:
 ```yaml
 Update Interval: 60 seconds (15-3600)
-Accuracy Filter: 50 meters (1-1000)  
+Accuracy Filter: 50 meters (1-1000)
 Distance Filter: 10 meters (1-100)
 Home Zone Radius: 100 meters (10-1000)
 Auto Walk Detection: ✅ Enabled
@@ -159,10 +159,10 @@ Add custom zones for enhanced monitoring:
 Safe Zones:
   - Name: \"Dog Park\"
     Latitude: 52.520008
-    Longitude: 13.404954  
+    Longitude: 13.404954
     Radius: 50 meters
     Type: \"safe_zone\"
-    
+
 Restricted Areas:
   - Name: \"Busy Street\"
     Latitude: 52.521008
@@ -184,7 +184,7 @@ Emergency Override: ✅ Enabled
 
 **Notification Types**:
 - 🍽️ **Feeding Reminders**: Meal time alerts with quick actions
-- 🚪 **Walk Reminders**: \"Time for a walk?\" notifications  
+- 🚪 **Walk Reminders**: \"Time for a walk?\" notifications
 - 📍 **GPS Alerts**: Geofence entry/exit notifications
 - 🏥 **Health Alerts**: Medication reminders and weight changes
 - 🚨 **Emergency Notifications**: Urgent health or safety alerts
@@ -200,21 +200,21 @@ Emergency Override: ✅ Enabled
    ```yaml
    Sensors (10+):
      - sensor.buddy_last_feeding
-     - sensor.buddy_walk_distance_today  
+     - sensor.buddy_walk_distance_today
      - sensor.buddy_weight
      - sensor.buddy_gps_accuracy
-     
+
    Binary Sensors (8+):
      - binary_sensor.buddy_walk_in_progress
      - binary_sensor.buddy_is_home
      - binary_sensor.buddy_needs_walk
      - binary_sensor.buddy_is_hungry
-     
+
    Buttons (5+):
      - button.buddy_start_walk
      - button.buddy_mark_fed
      - button.buddy_log_health
-     
+
    Device Tracker:
      - device_tracker.buddy_gps
    ```
@@ -230,7 +230,7 @@ Emergency Override: ✅ Enabled
 
 **Adding Additional Dogs**:
 1. Settings → Devices & Services → PawControl
-2. Click **Configure** 
+2. Click **Configure**
 3. **Add New Dog** → Follow setup wizard
 4. Configure modules independently per dog
 
@@ -241,8 +241,8 @@ Buddy:
   modules: [feeding, walk, health, gps, notifications, dashboard]
   gps_source: \"device_tracker\"
   feeding_schedule: \"flexible\"
-  
-# Dog 2: Basic monitoring  
+
+# Dog 2: Basic monitoring
 Luna:
   modules: [feeding, notifications]
   gps_source: \"manual\"
@@ -253,7 +253,7 @@ Luna:
 
 **Entity Profile Selection**:
 - **Minimal**: ~15 entities per dog (basic functionality)
-- **Standard**: ~35 entities per dog (recommended)  
+- **Standard**: ~35 entities per dog (recommended)
 - **Comprehensive**: ~55 entities per dog (full features)
 
 **Performance Mode**:
@@ -300,7 +300,7 @@ sensor.{dog_id}_walk_duration_current       # Current walk duration
 sensor.{dog_id}_current_speed              # Current speed (km/h)
 sensor.{dog_id}_distance_from_home         # Distance from home zone
 
-# Health & Activity Sensors  
+# Health & Activity Sensors
 sensor.{dog_id}_weight                     # Current weight
 sensor.{dog_id}_activity_level             # Activity level (1-10)
 sensor.{dog_id}_calories_burned_today      # Estimated calories burned
@@ -343,7 +343,7 @@ device_tracker.{dog_id}_gps:
 ```yaml
 # Buttons (8+ per dog)
 button.{dog_id}_start_walk        # Start GPS tracking
-button.{dog_id}_end_walk          # End walk session  
+button.{dog_id}_end_walk          # End walk session
 button.{dog_id}_mark_fed          # Quick feeding log
 button.{dog_id}_log_medication    # Log medication
 button.{dog_id}_emergency_alert   # Send emergency notification
@@ -370,7 +370,7 @@ PawControl automatically creates beautiful, responsive dashboards optimized for 
 
 ### Dashboard Features
 - **📈 Status Overview**: Real-time health, feeding, and activity status
-- **🗺️ Interactive GPS Map**: Live location with route history and geofences  
+- **🗺️ Interactive GPS Map**: Live location with route history and geofences
 - **📊 Analytics Charts**: Daily, weekly, monthly statistics with trends
 - **🎯 Quick Action Buttons**: One-tap feeding, walks, health logging
 - **⚠️ Alert Panel**: Important notifications and overdue reminders
@@ -382,7 +382,7 @@ PawControl automatically creates beautiful, responsive dashboards optimized for 
 ```yaml
 # Current status overview
 Walk Status: ✅ At home | 🚶 Walking | ⏰ Walk overdue
-Feeding Status: ✅ Fed 2h ago | ⏰ Meal time | 🍽️ Overdue  
+Feeding Status: ✅ Fed 2h ago | ⏰ Meal time | 🍽️ Overdue
 Health Status: ✅ Good | ⚠️ Weight change | 🏥 Vet due
 GPS Status: ✅ Accurate (5m) | ⚠️ Low accuracy | ❌ No signal
 ```
@@ -390,7 +390,7 @@ GPS Status: ✅ Accurate (5m) | ⚠️ Low accuracy | ❌ No signal
 **Interactive Charts**:
 ```yaml
 Activity Chart: Daily walk distance and duration trends
-Health Chart: Weight progression with target range  
+Health Chart: Weight progression with target range
 Feeding Chart: Daily consumption vs. target amounts
 GPS Chart: Location history with time-based heatmap
 ```
@@ -473,7 +473,7 @@ data:
   label: \"Morning park walk\"
   route_recording: true
 
-# End walk tracking  
+# End walk tracking
 service: pawcontrol.gps_end_walk
 data:
   dog_id: \"buddy\"
@@ -908,7 +908,7 @@ pytest tests/test_performance_*.py -v
 # Example: Adding new GPS device support
 class NewGPSDevicePlugin(PawControlPlugin):
     \"\"\"Plugin for New GPS Device integration.\"\"\"
-    
+
     async def async_setup(self) -> bool:
         \"\"\"Set up new GPS device integration.\"\"\"
         # Implementation with full error handling

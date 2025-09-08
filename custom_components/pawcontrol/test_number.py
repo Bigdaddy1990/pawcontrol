@@ -7,22 +7,9 @@ value validation, and device grouping for Gold Standard compliance.
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
     CONF_DOG_ID,
@@ -43,10 +30,10 @@ from custom_components.pawcontrol.number import (
     PawControlDogAgeNumber,
     PawControlDogWeightNumber,
     PawControlFeedingReminderHoursNumber,
+    PawControlGeofenceRadiusNumber,
     PawControlGPSAccuracyThresholdNumber,
     PawControlGPSBatteryThresholdNumber,
     PawControlGPSUpdateIntervalNumber,
-    PawControlGeofenceRadiusNumber,
     PawControlGroomingIntervalNumber,
     PawControlHealthScoreThresholdNumber,
     PawControlLocationUpdateDistanceNumber,
@@ -62,6 +49,15 @@ from custom_components.pawcontrol.number import (
     PawControlWeightChangeThresholdNumber,
     async_setup_entry,
 )
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfLength,
+    UnitOfMass,
+    UnitOfSpeed,
+    UnitOfTime,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 
 class TestNumberPlatformSetup:
@@ -104,7 +100,7 @@ class TestNumberPlatformSetup:
                 },
                 {
                     CONF_DOG_ID: "test_dog_2",
-                    CONF_DOG_NAME: "Test Dog 2", 
+                    CONF_DOG_NAME: "Test Dog 2",
                     CONF_DOG_WEIGHT: 35.0,
                     CONF_DOG_AGE: 7,
                     "modules": {
@@ -130,7 +126,7 @@ class TestNumberPlatformSetup:
         }
 
         entities_added = []
-        
+
         def mock_add_entities(entities, update_before_add=True):
             entities_added.extend(entities)
 
@@ -148,7 +144,7 @@ class TestNumberPlatformSetup:
 
         # Verify expected entity counts
         # Dog 1: all modules enabled = 3 base + 5 feeding + 5 walk + 5 gps + 5 health = 23
-        # Dog 2: feeding + health only = 3 base + 5 feeding + 5 health = 13  
+        # Dog 2: feeding + health only = 3 base + 5 feeding + 5 health = 13
         # Total: 36 entities
         expected_total = 36
         assert len(entities_added) == expected_total
@@ -186,7 +182,7 @@ class TestNumberPlatformSetup:
         }
 
         entities_added = []
-        
+
         def mock_add_entities(entities, update_before_add=True):
             entities_added.extend(entities)
 
@@ -206,7 +202,7 @@ class TestNumberPlatformSetup:
         }
 
         add_calls = []
-        
+
         def mock_add_entities(entities, update_before_add=True):
             add_calls.append((len(entities), update_before_add))
 
@@ -215,7 +211,7 @@ class TestNumberPlatformSetup:
 
         # Verify batching occurred
         assert len(add_calls) > 1  # Should be multiple batches
-        
+
         # Verify batch sizes are reasonable (≤12 entities per batch)
         for batch_size, update_flag in add_calls:
             assert batch_size <= 12
@@ -320,7 +316,7 @@ class TestPawControlNumberBase:
         # Mock restore state
         mock_state = MagicMock()
         mock_state.state = "75.5"
-        
+
         with patch.object(base_number, "async_get_last_state", return_value=mock_state):
             await base_number.async_added_to_hass()
 
@@ -328,12 +324,14 @@ class TestPawControlNumberBase:
         assert base_number._value == 75.5
 
     @pytest.mark.asyncio
-    async def test_base_number_async_added_to_hass_invalid_state(self, hass, base_number):
+    async def test_base_number_async_added_to_hass_invalid_state(
+        self, hass, base_number
+    ):
         """Test async_added_to_hass with invalid state."""
         # Mock restore state with invalid value
         mock_state = MagicMock()
         mock_state.state = "invalid"
-        
+
         with patch.object(base_number, "async_get_last_state", return_value=mock_state):
             await base_number.async_added_to_hass()
 
@@ -370,9 +368,7 @@ class TestDogWeightNumber:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 25.0}
-        }
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
         coordinator.get_module_data.return_value = {
             "weight_trend": "increasing",
             "weight_change_percent": 5.2,
@@ -434,7 +430,7 @@ class TestDogAgeNumber:
         coordinator = MagicMock()
         coordinator.available = True
         coordinator.get_dog_data.return_value = {"profile": {CONF_DOG_AGE: 5}}
-        
+
         # Mock config entry with runtime_data
         config_entry = MagicMock()
         config_entry.runtime_data = {
@@ -442,7 +438,7 @@ class TestDogAgeNumber:
         }
         config_entry.runtime_data["data_manager"].async_update_dog_data = AsyncMock()
         coordinator.config_entry = config_entry
-        
+
         return coordinator
 
     @pytest.fixture
@@ -465,23 +461,25 @@ class TestDogAgeNumber:
     async def test_age_number_set_value(self, age_number, mock_coordinator):
         """Test setting age value."""
         data_manager = mock_coordinator.config_entry.runtime_data["data_manager"]
-        
+
         with patch.object(age_number, "async_write_ha_state"):
             await age_number.async_set_native_value(6.0)
 
         assert age_number.native_value == 6.0
-        
+
         # Verify data manager was called to persist the change
         data_manager.async_update_dog_data.assert_called_once_with(
             "test_dog", {"profile": {CONF_DOG_AGE: 6}}
         )
 
     @pytest.mark.asyncio
-    async def test_age_number_set_value_no_data_manager(self, age_number, mock_coordinator):
+    async def test_age_number_set_value_no_data_manager(
+        self, age_number, mock_coordinator
+    ):
         """Test setting age value when data manager is not available."""
         # Remove data manager
         mock_coordinator.config_entry.runtime_data = None
-        
+
         with patch.object(age_number, "async_write_ha_state"):
             await age_number.async_set_native_value(7.0)
 
@@ -498,7 +496,7 @@ class TestActivityGoalNumber:
         coordinator = MagicMock()
         coordinator.available = True
         coordinator.get_dog_data.return_value = {"dog_info": {}}
-        
+
         return PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
 
     def test_activity_goal_initialization(self, activity_goal_number):
@@ -519,9 +517,7 @@ class TestFeedingNumbers:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 20.0}
-        }
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 20.0}}
         return coordinator
 
     def test_daily_food_amount_number(self, mock_coordinator):
@@ -529,7 +525,7 @@ class TestFeedingNumbers:
         number = PawControlDailyFoodAmountNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "daily_food_amount"
         assert number.native_unit_of_measurement == "g"
         assert number.native_value == 300
@@ -547,7 +543,7 @@ class TestFeedingNumbers:
         number = PawControlFeedingReminderHoursNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "feeding_reminder_hours"
         assert number.native_unit_of_measurement == UnitOfTime.HOURS
         assert number.native_value == 8  # DEFAULT_FEEDING_REMINDER_HOURS
@@ -555,10 +551,8 @@ class TestFeedingNumbers:
 
     def test_meals_per_day_number(self, mock_coordinator):
         """Test meals per day number entity."""
-        number = PawControlMealsPerDayNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-        
+        number = PawControlMealsPerDayNumber(mock_coordinator, "test_dog", "Test Dog")
+
         assert number._number_type == "meals_per_day"
         assert number.native_value == 2
         assert number.icon == "mdi:numeric"
@@ -567,10 +561,8 @@ class TestFeedingNumbers:
 
     def test_portion_size_number(self, mock_coordinator):
         """Test portion size number entity."""
-        number = PawControlPortionSizeNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-        
+        number = PawControlPortionSizeNumber(mock_coordinator, "test_dog", "Test Dog")
+
         assert number._number_type == "portion_size"
         assert number.native_unit_of_measurement == "g"
         assert number.native_value == 150
@@ -578,10 +570,8 @@ class TestFeedingNumbers:
 
     def test_calorie_target_number(self, mock_coordinator):
         """Test calorie target number entity."""
-        number = PawControlCalorieTargetNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-        
+        number = PawControlCalorieTargetNumber(mock_coordinator, "test_dog", "Test Dog")
+
         assert number._number_type == "calorie_target"
         assert number.native_unit_of_measurement == "kcal"
         assert number.native_value == 800
@@ -604,7 +594,7 @@ class TestWalkNumbers:
         number = PawControlDailyWalkTargetNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "daily_walk_target"
         assert number.native_value == 3
         assert number.icon == "mdi:walk"
@@ -616,7 +606,7 @@ class TestWalkNumbers:
         number = PawControlWalkDurationTargetNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "walk_duration_target"
         assert number.native_unit_of_measurement == UnitOfTime.MINUTES
         assert number.native_value == 60  # DEFAULT_WALK_DURATION_TARGET
@@ -627,7 +617,7 @@ class TestWalkNumbers:
         number = PawControlWalkDistanceTargetNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "walk_distance_target"
         assert number.native_unit_of_measurement == UnitOfLength.METERS
         assert number.native_value == 2000
@@ -638,7 +628,7 @@ class TestWalkNumbers:
         number = PawControlWalkReminderHoursNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "walk_reminder_hours"
         assert number.native_unit_of_measurement == UnitOfTime.HOURS
         assert number.native_value == 8
@@ -646,10 +636,8 @@ class TestWalkNumbers:
 
     def test_max_walk_speed_number(self, mock_coordinator):
         """Test max walk speed number entity."""
-        number = PawControlMaxWalkSpeedNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-        
+        number = PawControlMaxWalkSpeedNumber(mock_coordinator, "test_dog", "Test Dog")
+
         assert number._number_type == "max_walk_speed"
         assert number.native_unit_of_measurement == UnitOfSpeed.KILOMETERS_PER_HOUR
         assert number.native_value == 15
@@ -672,7 +660,7 @@ class TestGPSNumbers:
         number = PawControlGPSAccuracyThresholdNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "gps_accuracy_threshold"
         assert number.native_unit_of_measurement == UnitOfLength.METERS
         assert number.native_value == 50  # DEFAULT_GPS_ACCURACY_THRESHOLD
@@ -684,7 +672,7 @@ class TestGPSNumbers:
         number = PawControlGPSUpdateIntervalNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "gps_update_interval"
         assert number.native_unit_of_measurement == UnitOfTime.SECONDS
         assert number.native_value == 60
@@ -695,7 +683,7 @@ class TestGPSNumbers:
         number = PawControlGeofenceRadiusNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "geofence_radius"
         assert number.native_unit_of_measurement == UnitOfLength.METERS
         assert number.native_value == 100
@@ -706,7 +694,7 @@ class TestGPSNumbers:
         number = PawControlLocationUpdateDistanceNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "location_update_distance"
         assert number.native_unit_of_measurement == UnitOfLength.METERS
         assert number.native_value == 10
@@ -717,7 +705,7 @@ class TestGPSNumbers:
         number = PawControlGPSBatteryThresholdNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "gps_battery_threshold"
         assert number.native_unit_of_measurement == PERCENTAGE
         assert number.native_value == 20
@@ -737,10 +725,8 @@ class TestHealthNumbers:
 
     def test_target_weight_number(self, mock_coordinator):
         """Test target weight number entity."""
-        number = PawControlTargetWeightNumber(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-        
+        number = PawControlTargetWeightNumber(mock_coordinator, "test_dog", "Test Dog")
+
         assert number._number_type == "target_weight"
         assert number.device_class.value == "weight"
         assert number.native_unit_of_measurement == UnitOfMass.KILOGRAMS
@@ -752,7 +738,7 @@ class TestHealthNumbers:
         number = PawControlWeightChangeThresholdNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "weight_change_threshold"
         assert number.native_unit_of_measurement == PERCENTAGE
         assert number.native_value == 10
@@ -763,7 +749,7 @@ class TestHealthNumbers:
         number = PawControlGroomingIntervalNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "grooming_interval"
         assert number.native_unit_of_measurement == UnitOfTime.DAYS
         assert number.native_value == 28
@@ -774,7 +760,7 @@ class TestHealthNumbers:
         number = PawControlVetCheckupIntervalNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "vet_checkup_interval"
         assert number.native_unit_of_measurement == "months"
         assert number.native_value == 12
@@ -785,7 +771,7 @@ class TestHealthNumbers:
         number = PawControlHealthScoreThresholdNumber(
             mock_coordinator, "test_dog", "Test Dog"
         )
-        
+
         assert number._number_type == "health_score_threshold"
         assert number.native_unit_of_measurement == PERCENTAGE
         assert number.native_value == 70
@@ -825,7 +811,7 @@ class TestNumberEntityEdgeCases:
         # Should still have basic attributes
         assert attrs["dog_id"] == "test_dog"
         assert attrs["number_type"] == "test_number"
-        
+
         # Dog-specific attributes should be absent or empty
         assert attrs.get("dog_breed", "") == ""
         assert attrs.get("dog_age") is None
@@ -833,11 +819,12 @@ class TestNumberEntityEdgeCases:
     @pytest.mark.asyncio
     async def test_number_set_value_with_exception(self, basic_number):
         """Test setting value when _async_set_number_value raises exception."""
+
         async def failing_set_value(value):
             raise Exception("Test exception")
-        
+
         basic_number._async_set_number_value = failing_set_value
-        
+
         with pytest.raises(HomeAssistantError):
             await basic_number.async_set_native_value(75)
 
@@ -855,13 +842,17 @@ class TestNumberEntityEdgeCases:
         # Test with unknown state
         mock_state = MagicMock()
         mock_state.state = "unknown"
-        with patch.object(basic_number, "async_get_last_state", return_value=mock_state):
+        with patch.object(
+            basic_number, "async_get_last_state", return_value=mock_state
+        ):
             await basic_number.async_added_to_hass()
         assert basic_number.native_value == 50  # Should remain initial value
 
         # Test with unavailable state
         mock_state.state = "unavailable"
-        with patch.object(basic_number, "async_get_last_state", return_value=mock_state):
+        with patch.object(
+            basic_number, "async_get_last_state", return_value=mock_state
+        ):
             await basic_number.async_added_to_hass()
         assert basic_number.native_value == 50  # Should remain initial value
 
@@ -909,11 +900,11 @@ class TestNumberEntityIntegration:
 
         # Simulate restart - create new entity and restore state
         number2 = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
-        
+
         # Mock restored state
         mock_state = MagicMock()
         mock_state.state = "150"
-        
+
         with patch.object(number2, "async_get_last_state", return_value=mock_state):
             await number2.async_added_to_hass()
 
@@ -928,7 +919,7 @@ class TestNumberEntityIntegration:
         coordinator.get_dog_data.return_value = {"dog_info": {}}
 
         number = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
-        
+
         # Test minimum boundary
         with patch.object(number, "async_write_ha_state"):
             await number.async_set_native_value(50)  # Min value

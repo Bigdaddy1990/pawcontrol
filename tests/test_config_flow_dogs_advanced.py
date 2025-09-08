@@ -25,7 +25,7 @@ import asyncio
 import copy
 import time
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
 import voluptuous as vol
@@ -35,8 +35,8 @@ from custom_components.pawcontrol.config_flow_base import (
     VALIDATION_SEMAPHORE,
 )
 from custom_components.pawcontrol.config_flow_dogs import (
-    DogManagementMixin,
     DIET_COMPATIBILITY_RULES,
+    DogManagementMixin,
 )
 from custom_components.pawcontrol.const import (
     CONF_BREAKFAST_TIME,
@@ -444,7 +444,9 @@ class TestMultiDogSetupWorkflows:
         assert "arthritis" in health_config["health_conditions"]
         assert "heart_disease" in health_config["health_conditions"]
         assert len(health_config["medications"]) == 2
-        assert any(med["name"] == "Arthritis Relief" for med in health_config["medications"])
+        assert any(
+            med["name"] == "Arthritis Relief" for med in health_config["medications"]
+        )
 
         # Verify diet validation was performed
         feeding_config = senior_dog_config["feeding_config"]
@@ -523,7 +525,10 @@ class TestMultiDogSetupWorkflows:
             # Verify GPS configuration
             dog_config = mock_config_flow._dogs[i]
             assert "gps_config" in dog_config
-            assert dog_config["gps_config"][CONF_GPS_SOURCE] == config["gps"][CONF_GPS_SOURCE]
+            assert (
+                dog_config["gps_config"][CONF_GPS_SOURCE]
+                == config["gps"][CONF_GPS_SOURCE]
+            )
 
             # Add another dog if not the last one
             if i < len(gps_configs) - 1:
@@ -535,7 +540,9 @@ class TestMultiDogSetupWorkflows:
 
         # Verify all dogs were configured with different GPS sources
         assert len(mock_config_flow._dogs) == 3
-        gps_sources = [dog["gps_config"][CONF_GPS_SOURCE] for dog in mock_config_flow._dogs]
+        gps_sources = [
+            dog["gps_config"][CONF_GPS_SOURCE] for dog in mock_config_flow._dogs
+        ]
         assert "tractive" in gps_sources
         assert "manual" in gps_sources
         assert "person.owner" in gps_sources
@@ -548,8 +555,8 @@ class TestMultiDogSetupWorkflows:
 
         for i in range(dogs_to_add):
             dog_config = {
-                CONF_DOG_ID: f"dog_{i+1}",
-                CONF_DOG_NAME: f"Dog {i+1}",
+                CONF_DOG_ID: f"dog_{i + 1}",
+                CONF_DOG_NAME: f"Dog {i + 1}",
                 CONF_DOG_SIZE: "medium",
                 CONF_DOG_WEIGHT: 20.0 + i,
                 CONF_DOG_AGE: 3 + (i % 5),
@@ -561,8 +568,8 @@ class TestMultiDogSetupWorkflows:
             # Minimal module configuration to speed up test
             modules_config = {
                 "enable_feeding": i % 2 == 0,  # Alternate feeding
-                "enable_health": i % 3 == 0,   # Every third dog
-                "enable_gps": i % 4 == 0,      # Every fourth dog
+                "enable_health": i % 3 == 0,  # Every third dog
+                "enable_gps": i % 4 == 0,  # Every fourth dog
             }
 
             result2 = await mock_config_flow.async_step_dog_modules(modules_config)
@@ -575,12 +582,19 @@ class TestMultiDogSetupWorkflows:
                 result3 = await mock_config_flow.async_step_dog_gps(gps_config)
                 if modules_config["enable_feeding"]:
                     assert result3["step_id"] == "dog_feeding"
-                    feeding_config = {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 400}
-                    result4 = await mock_config_flow.async_step_dog_feeding(feeding_config)
+                    feeding_config = {
+                        CONF_MEALS_PER_DAY: 2,
+                        CONF_DAILY_FOOD_AMOUNT: 400,
+                    }
+                    result4 = await mock_config_flow.async_step_dog_feeding(
+                        feeding_config
+                    )
                     if modules_config["enable_health"]:
                         assert result4["step_id"] == "dog_health"
                         health_config = {"weight_tracking": True}
-                        result5 = await mock_config_flow.async_step_dog_health(health_config)
+                        result5 = await mock_config_flow.async_step_dog_health(
+                            health_config
+                        )
                         assert result5["step_id"] == "add_another_dog"
                     else:
                         assert result4["step_id"] == "add_another_dog"
@@ -593,7 +607,9 @@ class TestMultiDogSetupWorkflows:
                 if modules_config["enable_health"]:
                     assert result3["step_id"] == "dog_health"
                     health_config = {"weight_tracking": True}
-                    result4 = await mock_config_flow.async_step_dog_health(health_config)
+                    result4 = await mock_config_flow.async_step_dog_health(
+                        health_config
+                    )
                     assert result4["step_id"] == "add_another_dog"
                 else:
                     assert result3["step_id"] == "add_another_dog"
@@ -648,20 +664,22 @@ class TestAdvancedDietValidationScenarios:
             CONF_DOG_SIZE: "medium",
         }
 
-        result1 = await mock_config_flow.async_step_add_dog(dog_config)
-        result2 = await mock_config_flow.async_step_dog_modules({"enable_health": True})
-        result3 = await mock_config_flow.async_step_dog_health({
-            # Conflicting age-specific diets
-            "puppy_formula": True,
-            "senior_formula": True,  # CONFLICT: Both age formulas
-            # Multiple prescription diets
-            "prescription": True,
-            "diabetic": True,  # WARNING: Multiple prescription
-            "kidney_support": True,  # WARNING: Multiple prescription
-            # Raw diet with medical conditions
-            "raw_diet": True,
-            "sensitive_stomach": True,  # WARNING: Raw + sensitive stomach
-        })
+        await mock_config_flow.async_step_add_dog(dog_config)
+        await mock_config_flow.async_step_dog_modules({"enable_health": True})
+        result3 = await mock_config_flow.async_step_dog_health(
+            {
+                # Conflicting age-specific diets
+                "puppy_formula": True,
+                "senior_formula": True,  # CONFLICT: Both age formulas
+                # Multiple prescription diets
+                "prescription": True,
+                "diabetic": True,  # WARNING: Multiple prescription
+                "kidney_support": True,  # WARNING: Multiple prescription
+                # Raw diet with medical conditions
+                "raw_diet": True,
+                "sensitive_stomach": True,  # WARNING: Raw + sensitive stomach
+            }
+        )
 
         # Should complete but log conflicts
         assert result3["type"] == FlowResultType.FORM
@@ -714,8 +732,8 @@ class TestAdvancedDietValidationScenarios:
                 CONF_DOG_SIZE: "medium",
             }
 
-            result1 = await mock_config_flow.async_step_add_dog(dog_config)
-            result2 = await mock_config_flow.async_step_dog_modules({"enable_health": True})
+            await mock_config_flow.async_step_add_dog(dog_config)
+            await mock_config_flow.async_step_dog_modules({"enable_health": True})
 
             # Check if the health form shows appropriate defaults
             result3 = await mock_config_flow.async_step_dog_health(None)
@@ -754,8 +772,8 @@ class TestAdvancedDietValidationScenarios:
             CONF_DOG_AGE: 6,
         }
 
-        result1 = await mock_config_flow.async_step_add_dog(dog_config)
-        result2 = await mock_config_flow.async_step_dog_modules({"enable_health": True})
+        await mock_config_flow.async_step_add_dog(dog_config)
+        await mock_config_flow.async_step_dog_modules({"enable_health": True})
 
         # Test all special diet options from SPECIAL_DIET_OPTIONS
         all_diet_config = {}
@@ -810,7 +828,9 @@ class TestAdvancedDietValidationScenarios:
         ]
 
         for case in test_cases:
-            validation_result = mock_config_flow._validate_diet_combinations(case["diets"])
+            validation_result = mock_config_flow._validate_diet_combinations(
+                case["diets"]
+            )
 
             assert len(validation_result["conflicts"]) == case["expected_conflicts"], (
                 f"Case {case['name']}: Expected {case['expected_conflicts']} conflicts, "
@@ -864,7 +884,9 @@ class TestPerformanceAndStressScenarios:
     async def test_large_scale_dog_configuration_performance(self, mock_config_flow):
         """Test performance with large numbers of dogs."""
         # Create configurations for many dogs
-        large_dog_count = min(MAX_DOGS_PER_ENTRY // 2, 15)  # Don't exceed reasonable limits
+        large_dog_count = min(
+            MAX_DOGS_PER_ENTRY // 2, 15
+        )  # Don't exceed reasonable limits
 
         start_time = time.time()
 
@@ -895,14 +917,17 @@ class TestPerformanceAndStressScenarios:
             if result2["step_id"] != "add_another_dog":
                 # If not going directly to add_another_dog, configure minimally
                 if result2["step_id"] == "dog_gps":
-                    await mock_config_flow.async_step_dog_gps({CONF_GPS_SOURCE: "manual"})
+                    await mock_config_flow.async_step_dog_gps(
+                        {CONF_GPS_SOURCE: "manual"}
+                    )
                 elif result2["step_id"] == "dog_feeding":
-                    await mock_config_flow.async_step_dog_feeding({
-                        CONF_MEALS_PER_DAY: 2,
-                        CONF_DAILY_FOOD_AMOUNT: 400
-                    })
+                    await mock_config_flow.async_step_dog_feeding(
+                        {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 400}
+                    )
                 elif result2["step_id"] == "dog_health":
-                    await mock_config_flow.async_step_dog_health({"weight_tracking": True})
+                    await mock_config_flow.async_step_dog_health(
+                        {"weight_tracking": True}
+                    )
 
         end_time = time.time()
         total_time = end_time - start_time
@@ -912,7 +937,9 @@ class TestPerformanceAndStressScenarios:
 
         # Performance should be reasonable (less than 2 seconds per dog on average)
         average_time_per_dog = total_time / large_dog_count
-        assert average_time_per_dog < 2.0, f"Performance too slow: {average_time_per_dog:.2f}s per dog"
+        assert average_time_per_dog < 2.0, (
+            f"Performance too slow: {average_time_per_dog:.2f}s per dog"
+        )
 
         # Verify no memory leaks in validation cache
         assert len(mock_config_flow._validation_cache) <= large_dog_count * 2
@@ -931,8 +958,8 @@ class TestPerformanceAndStressScenarios:
                 CONF_DOG_BREED: "Complex Breed with Very Long Name That Tests Memory",
             }
 
-            result1 = await mock_config_flow.async_step_add_dog(dog_config)
-            
+            await mock_config_flow.async_step_add_dog(dog_config)
+
             # Enable all modules
             all_modules = {
                 "enable_feeding": True,
@@ -947,7 +974,7 @@ class TestPerformanceAndStressScenarios:
                 "enable_training": True,
             }
 
-            result2 = await mock_config_flow.async_step_dog_modules(all_modules)
+            await mock_config_flow.async_step_dog_modules(all_modules)
 
             # Complex GPS configuration
             complex_gps = {
@@ -958,7 +985,7 @@ class TestPerformanceAndStressScenarios:
                 "home_zone_radius": 150,
             }
 
-            result3 = await mock_config_flow.async_step_dog_gps(complex_gps)
+            await mock_config_flow.async_step_dog_gps(complex_gps)
 
             # Complex feeding configuration
             complex_feeding = {
@@ -977,12 +1004,12 @@ class TestPerformanceAndStressScenarios:
                 "reminder_minutes_before": 10,
             }
 
-            result4 = await mock_config_flow.async_step_dog_feeding(complex_feeding)
+            await mock_config_flow.async_step_dog_feeding(complex_feeding)
 
             # Very complex health configuration
             complex_health = {
                 "vet_name": f"Complex Veterinary Clinic for Dog {i}",
-                "vet_phone": f"+1-555-{i:03d}-{i*123:04d}",
+                "vet_phone": f"+1-555-{i:03d}-{i * 123:04d}",
                 "weight_tracking": True,
                 "health_aware_portions": True,
                 "ideal_weight": 35.0 + i,
@@ -1068,7 +1095,9 @@ class TestErrorRecoveryAndEdgeCases:
     async def test_validation_timeout_recovery(self, mock_config_flow):
         """Test recovery from validation timeouts."""
         # Mock a validation that times out
-        with patch.object(mock_config_flow, '_async_validate_dog_config') as mock_validate:
+        with patch.object(
+            mock_config_flow, "_async_validate_dog_config"
+        ) as mock_validate:
             mock_validate.side_effect = asyncio.TimeoutError()
 
             dog_config = {
@@ -1104,7 +1133,9 @@ class TestErrorRecoveryAndEdgeCases:
         assert result2["step_id"] == "dog_health"
 
         # Simulate failure during health configuration
-        with patch.object(mock_config_flow, '_collect_health_conditions') as mock_collect:
+        with patch.object(
+            mock_config_flow, "_collect_health_conditions"
+        ) as mock_collect:
             mock_collect.side_effect = ValueError("Health data parsing failed")
 
             health_config = {"weight_tracking": True}
@@ -1155,22 +1186,37 @@ class TestErrorRecoveryAndEdgeCases:
             {
                 "name": "negative_weight",
                 "config": {
-conf_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_WEIGHT: -5.0},
+                    conf_DOG_ID: "valid_id",
+                    CONF_DOG_NAME: "Valid Name",
+                    CONF_DOG_WEIGHT: -5.0,
+                },
                 "expected_error": CONF_DOG_WEIGHT,
             },
             {
                 "name": "excessive_weight",
-                "config": {CONF_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_WEIGHT: 200.0},
+                "config": {
+                    CONF_DOG_ID: "valid_id",
+                    CONF_DOG_NAME: "Valid Name",
+                    CONF_DOG_WEIGHT: 200.0,
+                },
                 "expected_error": CONF_DOG_WEIGHT,
             },
             {
                 "name": "negative_age",
-                "config": {CONF_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_AGE: -1},
+                "config": {
+                    CONF_DOG_ID: "valid_id",
+                    CONF_DOG_NAME: "Valid Name",
+                    CONF_DOG_AGE: -1,
+                },
                 "expected_error": CONF_DOG_AGE,
             },
             {
                 "name": "excessive_age",
-                "config": {CONF_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_AGE: 50},
+                "config": {
+                    CONF_DOG_ID: "valid_id",
+                    CONF_DOG_NAME: "Valid Name",
+                    CONF_DOG_AGE: 50,
+                },
                 "expected_error": CONF_DOG_AGE,
             },
             {
@@ -1179,7 +1225,7 @@ conf_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_WEIGHT: -5.0},
                     CONF_DOG_ID: "valid_id",
                     CONF_DOG_NAME: "Valid Name",
                     CONF_DOG_WEIGHT: 80.0,  # Giant dog weight
-                    CONF_DOG_SIZE: "toy",   # But toy size
+                    CONF_DOG_SIZE: "toy",  # But toy size
                 },
                 "expected_error": CONF_DOG_WEIGHT,
             },
@@ -1249,8 +1295,8 @@ conf_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_WEIGHT: -5.0},
                 "config": {
                     CONF_GPS_SOURCE: "manual",
                     "gps_update_interval": 30,  # Minimum allowed
-                    "gps_accuracy_filter": 5,   # Minimum allowed
-                    "home_zone_radius": 10,     # Minimum allowed
+                    "gps_accuracy_filter": 5,  # Minimum allowed
+                    "home_zone_radius": 10,  # Minimum allowed
                 },
             },
             {
@@ -1259,7 +1305,7 @@ conf_DOG_ID: "valid_id", CONF_DOG_NAME: "Valid Name", CONF_DOG_WEIGHT: -5.0},
                     CONF_GPS_SOURCE: "webhook",
                     "gps_update_interval": 600,  # Maximum allowed
                     "gps_accuracy_filter": 500,  # Maximum allowed
-                    "home_zone_radius": 500,     # Maximum allowed
+                    "home_zone_radius": 500,  # Maximum allowed
                 },
             },
             {
@@ -1299,24 +1345,53 @@ class TestCrossValidationAndConsistency:
         # Add dogs with varying feeding configurations
         feeding_variations = [
             {
-                "dog": {CONF_DOG_ID: "big_eater", CONF_DOG_NAME: "Big Eater", CONF_DOG_SIZE: "giant", CONF_DOG_WEIGHT: 70.0},
-                "feeding": {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 1200, CONF_FOOD_TYPE: "dry_food"},
+                "dog": {
+                    CONF_DOG_ID: "big_eater",
+                    CONF_DOG_NAME: "Big Eater",
+                    CONF_DOG_SIZE: "giant",
+                    CONF_DOG_WEIGHT: 70.0,
+                },
+                "feeding": {
+                    CONF_MEALS_PER_DAY: 2,
+                    CONF_DAILY_FOOD_AMOUNT: 1200,
+                    CONF_FOOD_TYPE: "dry_food",
+                },
             },
             {
-                "dog": {CONF_DOG_ID: "small_eater", CONF_DOG_NAME: "Small Eater", CONF_DOG_SIZE: "toy", CONF_DOG_WEIGHT: 3.0},
-                "feeding": {CONF_MEALS_PER_DAY: 4, CONF_DAILY_FOOD_AMOUNT: 120, CONF_FOOD_TYPE: "wet_food"},
+                "dog": {
+                    CONF_DOG_ID: "small_eater",
+                    CONF_DOG_NAME: "Small Eater",
+                    CONF_DOG_SIZE: "toy",
+                    CONF_DOG_WEIGHT: 3.0,
+                },
+                "feeding": {
+                    CONF_MEALS_PER_DAY: 4,
+                    CONF_DAILY_FOOD_AMOUNT: 120,
+                    CONF_FOOD_TYPE: "wet_food",
+                },
             },
             {
-                "dog": {CONF_DOG_ID: "medium_eater", CONF_DOG_NAME: "Medium Eater", CONF_DOG_SIZE: "medium", CONF_DOG_WEIGHT: 25.0},
-                "feeding": {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 500, CONF_FOOD_TYPE: "mixed"},
+                "dog": {
+                    CONF_DOG_ID: "medium_eater",
+                    CONF_DOG_NAME: "Medium Eater",
+                    CONF_DOG_SIZE: "medium",
+                    CONF_DOG_WEIGHT: 25.0,
+                },
+                "feeding": {
+                    CONF_MEALS_PER_DAY: 2,
+                    CONF_DAILY_FOOD_AMOUNT: 500,
+                    CONF_FOOD_TYPE: "mixed",
+                },
             },
         ]
 
         for variation in feeding_variations:
             # Add dog
-            result1 = await mock_config_flow.async_step_add_dog(variation["dog"])
-            result2 = await mock_config_flow.async_step_dog_modules({"enable_feeding": True})
-            result3 = await mock_config_flow.async_step_dog_feeding(variation["feeding"])
+            await mock_config_flow.async_step_add_dog(variation["dog"])
+            await mock_config_flow.async_step_dog_modules({"enable_feeding": True})
+            result3 = await mock_config_flow.async_step_dog_feeding(
+                variation["feeding"]
+            )
 
             # Should complete successfully
             assert result3["type"] == FlowResultType.FORM
@@ -1329,14 +1404,14 @@ class TestCrossValidationAndConsistency:
 
             # Basic sanity check: food amount should roughly correlate with weight
             amount_per_kg = daily_amount / dog_weight
-            
+
             # Should be between 10-50g per kg (reasonable range)
             assert 10 <= amount_per_kg <= 50, (
                 f"Dog {dog[CONF_DOG_NAME]} has unreasonable food ratio: "
                 f"{amount_per_kg:.1f}g per kg"
             )
 
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_health_condition_consistency_validation(self, mock_config_flow):
         """Test consistency of health conditions across related configurations."""
         # Add dog with health conditions that should affect feeding
@@ -1348,12 +1423,14 @@ class TestCrossValidationAndConsistency:
             CONF_DOG_AGE: 8,  # Senior
         }
 
-        result1 = await mock_config_flow.async_step_add_dog(health_aware_dog)
-        result2 = await mock_config_flow.async_step_dog_modules({
-            "enable_feeding": True,
-            "enable_health": True,
-            "enable_medication": True,
-        })
+        await mock_config_flow.async_step_add_dog(health_aware_dog)
+        await mock_config_flow.async_step_dog_modules(
+            {
+                "enable_feeding": True,
+                "enable_health": True,
+                "enable_medication": True,
+            }
+        )
 
         # Configure feeding first
         feeding_config = {
@@ -1363,7 +1440,7 @@ class TestCrossValidationAndConsistency:
             "health_aware_portions": True,
         }
 
-        result3 = await mock_config_flow.async_step_dog_feeding(feeding_config)
+        await mock_config_flow.async_step_dog_feeding(feeding_config)
 
         # Configure health with conditions that should be reflected in feeding
         health_config = {
@@ -1390,7 +1467,7 @@ class TestCrossValidationAndConsistency:
 
         # Verify health-feeding integration
         dog = mock_config_flow._dogs[0]
-        health_data = dog["health_config"]
+        dog["health_config"]
         feeding_data = dog["feeding_config"]
 
         # Check that health conditions are reflected in feeding config
@@ -1418,7 +1495,11 @@ class TestCrossValidationAndConsistency:
             },
             {
                 "name": "gps_with_feeding_notifications",
-                "modules": {"enable_gps": True, "enable_feeding": True, "enable_notifications": True},
+                "modules": {
+                    "enable_gps": True,
+                    "enable_feeding": True,
+                    "enable_notifications": True,
+                },
                 "should_work": True,
             },
             {
@@ -1439,7 +1520,11 @@ class TestCrossValidationAndConsistency:
             },
             {
                 "name": "minimal_modules",
-                "modules": {"enable_feeding": False, "enable_health": False, "enable_gps": False},
+                "modules": {
+                    "enable_feeding": False,
+                    "enable_health": False,
+                    "enable_gps": False,
+                },
                 "should_work": True,  # Should work with minimal modules
             },
         ]
@@ -1451,14 +1536,19 @@ class TestCrossValidationAndConsistency:
                 CONF_DOG_SIZE: "medium",
             }
 
-            result1 = await mock_config_flow.async_step_add_dog(dog_config)
+            await mock_config_flow.async_step_add_dog(dog_config)
             result2 = await mock_config_flow.async_step_dog_modules(scenario["modules"])
 
             if scenario["should_work"]:
                 # Should proceed to next step or add_another_dog
                 assert result2["type"] == FlowResultType.FORM
                 next_step = result2["step_id"]
-                assert next_step in ["dog_gps", "dog_feeding", "dog_health", "add_another_dog"]
+                assert next_step in [
+                    "dog_gps",
+                    "dog_feeding",
+                    "dog_health",
+                    "add_another_dog",
+                ]
 
                 # Verify modules were stored correctly
                 current_modules = mock_config_flow._current_dog_config[CONF_MODULES]
