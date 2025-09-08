@@ -1,62 +1,57 @@
 <!-- .gemini/styleguide.md -->
-# Paw Control – Home Assistant Integrations-Styleguide
+# PawControl – HA-Styleguide für Gemini Reviews
 
-Ziel: saubere, UI-konfigurierbare Integration mit stabilen Entitäten, korrektem Async und Tests. Fokus auf Quality-Scale-Kriterien. (Config Flow, Tests, Devices, Diagnostics). :contentReference[oaicite:1]{index=1}
+**Domain:** `pawcontrol` • **Plattformen:** sensor, binary_sensor, button, switch, number, select, text, device_tracker, date, datetime. **Repo-Status:** vorhanden: `config_flow.py`, `options_flow.py`, `diagnostics.py`, `discovery.py`, `coordinator.py`, `services.yaml`; **fehlt:** `system_health.py` → Patch unten.
 
-## Musskriterien
+## Muss nach HA-Docs
+1) **Config Flow + Options Flow**  
+UI-Setup Pflicht. Unique-ID setzen. Reauth/Reconfigure unterstützen. OptionsFlow für spätere Änderungen bereitstellen. :contentReference[oaicite:1]{index=1}
 
-1) **UI-Setup via Config Flow**  
-`config_flow.py`, `manifest.json` mit `"config_flow": true`. In der Flow-Logik Unique-ID setzen, Duplikate verhindern, Reauth/Reconfigure unterstützen. :contentReference[oaicite:2]{index=2}
+2) **Koordinator-Architektur**  
+`DataUpdateCoordinator` nutzen, `_async_setup` für einmalige Async-Initialisierung verwenden, unnötige Callbacks vermeiden. Entitäten von `CoordinatorEntity` ableiten. :contentReference[oaicite:2]{index=2}
 
-2) **Options/Reconfigure Flow**  
-Nutzende müssen Einstellungen später in der UI ändern können. Implementiere `OptionsFlow` bzw. Reconfigure-Flow. :contentReference[oaicite:3]{index=3}
+3) **Entities korrekt registrieren**  
+Jede Entität hat `unique_id`; `device_info` nur mit `unique_id` wirksam. State/Device-Class und `suggested_unit_of_measurement` sauber setzen. Unverfügbare Daten als `unavailable/unknown` abbilden. :contentReference[oaicite:3]{index=3}
 
-3) **Entitäten & Geräte korrekt registrieren**  
-Jede Entität braucht `unique_id`; Geräteinfo vollständig befüllen (Hersteller, Modell, HW/SW-Version, Konfig-URL). Nutze Entity- und Device-Registry APIs. :contentReference[oaicite:4]{index=4}
+4) **Diagnostics + System Health**  
+Diagnostik mit Redaction sensibler Daten liefern. Zusätzlich `system_health.py` implementieren. :contentReference[oaicite:4]{index=4}
 
-4) **Koordinator-Architektur**  
-Polling/Bündelung mit `DataUpdateCoordinator` + `CoordinatorEntity`. `_async_setup` nutzen, unnötige Callbacks vermeiden, sinnvolles `update_interval`. :contentReference[oaicite:5]{index=5}
+5) **Discovery im Manifest aktuell halten**  
+Zeroconf/SSDP/DHCP/Bluetooth korrekt pflegen; neue `ServiceInfo`-Imports beachten. Für Bluetooth `connectable` passend wählen. :contentReference[oaicite:5]{index=5}
 
-5) **Async-Sauberkeit**  
-Kein Blocking-I/O im Event-Loop, Threads korrekt nutzen; neue async-APIs verwenden (`async_register_static_paths`, `dt_util.async_get_time_zone`). :contentReference[oaicite:6]{index=6}
+6) **Tests**  
+100 % Testabdeckung für den Config-Flow inkl. Recovery-Pfade. :contentReference[oaicite:6]{index=6}
 
-6) **Übersetzungen**  
-`strings.json` definieren, UI-Texte unter `config.*`. Für Custom-Integrationen `translations/<lang>.json` pflegen (BCP47). Core nutzt Lokalise. :contentReference[oaicite:7]{index=7}
+## Gemini-Review-Regeln für dieses Repo
+- Blockierendes I/O im Event-Loop, veraltete Sync-APIs, fehlendes `_async_setup` call-out mit Fix-Diff. :contentReference[oaicite:7]{index=7}  
+- Fehlende/instabile `unique_id`, unvollständige `device_info`, falsche State/Device-Class oder Units markieren. :contentReference[oaicite:8]{index=8}  
+- Markiere fehlendes **System Health** als Pflicht-Nachbesserung. Diff unten nutzen. :contentReference[oaicite:9]{index=9}  
+- Manifest-Discovery verifizieren; bei alten `ServiceInfo`-Imports Fix vorschlagen. :contentReference[oaicite:10]{index=10}
 
-7) **Diagnostics & System Health**  
-Diagnostik mit Redaction sensibler Daten bereitstellen und System-Health implementieren. :contentReference[oaicite:8]{index=8}
+## Patches „ready to drop“
 
-8) **Discovery**  
-Wenn passend, Zeroconf/SSDP/DHCP hinterlegen und Flows aus Discovery starten; ServiceInfo-Imports aktuell halten. :contentReference[oaicite:9]{index=9}
+### 1) `system_health.py` hinzufügen
+```python
+# custom_components/pawcontrol/system_health.py
+from __future__ import annotations
+from typing import Any
+from homeassistant.components import system_health
+from homeassistant.core import HomeAssistant, callback
 
-9) **Branding**  
-Logos/Icons in `home-assistant/brands` pflegen; HACS fordert Marken-Assets. :contentReference[oaicite:10]{index=10}
+DOMAIN = "pawcontrol"
 
-## Entitätsregeln
+@callback
+def async_register(hass: HomeAssistant, register: system_health.SystemHealthRegistration) -> None:
+    register.async_register_info(system_health_info)
 
-- **Device/State-Class, Units** korrekt setzen; Sensor-Validierungen beachten. EntityDescription nutzen. :contentReference[oaicite:11]{index=11}  
-- **Registry-Eigenschaften** nur bei gesetzter `unique_id` wirksam. Disabled-Flags respektieren. :contentReference[oaicite:12]{index=12}
-
-## Tests
-
-- **100 % Testabdeckung für den Config-Flow** inkl. Fehlerpfade und Recovery. :contentReference[oaicite:13]{index=13}  
-- **Pytest-Setup**: `pytest-homeassistant-custom-component` oder `pytest-homeassistant`, Standard-Fixtures (`hass`, `MockConfigEntry`), Teststruktur gemäß Dev-Docs. :contentReference[oaicite:14]{index=14}
-
-## Quality Scale Zielbild
-
-Anstreben: **Bronze→Silver**. Erfülle die Regeln iterativ: Config-Flow, Geräte, Diagnostik, Reconfigure, Tests, Doku. :contentReference[oaicite:15]{index=15}
-
-## Review-Heuristik für Gemini
-
-Kurz, klar, Fix-Vorschlag als Diff. Priorität: Sicherheit/Logik > Performance > UX > Style.
-
-- Kein YAML-Setup für neue Integrationen empfehlen. UI-Flows only. :contentReference[oaicite:16]{index=16}
-- Blockierendes I/O, falsch genutzte Threads, veraltete Sync-APIs markieren. :contentReference[oaicite:17]{index=17}
-- Fehlende `unique_id`/Device-Info, falsche Device/State-Classes, fehlerhafte Units call-out. :contentReference[oaicite:18]{index=18}
-- Koordinator nicht genutzt oder falsch konfiguriert → Vorschlag auf `DataUpdateCoordinator` + `CoordinatorEntity`. :contentReference[oaicite:19]{index=19}
-- Fehlende Reconfigure/Options-Flows und Diagnostics/System-Health monieren. :contentReference[oaicite:20]{index=20}
-- Discovery-Keys fehlen bei discovery-fähigen Geräten. :contentReference[oaicite:21]{index=21}
-
-## PR-Erwartungen
-
-Kleine PRs, klare Motivation, Risiken, Rollback, Migrationsschritte. Tests und Übersetzungen im selben PR aktualisieren. Ziel: „ship small, ship often“.  
+async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
+    # Beispiel: erste Config-Entry prüfen
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    runtime = getattr(entry, "runtime_data", None)
+    api = getattr(runtime, "api", None)
+    return {
+        "can_reach_backend": system_health.async_check_can_reach_url(
+            hass, getattr(api, "base_url", "https://example.invalid")
+        ),
+        "remaining_quota": getattr(runtime, "remaining_quota", "unknown"),
+    }
