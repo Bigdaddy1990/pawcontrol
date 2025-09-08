@@ -1,6 +1,6 @@
 {
   "domain": "pawcontrol",
-  "name": "Paw Control",
+  "name": "PawControl",
   "after_dependencies": [
     "person",
     "zone",
@@ -35,7 +35,7 @@
   "homekit": {
     "models": [
       "tractive gps tracker",
-      "petnet smart feeder",
+      "petnet smart feeder", 
       "whistle health monitor"
     ]
   },
@@ -55,7 +55,7 @@
     },
     {
       "vid": "2345",
-      "pid": "6789",
+      "pid": "6789", 
       "description": "whistle health monitor"
     }
   ],
