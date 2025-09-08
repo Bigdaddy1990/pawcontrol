@@ -13,7 +13,8 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
+
 
 class HassfestHACSValidator:
     """Validates integration against hassfest and HACS requirements."""
@@ -41,7 +42,7 @@ class HassfestHACSValidator:
             return
 
         try:
-            with open(manifest_path, 'r', encoding='utf-8') as f:
+            with open(manifest_path, "r", encoding="utf-8") as f:
                 self.manifest = json.load(f)
         except json.JSONDecodeError as e:
             self.errors.append(f"Invalid JSON in manifest.json: {e}")
@@ -91,8 +92,16 @@ class HassfestHACSValidator:
     def validate_manifest_structure(self) -> None:
         """Validate manifest.json structure and content."""
         required_keys = [
-            "domain", "name", "codeowners", "config_flow", "documentation",
-            "iot_class", "issue_tracker", "quality_scale", "requirements", "version"
+            "domain",
+            "name",
+            "codeowners",
+            "config_flow",
+            "documentation",
+            "iot_class",
+            "issue_tracker",
+            "quality_scale",
+            "requirements",
+            "version",
         ]
 
         for key in required_keys:
@@ -157,11 +166,11 @@ class HassfestHACSValidator:
         py_files = list(self.integration_path.glob("*.py"))
         for py_file in py_files:
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
                 # Basic syntax check
-                compile(content, str(py_file), 'exec')
+                compile(content, str(py_file), "exec")
 
             except SyntaxError as e:
                 raise SyntaxError(f"Syntax error in {py_file.name}: {e}")
@@ -175,14 +184,16 @@ class HassfestHACSValidator:
         py_files = list(self.integration_path.glob("*.py"))
 
         for py_file in py_files:
-            with open(py_file, 'r', encoding='utf-8') as f:
+            with open(py_file, "r", encoding="utf-8") as f:
                 content = f.read()
                 lines = content.splitlines()
 
             # Check for future annotations
             if py_file.name != "__init__.py":
                 if "from __future__ import annotations" not in content:
-                    self.warnings.append(f"{py_file.name}: Missing future annotations import")
+                    self.warnings.append(
+                        f"{py_file.name}: Missing future annotations import"
+                    )
 
             # Check for proper async usage
             if "async def" in content and "time.sleep(" in content:
@@ -255,7 +266,7 @@ class HassfestHACSValidator:
 
         # Validate translation structure
         try:
-            with open(en_file, 'r', encoding='utf-8') as f:
+            with open(en_file, "r", encoding="utf-8") as f:
                 en_translations = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in en.json: {e}")
@@ -274,16 +285,18 @@ class HassfestHACSValidator:
         strings_file = self.integration_path / "strings.json"
         if strings_file.exists():
             try:
-                with open(strings_file, 'r', encoding='utf-8') as f:
+                with open(strings_file, "r", encoding="utf-8") as f:
                     strings_data = json.load(f)
 
                 # Basic consistency check
-                if "config" in both:= (en_translations, strings_data):
+                if "config" in en_translations and "config" in strings_data:
                     en_config_keys = set(en_translations.get("config", {}).keys())
                     strings_config_keys = set(strings_data.get("config", {}).keys())
 
                     if en_config_keys != strings_config_keys:
-                        self.warnings.append("strings.json and en.json config keys don't match")
+                        self.warnings.append(
+                            "strings.json and en.json config keys don't match"
+                        )
 
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON in strings.json: {e}")
@@ -302,7 +315,8 @@ class HassfestHACSValidator:
         if services_yaml.exists():
             try:
                 import yaml
-                with open(services_yaml, 'r', encoding='utf-8') as f:
+
+                with open(services_yaml, "r", encoding="utf-8") as f:
                     services_data = yaml.safe_load(f) or {}
 
                 # Validate service structure
@@ -312,7 +326,9 @@ class HassfestHACSValidator:
 
                     # Check required fields
                     if "description" not in service_config:
-                        self.warnings.append(f"Service {service_name} missing description")
+                        self.warnings.append(
+                            f"Service {service_name} missing description"
+                        )
 
             except ImportError:
                 self.warnings.append("PyYAML not available for services validation")
@@ -360,7 +376,7 @@ class HassfestHACSValidator:
             return
 
         try:
-            with open(hacs_json, 'r', encoding='utf-8') as f:
+            with open(hacs_json, "r", encoding="utf-8") as f:
                 hacs_config = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in hacs.json: {e}")
@@ -408,11 +424,13 @@ class HassfestHACSValidator:
             # Check for proper async usage
             init_file = self.integration_path / "__init__.py"
             if init_file.exists():
-                with open(init_file, 'r', encoding='utf-8') as f:
+                with open(init_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
                 if "async def async_setup" not in content:
-                    self.warnings.append("Platinum quality: async_setup should be async")
+                    self.warnings.append(
+                        "Platinum quality: async_setup should be async"
+                    )
 
         elif quality_scale == "gold":
             # Gold requirements
@@ -447,7 +465,7 @@ class HassfestHACSValidator:
             if py_file.name.startswith("test_"):
                 continue
 
-            with open(py_file, 'r', encoding='utf-8') as f:
+            with open(py_file, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Check for module docstring
