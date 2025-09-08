@@ -1,0 +1,33 @@
+# .gemini/config.yaml
+have_fun: false
+
+code_review:
+  disable: false
+  comment_severity_threshold: HIGH   # nur Wichtiges, weniger Lärm
+  max_review_comments: 30            # hartes Limit pro PR
+  pull_request_opened:
+    help: true
+    summary: true
+    code_review: true
+    include_drafts: false            # keine Reviews für Drafts
+
+# schlanke Ignorierliste für typische Build-Artefakte und Locks
+ignore_patterns:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.next/**"
+  - "**/coverage/**"
+  - "**/.venv/**"
+  - "**/.tox/**"
+  - "**/vendor/**"
+  - "**/*.min.js"
+  - "**/*.min.css"
+  - "**/*.snap"
+  - "**/*.lock"
+  - "**/package-lock.json"
+  - "**/pnpm-lock.yaml"
+  - "**/yarn.lock"
+  - "**/poetry.lock"
+  - "**/Pipfile.lock"
+  - "**/generated/**"
