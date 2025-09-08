@@ -427,12 +427,6 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         return float(scores.get(status, 70))
 
 
-class PawControlActivityLevelSensor(PawControlActivityScoreSensor):
-    """Backward-compatible alias for activity score sensor."""
-
-    pass
-
-
 # Essential Feeding Sensors
 
 
@@ -1113,36 +1107,6 @@ class PawControlMealPortionSensor(PawControlSensorBase):
             return round(base_portion * multiplier, 1)
 
         return None
-
-
-# Grooming Sensors
-
-
-class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
-    """Sensor for days since last grooming."""
-
-    def __init__(self, coordinator, dog_id: str, dog_name: str) -> None:
-        super().__init__(
-            coordinator,
-            dog_id,
-            dog_name,
-            "days_since_grooming",
-            icon="mdi:content-cut",
-        )
-
-    @property
-    def native_value(self) -> Optional[int]:
-        grooming_data = self._get_module_data("grooming")
-        if not grooming_data:
-            return None
-        last = grooming_data.get("last_grooming")
-        if not last:
-            return None
-        try:
-            last_dt = datetime.fromisoformat(last)
-        except (ValueError, TypeError):
-            return None
-        return (dt_util.utcnow().date() - last_dt.date()).days
 
 
 # Additional sensors omitted for brevity - they would follow the same pattern

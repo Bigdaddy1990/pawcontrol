@@ -43,8 +43,6 @@ from .const import (
 from .performance_manager import PerformanceMonitor
 from .utils import performance_monitor
 
-STATE_ONLINE = "online"
-
 if TYPE_CHECKING:
     from .data_manager import DataManager
     from .dog_data_manager import DogDataManager
