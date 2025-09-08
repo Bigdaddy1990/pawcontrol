@@ -1686,7 +1686,7 @@ class FeedingManager:
                 base_unadjusted = config.daily_food_amount / config.meals_per_day
                 health_metrics = config._build_health_metrics(override_health_data)
                 if health_metrics.life_stage == LifeStage.PUPPY:
-                    portion = max(portion, base_unadjusted * 0.8)
+                    portion = max(portion, base_unadjusted * 0.8)  # TODO: Replace 0.8 with a named constant
 
                 # Validate portion safety with diet considerations
                 if config.dog_weight and portion > 0:
