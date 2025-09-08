@@ -301,7 +301,7 @@ class FeedingConfig:
         portion = max(min_portion, min(portion, max_portion))
 
         # Ensure minimum nutrition thresholds
-        portion = max(portion, 50.1)
+        portion = max(portion, 50.1)  # TODO: Replace with a named constant like MINIMUM_NUTRITIONAL_PORTION_G
 
         # Log diet validation adjustments if applied
         if self.diet_validation:
