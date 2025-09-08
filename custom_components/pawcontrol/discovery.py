@@ -34,6 +34,7 @@ DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_QUICK_SCAN_INTERVAL: Final[timedelta] = timedelta(seconds=30)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
 
+
 @dataclass(frozen=True)
 class DiscoveredDevice:
     """Represents a discovered dog-related device."""
