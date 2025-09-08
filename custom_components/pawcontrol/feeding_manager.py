@@ -42,6 +42,11 @@ except ImportError:  # pragma: no cover
 _LOGGER = logging.getLogger(__name__)
 
 
+# Portion safeguard constants
+PUPPY_PORTION_SAFEGUARD_FACTOR = 0.8
+MINIMUM_NUTRITION_PORTION_G = 50.1
+
+
 class MealType(Enum):
     """Meal type enumeration."""
 
@@ -295,13 +300,13 @@ class FeedingConfig:
         else:
             portion = base_portion
 
+        # Ensure minimum nutrition thresholds
+        portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
+
         # Apply safety limits
         min_portion = adjusted_daily_grams * 0.1  # Min 10% of daily amount
         max_portion = adjusted_daily_grams * 0.6  # Max 60% of daily amount
         portion = max(min_portion, min(portion, max_portion))
-
-        # Ensure minimum nutrition thresholds
-        portion = max(portion, 50.1)
 
         # Log diet validation adjustments if applied
         if self.diet_validation:
@@ -1686,7 +1691,9 @@ class FeedingManager:
                 base_unadjusted = config.daily_food_amount / config.meals_per_day
                 health_metrics = config._build_health_metrics(override_health_data)
                 if health_metrics.life_stage == LifeStage.PUPPY:
-                    portion = max(portion, base_unadjusted * 0.8)
+                    portion = max(
+                        portion, base_unadjusted * PUPPY_PORTION_SAFEGUARD_FACTOR
+                    )
 
                 # Validate portion safety with diet considerations
                 if config.dog_weight and portion > 0:
