@@ -26,10 +26,6 @@ from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from custom_components.pawcontrol.coordinator import (
-    MAINTENANCE_INTERVAL,
-    PawControlCoordinator,
-)
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOGS,
@@ -37,6 +33,10 @@ from custom_components.pawcontrol.const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import (
+    MAINTENANCE_INTERVAL,
+    PawControlCoordinator,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -48,7 +48,9 @@ class TestHighEntityLoadPerformance:
     """Test coordinator performance under high entity loads."""
 
     @pytest.fixture
-    async def large_scale_coordinator(self, hass: HomeAssistant) -> PawControlCoordinator:
+    async def large_scale_coordinator(
+        self, hass: HomeAssistant
+    ) -> PawControlCoordinator:
         """Create coordinator with large number of dogs (50+) for testing."""
         # Generate 50 dogs with all modules enabled
         dogs_config = []
@@ -164,7 +166,9 @@ class TestHighEntityLoadPerformance:
 
         # Performance assertions
         # Initial update should complete within reasonable time (< 5 seconds)
-        assert initial_update_time < 5.0, f"Initial update took {initial_update_time:.2f}s"
+        assert initial_update_time < 5.0, (
+            f"Initial update took {initial_update_time:.2f}s"
+        )
 
         # Test subsequent updates (should be faster due to caching)
         start_time = time.time()
@@ -192,12 +196,14 @@ class TestHighEntityLoadPerformance:
 
             # Get memory-related statistics
             cache_stats = large_scale_coordinator.get_cache_stats()
-            memory_stats.append({
-                "cycle": cycle,
-                "cache_entries": cache_stats["cache"]["total_entries"],
-                "hit_rate": cache_stats["cache"]["hit_rate"],
-                "dogs_tracked": cache_stats["dogs_tracked"],
-            })
+            memory_stats.append(
+                {
+                    "cycle": cycle,
+                    "cache_entries": cache_stats["cache"]["total_entries"],
+                    "hit_rate": cache_stats["cache"]["hit_rate"],
+                    "dogs_tracked": cache_stats["dogs_tracked"],
+                }
+            )
 
             # Simulate some time passing
             await asyncio.sleep(0.1)
@@ -260,6 +266,7 @@ class TestHighEntityLoadPerformance:
         self, large_scale_coordinator: PawControlCoordinator
     ):
         """Test concurrent access patterns under high load."""
+
         # Define concurrent access patterns
         async def access_pattern_1():
             """Pattern 1: Frequent data requests."""
@@ -325,7 +332,9 @@ class TestUpdateCycleOptimization:
     """Test update cycle optimization and timing."""
 
     @pytest.fixture
-    async def optimization_coordinator(self, hass: HomeAssistant) -> PawControlCoordinator:
+    async def optimization_coordinator(
+        self, hass: HomeAssistant
+    ) -> PawControlCoordinator:
         """Create coordinator for optimization testing."""
         # Create 30 dogs with mixed module configurations
         dogs_config = []
@@ -333,9 +342,9 @@ class TestUpdateCycleOptimization:
             # Vary module configurations to test optimization
             modules = {
                 MODULE_FEEDING: i % 3 == 0,  # Every 3rd dog
-                MODULE_WALK: i % 2 == 0,     # Every 2nd dog
-                MODULE_GPS: i % 4 == 0,      # Every 4th dog
-                MODULE_HEALTH: i % 5 == 0,   # Every 5th dog
+                MODULE_WALK: i % 2 == 0,  # Every 2nd dog
+                MODULE_GPS: i % 4 == 0,  # Every 4th dog
+                MODULE_HEALTH: i % 5 == 0,  # Every 5th dog
             }
 
             dog_config = {
@@ -386,7 +395,7 @@ class TestUpdateCycleOptimization:
 
         # Get initial data checksums
         initial_stats = optimization_coordinator.get_cache_stats()
-        initial_dogs_tracked = initial_stats["dogs_tracked"]
+        initial_stats["dogs_tracked"]
 
         # Perform selective update (should be faster)
         selective_dogs = ["opt_dog_00", "opt_dog_05", "opt_dog_10"]
@@ -438,7 +447,8 @@ class TestUpdateCycleOptimization:
 
         # Mock managers to return identical data
         optimization_coordinator.feeding_manager.async_get_feeding_data.return_value = {
-            "status": "fed", "next_meal": "2025-09-08T15:00:00Z"
+            "status": "fed",
+            "next_meal": "2025-09-08T15:00:00Z",
         }
 
         # Perform update with identical data
@@ -452,7 +462,8 @@ class TestUpdateCycleOptimization:
         # Checksums should remain the same
         final_checksums = optimization_coordinator._data_checksums
         unchanged_count = sum(
-            1 for dog_id in initial_checksums
+            1
+            for dog_id in initial_checksums
             if initial_checksums.get(dog_id) == final_checksums.get(dog_id)
         )
 
@@ -464,7 +475,9 @@ class TestBackgroundTaskPerformance:
     """Test background task performance and efficiency."""
 
     @pytest.fixture
-    async def background_task_coordinator(self, hass: HomeAssistant) -> PawControlCoordinator:
+    async def background_task_coordinator(
+        self, hass: HomeAssistant
+    ) -> PawControlCoordinator:
         """Create coordinator for background task testing."""
         dogs_config = [
             {
@@ -538,9 +551,9 @@ class TestBackgroundTaskPerformance:
 
         # Add items to batch processing queue
         dog_ids = [f"bg_dog_{i:02d}" for i in range(20)]
-        
+
         start_time = time.time()
-        
+
         # Add dogs to processing queue
         for dog_id in dog_ids:
             await background_task_coordinator._batch_manager.add_to_batch(
@@ -572,17 +585,19 @@ class TestBackgroundTaskPerformance:
 
         # Monitor resource usage over time
         resource_measurements = []
-        
+
         for measurement in range(5):
             # Get current statistics
             stats = background_task_coordinator.get_cache_stats()
-            resource_measurements.append({
-                "measurement": measurement,
-                "cache_entries": stats["cache"]["total_entries"],
-                "cache_hits": stats["cache"]["cache_hits"],
-                "dogs_tracked": stats["dogs_tracked"],
-            })
-            
+            resource_measurements.append(
+                {
+                    "measurement": measurement,
+                    "cache_entries": stats["cache"]["total_entries"],
+                    "cache_hits": stats["cache"]["cache_hits"],
+                    "dogs_tracked": stats["dogs_tracked"],
+                }
+            )
+
             # Simulate some activity
             await background_task_coordinator.async_refresh()
             await asyncio.sleep(0.1)
@@ -590,7 +605,7 @@ class TestBackgroundTaskPerformance:
         # Verify resource usage is reasonable
         final_measurement = resource_measurements[-1]
         assert final_measurement["cache_entries"] < 100  # Reasonable cache size
-        assert final_measurement["dogs_tracked"] == 20   # All dogs tracked
+        assert final_measurement["dogs_tracked"] == 20  # All dogs tracked
 
         # Cleanup
         await background_task_coordinator.async_shutdown()
@@ -628,7 +643,9 @@ class TestPerformanceMonitoringIntegration:
                 await asyncio.sleep(0.01)  # Fast response
             return {"status": "fed"}
 
-        mock_feeding_manager.async_get_feeding_data.side_effect = variable_performance_feeding
+        mock_feeding_manager.async_get_feeding_data.side_effect = (
+            variable_performance_feeding
+        )
 
         coordinator.set_managers(feeding_manager=mock_feeding_manager)
         return coordinator
@@ -664,17 +681,16 @@ class TestPerformanceMonitoringIntegration:
         with patch.object(
             monitored_coordinator.feeding_manager,
             "async_get_feeding_data",
-            side_effect=AsyncMock(side_effect=lambda x: asyncio.sleep(0.2))
+            side_effect=AsyncMock(side_effect=lambda x: asyncio.sleep(0.2)),
         ):
-            
             start_time = time.time()
-            
+
             try:
                 await monitored_coordinator.async_refresh()
             except UpdateFailed:
                 # Expected due to slow performance
                 pass
-            
+
             slow_update_time = time.time() - start_time
 
         # Should detect performance issues
@@ -720,7 +736,7 @@ class TestResourceCleanupAndMemoryLeaks:
         """Test complete coordinator lifecycle and cleanup."""
         # Create multiple coordinators to test cleanup
         coordinators = []
-        
+
         for coord_id in range(5):
             dogs_config = [
                 {
@@ -736,12 +752,12 @@ class TestResourceCleanupAndMemoryLeaks:
             config_entry.options = {}
 
             coordinator = PawControlCoordinator(hass, config_entry)
-            
+
             # Mock manager
             mock_feeding_manager = AsyncMock()
             mock_feeding_manager.async_get_feeding_data.return_value = {"status": "ok"}
             coordinator.set_managers(feeding_manager=mock_feeding_manager)
-            
+
             coordinators.append(coordinator)
 
         # Start all coordinators
@@ -800,24 +816,26 @@ class TestResourceCleanupAndMemoryLeaks:
         for cycle in range(20):
             # Perform operations
             await coordinator.async_refresh()
-            
+
             # Request selective refreshes
             dog_subset = [f"leak_test_dog_{i:02d}" for i in range(cycle % 5, 25, 5)]
             await coordinator.async_request_selective_refresh(dog_subset, priority=7)
-            
+
             # Invalidate some caches
             for i in range(3):
                 await coordinator.invalidate_dog_cache(f"leak_test_dog_{i:02d}")
 
             # Take memory snapshot
             stats = coordinator.get_cache_stats()
-            memory_snapshots.append({
-                "cycle": cycle,
-                "cache_entries": stats["cache"]["total_entries"],
-                "dogs_tracked": stats["dogs_tracked"],
-                "cache_hits": stats["cache"]["cache_hits"],
-                "cache_misses": stats["cache"]["cache_misses"],
-            })
+            memory_snapshots.append(
+                {
+                    "cycle": cycle,
+                    "cache_entries": stats["cache"]["total_entries"],
+                    "dogs_tracked": stats["dogs_tracked"],
+                    "cache_hits": stats["cache"]["cache_hits"],
+                    "cache_misses": stats["cache"]["cache_misses"],
+                }
+            )
 
             # Small delay
             await asyncio.sleep(0.05)
@@ -826,7 +844,7 @@ class TestResourceCleanupAndMemoryLeaks:
         # Cache entries should not grow indefinitely
         max_cache_entries = max(snap["cache_entries"] for snap in memory_snapshots)
         min_cache_entries = min(snap["cache_entries"] for snap in memory_snapshots)
-        
+
         # Should not have unbounded growth
         assert max_cache_entries < min_cache_entries * 3  # Max 3x growth
 
@@ -897,8 +915,7 @@ class TestStressTestingAndEdgeCases:
             """Rapid selective refresh requests."""
             for batch in range(10):
                 dog_subset = [
-                    f"stress_dog_{i:03d}"
-                    for i in range(batch * 10, (batch + 1) * 10)
+                    f"stress_dog_{i:03d}" for i in range(batch * 10, (batch + 1) * 10)
                 ]
                 await coordinator.async_request_selective_refresh(
                     dog_subset, priority=8
@@ -968,7 +985,9 @@ class TestStressTestingAndEdgeCases:
             await asyncio.sleep(0.01)
             return {"status": "fed", "dog_id": dog_id}
 
-        mock_feeding_manager.async_get_feeding_data.side_effect = unreliable_feeding_data
+        mock_feeding_manager.async_get_feeding_data.side_effect = (
+            unreliable_feeding_data
+        )
 
         coordinator.set_managers(feeding_manager=mock_feeding_manager)
 

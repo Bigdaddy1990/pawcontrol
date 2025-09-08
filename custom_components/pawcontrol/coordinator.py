@@ -193,14 +193,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         task = asyncio.create_task(coro, name=name)
         self._active_tasks.add(task)
-        
+
         def task_done_callback(task):
             self._active_tasks.discard(task)
             if task.cancelled():
                 _LOGGER.debug("Task %s was cancelled", name)
             elif task.exception():
                 _LOGGER.error("Task %s failed: %s", name, task.exception())
-        
+
         task.add_done_callback(task_done_callback)
         return task
 
@@ -254,7 +254,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         ]
 
         results = await asyncio.gather(*maintenance_tasks, return_exceptions=True)
-        
+
         cleared = results[0] if isinstance(results[0], int) else 0
 
         # Optimize cache if significant cleanup occurred
@@ -303,17 +303,23 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Parallel execution for multiple dogs
                 tasks = [self._fetch_dog_data_delegated(dog_id) for dog_id in batch]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
-                
+
                 for dog_id, result in zip(batch, results):
                     if isinstance(result, Exception):
-                        _LOGGER.warning("Failed to fetch data for %s: %s", dog_id, result)
+                        _LOGGER.warning(
+                            "Failed to fetch data for %s: %s", dog_id, result
+                        )
                         errors += 1
-                        self._error_counts[dog_id] = self._error_counts.get(dog_id, 0) + 1
+                        self._error_counts[dog_id] = (
+                            self._error_counts.get(dog_id, 0) + 1
+                        )
                         # Use last known data
                         all_results[dog_id] = self._data.get(dog_id, {})
                     else:
                         all_results[dog_id] = result
-                        self._error_counts.pop(dog_id, None)  # Clear error count on success
+                        self._error_counts.pop(
+                            dog_id, None
+                        )  # Clear error count on success
             else:
                 # Single dog - direct execution
                 dog_id = batch[0]
@@ -328,7 +334,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     all_results[dog_id] = self._data.get(dog_id, {})
 
             # OPTIMIZED: Fail only if all dogs fail repeatedly
-            persistent_failures = sum(1 for count in self._error_counts.values() if count > 3)
+            persistent_failures = sum(
+                1 for count in self._error_counts.values() if count > 3
+            )
             if errors == len(batch) and persistent_failures > len(batch) / 2:
                 raise UpdateFailed("Persistent failures across multiple dogs")
 
@@ -385,11 +393,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             # Create manager tasks with timeouts
             manager_tasks = []
-            
+
             # Feeding data
             if modules.get(MODULE_FEEDING) and self.feeding_manager:
                 manager_tasks.append(
-                    (MODULE_FEEDING, self.feeding_manager.async_get_feeding_data(dog_id))
+                    (
+                        MODULE_FEEDING,
+                        self.feeding_manager.async_get_feeding_data(dog_id),
+                    )
                 )
 
             # Walk data
@@ -406,23 +417,30 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Health data
             if modules.get(MODULE_HEALTH) and self.dog_data_manager:
+
                 async def get_health_data():
-                    dog_full_data = await self.dog_data_manager.async_get_dog_data(dog_id)
+                    dog_full_data = await self.dog_data_manager.async_get_dog_data(
+                        dog_id
+                    )
                     return dog_full_data.get("health", {}) if dog_full_data else {}
-                
+
                 manager_tasks.append((MODULE_HEALTH, get_health_data()))
 
             # OPTIMIZED: Execute manager tasks in parallel with timeout
             if manager_tasks:
                 async with asyncio.timeout(10):  # 10 second timeout per dog
                     task_results = await asyncio.gather(
-                        *[task for _, task in manager_tasks],
-                        return_exceptions=True
+                        *[task for _, task in manager_tasks], return_exceptions=True
                     )
-                    
+
                     for (module_name, _), result in zip(manager_tasks, task_results):
                         if isinstance(result, Exception):
-                            _LOGGER.debug("Manager %s failed for %s: %s", module_name, dog_id, result)
+                            _LOGGER.debug(
+                                "Manager %s failed for %s: %s",
+                                module_name,
+                                dog_id,
+                                result,
+                            )
                             data[module_name] = {"error": str(result)}
                         else:
                             data[module_name] = result
@@ -494,7 +512,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 total_complexity += 1
             if modules.get(MODULE_FEEDING):
                 total_complexity += 1
-                
+
             # Count high complexity setups
             active_modules = sum(1 for enabled in modules.values() if enabled)
             if active_modules > 3:
@@ -515,9 +533,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if total_complexity > 30 or high_complexity_modules > 5:
             base_interval = max(base_interval, 120)  # 2 minutes
         elif total_complexity > 15 or high_complexity_modules > 2:
-            base_interval = max(base_interval, 90)   # 1.5 minutes
+            base_interval = max(base_interval, 90)  # 1.5 minutes
         elif total_complexity > 8:
-            base_interval = max(base_interval, 60)   # 1 minute
+            base_interval = max(base_interval, 60)  # 1 minute
 
         # Never go below minimum for stability
         return max(base_interval, UPDATE_INTERVALS["real_time"])
@@ -527,8 +545,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get dog configuration with caching."""
         # Use generator for efficiency
         return next(
-            (dog for dog in self._dogs_config if dog.get(CONF_DOG_ID) == dog_id),
-            None
+            (dog for dog in self._dogs_config if dog.get(CONF_DOG_ID) == dog_id), None
         )
 
     def get_enabled_modules(self, dog_id: str) -> set[str]:
@@ -588,7 +605,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         cache_stats = self._cache_manager.get_stats()
         perf_stats = self._performance_monitor.get_stats()
         batch_stats = self._batch_manager.get_stats()
-        
+
         return {
             "cache": cache_stats,
             "performance": perf_stats,
@@ -598,7 +615,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "error_counts": dict(list(self._error_counts.items())[:5]),  # Top 5 errors
             "last_updates": {
                 dog_id: update_time.isoformat()
-                for dog_id, update_time in list(self._last_successful_update.items())[:5]
+                for dog_id, update_time in list(self._last_successful_update.items())[
+                    :5
+                ]
             },
         }
 
@@ -634,7 +653,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 await asyncio.wait_for(
                     asyncio.gather(*self._active_tasks, return_exceptions=True),
-                    timeout=3.0  # Reduced timeout
+                    timeout=3.0,  # Reduced timeout
                 )
             except asyncio.TimeoutError:
                 _LOGGER.warning("Some tasks did not shutdown gracefully")
@@ -643,7 +662,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await asyncio.gather(
             self._cache_manager.clear(),
             self._batch_manager.clear_pending(),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         # Clear data structures

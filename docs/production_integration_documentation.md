@@ -1,6 +1,6 @@
 # 🐾 PawControl Integration - Production Documentation
 
-**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Platinum  
+**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Platinum
 **Integration Type:** Hub | IoT Class: Local Push | Version: 1.0.0
 
 ---
@@ -8,7 +8,7 @@
 ## 📖 Table of Contents
 
 1. [Production Installation](#-production-installation)
-2. [Architecture Overview](#-architecture-overview)  
+2. [Architecture Overview](#-architecture-overview)
 3. [Complete Configuration Reference](#-complete-configuration-reference)
 4. [Platform & Entity Reference](#-platform--entity-reference)
 5. [Service API Documentation](#-service-api-documentation)
@@ -36,7 +36,7 @@
 **Recommended Requirements:**
 - Home Assistant OS or Supervised
 - RAM: 1GB+ available
-- Storage: 500MB+ free space  
+- Storage: 500MB+ free space
 - SSD storage for performance
 - Dedicated MQTT broker (optional)
 
@@ -103,17 +103,17 @@ graph TD
     B --> C[Data Managers]
     B --> D[Platform Entities]
     B --> E[Services]
-    
+
     C --> F[Dog Data Manager]
     C --> G[Feeding Manager]
     C --> H[Walk Manager]
     C --> I[Health Calculator]
-    
+
     D --> J[Sensor Platform]
     D --> K[Binary Sensor Platform]
     D --> L[Device Tracker Platform]
     D --> M[Switch/Button Platform]
-    
+
     E --> N[GPS Services]
     E --> O[Feeding Services]
     E --> P[Health Services]
@@ -177,7 +177,7 @@ pawcontrol:
   entity_profile: "standard"  # minimal, standard, comprehensive
   performance_mode: "balanced"  # minimal, balanced, full
   data_retention_days: 90
-  
+
   # Individual dog configurations
   dogs:
     - dog_id: "buddy"
@@ -187,7 +187,7 @@ pawcontrol:
       dog_weight: 25.5
       dog_size: "medium"
       dog_color: "golden"
-      
+
       # Module enablement
       modules:
         feeding: true
@@ -200,7 +200,7 @@ pawcontrol:
         grooming: true
         medication: true
         training: false
-      
+
       # GPS configuration
       gps_source: "device_tracker"
       gps_update_interval: 60
@@ -208,7 +208,7 @@ pawcontrol:
       gps_distance_filter: 10
       home_zone_radius: 100
       auto_walk_detection: true
-      
+
       # Geofencing
       geofencing: true
       geofence_zones:
@@ -222,7 +222,7 @@ pawcontrol:
           longitude: 13.405954
           radius: 20
           type: "restricted_area"
-      
+
       # Feeding configuration
       feeding_times:
         breakfast_time: "07:30"
@@ -234,14 +234,14 @@ pawcontrol:
       feeding_schedule_type: "flexible"
       portion_calculation: "auto"
       medication_with_meals: true
-      
+
       # Health tracking
       health_tracking: true
       weight_tracking: true
       medication_reminders: true
       vet_reminders: true
       grooming_interval: 28
-      
+
       # Notification settings
       notifications:
         enabled: true
@@ -251,14 +251,14 @@ pawcontrol:
         reminder_repeat_min: 30
         snooze_min: 15
         priority_notifications: true
-        
+
         # Specific notification types
         walk_reminders: true
         feeding_reminders: true
         health_alerts: true
         geofence_alerts: true
         emergency_notifications: true
-      
+
       # External integrations
       sources:
         door_sensor: "binary_sensor.front_door"
@@ -278,7 +278,7 @@ pawcontrol:
       dog_age: 2
       dog_weight: 18.0
       dog_size: "medium"
-      
+
       modules:
         feeding: true
         walk: true
@@ -287,13 +287,13 @@ pawcontrol:
         notifications: true
         dashboard: false  # Shared dashboard
         visitor: false
-        
+
       # Simpler GPS configuration
       gps_source: "manual"
       gps_update_interval: 120
       auto_walk_detection: false
       geofencing: false
-      
+
       # Different feeding schedule
       feeding_times:
         breakfast_time: "08:00"
@@ -313,7 +313,7 @@ pawcontrol:
 ```yaml
 # Production readiness checklist
 deployment_checklist:
-  
+
   # System Requirements
   system_requirements:
     - home_assistant_version: "≥2025.9.1"
@@ -321,7 +321,7 @@ deployment_checklist:
     - available_memory: "≥512MB"
     - available_storage: "≥100MB"
     - network_connectivity: "stable"
-    
+
   # Configuration Validation
   configuration:
     - config_validation: "passed"
@@ -329,7 +329,7 @@ deployment_checklist:
     - module_dependencies: "satisfied"
     - external_integrations: "tested"
     - security_settings: "reviewed"
-    
+
   # Performance Validation
   performance:
     - entity_count: "<500 per dog"
@@ -337,7 +337,7 @@ deployment_checklist:
     - update_frequency: "optimized"
     - cache_efficiency: ">70%"
     - response_times: "<2s"
-    
+
   # Testing Requirements
   testing:
     - basic_functionality: "tested"
@@ -345,7 +345,7 @@ deployment_checklist:
     - error_handling: "verified"
     - edge_cases: "covered"
     - integration_tests: "passed"
-    
+
   # Security & Privacy
   security:
     - data_encryption: "enabled"
@@ -364,19 +364,19 @@ production_config:
   entity_profile: "standard"  # Balance between features and performance
   performance_mode: "balanced"
   data_retention_days: 90
-  
+
   # Cache optimization
   cache_settings:
     max_size: 2000
     ttl_seconds: 300
     enable_compression: true
-    
+
   # Database optimization
   database_settings:
     connection_pool_size: 10
     query_timeout: 30
     enable_wal_mode: true
-    
+
   # Update intervals (optimized)
   update_intervals:
     gps_update: 60  # seconds
@@ -394,41 +394,41 @@ production_config:
 ```yaml
 # Compatible Home Assistant integrations
 core_integrations:
-  
+
   # Person & Device Tracking
   person_tracking:
     - name: "Person Integration"
       purpose: "Link dog location to owner presence"
       entities: ["person.owner", "person.family_member"]
-      
+
     - name: "Mobile App"
       purpose: "GPS source and notifications"
       features: ["location_tracking", "actionable_notifications", "widgets"]
-      
+
     - name: "Life360"
       purpose: "Family location tracking"
       integration: "automatic"
-      
+
   # Smart Home Devices
   smart_devices:
     - name: "Door/Window Sensors"
       purpose: "Automatic walk detection"
       devices: ["front_door", "back_door", "dog_door"]
-      
+
     - name: "Smart Cameras"
       purpose: "Visual confirmation of dog activities"
       features: ["motion_detection", "person_detection", "pet_detection"]
-      
+
     - name: "Smart Scales"
       purpose: "Automated weight tracking"
       integration: "api_based"
-      
+
   # Environmental
   environmental:
     - name: "Weather Integration"
       purpose: "Weather-aware walk recommendations"
       data: ["temperature", "precipitation", "air_quality"]
-      
+
     - name: "Sun Integration"
       purpose: "Daylight-based scheduling"
       features: ["sunrise", "sunset", "dawn", "dusk"]

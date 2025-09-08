@@ -22,12 +22,12 @@ class HassfestHACSValidator:
         """Initialize validator with integration path."""
         self.base_path = base_path
         self.integration_path = base_path / "custom_components" / "pawcontrol"
-        
+
         # Validation tracking
         self.errors: List[str] = []
         self.warnings: List[str] = []
         self.info: List[str] = []
-        
+
         # Manifest data
         self.manifest: Optional[Dict[str, Any]] = None
         self.load_manifest()
@@ -35,11 +35,11 @@ class HassfestHACSValidator:
     def load_manifest(self) -> None:
         """Load and validate manifest.json."""
         manifest_path = self.integration_path / "manifest.json"
-        
+
         if not manifest_path.exists():
             self.errors.append("manifest.json not found")
             return
-            
+
         try:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 self.manifest = json.load(f)
@@ -50,13 +50,13 @@ class HassfestHACSValidator:
 
     def validate_all(self) -> bool:
         """Run all validation checks.
-        
+
         Returns:
             True if all validations pass
         """
         print("🔍 HASSFEST & HACS VALIDATION")
         print("=" * 50)
-        
+
         if not self.manifest:
             print("❌ Cannot proceed without valid manifest.json")
             return False
@@ -73,7 +73,7 @@ class HassfestHACSValidator:
             ("Quality Scale", self.validate_quality_scale),
             ("Documentation", self.validate_documentation),
         ]
-        
+
         for check_name, check_func in checks:
             print(f"\n📋 {check_name}...")
             try:
@@ -85,7 +85,7 @@ class HassfestHACSValidator:
 
         # Print summary
         self._print_validation_summary()
-        
+
         return len(self.errors) == 0
 
     def validate_manifest_structure(self) -> None:
@@ -94,7 +94,7 @@ class HassfestHACSValidator:
             "domain", "name", "codeowners", "config_flow", "documentation",
             "iot_class", "issue_tracker", "quality_scale", "requirements", "version"
         ]
-        
+
         for key in required_keys:
             if key not in self.manifest:
                 raise ValueError(f"Missing required key: {key}")
@@ -118,7 +118,7 @@ class HassfestHACSValidator:
         codeowners = self.manifest.get("codeowners", [])
         if not isinstance(codeowners, list) or not codeowners:
             raise ValueError("codeowners must be a non-empty list")
-        
+
         for owner in codeowners:
             if not owner.startswith("@"):
                 raise ValueError(f"Codeowner must start with @: {owner}")
@@ -136,13 +136,13 @@ class HassfestHACSValidator:
         """Validate required file structure."""
         required_files = [
             "__init__.py",
-            "manifest.json", 
+            "manifest.json",
             "config_flow.py",
             "const.py",
             "strings.json",
             "translations/en.json",
         ]
-        
+
         for file_path in required_files:
             full_path = self.integration_path / file_path
             if not full_path.exists():
@@ -159,10 +159,10 @@ class HassfestHACSValidator:
             try:
                 with open(py_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
+
                 # Basic syntax check
                 compile(content, str(py_file), 'exec')
-                
+
             except SyntaxError as e:
                 raise SyntaxError(f"Syntax error in {py_file.name}: {e}")
             except UnicodeDecodeError:
@@ -173,7 +173,7 @@ class HassfestHACSValidator:
     def validate_code_quality(self) -> None:
         """Validate code quality standards."""
         py_files = list(self.integration_path.glob("*.py"))
-        
+
         for py_file in py_files:
             with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -194,7 +194,7 @@ class HassfestHACSValidator:
                 (r"hass\.loop", "Don't access event loop directly"),
                 (r"SUPPORT_", "Use new feature constants"),
             ]
-            
+
             for line_num, line in enumerate(lines, 1):
                 for pattern, suggestion in deprecated_patterns:
                     if re.search(pattern, line):
@@ -212,11 +212,11 @@ class HassfestHACSValidator:
         """Validate dependencies and requirements."""
         dependencies = self.manifest.get("dependencies", [])
         requirements = self.manifest.get("requirements", [])
-        
+
         # Validate dependencies format
         if not isinstance(dependencies, list):
             raise ValueError("dependencies must be a list")
-            
+
         # Check for circular dependencies
         domain = self.manifest.get("domain", "")
         if domain in dependencies:
@@ -225,11 +225,11 @@ class HassfestHACSValidator:
         # Validate requirements format
         if not isinstance(requirements, list):
             raise ValueError("requirements must be a list")
-            
+
         for req in requirements:
             if not isinstance(req, str):
                 raise ValueError(f"Invalid requirement format: {req}")
-            
+
             # Check for version specifiers
             if not re.match(r"^[a-zA-Z0-9_-]+([><=!]+[0-9.]+)?$", req):
                 self.warnings.append(f"Unusual requirement format: {req}")
@@ -244,7 +244,7 @@ class HassfestHACSValidator:
     def validate_translations(self) -> None:
         """Validate translation files."""
         translations_dir = self.integration_path / "translations"
-        
+
         if not translations_dir.exists():
             raise FileNotFoundError("translations directory missing")
 
@@ -276,15 +276,15 @@ class HassfestHACSValidator:
             try:
                 with open(strings_file, 'r', encoding='utf-8') as f:
                     strings_data = json.load(f)
-                
+
                 # Basic consistency check
                 if "config" in both:= (en_translations, strings_data):
                     en_config_keys = set(en_translations.get("config", {}).keys())
                     strings_config_keys = set(strings_data.get("config", {}).keys())
-                    
+
                     if en_config_keys != strings_config_keys:
                         self.warnings.append("strings.json and en.json config keys don't match")
-                        
+
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON in strings.json: {e}")
 
@@ -294,7 +294,7 @@ class HassfestHACSValidator:
         """Validate services configuration."""
         services_yaml = self.integration_path / "services.yaml"
         services_py = self.integration_path / "services.py"
-        
+
         # If services.py exists, services.yaml should also exist
         if services_py.exists() and not services_yaml.exists():
             self.warnings.append("services.py exists but services.yaml missing")
@@ -304,16 +304,16 @@ class HassfestHACSValidator:
                 import yaml
                 with open(services_yaml, 'r', encoding='utf-8') as f:
                     services_data = yaml.safe_load(f) or {}
-                
+
                 # Validate service structure
                 for service_name, service_config in services_data.items():
                     if not isinstance(service_config, dict):
                         raise ValueError(f"Invalid service config for {service_name}")
-                    
+
                     # Check required fields
                     if "description" not in service_config:
                         self.warnings.append(f"Service {service_name} missing description")
-                        
+
             except ImportError:
                 self.warnings.append("PyYAML not available for services validation")
             except Exception as e:
@@ -324,18 +324,18 @@ class HassfestHACSValidator:
     def validate_discovery_protocols(self) -> None:
         """Validate discovery protocol configurations."""
         discovery_protocols = ["dhcp", "homekit", "mqtt", "ssdp", "usb", "zeroconf"]
-        
+
         for protocol in discovery_protocols:
             if protocol in self.manifest:
                 protocol_config = self.manifest[protocol]
-                
+
                 if not isinstance(protocol_config, list):
                     raise ValueError(f"{protocol} configuration must be a list")
-                
+
                 for item in protocol_config:
                     if not isinstance(item, dict):
                         raise ValueError(f"Invalid {protocol} item: must be dict")
-                
+
                 # Protocol-specific validation
                 if protocol == "dhcp":
                     for item in protocol_config:
@@ -343,7 +343,7 @@ class HassfestHACSValidator:
                         for key in required_keys:
                             if key not in item:
                                 raise ValueError(f"DHCP item missing {key}")
-                
+
                 elif protocol == "zeroconf":
                     for item in protocol_config:
                         if "type" not in item:
@@ -393,14 +393,14 @@ class HassfestHACSValidator:
     def validate_quality_scale(self) -> None:
         """Validate quality scale requirements."""
         quality_scale = self.manifest.get("quality_scale", "")
-        
+
         if quality_scale == "platinum":
             # Platinum requirements
             platinum_requirements = [
                 ("diagnostics.py", "Diagnostics platform required"),
                 ("repairs.py", "Repairs platform required"),
             ]
-            
+
             for file_name, description in platinum_requirements:
                 if not (self.integration_path / file_name).exists():
                     self.warnings.append(f"Platinum quality: {description}")
@@ -410,7 +410,7 @@ class HassfestHACSValidator:
             if init_file.exists():
                 with open(init_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
+
                 if "async def async_setup" not in content:
                     self.warnings.append("Platinum quality: async_setup should be async")
 
@@ -432,7 +432,7 @@ class HassfestHACSValidator:
         elif not doc_url.startswith(("http://", "https://")):
             raise ValueError(f"Invalid documentation URL: {doc_url}")
 
-        # Check issue tracker URL  
+        # Check issue tracker URL
         issue_url = self.manifest.get("issue_tracker", "")
         if not issue_url:
             self.warnings.append("Issue tracker URL missing")
@@ -442,14 +442,14 @@ class HassfestHACSValidator:
         # Check for inline documentation
         py_files = list(self.integration_path.glob("*.py"))
         files_with_docstrings = 0
-        
+
         for py_file in py_files:
             if py_file.name.startswith("test_"):
                 continue
-                
+
             with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
+
             # Check for module docstring
             if '"""' in content[:500]:  # Docstring should be near top
                 files_with_docstrings += 1
@@ -465,43 +465,43 @@ class HassfestHACSValidator:
         print("\n" + "=" * 50)
         print("HASSFEST & HACS VALIDATION SUMMARY")
         print("=" * 50)
-        
+
         if self.errors:
             print(f"\n❌ ERRORS ({len(self.errors)}):")
             for error in self.errors:
                 print(f"  • {error}")
-        
+
         if self.warnings:
             print(f"\n⚠️  WARNINGS ({len(self.warnings)}):")
             for warning in self.warnings[:10]:  # Show first 10
                 print(f"  • {warning}")
             if len(self.warnings) > 10:
                 print(f"  ... and {len(self.warnings) - 10} more")
-        
+
         if self.info:
             print(f"\n✅ PASSED CHECKS ({len(self.info)}):")
             for info in self.info:
                 print(f"  • {info}")
-        
+
         print("\n" + "=" * 50)
-        
+
         if not self.errors:
             print("🎉 HASSFEST & HACS VALIDATION PASSED!")
             print("✅ Integration meets distribution standards")
         else:
             print("❌ VALIDATION FAILED")
             print("🔧 Fix errors before distribution")
-        
+
         print("=" * 50)
 
 
 def main():
     """Main validation entry point."""
     base_path = Path(__file__).parent
-    
+
     validator = HassfestHACSValidator(base_path)
     success = validator.validate_all()
-    
+
     # Return appropriate exit code
     sys.exit(0 if success else 1)
 

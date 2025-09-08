@@ -65,7 +65,7 @@ ALL_PLATFORMS: Final[list[Platform]] = PLATFORMS
 
 # OPTIMIZED: Reduced timeouts for modern hardware and profile-based setup
 SETUP_TIMEOUT_FAST = 6  # Reduced from 8 seconds
-SETUP_TIMEOUT_NORMAL = 10  # Reduced from 12 seconds  
+SETUP_TIMEOUT_NORMAL = 10  # Reduced from 12 seconds
 REFRESH_TIMEOUT = 3  # Reduced from 5 seconds
 
 
@@ -86,29 +86,54 @@ def get_platforms_for_profile_and_modules(
     """
     # OPTIMIZED: Static mapping for better performance
     MODULE_PLATFORM_MAP: Final = {
-        MODULE_GPS: frozenset([
-            Platform.DEVICE_TRACKER, Platform.SENSOR, Platform.BINARY_SENSOR,
-            Platform.BUTTON, Platform.NUMBER
-        ]),
-        MODULE_FEEDING: frozenset([
-            Platform.SENSOR, Platform.BUTTON, Platform.SELECT, Platform.DATETIME,
-            Platform.BINARY_SENSOR, Platform.NUMBER, Platform.TEXT
-        ]),
-        MODULE_HEALTH: frozenset([
-            Platform.SENSOR, Platform.NUMBER, Platform.DATE, Platform.BINARY_SENSOR,
-            Platform.BUTTON, Platform.SELECT, Platform.TEXT
-        ]),
-        MODULE_WALK: frozenset([
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.NUMBER, Platform.SELECT, Platform.TEXT
-        ]),
-        MODULE_NOTIFICATIONS: frozenset([
-            Platform.SWITCH, Platform.SELECT, Platform.BUTTON, Platform.TEXT
-        ]),
+        MODULE_GPS: frozenset(
+            [
+                Platform.DEVICE_TRACKER,
+                Platform.SENSOR,
+                Platform.BINARY_SENSOR,
+                Platform.BUTTON,
+                Platform.NUMBER,
+            ]
+        ),
+        MODULE_FEEDING: frozenset(
+            [
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.SELECT,
+                Platform.DATETIME,
+                Platform.BINARY_SENSOR,
+                Platform.NUMBER,
+                Platform.TEXT,
+            ]
+        ),
+        MODULE_HEALTH: frozenset(
+            [
+                Platform.SENSOR,
+                Platform.NUMBER,
+                Platform.DATE,
+                Platform.BINARY_SENSOR,
+                Platform.BUTTON,
+                Platform.SELECT,
+                Platform.TEXT,
+            ]
+        ),
+        MODULE_WALK: frozenset(
+            [
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.BINARY_SENSOR,
+                Platform.NUMBER,
+                Platform.SELECT,
+                Platform.TEXT,
+            ]
+        ),
+        MODULE_NOTIFICATIONS: frozenset(
+            [Platform.SWITCH, Platform.SELECT, Platform.BUTTON, Platform.TEXT]
+        ),
         MODULE_DASHBOARD: frozenset([Platform.SENSOR, Platform.TEXT]),
-        MODULE_VISITOR: frozenset([
-            Platform.SWITCH, Platform.BINARY_SENSOR, Platform.BUTTON
-        ]),
+        MODULE_VISITOR: frozenset(
+            [Platform.SWITCH, Platform.BINARY_SENSOR, Platform.BUTTON]
+        ),
     }
 
     # Core platforms that are ALWAYS required
@@ -118,17 +143,27 @@ def get_platforms_for_profile_and_modules(
     PROFILE_PLATFORM_PRIORITIES: Final = {
         "basic": [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR],
         "standard": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.SELECT, Platform.SWITCH,
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.SELECT,
+            Platform.SWITCH,
         ],
         "advanced": list(Platform),  # All platforms for advanced users
         "gps_focus": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.DEVICE_TRACKER, Platform.NUMBER,
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.DEVICE_TRACKER,
+            Platform.NUMBER,
         ],
         "health_focus": [
-            Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR,
-            Platform.NUMBER, Platform.DATE, Platform.TEXT,
+            Platform.SENSOR,
+            Platform.BUTTON,
+            Platform.BINARY_SENSOR,
+            Platform.NUMBER,
+            Platform.DATE,
+            Platform.TEXT,
         ],
     }
 
@@ -153,9 +188,16 @@ def get_platforms_for_profile_and_modules(
 
     # OPTIMIZED: Pre-defined optimal loading order
     PLATFORM_ORDER: Final = [
-        Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON,
-        Platform.SWITCH, Platform.SELECT, Platform.NUMBER,
-        Platform.TEXT, Platform.DEVICE_TRACKER, Platform.DATE, Platform.DATETIME,
+        Platform.SENSOR,
+        Platform.BINARY_SENSOR,
+        Platform.BUTTON,
+        Platform.SWITCH,
+        Platform.SELECT,
+        Platform.NUMBER,
+        Platform.TEXT,
+        Platform.DEVICE_TRACKER,
+        Platform.DATE,
+        Platform.DATETIME,
     ]
 
     # Filter and sort based on optimal order
@@ -233,7 +275,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .health_calculator import HealthCalculator
     from .notifications import PawControlNotificationManager
     from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
-    from .utils import performance_monitor, validate_dog_id, validate_enum_value, validate_weight_enhanced, safe_convert
+    from .utils import (
+        performance_monitor,
+        safe_convert,
+        validate_dog_id,
+        validate_enum_value,
+        validate_weight_enhanced,
+    )
     from .walk_manager import WalkManager
 
     # Enhanced setup context manager for proper cleanup
@@ -379,7 +427,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # Calculate estimated entity reduction
                 total_dogs = len(dogs_config)
                 estimated_entities = sum(
-                    entity_factory.estimate_entity_count(entity_profile, dog.get("modules", {}))
+                    entity_factory.estimate_entity_count(
+                        entity_profile, dog.get("modules", {})
+                    )
                     for dog in dogs_config
                 )
 
@@ -399,10 +449,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             for i in range(0, len(needed_platforms), 3)
                         ]
 
-                        await asyncio.gather(*[
-                            hass.config_entries.async_forward_entry_setups(entry, group)
-                            for group in platform_groups
-                        ])
+                        await asyncio.gather(
+                            *[
+                                hass.config_entries.async_forward_entry_setups(
+                                    entry, group
+                                )
+                                for group in platform_groups
+                            ]
+                        )
                     else:
                         # Few dogs: Direct parallel setup
                         await hass.config_entries.async_forward_entry_setups(
@@ -463,8 +517,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     dogs_config,
                                     options={
                                         "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
-                                        "theme": entry.options.get("dashboard_theme", "default"),
-                                        "mode": entry.options.get("dashboard_mode", "full"),
+                                        "theme": entry.options.get(
+                                            "dashboard_theme", "default"
+                                        ),
+                                        "mode": entry.options.get(
+                                            "dashboard_mode", "full"
+                                        ),
                                         "entity_profile": entity_profile,
                                     },
                                 )
@@ -549,8 +607,13 @@ async def _async_validate_dogs_configuration(dogs_config: list[DogConfigData]) -
     """
     # Lazy import for better performance
     from .exceptions import ConfigurationError
-    from .utils import validate_dog_id, validate_enum_value, validate_weight_enhanced, safe_convert
-    
+    from .utils import (
+        safe_convert,
+        validate_dog_id,
+        validate_enum_value,
+        validate_weight_enhanced,
+    )
+
     seen_dog_ids = set()
     seen_dog_names = set()
 
@@ -757,7 +820,9 @@ async def _async_cleanup_runtime_data(
         component = runtime_data.get(component_name)
         if component and hasattr(component, method_name):
             shutdown_tasks.append(
-                _async_shutdown_component(component_name, getattr(component, method_name)())
+                _async_shutdown_component(
+                    component_name, getattr(component, method_name)()
+                )
             )
 
     # Execute all shutdowns concurrently with reduced timeout
@@ -795,7 +860,7 @@ async def _async_cleanup_legacy_entry_data(entry_data: dict[str, Any]) -> None:
 
     # OPTIMIZED: Parallel cleanup for legacy components
     cleanup_tasks = []
-    
+
     legacy_components = [
         ("service_manager", entry_data.get("service_manager")),
         ("notifications", entry_data.get("notifications")),
@@ -807,11 +872,15 @@ async def _async_cleanup_legacy_entry_data(entry_data: dict[str, Any]) -> None:
         if component:
             if hasattr(component, "async_unregister_services"):
                 cleanup_tasks.append(
-                    _async_shutdown_component(component_name, component.async_unregister_services())
+                    _async_shutdown_component(
+                        component_name, component.async_unregister_services()
+                    )
                 )
             elif hasattr(component, "async_shutdown"):
                 cleanup_tasks.append(
-                    _async_shutdown_component(component_name, component.async_shutdown())
+                    _async_shutdown_component(
+                        component_name, component.async_shutdown()
+                    )
                 )
 
     if cleanup_tasks:
