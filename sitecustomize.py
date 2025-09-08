@@ -144,7 +144,11 @@ except Exception:  # pragma: no cover - create minimal stubs
     async def async_track_time_interval(*args, **kwargs):  # pragma: no cover - stub
         return None
 
+    async def async_track_time(*args, **kwargs):  # pragma: no cover - stub
+        return None
+
     event.async_track_time_interval = async_track_time_interval  # type: ignore[attr-defined]
+    event.async_track_time = async_track_time  # type: ignore[attr-defined]
     helpers.event = event  # type: ignore[attr-defined]
     sys.modules["homeassistant.helpers.event"] = event
 
