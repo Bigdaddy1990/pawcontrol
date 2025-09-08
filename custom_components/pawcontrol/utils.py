@@ -658,7 +658,17 @@ def create_device_info(dog_id: str, dog_name: str) -> dict[str, Any]:
     }
 
 
-def is_within_quiet_hours(now: datetime, start: time, end: time) -> bool:
+def is_within_quiet_hours(now: datetime, start: str | time, end: str | time) -> bool:
+    """Return True if current time is within the quiet hours range."""
+    # Convert string times to time objects if necessary
+    if isinstance(start, str):
+        start = datetime.strptime(start, "%H:%M").time()
+    if isinstance(end, str):
+        end = datetime.strptime(end, "%H:%M").time()
+
+    if start <= end:
+        return start <= now.time() <= end
+    return now.time() >= start or now.time() <= end
     """Return True if current time is within the quiet hours range."""
     if start <= end:
         return start <= now.time() <= end
