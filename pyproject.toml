@@ -12,11 +12,11 @@ dependencies = [
     "aiousbwatcher>=1.1.0",
     "asyncio-mqtt>=0.16.0",
     "pyserial>=3.5",
-    "aiodhcpwatcher>=1.2.1",
+    "aiodhcpwatcher>=1.2.1"
 ]
 
 [tool.pytest.ini_options]
-addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml"
+addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 -cov --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml"
 asyncio_mode = "auto"
 markers = ["asyncio: mark a test as using asyncio"]
 

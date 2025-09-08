@@ -1,5 +1,5 @@
 codecov:
-  require_ci_to_pass: true
+  require_ci_to_pass: false
 
 coverage:
   precision: 2
@@ -15,8 +15,9 @@ coverage:
         target: auto
         threshold: 1%
 
-comment: false
+comment: true
 
 ignore:
   - "tests/"
   - "docs/"
+  - "scripts/"
