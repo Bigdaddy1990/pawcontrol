@@ -4,6 +4,8 @@ Updates config_flow.py to include entity profile selection.
 Reduces entity count from 54+ to 8-18 per dog based on user needs.
 """
 
+import voluptuous as vol
+
 # Add to config_flow.py - Profile selection step
 
 ENTITY_PROFILES = {
