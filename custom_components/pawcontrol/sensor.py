@@ -427,15 +427,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         return float(scores.get(status, 70))
 
 
-class PawControlActivityLevelSensor(PawControlActivityScoreSensor):
-    """Backward-compatible alias for activity score sensor."""
-
-    pass
-
-
 # Essential Feeding Sensors
-
-
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
 
