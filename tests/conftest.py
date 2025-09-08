@@ -39,6 +39,7 @@ def hass(event_loop):
     instance.loop = event_loop
     return instance
 
+
 @pytest.fixture
 def mock_config_entry():
     """Return a mock config entry."""
@@ -71,8 +72,8 @@ def mock_config_entry():
         unique_id="test_unique_id",
         discovery_keys=MappingProxyType({}),
         subentries_data=[],
-        )
-        
+    )
+
 
 @pytest.fixture
 def mock_dog_config():

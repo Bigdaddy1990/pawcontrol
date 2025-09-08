@@ -124,6 +124,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     entity_platform.AddEntitiesCallback = Callable[..., None]  # type: ignore[attr-defined]
 
     storage = ModuleType("homeassistant.helpers.storage")
+
     class Store:  # pragma: no cover - stub
         def __init__(self, *args, **kwargs):
             self.data = None
@@ -139,6 +140,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     sys.modules["homeassistant.helpers.storage"] = storage
 
     event = ModuleType("homeassistant.helpers.event")
+
     async def async_track_time_interval(*args, **kwargs):  # pragma: no cover - stub
         return None
 
@@ -147,6 +149,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     sys.modules["homeassistant.helpers.event"] = event
 
     setup = ModuleType("homeassistant.setup")
+
     async def async_setup_component(*args, **kwargs):  # pragma: no cover - stub
         return True
 
@@ -154,6 +157,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     sys.modules["homeassistant.setup"] = setup
 
     issue_registry = ModuleType("homeassistant.helpers.issue_registry")
+
     class IssueSeverity(StrEnum):  # pragma: no cover - stub
         WARNING = "warning"
 
@@ -166,6 +170,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     sys.modules["homeassistant.helpers.issue_registry"] = issue_registry
 
     restore_state = ModuleType("homeassistant.helpers.restore_state")
+
     class RestoreEntity:  # pragma: no cover - stub
         pass
 
@@ -254,6 +259,7 @@ except Exception:  # pragma: no cover - create minimal util package
     util.slugify = slugify  # type: ignore[attr-defined]
 
     location = ModuleType("homeassistant.util.location")
+
     def distance(*args, **kwargs):  # pragma: no cover - stub
         return 0.0
 
