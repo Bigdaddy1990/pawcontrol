@@ -43,6 +43,10 @@ from .const import (
     CONF_MEALS_PER_DAY,
     CONF_MODULES,
     CONF_SNACK_TIMES,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    GPS_ACCURACY_FILTER_SELECTOR,
+    GPS_UPDATE_INTERVAL_SELECTOR,
     MAX_DOG_AGE,
     MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
@@ -343,27 +347,13 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Optional(
-                    "gps_update_interval", default=60
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=30,
-                        max=600,
-                        step=10,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="seconds",
-                    )
-                ),
+                    "gps_update_interval",
+                    default=DEFAULT_GPS_UPDATE_INTERVAL,
+                ): GPS_UPDATE_INTERVAL_SELECTOR,
                 vol.Optional(
-                    "gps_accuracy_filter", default=100
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=5,
-                        max=500,
-                        step=5,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="meters",
-                    )
-                ),
+                    "gps_accuracy_filter",
+                    default=DEFAULT_GPS_ACCURACY_FILTER,
+                ): GPS_ACCURACY_FILTER_SELECTOR,
                 vol.Optional(
                     "enable_geofencing", default=True
                 ): selector.BooleanSelector(),
