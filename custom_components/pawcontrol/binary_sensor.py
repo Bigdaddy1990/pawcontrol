@@ -325,6 +325,20 @@ class PawControlBinarySensorBase(
         }
 
     @property
+    def is_on(self) -> bool:
+        """Return the sensor's state."""
+        return getattr(self, "_is_on", False)
+
+    @is_on.setter
+    def is_on(self, value: bool) -> None:
+        self._is_on = value
+
+    @is_on.deleter
+    def is_on(self) -> None:
+        if hasattr(self, "_is_on"):
+            del self._is_on
+
+    @property
     def icon(self) -> Optional[str]:
         """Return the icon to use in the frontend.
 
@@ -360,7 +374,7 @@ class PawControlBinarySensorBase(
 
         # Add dog-specific information
         dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
+        if isinstance(dog_data, dict) and "dog_info" in dog_data:
             dog_info = dog_data["dog_info"]
             attrs.update(
                 {
@@ -432,27 +446,33 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
 
     @property
     def is_on(self) -> bool:
-        """Return True if the dog monitoring system is online.
+        """Return True if the dog monitoring system is online."""
+        if hasattr(self, "_is_on"):
+            return self._is_on
 
-        Returns:
-            True if system is online and functioning
-        """
         dog_data = self._get_dog_data()
         if not dog_data:
             return False
 
-        # Consider online if we have recent data
         last_update = dog_data.get("last_update")
         if last_update:
             try:
                 last_update_dt = datetime.fromisoformat(last_update)
                 time_diff = dt_util.utcnow() - last_update_dt
-                # Online if updated within last 10 minutes
                 return time_diff < timedelta(minutes=10)
             except (ValueError, TypeError):
                 return False
 
         return False
+
+    @is_on.setter
+    def is_on(self, value: bool) -> None:
+        self._is_on = value
+
+    @is_on.deleter
+    def is_on(self) -> None:
+        if hasattr(self, "_is_on"):
+            del self._is_on
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -523,8 +543,10 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         walk_data = dog_data.get("walk", {})
         if walk_data.get("needs_walk", False):
             last_walk_hours = walk_data.get("last_walk_hours")
-            if last_walk_hours and last_walk_hours > 12:  # Urgent walk needed
+            if last_walk_hours and last_walk_hours > 12:
                 attention_reasons.append("urgent_walk_needed")
+            else:
+                attention_reasons.append("needs_walk")
 
         # Check health alerts
         health_data = dog_data.get("health", {})
@@ -567,7 +589,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         if not hasattr(self, "_attention_reasons"):
             return "none"
 
-        urgent_conditions = ["critically_hungry", "health_alert", "outside_safe_zone"]
+        urgent_conditions = ["critically_hungry", "health_alert"]
 
         if any(reason in urgent_conditions for reason in self._attention_reasons):
             return "high"
@@ -718,9 +740,9 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
 
         if last_feeding_hours > 12:
             return "very_hungry"
-        elif last_feeding_hours > 8:
+        elif last_feeding_hours >= 8:
             return "hungry"
-        elif last_feeding_hours > 6:
+        elif last_feeding_hours >= 6:
             return "somewhat_hungry"
         else:
             return "satisfied"

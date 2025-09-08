@@ -648,6 +648,13 @@ def create_device_info(dog_id: str, dog_name: str) -> dict[str, Any]:
     }
 
 
+def is_within_quiet_hours(now: datetime, start: time, end: time) -> bool:
+    """Return True if current time is within the quiet hours range."""
+    if start <= end:
+        return start <= now.time() <= end
+    return now.time() >= start or now.time() <= end
+
+
 # OPTIMIZED: Legacy compatibility with deprecation paths
 def safe_float(value: Any, default: float = 0.0) -> float:
     """Legacy compatibility - use safe_convert instead."""
