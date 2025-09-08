@@ -286,6 +286,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             async with asyncio.timeout(SETUP_TIMEOUT_FAST):
                 # Initialize coordinator with profile information
                 coordinator = PawControlCoordinator(hass, entry)
+                await coordinator.async_config_entry_first_refresh()
 
                 # Initialize data manager with async context and validation
                 data_manager = PawControlDataManager(hass, entry.entry_id)
