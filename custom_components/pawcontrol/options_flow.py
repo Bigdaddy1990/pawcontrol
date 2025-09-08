@@ -40,6 +40,7 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_GPS_UPDATE_INTERVAL,
@@ -1521,20 +1522,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "full",
-                                "label": "Full - All information displayed",
-                            },
-                            {
-                                "value": "cards",
-                                "label": "Cards - Organized card layout",
-                            },
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Essential information only",
-                            },
-                        ],
+                        options=DASHBOARD_MODE_SELECTOR_OPTIONS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
