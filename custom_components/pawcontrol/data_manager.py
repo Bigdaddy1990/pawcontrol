@@ -911,9 +911,10 @@ class PawControlDataManager:
         duration_minutes = 0
 
         if start_str:
-            with suppress(Exception):
+            with suppress(ValueError, TypeError):
                 start_time = datetime.fromisoformat(start_str)
                 duration_minutes = int((timestamp - start_time).total_seconds() / 60)
+
 
         # Update walk entry
         walk_updates = {
