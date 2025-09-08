@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any, Optional
@@ -327,20 +328,22 @@ class PawControlBinarySensorBase(
     @property
     def is_on(self) -> bool:
         """Return the sensor's state, allowing for test overrides."""
-        if hasattr(self, "_is_on"):
-            return self._is_on
+        if hasattr(self, "_test_is_on"):
+            return self._test_is_on
         return self._get_is_on_state()
 
     @is_on.setter
     def is_on(self, value: bool) -> None:
         """Set the sensor's state for testing."""
-        self._is_on = value
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            raise AttributeError("is_on is read-only")
+        self._test_is_on = value
 
     @is_on.deleter
     def is_on(self) -> None:
         """Delete the test override for the sensor's state."""
-        if hasattr(self, "_is_on"):
-            del self._is_on
+        if hasattr(self, "_test_is_on"):
+            del self._test_is_on
 
     def _get_is_on_state(self) -> bool:
         """Return the actual state of the sensor. Subclasses should override."""
