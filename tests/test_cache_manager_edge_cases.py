@@ -1414,25 +1414,29 @@ class TestLargeScalePerformanceValidation:
         categories = ["dog", "cat", "bird", "fish", "rabbit"]
         operations = ["feeding", "health", "exercise", "grooming", "training"]
 
-        keys_created = 0
-        for category in categories:
-            for animal_id in range(200):  # 200 animals per category
-                for operation in operations:
-                    key = f"{category}_{animal_id:03d}_{operation}"
-                    await cache.set(
-                        key,
-                        {
-                            "category": category,
-                            "animal_id": animal_id,
-                            "operation": operation,
-                            "timestamp": dt_util.utcnow().isoformat(),
-                        },
-                    )
-                    keys_created += 1
+        async def populate_cache() -> None:
+            """Populate cache with a large set of patterned keys."""
+            keys_created = 0
+            for category in categories:
+                for animal_id in range(200):  # 200 animals per category
+                    for operation in operations:
+                        key = f"{category}_{animal_id:03d}_{operation}"
+                        await cache.set(
+                            key,
+                            {
+                                "category": category,
+                                "animal_id": animal_id,
+                                "operation": operation,
+                                "timestamp": dt_util.utcnow().isoformat(),
+                            },
+                        )
+                        keys_created += 1
 
-                    # Yield occasionally to prevent blocking
-                    if keys_created % 100 == 0:
-                        await asyncio.sleep(0.001)
+                        # Yield occasionally to prevent blocking
+                        if keys_created % 100 == 0:
+                            await asyncio.sleep(0.001)
+
+        await populate_cache()
 
         # Test various pattern matching scenarios
         pattern_tests = [
@@ -1454,20 +1458,9 @@ class TestLargeScalePerformanceValidation:
             # Result should be reasonable
             assert result >= 0  # At minimum should not error
 
-            # Reset cache for next test
+            # Reset and repopulate cache for next test
             await cache.clear()
-            for category in categories:
-                for animal_id in range(200):
-                    for operation in operations:
-                        key = f"{category}_{animal_id:03d}_{operation}"
-                        await cache.set(
-                            key,
-                            {
-                                "category": category,
-                                "animal_id": animal_id,
-                                "operation": operation,
-                            },
-                        )
+            await populate_cache()
 
     @pytest.mark.asyncio
     async def test_memory_usage_under_sustained_load(self):
