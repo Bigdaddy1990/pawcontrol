@@ -617,8 +617,9 @@ class PawControlLastGroomingDate(PawControlDateBase):
         grooming_str = dog_data.get("health", {}).get("last_grooming")
         if grooming_str:
             with suppress(ValueError, TypeError):
-                parsed_dt = dt_util.parse_datetime(grooming_str)
-                return parsed_dt.date() if parsed_dt else None
+                if parsed_dt := dt_util.parse_datetime(grooming_str):
+                    return parsed_dt.date()
+
             with suppress(ValueError, TypeError):
                 return dt_util.parse_date(grooming_str)
         return None
