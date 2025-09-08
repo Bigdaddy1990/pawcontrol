@@ -511,6 +511,10 @@ class _StrEnum(StrEnum):  # pragma: no cover - simple StrEnum base
 
 
 _register_component(
+    "api",
+)
+
+_register_component(
     "button",
     ButtonDeviceClass=_StrEnum("ButtonDeviceClass", {"RESTART": "restart"}),
     ButtonEntity=_BaseEntity,
@@ -547,7 +551,9 @@ _register_component(
     "number",
     NumberDeviceClass=_StrEnum("NumberDeviceClass", {"NONE": "none"}),
     NumberEntity=_BaseEntity,
-    NumberMode=_StrEnum("NumberMode", {"BOX": "box", "AUTO": "auto"}),
+    NumberMode=_StrEnum(
+        "NumberMode", {"AUTO": "auto", "BOX": "box", "SLIDER": "slider"}
+    ),
 )
 _register_component("select", SelectEntity=_BaseEntity)
 _register_component(

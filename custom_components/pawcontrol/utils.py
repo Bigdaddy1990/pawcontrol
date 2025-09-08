@@ -596,6 +596,16 @@ def is_within_time_range_enhanced(
         return False, f"Invalid time format: {err}"
 
 
+def is_within_quiet_hours(
+    quiet_start: str, quiet_end: str, now: datetime | None = None
+) -> bool:
+    """Return True if ``now`` falls within the configured quiet hours."""
+
+    now = now or dt_util.utcnow()
+    in_range, _ = is_within_time_range_enhanced(now, quiet_start, quiet_end)
+    return in_range
+
+
 def sanitize_filename_advanced(
     filename: str, max_length: int = 255, replacement_char: str = "_"
 ) -> str:
@@ -692,6 +702,7 @@ __all__ = (
     "deep_merge_dicts",
     "deep_merge_dicts_optimized",
     "is_within_time_range_enhanced",
+    "is_within_quiet_hours",
     "sanitize_filename_advanced",
     # Performance
     "performance_monitor",
