@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Final
 
 from homeassistant.const import Platform
+from homeassistant.helpers import selector
 
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final = 1
@@ -144,6 +145,27 @@ DEFAULT_SNOOZE_MIN: Final = 15
 DEFAULT_DATA_RETENTION_DAYS: Final = 90
 DEFAULT_GROOMING_INTERVAL: Final = 28
 
+# OPTIMIZED: Reusable selector configurations
+GPS_UPDATE_INTERVAL_SELECTOR: Final = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=30,
+        max=600,
+        step=10,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="seconds",
+    )
+)
+
+GPS_ACCURACY_FILTER_SELECTOR: Final = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=5,
+        max=500,
+        step=5,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="meters",
+    )
+)
+
 # OPTIMIZED: Food types as tuple for immutability
 FOOD_TYPES: Final = ("dry_food", "wet_food", "barf", "home_cooked", "mixed")
 
@@ -208,6 +230,20 @@ ACTIVITY_LEVELS: Final = ("very_low", "low", "normal", "high", "very_high")
 
 # OPTIMIZED: Dashboard configuration
 DASHBOARD_MODES: Final = ("full", "cards", "minimal")
+DASHBOARD_MODE_SELECTOR_OPTIONS: Final = [
+    {
+        "value": "full",
+        "label": "Full - Complete dashboard with all features",
+    },
+    {
+        "value": "cards",
+        "label": "Cards - Organized card-based layout",
+    },
+    {
+        "value": "minimal",
+        "label": "Minimal - Essential information only",
+    },
+]
 
 CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
 CONF_DASHBOARD_AUTO_CREATE: Final = "dashboard_auto_create"

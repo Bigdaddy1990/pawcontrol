@@ -594,6 +594,25 @@ class TestUPnPDiscovery:
             assert devices == []
 
 
+def _make_discovered_device(**overrides) -> DiscoveredDevice:
+    """Create a DiscoveredDevice with default test values."""
+    base = {
+        "device_id": "device1",
+        "name": "GPS Tracker",
+        "category": "gps_tracker",
+        "manufacturer": "Tractive",
+        "model": "GPS Pro",
+        "connection_type": "usb",
+        "connection_info": {},
+        "capabilities": [],
+        "discovered_at": "2025-01-15T10:00:00Z",
+        "confidence": 0.8,
+        "metadata": {},
+    }
+    base.update(overrides)
+    return DiscoveredDevice(**base)
+
+
 class TestDeviceDeduplication:
     """Test device deduplication logic."""
 
@@ -605,19 +624,7 @@ class TestDeviceDeduplication:
 
     def test_deduplicate_devices_identical(self, discovery):
         """Test deduplication of identical devices."""
-        device1 = DiscoveredDevice(
-            device_id="device1",
-            name="Test Device",
-            category="gps_tracker",
-            manufacturer="Tractive",
-            model="GPS Pro",
-            connection_type="usb",
-            connection_info={},
-            capabilities=[],
-            discovered_at="2025-01-15T10:00:00Z",
-            confidence=0.8,
-            metadata={},
-        )
+        device1 = _make_discovered_device(name="Test Device")
 
         device2 = device1._replace(device_id="device2", confidence=0.9)
 
@@ -630,32 +637,15 @@ class TestDeviceDeduplication:
 
     def test_deduplicate_devices_different(self, discovery):
         """Test deduplication preserves different devices."""
-        device1 = DiscoveredDevice(
-            device_id="device1",
-            name="GPS Tracker",
-            category="gps_tracker",
-            manufacturer="Tractive",
-            model="GPS Pro",
-            connection_type="usb",
-            connection_info={},
-            capabilities=[],
-            discovered_at="2025-01-15T10:00:00Z",
-            confidence=0.8,
-            metadata={},
-        )
+        device1 = _make_discovered_device()
 
-        device2 = DiscoveredDevice(
+        device2 = _make_discovered_device(
             device_id="device2",
             name="Smart Feeder",
             category="smart_feeder",
             manufacturer="PetNet",
             model="Feeder Pro",
             connection_type="network",
-            connection_info={},
-            capabilities=[],
-            discovered_at="2025-01-15T10:00:00Z",
-            confidence=0.8,
-            metadata={},
         )
 
         devices = [device1, device2]
@@ -794,32 +784,15 @@ class TestDiscoveryAccessors:
         discovery = PawControlDiscovery(hass)
 
         # Add test devices
-        device1 = DiscoveredDevice(
-            device_id="device1",
-            name="GPS Tracker",
-            category="gps_tracker",
-            manufacturer="Tractive",
-            model="GPS Pro",
-            connection_type="usb",
-            connection_info={},
-            capabilities=[],
-            discovered_at="2025-01-15T10:00:00Z",
-            confidence=0.8,
-            metadata={},
-        )
+        device1 = _make_discovered_device()
 
-        device2 = DiscoveredDevice(
+        device2 = _make_discovered_device(
             device_id="device2",
             name="Smart Feeder",
             category="smart_feeder",
             manufacturer="PetNet",
             model="Feeder Pro",
             connection_type="network",
-            connection_info={},
-            capabilities=[],
-            discovered_at="2025-01-15T10:00:00Z",
-            confidence=0.8,
-            metadata={},
         )
 
         discovery._discovered_devices["device1"] = device1

@@ -34,6 +34,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
+from .utils import create_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -180,14 +181,8 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         self._attr_native_unit_of_measurement = unit_of_measurement
         self._attr_icon = icon
         self._attr_entity_category = entity_category
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Monitoring",
-            "sw_version": "2.0.0",  # Updated version for profile-based system
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
+        self._attr_device_info = create_device_info(dog_id, dog_name)
 
         # OPTIMIZATION: Per-update module data cache
         self._module_cache: dict[str, Any] = {}
