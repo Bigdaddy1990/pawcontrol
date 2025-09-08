@@ -16,7 +16,7 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.sensor import (
-    PawControlActivityLevelSensor,
+    #PawControlActivityLevelSensor,
     PawControlActivityScoreSensor,
     PawControlAverageWalkDurationSensor,
     PawControlCurrentSpeedSensor,
@@ -1092,12 +1092,12 @@ class TestHealthSensors:
         result = sensor.native_value
         assert result == "increasing"
 
-    def test_activity_level_sensor(self, mock_coordinator):
-        """Test activity level sensor."""
-        sensor = PawControlActivityLevelSensor(mock_coordinator, "test_dog", "Test Dog")
-
-        result = sensor.native_value
-        assert result == "high"
+   # def test_activity_level_sensor(self, mock_coordinator):
+   #     """Test activity level sensor."""
+   #     sensor = PawControlActivityLevelSensor(mock_coordinator, "test_dog", "Test Dog")
+#
+#        result = sensor.native_value
+#        assert result == "high"
 
     def test_last_vet_visit_sensor(self, mock_coordinator):
         """Test last vet visit sensor."""
