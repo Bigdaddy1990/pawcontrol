@@ -289,13 +289,18 @@ class HassfestHACSValidator:
                     strings_data = json.load(f)
 
                 # Basic consistency check
-                if "config" in en_translations and "config" in strings_data:
-                    en_config_keys = set(en_translations.get("config", {}).keys())
-                    strings_config_keys = set(strings_data.get("config", {}).keys())
-
-                    if en_config_keys != strings_config_keys:
+                common_sections = set(en_translations.keys()) & set(strings_data.keys())
+                for section in common_sections:
+                    en_section_data = en_translations.get(section)
+                    strings_section_data = strings_data.get(section)
+                    if not isinstance(en_section_data, dict) or not isinstance(strings_section_data, dict):
+                        continue
+                    en_keys = set(en_section_data.keys())
+                    strings_keys = set(strings_section_data.keys())
+                    if en_keys != strings_keys:
+                        diff = en_keys.symmetric_difference(strings_keys)
                         self.warnings.append(
-                            "strings.json and en.json config keys don't match"
+                            f"strings.json and en.json keys for section '{section}' don't match. Difference: {diff}"
                         )
 
             except json.JSONDecodeError as e:
