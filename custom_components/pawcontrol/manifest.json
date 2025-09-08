@@ -2,9 +2,11 @@
   "domain": "pawcontrol",
   "name": "PawControl",
   "after_dependencies": [
+    "bluetooth",
+    "device_tracker",
+    "usb",
     "person",
     "zone",
-    "device_tracker"
   ],
   "bluetooth": [
     {
@@ -41,7 +43,7 @@
   },
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "issue_tracker": "https://github.com/bigdaddy1990/pawcontrol/issues",
   "loggers": [
     "custom_components.pawcontrol"
   ],
