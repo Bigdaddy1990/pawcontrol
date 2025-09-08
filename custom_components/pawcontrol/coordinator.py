@@ -125,6 +125,20 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             cache_size,
         )
 
+    async def _async_setup(self) -> None:
+        """One-time async init before first refresh."""
+        # Wenn Manager vorhanden: vorbereiten. Keine Blocker im Event-Loop.
+        if self._data_manager is not None:
+            await self._data_manager.async_prepare()
+        if self.dog_data_manager is not None:
+            await self.dog_data_manager.async_prepare()
+        if self.walk_manager is not None:
+            await self.walk_manager.async_prepare()
+        if self.feeding_manager is not None:
+            await self.feeding_manager.async_prepare()
+        # Langläufer erst ab hier starten, nicht im __init__
+        # self._maintenance_task = asyncio.create_task(self._maintenance_loop())
+
     def set_managers(
         self,
         data_manager: DataManager | None = None,

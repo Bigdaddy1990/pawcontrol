@@ -1,10 +1,14 @@
-# 🐾 PawControl - Smart Dog Management for Home Assistant
+# 🐾 Paw Control - Smart Dog Management for Home Assistant
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.1%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Tier-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Test Coverage](https://img.shields.io/badge/Coverage-96%25%2B-brightgreen.svg)](https://github.com/BigDaddy1990/pawcontrol)
+[![codecov](https://codecov.io/github/Bigdaddy1990/pawcontrol/graph/badge.svg?token=Y8IFVQ0KDD)](https://codecov.io/github/bigdaddy1990/pawcontrol)
+[![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
+[![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
+[![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. Built with enterprise-grade architecture and 96%+ test coverage for production reliability.

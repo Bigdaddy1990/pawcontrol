@@ -1,0 +1,28 @@
+# .gemini/config.yaml
+have_fun: false
+
+code_review:
+  disable: false
+  comment_severity_threshold: HIGH
+  max_review_comments: 60
+  pull_request_opened:
+    help: true
+    summary: true
+    code_review: true
+    include_drafts: true
+
+# Fokus: Python/HA. Artefakte ignorieren.
+ignore_patterns:
+  - "**/__pycache__/**"
+  - "**/.pytest_cache/**"
+  - "**/.mypy_cache/**"
+  - "**/.ruff_cache/**"
+  - "**/.tox/**"
+  - "**/.venv/**"
+  - "**/.coverage"
+  - "**/htmlcov/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.DS_Store"
+  - "**/*.log"
+  - "assets/**"           # Bilder/Logos
