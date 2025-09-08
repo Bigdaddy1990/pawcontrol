@@ -476,6 +476,20 @@ def deep_merge_dicts_optimized(
     return result
 
 
+def deep_merge_dicts(
+    dict1: dict[str, Any], dict2: dict[str, Any], max_depth: int = 5
+) -> dict[str, Any]:
+    """Backward compatible wrapper for ``deep_merge_dicts_optimized``.
+
+    Maintains the original public API while delegating to the optimized
+    implementation. This allows legacy imports (``deep_merge_dicts``) to
+    continue working after the refactor that introduced
+    ``deep_merge_dicts_optimized``.
+    """
+
+    return deep_merge_dicts_optimized(dict1, dict2, max_depth)
+
+
 @lru_cache(maxsize=CACHE_SIZE)
 def calculate_trend_advanced(
     values: tuple[float, ...], periods: int = 7
@@ -668,6 +682,7 @@ __all__ = (
     # Utilities
     "create_device_info",
     "safe_convert",
+    "deep_merge_dicts",
     "deep_merge_dicts_optimized",
     "is_within_time_range_enhanced",
     "sanitize_filename_advanced",

@@ -12,7 +12,8 @@ import sys
 from contextlib import suppress
 from datetime import UTC, datetime
 from enum import StrEnum
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
+from typing import Callable
 
 try:  # pragma: no cover - Home Assistant available
     from homeassistant.helpers import device_registry, entity  # type: ignore
@@ -22,12 +23,81 @@ except Exception:  # pragma: no cover - create minimal stubs
     ha = sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
     ha.__path__ = []  # mark as package
     helpers = ModuleType("homeassistant.helpers")
+    helpers.__path__ = []  # mark as package
     ha.helpers = helpers  # type: ignore[attr-defined]
     sys.modules["homeassistant.helpers"] = helpers
     entity = ModuleType("homeassistant.helpers.entity")
     device_registry = ModuleType("homeassistant.helpers.device_registry")
     sys.modules["homeassistant.helpers.entity"] = entity
     sys.modules["homeassistant.helpers.device_registry"] = device_registry
+
+    config_validation = ModuleType("homeassistant.helpers.config_validation")
+    helpers.config_validation = config_validation  # type: ignore[attr-defined]
+    sys.modules["homeassistant.helpers.config_validation"] = config_validation
+
+    def ensure_list(value):  # pragma: no cover - simple helper
+        if value is None:
+            return []
+        return value if isinstance(value, list) else [value]
+
+    def config_entry_only_config_schema(domain):  # pragma: no cover - test stub
+        def schema(config):
+            return config
+
+        return schema
+
+    config_validation.ensure_list = ensure_list  # type: ignore[attr-defined]
+    config_validation.config_entry_only_config_schema = config_entry_only_config_schema  # type: ignore[attr-defined]
+    config_validation.string = str  # type: ignore[attr-defined]
+    config_validation.boolean = bool  # type: ignore[attr-defined]
+
+    helpers_typing = ModuleType("homeassistant.helpers.typing")
+    helpers_typing.ConfigType = dict  # type: ignore[attr-defined]
+    helpers.typing = helpers_typing  # type: ignore[attr-defined]
+    sys.modules["homeassistant.helpers.typing"] = helpers_typing
+
+    selector = ModuleType("homeassistant.helpers.selector")
+    helpers.selector = selector  # type: ignore[attr-defined]
+    sys.modules["homeassistant.helpers.selector"] = selector
+
+    class BooleanSelector:  # pragma: no cover - stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class NumberSelector:  # pragma: no cover - stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class NumberSelectorMode(StrEnum):  # pragma: no cover - stub
+        BOX = "box"
+
+    class NumberSelectorConfig:  # pragma: no cover - stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class SelectSelector:  # pragma: no cover - stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class SelectSelectorMode(StrEnum):  # pragma: no cover - stub
+        DROPDOWN = "dropdown"
+
+    class SelectSelectorConfig:  # pragma: no cover - stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+    selector.BooleanSelector = BooleanSelector  # type: ignore[attr-defined]
+    selector.NumberSelector = NumberSelector  # type: ignore[attr-defined]
+    selector.NumberSelectorMode = NumberSelectorMode  # type: ignore[attr-defined]
+    selector.NumberSelectorConfig = NumberSelectorConfig  # type: ignore[attr-defined]
+    selector.SelectSelector = SelectSelector  # type: ignore[attr-defined]
+    selector.SelectSelectorMode = SelectSelectorMode  # type: ignore[attr-defined]
+    selector.SelectSelectorConfig = SelectSelectorConfig  # type: ignore[attr-defined]
+
+    entity_platform = ModuleType("homeassistant.helpers.entity_platform")
+    helpers.entity_platform = entity_platform  # type: ignore[attr-defined]
+    sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
+    entity_platform.AddEntitiesCallback = Callable[..., None]  # type: ignore[attr-defined]
 
 # Ensure ``homeassistant.util`` is loaded or provide minimal implementation
 try:  # pragma: no cover - Home Assistant provides util module
@@ -118,6 +188,224 @@ if not hasattr(device_registry, "DeviceInfo"):
         __setattr__ = dict.__setitem__
 
     device_registry.DeviceInfo = DeviceInfo  # type: ignore[attr-defined]
+
+# Provide minimal config entry and core stubs when Home Assistant isn't installed
+try:  # pragma: no cover - Home Assistant provides config entries
+    from homeassistant.config_entries import ConfigEntry  # type: ignore
+except Exception:  # pragma: no cover - create minimal config_entries module
+    config_entries = ModuleType("homeassistant.config_entries")
+
+    class ConfigEntryState(StrEnum):
+        NOT_LOADED = "not_loaded"
+        LOADED = "loaded"
+
+    class ConfigEntry:  # pragma: no cover - test stub
+        def __init__(
+            self,
+            *,
+            version: int = 1,
+            minor_version: int = 1,
+            domain: str | None = None,
+            title: str | None = None,
+            data: dict | None = None,
+            options: dict | None = None,
+            entry_id: str | None = None,
+            source: str | None = None,
+            unique_id: str | None = None,
+            discovery_keys=None,
+            subentries_data=None,
+        ) -> None:
+            self.version = version
+            self.minor_version = minor_version
+            self.domain = domain
+            self.title = title
+            self.data = data or {}
+            self.options = options or {}
+            self.entry_id = entry_id or ""
+            self.source = source or "user"
+            self.unique_id = unique_id
+            self.discovery_keys = discovery_keys
+            self.subentries_data = subentries_data or []
+            self.state = ConfigEntryState.NOT_LOADED
+
+    class ConfigFlow:  # pragma: no cover - test stub
+        def __init_subclass__(cls, **kwargs):
+            super().__init_subclass__()
+
+    class OptionsFlow:  # pragma: no cover - test stub
+        def __init_subclass__(cls, **kwargs):
+            super().__init_subclass__()
+
+    ConfigFlowResult = dict
+
+    config_entries.ConfigEntry = ConfigEntry  # type: ignore[attr-defined]
+    config_entries.ConfigEntryState = ConfigEntryState  # type: ignore[attr-defined]
+    config_entries.ConfigFlow = ConfigFlow  # type: ignore[attr-defined]
+    config_entries.OptionsFlow = OptionsFlow  # type: ignore[attr-defined]
+    config_entries.ConfigFlowResult = ConfigFlowResult  # type: ignore[attr-defined]
+    config_entries.HANDLERS = {}
+    ha.config_entries = config_entries  # type: ignore[attr-defined]
+    sys.modules["homeassistant.config_entries"] = config_entries
+
+try:  # pragma: no cover - Home Assistant provides core module
+    from homeassistant.core import HomeAssistant  # type: ignore
+except Exception:  # pragma: no cover - create minimal core module
+    core = ModuleType("homeassistant.core")
+
+    class HomeAssistant:  # pragma: no cover - test stub
+        def __init__(self) -> None:
+            self.data = {}
+            self.services = SimpleNamespace(async_services=None)
+            self.config_entries = SimpleNamespace(
+                flow=SimpleNamespace(async_init=lambda *a, **k: None)
+            )
+
+    core.HomeAssistant = HomeAssistant  # type: ignore[attr-defined]
+    sys.modules["homeassistant.core"] = core
+    ha.core = core  # type: ignore[attr-defined]
+
+try:  # pragma: no cover - Home Assistant provides exceptions
+    from homeassistant.exceptions import HomeAssistantError  # type: ignore
+except Exception:  # pragma: no cover - create minimal exceptions module
+    exceptions = ModuleType("homeassistant.exceptions")
+
+    class HomeAssistantError(Exception):
+        pass
+
+    class ConfigEntryNotReady(HomeAssistantError):
+        pass
+
+    class ServiceValidationError(HomeAssistantError):
+        pass
+
+    exceptions.HomeAssistantError = HomeAssistantError  # type: ignore[attr-defined]
+    exceptions.ConfigEntryNotReady = ConfigEntryNotReady  # type: ignore[attr-defined]
+    exceptions.ServiceValidationError = ServiceValidationError  # type: ignore[attr-defined]
+    sys.modules["homeassistant.exceptions"] = exceptions
+
+try:  # pragma: no cover - Home Assistant provides const module
+    import homeassistant.const as const  # type: ignore
+except Exception:  # pragma: no cover - create minimal const module
+    const = ModuleType("homeassistant.const")
+
+    class Platform(StrEnum):  # pragma: no cover - test stub
+        SENSOR = "sensor"
+        BINARY_SENSOR = "binary_sensor"
+        BUTTON = "button"
+        SWITCH = "switch"
+        NUMBER = "number"
+        SELECT = "select"
+        TEXT = "text"
+        DEVICE_TRACKER = "device_tracker"
+        DATE = "date"
+        DATETIME = "datetime"
+
+    const.Platform = Platform  # type: ignore[attr-defined]
+    const.STATE_UNKNOWN = "unknown"  # type: ignore[attr-defined]
+    const.STATE_UNAVAILABLE = "unavailable"  # type: ignore[attr-defined]
+    const.PERCENTAGE = "%"  # type: ignore[attr-defined]
+    const.CONF_NAME = "name"  # type: ignore[attr-defined]
+    sys.modules["homeassistant.const"] = const
+
+# ---------------------------------------------------------------------------
+# Component stubs
+# ---------------------------------------------------------------------------
+components = ModuleType("homeassistant.components")
+ha.components = components  # type: ignore[attr-defined]
+sys.modules["homeassistant.components"] = components
+
+
+def _register_component(name, **attrs):  # pragma: no cover - helper
+    module = ModuleType(f"homeassistant.components.{name}")
+    for key, value in attrs.items():
+        setattr(module, key, value)
+    module.DOMAIN = name  # type: ignore[attr-defined]
+    sys.modules[f"homeassistant.components.{name}"] = module
+    setattr(components, name, module)
+
+
+class _BaseEntity:  # pragma: no cover - base stub
+    pass
+
+
+class _StrEnum(StrEnum):  # pragma: no cover - simple StrEnum base
+    pass
+
+
+_register_component(
+    "button",
+    ButtonDeviceClass=_StrEnum("ButtonDeviceClass", {"RESTART": "restart"}),
+    ButtonEntity=_BaseEntity,
+)
+_register_component("date", DateEntity=_BaseEntity)
+_register_component("datetime", DateTimeEntity=_BaseEntity)
+_register_component(
+    "binary_sensor",
+    BinarySensorDeviceClass=_StrEnum("BinarySensorDeviceClass", {"BATTERY": "battery"}),
+    BinarySensorEntity=_BaseEntity,
+)
+_register_component(
+    "device_tracker",
+    SourceType=_StrEnum("SourceType", {"GPS": "gps"}),
+    TrackerEntity=_BaseEntity,
+)
+_register_component(
+    "number",
+    NumberDeviceClass=_StrEnum("NumberDeviceClass", {"NONE": "none"}),
+    NumberEntity=_BaseEntity,
+    NumberMode=_StrEnum("NumberMode", {"BOX": "box"}),
+)
+_register_component("select", SelectEntity=_BaseEntity)
+_register_component(
+    "switch",
+    SwitchDeviceClass=_StrEnum("SwitchDeviceClass", {"SWITCH": "switch"}),
+    SwitchEntity=_BaseEntity,
+)
+_register_component(
+    "sensor",
+    SensorDeviceClass=_StrEnum("SensorDeviceClass", {"TEMPERATURE": "temperature"}),
+    SensorStateClass=_StrEnum("SensorStateClass", {"MEASUREMENT": "measurement"}),
+    SensorEntity=_BaseEntity,
+)
+_register_component(
+    "text",
+    TextEntity=_BaseEntity,
+    TextMode=_StrEnum("TextMode", {"TEXT": "text"}),
+)
+
+_register_component(
+    "repairs",
+    RepairsFlow=_BaseEntity,
+)
+
+system_health = ModuleType("homeassistant.components.system_health")
+
+
+async def async_check_can_reach_url(*args, **kwargs):
+    return True
+
+
+system_health.async_check_can_reach_url = async_check_can_reach_url  # type: ignore[attr-defined]
+sys.modules["homeassistant.components.system_health"] = system_health
+components.system_health = system_health  # type: ignore[attr-defined]
+
+persistent_notification = ModuleType("homeassistant.components.persistent_notification")
+
+
+async def async_create(*args, **kwargs):
+    return None
+
+
+async def async_dismiss(*args, **kwargs):
+    return None
+
+
+persistent_notification.async_create = async_create  # type: ignore[attr-defined]
+persistent_notification.async_dismiss = async_dismiss  # type: ignore[attr-defined]
+sys.modules["homeassistant.components.persistent_notification"] = (
+    persistent_notification
+)
+components.persistent_notification = persistent_notification  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------

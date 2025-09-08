@@ -508,6 +508,7 @@ class TestComplexAsyncValidationRaceConditions:
         success_count = 0
 
         async def slow_validation():
+            nonlocal timeout_count, success_count
             try:
                 # Mock extremely slow validation
                 with patch.object(
@@ -527,14 +528,11 @@ class TestComplexAsyncValidationRaceConditions:
                     if "errors" in result and "validation_timeout" in str(
                         result.get("errors", {})
                     ):
-                        nonlocal timeout_count
                         timeout_count += 1
                     else:
-                        nonlocal success_count
                         success_count += 1
 
             except asyncio.TimeoutError:
-                nonlocal timeout_count
                 timeout_count += 1
             except Exception:
                 # Other exceptions are acceptable
