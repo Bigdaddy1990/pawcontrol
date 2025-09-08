@@ -21,14 +21,14 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .config_flow_base import (
+from custom_components.pawcontrol.config_flow_base import (
     DOG_ID_PATTERN,
     ENTITY_CREATION_DELAY,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
     PawControlBaseConfigFlow,
 )
-from .const import (
+from custom_components.pawcontrol.const import (
     CONF_BREAKFAST_TIME,
     CONF_DAILY_FOOD_AMOUNT,
     CONF_DINNER_TIME,
@@ -66,7 +66,7 @@ from .const import (
     MODULE_WALK,
     SPECIAL_DIET_OPTIONS,
 )
-from .types import DogConfigData
+from custom_components.pawcontrol.types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
