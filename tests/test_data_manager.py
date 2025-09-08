@@ -833,10 +833,10 @@ class TestPawControlDataManager:
             assert backup_data["dogs"] == dogs_data
 
     @pytest.mark.asyncio
-    async def test_export_json(self, data_manager):
+    async def test_export_json(self, data_manager, tmp_path):
         """Test JSON export functionality."""
         test_data = {"test": "data", "number": 123}
-        test_path = Path("/tmp/test.json")
+        test_path = tmp_path / "test.json"
 
         mock_file = mock_open()
 
