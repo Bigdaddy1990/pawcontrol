@@ -46,7 +46,9 @@ from .const import (
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_MEDICATION,
     MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
     MODULE_VISITOR,
     MODULE_WALK,
     PLATFORMS,
@@ -133,6 +135,26 @@ def get_platforms_for_profile_and_modules(
         MODULE_DASHBOARD: frozenset([Platform.SENSOR, Platform.TEXT]),
         MODULE_VISITOR: frozenset(
             [Platform.SWITCH, Platform.BINARY_SENSOR, Platform.BUTTON]
+        ),
+        MODULE_MEDICATION: frozenset(
+            [
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.SWITCH,
+                Platform.DATETIME,
+                Platform.TEXT,
+                Platform.BINARY_SENSOR,
+            ]
+        ),
+        MODULE_TRAINING: frozenset(
+            [
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.DATE,
+                Platform.DATETIME,
+                Platform.TEXT,
+                Platform.SWITCH,
+            ]
         ),
     }
 
