@@ -6,7 +6,7 @@
     "device_tracker",
     "usb",
     "person",
-    "zone",
+    "zone"
   ],
   "bluetooth": [
     {
