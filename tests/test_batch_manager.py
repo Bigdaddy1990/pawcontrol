@@ -48,7 +48,7 @@ class TestBatchManager:
     async def test_add_to_batch_single(self, batch_manager):
         """Test adding single dog to batch."""
         await batch_manager.add_to_batch("dog1", priority=1)
-        
+
         assert await batch_manager.get_pending_count() == 1
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 1
@@ -58,7 +58,7 @@ class TestBatchManager:
         await batch_manager.add_to_batch("dog1", priority=1)
         await batch_manager.add_to_batch("dog2", priority=3)
         await batch_manager.add_to_batch("dog3", priority=2)
-        
+
         assert await batch_manager.get_pending_count() == 3
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 1
@@ -69,7 +69,7 @@ class TestBatchManager:
         """Test priority update when adding existing dog."""
         await batch_manager.add_to_batch("dog1", priority=1)
         await batch_manager.add_to_batch("dog1", priority=5)
-        
+
         assert await batch_manager.get_pending_count() == 1
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 5
@@ -78,7 +78,7 @@ class TestBatchManager:
         """Test keeping higher priority when adding existing dog."""
         await batch_manager.add_to_batch("dog1", priority=5)
         await batch_manager.add_to_batch("dog1", priority=2)
-        
+
         assert await batch_manager.get_pending_count() == 1
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 5
@@ -86,7 +86,7 @@ class TestBatchManager:
     async def test_add_to_batch_default_priority(self, batch_manager):
         """Test adding with default priority."""
         await batch_manager.add_to_batch("dog1")
-        
+
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 0
 
@@ -95,9 +95,9 @@ class TestBatchManager:
         await batch_manager.add_to_batch("dog1", priority=1)
         await batch_manager.add_to_batch("dog2", priority=5)
         await batch_manager.add_to_batch("dog3", priority=3)
-        
+
         batch = await batch_manager.get_batch()
-        
+
         # Should be in descending priority order
         assert batch == ["dog2", "dog3", "dog1"]
         assert await batch_manager.get_pending_count() == 0
@@ -107,9 +107,9 @@ class TestBatchManager:
         # Add more dogs than max batch size
         for i in range(20):
             await batch_manager.add_to_batch(f"dog{i}", priority=i)
-        
+
         batch = await batch_manager.get_batch()
-        
+
         assert len(batch) == MAX_BATCH_SIZE
         assert await batch_manager.get_pending_count() == 20 - MAX_BATCH_SIZE
 
@@ -132,18 +132,20 @@ class TestBatchManager:
         # Fill to max batch size
         for i in range(MAX_BATCH_SIZE):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         assert await batch_manager.should_batch_now() is True
 
     async def test_should_batch_now_timeout(self, batch_manager):
         """Test should_batch_now after timeout."""
         await batch_manager.add_to_batch("dog1")
-        
+
         # Mock time to simulate timeout
-        with patch.object(dt_util, 'utcnow') as mock_now:
-            future_time = batch_manager._last_batch_time + timedelta(seconds=FORCE_BATCH_INTERVAL + 1)
+        with patch.object(dt_util, "utcnow") as mock_now:
+            future_time = batch_manager._last_batch_time + timedelta(
+                seconds=FORCE_BATCH_INTERVAL + 1
+            )
             mock_now.return_value = future_time
-            
+
             assert await batch_manager.should_batch_now() is True
 
     async def test_should_batch_now_no_timeout(self, batch_manager):
@@ -158,7 +160,7 @@ class TestBatchManager:
     async def test_should_batch_now_custom_interval(self, batch_manager):
         """Test should_batch_now with custom interval."""
         await batch_manager.add_to_batch("dog1")
-        
+
         # Should not batch with longer interval
         assert await batch_manager.should_batch_now(3600) is False
 
@@ -167,9 +169,9 @@ class TestBatchManager:
         await batch_manager.add_to_batch("dog1")
         await batch_manager.add_to_batch("dog2")
         await batch_manager.add_to_batch("dog3")
-        
+
         count = await batch_manager.clear_pending()
-        
+
         assert count == 3
         assert await batch_manager.get_pending_count() == 0
         assert await batch_manager.has_pending() is False
@@ -183,9 +185,9 @@ class TestBatchManager:
         """Test removing existing dog from batch."""
         await batch_manager.add_to_batch("dog1")
         await batch_manager.add_to_batch("dog2")
-        
+
         result = await batch_manager.remove_from_batch("dog1")
-        
+
         assert result is True
         assert await batch_manager.get_pending_count() == 1
         pending = await batch_manager.get_pending_with_priorities()
@@ -195,18 +197,18 @@ class TestBatchManager:
     async def test_remove_from_batch_nonexistent(self, batch_manager):
         """Test removing non-existent dog from batch."""
         await batch_manager.add_to_batch("dog1")
-        
+
         result = await batch_manager.remove_from_batch("dog2")
-        
+
         assert result is False
         assert await batch_manager.get_pending_count() == 1
 
     async def test_update_priority_existing(self, batch_manager):
         """Test updating priority for existing dog."""
         await batch_manager.add_to_batch("dog1", priority=1)
-        
+
         result = await batch_manager.update_priority("dog1", 10)
-        
+
         assert result is True
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 10
@@ -219,7 +221,7 @@ class TestBatchManager:
     async def test_get_stats_empty(self, batch_manager):
         """Test getting stats when empty."""
         stats = batch_manager.get_stats()
-        
+
         assert stats["max_batch_size"] == MAX_BATCH_SIZE
         assert stats["pending_updates"] == 0
         assert stats["force_interval"] == FORCE_BATCH_INTERVAL
@@ -230,16 +232,16 @@ class TestBatchManager:
         """Test getting stats with pending updates."""
         await batch_manager.add_to_batch("dog1", priority=1)
         await batch_manager.add_to_batch("dog2", priority=3)
-        
+
         stats = batch_manager.get_stats()
-        
+
         assert stats["pending_updates"] == 2
         assert stats["pending_breakdown"] == {"dog1": 1, "dog2": 3}
 
     async def test_get_next_batch_time_empty(self, batch_manager):
         """Test next batch time when empty."""
         next_time = await batch_manager.get_next_batch_time()
-        
+
         # Should be far in future when no pending updates
         assert next_time > dt_util.utcnow() + timedelta(minutes=30)
 
@@ -248,19 +250,21 @@ class TestBatchManager:
         # Fill to max batch size
         for i in range(MAX_BATCH_SIZE):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         next_time = await batch_manager.get_next_batch_time()
-        
+
         # Should be immediate when batch is full
         assert next_time <= dt_util.utcnow() + timedelta(seconds=1)
 
     async def test_get_next_batch_time_partial_batch(self, batch_manager):
         """Test next batch time with partial batch."""
         await batch_manager.add_to_batch("dog1")
-        
+
         next_time = await batch_manager.get_next_batch_time()
-        expected_time = batch_manager._last_batch_time + timedelta(seconds=FORCE_BATCH_INTERVAL)
-        
+        expected_time = batch_manager._last_batch_time + timedelta(
+            seconds=FORCE_BATCH_INTERVAL
+        )
+
         # Should be based on force interval
         assert abs((next_time - expected_time).total_seconds()) < 1
 
@@ -278,9 +282,9 @@ class TestBatchManagerOptimization:
         # Add many pending updates
         for i in range(35):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         result = await batch_manager.optimize_batching()
-        
+
         assert result["optimization_performed"] is True
         assert result["new_batch_size"] > result["old_batch_size"]
         assert result["current_load"] == 35
@@ -291,9 +295,9 @@ class TestBatchManagerOptimization:
         # Add few pending updates
         for i in range(3):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         result = await batch_manager.optimize_batching()
-        
+
         assert result["optimization_performed"] is True
         assert result["new_batch_size"] < result["old_batch_size"]
         assert result["current_load"] == 3
@@ -304,16 +308,16 @@ class TestBatchManagerOptimization:
         # Add normal amount of pending updates
         for i in range(15):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         result = await batch_manager.optimize_batching()
-        
+
         assert result["current_load"] == 15
         assert "normal load" in result["recommendation"].lower()
 
     async def test_optimize_batching_no_load(self, batch_manager):
         """Test optimization with no load."""
         result = await batch_manager.optimize_batching()
-        
+
         assert result["current_load"] == 0
         assert "no load" in result["recommendation"].lower()
 
@@ -321,10 +325,10 @@ class TestBatchManagerOptimization:
         """Test optimization respects limits."""
         # Start with minimum size
         batch_manager._max_batch_size = 10
-        
+
         # Add very few updates to force decrease
         await batch_manager.optimize_batching()
-        
+
         # Should not go below 10
         assert batch_manager._max_batch_size >= 10
 
@@ -364,6 +368,7 @@ class TestBatchManagerConcurrency:
 
     async def test_concurrent_add_to_batch(self, batch_manager):
         """Test concurrent add_to_batch operations."""
+
         async def add_dogs(start_id: int, count: int):
             for i in range(count):
                 await batch_manager.add_to_batch(f"dog{start_id + i}", priority=i)
@@ -374,7 +379,7 @@ class TestBatchManagerConcurrency:
             add_dogs(10, 10),
             add_dogs(20, 10),
         )
-        
+
         assert await batch_manager.get_pending_count() == 30
 
     async def test_concurrent_get_batch(self, batch_manager):
@@ -382,20 +387,26 @@ class TestBatchManagerConcurrency:
         # Add some dogs
         for i in range(10):
             await batch_manager.add_to_batch(f"dog{i}", priority=i)
-        
+
         # Get batches concurrently
         batch1, batch2 = await asyncio.gather(
             batch_manager.get_batch(),
             batch_manager.get_batch(),
         )
-        
+
         # Only one should get the batch, other should be empty
         total_dogs = len(batch1) + len(batch2)
         assert total_dogs == 10
-        assert len(batch1) == 10 and len(batch2) == 0 or len(batch1) == 0 and len(batch2) == 10
+        assert (
+            len(batch1) == 10
+            and len(batch2) == 0
+            or len(batch1) == 0
+            and len(batch2) == 10
+        )
 
     async def test_concurrent_mixed_operations(self, batch_manager):
         """Test mixed concurrent operations."""
+
         async def add_operation():
             for i in range(5):
                 await batch_manager.add_to_batch(f"add_{i}")
@@ -413,12 +424,9 @@ class TestBatchManagerConcurrency:
 
         # Run mixed operations
         results = await asyncio.gather(
-            add_operation(),
-            remove_operation(),
-            get_operation(),
-            return_exceptions=True
+            add_operation(), remove_operation(), get_operation(), return_exceptions=True
         )
-        
+
         # Should not raise exceptions
         for result in results:
             if isinstance(result, Exception):
@@ -426,6 +434,7 @@ class TestBatchManagerConcurrency:
 
     async def test_lock_acquisition_timeout(self, batch_manager):
         """Test that operations don't deadlock."""
+
         # This is more of a smoke test to ensure no obvious deadlocks
         async def long_operation():
             async with batch_manager._update_lock:
@@ -437,8 +446,7 @@ class TestBatchManagerConcurrency:
 
         # Should complete without hanging
         await asyncio.wait_for(
-            asyncio.gather(long_operation(), quick_operation()),
-            timeout=1.0
+            asyncio.gather(long_operation(), quick_operation()), timeout=1.0
         )
 
 
@@ -453,7 +461,7 @@ class TestBatchManagerEdgeCases:
     async def test_empty_dog_id(self, batch_manager):
         """Test handling empty dog ID."""
         await batch_manager.add_to_batch("", priority=1)
-        
+
         assert await batch_manager.get_pending_count() == 1
         pending = await batch_manager.get_pending_with_priorities()
         assert "" in pending
@@ -467,14 +475,14 @@ class TestBatchManagerEdgeCases:
     async def test_negative_priority(self, batch_manager):
         """Test negative priority handling."""
         await batch_manager.add_to_batch("dog1", priority=-5)
-        
+
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == -5
 
     async def test_very_high_priority(self, batch_manager):
         """Test very high priority handling."""
         await batch_manager.add_to_batch("dog1", priority=999999)
-        
+
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 999999
 
@@ -482,7 +490,7 @@ class TestBatchManagerEdgeCases:
         """Test zero max batch size."""
         batch_manager = BatchManager(max_batch_size=0)
         await batch_manager.add_to_batch("dog1")
-        
+
         batch = await batch_manager.get_batch()
         assert batch == []  # Should handle gracefully
 
@@ -490,25 +498,25 @@ class TestBatchManagerEdgeCases:
         """Test negative max batch size."""
         batch_manager = BatchManager(max_batch_size=-1)
         await batch_manager.add_to_batch("dog1")
-        
+
         batch = await batch_manager.get_batch()
         assert batch == []  # Should handle gracefully
 
     async def test_huge_batch_size(self):
         """Test very large batch size."""
         batch_manager = BatchManager(max_batch_size=10000)
-        
+
         # Add many dogs
         for i in range(1000):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         batch = await batch_manager.get_batch()
         assert len(batch) == 1000  # Should handle large batches
 
     async def test_stats_calculation_edge_cases(self, batch_manager):
         """Test stats calculation with edge cases."""
         # Test with very recent batch
-        with patch.object(batch_manager, '_last_batch_time', dt_util.utcnow()):
+        with patch.object(batch_manager, "_last_batch_time", dt_util.utcnow()):
             stats = batch_manager.get_stats()
             assert stats["last_batch_seconds_ago"] >= 0
             assert stats["last_batch_seconds_ago"] < 1
@@ -516,10 +524,10 @@ class TestBatchManagerEdgeCases:
     async def test_rapid_priority_updates(self, batch_manager):
         """Test rapid priority updates on same dog."""
         await batch_manager.add_to_batch("dog1", priority=1)
-        
+
         for priority in range(2, 100):
             await batch_manager.add_to_batch("dog1", priority=priority)
-        
+
         pending = await batch_manager.get_pending_with_priorities()
         assert pending["dog1"] == 99
 
@@ -527,12 +535,12 @@ class TestBatchManagerEdgeCases:
         """Test edge cases in batch time calculations."""
         # Test with future last_batch_time (should not happen but test robustness)
         future_time = dt_util.utcnow() + timedelta(hours=1)
-        
-        with patch.object(batch_manager, '_last_batch_time', future_time):
+
+        with patch.object(batch_manager, "_last_batch_time", future_time):
             # Should handle gracefully without errors
             result = await batch_manager.should_batch_now()
             assert isinstance(result, bool)
-            
+
             next_time = await batch_manager.get_next_batch_time()
             assert isinstance(next_time, datetime)
 
@@ -548,67 +556,67 @@ class TestBatchManagerPerformance:
     async def test_large_scale_operations(self, batch_manager):
         """Test performance with large number of operations."""
         import time
-        
+
         start_time = time.time()
-        
+
         # Add large number of dogs
         for i in range(1000):
             await batch_manager.add_to_batch(f"dog{i}", priority=i % 10)
-        
+
         add_time = time.time() - start_time
-        
+
         start_time = time.time()
-        
+
         # Get multiple batches
         total_retrieved = 0
         while await batch_manager.has_pending():
             batch = await batch_manager.get_batch()
             total_retrieved += len(batch)
-        
+
         get_time = time.time() - start_time
-        
+
         assert total_retrieved == 1000
         # Performance assertions (should be fast)
         assert add_time < 1.0  # Adding 1000 items should take < 1 second
-        assert get_time < 1.0   # Getting all batches should take < 1 second
+        assert get_time < 1.0  # Getting all batches should take < 1 second
 
     async def test_memory_usage_stability(self, batch_manager):
         """Test that memory usage remains stable."""
         import gc
-        
+
         # Perform many operations to test for memory leaks
         for cycle in range(10):
             # Add many dogs
             for i in range(100):
                 await batch_manager.add_to_batch(f"cycle{cycle}_dog{i}")
-            
+
             # Remove them all
             while await batch_manager.has_pending():
                 await batch_manager.get_batch()
-            
+
             # Force garbage collection
             gc.collect()
-        
+
         # Should complete without memory issues
         assert await batch_manager.get_pending_count() == 0
 
     async def test_concurrent_performance(self, batch_manager):
         """Test performance under concurrent load."""
         import time
-        
+
         async def worker(worker_id: int):
             for i in range(50):
                 await batch_manager.add_to_batch(f"worker{worker_id}_dog{i}")
                 if i % 10 == 0:
                     await batch_manager.get_batch()
-        
+
         start_time = time.time()
-        
+
         # Run 10 concurrent workers
         await asyncio.gather(*[worker(i) for i in range(10)])
-        
+
         elapsed = time.time() - start_time
-        
+
         # Should complete reasonably quickly under concurrent load
         assert elapsed < 5.0  # 10 workers should complete in < 5 seconds
 
@@ -620,35 +628,35 @@ class TestBatchManagerIntegration:
     async def test_realistic_workflow(self):
         """Test realistic batch manager workflow."""
         batch_manager = BatchManager(max_batch_size=5)
-        
+
         # Simulate realistic usage pattern
         # 1. Add some high priority updates
         await batch_manager.add_to_batch("emergency_dog", priority=10)
         await batch_manager.add_to_batch("sick_dog", priority=8)
-        
+
         # 2. Add regular updates
         for i in range(10):
             await batch_manager.add_to_batch(f"regular_dog_{i}", priority=1)
-        
+
         # 3. Process first batch (should get high priority first)
         batch1 = await batch_manager.get_batch()
         assert "emergency_dog" in batch1
         assert "sick_dog" in batch1
         assert len(batch1) == 5
-        
+
         # 4. Add more urgent update
         await batch_manager.add_to_batch("new_emergency", priority=15)
-        
+
         # 5. Process second batch (should get new emergency first)
         batch2 = await batch_manager.get_batch()
         assert "new_emergency" in batch2[0]  # Should be first due to highest priority
-        
+
         # 6. Continue until all processed
         remaining = []
         while await batch_manager.has_pending():
             batch = await batch_manager.get_batch()
             remaining.extend(batch)
-        
+
         # All dogs should be processed
         total_processed = len(batch1) + len(batch2) + len(remaining)
         assert total_processed == 13  # 2 + 10 + 1
@@ -656,54 +664,54 @@ class TestBatchManagerIntegration:
     async def test_optimization_during_operation(self):
         """Test optimization during normal operation."""
         batch_manager = BatchManager()
-        
+
         # Start with normal load
         for i in range(10):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         # Check optimization
         result1 = await batch_manager.optimize_batching()
         old_size = result1["new_batch_size"]
-        
+
         # Increase load significantly
         for i in range(40):
             await batch_manager.add_to_batch(f"heavy_dog{i}")
-        
+
         # Should optimize for higher load
         result2 = await batch_manager.optimize_batching()
         new_size = result2["new_batch_size"]
-        
+
         assert new_size > old_size  # Should increase batch size for higher load
-        
+
         # Process all with optimized settings
         total_processed = 0
         while await batch_manager.has_pending():
             batch = await batch_manager.get_batch()
             total_processed += len(batch)
-        
+
         assert total_processed == 50  # All dogs processed
 
     async def test_error_recovery(self):
         """Test error recovery scenarios."""
         batch_manager = BatchManager()
-        
+
         # Add some dogs
         for i in range(5):
             await batch_manager.add_to_batch(f"dog{i}")
-        
+
         # Simulate error during batch processing
         try:
             # Force an error by manipulating internal state
             original_pending = batch_manager._pending_updates.copy()
             batch_manager._pending_updates = None  # This would cause an error
-            
+
             with pytest.raises((TypeError, AttributeError)):
                 await batch_manager.get_batch()
-                
+
         finally:
             # Restore state
             batch_manager._pending_updates = original_pending
-        
+
         # Should still be able to operate
         assert await batch_manager.has_pending() is True
         batch = await batch_manager.get_batch()
