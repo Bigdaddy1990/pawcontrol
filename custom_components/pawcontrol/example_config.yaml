@@ -197,9 +197,8 @@ gps_webhook_example:
 # =============================================================================
 
 # Example automations to work with Paw Control
-
 automation:
-  # Automatic feeding reminder
+  # Basic feeding and walk automations
   - alias: "Smart Feeding Reminder"
     trigger:
       - platform: state
@@ -218,7 +217,6 @@ automation:
           message: "Buddy is hungry! Last fed {{ states('sensor.buddy_last_feeding_hours') }} hours ago."
           priority: "normal"
 
-  # Walk tracking with GPS
   - alias: "Auto Start Walk Detection"
     trigger:
       - platform: state
@@ -234,7 +232,6 @@ automation:
           dog_id: "buddy"
           label: "Auto-detected walk"
 
-  # Health monitoring alert
   - alias: "Weight Change Alert"
     trigger:
       - platform: numeric_state
@@ -250,7 +247,6 @@ automation:
           title: "Health Alert - Buddy"
           message: "Buddy's weight has changed by {{ trigger.to_state.state }}%. Consider veterinary consultation."
 
-  # Daily report generation
   - alias: "Generate Daily Dog Report"
     trigger:
       - platform: time
@@ -263,12 +259,68 @@ automation:
           format: "html"
           send_notification: true
 
+  # Advanced automation examples
+  - alias: "Smart Feeding Recommendations"
+    trigger:
+      - platform: state
+        entity_id: sensor.buddy_daily_walk_distance
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state|float > 5000 }}"  # More than 5km
+    action:
+      - service: pawcontrol.feed_dog
+        data:
+          dog_id: "buddy"
+          meal_type: "snack"
+          portion_size: 50
+          notes: "Extra portion after long walk ({{ trigger.to_state.state }}m)"
+
+  - alias: "Weather-Appropriate Walk Reminder"
+    trigger:
+      - platform: time
+        at: "17:00:00"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.buddy_needs_walk
+        state: "on"
+      - condition: numeric_state
+        entity_id: weather.home
+        attribute: temperature
+        above: 5
+        below: 25
+      - condition: state
+        entity_id: weather.home
+        state: "sunny"
+    action:
+      - service: notify.family
+        data:
+          title: "Perfect Walk Weather!"
+          message: "Great weather for Buddy's walk - {{ states('weather.home') }}, {{ state_attr('weather.home', 'temperature') }}°C"
+
+  - alias: "Emergency Health Alert"
+    trigger:
+      - platform: state
+        entity_id: select.buddy_health_status
+        to: "critical"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "🚨 EMERGENCY - Buddy"
+          message: "Critical health status detected! Contact veterinarian immediately."
+          data:
+            priority: "high"
+            persistent: true
+            actions:
+              - action: "CALL_VET"
+                title: "Call Vet"
+              - action: "DISMISS"
+                title: "Dismiss"
+
 # =============================================================================
 # LOVELACE DASHBOARD EXAMPLES
 # =============================================================================
 
 # Example Lovelace configuration for dog monitoring dashboard
-
 views:
   - title: "Dog Monitoring"
     path: "dogs"
@@ -352,16 +404,16 @@ views:
 # NOTIFICATION CONFIGURATION EXAMPLES
 # =============================================================================
 
-# Mobile app notifications
+# All notification platforms in single section
 notify:
+  # Mobile app notifications group
   - name: "dog_alerts"
     platform: group
     services:
       - service: mobile_app_iphone
       - service: mobile_app_android
 
-# Email notifications for important alerts
-notify:
+  # Email notifications for important alerts
   - name: "dog_email"
     platform: smtp
     server: smtp.gmail.com
@@ -417,70 +469,6 @@ template:
           {% else %}
             Satisfied
           {% endif %}
-
-# =============================================================================
-# ADVANCED AUTOMATION EXAMPLES
-# =============================================================================
-
-automation:
-  # Intelligent feeding suggestions based on activity
-  - alias: "Smart Feeding Recommendations"
-    trigger:
-      - platform: state
-        entity_id: sensor.buddy_daily_walk_distance
-    condition:
-      - condition: template
-        value_template: "{{ trigger.to_state.state|float > 5000 }}"  # More than 5km
-    action:
-      - service: pawcontrol.feed_dog
-        data:
-          dog_id: "buddy"
-          meal_type: "snack"
-          portion_size: 50
-          notes: "Extra portion after long walk ({{ trigger.to_state.state }}m)"
-
-  # Weather-based walk suggestions
-  - alias: "Weather-Appropriate Walk Reminder"
-    trigger:
-      - platform: time
-        at: "17:00:00"
-    condition:
-      - condition: state
-        entity_id: binary_sensor.buddy_needs_walk
-        state: "on"
-      - condition: numeric_state
-        entity_id: weather.home
-        attribute: temperature
-        above: 5
-        below: 25
-      - condition: state
-        entity_id: weather.home
-        state: "sunny"
-    action:
-      - service: notify.family
-        data:
-          title: "Perfect Walk Weather!"
-          message: "Great weather for Buddy's walk - {{ states('weather.home') }}, {{ state_attr('weather.home', 'temperature') }}°C"
-
-  # Emergency health alert
-  - alias: "Emergency Health Alert"
-    trigger:
-      - platform: state
-        entity_id: select.buddy_health_status
-        to: "critical"
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "🚨 EMERGENCY - Buddy"
-          message: "Critical health status detected! Contact veterinarian immediately."
-          data:
-            priority: "high"
-            persistent: true
-            actions:
-              - action: "CALL_VET"
-                title: "Call Vet"
-              - action: "DISMISS"
-                title: "Dismiss"
 
 # =============================================================================
 # INTEGRATION WITH OTHER PLATFORMS

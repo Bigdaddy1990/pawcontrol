@@ -264,9 +264,9 @@ class OptimizedStorage:
                         }
 
     def _calculate_checksum(self, data: dict[str, Any]) -> str:
-        """Calculate data checksum."""
+        """Calculate data checksum for integrity verification (non-security use)."""
         data_str = json.dumps(data, sort_keys=True, default=str)
-        return hashlib.md5(data_str.encode()).hexdigest()
+        return hashlib.md5(data_str.encode(), usedforsecurity=False).hexdigest()
 
     def _should_compress(self, data: dict[str, Any]) -> bool:
         """Check if data should be compressed."""
