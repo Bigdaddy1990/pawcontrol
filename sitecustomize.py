@@ -19,7 +19,7 @@ from typing import Callable
 # Prevent external pytest plugins from auto-loading during test collection.
 # This keeps the test environment lightweight and ensures that the minimal
 # Home Assistant stubs provided below remain sufficient.
-os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
 
 try:  # pragma: no cover - Home Assistant available
     from homeassistant.helpers import device_registry, entity  # type: ignore
