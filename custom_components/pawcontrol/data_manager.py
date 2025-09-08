@@ -684,11 +684,12 @@ class PawControlDataManager:
             if index_info and start_date:
                 first_timestamp = index_info.get("first")
                 if first_timestamp:
-                    with suppress(Exception):
+                    with suppress(ValueError, TypeError):
                         first_time = datetime.fromisoformat(first_timestamp)
                         if first_time > start_date:
                             # All entries are after start_date
                             start_date = None
+
 
             # Filter if needed
             if start_date or end_date:
