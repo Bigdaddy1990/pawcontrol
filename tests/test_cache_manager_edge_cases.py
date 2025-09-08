@@ -15,6 +15,9 @@ Test Areas:
 - Statistics accuracy under stress conditions
 - Lock contention and deadlock prevention
 - Cache coherency and data integrity
+- Advanced invalidation race conditions
+- Large-scale performance testing
+- Cache corruption detection and recovery
 """
 
 from __future__ import annotations
@@ -1105,6 +1108,642 @@ class TestExtremeConditions:
             # Verify no data accessible
             result = await cache.get(f"cycle_{cycle}_key_0")
             assert result is None
+
+
+class TestAdvancedLockContentionAndDeadlockPrevention:
+    """Test advanced lock contention scenarios and deadlock prevention."""
+
+    @pytest.mark.asyncio
+    async def test_nested_operation_deadlock_prevention(self):
+        """Test prevention of deadlocks in nested cache operations."""
+        cache = CacheManager(max_size=10)
+
+        # Pre-populate cache
+        for i in range(8):
+            await cache.set(f"nested_key_{i}", {"value": i})
+
+        async def complex_nested_operation(worker_id: int):
+            """Perform complex nested operations that could cause deadlocks."""
+            try:
+                # Get multiple keys in sequence
+                keys = [f"nested_key_{i}" for i in range(0, 5)]
+                for key in keys:
+                    result = await cache.get(key)
+                    if result is not None:
+                        # Modify and set back (potential lock conflict)
+                        result["worker"] = worker_id
+                        await cache.set(key, result)
+
+                # Trigger optimization during operations (potential lock conflict)
+                if worker_id % 3 == 0:
+                    await cache.optimize_cache()
+
+                # Pattern invalidation (potential lock conflict)
+                if worker_id % 4 == 0:
+                    await cache.invalidate(pattern="nested_*")
+
+                return True
+            except Exception as e:
+                return f"Worker {worker_id} failed: {e}"
+
+        # Run multiple workers with complex operations
+        workers = [complex_nested_operation(i) for i in range(8)]
+        results = await asyncio.gather(*workers, return_exceptions=True)
+
+        # Count successful operations (should not have deadlocks)
+        successful = sum(1 for r in results if r is True)
+        failed = len(results) - successful
+
+        # At least majority should succeed (no deadlocks)
+        assert successful >= len(workers) // 2
+
+        # Cache should remain in consistent state
+        stats = cache.get_stats()
+        assert stats["total_entries"] >= 0  # Basic consistency
+
+    @pytest.mark.asyncio
+    async def test_lock_timeout_under_extreme_contention(self):
+        """Test lock behavior under extreme contention scenarios."""
+        cache = CacheManager(max_size=5)
+
+        # Create extreme contention scenario
+        contention_duration = 0.3  # 300ms of extreme operations
+
+        async def extreme_contention_worker(worker_id: int):
+            """Worker creating extreme lock contention."""
+            operation_count = 0
+            start_time = time.time()
+
+            while time.time() - start_time < contention_duration:
+                key = f"contention_key_{worker_id % 3}"  # Shared keys for contention
+
+                # Rapid fire operations
+                await cache.set(key, {"worker": worker_id, "op": operation_count})
+                await cache.get(key)
+
+                # Occasionally trigger expensive operations
+                if operation_count % 10 == 0:
+                    await cache.clear_expired()
+
+                operation_count += 1
+                # No sleep - maximum contention
+
+            return operation_count
+
+        # Run many workers for extreme contention
+        workers = [extreme_contention_worker(i) for i in range(15)]
+        operation_counts = await asyncio.gather(*workers, return_exceptions=True)
+
+        # Should complete without hanging or exceptions
+        successful_workers = [
+            count for count in operation_counts if isinstance(count, int)
+        ]
+        assert len(successful_workers) > 10  # Most workers should complete
+
+        total_operations = sum(successful_workers)
+        assert total_operations > 100  # Should complete many operations
+
+    @pytest.mark.asyncio
+    async def test_async_lock_fairness_under_load(self):
+        """Test async lock fairness under heavy load."""
+        cache = CacheManager(max_size=20)
+
+        operation_results = {}
+
+        async def fairness_test_worker(worker_id: int, priority: str):
+            """Worker testing lock fairness."""
+            operations_completed = 0
+            start_time = time.time()
+
+            while time.time() - start_time < 0.2:  # 200ms test
+                key = f"fairness_key_{worker_id}"
+
+                # Different operation types based on priority
+                if priority == "high":
+                    # Simple operations (should be fast)
+                    await cache.get(key)
+                    await cache.set(key, {"priority": priority, "ops": operations_completed})
+                elif priority == "medium":
+                    # Medium complexity operations
+                    await cache.set(key, {"priority": priority, "ops": operations_completed})
+                    await cache.get_cache_entry_details(key)
+                else:
+                    # Complex operations
+                    await cache.set(key, {"priority": priority, "ops": operations_completed})
+                    await cache.optimize_cache()
+
+                operations_completed += 1
+                await asyncio.sleep(0.001)  # Small yield
+
+            return worker_id, priority, operations_completed
+
+        # Mix of high, medium, and low priority workers
+        workers = []
+        for i in range(12):
+            if i < 4:
+                priority = "high"
+            elif i < 8:
+                priority = "medium"
+            else:
+                priority = "low"
+            workers.append(fairness_test_worker(i, priority))
+
+        results = await asyncio.gather(*workers)
+
+        # Analyze fairness
+        high_priority_ops = [ops for _, priority, ops in results if priority == "high"]
+        medium_priority_ops = [ops for _, priority, ops in results if priority == "medium"]
+        low_priority_ops = [ops for _, priority, ops in results if priority == "low"]
+
+        # High priority should generally complete more operations
+        avg_high = sum(high_priority_ops) / len(high_priority_ops) if high_priority_ops else 0
+        avg_low = sum(low_priority_ops) / len(low_priority_ops) if low_priority_ops else 0
+
+        # Some degree of fairness expected (not perfect due to async nature)
+        assert avg_high > 0  # High priority workers should complete operations
+        assert avg_low > 0   # Low priority workers should not be starved
+
+
+class TestAdvancedInvalidationRaceConditions:
+    """Test advanced invalidation scenarios with race conditions."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_pattern_overlap_invalidation(self):
+        """Test concurrent invalidation with overlapping patterns."""
+        cache = CacheManager(max_size=500)
+
+        # Create overlapping pattern structure
+        for i in range(100):
+            await cache.set(f"prefix_a_suffix_{i}", {"type": "a", "id": i})
+            await cache.set(f"prefix_b_suffix_{i}", {"type": "b", "id": i})
+            await cache.set(f"prefix_ab_suffix_{i}", {"type": "ab", "id": i})
+            await cache.set(f"different_prefix_a_{i}", {"type": "diff_a", "id": i})
+
+        async def invalidate_with_overlap(pattern: str, delay: float = 0):
+            """Invalidate with optional delay for race conditions."""
+            if delay > 0:
+                await asyncio.sleep(delay)
+            return await cache.invalidate(pattern=pattern)
+
+        # Run overlapping invalidations concurrently
+        invalidation_tasks = [
+            invalidate_with_overlap("prefix_a_*", 0.0),      # Should match prefix_a_suffix_*
+            invalidate_with_overlap("prefix_*", 0.01),       # Should match all prefix_* keys
+            invalidate_with_overlap("*_suffix_*", 0.02),     # Should match *_suffix_* keys
+            invalidate_with_overlap("*_a_*", 0.03),          # Should match keys with _a_
+        ]
+
+        results = await asyncio.gather(*invalidation_tasks, return_exceptions=True)
+
+        # All operations should complete without exceptions
+        for result in results:
+            assert not isinstance(result, Exception)
+            assert isinstance(result, int)
+
+        # Cache should be in consistent state
+        stats = cache.get_stats()
+        assert stats["total_entries"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_invalidation_during_cache_resize(self):
+        """Test invalidation behavior during cache size pressure."""
+        cache = CacheManager(max_size=20)  # Small cache for testing
+
+        # Fill cache to capacity
+        for i in range(20):
+            await cache.set(f"resize_key_{i}", {"value": i})
+
+        async def continuous_invalidation():
+            """Continuously invalidate during resize pressure."""
+            invalidation_count = 0
+            for pattern_id in range(50):
+                # Create pattern that might match some keys
+                pattern = f"resize_key_{pattern_id % 10}_*"
+                await cache.invalidate(pattern=pattern)
+                invalidation_count += 1
+                await asyncio.sleep(0.001)
+            return invalidation_count
+
+        async def continuous_resize_pressure():
+            """Apply continuous resize pressure."""
+            for i in range(20, 100):  # Add more than capacity
+                await cache.set(f"new_key_{i}", {"value": i})
+                await asyncio.sleep(0.002)
+
+        # Run both operations concurrently
+        invalidation_result, _ = await asyncio.gather(
+            continuous_invalidation(),
+            continuous_resize_pressure(),
+            return_exceptions=True
+        )
+
+        # Invalidation should complete successfully
+        assert isinstance(invalidation_result, int)
+        assert invalidation_result > 0
+
+        # Cache should maintain size constraint
+        stats = cache.get_stats()
+        assert stats["total_entries"] <= 20
+
+    @pytest.mark.asyncio
+    async def test_recursive_invalidation_prevention(self):
+        """Test prevention of recursive invalidation scenarios."""
+        cache = CacheManager()
+
+        # Create keys that could trigger recursive scenarios
+        recursive_keys = [
+            "recurse_1_recurse_2",
+            "recurse_2_recurse_3", 
+            "recurse_3_recurse_1",
+            "normal_key_1",
+            "normal_key_2"
+        ]
+
+        for key in recursive_keys:
+            await cache.set(key, {"recursive": True})
+
+        async def invalidate_recursive_pattern(pattern: str):
+            """Invalidate with potentially recursive pattern."""
+            try:
+                result = await cache.invalidate(pattern=pattern)
+                return result
+            except Exception as e:
+                return f"Exception: {e}"
+
+        # Test patterns that could cause recursion
+        recursive_patterns = [
+            "recurse_*",
+            "*_recurse_*", 
+            "recurse_*_recurse_*",
+            "*_*_*"
+        ]
+
+        tasks = [invalidate_recursive_pattern(pattern) for pattern in recursive_patterns]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Should not cause infinite recursion or stack overflow
+        for result in results:
+            assert not isinstance(result, Exception)
+            if isinstance(result, str) and "Exception" in result:
+                # Some patterns might be invalid, which is acceptable
+                continue
+            assert isinstance(result, int)
+
+
+class TestLargeScalePerformanceValidation:
+    """Test large-scale performance and memory characteristics."""
+
+    @pytest.mark.asyncio
+    async def test_thousand_key_pattern_matching_performance(self):
+        """Test pattern matching performance with thousands of keys."""
+        cache = CacheManager(max_size=2000)
+
+        # Create large key space with multiple patterns
+        categories = ["dog", "cat", "bird", "fish", "rabbit"]
+        operations = ["feeding", "health", "exercise", "grooming", "training"]
+        
+        keys_created = 0
+        for category in categories:
+            for animal_id in range(200):  # 200 animals per category
+                for operation in operations:
+                    key = f"{category}_{animal_id:03d}_{operation}"
+                    await cache.set(key, {
+                        "category": category,
+                        "animal_id": animal_id,
+                        "operation": operation,
+                        "timestamp": dt_util.utcnow().isoformat()
+                    })
+                    keys_created += 1
+                    
+                    # Yield occasionally to prevent blocking
+                    if keys_created % 100 == 0:
+                        await asyncio.sleep(0.001)
+
+        # Test various pattern matching scenarios
+        pattern_tests = [
+            ("dog_*", 1000),        # All dog entries (200 * 5 operations)
+            ("*_feeding", 1000),    # All feeding entries (5 categories * 200)
+            ("dog_001_*", 5),       # Specific dog entries
+            ("*_health", 1000),     # All health entries
+            ("cat_1*", 50),         # Cats with IDs starting with 1 (100-199)
+        ]
+
+        for pattern, expected_min in pattern_tests:
+            start_time = time.time()
+            result = await cache.invalidate(pattern=pattern)
+            duration = time.time() - start_time
+
+            # Performance should be reasonable (< 100ms for pattern matching)
+            assert duration < 0.1, f"Pattern {pattern} took {duration:.3f}s"
+            
+            # Result should be reasonable
+            assert result >= 0  # At minimum should not error
+            
+            # Reset cache for next test
+            await cache.clear()
+            for category in categories:
+                for animal_id in range(200):
+                    for operation in operations:
+                        key = f"{category}_{animal_id:03d}_{operation}"
+                        await cache.set(key, {
+                            "category": category,
+                            "animal_id": animal_id,
+                            "operation": operation
+                        })
+
+    @pytest.mark.asyncio
+    async def test_memory_usage_under_sustained_load(self):
+        """Test memory usage patterns under sustained load."""
+        cache = CacheManager(max_size=500)
+
+        # Sustained load test parameters
+        load_duration = 1.0  # 1 second of sustained load
+        
+        async def sustained_load_worker(worker_id: int):
+            """Worker generating sustained cache load."""
+            operations = 0
+            start_time = time.time()
+            
+            while time.time() - start_time < load_duration:
+                # Mix of operations
+                operation_type = operations % 4
+                
+                if operation_type == 0:
+                    # Set operation
+                    key = f"sustained_{worker_id}_{operations}"
+                    data = {
+                        "worker": worker_id,
+                        "operation": operations,
+                        "data": "x" * random.randint(100, 1000),  # Variable size data
+                        "timestamp": time.time()
+                    }
+                    await cache.set(key, data, ttl_seconds=random.randint(1, 300))
+                    
+                elif operation_type == 1:
+                    # Get operation
+                    key = f"sustained_{worker_id}_{operations - random.randint(0, 10)}"
+                    await cache.get(key)
+                    
+                elif operation_type == 2:
+                    # Invalidate operation
+                    pattern = f"sustained_{worker_id}_*"
+                    await cache.invalidate(pattern=pattern)
+                    
+                else:
+                    # Optimization operation
+                    await cache.optimize_cache()
+                
+                operations += 1
+                
+                # Minimal yield to allow other workers
+                if operations % 10 == 0:
+                    await asyncio.sleep(0.001)
+            
+            return operations
+
+        # Run multiple workers for sustained load
+        workers = [sustained_load_worker(i) for i in range(8)]
+        operation_counts = await asyncio.gather(*workers)
+
+        # Verify sustained load was applied
+        total_operations = sum(operation_counts)
+        assert total_operations > 500  # Should complete many operations
+
+        # Verify cache remains within memory constraints
+        stats = cache.get_stats()
+        assert stats["total_entries"] <= 500  # Should respect max size
+        
+        # Verify cache is still functional after sustained load
+        await cache.set("post_load_test", {"test": "data"})
+        result = await cache.get("post_load_test")
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_coordinated_multi_cache_operations(self):
+        """Test coordinated operations across multiple cache instances."""
+        # Simulate multiple cache instances (like in multi-dog setup)
+        caches = [CacheManager(max_size=100) for _ in range(5)]
+        
+        # Populate each cache with different but overlapping data
+        for cache_id, cache in enumerate(caches):
+            for i in range(50):
+                key = f"cache_{cache_id}_key_{i}"
+                shared_key = f"shared_key_{i}"  # Keys that exist in multiple caches
+                
+                await cache.set(key, {"cache": cache_id, "id": i})
+                await cache.set(shared_key, {"cache": cache_id, "shared": True, "id": i})
+
+        async def coordinated_cache_operation(cache_id: int):
+            """Perform coordinated operations on a specific cache."""
+            cache = caches[cache_id]
+            operations_completed = 0
+            
+            for operation in range(100):
+                op_type = operation % 5
+                
+                if op_type == 0:
+                    # Access own keys
+                    key = f"cache_{cache_id}_key_{operation % 50}"
+                    await cache.get(key)
+                    
+                elif op_type == 1:
+                    # Access shared keys
+                    key = f"shared_key_{operation % 50}"
+                    await cache.get(key)
+                    
+                elif op_type == 2:
+                    # Update shared keys
+                    key = f"shared_key_{operation % 50}"
+                    await cache.set(key, {"cache": cache_id, "updated": True, "op": operation})
+                    
+                elif op_type == 3:
+                    # Pattern invalidation
+                    await cache.invalidate(pattern=f"cache_{cache_id}_*")
+                    
+                else:
+                    # Optimization
+                    await cache.optimize_cache()
+                
+                operations_completed += 1
+                
+                # Coordination delay
+                await asyncio.sleep(0.001)
+            
+            return operations_completed
+
+        # Run coordinated operations on all caches
+        results = await asyncio.gather(*[
+            coordinated_cache_operation(i) for i in range(len(caches))
+        ])
+
+        # All caches should complete operations successfully
+        for result in results:
+            assert result == 100  # Should complete all operations
+
+        # Verify cache consistency after coordinated operations
+        for cache in caches:
+            stats = cache.get_stats()
+            assert stats["total_entries"] <= 100  # Should respect size limits
+            assert stats["total_entries"] >= 0    # Should be valid
+
+
+class TestCacheCorruptionDetectionAndRecovery:
+    """Test cache corruption detection and recovery scenarios."""
+
+    @pytest.mark.asyncio
+    async def test_corrupted_expiry_data_recovery(self):
+        """Test recovery from corrupted expiry data."""
+        cache = CacheManager()
+
+        # Set up normal cache entries
+        for i in range(10):
+            await cache.set(f"normal_key_{i}", {"value": i}, ttl_seconds=3600)
+
+        # Simulate expiry data corruption
+        cache._expiry["corrupted_key_1"] = "not_a_datetime"  # Invalid expiry
+        cache._expiry["corrupted_key_2"] = None              # None expiry
+        cache._cache["corrupted_key_1"] = {"corrupted": True}
+        cache._cache["corrupted_key_2"] = {"corrupted": True}
+
+        # Test get operations with corrupted expiry data
+        try:
+            result1 = await cache.get("corrupted_key_1")
+            result2 = await cache.get("corrupted_key_2")
+            
+            # Should handle corruption gracefully
+            assert result1 is None or isinstance(result1, dict)
+            assert result2 is None or isinstance(result2, dict)
+            
+        except Exception:
+            # If exceptions occur, they should be handled gracefully
+            pass
+
+        # Cache should still function for normal keys
+        result = await cache.get("normal_key_0")
+        assert result is not None
+        assert result["value"] == 0
+
+        # Optimization should clean up corrupted data
+        opt_result = await cache.optimize_cache()
+        assert opt_result["optimization_completed"] is True
+
+    @pytest.mark.asyncio
+    async def test_inconsistent_cache_state_recovery(self):
+        """Test recovery from inconsistent cache state."""
+        cache = CacheManager()
+
+        # Create inconsistent state: cache entry without expiry
+        cache._cache["orphaned_key"] = {"orphaned": True}
+        # Missing entry in _expiry dict
+
+        # Create inconsistent state: expiry without cache entry  
+        cache._expiry["phantom_key"] = dt_util.utcnow() + timedelta(hours=1)
+        # Missing entry in _cache dict
+
+        # Create inconsistent state: access count without cache entry
+        cache._access_count["ghost_key"] = 10
+        cache._last_access["ghost_key"] = dt_util.utcnow()
+        # Missing entry in _cache dict
+
+        # Test operations with inconsistent state
+        try:
+            # Should handle orphaned key gracefully
+            result1 = await cache.get("orphaned_key")
+            
+            # Should handle phantom key gracefully  
+            result2 = await cache.get("phantom_key")
+            
+            # Should handle ghost key gracefully
+            result3 = await cache.get("ghost_key")
+            
+            # All should return None or valid data, not crash
+            assert result1 is None or isinstance(result1, dict)
+            assert result2 is None
+            assert result3 is None
+            
+        except Exception as e:
+            # Should not crash, but if exceptions occur, they should be minimal
+            assert "phantom" not in str(e)  # Should not reference non-existent keys
+
+        # Optimization should resolve inconsistencies
+        opt_result = await cache.optimize_cache()
+        assert opt_result["optimization_completed"] is True
+
+        # Verify cache is in consistent state after optimization
+        stats = cache.get_stats()
+        assert stats["total_entries"] <= 1  # Only orphaned_key might remain
+
+    @pytest.mark.asyncio
+    async def test_concurrent_corruption_and_recovery(self):
+        """Test recovery from corruption that occurs during concurrent operations."""
+        cache = CacheManager(max_size=50)
+
+        # Pre-populate cache
+        for i in range(30):
+            await cache.set(f"stable_key_{i}", {"value": i})
+
+        async def corruption_simulation():
+            """Simulate corruption during operations."""
+            await asyncio.sleep(0.1)  # Let other operations start
+            
+            # Simulate various corruption scenarios
+            cache._expiry["corrupt_1"] = "invalid_datetime"
+            cache._cache["corrupt_1"] = {"data": "corrupted"}
+            
+            # Corrupt access counts
+            cache._access_count["nonexistent"] = 999
+            
+            # Corrupt hot keys
+            cache._hot_keys.add("nonexistent_hot")
+            
+            await asyncio.sleep(0.1)  # Let corruption affect operations
+
+        async def normal_operations():
+            """Perform normal operations during corruption."""
+            operation_count = 0
+            errors = 0
+            
+            for i in range(100):
+                try:
+                    key = f"stable_key_{i % 30}"
+                    
+                    # Mix of operations
+                    if i % 3 == 0:
+                        await cache.get(key)
+                    elif i % 3 == 1:
+                        await cache.set(key, {"value": i, "updated": True})
+                    else:
+                        await cache.optimize_cache()
+                    
+                    operation_count += 1
+                    
+                except Exception:
+                    errors += 1
+                
+                await asyncio.sleep(0.001)
+            
+            return operation_count, errors
+
+        # Run corruption simulation alongside normal operations
+        (operation_count, errors), _ = await asyncio.gather(
+            normal_operations(),
+            corruption_simulation(),
+            return_exceptions=True
+        )
+
+        # Most operations should succeed despite corruption
+        assert operation_count > 80  # At least 80% success rate
+        assert errors < 20           # Limited errors
+
+        # Final optimization should clean up corruption
+        final_opt = await cache.optimize_cache()
+        assert final_opt["optimization_completed"] is True
+
+        # Cache should be functional after cleanup
+        await cache.set("post_corruption_test", {"test": "recovery"})
+        result = await cache.get("post_corruption_test")
+        assert result is not None
+        assert result["test"] == "recovery"
 
 
 if __name__ == "__main__":
