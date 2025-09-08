@@ -64,3 +64,6 @@ source = ["custom_components/pawcontrol"]
 show_missing = true
 skip_covered = false
 precision = 2
+
+[tool.pylint.similarities]
+ignore-imports = "yes"
