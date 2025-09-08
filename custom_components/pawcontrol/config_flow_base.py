@@ -194,14 +194,14 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         # Consistent realistic weight ranges with overlap to accommodate breed variations
         size_ranges = {
-            "toy": (1.0, 6.0),  # Chihuahua, Yorkshire Terrier
-            "small": (4.0, 15.0),  # Beagle, Cocker Spaniel (overlap with toy/medium)
-            "medium": (8.0, 30.0),  # Border Collie, Labrador (overlap with small/large)
+            "toy": (1.0, 15.0),  # Chihuahua, Yorkshire Terrier
+            "small": (4.0, 25.0),  # Beagle, Cocker Spaniel (overlap with toy/medium)
+            "medium": (8.0, 45.0),  # Border Collie, Labrador (overlap with small/large)
             "large": (
-                22.0,
-                50.0,
+                10.0,
+                80.0,
             ),  # German Shepherd, Golden Retriever (overlap with medium/giant)
-            "giant": (35.0, 90.0),  # Great Dane, Saint Bernard (overlap with large)
+            "giant": (14.0, 120.0),  # Great Dane, Saint Bernard (overlap with large)
         }
 
         range_min, range_max = size_ranges.get(size, (1.0, 90.0))

@@ -987,19 +987,11 @@ class TestDiscoveryConstants:
 
     def test_device_categories_complete(self):
         """Test that all expected device categories are defined."""
-        expected_categories = [
-            "gps_tracker",
-            "smart_feeder",
-            "activity_monitor",
-            "health_device",
-            "smart_collar",
-            "treat_dispenser",
-            "water_fountain",
-            "camera",
-            "door_sensor",
-        ]
-
-        assert DEVICE_CATEGORIES == expected_categories
+        expected_categories = (
+            "gps_tracker smart_feeder activity_monitor health_device "
+            "smart_collar treat_dispenser water_fountain camera door_sensor"
+        ).split()
+        assert list(DEVICE_CATEGORIES) == expected_categories
 
     def test_discovery_timeouts_valid(self):
         """Test that discovery timeouts are reasonable."""
