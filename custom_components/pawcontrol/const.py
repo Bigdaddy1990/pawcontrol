@@ -38,6 +38,19 @@ PLATFORMS: Final = (
     Platform.DATETIME,
 )
 
+# OPTIMIZED: Supported device categories as tuple for immutability
+DEVICE_CATEGORIES: Final = (
+    "gps_tracker",
+    "smart_feeder",
+    "activity_monitor",
+    "health_device",
+    "smart_collar",
+    "treat_dispenser",
+    "water_fountain",
+    "camera",
+    "door_sensor",
+)
+
 # OPTIMIZED: Core configuration constants - grouped for better locality
 CONF_NAME: Final = "name"
 CONF_DOGS: Final = "dogs"
