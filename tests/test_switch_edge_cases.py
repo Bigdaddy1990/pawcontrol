@@ -53,6 +53,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .setup_entry_edge_cases_common import SetupEntryEdgeCaseTests
+
 
 @pytest.fixture
 def mock_coordinator():
@@ -690,90 +692,10 @@ class TestSwitchTypeSpecificEdgeCases:
         await switch._async_set_state(True)
 
 
-class TestAsyncSetupEntryEdgeCases:
+class TestAsyncSetupEntryEdgeCases(SetupEntryEdgeCaseTests):
     """Test async_setup_entry edge cases."""
 
-    @pytest.mark.asyncio
-    async def test_setup_with_runtime_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with runtime_data format."""
-        # Setup runtime_data format
-        mock_entry.runtime_data = {
-            "coordinator": mock_coordinator,
-            "dogs": mock_entry.data[CONF_DOGS],
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should create entities
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_legacy_hass_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with legacy hass.data format."""
-        # Setup legacy format
-        hass.data[DOMAIN] = {
-            mock_entry.entry_id: {
-                "coordinator": mock_coordinator,
-            }
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should create entities
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_no_dogs(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with no dogs configured."""
-        # Empty dogs list
-        mock_entry.data = {CONF_DOGS: []}
-        mock_entry.runtime_data = {
-            "coordinator": mock_coordinator,
-            "dogs": [],
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should still call add_entities (with empty list)
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_malformed_dog_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with malformed dog data."""
-        # Malformed dog data
-        mock_entry.data = {
-            CONF_DOGS: [
-                {
-                    # Missing CONF_DOG_ID
-                    CONF_DOG_NAME: "Incomplete Dog",
-                    "modules": {MODULE_FEEDING: True},
-                },
-                {
-                    CONF_DOG_ID: "valid_dog",
-                    CONF_DOG_NAME: "Valid Dog",
-                    # Missing modules key
-                },
-            ]
-        }
-
-        add_entities_mock = Mock()
-
-        # Should handle gracefully without crashing
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
+    setup_entry = staticmethod(async_setup_entry)
 
     @pytest.mark.asyncio
     async def test_setup_performance_with_many_dogs(

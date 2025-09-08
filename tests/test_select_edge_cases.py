@@ -14,128 +14,12 @@ Test Areas:
 - Performance under stress conditions
 """
 
+# ruff: noqa: F401, F403, F405
+
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
-
-import pytest
-from custom_components.pawcontrol.const import (
-    ACTIVITY_LEVELS,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
-    CONF_DOGS,
-    DOG_SIZES,
-    DOMAIN,
-    FOOD_TYPES,
-    GPS_SOURCES,
-    HEALTH_STATUS_OPTIONS,
-    MEAL_TYPES,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    MOOD_OPTIONS,
-    PERFORMANCE_MODES,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.select import (
-    PawControlActivityLevelSelect,
-    PawControlDefaultMealTypeSelect,
-    PawControlDogSizeSelect,
-    PawControlFeedingModeSelect,
-    PawControlFeedingScheduleSelect,
-    PawControlFoodTypeSelect,
-    PawControlGPSSourceSelect,
-    PawControlGroomingTypeSelect,
-    PawControlHealthStatusSelect,
-    PawControlLocationAccuracySelect,
-    PawControlMoodSelect,
-    PawControlNotificationPrioritySelect,
-    PawControlPerformanceModeSelect,
-    PawControlSelectBase,
-    PawControlTrackingModeSelect,
-    PawControlWalkIntensitySelect,
-    PawControlWalkModeSelect,
-    PawControlWeatherPreferenceSelect,
-    _async_add_entities_in_batches,
-    _create_base_selects,
-    _create_feeding_selects,
-    _create_gps_selects,
-    _create_health_selects,
-    _create_walk_selects,
-    async_setup_entry,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
-
-
-@pytest.fixture
-def mock_coordinator():
-    """Create a mock coordinator for testing."""
-    coordinator = MagicMock(spec=PawControlCoordinator)
-    coordinator.available = True
-    coordinator.config_entry = MagicMock()
-    coordinator.get_dog_data.return_value = {
-        "dog_info": {
-            "dog_name": "TestDog",
-            "dog_breed": "TestBreed",
-            "dog_age": 3,
-            "dog_size": "medium",
-        },
-        "modules": {
-            MODULE_FEEDING: True,
-            MODULE_GPS: True,
-            MODULE_HEALTH: True,
-            MODULE_WALK: True,
-        },
-    }
-    coordinator.get_module_data.return_value = {
-        "health_status": "good",
-        "activity_level": "normal",
-    }
-    coordinator.async_refresh_dog = AsyncMock()
-    return coordinator
-
-
-@pytest.fixture
-def mock_entry():
-    """Create a mock config entry."""
-    entry = MagicMock(spec=ConfigEntry)
-    entry.entry_id = "test_entry"
-    entry.data = {
-        CONF_DOGS: [
-            {
-                CONF_DOG_ID: "dog1",
-                CONF_DOG_NAME: "TestDog1",
-                CONF_DOG_SIZE: "large",
-                "modules": {
-                    MODULE_FEEDING: True,
-                    MODULE_GPS: True,
-                    MODULE_HEALTH: False,
-                    MODULE_WALK: True,
-                },
-            },
-            {
-                CONF_DOG_ID: "dog2",
-                CONF_DOG_NAME: "TestDog2",
-                CONF_DOG_SIZE: "small",
-                "modules": {
-                    MODULE_FEEDING: False,
-                    MODULE_GPS: True,
-                    MODULE_HEALTH: True,
-                    MODULE_WALK: False,
-                },
-            },
-        ]
-    }
-    return entry
+from .select_edge_cases_common import *  # noqa: F401,F403,F405
+from .setup_entry_edge_cases_common import SetupEntryEdgeCaseTests
 
 
 class TestSelectBaseEdgeCases:
@@ -729,90 +613,10 @@ class TestHealthSelectDataIntegration:
         assert select.current_option == "normal"  # Should fall back
 
 
-class TestSetupEntryEdgeCases:
+class TestSetupEntryEdgeCases(SetupEntryEdgeCaseTests):
     """Test async_setup_entry edge cases for select platform."""
 
-    @pytest.mark.asyncio
-    async def test_setup_with_runtime_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with runtime_data format."""
-        # Setup runtime_data format
-        mock_entry.runtime_data = {
-            "coordinator": mock_coordinator,
-            "dogs": mock_entry.data[CONF_DOGS],
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should create entities using batching
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_legacy_hass_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with legacy hass.data format."""
-        # Setup legacy format
-        hass.data[DOMAIN] = {
-            mock_entry.entry_id: {
-                "coordinator": mock_coordinator,
-            }
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should create entities
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_no_dogs(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with no dogs configured."""
-        # Empty dogs list
-        mock_entry.data = {CONF_DOGS: []}
-        mock_entry.runtime_data = {
-            "coordinator": mock_coordinator,
-            "dogs": [],
-        }
-
-        add_entities_mock = Mock()
-
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
-
-        # Should still call add_entities (with empty list)
-        add_entities_mock.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_setup_with_malformed_dog_data(
-        self, hass: HomeAssistant, mock_entry, mock_coordinator
-    ):
-        """Test setup_entry with malformed dog data."""
-        # Malformed dog data
-        mock_entry.data = {
-            CONF_DOGS: [
-                {
-                    # Missing CONF_DOG_ID
-                    CONF_DOG_NAME: "Incomplete Dog",
-                    "modules": {MODULE_FEEDING: True},
-                },
-                {
-                    CONF_DOG_ID: "valid_dog",
-                    CONF_DOG_NAME: "Valid Dog",
-                    # Missing modules key
-                },
-            ]
-        }
-
-        add_entities_mock = Mock()
-
-        # Should handle gracefully without crashing
-        await async_setup_entry(hass, mock_entry, add_entities_mock)
+    setup_entry = staticmethod(async_setup_entry)
 
     @pytest.mark.asyncio
     async def test_setup_with_disabled_modules(
