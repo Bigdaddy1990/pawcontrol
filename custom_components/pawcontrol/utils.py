@@ -596,16 +596,6 @@ def is_within_time_range_enhanced(
         return False, f"Invalid time format: {err}"
 
 
-def is_within_quiet_hours(
-    quiet_start: str, quiet_end: str, now: datetime | None = None
-) -> bool:
-    """Return True if ``now`` falls within the configured quiet hours."""
-
-    now = now or dt_util.utcnow()
-    in_range, _ = is_within_time_range_enhanced(now, quiet_start, quiet_end)
-    return in_range
-
-
 def sanitize_filename_advanced(
     filename: str, max_length: int = 255, replacement_char: str = "_"
 ) -> str:
@@ -666,10 +656,6 @@ def is_within_quiet_hours(now: datetime, start: str | time, end: str | time) -> 
     if isinstance(end, str):
         end = datetime.strptime(end, "%H:%M").time()
 
-    if start <= end:
-        return start <= now.time() <= end
-    return now.time() >= start or now.time() <= end
-    """Return True if current time is within the quiet hours range."""
     if start <= end:
         return start <= now.time() <= end
     return now.time() >= start or now.time() <= end
