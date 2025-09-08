@@ -293,7 +293,9 @@ class HassfestHACSValidator:
                 for section in common_sections:
                     en_section_data = en_translations.get(section)
                     strings_section_data = strings_data.get(section)
-                    if not isinstance(en_section_data, dict) or not isinstance(strings_section_data, dict):
+                    if not isinstance(en_section_data, dict) or not isinstance(
+                        strings_section_data, dict
+                    ):
                         continue
                     en_keys = set(en_section_data.keys())
                     strings_keys = set(strings_section_data.keys())
