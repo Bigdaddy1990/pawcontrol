@@ -1,8 +1,7 @@
-# duplication threshold [10 - 100]
-MinLineCount: 10
+# Minimum duplicated line threshold
+MinLineCount: 50
 
-# files/patterns to exclude
+# Paths to ignore for duplication checking
 IgnorePatterns:
-  - file_name_example.css
-  - src\file_name_example.js
-  - dist\**
+  - docs/**
+  - tests/**
