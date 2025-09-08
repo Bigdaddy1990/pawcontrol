@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 
-class TestCoverageValidator:
+class CoverageValidator:
     """Validates test coverage for Gold Standard compliance."""
 
     def __init__(self, base_path: Path):
@@ -442,7 +442,7 @@ def main():
     """Main entry point."""
     base_path = Path(__file__).parent
 
-    validator = TestCoverageValidator(base_path)
+    validator = CoverageValidator(base_path)
     success = validator.validate_coverage()
 
     sys.exit(0 if success else 1)
