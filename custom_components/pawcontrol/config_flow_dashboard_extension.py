@@ -23,6 +23,7 @@ from .const import (
     CONF_DASHBOARD_MODE,
     CONF_DASHBOARD_PER_DOG,
     CONF_DASHBOARD_THEME,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_DASHBOARD_AUTO_CREATE,
     DEFAULT_DASHBOARD_MODE,
     DEFAULT_DASHBOARD_THEME,
@@ -103,20 +104,7 @@ class DashboardFlowMixin:
                     default=DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "full",
-                                "label": "Full - Complete dashboard with all features",
-                            },
-                            {
-                                "value": "cards",
-                                "label": "Cards - Organized card-based layout",
-                            },
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Essential information only",
-                            },
-                        ],
+                        options=DASHBOARD_MODE_SELECTOR_OPTIONS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

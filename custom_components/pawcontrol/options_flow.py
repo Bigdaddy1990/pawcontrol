@@ -40,11 +40,14 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_GPS_UPDATE_INTERVAL,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
+    GPS_ACCURACY_FILTER_SELECTOR,
+    GPS_UPDATE_INTERVAL_SELECTOR,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -1068,15 +1071,7 @@ class PawControlOptionsFlow(OptionsFlow):
                             CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL
                         ),
                     ),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=30,
-                        max=600,
-                        step=10,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="seconds",
-                    )
-                ),
+                ): GPS_UPDATE_INTERVAL_SELECTOR,
                 vol.Optional(
                     "gps_accuracy_filter",
                     default=current_values.get(
@@ -1085,15 +1080,7 @@ class PawControlOptionsFlow(OptionsFlow):
                             CONF_GPS_ACCURACY_FILTER, DEFAULT_GPS_ACCURACY_FILTER
                         ),
                     ),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=5,
-                        max=500,
-                        step=5,
-                        mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="meters",
-                    )
-                ),
+                ): GPS_ACCURACY_FILTER_SELECTOR,
                 vol.Optional(
                     "gps_distance_filter",
                     default=current_values.get(
@@ -1535,20 +1522,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "full",
-                                "label": "Full - All information displayed",
-                            },
-                            {
-                                "value": "cards",
-                                "label": "Cards - Organized card layout",
-                            },
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Essential information only",
-                            },
-                        ],
+                        options=DASHBOARD_MODE_SELECTOR_OPTIONS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

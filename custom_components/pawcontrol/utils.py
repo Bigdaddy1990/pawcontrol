@@ -25,7 +25,12 @@ from typing import Any, TypeVar, overload
 
 from homeassistant.util import dt as dt_util
 
-from .const import DOG_SIZE_WEIGHT_RANGES, MAX_DOG_WEIGHT, MIN_DOG_WEIGHT
+from .const import (
+    DOG_SIZE_WEIGHT_RANGES,
+    DOMAIN,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_WEIGHT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -616,6 +621,19 @@ def sanitize_filename_advanced(
     return sanitized
 
 
+# OPTIMIZED: Device info generation helper
+def create_device_info(dog_id: str, dog_name: str) -> dict[str, Any]:
+    """OPTIMIZED: Generate consistent device info with configuration URL."""
+    return {
+        "identifiers": {(DOMAIN, dog_id)},
+        "name": dog_name,
+        "manufacturer": "Paw Control",
+        "model": "Smart Dog Monitoring",
+        "sw_version": "2.0.0",
+        "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+    }
+
+
 # OPTIMIZED: Legacy compatibility with deprecation paths
 def safe_float(value: Any, default: float = 0.0) -> float:
     """Legacy compatibility - use safe_convert instead."""
@@ -648,6 +666,7 @@ __all__ = (
     "calculate_bmr_advanced",
     "calculate_trend_advanced",
     # Utilities
+    "create_device_info",
     "safe_convert",
     "deep_merge_dicts_optimized",
     "is_within_time_range_enhanced",

@@ -44,6 +44,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
+from .utils import create_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -545,16 +546,8 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         self._attr_device_class = device_class
         self._attr_icon = icon
         self._attr_entity_category = entity_category
-
-        # Device info
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Monitoring",
-            "sw_version": "2.0.0",  # Updated for profile system
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
+        self._attr_device_info = create_device_info(dog_id, dog_name)
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
