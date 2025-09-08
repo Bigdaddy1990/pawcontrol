@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+from contextlib import suppress
 from datetime import UTC, datetime
 from enum import StrEnum
 from types import ModuleType
@@ -131,15 +132,15 @@ if not hasattr(device_registry, "DeviceInfo"):
 # future from a different loop raises ``RuntimeError: Task ... got Future ...
 # attached to a different loop``.  To keep the tests lightweight we replace the
 # method with a version that always targets the running loop.
-try:  # pragma: no cover - ensure ``HomeAssistant.config`` exists for mocks
+with suppress(
+    Exception
+):  # pragma: no cover - ensure ``HomeAssistant.config`` exists for mocks
     from homeassistant.core import HomeAssistant
 
     if not hasattr(HomeAssistant, "config"):
         HomeAssistant.config = None  # type: ignore[assignment]
-except Exception:  # pragma: no cover - Home Assistant not available
-    pass
 
-try:  # pragma: no cover - patch executor job helper when possible
+with suppress(Exception):  # pragma: no cover - patch executor job helper when possible
     import asyncio
 
     from homeassistant.core import HomeAssistant
@@ -152,8 +153,6 @@ try:  # pragma: no cover - patch executor job helper when possible
 
         HomeAssistant.async_add_executor_job = async_add_executor_job  # type: ignore[assignment]
         HomeAssistant._pawcontrol_executor_patch = True  # type: ignore[attr-defined]
-except Exception:  # pragma: no cover - Home Assistant not available
-    pass
 
 
 # Register the config flow class directly with Home Assistant's flow handler
@@ -161,7 +160,9 @@ except Exception:  # pragma: no cover - Home Assistant not available
 # ``hass.config_entries.flow.async_init("pawcontrol")`` working even when the
 # loader cannot resolve the custom component from the filesystem in the minimal
 # test environment.
-try:  # pragma: no cover - import may fail when Home Assistant is absent
+with suppress(
+    Exception
+):  # pragma: no cover - import may fail when Home Assistant is absent
     from custom_components import pawcontrol as paw_module
     from custom_components.pawcontrol import config_flow as paw_config_flow
     from homeassistant import config_entries
@@ -172,14 +173,12 @@ try:  # pragma: no cover - import may fail when Home Assistant is absent
     # Expose the integration as a built-in component so the loader can
     # resolve it even when custom component paths aren't configured.
     sys.modules.setdefault("homeassistant.components.pawcontrol", paw_module)
-except Exception:  # pragma: no cover - ignore if either import fails
-    pass
 
 # Ensure the repository's custom_components path is available when Home
 # Assistant mounts the config dir during integration setup. This allows the
 # loader to resolve the Paw Control integration even when the config directory
 # used for tests doesn't contain a copy of the custom component.
-try:  # pragma: no cover - Home Assistant may not be installed
+with suppress(Exception):  # pragma: no cover - Home Assistant may not be installed
     from pathlib import Path
 
     import homeassistant.loader as loader
@@ -194,5 +193,3 @@ try:  # pragma: no cover - Home Assistant may not be installed
             sys.path_importer_cache.pop(str(repo_root), None)
 
     loader._async_mount_config_dir = _patched_mount_config_dir
-except Exception:  # pragma: no cover - ignore if patching fails
-    pass

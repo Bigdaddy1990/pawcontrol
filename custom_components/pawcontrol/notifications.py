@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -159,17 +160,13 @@ class PawControlNotificationManager:
             # Cancel background tasks
             if self._cleanup_task:
                 self._cleanup_task.cancel()
-                try:
+                with suppress(asyncio.CancelledError):
                     await self._cleanup_task
-                except asyncio.CancelledError:
-                    pass
 
             if self._summary_task:
                 self._summary_task.cancel()
-                try:
+                with suppress(asyncio.CancelledError):
                     await self._summary_task
-                except asyncio.CancelledError:
-                    pass
 
             # Dismiss all active notifications
             async with self._lock:

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -1113,12 +1114,10 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
         data_fresh = False
         if last_seen:
-            try:
+            with suppress(ValueError, TypeError):
                 last_seen_dt = datetime.fromisoformat(last_seen)
                 time_diff = dt_util.utcnow() - last_seen_dt
                 data_fresh = time_diff < timedelta(minutes=5)
-            except (ValueError, TypeError):
-                pass
 
         return accuracy_good and data_fresh
 

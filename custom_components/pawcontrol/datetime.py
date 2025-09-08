@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -320,10 +321,8 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
 
         last_feeding = dog_data["feeding"].get("last_feeding")
         if last_feeding:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_datetime(last_feeding)
-            except (ValueError, TypeError):
-                pass
 
         return self._current_value
 
@@ -379,10 +378,8 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
 
         last_visit = dog_data["health"].get("last_vet_visit")
         if last_visit:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_datetime(last_visit)
-            except (ValueError, TypeError):
-                pass
 
         return self._current_value
 
@@ -440,10 +437,8 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
 
         last_grooming = dog_data["health"].get("last_grooming")
         if last_grooming:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_datetime(last_grooming)
-            except (ValueError, TypeError):
-                pass
 
         return self._current_value
 
@@ -539,10 +534,8 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
 
         last_walk = dog_data["walk"].get("last_walk")
         if last_walk:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_datetime(last_walk)
-            except (ValueError, TypeError):
-                pass
 
         return self._current_value
 

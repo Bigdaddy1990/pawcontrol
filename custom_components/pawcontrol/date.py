@@ -13,6 +13,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import date
 from typing import Any
 
@@ -463,10 +464,8 @@ class PawControlBirthdateDate(PawControlDateBase):
         """Extract birthdate from dog data."""
         birthdate_str = dog_data.get("profile", {}).get("birthdate")
         if birthdate_str:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_date(birthdate_str)
-            except (ValueError, TypeError):
-                pass
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -508,10 +507,8 @@ class PawControlAdoptionDate(PawControlDateBase):
         """Extract adoption date from dog data."""
         adoption_date_str = dog_data.get("profile", {}).get("adoption_date")
         if adoption_date_str:
-            try:
+            with suppress(ValueError, TypeError):
                 return dt_util.parse_date(adoption_date_str)
-            except (ValueError, TypeError):
-                pass
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -545,15 +542,12 @@ class PawControlLastVetVisitDate(PawControlDateBase):
         """Extract last vet visit date from dog data."""
         vet_visit_str = dog_data.get("health", {}).get("last_vet_visit")
         if vet_visit_str:
-            try:
+            with suppress(ValueError, TypeError):
                 # Handle both date and datetime strings
                 parsed_dt = dt_util.parse_datetime(vet_visit_str)
                 return parsed_dt.date() if parsed_dt else None
-            except (ValueError, TypeError):
-                try:
-                    return dt_util.parse_date(vet_visit_str)
-                except (ValueError, TypeError):
-                    pass
+            with suppress(ValueError, TypeError):
+                return dt_util.parse_date(vet_visit_str)
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -621,14 +615,11 @@ class PawControlLastGroomingDate(PawControlDateBase):
         """Extract last grooming date from dog data."""
         grooming_str = dog_data.get("health", {}).get("last_grooming")
         if grooming_str:
-            try:
+            with suppress(ValueError, TypeError):
                 parsed_dt = dt_util.parse_datetime(grooming_str)
                 return parsed_dt.date() if parsed_dt else None
-            except (ValueError, TypeError):
-                try:
-                    return dt_util.parse_date(grooming_str)
-                except (ValueError, TypeError):
-                    pass
+            with suppress(ValueError, TypeError):
+                return dt_util.parse_date(grooming_str)
         return None
 
 

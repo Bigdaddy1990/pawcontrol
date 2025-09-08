@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -208,13 +209,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Optimized maintenance loop with improved efficiency."""
         try:
             while not self._shutdown_event.is_set():
-                try:
+                with suppress(asyncio.TimeoutError):
                     await asyncio.wait_for(
                         self._shutdown_event.wait(), timeout=MAINTENANCE_INTERVAL
                     )
                     break  # Shutdown requested
-                except asyncio.TimeoutError:
-                    pass  # Continue with maintenance
 
                 await self._perform_maintenance()
 
@@ -228,13 +227,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Optimized batch processor with reduced latency."""
         try:
             while not self._shutdown_event.is_set():
-                try:
+                with suppress(asyncio.TimeoutError):
                     await asyncio.wait_for(
                         self._shutdown_event.wait(), timeout=BATCH_CHECK_INTERVAL
                     )
                     break  # Shutdown requested
-                except asyncio.TimeoutError:
-                    pass  # Continue checking
 
                 if await self._batch_manager.should_batch_now():
                     await self.async_refresh()
