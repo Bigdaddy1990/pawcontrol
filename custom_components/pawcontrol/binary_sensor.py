@@ -330,15 +330,18 @@ class PawControlBinarySensorBase(
         if hasattr(self, "_is_on"):
             return self._is_on
         return self._get_is_on_state()
+
     @is_on.setter
     def is_on(self, value: bool) -> None:
         """Set the sensor's state for testing."""
         self._is_on = value
+
     @is_on.deleter
     def is_on(self) -> None:
         """Delete the test override for the sensor's state."""
         if hasattr(self, "_is_on"):
             del self._is_on
+
     def _get_is_on_state(self) -> bool:
         """Return the actual state of the sensor. Subclasses should override."""
         return False
