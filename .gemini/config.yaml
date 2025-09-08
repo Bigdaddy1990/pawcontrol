@@ -3,31 +3,25 @@ have_fun: false
 
 code_review:
   disable: false
-  comment_severity_threshold: HIGH   # nur Wichtiges, weniger Lärm
-  max_review_comments: 30            # hartes Limit pro PR
+  comment_severity_threshold: HIGH
+  max_review_comments: 40
   pull_request_opened:
-    help: true
+    help: false
     summary: true
     code_review: true
-    include_drafts: false            # keine Reviews für Drafts
+    include_drafts: false
 
-# schlanke Ignorierliste für typische Build-Artefakte und Locks
+# Build-/Test-Artefakte ignorieren
 ignore_patterns:
-  - "**/node_modules/**"
+  - "**/__pycache__/**"
+  - "**/.pytest_cache/**"
+  - "**/.mypy_cache/**"
+  - "**/.ruff_cache/**"
+  - "**/.coverage"
+  - "**/htmlcov/**"
   - "**/dist/**"
   - "**/build/**"
-  - "**/.next/**"
-  - "**/coverage/**"
   - "**/.venv/**"
+  - "**/coverage.xml"
   - "**/.tox/**"
-  - "**/vendor/**"
-  - "**/*.min.js"
-  - "**/*.min.css"
-  - "**/*.snap"
-  - "**/*.lock"
-  - "**/package-lock.json"
-  - "**/pnpm-lock.yaml"
-  - "**/yarn.lock"
-  - "**/poetry.lock"
-  - "**/Pipfile.lock"
-  - "**/generated/**"
+  - "**/.DS_Store"
