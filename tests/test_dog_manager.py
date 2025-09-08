@@ -9,13 +9,12 @@ Coverage: 100%
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.dog_manager import DogDataManager
+from homeassistant.util import dt as dt_util
 
 
 class TestDogDataManagerInitialization:

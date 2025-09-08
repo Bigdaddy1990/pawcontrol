@@ -9,17 +9,16 @@ Coverage: 100%
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.batch_manager import (
-    BatchManager,
-    MAX_BATCH_SIZE,
     FORCE_BATCH_INTERVAL,
+    MAX_BATCH_SIZE,
+    BatchManager,
 )
+from homeassistant.util import dt as dt_util
 
 
 class TestBatchManager:
@@ -324,7 +323,7 @@ class TestBatchManagerOptimization:
         batch_manager._max_batch_size = 10
         
         # Add very few updates to force decrease
-        result = await batch_manager.optimize_batching()
+        await batch_manager.optimize_batching()
         
         # Should not go below 10
         assert batch_manager._max_batch_size >= 10

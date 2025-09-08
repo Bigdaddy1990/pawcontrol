@@ -9,13 +9,12 @@ Coverage: 100%
 from __future__ import annotations
 
 import asyncio
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.util import dt as dt_util
-
+import pytest
 from custom_components.pawcontrol.walk_manager import WalkManager
+from homeassistant.util import dt as dt_util
 
 
 class TestWalkManagerInitialization:
@@ -311,7 +310,7 @@ class TestWalkManagerWalkOperations:
         # First update GPS location
         await initialized_walk_manager.async_update_gps_data("dog1", 52.5200, 13.4050, accuracy=10.0)
         
-        walk_id = await initialized_walk_manager.async_start_walk("dog1")
+        await initialized_walk_manager.async_start_walk("dog1")
         
         current_walk = await initialized_walk_manager.async_get_current_walk("dog1")
         assert current_walk["start_location"] is not None
@@ -1005,12 +1004,12 @@ class TestWalkManagerEdgeCases:
         # Add more than 100 walks to test overflow protection
         for i in range(105):
             await walk_manager.async_start_walk("dog1")
-            completed_walk = await walk_manager.async_end_walk("dog1")
+            await walk_manager.async_end_walk("dog1")
             # Manually add to history to simulate the condition
             walk_manager._walk_history["dog1"].append({"test_walk": i})
         
         # History should be limited to 100 entries
-        history = await walk_manager.async_get_walk_history("dog1")
+        await walk_manager.async_get_walk_history("dog1")
         assert len(walk_manager._walk_history["dog1"]) <= 100
 
     async def test_distance_calculation_edge_cases(self, walk_manager):
@@ -1217,7 +1216,7 @@ class TestWalkManagerIntegration:
             assert current_walk is not None  # Should still return the walk
             
             # Try to end walk - should handle corruption
-            completed_walk = await walk_manager.async_end_walk("test_dog")
+            await walk_manager.async_end_walk("test_dog")
             # Should either complete successfully or handle gracefully
             
         finally:
@@ -1241,7 +1240,7 @@ class TestWalkManagerIntegration:
         start_time = time.time()
         
         for _ in range(10):
-            history = await walk_manager.async_get_walk_history("performance_test_dog")
+            await walk_manager.async_get_walk_history("performance_test_dog")
         
         elapsed = time.time() - start_time
         
