@@ -4,24 +4,25 @@ have_fun: false
 code_review:
   disable: false
   comment_severity_threshold: HIGH
-  max_review_comments: 40
+  max_review_comments: 60
   pull_request_opened:
     help: false
     summary: true
     code_review: true
     include_drafts: false
 
-# Build-/Test-Artefakte ignorieren
+# Fokus: Python/HA. Artefakte ignorieren.
 ignore_patterns:
   - "**/__pycache__/**"
   - "**/.pytest_cache/**"
   - "**/.mypy_cache/**"
   - "**/.ruff_cache/**"
+  - "**/.tox/**"
+  - "**/.venv/**"
   - "**/.coverage"
   - "**/htmlcov/**"
   - "**/dist/**"
   - "**/build/**"
-  - "**/.venv/**"
-  - "**/coverage.xml"
-  - "**/.tox/**"
   - "**/.DS_Store"
+  - "**/*.log"
+  - "assets/**"           # Bilder/Logos
