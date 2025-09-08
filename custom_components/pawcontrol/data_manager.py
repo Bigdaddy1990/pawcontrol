@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 from collections import deque
+from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Deque, Optional
 
@@ -419,10 +420,8 @@ class PawControlDataManager:
             for task in [self._maintenance_task, self._save_task]:
                 if task and not task.done():
                     task.cancel()
-                    try:
+                    with suppress(asyncio.CancelledError):
                         await task
-                    except asyncio.CancelledError:
-                        pass
 
             # Final save
             await self._flush_all()
@@ -685,13 +684,11 @@ class PawControlDataManager:
             if index_info and start_date:
                 first_timestamp = index_info.get("first")
                 if first_timestamp:
-                    try:
+                    with suppress(ValueError, TypeError):
                         first_time = datetime.fromisoformat(first_timestamp)
                         if first_time > start_date:
                             # All entries are after start_date
                             start_date = None
-                    except:  # noqa: E722
-                        pass
 
             # Filter if needed
             if start_date or end_date:
@@ -913,11 +910,9 @@ class PawControlDataManager:
         duration_minutes = 0
 
         if start_str:
-            try:
+            with suppress(ValueError, TypeError):
                 start_time = datetime.fromisoformat(start_str)
                 duration_minutes = int((timestamp - start_time).total_seconds() / 60)
-            except:  # noqa: E722
-                pass
 
         # Update walk entry
         walk_updates = {

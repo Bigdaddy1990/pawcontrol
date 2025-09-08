@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import datetime
 from typing import Any, Optional, Union
 
@@ -273,13 +274,11 @@ class PawControlLastActionSensor(PawControlSensorBase):
                 f"last_{module}" if module != "health" else "last_health_entry"
             )
             if timestamp_str := module_data.get(timestamp_key):
-                try:
-                    if isinstance(timestamp_str, str):
+                if isinstance(timestamp_str, str):
+                    with suppress(ValueError, TypeError):
                         timestamps.append(datetime.fromisoformat(timestamp_str))
-                    elif isinstance(timestamp_str, datetime):
-                        timestamps.append(timestamp_str)
-                except (ValueError, TypeError):
-                    pass
+                elif isinstance(timestamp_str, datetime):
+                    timestamps.append(timestamp_str)
 
         return max(timestamps) if timestamps else None
 
@@ -454,13 +453,11 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
             return None
 
         if last_feeding := feeding_data.get("last_feeding"):
-            try:
-                if isinstance(last_feeding, str):
+            if isinstance(last_feeding, str):
+                with suppress(ValueError, TypeError):
                     return datetime.fromisoformat(last_feeding)
-                elif isinstance(last_feeding, datetime):
-                    return last_feeding
-            except (ValueError, TypeError):
-                pass
+            elif isinstance(last_feeding, datetime):
+                return last_feeding
 
         return None
 

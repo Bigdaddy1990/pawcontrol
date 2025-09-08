@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -626,12 +627,10 @@ class PawControlDeviceTracker(
             # Check if GPS data is not too old
             last_seen = gps_data.get("last_seen")
             if last_seen:
-                try:
+                with suppress(ValueError, TypeError):
                     last_seen_dt = datetime.fromisoformat(last_seen)
                     age = dt_util.utcnow() - last_seen_dt
                     return age < MAX_GPS_AGE
-                except (ValueError, TypeError):
-                    pass
 
         # Fall back to checking if we have any location data
         return self.latitude is not None and self.longitude is not None
