@@ -6,6 +6,7 @@ import sys
 from datetime import datetime, timedelta
 from importlib import util
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -90,6 +91,30 @@ async def test_feeding_manager_ignores_feedings_from_previous_days() -> None:
 
     assert data["feedings_today"] == {"dinner": 1}
     assert data["total_feedings_today"] == 1
+
+
+@patch("feeding_manager.FeedingConfig._estimate_calories_per_gram", return_value=1.0)
+@patch(
+    "feeding_manager.HealthCalculator.calculate_portion_adjustment_factor",
+    return_value=1.0,
+)
+@patch("feeding_manager.HealthCalculator.calculate_daily_calories", return_value=1000)
+def test_single_meal_portion_not_clamped(
+    mock_calories: Any, mock_adjust: Any, mock_estimate: Any
+) -> None:
+    """Single daily meal should not be reduced by max safety factor."""
+
+    config = FeedingConfig(
+        dog_id="dog",
+        meals_per_day=1,
+        dog_weight=10.0,
+        ideal_weight=10.0,
+        age_months=24,
+    )
+
+    portion = config.calculate_portion_size()
+
+    assert portion == 1000.0
 
 
 class TestDietValidationIntegration:
