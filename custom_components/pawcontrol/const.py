@@ -63,11 +63,20 @@ MODULE_MEDICATION: Final = "medication"
 MODULE_TRAINING: Final = "training"
 
 # OPTIMIZED: All modules as frozenset for O(1) membership testing
-ALL_MODULES: Final = frozenset([
-    MODULE_GPS, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK,
-    MODULE_NOTIFICATIONS, MODULE_DASHBOARD, MODULE_VISITOR,
-    MODULE_GROOMING, MODULE_MEDICATION, MODULE_TRAINING
-])
+ALL_MODULES: Final = frozenset(
+    [
+        MODULE_GPS,
+        MODULE_FEEDING,
+        MODULE_HEALTH,
+        MODULE_WALK,
+        MODULE_NOTIFICATIONS,
+        MODULE_DASHBOARD,
+        MODULE_VISITOR,
+        MODULE_GROOMING,
+        MODULE_MEDICATION,
+        MODULE_TRAINING,
+    ]
+)
 
 # OPTIMIZED: Source entities configuration
 CONF_SOURCES: Final = "sources"
@@ -136,16 +145,24 @@ DEFAULT_DATA_RETENTION_DAYS: Final = 90
 DEFAULT_GROOMING_INTERVAL: Final = 28
 
 # OPTIMIZED: Food types as tuple for immutability
-FOOD_TYPES: Final = (
-    "dry_food", "wet_food", "barf", "home_cooked", "mixed"
-)
+FOOD_TYPES: Final = ("dry_food", "wet_food", "barf", "home_cooked", "mixed")
 
 # OPTIMIZED: Special diet options as tuple
 SPECIAL_DIET_OPTIONS: Final = (
-    "grain_free", "hypoallergenic", "low_fat", "senior_formula",
-    "puppy_formula", "weight_control", "sensitive_stomach", "organic",
-    "raw_diet", "prescription", "diabetic", "kidney_support",
-    "dental_care", "joint_support"
+    "grain_free",
+    "hypoallergenic",
+    "low_fat",
+    "senior_formula",
+    "puppy_formula",
+    "weight_control",
+    "sensitive_stomach",
+    "organic",
+    "raw_diet",
+    "prescription",
+    "diabetic",
+    "kidney_support",
+    "dental_care",
+    "joint_support",
 )
 
 # OPTIMIZED: Schedule types as tuple
@@ -158,7 +175,7 @@ DOG_SIZES: Final = ("toy", "small", "medium", "large", "giant")
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
 DOG_SIZE_WEIGHT_RANGES: Final = {
     "toy": (1.0, 6.0),
-    "small": (4.0, 15.0), 
+    "small": (4.0, 15.0),
     "medium": (8.0, 30.0),
     "large": (22.0, 50.0),
     "giant": (35.0, 90.0),
@@ -166,22 +183,28 @@ DOG_SIZE_WEIGHT_RANGES: Final = {
 
 # OPTIMIZED: GPS sources as tuple
 GPS_SOURCES: Final = (
-    "manual", "device_tracker", "person_entity", "smartphone",
-    "tractive", "webhook", "mqtt"
+    "manual",
+    "device_tracker",
+    "person_entity",
+    "smartphone",
+    "tractive",
+    "webhook",
+    "mqtt",
 )
 
 # OPTIMIZED: Status options as tuples
 HEALTH_STATUS_OPTIONS: Final = (
-    "excellent", "very_good", "good", "normal", "unwell", "sick"
+    "excellent",
+    "very_good",
+    "good",
+    "normal",
+    "unwell",
+    "sick",
 )
 
-MOOD_OPTIONS: Final = (
-    "happy", "neutral", "sad", "angry", "anxious", "tired"
-)
+MOOD_OPTIONS: Final = ("happy", "neutral", "sad", "angry", "anxious", "tired")
 
-ACTIVITY_LEVELS: Final = (
-    "very_low", "low", "normal", "high", "very_high"
-)
+ACTIVITY_LEVELS: Final = ("very_low", "low", "normal", "high", "very_high")
 
 # OPTIMIZED: Dashboard configuration
 DASHBOARD_MODES: Final = ("full", "cards", "minimal")
@@ -220,10 +243,15 @@ SERVICE_GPS_POST_LOCATION: Final = "gps_post_location"
 SERVICE_GPS_EXPORT_ROUTE: Final = "gps_export_last_route"
 
 # OPTIMIZED: Core services as frozenset for fast lookup
-CORE_SERVICES: Final = frozenset([
-    SERVICE_FEED_DOG, SERVICE_START_WALK, SERVICE_END_WALK,
-    SERVICE_LOG_HEALTH, SERVICE_NOTIFY_TEST
-])
+CORE_SERVICES: Final = frozenset(
+    [
+        SERVICE_FEED_DOG,
+        SERVICE_START_WALK,
+        SERVICE_END_WALK,
+        SERVICE_LOG_HEALTH,
+        SERVICE_NOTIFY_TEST,
+    ]
+)
 
 # OPTIMIZED: Entity and event identifiers
 ENTITY_ID_FORMAT: Final = "pawcontrol_{dog_id}_{entity_type}_{purpose}"
@@ -245,7 +273,7 @@ ATTR_TIMESTAMP: Final = "timestamp"
 ATTR_MEAL_TYPE: Final = "meal_type"
 ATTR_PORTION_SIZE: Final = "portion_size"
 
-# Walk/GPS attributes  
+# Walk/GPS attributes
 ATTR_WALK_DURATION: Final = "walk_duration"
 ATTR_WALK_DISTANCE: Final = "walk_distance"
 ATTR_GPS_ACCURACY: Final = "gps_accuracy"
@@ -268,10 +296,10 @@ NOTIFICATION_CHANNELS: Final = ("mobile", "persistent", "email", "slack")
 
 # OPTIMIZED: Update intervals with better performance tiers
 UPDATE_INTERVALS: Final = {
-    "minimal": 300,     # 5 minutes - power saving
-    "balanced": 120,    # 2 minutes - balanced
-    "frequent": 60,     # 1 minute - responsive
-    "real_time": 30,    # 30 seconds - high performance
+    "minimal": 300,  # 5 minutes - power saving
+    "balanced": 120,  # 2 minutes - balanced
+    "frequent": 60,  # 1 minute - responsive
+    "real_time": 30,  # 30 seconds - high performance
 }
 
 # OPTIMIZED: Data file names as constants
@@ -300,41 +328,54 @@ ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
 
 # OPTIMIZED: Performance thresholds for monitoring
 PERFORMANCE_THRESHOLDS: Final = {
-    "update_timeout": 30.0,        # seconds
-    "cache_hit_rate_min": 70.0,    # percentage
-    "memory_usage_max": 100.0,     # MB
-    "response_time_max": 2.0,      # seconds
+    "update_timeout": 30.0,  # seconds
+    "cache_hit_rate_min": 70.0,  # percentage
+    "memory_usage_max": 100.0,  # MB
+    "response_time_max": 2.0,  # seconds
 }
 
 # OPTIMIZED: Streamlined exports - only frequently used constants
 __all__ = (
     # Core essentials
-    "DOMAIN", "PLATFORMS", "ALL_MODULES",
-    
+    "DOMAIN",
+    "PLATFORMS",
+    "ALL_MODULES",
     # Configuration keys (most commonly used)
-    "CONF_DOGS", "CONF_DOG_ID", "CONF_DOG_NAME", "CONF_MODULES",
-    
+    "CONF_DOGS",
+    "CONF_DOG_ID",
+    "CONF_DOG_NAME",
+    "CONF_MODULES",
     # Module identifiers
-    "MODULE_GPS", "MODULE_FEEDING", "MODULE_HEALTH", "MODULE_WALK",
-    "MODULE_NOTIFICATIONS", "MODULE_DASHBOARD", "MODULE_VISITOR",
-    
+    "MODULE_GPS",
+    "MODULE_FEEDING",
+    "MODULE_HEALTH",
+    "MODULE_WALK",
+    "MODULE_NOTIFICATIONS",
+    "MODULE_DASHBOARD",
+    "MODULE_VISITOR",
     # Validation constants
-    "FOOD_TYPES", "DOG_SIZES", "DOG_SIZE_WEIGHT_RANGES",
-    "HEALTH_STATUS_OPTIONS", "ACTIVITY_LEVELS",
-    
+    "FOOD_TYPES",
+    "DOG_SIZES",
+    "DOG_SIZE_WEIGHT_RANGES",
+    "HEALTH_STATUS_OPTIONS",
+    "ACTIVITY_LEVELS",
     # Service identifiers
-    "SERVICE_FEED_DOG", "SERVICE_START_WALK", "SERVICE_LOG_HEALTH",
+    "SERVICE_FEED_DOG",
+    "SERVICE_START_WALK",
+    "SERVICE_LOG_HEALTH",
     "CORE_SERVICES",
-    
     # Event types
-    "EVENT_WALK_STARTED", "EVENT_FEEDING_LOGGED", "EVENT_HEALTH_LOGGED",
-    
+    "EVENT_WALK_STARTED",
+    "EVENT_FEEDING_LOGGED",
+    "EVENT_HEALTH_LOGGED",
     # Performance constants
-    "UPDATE_INTERVALS", "PERFORMANCE_THRESHOLDS",
-    
+    "UPDATE_INTERVALS",
+    "PERFORMANCE_THRESHOLDS",
     # Limits and defaults
-    "MIN_DOG_WEIGHT", "MAX_DOG_WEIGHT", "DEFAULT_GPS_UPDATE_INTERVAL",
-    
+    "MIN_DOG_WEIGHT",
+    "MAX_DOG_WEIGHT",
+    "DEFAULT_GPS_UPDATE_INTERVAL",
     # Dashboard configuration
-    "CONF_DASHBOARD_ENABLED", "DEFAULT_DASHBOARD_ENABLED",
+    "CONF_DASHBOARD_ENABLED",
+    "DEFAULT_DASHBOARD_ENABLED",
 )

@@ -1,6 +1,6 @@
 # PawControl v1.0.0 - Production Release Notes
 
-**Release Date:** September 8, 2025  
+**Release Date:** September 8, 2025
 **Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Platinum
 
 ---
@@ -214,7 +214,7 @@ Dog Configuration:
 
 Modules (enable as needed):
   ✅ Feeding Management
-  ✅ GPS Tracking  
+  ✅ GPS Tracking
   ✅ Health Monitoring
   ✅ Walk Detection
   ✅ Notifications

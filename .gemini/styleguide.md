@@ -4,28 +4,28 @@
 **Domain:** `pawcontrol` • **Plattformen:** sensor, binary_sensor, button, switch, number, select, text, device_tracker, date, datetime. **Repo-Status:** vorhanden: `config_flow.py`, `options_flow.py`, `diagnostics.py`, `discovery.py`, `coordinator.py`, `services.yaml`; **fehlt:** `system_health.py` → Patch unten.
 
 ## Muss nach HA-Docs
-1) **Config Flow + Options Flow**  
+1) **Config Flow + Options Flow**
 UI-Setup Pflicht. Unique-ID setzen. Reauth/Reconfigure unterstützen. OptionsFlow für spätere Änderungen bereitstellen. :contentReference[oaicite:1]{index=1}
 
-2) **Koordinator-Architektur**  
+2) **Koordinator-Architektur**
 `DataUpdateCoordinator` nutzen, `_async_setup` für einmalige Async-Initialisierung verwenden, unnötige Callbacks vermeiden. Entitäten von `CoordinatorEntity` ableiten. :contentReference[oaicite:2]{index=2}
 
-3) **Entities korrekt registrieren**  
+3) **Entities korrekt registrieren**
 Jede Entität hat `unique_id`; `device_info` nur mit `unique_id` wirksam. State/Device-Class und `suggested_unit_of_measurement` sauber setzen. Unverfügbare Daten als `unavailable/unknown` abbilden. :contentReference[oaicite:3]{index=3}
 
-4) **Diagnostics + System Health**  
+4) **Diagnostics + System Health**
 Diagnostik mit Redaction sensibler Daten liefern. Zusätzlich `system_health.py` implementieren. :contentReference[oaicite:4]{index=4}
 
-5) **Discovery im Manifest aktuell halten**  
+5) **Discovery im Manifest aktuell halten**
 Zeroconf/SSDP/DHCP/Bluetooth korrekt pflegen; neue `ServiceInfo`-Imports beachten. Für Bluetooth `connectable` passend wählen. :contentReference[oaicite:5]{index=5}
 
-6) **Tests**  
+6) **Tests**
 100 % Testabdeckung für den Config-Flow inkl. Recovery-Pfade. :contentReference[oaicite:6]{index=6}
 
 ## Gemini-Review-Regeln für dieses Repo
-- Blockierendes I/O im Event-Loop, veraltete Sync-APIs, fehlendes `_async_setup` call-out mit Fix-Diff. :contentReference[oaicite:7]{index=7}  
-- Fehlende/instabile `unique_id`, unvollständige `device_info`, falsche State/Device-Class oder Units markieren. :contentReference[oaicite:8]{index=8}  
-- Markiere fehlendes **System Health** als Pflicht-Nachbesserung. Diff unten nutzen. :contentReference[oaicite:9]{index=9}  
+- Blockierendes I/O im Event-Loop, veraltete Sync-APIs, fehlendes `_async_setup` call-out mit Fix-Diff. :contentReference[oaicite:7]{index=7}
+- Fehlende/instabile `unique_id`, unvollständige `device_info`, falsche State/Device-Class oder Units markieren. :contentReference[oaicite:8]{index=8}
+- Markiere fehlendes **System Health** als Pflicht-Nachbesserung. Diff unten nutzen. :contentReference[oaicite:9]{index=9}
 - Manifest-Discovery verifizieren; bei alten `ServiceInfo`-Imports Fix vorschlagen. :contentReference[oaicite:10]{index=10}
 
 ## Patches „ready to drop“

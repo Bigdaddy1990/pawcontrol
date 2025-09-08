@@ -189,7 +189,7 @@ cards:
 ```
 Title: "🍽️ Feeding Time!"
 Message: "Time to feed Buddy breakfast"
-Actions: 
+Actions:
   - "Fed ✅" → Mark as complete
   - "10 min ⏰" → Snooze reminder
 ```

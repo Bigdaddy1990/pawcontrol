@@ -190,7 +190,7 @@ This is the first production-ready release of PawControl, a comprehensive Home A
 ### 🔗 Links and Resources
 
 - **Documentation**: [Production Guide](docs/production_integration_documentation.md)
-- **Installation**: [Setup Guide](docs/setup_installation_guide.md)  
+- **Installation**: [Setup Guide](docs/setup_installation_guide.md)
 - **Automation**: [Automation Examples](docs/automations.md)
 - **API Reference**: [Service Documentation](docs/production_integration_documentation.md#service-api-documentation)
 - **Troubleshooting**: [Common Issues Guide](README.md#troubleshooting--support)
