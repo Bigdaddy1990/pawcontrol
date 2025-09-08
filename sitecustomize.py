@@ -478,7 +478,6 @@ except Exception:  # pragma: no cover - create minimal const module
     const.STATE_UNAVAILABLE = "unavailable"  # type: ignore[attr-defined]
     const.PERCENTAGE = "%"  # type: ignore[attr-defined]
     const.CONF_NAME = "name"  # type: ignore[attr-defined]
-    const.STATE_ONLINE = "online"  # type: ignore[attr-defined]
     const.ATTR_BATTERY_LEVEL = "battery_level"  # type: ignore[attr-defined]
     const.ATTR_GPS_ACCURACY = "gps_accuracy"  # type: ignore[attr-defined]
     const.ATTR_LATITUDE = "latitude"  # type: ignore[attr-defined]
