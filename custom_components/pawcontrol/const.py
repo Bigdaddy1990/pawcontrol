@@ -208,6 +208,20 @@ ACTIVITY_LEVELS: Final = ("very_low", "low", "normal", "high", "very_high")
 
 # OPTIMIZED: Dashboard configuration
 DASHBOARD_MODES: Final = ("full", "cards", "minimal")
+DASHBOARD_MODE_SELECTOR_OPTIONS: Final = [
+    {
+        "value": "full",
+        "label": "Full - Complete dashboard with all features",
+    },
+    {
+        "value": "cards",
+        "label": "Cards - Organized card-based layout",
+    },
+    {
+        "value": "minimal",
+        "label": "Minimal - Essential information only",
+    },
+]
 
 CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
 CONF_DASHBOARD_AUTO_CREATE: Final = "dashboard_auto_create"
