@@ -690,7 +690,6 @@ class PawControlDataManager:
                             # All entries are after start_date
                             start_date = None
 
-
             # Filter if needed
             if start_date or end_date:
                 entries = await self._filter_by_date(entries, start_date, end_date)
@@ -914,7 +913,6 @@ class PawControlDataManager:
             with suppress(ValueError, TypeError):
                 start_time = datetime.fromisoformat(start_str)
                 duration_minutes = int((timestamp - start_time).total_seconds() / 60)
-
 
         # Update walk entry
         walk_updates = {
