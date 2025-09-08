@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 from types import MappingProxyType
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
 # Ensure custom Home Assistant stubs are loaded before importing the integration
 import sitecustomize  # noqa: F401
-
-import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,

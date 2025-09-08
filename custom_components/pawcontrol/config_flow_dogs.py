@@ -18,9 +18,6 @@ import time
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers import selector
-
 from custom_components.pawcontrol.config_flow_base import (
     DOG_ID_PATTERN,
     ENTITY_CREATION_DELAY,
@@ -67,6 +64,8 @@ from custom_components.pawcontrol.const import (
     SPECIAL_DIET_OPTIONS,
 )
 from custom_components.pawcontrol.types import DogConfigData
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.helpers import selector
 
 _LOGGER = logging.getLogger(__name__)
 

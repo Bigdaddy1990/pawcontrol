@@ -256,7 +256,9 @@ except Exception:  # pragma: no cover - create minimal core module
         def __init__(self) -> None:
             self.data = {}
             self.services = SimpleNamespace(async_services=None)
-            self.config_entries = SimpleNamespace(flow=SimpleNamespace(async_init=lambda *a, **k: None))
+            self.config_entries = SimpleNamespace(
+                flow=SimpleNamespace(async_init=lambda *a, **k: None)
+            )
 
     core.HomeAssistant = HomeAssistant  # type: ignore[attr-defined]
     sys.modules["homeassistant.core"] = core
@@ -312,6 +314,7 @@ components = ModuleType("homeassistant.components")
 ha.components = components  # type: ignore[attr-defined]
 sys.modules["homeassistant.components"] = components
 
+
 def _register_component(name, **attrs):  # pragma: no cover - helper
     module = ModuleType(f"homeassistant.components.{name}")
     for key, value in attrs.items():
@@ -320,11 +323,14 @@ def _register_component(name, **attrs):  # pragma: no cover - helper
     sys.modules[f"homeassistant.components.{name}"] = module
     setattr(components, name, module)
 
+
 class _BaseEntity:  # pragma: no cover - base stub
     pass
 
+
 class _StrEnum(StrEnum):  # pragma: no cover - simple StrEnum base
     pass
+
 
 _register_component(
     "button",
@@ -335,9 +341,7 @@ _register_component("date", DateEntity=_BaseEntity)
 _register_component("datetime", DateTimeEntity=_BaseEntity)
 _register_component(
     "binary_sensor",
-    BinarySensorDeviceClass=_StrEnum(
-        "BinarySensorDeviceClass", {"BATTERY": "battery"}
-    ),
+    BinarySensorDeviceClass=_StrEnum("BinarySensorDeviceClass", {"BATTERY": "battery"}),
     BinarySensorEntity=_BaseEntity,
 )
 _register_component(
@@ -352,7 +356,11 @@ _register_component(
     NumberMode=_StrEnum("NumberMode", {"BOX": "box"}),
 )
 _register_component("select", SelectEntity=_BaseEntity)
-_register_component("switch", SwitchDeviceClass=_StrEnum("SwitchDeviceClass", {"SWITCH": "switch"}), SwitchEntity=_BaseEntity)
+_register_component(
+    "switch",
+    SwitchDeviceClass=_StrEnum("SwitchDeviceClass", {"SWITCH": "switch"}),
+    SwitchEntity=_BaseEntity,
+)
 _register_component(
     "sensor",
     SensorDeviceClass=_StrEnum("SensorDeviceClass", {"TEMPERATURE": "temperature"}),
@@ -371,22 +379,32 @@ _register_component(
 )
 
 system_health = ModuleType("homeassistant.components.system_health")
+
+
 async def async_check_can_reach_url(*args, **kwargs):
     return True
+
+
 system_health.async_check_can_reach_url = async_check_can_reach_url  # type: ignore[attr-defined]
 sys.modules["homeassistant.components.system_health"] = system_health
 components.system_health = system_health  # type: ignore[attr-defined]
 
 persistent_notification = ModuleType("homeassistant.components.persistent_notification")
+
+
 async def async_create(*args, **kwargs):
     return None
+
+
 async def async_dismiss(*args, **kwargs):
     return None
+
+
 persistent_notification.async_create = async_create  # type: ignore[attr-defined]
 persistent_notification.async_dismiss = async_dismiss  # type: ignore[attr-defined]
-sys.modules[
-    "homeassistant.components.persistent_notification"
-] = persistent_notification
+sys.modules["homeassistant.components.persistent_notification"] = (
+    persistent_notification
+)
 components.persistent_notification = persistent_notification  # type: ignore[attr-defined]
 
 
