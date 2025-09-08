@@ -544,8 +544,9 @@ class PawControlLastVetVisitDate(PawControlDateBase):
         if vet_visit_str:
             with suppress(ValueError, TypeError):
                 # Handle both date and datetime strings
-                parsed_dt = dt_util.parse_datetime(vet_visit_str)
-                return parsed_dt.date() if parsed_dt else None
+                if parsed_dt := dt_util.parse_datetime(vet_visit_str):
+                    return parsed_dt.date()
+
             with suppress(ValueError, TypeError):
                 return dt_util.parse_date(vet_visit_str)
         return None
