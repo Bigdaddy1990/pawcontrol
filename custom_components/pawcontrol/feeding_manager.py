@@ -45,6 +45,9 @@ _LOGGER = logging.getLogger(__name__)
 # Portion safeguard constants
 PUPPY_PORTION_SAFEGUARD_FACTOR = 0.8
 MINIMUM_NUTRITION_PORTION_G = 50.1
+# Portion safety limits relative to daily ration
+MIN_PORTION_SAFETY_FACTOR = 0.1
+MAX_PORTION_SAFETY_FACTOR = 0.6
 
 
 class MealType(Enum):

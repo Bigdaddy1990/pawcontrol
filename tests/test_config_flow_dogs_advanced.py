@@ -1186,7 +1186,7 @@ class TestErrorRecoveryAndEdgeCases:
             {
                 "name": "negative_weight",
                 "config": {
-                    conf_DOG_ID: "valid_id",
+                    CONF_DOG_ID: "valid_id",
                     CONF_DOG_NAME: "Valid Name",
                     CONF_DOG_WEIGHT: -5.0,
                 },
