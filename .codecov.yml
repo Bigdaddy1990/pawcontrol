@@ -1,23 +1,86 @@
+# Codecov configuration for PawControl Integration
+# https://docs.codecov.io/docs/codecov-yaml
+
 codecov:
-  require_ci_to_pass: false
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
 
 coverage:
   precision: 2
   round: down
-  range: "70...100"
+  range: "75...100"
+  
   status:
     project:
       default:
-        target: auto
+        target: 75%
         threshold: 1%
+        base: auto
+        branches:
+          - main
+        if_not_found: success
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+        
     patch:
       default:
-        target: auto
+        target: 70%
         threshold: 1%
+        base: auto
+        if_not_found: success
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+        
+    changes: false
 
-comment: true
+parsers:
+  gcov:
+    branch_detection:
+      conditional: true
+      loop: true
+      method: true
+      macro: false
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - main
 
 ignore:
-  - "tests/"
-  - "docs/"
-  - "scripts/"
+  - "tests/**/*"
+  - "docs/**/*"
+  - "scripts/**/*"
+  - "**/__pycache__/**"
+  - "**/test_*.py"
+  - "**/conftest.py"
+  - "setup.py"
+  - "**/*.md"
+
+flags:
+  unittests:
+    paths:
+      - custom_components/pawcontrol
+    carryforward: false
+    
+  integration:
+    paths:
+      - custom_components/pawcontrol
+    carryforward: true
+
+github_checks:
+  annotations: true
+
+# Upload settings
+uploads:
+  - name: "pawcontrol"
+    path: "./coverage.xml"
+    flags:
+      - unittests
+    report_type: "pytest"
