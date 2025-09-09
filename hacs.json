@@ -1,6 +1,18 @@
 {
-  "name": "Paw Control",
+  "name": "PawControl - Smart Dog Management",
   "render_readme": true,
   "homeassistant": "2025.9.1",
-  "content_in_root": false
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "pawcontrol.zip",
+  "hide_default_branch": false,
+  "country": ["DE", "AT", "CH", "US", "GB"],
+  "domains": ["sensor", "binary_sensor", "switch", "button", "select", "number", "text", "device_tracker", "date", "datetime"],
+  "persistent_directory": "config",
+  "iot_class": "Local Push",
+  "integration_type": "hub",
+  "documentation": "https://github.com/BigDaddy1990/pawcontrol#readme",
+  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "codeowners": ["@BigDaddy1990"],
+  "version": "1.0.0"
 }
