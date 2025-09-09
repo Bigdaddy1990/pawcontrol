@@ -16,7 +16,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.event import async_track_time
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -1128,7 +1128,7 @@ async def async_setup_daily_reset_scheduler(
             )
 
         # Register time trigger with correct import
-        async_track_time(
+        async_track_time_change(
             hass,
             daily_reset,
             hour=hour,
