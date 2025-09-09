@@ -205,6 +205,7 @@ Emergency Override: ✅ Enabled
    Sensors (10+):
      - sensor.buddy_last_feeding
      - sensor.buddy_walk_distance_today
+     - sensor.buddy_last_walk_distance
      - sensor.buddy_weight
      - sensor.buddy_gps_accuracy
 
@@ -301,6 +302,7 @@ PawControl provides **156 entities** across **10 platforms** for comprehensive p
 # Walk & GPS Sensors
 sensor.{dog_id}_walk_distance_today         # Daily walk distance
 sensor.{dog_id}_walk_duration_current       # Current walk duration
+sensor.{dog_id}_last_walk_distance         # Distance of last completed walk
 sensor.{dog_id}_current_speed              # Current speed (km/h)
 sensor.{dog_id}_distance_from_home         # Distance from home zone
 
