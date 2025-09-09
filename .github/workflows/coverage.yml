@@ -2,9 +2,9 @@ name: Coverage
 
 on:
   push:
-     branches: [main]
+    branches: [main]
   pull_request:
-     branches: [main]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -15,28 +15,33 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+          cache: "pip"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov
+          pip install -U pytest pytest-asyncio pytest-cov coverage
           pip install -U homeassistant==2025.9.0
           pip install -U pytest-homeassistant-custom-component
-          pip install -r requirements.txt
-          pip install -r requirements_test.txt
+          pip install -r requirements.txt || true
+          pip install -r requirements_test.txt || true
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
-          pytest --fixtures [testpath]
-          pytest --junitxml=junit.xml -o junit_family=legacy
-      - name: Upload coverage reports to Codecov
+          pytest -q --maxfail=3 \
+            --cov=custom_components/pawcontrol \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --junitxml=junit.xml -o junit_family=legacy
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-           files: coverage.xml
-           fail_ci_if_error: true
-           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
         with:
-            token: ${{ secrets.CODECOV_TOKEN }}
+          files: junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
