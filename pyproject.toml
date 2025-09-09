@@ -1,22 +1,14 @@
-[build-system]
-requires = ["setuptools>=67", "wheel"]
-build-backend = "setuptools.build_meta"
+# pyproject.toml — nur Tooling für eine Home-Assistant Custom-Integration
 
-[project]
-name = "pawcontrol"
-version = "1.0.0"
-requires-python = ">=3.13"
-dependencies = [
-    "aiofiles>=23.1.0",
-    "aiodiscover>=2.0.0",
-    "aiousbwatcher>=1.1.0",
-    "asyncio-mqtt>=0.16.0",
-    "pyserial>=3.5",
-    "aiodhcpwatcher>=1.2.1"
-]
-
-[project.optional-dependencies]
-test = ["pytest>=8.3.0", "pytest-asyncio>=1.1.0", "pytest-cov>=5.0", "coverage[toml]>=7.6.0"]
+[tool.pytest.ini_options]
+addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=5"
+markers = ["asyncio: mark a test as using asyncio"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+#minversion = "8.0"
+#asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py313"
@@ -48,37 +40,13 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 
 [tool.mypy]
 python_version = "3.13"
-warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = false
 no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-follow_imports = "normal"
+check_untyped_defs = true
 ignore_missing_imports = true
-pretty = true
-show_error_codes = true
-strict_equality = true
 explicit_package_bases = true
-namespace_packages = true
 exclude = "tests/"
-
-[tool.pytest.ini_options]
-#addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=5"
-markers = ["asyncio: mark a test as using asyncio"]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-#minversion = "8.0"
-#asyncio_mode = "auto"
-
-[tool.pylint.similarities]
-ignore-imports = "yes"
 
 [tool.coverage.run]
 branch = true
@@ -89,3 +57,6 @@ show_missing = true
 skip_covered = false
 precision = 2
 fail_under = 75
+
+[tool.pylint.similarities]
+ignore-imports = "yes"
