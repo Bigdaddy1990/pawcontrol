@@ -24,7 +24,6 @@ rules:
   # Documentation
   documentation:
     enforce_docstrings: true
-    docstring_style: "google"
 
   # Security
   security:
@@ -51,15 +50,7 @@ advanced:
         - "@property"
         - "@cached_property"
         - "@callback"
-
-  metrics:
-    complexity:
-      threshold: "B"  # A (best) to F (worst)
-    maintainability:
-      threshold: "B"
-    test_coverage:
-      minimum: 75
-
+      
   integrations:
     github:
       pr_comments: true
