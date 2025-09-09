@@ -14,11 +14,11 @@ Test Areas:
 - Performance under stress conditions
 """
 
-# ruff: noqa: F401, F403, F405
+# ruff: noqa: F403, F405
 
 from __future__ import annotations
 
-from .select_edge_cases_common import *  # noqa: F401,F403,F405
+from .select_edge_cases_common import *
 from .setup_entry_edge_cases_common import SetupEntryEdgeCaseTests
 
 

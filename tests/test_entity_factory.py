@@ -9,17 +9,16 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.entity_factory import (
     ENTITY_PROFILES,
     EntityFactory,
 )
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 
 
 @pytest.fixture
