@@ -18,7 +18,7 @@ jobs:
   coverage:
     name: Test Coverage & Analysis
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -101,28 +101,28 @@ jobs:
         run: |
           echo "📊 Coverage: ${{ env.COVERAGE }}%"
           echo "🔍 CodeFactor analysis: https://www.codefactor.io/repository/github/${{ github.repository }}"
-          
+
           # Create coverage summary
           python -c "
           import json
           import os
-          
+
           with open('coverage.json', 'r') as f:
               data = json.load(f)
-          
+
           summary = f'''## Coverage Report
-          
+
           - **Total Coverage**: {round(data['totals']['percent_covered'], 2)}%
           - **Lines Covered**: {data['totals']['covered_lines']}/{data['totals']['num_statements']}
           - **Branches Covered**: {data['totals']['covered_branches']}/{data['totals']['num_branches']}
           - **Missing Lines**: {data['totals']['missing_lines']}
           - **Excluded Lines**: {data['totals']['excluded_lines']}
-          
+
           ### Quality Metrics
           - ✅ Codecov: [View Report](https://codecov.io/gh/${{ github.repository }})
           - ✅ CodeFactor: [View Analysis](https://www.codefactor.io/repository/github/${{ github.repository }})
           '''
-          
+
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
               f.write(summary)
           "
@@ -150,15 +150,15 @@ jobs:
           python -c "
           import json
           import sys
-          
+
           with open('coverage.json', 'r') as f:
               data = json.load(f)
               coverage = data['totals']['percent_covered']
-          
+
           threshold = ${{ env.COVERAGE_THRESHOLD }}
           if coverage < threshold:
               print(f'❌ Coverage {coverage:.2f}% is below threshold {threshold}%')
               sys.exit(1)
-          
+
           print(f'✅ Coverage {coverage:.2f}% meets threshold {threshold}%')
           "
