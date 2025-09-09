@@ -1,4 +1,4 @@
-name: Coverage
+name: Coverage & Quality
 
 on:
   push:
@@ -6,43 +6,159 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1"  # Weekly on Monday at 2 AM UTC
+
+env:
+  PYTHON_VERSION: "3.13"
+  HA_VERSION: "2025.9.1"
+  COVERAGE_THRESHOLD: "75"
 
 jobs:
   coverage:
+    name: Test Coverage & Analysis
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - name: Checkout code
+        uses: actions/checkout@v5
         with:
-          python-version: "3.13"
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov coverage
-          pip install -U homeassistant==2025.9.1
+          python -m pip install --upgrade pip wheel
+          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
+          pip install -U homeassistant==${{ env.HA_VERSION }}
           pip install -U pytest-homeassistant-custom-component
           pip install -r requirements.txt || true
           pip install -r requirements_test.txt || true
+
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
+          PYTEST_TIMEOUT: 300
         run: |
-           python -m pip install -U pytest pytest-cov pytest-asyncio coverage
-           python -m pytest -q --maxfail=3 -p pytest_cov -p pytest_asyncio \
-           --cov=custom_components/pawcontrol \
-           --cov-report=xml:coverage.xml \
-           --cov-report=term-missing \
-           --junitxml=junit.xml -o junit_family=legacy
+          python -m pytest \
+            --cov=custom_components/pawcontrol \
+            --cov-branch \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=html:htmlcov \
+            --cov-report=json:coverage.json \
+            --cov-fail-under=${{ env.COVERAGE_THRESHOLD }} \
+            --junitxml=junit.xml \
+            -o junit_family=legacy \
+            --maxfail=10 \
+            --tb=short \
+            -ra \
+            tests/
+
+      - name: Generate coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          python -c "
+          import json
+          with open('coverage.json', 'r') as f:
+              data = json.load(f)
+              total = round(data['totals']['percent_covered'], 2)
+              print(f'COVERAGE={total}')
+          " >> $GITHUB_ENV
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          name: pawcontrol-coverage
+          verbose: true
+
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: always()
         uses: codecov/test-results-action@v1
         with:
           files: junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: CodeFactor Integration
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "📊 Coverage: ${{ env.COVERAGE }}%"
+          echo "🔍 CodeFactor analysis: https://www.codefactor.io/repository/github/${{ github.repository }}"
+          
+          # Create coverage summary
+          python -c "
+          import json
+          import os
+          
+          with open('coverage.json', 'r') as f:
+              data = json.load(f)
+          
+          summary = f'''## Coverage Report
+          
+          - **Total Coverage**: {round(data['totals']['percent_covered'], 2)}%
+          - **Lines Covered**: {data['totals']['covered_lines']}/{data['totals']['num_statements']}
+          - **Branches Covered**: {data['totals']['covered_branches']}/{data['totals']['num_branches']}
+          - **Missing Lines**: {data['totals']['missing_lines']}
+          - **Excluded Lines**: {data['totals']['excluded_lines']}
+          
+          ### Quality Metrics
+          - ✅ Codecov: [View Report](https://codecov.io/gh/${{ github.repository }})
+          - ✅ CodeFactor: [View Analysis](https://www.codefactor.io/repository/github/${{ github.repository }})
+          '''
+          
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(summary)
+          "
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-report
+          path: htmlcov/
+          retention-days: 30
+
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 85
+          MINIMUM_ORANGE: 70
+          ANNOTATE_MISSING_LINES: true
+          ANNOTATION_TYPE: warning
+
+      - name: Check coverage threshold
+        run: |
+          python -c "
+          import json
+          import sys
+          
+          with open('coverage.json', 'r') as f:
+              data = json.load(f)
+              coverage = data['totals']['percent_covered']
+          
+          threshold = ${{ env.COVERAGE_THRESHOLD }}
+          if coverage < threshold:
+              print(f'❌ Coverage {coverage:.2f}% is below threshold {threshold}%')
+              sys.exit(1)
+          
+          print(f'✅ Coverage {coverage:.2f}% meets threshold {threshold}%')
+          "

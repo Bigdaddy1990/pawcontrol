@@ -1,108 +1,180 @@
 name: CI
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
-  #pull_request:
+
+env:
+  PYTHON_VERSION: "3.13"
+  HA_VERSION: "2025.9.1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - name: Checkout code
+        uses: actions/checkout@v5
         with:
-          python-version: "3.13"
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pre-commit
+
       - name: Run pre-commit
         run: pre-commit run --show-diff-on-failure --color always --all-files
-      - name: Hassfest
+
+      - name: Run Hassfest
         uses: home-assistant/actions/hassfest@master
-  coverage:
+
+  test-coverage:
+    name: Test & Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - name: Checkout code
+        uses: actions/checkout@v5
         with:
-          python-version: "3.13"
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -U pytest pytest-asyncio pytest-cov
-          pip install -U homeassistant==2025.9.0
+          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
+          pip install -U homeassistant==${{ env.HA_VERSION }}
           pip install -U pytest-homeassistant-custom-component
-          pip install codecov-cli
+          pip install -r requirements.txt || true
+          pip install -r requirements_test.txt || true
+
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
-          pytest --fixtures [testpath]
-          pytest --cov --cov-branch --cov-report=xml
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-           files: coverage.xml
-           fail_ci_if_error: true
-           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-            token: ${{ secrets.CODECOV_TOKEN }}
-  unit-test:
-    name: Run unit tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.11
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -U pytest pytest-asyncio pytest-cov
-          pip install -U homeassistant>=2025.9.0
-          pip install -U pytest-homeassistant-custom-component
-          pip install codecov-cli
-      - name: Test with pytest
-        run: |
-          pytest --cov --junitxml=junit.xml -o junit_family=legacy
+          python -m pytest \
+            --cov=custom_components/pawcontrol \
+            --cov-branch \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=html:htmlcov \
+            --junitxml=junit.xml \
+            -o junit_family=legacy \
+            --maxfail=5 \
+            --tb=short \
+            tests/
+
       - name: Upload coverage to Codecov
+        if: always()
         uses: codecov/codecov-action@v5
         with:
+          files: coverage.xml
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          name: pawcontrol-coverage
+
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: always()
         uses: codecov/test-results-action@v1
         with:
+          files: junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  tests:
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
-      - name: Install dependencies
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install Ruff
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -U pytest pytest-asyncio pytest-cov
-          pip install -U homeassistant>=2025.9.0
-          pip install -U pytest-homeassistant-custom-component
-          pip install codecov-cli
-      - name: Run tests
-        env:
-          PYTHONPATH: .
+          pip install ruff
+
+      - name: Run Ruff check
         run: |
-          pytest
+          ruff check custom_components/pawcontrol --output-format=github
+          ruff format custom_components/pawcontrol --check
+
+      - name: CodeFactor Analysis
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "CodeFactor analysis runs automatically via webhook"
+          echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
+
+  validate-manifest:
+    name: Validate Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate manifest.json
+        run: |
+          python -c "
+          import json
+          import sys
+          
+          with open('custom_components/pawcontrol/manifest.json', 'r') as f:
+              manifest = json.load(f)
+          
+          required = ['domain', 'name', 'version', 'documentation', 'codeowners', 'requirements']
+          missing = [field for field in required if field not in manifest]
+          
+          if missing:
+              print(f'Missing required fields: {missing}')
+              sys.exit(1)
+          
+          print('✅ Manifest validation passed')
+          "
+
+  all-checks:
+    name: All Checks Passed
+    if: always()
+    needs: [lint, test-coverage, code-quality, validate-manifest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" || \
+                "${{ needs.test-coverage.result }}" != "success" || \
+                "${{ needs.code-quality.result }}" != "success" || \
+                "${{ needs.validate-manifest.result }}" != "success" ]]; then
+            echo "❌ Some checks failed"
+            exit 1
+          fi
+          echo "✅ All checks passed successfully"

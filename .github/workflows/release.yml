@@ -1,28 +1,295 @@
-name: Release (tag)
+name: Release
 
 on:
   push:
     tags:
-      - "*.*.*"
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  PYTHON_VERSION: "3.13"
 
 jobs:
-  build-and-release:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Validate version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            exit 1
+          fi
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$ d')
+          
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="## [$VERSION] - $(date +%Y-%m-%d)
+          
+          ### Added
+          - Initial release of PawControl for Home Assistant
+          
+          ### Changed
+          - See commit history for details
+          
+          ### Fixed
+          - Various bug fixes and improvements"
+          fi
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  test-and-validate:
+    name: Test & Validate
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U pytest pytest-asyncio pytest-cov
+          pip install -U homeassistant==2025.9.1
+          pip install -U pytest-homeassistant-custom-component
+          pip install -r requirements.txt || true
+          pip install -r requirements_test.txt || true
+
+      - name: Run tests
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pytest --maxfail=5 --tb=short tests/
+
+      - name: Validate manifest version
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          MANIFEST_VERSION=$(python -c "import json; print(json.load(open('custom_components/pawcontrol/manifest.json'))['version'])")
+          
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "❌ Version mismatch: Tag=$VERSION, Manifest=$MANIFEST_VERSION"
+            exit 1
+          fi
+          echo "✅ Version validated: $VERSION"
+
+      - name: Run Hassfest
+        uses: home-assistant/actions/hassfest@master
+
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  build-release:
+    name: Build Release Package
+    needs: [prepare-release, test-and-validate]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Update version in files
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          
+          # Update manifest.json
+          python -c "
+          import json
+          with open('custom_components/pawcontrol/manifest.json', 'r') as f:
+              manifest = json.load(f)
+          manifest['version'] = '$VERSION'
+          with open('custom_components/pawcontrol/manifest.json', 'w') as f:
+              json.dump(manifest, f, indent=2)
+          "
+          
+          # Update hacs.json
+          python -c "
+          import json
+          with open('hacs.json', 'r') as f:
+              hacs = json.load(f)
+          hacs['version'] = '$VERSION'
+          with open('hacs.json', 'w') as f:
+              json.dump(hacs, f, indent=2)
+          "
+
+      - name: Create release package
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          
+          # Create release directory
+          mkdir -p release
+          
+          # Copy integration files
+          cp -r custom_components release/
+          
+          # Create zip for HACS
+          cd release
+          zip -r ../pawcontrol_v${VERSION}.zip custom_components/
+          cd ..
+          
+          # Create info file
+          cat > release_info.md << EOF
+          # PawControl v${VERSION}
+          
+          ## Installation
+          
+          ### HACS (Recommended)
+          1. Add repository: https://github.com/BigDaddy1990/pawcontrol
+          2. Install "PawControl - Smart Dog Management"
+          3. Restart Home Assistant
+          
+          ### Manual
+          1. Download \`pawcontrol_v${VERSION}.zip\`
+          2. Extract to \`config/custom_components/\`
+          3. Restart Home Assistant
+          
+          ## Changelog
+          ${{ needs.prepare-release.outputs.changelog }}
+          
+          ## Requirements
+          - Home Assistant 2025.9.1+
+          - Python 3.13+
+          
+          ## Support
+          - [Documentation](https://github.com/BigDaddy1990/pawcontrol#readme)
+          - [Issues](https://github.com/BigDaddy1990/pawcontrol/issues)
+          EOF
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: |
+            pawcontrol_v*.zip
+            release_info.md
+          retention-days: 7
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [prepare-release, test-and-validate, build-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      - name: Build integration zip (HACS-compatible)
-        run: |
-          mkdir -p dist
-          zip -r dist/pawcontrol.zip custom_components/pawcontrol
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-package
 
-      - name: Publish GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: PawControl v${{ needs.prepare-release.outputs.version }}
+          body: |
+            # PawControl v${{ needs.prepare-release.outputs.version }}
+            
+            Smart Dog Management for Home Assistant
+            
+            ${{ needs.prepare-release.outputs.changelog }}
+            
+            ## Installation
+            
+            ### HACS (Recommended)
+            Add this repository to HACS: `https://github.com/BigDaddy1990/pawcontrol`
+            
+            ### Manual Installation
+            Download `pawcontrol_v${{ needs.prepare-release.outputs.version }}.zip` and extract to `config/custom_components/`
+            
+            ## Requirements
+            - Home Assistant 2025.9.1 or newer
+            - Python 3.13+
+            
+            ## Documentation
+            - [Setup Guide](https://github.com/BigDaddy1990/pawcontrol/blob/main/docs/setup_installation_guide.md)
+            - [Configuration](https://github.com/BigDaddy1990/pawcontrol/blob/main/docs/README.md)
+            - [Automations](https://github.com/BigDaddy1990/pawcontrol/blob/main/docs/automations.md)
+          
           files: |
-            dist/pawcontrol.zip
+            pawcontrol_v*.zip
+            release_info.md
+          draft: false
+          prerelease: false
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-release:
+    name: Notify Release
+    needs: [prepare-release, create-github-release]
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Create release summary
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🎉 Release Published Successfully!
+          
+          ## Version: v${VERSION}
+          
+          ### Release Assets
+          - 📦 HACS Package: \`pawcontrol_v${VERSION}.zip\`
+          - 📄 Release Notes: Available on [GitHub Releases](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})
+          
+          ### Next Steps
+          1. HACS will automatically detect the new release
+          2. Users will be notified of the update
+          3. Monitor [Issues](https://github.com/${{ github.repository }}/issues) for feedback
+          
+          ### Quality Metrics
+          - ✅ All tests passed
+          - ✅ Hassfest validation passed
+          - ✅ HACS validation passed
+          - ✅ Version consistency verified
+          
+          ### Links
+          - [Release Page](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})
+          - [Codecov Report](https://codecov.io/gh/${{ github.repository }})
+          - [CodeFactor Analysis](https://www.codefactor.io/repository/github/${{ github.repository }})
+          EOF
