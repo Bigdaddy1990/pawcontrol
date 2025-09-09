@@ -20,12 +20,11 @@ rules:
     max_line_length: 88  # Match ruff config
     max_complexity: 10   # Cyclomatic complexity
     min_maintainability_index: 20
-    
+
   # Documentation
   documentation:
     enforce_docstrings: true
-    docstring_style: "google"
-    
+
   # Security
   security:
     enabled: true
@@ -51,14 +50,6 @@ advanced:
         - "@property"
         - "@cached_property"
         - "@callback"
-        
-  metrics:
-    complexity:
-      threshold: "B"  # A (best) to F (worst)
-    maintainability:
-      threshold: "B"
-    test_coverage:
-      minimum: 75
       
   integrations:
     github:
