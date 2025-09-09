@@ -714,6 +714,40 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
         return walk_data.get("last_walk_duration") if walk_data else None
 
 
+class PawControlLastWalkDistanceSensor(PawControlSensorBase):
+    """Sensor for distance of last walk."""
+
+    def __init__(self, coordinator, dog_id: str, dog_name: str) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_walk_distance",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement="m",
+            icon="mdi:map-marker-path",
+        )
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return the distance of the last walk."""
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return None
+        
+        last_walk_distance = walk_data.get("last_walk_distance")
+        if last_walk_distance is not None:
+            try:
+                return round(float(last_walk_distance), 1)
+            except (TypeError, ValueError):
+                _LOGGER.warning(
+                    "Invalid last_walk_distance value: %s", last_walk_distance
+                )
+                return None
+        
+        return None
+
+
 class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
     """Sensor for total walk time today."""
 
