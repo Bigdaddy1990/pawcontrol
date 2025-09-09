@@ -10,7 +10,6 @@
   "persistent_directory": "config",
   "iot_class": "Local Push",
   "integration_type": "hub",
-  "documentation": "https://github.com/BigDaddy1990/pawcontrol#readme",
-  "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+  "codeowners": ["@BigDaddy1990"],
   "version": "1.0.0"
 }
