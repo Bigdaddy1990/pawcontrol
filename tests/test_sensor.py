@@ -16,7 +16,6 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.sensor import (
-    #PawControlActivityLevelSensor,
     PawControlActivityScoreSensor,
     PawControlAverageWalkDurationSensor,
     PawControlCurrentSpeedSensor,
@@ -31,7 +30,6 @@ from custom_components.pawcontrol.sensor import (
     PawControlGPSBatteryLevelSensor,
     PawControlHealthStatusSensor,
     PawControlLastActionSensor,
-    PawControlLastFeedingHoursSensor,
     PawControlLastFeedingSensor,
     PawControlLastVetVisitSensor,
     PawControlLastWalkDistanceSensor,
@@ -830,23 +828,6 @@ class TestFeedingSensors:
         expected = datetime(2025, 1, 15, 10, 0, 0)
         assert result == expected
 
-    def test_last_feeding_hours_sensor(self, mock_coordinator):
-        """Test last feeding hours sensor."""
-        sensor = PawControlLastFeedingHoursSensor(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-
-        assert sensor._sensor_type == "last_feeding_hours"
-        assert sensor._attr_device_class == SensorDeviceClass.DURATION
-        assert sensor._attr_native_unit_of_measurement == UnitOfTime.HOURS
-
-        with patch(
-            "homeassistant.util.dt.utcnow", return_value=datetime(2025, 1, 15, 12, 0, 0)
-        ):
-            result = sensor.native_value
-
-        assert result == 2.0  # 2 hours since last feeding
-
     def test_feeding_count_today_sensor(self, mock_coordinator):
         """Test feeding count today sensor for specific meal type."""
         sensor = PawControlFeedingCountTodaySensor(
@@ -1091,13 +1072,6 @@ class TestHealthSensors:
 
         result = sensor.native_value
         assert result == "increasing"
-
-   # def test_activity_level_sensor(self, mock_coordinator):
-   #     """Test activity level sensor."""
-   #     sensor = PawControlActivityLevelSensor(mock_coordinator, "test_dog", "Test Dog")
-#
-#        result = sensor.native_value
-#        assert result == "high"
 
     def test_last_vet_visit_sensor(self, mock_coordinator):
         """Test last vet visit sensor."""
