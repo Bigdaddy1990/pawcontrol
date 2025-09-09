@@ -732,7 +732,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
         walk_data = self._get_module_data("walk")
         if not walk_data:
             return None
-        
+
         last_walk_distance = walk_data.get("last_walk_distance")
         if last_walk_distance is not None:
             try:
@@ -742,7 +742,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
                     "Invalid last_walk_distance value: %s", last_walk_distance
                 )
                 return None
-        
+
         return None
 
 
