@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
+          pip install -U pytest pytest-asyncio pytest-cov coverage[toml] pytest-aio
           pip install -U homeassistant>=2025.9.1
           pip install -U pytest-homeassistant-custom-component
           pip install -r requirements.txt
@@ -41,8 +41,8 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          pytest -cov --fixtures --junitxml=junit.xml -o junit_family=legacy
-
+          pytest --cov --junitxml=junit.xml -o junit_family=legacy
+          pytest --cov --cov-branch --cov-report=xml --fixtures --junitxml=junit.xml -o junit_family=legacy
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
