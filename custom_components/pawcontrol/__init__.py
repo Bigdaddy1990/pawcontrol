@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
@@ -54,8 +53,8 @@ from .const import (
     PLATFORMS,
 )
 
-# Lazy imports for better startup performance
-from .types import DogConfigData, PawControlRuntimeData
+# Type imports for annotations
+from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -306,314 +305,290 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     from .walk_manager import WalkManager
 
-    # Enhanced setup context manager for proper cleanup
-    @asynccontextmanager
-    async def setup_context():
-        runtime_data: PawControlRuntimeData | None = None
-        try:
-            yield
-        except Exception:
-            # Cleanup on error
-            if runtime_data:
-                await _async_cleanup_runtime_data(hass, entry, runtime_data)
-            raise
+    try:
+        # Validate configuration early with comprehensive checks
+        dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
 
-    async with setup_context():
-        try:
-            # Validate configuration early with comprehensive checks
-            dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-
-            if not dogs_config:
-                raise ConfigurationError(
-                    setting="dogs", reason="No dogs configured in entry"
-                ).add_recovery_suggestion(
-                    "Add at least one dog via the integration configuration"
-                )
-
-            # Enhanced dog configuration validation
-            await _async_validate_dogs_configuration(dogs_config)
-
-            # Get entity profile from options for optimization
-            entity_profile = entry.options.get("entity_profile", "standard")
-
-            # Validate profile exists
-            if entity_profile not in ENTITY_PROFILES:
-                _LOGGER.warning(
-                    "Unknown entity profile '%s', falling back to 'standard'",
-                    entity_profile,
-                )
-                entity_profile = "standard"
-
-            profile_info = ENTITY_PROFILES[entity_profile]
-            _LOGGER.info(
-                "Using entity profile '%s': %s (max %d entities/dog)",
-                entity_profile,
-                profile_info["description"],
-                profile_info["max_entities"],
+        if not dogs_config:
+            raise ConfigurationError(
+                setting="dogs", reason="No dogs configured in entry"
+            ).add_recovery_suggestion(
+                "Add at least one dog via the integration configuration"
             )
 
-            # OPTIMIZED: Initialize core components with reduced timeouts
-            async with asyncio.timeout(SETUP_TIMEOUT_FAST):
-                # Initialize coordinator with profile information
-                coordinator = PawControlCoordinator(hass, entry)
-                await coordinator.async_config_entry_first_refresh()
+        # Enhanced dog configuration validation
+        await _async_validate_dogs_configuration(dogs_config)
 
-                # Initialize data manager with async context and validation
-                data_manager = PawControlDataManager(hass, entry.entry_id)
-                await data_manager.async_initialize()
+        # Get entity profile from options for optimization
+        entity_profile = entry.options.get("entity_profile", "standard")
 
-                # Initialize specialized managers for refactored architecture
-                dog_data_manager = DogDataManager()
-                await dog_data_manager.async_initialize(dogs_config)
-
-                walk_manager = WalkManager()
-                await walk_manager.async_initialize(
-                    [dog[CONF_DOG_ID] for dog in dogs_config]
-                )
-
-                feeding_manager = FeedingManager()
-                await feeding_manager.async_initialize(dogs_config)
-
-                health_calculator = HealthCalculator()
-
-                # Initialize entity factory with profile
-                entity_factory = EntityFactory(coordinator)
-
-                # Wire coordinator with all managers using dependency injection
-                coordinator.set_managers(
-                    data_manager=data_manager,
-                    dog_data_manager=dog_data_manager,
-                    walk_manager=walk_manager,
-                    feeding_manager=feeding_manager,
-                    health_calculator=health_calculator,
-                )
-
-                # Start background tasks for the refactored coordinator
-                await coordinator.async_start_background_tasks()
-
-                # Initialize notification manager with full async support
-                notification_manager = PawControlNotificationManager(
-                    hass, entry.entry_id
-                )
-                await notification_manager.async_initialize()
-
-            # Create modern runtime data object with profile information
-            runtime_data: PawControlRuntimeData = {
-                "coordinator": coordinator,
-                "data_manager": data_manager,
-                "dog_data_manager": dog_data_manager,
-                "walk_manager": walk_manager,
-                "feeding_manager": feeding_manager,
-                "health_calculator": health_calculator,
-                "notification_manager": notification_manager,
-                "entity_factory": entity_factory,
-                "config_entry": entry,
-                "dogs": dogs_config,
-                "entity_profile": entity_profile,
-            }
-
-            # Store using modern runtime_data API for optimal performance
-            entry.runtime_data = runtime_data
-
-            # Maintain backward compatibility storage
-            hass.data.setdefault(DOMAIN, {})
-            hass.data[DOMAIN][entry.entry_id] = {
-                "coordinator": coordinator,
-                "data": data_manager,
-                "dog_data_manager": dog_data_manager,
-                "walk_manager": walk_manager,
-                "feeding_manager": feeding_manager,
-                "health_calculator": health_calculator,
-                "notifications": notification_manager,
-                "entity_factory": entity_factory,
-                "dashboard_generator": None,  # Will be initialized after platforms
-                "entry": entry,
-                "entity_profile": entity_profile,
-            }
-
-            # OPTIMIZED: Setup platforms using profile-optimized loading
-            try:
-                # Use profile-aware platform selection
-                needed_platforms = get_platforms_for_profile_and_modules(
-                    dogs_config, entity_profile
-                )
-
-                # Safety fallback if no platforms determined
-                if not needed_platforms:
-                    _LOGGER.warning(
-                        "No platforms determined for profile '%s', using core platforms only",
-                        entity_profile,
-                    )
-                    needed_platforms = [Platform.SENSOR, Platform.BUTTON]
-
-                # Calculate estimated entity reduction
-                total_dogs = len(dogs_config)
-                estimated_entities = sum(
-                    entity_factory.estimate_entity_count(
-                        entity_profile, dog.get("modules", {})
-                    )
-                    for dog in dogs_config
-                )
-
-                _LOGGER.info(
-                    "Profile-based setup: %d dogs, estimated %d total entities (profile: %s)",
-                    total_dogs,
-                    estimated_entities,
-                    entity_profile,
-                )
-
-                # OPTIMIZED: Parallel platform setup with batching
-                async with asyncio.timeout(SETUP_TIMEOUT_NORMAL):
-                    if total_dogs > 3:
-                        # For many dogs: Batch-based parallel loading
-                        platform_groups = [
-                            needed_platforms[i : i + 3]
-                            for i in range(0, len(needed_platforms), 3)
-                        ]
-
-                        await asyncio.gather(
-                            *[
-                                hass.config_entries.async_forward_entry_setups(
-                                    entry, group
-                                )
-                                for group in platform_groups
-                            ]
-                        )
-                    else:
-                        # Few dogs: Direct parallel setup
-                        await hass.config_entries.async_forward_entry_setups(
-                            entry, needed_platforms
-                        )
-
-                # Log optimization results
-                platform_reduction = int(
-                    (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100
-                )
-
-                _LOGGER.info(
-                    "Profile-optimized setup completed: profile='%s', %d/%d platforms (%d%% reduction), "
-                    "estimated %d entities for %d dogs",
-                    entity_profile,
-                    len(needed_platforms),
-                    len(ALL_PLATFORMS),
-                    platform_reduction,
-                    estimated_entities,
-                    total_dogs,
-                )
-
-            except asyncio.TimeoutError:
-                _LOGGER.error(
-                    "Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL
-                )
-                await _async_cleanup_runtime_data(hass, entry, runtime_data)
-                raise ConfigEntryNotReady("Platform setup timed out") from None
-            except Exception as err:
-                _LOGGER.error("Failed to setup platforms: %s", err, exc_info=True)
-                await _async_cleanup_runtime_data(hass, entry, runtime_data)
-                raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
-
-            # Register services using the new service manager
-            service_manager = PawControlServiceManager(hass)
-            await service_manager.async_register_services()
-
-            # Store service manager in runtime data for cleanup
-            runtime_data["service_manager"] = service_manager
-            hass.data[DOMAIN][entry.entry_id]["service_manager"] = service_manager
-
-            # Setup daily reset scheduler with modern async patterns
-            await async_setup_daily_reset_scheduler(hass, entry)
-
-            # Setup dashboard if enabled
-            if entry.options.get(CONF_DASHBOARD_ENABLED, DEFAULT_DASHBOARD_ENABLED):
-                try:
-                    dashboard_generator = PawControlDashboardGenerator(hass, entry)
-                    await dashboard_generator.async_initialize()
-
-                    if entry.options.get(
-                        CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE
-                    ):
-                        # OPTIMIZED: Dashboard creation in background task
-                        async def create_dashboards():
-                            try:
-                                dashboard_url = await dashboard_generator.async_create_dashboard(
-                                    dogs_config,
-                                    options={
-                                        "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
-                                        "theme": entry.options.get(
-                                            "dashboard_theme", "default"
-                                        ),
-                                        "mode": entry.options.get(
-                                            "dashboard_mode", "full"
-                                        ),
-                                        "entity_profile": entity_profile,
-                                    },
-                                )
-                                _LOGGER.info("Created dashboard at: %s", dashboard_url)
-
-                                # Create individual dog dashboards if configured
-                                if entry.options.get("dashboard_per_dog", False):
-                                    for dog in dogs_config:
-                                        dog_url = await dashboard_generator.async_create_dog_dashboard(
-                                            dog, entity_profile=entity_profile
-                                        )
-                                        _LOGGER.info(
-                                            "Created dog dashboard for %s at: %s",
-                                            dog[CONF_DOG_NAME],
-                                            dog_url,
-                                        )
-                            except Exception as err:
-                                _LOGGER.error("Dashboard creation failed: %s", err)
-
-                        # Start dashboard creation in background
-                        asyncio.create_task(create_dashboards())
-
-                    # Update runtime data with dashboard generator
-                    runtime_data["dashboard_generator"] = dashboard_generator
-                    hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = (
-                        dashboard_generator
-                    )
-
-                except Exception as err:
-                    _LOGGER.error("Failed to setup dashboard: %s", err)
-                    # Dashboard failure is non-critical, continue setup
-
-            # OPTIMIZED: Perform initial data refresh with shorter timeout
-            try:
-                async with asyncio.timeout(REFRESH_TIMEOUT):
-                    await coordinator.async_config_entry_first_refresh()
-                _LOGGER.debug("Initial data refresh completed successfully")
-            except asyncio.TimeoutError:
-                _LOGGER.warning(
-                    "Initial data refresh timed out after %ds, continuing with cached data",
-                    REFRESH_TIMEOUT,
-                )
-            except Exception as err:
-                _LOGGER.warning(
-                    "Initial data refresh failed: %s, continuing setup", err
-                )
-
-            # Setup complete - log comprehensive status with profile info
-            _LOGGER.info(
-                "✅ Paw Control setup completed: profile='%s' (%s), %d dogs, "
-                "%d platforms loaded, estimated %d entities, entry_id=%s",
+        # Validate profile exists
+        if entity_profile not in ENTITY_PROFILES:
+            _LOGGER.warning(
+                "Unknown entity profile '%s', falling back to 'standard'",
                 entity_profile,
-                profile_info["description"],
-                len(dogs_config),
-                len(needed_platforms),
+            )
+            entity_profile = "standard"
+
+        profile_info = ENTITY_PROFILES[entity_profile]
+        _LOGGER.info(
+            "Using entity profile '%s': %s (max %d entities/dog)",
+            entity_profile,
+            profile_info["description"],
+            profile_info["max_entities"],
+        )
+
+        # OPTIMIZED: Initialize core components with reduced timeouts
+        async with asyncio.timeout(SETUP_TIMEOUT_FAST):
+            # Initialize coordinator with profile information
+            coordinator = PawControlCoordinator(hass, entry)
+            
+            # Initialize data manager with async context and validation
+            data_manager = PawControlDataManager(hass, entry.entry_id)
+            await data_manager.async_initialize()
+
+            # Initialize specialized managers for refactored architecture
+            dog_data_manager = DogDataManager()
+            await dog_data_manager.async_initialize(dogs_config)
+
+            walk_manager = WalkManager()
+            await walk_manager.async_initialize(
+                [dog[CONF_DOG_ID] for dog in dogs_config]
+            )
+
+            feeding_manager = FeedingManager()
+            await feeding_manager.async_initialize(dogs_config)
+
+            health_calculator = HealthCalculator()
+
+            # Initialize entity factory with profile
+            entity_factory = EntityFactory(coordinator)
+
+            # Wire coordinator with all managers using dependency injection
+            coordinator.set_managers(
+                data_manager=data_manager,
+                dog_data_manager=dog_data_manager,
+                walk_manager=walk_manager,
+                feeding_manager=feeding_manager,
+                health_calculator=health_calculator,
+            )
+
+            # Setup coordinator before first refresh (HA 2025.9.1 pattern)
+            await coordinator._async_setup()
+            
+            # Start background tasks for the refactored coordinator
+            await coordinator.async_start_background_tasks()
+
+            # Initialize notification manager with full async support
+            notification_manager = PawControlNotificationManager(
+                hass, entry.entry_id
+            )
+            await notification_manager.async_initialize()
+            
+            # Perform initial data refresh after all managers are ready
+            await coordinator.async_config_entry_first_refresh()
+
+        # Store all runtime data in hass.data for HA 2025.9.1 compatibility
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN][entry.entry_id] = {
+            "coordinator": coordinator,
+            "data": data_manager,
+            "data_manager": data_manager,
+            "dog_data_manager": dog_data_manager,
+            "walk_manager": walk_manager,
+            "feeding_manager": feeding_manager,
+            "health_calculator": health_calculator,
+            "notifications": notification_manager,
+            "notification_manager": notification_manager,
+            "entity_factory": entity_factory,
+            "dashboard_generator": None,  # Will be initialized after platforms
+            "entry": entry,
+            "config_entry": entry,
+            "entity_profile": entity_profile,
+            "dogs": dogs_config,
+        }
+
+        # OPTIMIZED: Setup platforms using profile-optimized loading
+        try:
+            # Use profile-aware platform selection
+            needed_platforms = get_platforms_for_profile_and_modules(
+                dogs_config, entity_profile
+            )
+
+            # Safety fallback if no platforms determined
+            if not needed_platforms:
+                _LOGGER.warning(
+                    "No platforms determined for profile '%s', using core platforms only",
+                    entity_profile,
+                )
+                needed_platforms = [Platform.SENSOR, Platform.BUTTON]
+
+            # Calculate estimated entity reduction
+            total_dogs = len(dogs_config)
+            estimated_entities = sum(
+                entity_factory.estimate_entity_count(
+                    entity_profile, dog.get("modules", {})
+                )
+                for dog in dogs_config
+            )
+
+            _LOGGER.info(
+                "Profile-based setup: %d dogs, estimated %d total entities (profile: %s)",
+                total_dogs,
                 estimated_entities,
-                entry.entry_id,
+                entity_profile,
             )
 
-            return True
+            # OPTIMIZED: Parallel platform setup with batching
+            async with asyncio.timeout(SETUP_TIMEOUT_NORMAL):
+                if total_dogs > 3:
+                    # For many dogs: Batch-based parallel loading
+                    platform_groups = [
+                        needed_platforms[i : i + 3]
+                        for i in range(0, len(needed_platforms), 3)
+                    ]
 
-        except ConfigEntryNotReady:
-            raise
-        except ConfigurationError as err:
-            _LOGGER.error("Configuration error during setup: %s", err.to_dict())
-            raise ConfigEntryNotReady(f"Configuration error: {err}") from err
+                    await asyncio.gather(
+                        *[
+                            hass.config_entries.async_forward_entry_setups(
+                                entry, group
+                            )
+                            for group in platform_groups
+                        ]
+                    )
+                else:
+                    # Few dogs: Direct parallel setup
+                    await hass.config_entries.async_forward_entry_setups(
+                        entry, needed_platforms
+                    )
+
+            # Log optimization results
+            platform_reduction = int(
+                (1 - len(needed_platforms) / len(ALL_PLATFORMS)) * 100
+            )
+
+            _LOGGER.info(
+                "Profile-optimized setup completed: profile='%s', %d/%d platforms (%d%% reduction), "
+                "estimated %d entities for %d dogs",
+                entity_profile,
+                len(needed_platforms),
+                len(ALL_PLATFORMS),
+                platform_reduction,
+                estimated_entities,
+                total_dogs,
+            )
+
+        except asyncio.TimeoutError:
+            _LOGGER.error(
+                "Platform setup timed out after %d seconds", SETUP_TIMEOUT_NORMAL
+            )
+            await _async_cleanup_entry_data(hass, entry)
+            raise ConfigEntryNotReady("Platform setup timed out") from None
         except Exception as err:
-            _LOGGER.error("Unexpected error during setup: %s", err, exc_info=True)
-            raise ConfigEntryNotReady(f"Setup failed: {err}") from err
+            _LOGGER.error("Failed to setup platforms: %s", err, exc_info=True)
+            await _async_cleanup_entry_data(hass, entry)
+            raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
+
+        # Register services using the new service manager
+        service_manager = PawControlServiceManager(hass)
+        await service_manager.async_register_services()
+
+        # Store service manager for cleanup
+        hass.data[DOMAIN][entry.entry_id]["service_manager"] = service_manager
+
+        # Setup daily reset scheduler with modern async patterns
+        await async_setup_daily_reset_scheduler(hass, entry)
+
+        # Setup dashboard if enabled
+        if entry.options.get(CONF_DASHBOARD_ENABLED, DEFAULT_DASHBOARD_ENABLED):
+            try:
+                dashboard_generator = PawControlDashboardGenerator(hass, entry)
+                await dashboard_generator.async_initialize()
+
+                if entry.options.get(
+                    CONF_DASHBOARD_AUTO_CREATE, DEFAULT_DASHBOARD_AUTO_CREATE
+                ):
+                    # OPTIMIZED: Dashboard creation in background task
+                    async def create_dashboards():
+                        try:
+                            dashboard_url = await dashboard_generator.async_create_dashboard(
+                                dogs_config,
+                                options={
+                                    "title": f"🐕 {entry.data.get(CONF_NAME, 'Paw Control')}",
+                                    "theme": entry.options.get(
+                                        "dashboard_theme", "default"
+                                    ),
+                                    "mode": entry.options.get(
+                                        "dashboard_mode", "full"
+                                    ),
+                                    "entity_profile": entity_profile,
+                                },
+                            )
+                            _LOGGER.info("Created dashboard at: %s", dashboard_url)
+
+                            # Create individual dog dashboards if configured
+                            if entry.options.get("dashboard_per_dog", False):
+                                for dog in dogs_config:
+                                    dog_url = await dashboard_generator.async_create_dog_dashboard(
+                                        dog, entity_profile=entity_profile
+                                    )
+                                    _LOGGER.info(
+                                        "Created dog dashboard for %s at: %s",
+                                        dog[CONF_DOG_NAME],
+                                        dog_url,
+                                    )
+                        except Exception as err:
+                            _LOGGER.error("Dashboard creation failed: %s", err)
+
+                    # Start dashboard creation in background
+                    asyncio.create_task(create_dashboards())
+
+                # Store dashboard generator
+                hass.data[DOMAIN][entry.entry_id]["dashboard_generator"] = (
+                    dashboard_generator
+                )
+
+            except Exception as err:
+                _LOGGER.error("Failed to setup dashboard: %s", err)
+                # Dashboard failure is non-critical, continue setup
+
+        # OPTIMIZED: Perform follow-up data refresh with shorter timeout
+        try:
+            async with asyncio.timeout(REFRESH_TIMEOUT):
+                await coordinator.async_refresh()
+            _LOGGER.debug("Follow-up data refresh completed successfully")
+        except asyncio.TimeoutError:
+            _LOGGER.warning(
+                "Follow-up data refresh timed out after %ds, continuing with cached data",
+                REFRESH_TIMEOUT,
+            )
+        except Exception as err:
+            _LOGGER.warning(
+                "Follow-up data refresh failed: %s, continuing setup", err
+            )
+
+        # Setup complete - log comprehensive status with profile info
+        _LOGGER.info(
+            "✅ Paw Control setup completed: profile='%s' (%s), %d dogs, "
+            "%d platforms loaded, estimated %d entities, entry_id=%s",
+            entity_profile,
+            profile_info["description"],
+            len(dogs_config),
+            len(needed_platforms),
+            estimated_entities,
+            entry.entry_id,
+        )
+
+        return True
+
+    except ConfigEntryNotReady:
+        raise
+    except ConfigurationError as err:
+        _LOGGER.error("Configuration error during setup: %s", err.to_dict())
+        raise ConfigEntryNotReady(f"Configuration error: {err}") from err
+    except Exception as err:
+        _LOGGER.error("Unexpected error during setup: %s", err, exc_info=True)
+        raise ConfigEntryNotReady(f"Setup failed: {err}") from err
 
 
 async def _async_validate_dogs_configuration(dogs_config: list[DogConfigData]) -> None:
@@ -752,22 +727,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
         if unload_success:
-            # Get runtime data using modern approach with fallback
-            runtime_data = getattr(entry, "runtime_data", None)
+            # Get entry data from hass.data
+            entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
+            if entry_data:
+                await _async_cleanup_entry_data(hass, entry)
 
-            if runtime_data:
-                await _async_cleanup_runtime_data(hass, entry, runtime_data)
-            else:
-                # Fallback to legacy data cleanup
-                entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
-                await _async_cleanup_legacy_entry_data(entry_data)
-
-            # Remove entry data from both storage locations
+            # Remove entry data from storage
             hass.data[DOMAIN].pop(entry.entry_id, None)
-
-            # Clean up runtime data reference
-            if hasattr(entry, "runtime_data"):
-                delattr(entry, "runtime_data")
 
             _LOGGER.info(
                 "Paw Control integration unloaded successfully (profile: %s)",
@@ -809,19 +775,23 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         raise
 
 
-async def _async_cleanup_runtime_data(
-    hass: HomeAssistant, entry: ConfigEntry, runtime_data: PawControlRuntimeData
+async def _async_cleanup_entry_data(
+    hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
-    """Clean up runtime data components with proper async shutdown.
+    """Clean up entry data components with proper async shutdown.
 
     OPTIMIZED: Parallel cleanup with reduced timeouts.
 
     Args:
         hass: Home Assistant instance
         entry: Config entry being cleaned up
-        runtime_data: Runtime data to clean up
     """
-    _LOGGER.debug("Cleaning up runtime data for entry %s", entry.entry_id)
+    _LOGGER.debug("Cleaning up entry data for entry %s", entry.entry_id)
+    
+    # Get entry data from hass.data
+    entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
+    if not entry_data:
+        return
 
     # OPTIMIZED: Parallel shutdown tasks
     shutdown_tasks = []
@@ -839,7 +809,7 @@ async def _async_cleanup_runtime_data(
     ]
 
     for component_name, method_name in cleanup_components:
-        component = runtime_data.get(component_name)
+        component = entry_data.get(component_name)
         if component and hasattr(component, method_name):
             shutdown_tasks.append(
                 _async_shutdown_component(
@@ -868,42 +838,3 @@ async def _async_shutdown_component(component_name: str, shutdown_coro) -> None:
         _LOGGER.debug("Successfully shutdown %s", component_name)
     except Exception as err:
         _LOGGER.warning("Error shutting down %s: %s", component_name, err)
-
-
-async def _async_cleanup_legacy_entry_data(entry_data: dict[str, Any]) -> None:
-    """Clean up legacy entry data format with proper error handling.
-
-    OPTIMIZED: Streamlined legacy cleanup.
-
-    Args:
-        entry_data: Legacy entry data dictionary
-    """
-    _LOGGER.debug("Cleaning up legacy entry data")
-
-    # OPTIMIZED: Parallel cleanup for legacy components
-    cleanup_tasks = []
-
-    legacy_components = [
-        ("service_manager", entry_data.get("service_manager")),
-        ("notifications", entry_data.get("notifications")),
-        ("data", entry_data.get("data")),
-        ("coordinator", entry_data.get("coordinator")),
-    ]
-
-    for component_name, component in legacy_components:
-        if component:
-            if hasattr(component, "async_unregister_services"):
-                cleanup_tasks.append(
-                    _async_shutdown_component(
-                        component_name, component.async_unregister_services()
-                    )
-                )
-            elif hasattr(component, "async_shutdown"):
-                cleanup_tasks.append(
-                    _async_shutdown_component(
-                        component_name, component.async_shutdown()
-                    )
-                )
-
-    if cleanup_tasks:
-        await asyncio.gather(*cleanup_tasks, return_exceptions=True)

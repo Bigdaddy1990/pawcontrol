@@ -47,6 +47,7 @@ from .const import (
     DEFAULT_RESET_TIME,
     MODULE_GPS,
 )
+from .entity_factory import ENTITY_PROFILES
 from .options_flow import PawControlOptionsFlow
 from .types import is_dog_config_valid
 
@@ -56,45 +57,6 @@ _LOGGER = logging.getLogger(__name__)
 VALIDATION_CACHE_TTL = 60  # Cache validation results for 60 seconds
 MAX_CONCURRENT_VALIDATIONS = 3
 VALIDATION_TIMEOUT = 10  # Maximum time for validation operations
-
-# Entity profile definitions with performance impact
-ENTITY_PROFILES = {
-    "basic": {
-        "name": "Basic (8 entities)",
-        "description": "Essential monitoring only - Best performance",
-        "max_entities": 8,
-        "performance_impact": "minimal",
-        "recommended_for": "Single dog, basic monitoring",
-    },
-    "standard": {
-        "name": "Standard (12 entities)",
-        "description": "Balanced monitoring with GPS - Good performance",
-        "max_entities": 12,
-        "performance_impact": "low",
-        "recommended_for": "Most users, balanced functionality",
-    },
-    "advanced": {
-        "name": "Advanced (18 entities)",
-        "description": "Comprehensive monitoring - Higher resource usage",
-        "max_entities": 18,
-        "performance_impact": "medium",
-        "recommended_for": "Power users, detailed analytics",
-    },
-    "gps_focus": {
-        "name": "GPS Focus (10 entities)",
-        "description": "GPS tracking optimized - Good for active dogs",
-        "max_entities": 10,
-        "performance_impact": "low",
-        "recommended_for": "Active dogs, outdoor adventures",
-    },
-    "health_focus": {
-        "name": "Health Focus (10 entities)",
-        "description": "Health monitoring optimized - Good for senior dogs",
-        "max_entities": 10,
-        "performance_impact": "low",
-        "recommended_for": "Senior dogs, health conditions",
-    },
-}
 
 # Profile schema for validation
 PROFILE_SCHEMA = vol.Schema(
@@ -649,14 +611,9 @@ class PawControlConfigFlow(
             True if valid, False otherwise
         """
         try:
-            # Check if synchronous validation function exists and wrap it
-            if hasattr(self, "is_dog_config_valid"):
-                # Run synchronous validation in executor to avoid blocking
-                loop = asyncio.get_running_loop()
-                return await loop.run_in_executor(None, is_dog_config_valid, dog_config)
-            else:
-                # Fallback to simple validation
-                return is_dog_config_valid(dog_config)
+            # Run synchronous validation in executor to avoid blocking
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, is_dog_config_valid, dog_config)
         except Exception as err:
             _LOGGER.error("Error validating dog config: %s", err)
             return False

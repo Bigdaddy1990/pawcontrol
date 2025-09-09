@@ -24,7 +24,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
-    UpdateFailed,
+    CoordinatorUpdateFailed,
 )
 from homeassistant.util import dt as dt_util
 
@@ -129,18 +129,24 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     async def _async_setup(self) -> None:
-        """One-time async init before first refresh."""
-        # Wenn Manager vorhanden: vorbereiten. Keine Blocker im Event-Loop.
-        if self._data_manager is not None:
+        """One-time async init before first refresh.
+        
+        This method is called from async_setup_entry before the first refresh.
+        It ensures all managers are properly initialized before starting.
+        """
+        _LOGGER.debug("Setting up coordinator managers")
+        
+        # Initialize managers if they have async_prepare methods
+        if self._data_manager and hasattr(self._data_manager, 'async_prepare'):
             await self._data_manager.async_prepare()
-        if self.dog_data_manager is not None:
+        if self.dog_data_manager and hasattr(self.dog_data_manager, 'async_prepare'):
             await self.dog_data_manager.async_prepare()
-        if self.walk_manager is not None:
+        if self.walk_manager and hasattr(self.walk_manager, 'async_prepare'):
             await self.walk_manager.async_prepare()
-        if self.feeding_manager is not None:
+        if self.feeding_manager and hasattr(self.feeding_manager, 'async_prepare'):
             await self.feeding_manager.async_prepare()
-        # Langläufer erst ab hier starten, nicht im __init__
-        # self._maintenance_task = asyncio.create_task(self._maintenance_loop())
+        
+        _LOGGER.debug("Coordinator managers setup completed")
 
     def set_managers(
         self,
@@ -337,7 +343,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 1 for count in self._error_counts.values() if count > 3
             )
             if errors == len(batch) and persistent_failures > len(batch) / 2:
-                raise UpdateFailed("Persistent failures across multiple dogs")
+                raise CoordinatorUpdateFailed("Persistent failures across multiple dogs")
 
             # Apply selective updates with change detection
             updated_count = self._apply_selective_updates(all_results)
@@ -362,7 +368,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.error("Update failed: %s", err)
             self._performance_monitor.record_update(0, 1)
-            raise UpdateFailed(f"Update failed: {err}") from err
+            raise CoordinatorUpdateFailed(f"Update failed: {err}") from err
 
     async def _fetch_dog_data_delegated(self, dog_id: str) -> dict[str, Any]:
         """Optimized dog data fetching with enhanced caching and error handling.
