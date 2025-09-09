@@ -17,8 +17,13 @@ dependencies = [
 
 [tool.pytest.ini_options]
 addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3"
-asyncio_mode = "auto"
 markers = ["asyncio: mark a test as using asyncio"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+minversion = "8.0"
+asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py313"
