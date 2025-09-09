@@ -6,7 +6,6 @@
   "zip_release": true,
   "filename": "pawcontrol.zip",
   "hide_default_branch": false,
-  "country": ["DE", "AT", "CH", "US", "GB"],
   "domains": ["sensor", "binary_sensor", "switch", "button", "select", "number", "text", "device_tracker", "date", "datetime"],
   "persistent_directory": "config",
   "iot_class": "Local Push",
