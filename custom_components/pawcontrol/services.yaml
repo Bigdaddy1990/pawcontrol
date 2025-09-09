@@ -1,437 +1,220 @@
-change_entity_profile:
-  name: Change Entity Profile
-  description: Change the entity profile to optimize performance and entity count
-  target:
-    integration: pawcontrol
-  fields:
-    profile:
-      name: Entity Profile
-      description: The profile to switch to (basic, standard, advanced, gps_focus, health_focus)
-      required: true
-      selector:
-        select:
-          options:
-            - basic
-            - standard
-            - advanced
-            - gps_focus
-            - health_focus
-    apply_immediately:
-      name: Apply Immediately
-      description: Apply changes immediately (requires reload) or wait for next restart
-      default: false
-      selector:
-        boolean:
 
-get_profile_info:
-  name: Get Profile Information
-  description: Get information about available entity profiles and current configuration
-  target:
-    integration: pawcontrol
-  fields:
-    include_estimates:
-      name: Include Estimates
-      description: Include entity count estimates for each profile
-      default: true
-      selector:
-        boolean:
+# Services for Paw Control integration
+# This file defines all available services with their parameters, descriptions, and validation
 
-# Core Dog Management Services
-add_dog:
-  name: Add Dog
-  description: Add a new dog to the Paw Control integration
-  target:
-    integration: pawcontrol
-  fields:
-    dog_name:
-      name: Dog Name
-      description: Name of the dog
-      required: true
-      example: "Buddy"
-      selector:
-        text:
-    dog_breed:
-      name: Breed
-      description: Breed of the dog
-      example: "Labrador Retriever"
-      selector:
-        text:
-    dog_age:
-      name: Age
-      description: Age of the dog in years
-      example: 3
-      selector:
-        number:
-          min: 0
-          max: 30
-          mode: box
-    dog_weight:
-      name: Weight
-      description: Weight of the dog in kg
-      example: 25.5
-      selector:
-        number:
-          min: 0.1
-          max: 200
-          step: 0.1
-          mode: box
-          unit_of_measurement: kg
-    dog_size:
-      name: Size Category
-      description: Size category of the dog
-      default: medium
-      selector:
-        select:
-          options:
-            - toy
-            - small
-            - medium
-            - large
-            - giant
-    profile:
-      name: Entity Profile
-      description: Entity profile for this dog (inherits global if not set)
-      selector:
-        select:
-          options:
-            - default
-            - basic
-            - standard
-            - advanced
-            - gps_focus
-            - health_focus
-
-remove_dog:
-  name: Remove Dog
-  description: Remove a dog from the Paw Control integration
-  target:
-    integration: pawcontrol
+feed_dog:
+  name: Feed Dog
+  description: Log feeding for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog to remove
+      description: Unique identifier of the dog to feed
       required: true
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-
-update_dog:
-  name: Update Dog Information
-  description: Update information for an existing dog
-  target:
-    integration: pawcontrol
-  fields:
-    dog_id:
-      name: Dog ID
-      description: ID of the dog to update
-      required: true
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    dog_name:
-      name: Dog Name
-      description: New name for the dog
       selector:
         text:
-    dog_breed:
-      name: Breed
-      description: Updated breed
-      selector:
-        text:
-    dog_age:
-      name: Age
-      description: Updated age in years
-      selector:
-        number:
-          min: 0
-          max: 30
-          mode: box
-    dog_weight:
-      name: Weight
-      description: Updated weight in kg
-      selector:
-        number:
-          min: 0.1
-          max: 200
-          step: 0.1
-          mode: box
-          unit_of_measurement: kg
-    dog_size:
-      name: Size Category
-      description: Updated size category
-      selector:
-        select:
-          options:
-            - toy
-            - small
-            - medium
-            - large
-            - giant
-
-# Feeding Management
-log_feeding:
-  name: Log Feeding
-  description: Record a feeding event for a dog
-  target:
-    integration: pawcontrol
-  fields:
-    dog_id:
-      name: Dog ID
-      description: ID of the dog that was fed
-      required: true
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
     meal_type:
       name: Meal Type
-      description: Type of meal
-      default: regular
+      description: Type of meal being logged
+      required: false
+      default: "dinner"
       selector:
         select:
           options:
-            - breakfast
-            - lunch
-            - dinner
-            - snack
-            - treat
-            - regular
-    food_amount:
-      name: Food Amount
-      description: Amount of food in grams
-      example: 250
+            - "breakfast"
+            - "lunch"
+            - "dinner"
+            - "snack"
+            - "treat"
+    portion_size:
+      name: Portion Size
+      description: Size of the portion in grams (0 for default)
+      required: false
+      default: 0
       selector:
         number:
           min: 0
-          max: 2000
+          max: 1000
           step: 10
-          mode: box
-          unit_of_measurement: g
+          unit_of_measurement: "g"
     food_type:
       name: Food Type
-      description: Type of food given
-      default: dry
+      description: Type of food being given
+      required: false
       selector:
         select:
           options:
-            - dry
-            - wet
-            - raw
-            - mixed
-            - homemade
+            - "dry_food"
+            - "wet_food"
+            - "barf"
+            - "home_cooked"
+            - "treat"
+            - "mixed"
     notes:
       name: Notes
-      description: Additional notes about the feeding
+      description: Optional notes about the feeding
+      required: false
       selector:
         text:
           multiline: true
 
-skip_meal:
-  name: Skip Meal
-  description: Record that a scheduled meal was skipped
-  target:
-    integration: pawcontrol
-  fields:
-    dog_id:
-      name: Dog ID
-      description: ID of the dog
-      required: true
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    meal_type:
-      name: Meal Type
-      description: Which meal was skipped
-      required: true
-      selector:
-        select:
-          options:
-            - breakfast
-            - lunch
-            - dinner
-    reason:
-      name: Reason
-      description: Reason for skipping the meal
-      selector:
-        text:
-
-# Walk Management
 start_walk:
   name: Start Walk
-  description: Start tracking a walk for a dog
-  target:
-    integration: pawcontrol
+  description: Begin tracking a walk for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog going for a walk
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    walk_type:
-      name: Walk Type
-      description: Type of walk
-      default: regular
-      selector:
-        select:
-          options:
-            - quick
-            - regular
-            - long
-            - play
-            - training
-    location:
-      name: Location
-      description: Starting location or area
+        text:
+    label:
+      name: Walk Label
+      description: Optional label for the walk
+      required: false
       selector:
         text:
-    with_person:
-      name: With Person
-      description: Person walking the dog
+    location:
+      name: Starting Location
+      description: Optional starting location name
+      required: false
       selector:
-        entity:
-          domain: person
+        text:
 
 end_walk:
   name: End Walk
-  description: End the current walk tracking
-  target:
-    integration: pawcontrol
+  description: End the current walk for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
+        text:
     distance:
-      name: Distance
-      description: Distance walked in meters (auto-calculated if GPS enabled)
+      name: Total Distance
+      description: Total walk distance in meters (0 for auto-calculate)
+      required: false
+      default: 0
       selector:
         number:
           min: 0
           max: 50000
           step: 100
-          mode: box
-          unit_of_measurement: m
-    rating:
-      name: Walk Rating
-      description: Rate the walk quality (1-5 stars)
+          unit_of_measurement: "m"
+    duration:
+      name: Duration
+      description: Walk duration in minutes (0 for auto-calculate)
+      required: false
+      default: 0
       selector:
         number:
-          min: 1
-          max: 5
-          mode: slider
+          min: 0
+          max: 480
+          step: 5
+          unit_of_measurement: "min"
     notes:
       name: Notes
-      description: Notes about the walk
+      description: Optional notes about the walk
+      required: false
       selector:
         text:
           multiline: true
 
-# Health Management
-log_weight:
-  name: Log Weight
-  description: Record the dog's current weight
-  target:
-    integration: pawcontrol
+log_health:
+  name: Log Health Data
+  description: Log health information for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
+        text:
     weight:
       name: Weight
       description: Current weight in kg
-      required: true
+      required: false
       selector:
         number:
-          min: 0.1
+          min: 0.5
           max: 200
           step: 0.1
-          mode: box
-          unit_of_measurement: kg
-    body_condition_score:
-      name: Body Condition Score
-      description: BCS rating (1-9 scale)
+          unit_of_measurement: "kg"
+    temperature:
+      name: Temperature
+      description: Body temperature in Celsius
+      required: false
       selector:
         number:
-          min: 1
-          max: 9
-          mode: slider
-
-log_health_event:
-  name: Log Health Event
-  description: Record a health-related event or observation
-  target:
-    integration: pawcontrol
-  fields:
-    dog_id:
-      name: Dog ID
-      description: ID of the dog
-      required: true
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    event_type:
-      name: Event Type
-      description: Type of health event
-      required: true
+          min: 35.0
+          max: 42.0
+          step: 0.1
+          unit_of_measurement: "°C"
+    mood:
+      name: Mood
+      description: Current mood of the dog
+      required: false
       selector:
         select:
           options:
-            - symptom
-            - medication
-            - vaccination
-            - vet_visit
-            - grooming
-            - dental
-            - injury
-            - recovery
-    description:
-      name: Description
-      description: Detailed description of the event
-      required: true
+            - "happy"
+            - "content"
+            - "excited"
+            - "calm"
+            - "anxious"
+            - "tired"
+            - "playful"
+            - "aggressive"
+            - "sad"
+    activity_level:
+      name: Activity Level
+      description: Current activity level
+      required: false
+      selector:
+        select:
+          options:
+            - "very_low"
+            - "low"
+            - "normal"
+            - "high"
+            - "very_high"
+    health_status:
+      name: Health Status
+      description: Overall health status
+      required: false
+      selector:
+        select:
+          options:
+            - "excellent"
+            - "good"
+            - "fair"
+            - "poor"
+            - "critical"
+    symptoms:
+      name: Symptoms
+      description: Any observed symptoms
+      required: false
       selector:
         text:
           multiline: true
-    severity:
-      name: Severity
-      description: Severity level (if applicable)
+    note:
+      name: Health Note
+      description: Additional health notes
+      required: false
       selector:
-        select:
-          options:
-            - minor
-            - moderate
-            - severe
-            - critical
+        text:
+          multiline: true
 
-give_medication:
-  name: Give Medication
-  description: Record medication administration
-  target:
-    integration: pawcontrol
+log_medication:
+  name: Log Medication
+  description: Log medication administration for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
+        text:
     medication_name:
       name: Medication Name
       description: Name of the medication
@@ -440,261 +223,588 @@ give_medication:
         text:
     dosage:
       name: Dosage
-      description: Dosage given
+      description: Dosage amount and unit
       required: true
       selector:
         text:
-    next_dose_time:
-      name: Next Dose Time
-      description: When the next dose is due
+    administration_time:
+      name: Administration Time
+      description: Time when medication was given (defaults to now)
+      required: false
       selector:
         datetime:
+    next_dose:
+      name: Next Dose
+      description: When the next dose is due
+      required: false
+      selector:
+        datetime:
+    notes:
+      name: Notes
+      description: Optional notes about medication
+      required: false
+      selector:
+        text:
+          multiline: true
 
-# GPS & Location Services
-set_geofence:
-  name: Set Geofence
-  description: Create or update a geofence zone for a dog
-  target:
-    integration: pawcontrol
+start_grooming:
+  name: Start Grooming
+  description: Begin a grooming session for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    zone_name:
-      name: Zone Name
-      description: Name of the geofence zone
+        text:
+    type:
+      name: Grooming Type
+      description: Type of grooming being performed
+      required: false
+      default: "general"
+      selector:
+        select:
+          options:
+            - "bath"
+            - "brush"
+            - "nails"
+            - "teeth"
+            - "trim"
+            - "full_grooming"
+            - "general"
+    location:
+      name: Location
+      description: Where grooming is being performed
+      required: false
+      selector:
+        text:
+    groomer:
+      name: Groomer
+      description: Who is performing the grooming
+      required: false
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Optional grooming notes
+      required: false
+      selector:
+        text:
+          multiline: true
+
+end_grooming:
+  name: End Grooming
+  description: End the current grooming session
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    duration:
+      name: Duration
+      description: Grooming duration in minutes (0 for auto-calculate)
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 360
+          step: 5
+          unit_of_measurement: "min"
+    completed_tasks:
+      name: Completed Tasks
+      description: List of completed grooming tasks
+      required: false
+      selector:
+        select:
+          options:
+            - "bath"
+            - "brush"
+            - "nails"
+            - "teeth"
+            - "trim"
+            - "ear_cleaning"
+            - "eye_cleaning"
+          multiple: true
+    notes:
+      name: Notes
+      description: Grooming session notes
+      required: false
+      selector:
+        text:
+          multiline: true
+
+update_location:
+  name: Update Location
+  description: Manually update the location of a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
       required: true
       selector:
         text:
     latitude:
       name: Latitude
-      description: Center latitude of the zone
+      description: Latitude coordinate
       required: true
       selector:
         number:
           min: -90
           max: 90
-          step: 0.000001
-          mode: box
+          step: 0.001
     longitude:
       name: Longitude
-      description: Center longitude of the zone
+      description: Longitude coordinate
       required: true
       selector:
         number:
           min: -180
           max: 180
-          step: 0.000001
-          mode: box
-    radius:
-      name: Radius
-      description: Radius of the zone in meters
-      default: 100
+          step: 0.001
+    accuracy:
+      name: Accuracy
+      description: Location accuracy in meters
+      required: false
       selector:
         number:
-          min: 10
-          max: 5000
-          step: 10
-          mode: box
-          unit_of_measurement: m
-    alert_on_enter:
-      name: Alert on Enter
-      description: Send notification when dog enters zone
-      default: true
+          min: 1
+          max: 1000
+          step: 1
+          unit_of_measurement: "m"
+    source:
+      name: Source
+      description: Source of the location update
+      required: false
+      default: "manual"
       selector:
-        boolean:
-    alert_on_exit:
-      name: Alert on Exit
-      description: Send notification when dog exits zone
-      default: true
-      selector:
-        boolean:
+        text:
 
-# Notification Services
-send_reminder:
-  name: Send Reminder
-  description: Send a custom reminder notification
-  target:
-    integration: pawcontrol
+set_visitor_mode:
+  name: Set Visitor Mode
+  description: Enable or disable visitor mode for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: ID of the dog (optional for general reminders)
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    reminder_type:
-      name: Reminder Type
-      description: Type of reminder
-      required: true
-      selector:
-        select:
-          options:
-            - feeding
-            - walk
-            - medication
-            - vet_appointment
-            - grooming
-            - training
-            - custom
-    message:
-      name: Message
-      description: Custom reminder message
+      description: Unique identifier of the dog
       required: true
       selector:
         text:
-          multiline: true
-    priority:
-      name: Priority
-      description: Notification priority
-      default: normal
-      selector:
-        select:
-          options:
-            - low
-            - normal
-            - high
-            - urgent
-
-# Dashboard Management
-refresh_dashboard:
-  name: Refresh Dashboard
-  description: Force refresh of the Paw Control dashboard
-  target:
-    integration: pawcontrol
-  fields:
-    regenerate:
-      name: Regenerate
-      description: Completely regenerate the dashboard (slower)
-      default: false
+    enabled:
+      name: Enabled
+      description: Whether to enable or disable visitor mode
+      required: true
       selector:
         boolean:
+    visitor_name:
+      name: Visitor Name
+      description: Name of the person caring for the dog
+      required: false
+      selector:
+        text:
+    reduced_alerts:
+      name: Reduce Alerts
+      description: Reduce non-critical alerts during visitor mode
+      required: false
+      default: true
+      selector:
+        boolean:
+    modified_schedule:
+      name: Modified Schedule
+      description: Allow modified feeding/walk schedule
+      required: false
+      default: true
+      selector:
+        boolean:
+    notes:
+      name: Notes
+      description: Optional visitor mode notes
+      required: false
+      selector:
+        text:
+          multiline: true
 
-# Data Management
-export_data:
-  name: Export Data
-  description: Export Paw Control data for backup or analysis
-  target:
-    integration: pawcontrol
+notify_test:
+  name: Test Notification
+  description: Send a test notification for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: Specific dog to export (all if not specified)
+      description: Unique identifier of the dog
+      required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    data_types:
-      name: Data Types
-      description: Types of data to export
-      default: ["all"]
+        text:
+    message:
+      name: Message
+      description: Test notification message
+      required: false
+      default: "Test notification"
+      selector:
+        text:
+    priority:
+      name: Priority
+      description: Notification priority level
+      required: false
+      default: "normal"
       selector:
         select:
-          multiple: true
           options:
-            - all
-            - feeding
-            - walks
-            - health
-            - weight
-            - medications
-            - gps_history
+            - "low"
+            - "normal"
+            - "high"
+            - "urgent"
+
+reset_daily_stats:
+  name: Reset Daily Statistics
+  description: Reset daily statistics for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    confirm:
+      name: Confirm Reset
+      description: Confirm that you want to reset daily statistics
+      required: true
+      selector:
+        boolean:
+
+export_data:
+  name: Export Data
+  description: Export historical data for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    data_type:
+      name: Data Type
+      description: Type of data to export
+      required: true
+      selector:
+        select:
+          options:
+            - "all"
+            - "feeding"
+            - "walks"
+            - "health"
+            - "gps"
+            - "grooming"
+    start_date:
+      name: Start Date
+      description: Start date for data export
+      required: false
+      selector:
+        date:
+    end_date:
+      name: End Date
+      description: End date for data export
+      required: false
+      selector:
+        date:
     format:
       name: Export Format
-      description: Format for the export
-      default: json
+      description: Format for exported data
+      required: false
+      default: "csv"
       selector:
         select:
           options:
-            - json
-            - csv
-            - yaml
-    date_from:
-      name: Date From
-      description: Start date for export
-      selector:
-        date:
-    date_to:
-      name: Date To
-      description: End date for export
-      selector:
-        date:
+            - "csv"
+            - "json"
+            - "gpx"
 
 import_data:
   name: Import Data
-  description: Import data from a backup or external source
-  target:
-    integration: pawcontrol
+  description: Import historical data for a specific dog
   fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    data_type:
+      name: Data Type
+      description: Type of data being imported
+      required: true
+      selector:
+        select:
+          options:
+            - "feeding"
+            - "walks"
+            - "health"
+            - "gps"
+            - "grooming"
     file_path:
       name: File Path
       description: Path to the import file
       required: true
       selector:
         text:
-    merge_mode:
-      name: Merge Mode
+    merge_strategy:
+      name: Merge Strategy
       description: How to handle existing data
-      default: merge
+      required: false
+      default: "append"
       selector:
         select:
           options:
-            - replace
-            - merge
-            - skip_existing
+            - "append"
+            - "replace"
+            - "merge"
 
-# Reset Services
-reset_daily_counters:
-  name: Reset Daily Counters
-  description: Manually reset daily counters and statistics
-  target:
-    integration: pawcontrol
+set_feeding_schedule:
+  name: Set Feeding Schedule
+  description: Configure feeding schedule for a specific dog
   fields:
     dog_id:
       name: Dog ID
-      description: Specific dog to reset (all if not specified)
-      selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-
-clear_history:
-  name: Clear History
-  description: Clear historical data for a dog
-  target:
-    integration: pawcontrol
-  fields:
-    dog_id:
-      name: Dog ID
-      description: ID of the dog
+      description: Unique identifier of the dog
       required: true
       selector:
-        entity:
-          integration: pawcontrol
-          domain: sensor
-    data_type:
-      name: Data Type
-      description: Type of data to clear
+        text:
+    schedule_type:
+      name: Schedule Type
+      description: Type of feeding schedule
       required: true
       selector:
         select:
           options:
-            - all
-            - feeding
-            - walks
-            - health
-            - weight
-            - medications
-            - gps_history
-    confirm:
-      name: Confirm
-      description: Confirm the action (must be true)
+            - "times"
+            - "intervals"
+            - "custom"
+    meal_times:
+      name: Meal Times
+      description: Comma-separated meal times (HH:MM format)
+      required: false
+      selector:
+        text:
+    interval_hours:
+      name: Interval Hours
+      description: Hours between meals for interval schedule
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 24
+          step: 1
+          unit_of_measurement: "hours"
+    meals_per_day:
+      name: Meals Per Day
+      description: Number of meals per day
+      required: false
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 6
+          step: 1
+    enabled:
+      name: Enabled
+      description: Whether the schedule is enabled
+      required: false
+      default: true
+      selector:
+        boolean:
+
+set_walk_schedule:
+  name: Set Walk Schedule
+  description: Configure walk schedule for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
       required: true
+      selector:
+        text:
+    schedule_type:
+      name: Schedule Type
+      description: Type of walk schedule
+      required: true
+      selector:
+        select:
+          options:
+            - "times"
+            - "intervals"
+            - "goals"
+    walk_times:
+      name: Walk Times
+      description: Comma-separated walk times (HH:MM format)
+      required: false
+      selector:
+        text:
+    interval_hours:
+      name: Interval Hours
+      description: Hours between walks for interval schedule
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 24
+          step: 1
+          unit_of_measurement: "hours"
+    daily_walk_goal:
+      name: Daily Walk Goal
+      description: Target number of walks per day
+      required: false
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 1
+    duration_goal:
+      name: Duration Goal
+      description: Target walk duration in minutes
+      required: false
+      selector:
+        number:
+          min: 10
+          max: 180
+          step: 5
+          unit_of_measurement: "min"
+    enabled:
+      name: Enabled
+      description: Whether the schedule is enabled
+      required: false
+      default: true
+      selector:
+        boolean:
+
+configure_alerts:
+  name: Configure Alerts
+  description: Configure alert settings for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    feeding_alerts:
+      name: Feeding Alerts
+      description: Enable feeding reminder alerts
+      required: false
+      default: true
+      selector:
+        boolean:
+    walk_alerts:
+      name: Walk Alerts
+      description: Enable walk reminder alerts
+      required: false
+      default: true
+      selector:
+        boolean:
+    health_alerts:
+      name: Health Alerts
+      description: Enable health monitoring alerts
+      required: false
+      default: true
+      selector:
+        boolean:
+    gps_alerts:
+      name: GPS Alerts
+      description: Enable GPS and location alerts
+      required: false
+      default: true
+      selector:
+        boolean:
+    alert_methods:
+      name: Alert Methods
+      description: Methods for sending alerts
+      required: false
+      selector:
+        select:
+          options:
+            - "notification"
+            - "email"
+            - "mobile_app"
+            - "tts"
+            - "webhook"
+          multiple: true
+    quiet_hours_start:
+      name: Quiet Hours Start
+      description: Start time for quiet hours (no alerts)
+      required: false
+      selector:
+        time:
+    quiet_hours_end:
+      name: Quiet Hours End
+      description: End time for quiet hours
+      required: false
+      selector:
+        time:
+
+generate_report:
+  name: Generate Report
+  description: Generate a comprehensive report for a specific dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    report_type:
+      name: Report Type
+      description: Type of report to generate
+      required: true
+      selector:
+        select:
+          options:
+            - "daily"
+            - "weekly"
+            - "monthly"
+            - "custom"
+    start_date:
+      name: Start Date
+      description: Start date for custom reports
+      required: false
+      selector:
+        date:
+    end_date:
+      name: End Date
+      description: End date for custom reports
+      required: false
+      selector:
+        date:
+    include_sections:
+      name: Include Sections
+      description: Which sections to include in the report
+      required: false
+      selector:
+        select:
+          options:
+            - "feeding"
+            - "walks"
+            - "health"
+            - "gps"
+            - "grooming"
+            - "summary"
+            - "charts"
+          multiple: true
+    format:
+      name: Report Format
+      description: Format for the generated report
+      required: false
+      default: "pdf"
+      selector:
+        select:
+          options:
+            - "pdf"
+            - "html"
+            - "markdown"
+    send_notification:
+      name: Send Notification
+      description: Send notification when report is ready
+      required: false
+      default: true
       selector:
         boolean:
