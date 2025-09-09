@@ -1,19 +1,14 @@
 # pyproject.toml — nur Tooling für eine Home-Assistant Custom-Integration
 
 [tool.pytest.ini_options]
-addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=5"
-markers = ["asyncio: mark a test as using asyncio"]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-#minversion = "8.0"
+addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml"
 #asyncio_mode = "auto"
+markers = ["asyncio: mark a test as using asyncio"]
 
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["custom_components/pawcontrol"]
+src = ["custom_components/pawcontrol", "tests"]
 extend-exclude = ["tests", "docs", "scripts"]
 markers = ["asyncio: mark a test as using asyncio"]
 
@@ -46,7 +41,6 @@ no_implicit_optional = true
 check_untyped_defs = true
 ignore_missing_imports = true
 explicit_package_bases = true
-exclude = "tests/"
 
 [tool.coverage.run]
 branch = true
@@ -56,7 +50,3 @@ source = ["custom_components/pawcontrol"]
 show_missing = true
 skip_covered = false
 precision = 2
-fail_under = 75
-
-[tool.pylint.similarities]
-ignore-imports = "yes"
