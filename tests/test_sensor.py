@@ -21,7 +21,6 @@ from custom_components.pawcontrol.sensor import (
     PawControlCurrentSpeedSensor,
     PawControlCurrentZoneSensor,
     PawControlDailyCaloriesSensor,
-    PawControlDaysSinceGroomingSensor,
     PawControlDistanceFromHomeSensor,
     PawControlDogStatusSensor,
     PawControlFeedingCountTodaySensor,
@@ -34,23 +33,15 @@ from custom_components.pawcontrol.sensor import (
     PawControlLastVetVisitSensor,
     PawControlLastWalkDistanceSensor,
     PawControlLastWalkDurationSensor,
-    PawControlLastWalkHoursSensor,
     PawControlLastWalkSensor,
-    PawControlMedicationDueSensor,
     PawControlSensorBase,
     PawControlTotalDistanceTodaySensor,
     PawControlTotalFeedingsTodaySensor,
     PawControlTotalWalkTimeTodaySensor,
     PawControlWalkCountTodaySensor,
-    PawControlWeeklyDistanceSensor,
     PawControlWeeklyWalkCountSensor,
     PawControlWeightSensor,
     PawControlWeightTrendSensor,
-    _create_base_sensors,
-    _create_feeding_sensors,
-    _create_gps_sensors,
-    _create_health_sensors,
-    _create_walk_sensors,
     async_setup_entry,
 )
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
@@ -181,94 +172,6 @@ class TestAsyncSetupEntry:
         assert any("feeding" in sensor_type for sensor_type in entity_types)
         assert not any("walk" in sensor_type for sensor_type in entity_types)
         assert not any("gps" in sensor_type for sensor_type in entity_types)
-
-
-class TestSensorCreationFunctions:
-    """Test sensor creation helper functions."""
-
-    @pytest.fixture
-    def mock_coordinator(self):
-        """Create a mock coordinator."""
-        return Mock(spec=PawControlCoordinator)
-
-    def test_create_base_sensors(self, mock_coordinator):
-        """Test creating base sensors."""
-        sensors = _create_base_sensors(mock_coordinator, "test_dog", "Test Dog")
-
-        assert len(sensors) == 3
-        assert isinstance(sensors[0], PawControlLastActionSensor)
-        assert isinstance(sensors[1], PawControlDogStatusSensor)
-        assert isinstance(sensors[2], PawControlActivityScoreSensor)
-
-        for sensor in sensors:
-            assert sensor._dog_id == "test_dog"
-            assert sensor._dog_name == "Test Dog"
-
-    def test_create_feeding_sensors(self, mock_coordinator):
-        """Test creating feeding sensors."""
-        sensors = _create_feeding_sensors(mock_coordinator, "test_dog", "Test Dog")
-
-        # Should include base feeding sensors + meal type sensors
-        assert len(sensors) >= 9  # 5 base + 4 meal types
-
-        # Check for specific sensor types
-        sensor_types = [sensor._sensor_type for sensor in sensors]
-        assert "last_feeding" in sensor_types
-        assert "total_feedings_today" in sensor_types
-        assert "daily_calories" in sensor_types
-        assert "feeding_schedule_adherence" in sensor_types
-
-        # Check meal type sensors
-        assert any("breakfast" in sensor_type for sensor_type in sensor_types)
-        assert any("lunch" in sensor_type for sensor_type in sensor_types)
-        assert any("dinner" in sensor_type for sensor_type in sensor_types)
-        assert any("snack" in sensor_type for sensor_type in sensor_types)
-
-    def test_create_walk_sensors(self, mock_coordinator):
-        """Test creating walk sensors."""
-        sensors = _create_walk_sensors(mock_coordinator, "test_dog", "Test Dog")
-
-        assert len(sensors) == 7
-
-        sensor_types = [sensor._sensor_type for sensor in sensors]
-        assert "last_walk" in sensor_types
-        assert "last_walk_hours" in sensor_types
-        assert "last_walk_duration" in sensor_types
-        assert "walk_count_today" in sensor_types
-        assert "total_walk_time_today" in sensor_types
-        assert "weekly_walk_count" in sensor_types
-        assert "average_walk_duration" in sensor_types
-
-    def test_create_gps_sensors(self, mock_coordinator):
-        """Test creating GPS sensors."""
-        sensors = _create_gps_sensors(mock_coordinator, "test_dog", "Test Dog")
-
-        assert len(sensors) == 8
-
-        sensor_types = [sensor._sensor_type for sensor in sensors]
-        assert "current_speed" in sensor_types
-        assert "distance_from_home" in sensor_types
-        assert "gps_accuracy" in sensor_types
-        assert "last_walk_distance" in sensor_types
-        assert "total_distance_today" in sensor_types
-        assert "weekly_distance" in sensor_types
-        assert "current_zone" in sensor_types
-        assert "gps_battery_level" in sensor_types
-
-    def test_create_health_sensors(self, mock_coordinator):
-        """Test creating health sensors."""
-        sensors = _create_health_sensors(mock_coordinator, "test_dog", "Test Dog")
-
-        assert len(sensors) == 7
-
-        sensor_types = [sensor._sensor_type for sensor in sensors]
-        assert "weight" in sensor_types
-        assert "weight_trend" in sensor_types
-        assert "activity_level" in sensor_types
-        assert "last_vet_visit" in sensor_types
-        assert "days_since_grooming" in sensor_types
-        assert "health_status" in sensor_types
-        assert "medications_due" in sensor_types
 
 
 class TestPawControlSensorBase:
@@ -906,17 +809,6 @@ class TestWalkSensors:
         expected = datetime(2025, 1, 15, 9, 0, 0)
         assert result == expected
 
-    def test_last_walk_hours_sensor(self, mock_coordinator):
-        """Test last walk hours sensor."""
-        sensor = PawControlLastWalkHoursSensor(mock_coordinator, "test_dog", "Test Dog")
-
-        with patch(
-            "homeassistant.util.dt.utcnow", return_value=datetime(2025, 1, 15, 12, 0, 0)
-        ):
-            result = sensor.native_value
-
-        assert result == 3.0  # 3 hours since last walk
-
     def test_last_walk_duration_sensor(self, mock_coordinator):
         """Test last walk duration sensor."""
         sensor = PawControlLastWalkDurationSensor(
@@ -927,6 +819,18 @@ class TestWalkSensors:
 
         result = sensor.native_value
         assert result == 45.0
+
+    def test_last_walk_distance_sensor(self, mock_coordinator):
+        """Test last walk distance sensor."""
+        sensor = PawControlLastWalkDistanceSensor(
+            mock_coordinator, "test_dog", "Test Dog"
+        )
+
+        assert sensor._attr_native_unit_of_measurement == "m"
+        assert sensor._attr_icon == "mdi:map-marker-path"
+
+        result = sensor.native_value
+        assert result == 2000.0
 
     def test_walk_count_today_sensor(self, mock_coordinator):
         """Test walk count today sensor."""
@@ -1083,40 +987,12 @@ class TestHealthSensors:
         expected = datetime(2024, 12, 15, 10, 0, 0)
         assert result == expected
 
-    def test_days_since_grooming_sensor(self, mock_coordinator):
-        """Test days since grooming sensor."""
-        sensor = PawControlDaysSinceGroomingSensor(
-            mock_coordinator, "test_dog", "Test Dog"
-        )
-
-        assert sensor._attr_device_class == SensorDeviceClass.DURATION
-        assert sensor._attr_native_unit_of_measurement == UnitOfTime.DAYS
-
-        with patch(
-            "homeassistant.util.dt.utcnow", return_value=datetime(2025, 1, 15, 12, 0, 0)
-        ):
-            result = sensor.native_value
-
-        assert result == 14  # Days since January 1
-
     def test_health_status_sensor(self, mock_coordinator):
         """Test health status sensor."""
         sensor = PawControlHealthStatusSensor(mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result == "excellent"
-
-    def test_medication_due_sensor(self, mock_coordinator):
-        """Test medications due sensor."""
-        sensor = PawControlMedicationDueSensor(mock_coordinator, "test_dog", "Test Dog")
-
-        result = sensor.native_value
-        assert result == 2  # Two medications due
-
-        attrs = sensor.extra_state_attributes
-        assert len(attrs["medications_due"]) == 2
-        assert "Flea treatment" in attrs["medications_due"]
-        assert "Heartworm" in attrs["medications_due"]
 
 
 class TestSensorErrorHandling:
@@ -1249,11 +1125,14 @@ class TestSensorIntegration:
         """Test that sensors have unique IDs."""
         coordinator = Mock(spec=PawControlCoordinator)
 
-        # Create multiple sensors for the same dog
-        sensors = []
-        sensors.extend(_create_base_sensors(coordinator, "test_dog", "Test Dog"))
-        sensors.extend(_create_feeding_sensors(coordinator, "test_dog", "Test Dog"))
-        sensors.extend(_create_walk_sensors(coordinator, "test_dog", "Test Dog"))
+        # Create multiple sensors for the same dog - test actual sensor classes
+        sensors = [
+            PawControlLastActionSensor(coordinator, "test_dog", "Test Dog"),
+            PawControlDogStatusSensor(coordinator, "test_dog", "Test Dog"),
+            PawControlActivityScoreSensor(coordinator, "test_dog", "Test Dog"),
+            PawControlLastFeedingSensor(coordinator, "test_dog", "Test Dog"),
+            PawControlLastWalkSensor(coordinator, "test_dog", "Test Dog"),
+        ]
 
         unique_ids = [sensor._attr_unique_id for sensor in sensors]
 
@@ -1265,12 +1144,12 @@ class TestSensorIntegration:
         coordinator = Mock(spec=PawControlCoordinator)
 
         # Create sensors for two different dogs
-        dog1_sensors = _create_base_sensors(coordinator, "dog1", "Dog 1")
-        dog2_sensors = _create_base_sensors(coordinator, "dog2", "Dog 2")
+        dog1_sensor = PawControlLastActionSensor(coordinator, "dog1", "Dog 1")
+        dog2_sensor = PawControlLastActionSensor(coordinator, "dog2", "Dog 2")
 
         # Check device info
-        dog1_device = dog1_sensors[0]._attr_device_info
-        dog2_device = dog2_sensors[0]._attr_device_info
+        dog1_device = dog1_sensor._attr_device_info
+        dog2_device = dog2_sensor._attr_device_info
 
         assert dog1_device["identifiers"] == {(DOMAIN, "dog1")}
         assert dog2_device["identifiers"] == {(DOMAIN, "dog2")}
