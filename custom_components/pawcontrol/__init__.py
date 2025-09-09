@@ -342,7 +342,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         async with asyncio.timeout(SETUP_TIMEOUT_FAST):
             # Initialize coordinator with profile information
             coordinator = PawControlCoordinator(hass, entry)
-            
+
             # Initialize data manager with async context and validation
             data_manager = PawControlDataManager(hass, entry.entry_id)
             await data_manager.async_initialize()
@@ -375,16 +375,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             # Setup coordinator before first refresh (HA 2025.9.1 pattern)
             await coordinator._async_setup()
-            
+
             # Start background tasks for the refactored coordinator
             await coordinator.async_start_background_tasks()
 
             # Initialize notification manager with full async support
-            notification_manager = PawControlNotificationManager(
-                hass, entry.entry_id
-            )
+            notification_manager = PawControlNotificationManager(hass, entry.entry_id)
             await notification_manager.async_initialize()
-            
+
             # Perform initial data refresh after all managers are ready
             await coordinator.async_config_entry_first_refresh()
 
@@ -450,9 +448,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
                     await asyncio.gather(
                         *[
-                            hass.config_entries.async_forward_entry_setups(
-                                entry, group
-                            )
+                            hass.config_entries.async_forward_entry_setups(entry, group)
                             for group in platform_groups
                         ]
                     )
@@ -518,9 +514,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                     "theme": entry.options.get(
                                         "dashboard_theme", "default"
                                     ),
-                                    "mode": entry.options.get(
-                                        "dashboard_mode", "full"
-                                    ),
+                                    "mode": entry.options.get("dashboard_mode", "full"),
                                     "entity_profile": entity_profile,
                                 },
                             )
@@ -563,9 +557,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 REFRESH_TIMEOUT,
             )
         except Exception as err:
-            _LOGGER.warning(
-                "Follow-up data refresh failed: %s, continuing setup", err
-            )
+            _LOGGER.warning("Follow-up data refresh failed: %s, continuing setup", err)
 
         # Setup complete - log comprehensive status with profile info
         _LOGGER.info(
@@ -775,9 +767,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         raise
 
 
-async def _async_cleanup_entry_data(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> None:
+async def _async_cleanup_entry_data(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Clean up entry data components with proper async shutdown.
 
     OPTIMIZED: Parallel cleanup with reduced timeouts.
@@ -787,7 +777,7 @@ async def _async_cleanup_entry_data(
         entry: Config entry being cleaned up
     """
     _LOGGER.debug("Cleaning up entry data for entry %s", entry.entry_id)
-    
+
     # Get entry data from hass.data
     entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
     if not entry_data:

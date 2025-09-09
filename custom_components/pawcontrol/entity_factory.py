@@ -14,12 +14,10 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
-    from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,9 +97,7 @@ class EntityFactory:
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
 
-    def estimate_entity_count(
-        self, profile: str, modules: dict[str, bool]
-    ) -> int:
+    def estimate_entity_count(self, profile: str, modules: dict[str, bool]) -> int:
         """Estimate entity count for a profile and module configuration.
 
         Args:

@@ -302,13 +302,29 @@ class TestEntityFactory:
     @patch("custom_components.pawcontrol.sensor.PawControlLastWalkDurationSensor")
     @patch("custom_components.pawcontrol.sensor.PawControlLastWalkDistanceSensor")
     @patch("custom_components.pawcontrol.sensor.PawControlTotalWalkTimeTodaySensor")
-    def test_create_walk_entities_standard(self, mock_total_time, mock_distance, mock_duration, mock_count, mock_last, entity_factory):
+    def test_create_walk_entities_standard(
+        self,
+        mock_total_time,
+        mock_distance,
+        mock_duration,
+        mock_count,
+        mock_last,
+        entity_factory,
+    ):
         """Test creation of walk entities for standard profile including new distance sensor."""
         # Mock all sensor classes
-        for mock_sensor in [mock_last, mock_count, mock_duration, mock_distance, mock_total_time]:
+        for mock_sensor in [
+            mock_last,
+            mock_count,
+            mock_duration,
+            mock_distance,
+            mock_total_time,
+        ]:
             mock_sensor.return_value = Mock()
 
-        entities = entity_factory._create_walk_entities("test_dog", "Test Dog", "standard")
+        entities = entity_factory._create_walk_entities(
+            "test_dog", "Test Dog", "standard"
+        )
 
         # Standard profile should have 5 walk entities (2 basic + 3 additional)
         assert len(entities) == 5
@@ -327,13 +343,33 @@ class TestEntityFactory:
     @patch("custom_components.pawcontrol.sensor.PawControlTotalWalkTimeTodaySensor")
     @patch("custom_components.pawcontrol.sensor.PawControlWeeklyWalkCountSensor")
     @patch("custom_components.pawcontrol.sensor.PawControlAverageWalkDurationSensor")
-    def test_create_walk_entities_advanced(self, mock_avg, mock_weekly, mock_total_time, mock_distance, mock_duration, mock_count, mock_last, entity_factory):
+    def test_create_walk_entities_advanced(
+        self,
+        mock_avg,
+        mock_weekly,
+        mock_total_time,
+        mock_distance,
+        mock_duration,
+        mock_count,
+        mock_last,
+        entity_factory,
+    ):
         """Test creation of walk entities for advanced profile."""
         # Mock all sensor classes
-        for mock_sensor in [mock_last, mock_count, mock_duration, mock_distance, mock_total_time, mock_weekly, mock_avg]:
+        for mock_sensor in [
+            mock_last,
+            mock_count,
+            mock_duration,
+            mock_distance,
+            mock_total_time,
+            mock_weekly,
+            mock_avg,
+        ]:
             mock_sensor.return_value = Mock()
 
-        entities = entity_factory._create_walk_entities("test_dog", "Test Dog", "advanced")
+        entities = entity_factory._create_walk_entities(
+            "test_dog", "Test Dog", "advanced"
+        )
 
         # Advanced profile should have 7 walk entities
         assert len(entities) == 7
@@ -352,13 +388,29 @@ class TestEntityFactory:
     @patch("custom_components.pawcontrol.sensor.PawControlLastWalkDurationSensor")
     @patch("custom_components.pawcontrol.sensor.PawControlLastWalkDistanceSensor")
     @patch("custom_components.pawcontrol.sensor.PawControlTotalWalkTimeTodaySensor")
-    def test_create_walk_entities_gps_focus(self, mock_total_time, mock_distance, mock_duration, mock_count, mock_last, entity_factory):
+    def test_create_walk_entities_gps_focus(
+        self,
+        mock_total_time,
+        mock_distance,
+        mock_duration,
+        mock_count,
+        mock_last,
+        entity_factory,
+    ):
         """Test creation of walk entities for GPS-focused profile."""
         # Mock all sensor classes
-        for mock_sensor in [mock_last, mock_count, mock_duration, mock_distance, mock_total_time]:
+        for mock_sensor in [
+            mock_last,
+            mock_count,
+            mock_duration,
+            mock_distance,
+            mock_total_time,
+        ]:
             mock_sensor.return_value = Mock()
 
-        entities = entity_factory._create_walk_entities("test_dog", "Test Dog", "gps_focus")
+        entities = entity_factory._create_walk_entities(
+            "test_dog", "Test Dog", "gps_focus"
+        )
 
         # GPS focus profile should have 5 walk entities (same as standard)
         assert len(entities) == 5
@@ -437,7 +489,11 @@ class TestEntityFactory:
         ]
         mock_walk.return_value = [
             {"entity": Mock(), "type": "walk1", "priority": 2},
-            {"entity": Mock(), "type": "last_walk_distance", "priority": 3},  # NEW: Include distance sensor
+            {
+                "entity": Mock(),
+                "type": "last_walk_distance",
+                "priority": 3,
+            },  # NEW: Include distance sensor
         ]
         mock_gps.return_value = [
             {"entity": Mock(), "type": "gps1", "priority": 2},
@@ -652,7 +708,9 @@ class TestEntityFactoryIntegration:
         assert len(entities) > 0
         assert all(hasattr(entity, "__class__") for entity in entities)
 
-    def test_integration_last_walk_distance_sensor_in_standard_profile(self, entity_factory):
+    def test_integration_last_walk_distance_sensor_in_standard_profile(
+        self, entity_factory
+    ):
         """Test that PawControlLastWalkDistanceSensor is created in standard+ profiles."""
         modules = {
             MODULE_FEEDING: False,
@@ -678,7 +736,7 @@ class TestEntityFactoryIntegration:
         entity_classes = [entity.__class__.__name__ for entity in entities]
         assert "PawControlLastWalkDistanceSensor" in entity_classes
 
-        # Test GPS focus profile  
+        # Test GPS focus profile
         entities = entity_factory.create_entities_for_dog(
             "test_dog", "Test Dog", "gps_focus", modules
         )
@@ -686,7 +744,9 @@ class TestEntityFactoryIntegration:
         entity_classes = [entity.__class__.__name__ for entity in entities]
         assert "PawControlLastWalkDistanceSensor" in entity_classes
 
-    def test_integration_last_walk_distance_sensor_not_in_basic_profile(self, entity_factory):
+    def test_integration_last_walk_distance_sensor_not_in_basic_profile(
+        self, entity_factory
+    ):
         """Test that PawControlLastWalkDistanceSensor is NOT created in basic profile."""
         modules = {
             MODULE_FEEDING: False,
@@ -788,5 +848,7 @@ class TestLastWalkDistanceSensorIntegration:
 
         assert distance_sensor is not None
         assert distance_sensor._attr_icon == "mdi:map-marker-path"
-        assert distance_sensor._attr_unique_id == "pawcontrol_test_dog_last_walk_distance"
+        assert (
+            distance_sensor._attr_unique_id == "pawcontrol_test_dog_last_walk_distance"
+        )
         assert "Test Dog Last Walk Distance" in distance_sensor._attr_name

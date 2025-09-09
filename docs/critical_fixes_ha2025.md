@@ -4,7 +4,7 @@
 
 ## Files:
 - custom_components/pawcontrol/__init__.py
-- custom_components/pawcontrol/coordinator.py  
+- custom_components/pawcontrol/coordinator.py
 - custom_components/pawcontrol/config_flow.py
 
 ## Issues Found:
@@ -118,9 +118,9 @@ from .entity_factory import ENTITY_PROFILES
 4. Validate dashboard generation
 5. Test HACS installation
 
-## Status: 
+## Status:
 - ✓ Syntax corrections applied
-- ✓ Import patterns optimized  
+- ✓ Import patterns optimized
 - ✓ HA 2025.9.1 APIs used
 - ✓ Python 3.13 compatibility
 - ✓ Quality Scale requirements met

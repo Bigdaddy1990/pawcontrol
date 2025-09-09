@@ -6,6 +6,10 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+# Manually load required pytest plugins when auto-discovery is disabled.
+# Include pytest_asyncio so async tests run properly.
+pytest_plugins = ["pytest_cov", "pytest_asyncio"]
+
 # Ensure custom Home Assistant stubs are loaded before importing the integration
 import sitecustomize  # noqa: F401
 from custom_components.pawcontrol.const import (
@@ -17,6 +21,24 @@ from custom_components.pawcontrol.const import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
+
+@pytest.fixture
+def event_loop():
+    """Create a new event loop for each test."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture
+def hass(event_loop):
+    """Return a minimal HomeAssistant instance."""
+    instance = HomeAssistant()
+    instance.loop = event_loop
+    return instance
 
 
 @pytest.fixture
@@ -90,6 +112,7 @@ def mock_coordinator():
     coordinator.async_config_entry_first_refresh = AsyncMock()
     coordinator.async_refresh = AsyncMock()
     coordinator.async_update_listeners = Mock()
+    coordinator.get_module_data = Mock(return_value={})
     return coordinator
 
 

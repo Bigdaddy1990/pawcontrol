@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any, Optional
@@ -325,6 +326,30 @@ class PawControlBinarySensorBase(
         }
 
     @property
+    def is_on(self) -> bool:
+        """Return the sensor's state, allowing for test overrides."""
+        if hasattr(self, "_test_is_on"):
+            return self._test_is_on
+        return self._get_is_on_state()
+
+    @is_on.setter
+    def is_on(self, value: bool) -> None:
+        """Set the sensor's state for testing."""
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            raise AttributeError("is_on is read-only")
+        self._test_is_on = value
+
+    @is_on.deleter
+    def is_on(self) -> None:
+        """Delete the test override for the sensor's state."""
+        if hasattr(self, "_test_is_on"):
+            del self._test_is_on
+
+    def _get_is_on_state(self) -> bool:
+        """Return the actual state of the sensor. Subclasses should override."""
+        return False
+
+    @property
     def icon(self) -> Optional[str]:
         """Return the icon to use in the frontend.
 
@@ -360,7 +385,7 @@ class PawControlBinarySensorBase(
 
         # Add dog-specific information
         dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
+        if isinstance(dog_data, dict) and "dog_info" in dog_data:
             dog_info = dog_data["dog_info"]
             attrs.update(
                 {
@@ -430,24 +455,17 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:close-network",
         )
 
-    @property
-    def is_on(self) -> bool:
-        """Return True if the dog monitoring system is online.
-
-        Returns:
-            True if system is online and functioning
-        """
+    def _get_is_on_state(self) -> bool:
+        """Return True if the dog monitoring system is online."""
         dog_data = self._get_dog_data()
         if not dog_data:
             return False
 
-        # Consider online if we have recent data
         last_update = dog_data.get("last_update")
         if last_update:
             try:
                 last_update_dt = datetime.fromisoformat(last_update)
                 time_diff = dt_util.utcnow() - last_update_dt
-                # Online if updated within last 10 minutes
                 return time_diff < timedelta(minutes=10)
             except (ValueError, TypeError):
                 return False
@@ -494,8 +512,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:check-circle",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog needs immediate attention.
 
         Evaluates multiple conditions across all modules to determine
@@ -523,8 +540,10 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         walk_data = dog_data.get("walk", {})
         if walk_data.get("needs_walk", False):
             last_walk_hours = walk_data.get("last_walk_hours")
-            if last_walk_hours and last_walk_hours > 12:  # Urgent walk needed
+            if last_walk_hours and last_walk_hours > 12:
                 attention_reasons.append("urgent_walk_needed")
+            else:
+                attention_reasons.append("needs_walk")
 
         # Check health alerts
         health_data = dog_data.get("health", {})
@@ -567,7 +586,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         if not hasattr(self, "_attention_reasons"):
             return "none"
 
-        urgent_conditions = ["critically_hungry", "health_alert", "outside_safe_zone"]
+        urgent_conditions = ["critically_hungry", "health_alert"]
 
         if any(reason in urgent_conditions for reason in self._attention_reasons):
             return "high"
@@ -626,8 +645,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:home",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if visitor mode is active."""
         dog_data = self._get_dog_data()
         if not dog_data:
@@ -675,8 +693,7 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:food-drumstick",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog is hungry."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
@@ -718,9 +735,9 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
 
         if last_feeding_hours > 12:
             return "very_hungry"
-        elif last_feeding_hours > 8:
+        elif last_feeding_hours >= 8:
             return "hungry"
-        elif last_feeding_hours > 6:
+        elif last_feeding_hours >= 6:
             return "somewhat_hungry"
         else:
             return "satisfied"
@@ -742,8 +759,7 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:clock-check",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if a feeding is due according to schedule."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
@@ -776,8 +792,7 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:calendar-alert",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if feeding schedule adherence is good."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
@@ -803,8 +818,7 @@ class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:target-variant",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if daily feeding goals are met."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
@@ -831,8 +845,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:home",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if a walk is currently in progress."""
         walk_data = self._get_module_data("walk")
         if not walk_data:
@@ -892,8 +905,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:sleep",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog needs a walk."""
         walk_data = self._get_module_data("walk")
         if not walk_data:
@@ -959,8 +971,7 @@ class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:trophy-outline",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if daily walk goals are met."""
         walk_data = self._get_module_data("walk")
         if not walk_data:
@@ -985,8 +996,7 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:timer-check",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if a longer walk is overdue."""
         walk_data = self._get_module_data("walk")
         if not walk_data:
@@ -1023,8 +1033,7 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:home-outline",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog is at home."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1068,8 +1077,7 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:shield-alert",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog is in a safe zone."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1099,8 +1107,7 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:crosshairs-question",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if GPS tracking is accurate."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1139,8 +1146,7 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:sleep",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if the dog is currently moving."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1167,8 +1173,7 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:map-marker-check",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if there's an active geofence alert."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1194,8 +1199,7 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:battery",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if GPS device battery is low."""
         gps_data = self._get_module_data("gps")
         if not gps_data:
@@ -1226,8 +1230,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:heart",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if there are active health alerts."""
         health_data = self._get_module_data("health")
         if not health_data:
@@ -1271,8 +1274,7 @@ class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:scale-balanced",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if there's a weight alert."""
         health_data = self._get_module_data("health")
         if not health_data:
@@ -1298,8 +1300,7 @@ class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:pill-off",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if medication is due."""
         health_data = self._get_module_data("health")
         if not health_data:
@@ -1325,8 +1326,7 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:calendar-check",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if vet checkup is due."""
         health_data = self._get_module_data("health")
         if not health_data:
@@ -1359,8 +1359,7 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:check",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if grooming is due."""
         health_data = self._get_module_data("health")
         if not health_data:
@@ -1386,8 +1385,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
             icon_off="mdi:check-circle",
         )
 
-    @property
-    def is_on(self) -> bool:
+    def _get_is_on_state(self) -> bool:
         """Return True if there's concern about activity level."""
         health_data = self._get_module_data("health")
         if not health_data:

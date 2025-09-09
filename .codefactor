@@ -30,14 +30,14 @@ rules:
     enabled: true
     check_passwords: true
     check_secrets: true
-    
+
   # Code quality
   quality:
     max_function_length: 50
     max_file_length: 500
     max_class_length: 300
     enforce_naming_convention: true
-    
+
 # Advanced settings
 advanced:
   language_specific:
@@ -50,14 +50,14 @@ advanced:
         - "@property"
         - "@cached_property"
         - "@callback"
-      
+
   integrations:
     github:
       pr_comments: true
       status_checks: true
     codecov:
       enabled: true
-      
+
 # Custom ignore patterns for Home Assistant
 ignore_patterns:
   - "# type: ignore"

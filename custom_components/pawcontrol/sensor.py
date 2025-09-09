@@ -428,8 +428,6 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
 
 # Essential Feeding Sensors
-
-
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
 
@@ -734,7 +732,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
         walk_data = self._get_module_data("walk")
         if not walk_data:
             return None
-        
+
         last_walk_distance = walk_data.get("last_walk_distance")
         if last_walk_distance is not None:
             try:
@@ -744,7 +742,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
                     "Invalid last_walk_distance value: %s", last_walk_distance
                 )
                 return None
-        
+
         return None
 
 
@@ -1141,6 +1139,36 @@ class PawControlMealPortionSensor(PawControlSensorBase):
             return round(base_portion * multiplier, 1)
 
         return None
+
+
+# Grooming Sensors
+
+
+class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
+    """Sensor for days since last grooming."""
+
+    def __init__(self, coordinator, dog_id: str, dog_name: str) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "days_since_grooming",
+            icon="mdi:content-cut",
+        )
+
+    @property
+    def native_value(self) -> Optional[int]:
+        grooming_data = self._get_module_data("grooming")
+        if not grooming_data:
+            return None
+        last = grooming_data.get("last_grooming")
+        if not last:
+            return None
+        try:
+            last_dt = datetime.fromisoformat(last)
+        except (ValueError, TypeError):
+            return None
+        return (dt_util.utcnow().date() - last_dt.date()).days
 
 
 # Additional sensors omitted for brevity - they would follow the same pattern

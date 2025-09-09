@@ -17,11 +17,6 @@ select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 extend-select = ["D200","D205"]
 ignore = ["E501","D100","D101","D102","D103","D104","D105","D106","D107"]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401", "F403", "E402"]
-"tests/**" = ["D", "E402", "F401"]
-"scripts/**" = ["D", "E402", "F401"]
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

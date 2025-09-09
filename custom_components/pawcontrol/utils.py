@@ -15,10 +15,11 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import math
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime, time
 from functools import lru_cache, wraps
 from typing import Any, TypeVar, overload
@@ -202,6 +203,30 @@ def validate_enum_value(
         return False, f"{field_name} must be one of: {', '.join(valid_values)}"
 
     return True, None
+
+
+async def async_batch_validate(
+    items: Iterable[
+        tuple[
+            Any,
+            Callable[[Any], ValidationResult]
+            | Callable[[Any], Awaitable[ValidationResult]],
+        ]
+    ],
+    *,
+    fail_fast: bool = False,
+) -> list[ValidationResult]:
+    """Validate a batch of items, optionally stopping on first failure."""
+
+    results: list[ValidationResult] = []
+    for value, validator in items:
+        result = validator(value)
+        if inspect.isawaitable(result):
+            result = await result
+        results.append(result)
+        if fail_fast and not result[0]:
+            break
+    return results
 
 
 # OPTIMIZED: Formatting functions with better performance
@@ -596,16 +621,6 @@ def is_within_time_range_enhanced(
         return False, f"Invalid time format: {err}"
 
 
-def is_within_quiet_hours(
-    quiet_start: str, quiet_end: str, now: datetime | None = None
-) -> bool:
-    """Return True if ``now`` falls within the configured quiet hours."""
-
-    now = now or dt_util.utcnow()
-    in_range, _ = is_within_time_range_enhanced(now, quiet_start, quiet_end)
-    return in_range
-
-
 def sanitize_filename_advanced(
     filename: str, max_length: int = 255, replacement_char: str = "_"
 ) -> str:
@@ -658,6 +673,19 @@ def create_device_info(dog_id: str, dog_name: str) -> dict[str, Any]:
     }
 
 
+def is_within_quiet_hours(now: datetime, start: str | time, end: str | time) -> bool:
+    """Return True if current time is within the quiet hours range."""
+    # Convert string times to time objects if necessary
+    if isinstance(start, str):
+        start = datetime.strptime(start, "%H:%M").time()
+    if isinstance(end, str):
+        end = datetime.strptime(end, "%H:%M").time()
+
+    if start <= end:
+        return start <= now.time() <= end
+    return now.time() >= start or now.time() <= end
+
+
 # OPTIMIZED: Legacy compatibility with deprecation paths
 def safe_float(value: Any, default: float = 0.0) -> float:
     """Legacy compatibility - use safe_convert instead."""
@@ -681,6 +709,7 @@ __all__ = (
     "async_validate_coordinates",
     "validate_weight_enhanced",
     "validate_enum_value",
+    "async_batch_validate",
     # Formatting
     "format_duration_optimized",
     "format_distance_adaptive",
