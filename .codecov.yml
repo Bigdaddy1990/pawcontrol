@@ -2,7 +2,7 @@
 # https://docs.codecov.io/docs/codecov-yaml
 
 codecov:
-  require_ci_to_pass: true
+  require_ci_to_pass: false
   notify:
     wait_for_ci: true
 
