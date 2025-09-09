@@ -116,6 +116,7 @@ ENTITY_PRIORITIES = {
     "diet_validation_status": 3,
     # Advanced walk (existing only)
     "last_walk_duration": 3,
+    "last_walk_distance": 3,
     "total_walk_time_today": 3,
     "weekly_walk_count": 3,
     "average_walk_duration": 3,
@@ -562,6 +563,7 @@ class EntityFactory:
                 PawControlLastActionSensor,
                 PawControlLastFeedingSensor,
                 PawControlLastVetVisitSensor,
+                PawControlLastWalkDistanceSensor,
                 PawControlLastWalkDurationSensor,
                 PawControlLastWalkSensor,
                 PawControlMealPortionSensor,
@@ -595,6 +597,7 @@ class EntityFactory:
                 "PawControlLastActionSensor": PawControlLastActionSensor,
                 "PawControlLastFeedingSensor": PawControlLastFeedingSensor,
                 "PawControlLastVetVisitSensor": PawControlLastVetVisitSensor,
+                "PawControlLastWalkDistanceSensor": PawControlLastWalkDistanceSensor,
                 "PawControlLastWalkDurationSensor": PawControlLastWalkDurationSensor,
                 "PawControlLastWalkSensor": PawControlLastWalkSensor,
                 "PawControlMealPortionSensor": PawControlMealPortionSensor,
@@ -786,6 +789,13 @@ class EntityFactory:
                         )(self.coordinator, dog_id, dog_name),
                         "type": "last_walk_duration",
                         "priority": ENTITY_PRIORITIES["last_walk_duration"],
+                    },
+                    {
+                        "entity": self._get_cached_class(
+                            "sensor", "PawControlLastWalkDistanceSensor"
+                        )(self.coordinator, dog_id, dog_name),
+                        "type": "last_walk_distance",
+                        "priority": ENTITY_PRIORITIES["last_walk_distance"],
                     },
                     {
                         "entity": self._get_cached_class(

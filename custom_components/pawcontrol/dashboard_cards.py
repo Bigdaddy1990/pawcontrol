@@ -783,6 +783,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             f"sensor.{dog_id}_walks_today",
             f"sensor.{dog_id}_walk_distance_today",
             f"sensor.{dog_id}_last_walk_time",
+            f"sensor.{dog_id}_last_walk_distance",
         ]
 
         valid_entities = await self._validate_entities(status_entities)
@@ -847,6 +848,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         history_entities = [
             f"sensor.{dog_id}_walks_today",
             f"sensor.{dog_id}_walk_distance_today",
+            f"sensor.{dog_id}_last_walk_distance",
         ]
 
         history_card = await self.templates.get_history_graph_template(
