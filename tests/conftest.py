@@ -11,7 +11,7 @@ import pytest
 pytest_plugins = ["pytest_cov", "pytest_asyncio"]
 
 # Ensure custom Home Assistant stubs are loaded before importing the integration
-import sitecustomize  # noqa: F401
+import sitecustomize
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,

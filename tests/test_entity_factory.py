@@ -9,17 +9,16 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.entity_factory import (
     ENTITY_PROFILES,
     EntityFactory,
 )
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 
 
 @pytest.fixture
@@ -42,16 +41,30 @@ class TestEntityProfiles:
 
     def test_all_profiles_defined(self):
         """Test that all expected profiles are defined."""
-        expected_profiles = ["basic", "standard", "advanced", "gps_focus", "health_focus"]
+        expected_profiles = [
+            "basic",
+            "standard",
+            "advanced",
+            "gps_focus",
+            "health_focus",
+        ]
         assert all(profile in ENTITY_PROFILES for profile in expected_profiles)
 
     def test_profile_structure(self):
         """Test that each profile has required fields."""
-        required_fields = ["name", "description", "max_entities", "performance_impact", "recommended_for"]
-        
+        required_fields = [
+            "name",
+            "description",
+            "max_entities",
+            "performance_impact",
+            "recommended_for",
+        ]
+
         for profile_name, profile_data in ENTITY_PROFILES.items():
             for field in required_fields:
-                assert field in profile_data, f"Profile {profile_name} missing field {field}"
+                assert field in profile_data, (
+                    f"Profile {profile_name} missing field {field}"
+                )
 
     def test_profile_max_entities(self):
         """Test that max entities are within expected ranges."""
@@ -65,13 +78,13 @@ class TestEntityProfiles:
         """Test that each profile has appropriate platforms defined."""
         # Basic should have minimal platforms
         assert len(ENTITY_PROFILES["basic"]["platforms"]) == 3
-        
+
         # Advanced should have all platforms
         assert len(ENTITY_PROFILES["advanced"]["platforms"]) == len(Platform)
-        
+
         # GPS focus should include device tracker
         assert Platform.DEVICE_TRACKER in ENTITY_PROFILES["gps_focus"]["platforms"]
-        
+
         # Health focus should include date and text for medication tracking
         assert Platform.DATE in ENTITY_PROFILES["health_focus"]["platforms"]
         assert Platform.TEXT in ENTITY_PROFILES["health_focus"]["platforms"]
@@ -88,7 +101,7 @@ class TestEntityFactory:
             "gps": False,
             "health": False,
         }
-        
+
         count = entity_factory.estimate_entity_count("basic", modules)
         assert count <= 8  # Should not exceed basic profile limit
         assert count >= 3  # Should have at least core entities
@@ -106,7 +119,7 @@ class TestEntityFactory:
             "medication": True,
             "training": True,
         }
-        
+
         count = entity_factory.estimate_entity_count("advanced", modules)
         assert count == 18  # Should reach advanced profile limit
 
@@ -118,7 +131,7 @@ class TestEntityFactory:
             "feeding": False,
             "health": False,
         }
-        
+
         count = entity_factory.estimate_entity_count("gps_focus", modules)
         assert count <= 10  # Should not exceed GPS focus limit
         assert count >= 7  # Should have GPS-related entities
@@ -126,7 +139,7 @@ class TestEntityFactory:
     def test_estimate_entity_count_invalid_profile(self, entity_factory):
         """Test entity count estimation with invalid profile falls back to standard."""
         modules = {"feeding": True}
-        
+
         count = entity_factory.estimate_entity_count("invalid_profile", modules)
         assert count > 0  # Should still return a valid count
 
@@ -137,7 +150,7 @@ class TestEntityFactory:
             "basic", "sensor", "feeding", priority=9
         )
         assert should_create is True
-        
+
         should_create = entity_factory.should_create_entity(
             "basic", "exotic_type", "unknown_module", priority=10
         )
@@ -146,81 +159,124 @@ class TestEntityFactory:
     def test_should_create_entity_basic_profile(self, entity_factory):
         """Test entity creation rules for basic profile."""
         # Essential entities should be created
-        assert entity_factory.should_create_entity(
-            "basic", "sensor", "feeding", priority=5
-        ) is True
-        
+        assert (
+            entity_factory.should_create_entity(
+                "basic", "sensor", "feeding", priority=5
+            )
+            is True
+        )
+
         # Low priority entities should not be created
-        assert entity_factory.should_create_entity(
-            "basic", "text", "notifications", priority=2
-        ) is False
-        
+        assert (
+            entity_factory.should_create_entity(
+                "basic", "text", "notifications", priority=2
+            )
+            is False
+        )
+
         # Non-essential modules should not create entities
-        assert entity_factory.should_create_entity(
-            "basic", "switch", "visitor", priority=5
-        ) is False
+        assert (
+            entity_factory.should_create_entity(
+                "basic", "switch", "visitor", priority=5
+            )
+            is False
+        )
 
     def test_should_create_entity_gps_focus(self, entity_factory):
         """Test entity creation rules for GPS focus profile."""
         # GPS-related entities should be prioritized
-        assert entity_factory.should_create_entity(
-            "gps_focus", "device_tracker", "gps", priority=5
-        ) is True
-        
-        assert entity_factory.should_create_entity(
-            "gps_focus", "sensor", "walk", priority=5
-        ) is True
-        
+        assert (
+            entity_factory.should_create_entity(
+                "gps_focus", "device_tracker", "gps", priority=5
+            )
+            is True
+        )
+
+        assert (
+            entity_factory.should_create_entity(
+                "gps_focus", "sensor", "walk", priority=5
+            )
+            is True
+        )
+
         # Non-GPS entities with low priority should not be created
-        assert entity_factory.should_create_entity(
-            "gps_focus", "text", "medication", priority=4
-        ) is False
+        assert (
+            entity_factory.should_create_entity(
+                "gps_focus", "text", "medication", priority=4
+            )
+            is False
+        )
 
     def test_should_create_entity_health_focus(self, entity_factory):
         """Test entity creation rules for health focus profile."""
         # Health-related entities should be prioritized
-        assert entity_factory.should_create_entity(
-            "health_focus", "sensor", "health", priority=5
-        ) is True
-        
-        assert entity_factory.should_create_entity(
-            "health_focus", "number", "feeding", priority=5
-        ) is True
-        
-        assert entity_factory.should_create_entity(
-            "health_focus", "date", "medication", priority=5
-        ) is True
+        assert (
+            entity_factory.should_create_entity(
+                "health_focus", "sensor", "health", priority=5
+            )
+            is True
+        )
+
+        assert (
+            entity_factory.should_create_entity(
+                "health_focus", "number", "feeding", priority=5
+            )
+            is True
+        )
+
+        assert (
+            entity_factory.should_create_entity(
+                "health_focus", "date", "medication", priority=5
+            )
+            is True
+        )
 
     def test_should_create_entity_advanced_profile(self, entity_factory):
         """Test entity creation rules for advanced profile."""
         # Almost all entities with priority >= 3 should be created
-        assert entity_factory.should_create_entity(
-            "advanced", "sensor", "any_module", priority=3
-        ) is True
-        
-        assert entity_factory.should_create_entity(
-            "advanced", "switch", "any_module", priority=4
-        ) is True
-        
+        assert (
+            entity_factory.should_create_entity(
+                "advanced", "sensor", "any_module", priority=3
+            )
+            is True
+        )
+
+        assert (
+            entity_factory.should_create_entity(
+                "advanced", "switch", "any_module", priority=4
+            )
+            is True
+        )
+
         # Very low priority might still be excluded
-        assert entity_factory.should_create_entity(
-            "advanced", "text", "any_module", priority=1
-        ) is False
+        assert (
+            entity_factory.should_create_entity(
+                "advanced", "text", "any_module", priority=1
+            )
+            is False
+        )
 
     def test_get_platform_priority_basic(self, entity_factory):
         """Test platform loading priority for basic profile."""
         assert entity_factory.get_platform_priority(Platform.SENSOR, "basic") == 1
         assert entity_factory.get_platform_priority(Platform.BUTTON, "basic") == 2
-        assert entity_factory.get_platform_priority(Platform.BINARY_SENSOR, "basic") == 3
-        
+        assert (
+            entity_factory.get_platform_priority(Platform.BINARY_SENSOR, "basic") == 3
+        )
+
         # Platforms not in basic profile should have low priority
-        assert entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "basic") == 99
+        assert (
+            entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "basic") == 99
+        )
 
     def test_get_platform_priority_gps_focus(self, entity_factory):
         """Test platform loading priority for GPS focus profile."""
-        assert entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "gps_focus") == 1
+        assert (
+            entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "gps_focus")
+            == 1
+        )
         assert entity_factory.get_platform_priority(Platform.SENSOR, "gps_focus") == 2
-        
+
         # Non-GPS platforms should have lower priority
         assert entity_factory.get_platform_priority(Platform.DATE, "gps_focus") == 99
 
@@ -231,7 +287,7 @@ class TestEntityFactory:
             "dog_1", "text", "notifications", "basic", priority=2
         )
         assert config is None
-        
+
         # High priority entity should return config
         config = entity_factory.create_entity_config(
             "dog_1", "sensor", "feeding", "basic", priority=7
@@ -254,7 +310,7 @@ class TestEntityFactory:
             icon="mdi:heart",
             unit_of_measurement="bpm",
         )
-        
+
         assert config is not None
         assert config["name"] == "Health Status"
         assert config["icon"] == "mdi:heart"
@@ -266,7 +322,7 @@ class TestEntityFactory:
         info = entity_factory.get_profile_info("basic")
         assert info["name"] == "Basic (8 entities)"
         assert info["max_entities"] == 8
-        
+
         # Invalid profile should return standard
         info = entity_factory.get_profile_info("invalid")
         assert info["name"] == "Standard (12 entities)"
@@ -289,10 +345,10 @@ class TestEntityReduction:
         """Test entity reduction from legacy (54) to basic profile."""
         modules = {"feeding": True, "walk": True}
         basic_count = entity_factory.estimate_entity_count("basic", modules)
-        
+
         legacy_count = 54
         reduction_percent = (1 - basic_count / legacy_count) * 100
-        
+
         assert reduction_percent >= 70  # Should achieve at least 70% reduction
         assert reduction_percent <= 90  # Should not exceed 90% reduction
 
@@ -305,10 +361,10 @@ class TestEntityReduction:
             "health": True,
         }
         standard_count = entity_factory.estimate_entity_count("standard", modules)
-        
+
         legacy_count = 54
         reduction_percent = (1 - standard_count / legacy_count) * 100
-        
+
         assert reduction_percent >= 60  # Should achieve at least 60% reduction
         assert reduction_percent <= 80  # Should not exceed 80% reduction
 
@@ -323,10 +379,10 @@ class TestEntityReduction:
             "medication": True,
         }
         advanced_count = entity_factory.estimate_entity_count("advanced", modules)
-        
+
         legacy_count = 54
         reduction_percent = (1 - advanced_count / legacy_count) * 100
-        
+
         assert reduction_percent >= 50  # Should still achieve 50% reduction
         assert reduction_percent <= 70  # Should not exceed 70% reduction
 
@@ -339,15 +395,17 @@ class TestProfileMigration:
         # Start with basic profile
         basic_modules = {"feeding": True, "walk": True}
         basic_count = entity_factory.estimate_entity_count("basic", basic_modules)
-        
+
         # Add GPS module - should consider GPS focus
         gps_modules = {**basic_modules, "gps": True}
         gps_count = entity_factory.estimate_entity_count("gps_focus", gps_modules)
-        
+
         # Add health module - should consider standard
         standard_modules = {**gps_modules, "health": True}
-        standard_count = entity_factory.estimate_entity_count("standard", standard_modules)
-        
+        standard_count = entity_factory.estimate_entity_count(
+            "standard", standard_modules
+        )
+
         # Add all modules - should use advanced
         all_modules = {
             **standard_modules,
@@ -356,7 +414,7 @@ class TestProfileMigration:
             "training": True,
         }
         advanced_count = entity_factory.estimate_entity_count("advanced", all_modules)
-        
+
         # Verify progressive increase
         assert basic_count < gps_count < standard_count < advanced_count
         assert basic_count <= 8
@@ -366,18 +424,22 @@ class TestProfileMigration:
         """Test that specialized profiles are more efficient for their use case."""
         # GPS-focused setup
         gps_modules = {"gps": True, "walk": True}
-        
+
         gps_focus_count = entity_factory.estimate_entity_count("gps_focus", gps_modules)
         standard_count = entity_factory.estimate_entity_count("standard", gps_modules)
-        
+
         # GPS focus should be more efficient for GPS-only setup
         assert gps_focus_count <= standard_count
-        
+
         # Health-focused setup
         health_modules = {"health": True, "medication": True, "feeding": True}
-        
-        health_focus_count = entity_factory.estimate_entity_count("health_focus", health_modules)
-        standard_count = entity_factory.estimate_entity_count("standard", health_modules)
-        
+
+        health_focus_count = entity_factory.estimate_entity_count(
+            "health_focus", health_modules
+        )
+        standard_count = entity_factory.estimate_entity_count(
+            "standard", health_modules
+        )
+
         # Health focus should be optimized for health monitoring
         assert health_focus_count <= standard_count

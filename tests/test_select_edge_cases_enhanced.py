@@ -16,11 +16,11 @@ Additional Test Areas:
 - Configuration migration and backward compatibility
 """
 
-# ruff: noqa: F401, F403, F405
+# ruff: noqa: F403, F405
 
 from __future__ import annotations
 
-from .select_edge_cases_common import *  # noqa: F401,F403,F405
+from .select_edge_cases_common import *
 
 
 class TestOptionValidationMalformedData:
