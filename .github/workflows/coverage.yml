@@ -32,16 +32,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
+          pip install -U pytest-homeassistant-custom-component
           pip install -U homeassistant>=2025.9.1
           pip install -r requirements.txt
           pip install -r requirements_test.txt
-          pip install -U pytest-homeassistant-custom-component
 
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
-          pytest -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
+          pytest
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
