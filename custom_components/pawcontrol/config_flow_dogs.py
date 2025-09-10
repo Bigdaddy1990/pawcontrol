@@ -23,7 +23,6 @@ from custom_components.pawcontrol.config_flow_base import (
     ENTITY_CREATION_DELAY,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
-    PawControlBaseConfigFlow,
 )
 from custom_components.pawcontrol.const import (
     CONF_BREAKFAST_TIME,
@@ -948,12 +947,69 @@ class DogManagementMixin:
             },
         )
 
+    def _validate_dog_id(self, dog_id: str) -> str | None:
+        """Validate dog ID and return error key if invalid."""
+        if not DOG_ID_PATTERN.match(dog_id):
+            return "invalid_dog_id_format"
+        if any(dog[CONF_DOG_ID] == dog_id for dog in self._dogs):
+            return "dog_id_already_exists"
+        if len(dog_id) < 2:
+            return "dog_id_too_short"
+        if len(dog_id) > 30:
+            return "dog_id_too_long"
+        return None
+
+    def _validate_dog_name(self, dog_name: str) -> str | None:
+        """Validate dog name and return error key if invalid."""
+        if not dog_name:
+            return "dog_name_required"
+        if len(dog_name) < MIN_DOG_NAME_LENGTH:
+            return "dog_name_too_short"
+        if len(dog_name) > MAX_DOG_NAME_LENGTH:
+            return "dog_name_too_long"
+        if any(dog[CONF_DOG_NAME].lower() == dog_name.lower() for dog in self._dogs):
+            return "dog_name_already_exists"
+        return None
+
+    def _validate_weight(self, weight: Any, size: str) -> str | None:
+        """Validate weight and return error key if invalid."""
+        if weight is None:
+            return None
+        try:
+            weight_float = float(weight)
+        except (ValueError, TypeError):
+            return "invalid_weight_format"
+        if weight_float < MIN_DOG_WEIGHT or weight_float > MAX_DOG_WEIGHT:
+            return "weight_out_of_range"
+        if not PawControlBaseConfigFlow._is_weight_size_compatible(
+            self, weight_float, size
+        ):
+            return "weight_size_mismatch"
+        return None
+
+    def _validate_age(self, age: Any) -> str | None:
+        """Validate age and return error key if invalid."""
+        if age is None:
+            return None
+        try:
+            age_int = int(age)
+        except (ValueError, TypeError):
+            return "invalid_age_format"
+        if age_int < MIN_DOG_AGE or age_int > MAX_DOG_AGE:
+            return "age_out_of_range"
+        return None
+
+    @staticmethod
+    def _validate_breed(breed: str) -> str | None:
+        """Validate breed and return error key if invalid."""
+        if breed and len(breed) > 100:
+            return "breed_name_too_long"
+        return None
+
     async def _async_validate_dog_config(
         self, user_input: dict[str, Any]
     ) -> dict[str, Any]:
-        """Validate dog configuration with rate-limiting.
-
-        FIXED: Controlled validation to prevent Entity Registry flooding.
+        """Validate dog configuration with rate limiting.
 
         Args:
             user_input: Dog configuration to validate
@@ -970,31 +1026,52 @@ class DogManagementMixin:
             # Add small delay between validations to prevent flooding
             await asyncio.sleep(0.05)  # Increased micro-delay for rate limiting
 
-            cache_key = self._create_cache_key(dog_id, dog_name, user_input)
-            cached = self._get_cached_validation(cache_key)
-            if cached is not None:
-                return cached
+            # Check cache first for performance
+            weight = user_input.get(CONF_DOG_WEIGHT, "none")
+            age_val = user_input.get(CONF_DOG_AGE, "none")
+            cache_key = f"{dog_id}_{dog_name}_{weight}_{age_val}"
+            if cache_key in self._validation_cache:
+                cached = self._validation_cache[cache_key]
+                if (
+                    cached.get("timestamp", 0) > asyncio.get_running_loop().time() - 5
+                ):  # 5 second cache
+                    return cached["result"]
 
+            # Enhanced dog ID validation
             if error := self._validate_dog_id(dog_id):
                 errors[CONF_DOG_ID] = error
 
+            # Enhanced dog name validation
             if error := self._validate_dog_name(dog_name):
                 errors[CONF_DOG_NAME] = error
 
-            if error := self._validate_weight(user_input):
+            # Enhanced weight validation with size correlation
+            size = user_input.get(CONF_DOG_SIZE, "medium")
+
+            if error := self._validate_weight(user_input.get(CONF_DOG_WEIGHT), size):
                 errors[CONF_DOG_WEIGHT] = error
 
-            if error := self._validate_age(user_input):
+            # Enhanced age validation
+            if error := self._validate_age(user_input.get(CONF_DOG_AGE)):
                 errors[CONF_DOG_AGE] = error
 
-            if error := self._validate_breed(user_input):
+            # Breed validation (optional but helpful)
+            if error := self._validate_breed(
+                user_input.get(CONF_DOG_BREED, "").strip()
+            ):
                 errors[CONF_DOG_BREED] = error
 
+            # Cache the result for performance
             result = {
                 "valid": len(errors) == 0,
                 "errors": errors,
             }
-            self._update_validation_cache(cache_key, result)
+
+            self._validation_cache[cache_key] = {
+                "result": result,
+                "timestamp": asyncio.get_running_loop().time(),
+            }
+
             return result
 
         except Exception as err:
