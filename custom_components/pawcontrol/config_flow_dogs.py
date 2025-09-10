@@ -1079,7 +1079,14 @@ class DogManagementMixin:
                 "errors": {"base": "validation_error"},
             }
 
-    def _create_cache_key(
+def _create_cache_key(
+    self, dog_id: str, dog_name: str, user_input: dict[str, Any]
+) -> str:
+    weight = user_input.get(CONF_DOG_WEIGHT, "none")
+    age_val = user_input.get(CONF_DOG_AGE, "none")
+    size = user_input.get(CONF_DOG_SIZE, "none")
+    breed = user_input.get(CONF_DOG_BREED, "none")
+    return f"{dog_id}_{dog_name}_{weight}_{age_val}_{size}_{breed}"
         self, dog_id: str, dog_name: str, user_input: dict[str, Any]
     ) -> str:
         weight = user_input.get(CONF_DOG_WEIGHT, "none")
