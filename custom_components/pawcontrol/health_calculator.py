@@ -812,15 +812,9 @@ class HealthCalculator:
         return (10.0, 30.0)  # Default medium dog range
 
     @staticmethod
+    @staticmethod
     def generate_health_report(health_metrics: HealthMetrics) -> Dict[str, Any]:
-        """Generate comprehensive health report with recommendations.
-
-        Args:
-            health_metrics: Complete health metrics
-
-        Returns:
-            Health report with status and recommendations
-        """
+        """Generate comprehensive health report with recommendations."""
         report = {
             "timestamp": dt_util.now().isoformat(),
             "overall_status": "good",
@@ -830,10 +824,20 @@ class HealthCalculator:
             "positive_indicators": [],
         }
 
-        # Weight assessment
+        cls = HealthCalculator
+        cls._assess_weight(health_metrics, report)
+        cls._assess_body_condition(health_metrics, report)
+        cls._assess_health_conditions(health_metrics, report)
+        cls._assess_age(health_metrics, report)
+        cls._assess_activity(health_metrics, report)
+        cls._finalize_status(report)
+
+        return report
+
+    @staticmethod
+    def _assess_weight(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
         if health_metrics.ideal_weight and health_metrics.current_weight:
             weight_ratio = health_metrics.current_weight / health_metrics.ideal_weight
-
             if weight_ratio < 0.85:
                 report["areas_of_concern"].append("underweight")
                 report["recommendations"].append("Consult vet about weight gain plan")
@@ -845,86 +849,89 @@ class HealthCalculator:
             else:
                 report["positive_indicators"].append("healthy_weight")
 
-        # Body condition assessment
-        if health_metrics.body_condition_score:
-            bcs = health_metrics.body_condition_score
-            if bcs in [BodyConditionScore.EMACIATED, BodyConditionScore.VERY_THIN]:
-                report["overall_status"] = "concerning"
-                report["areas_of_concern"].append("severe_underweight")
-                report["recommendations"].append(
-                    "Immediate veterinary consultation needed"
-                )
-                report["health_score"] -= 25
-            elif bcs in [BodyConditionScore.OBESE, BodyConditionScore.SEVERELY_OBESE]:
-                report["overall_status"] = "needs_attention"
-                report["areas_of_concern"].append("obesity")
-                report["recommendations"].append("Urgent weight management required")
-                report["health_score"] -= 20
-            elif bcs == BodyConditionScore.IDEAL:
-                report["positive_indicators"].append("ideal_body_condition")
+    @staticmethod
+    def _assess_body_condition(
+        health_metrics: HealthMetrics, report: Dict[str, Any]
+    ) -> None:
+        if not health_metrics.body_condition_score:
+            return
 
-        # Health conditions assessment
-        serious_conditions = [
+        bcs = health_metrics.body_condition_score
+        if bcs in [BodyConditionScore.EMACIATED, BodyConditionScore.VERY_THIN]:
+            report["overall_status"] = "concerning"
+            report["areas_of_concern"].append("severe_underweight")
+            report["recommendations"].append(
+                "Immediate veterinary consultation needed",
+            )
+            report["health_score"] -= 25
+        elif bcs in [BodyConditionScore.OBESE, BodyConditionScore.SEVERELY_OBESE]:
+            report["overall_status"] = "needs_attention"
+            report["areas_of_concern"].append("obesity")
+            report["recommendations"].append("Urgent weight management required")
+            report["health_score"] -= 20
+        elif bcs == BodyConditionScore.IDEAL:
+            report["positive_indicators"].append("ideal_body_condition")
+
+    @staticmethod
+    def _assess_health_conditions(
+        health_metrics: HealthMetrics, report: Dict[str, Any]
+    ) -> None:
+        serious_conditions = {
             "diabetes",
             "heart_disease",
             "kidney_disease",
             "liver_disease",
             "cancer",
-        ]
+        }
         for condition in health_metrics.health_conditions:
             if condition.lower() in serious_conditions:
                 report["overall_status"] = "managing_condition"
                 report["areas_of_concern"].append(f"chronic_{condition}")
                 report["recommendations"].append(
-                    f"Continue monitoring {condition} as prescribed"
+                    f"Continue monitoring {condition} as prescribed",
                 )
                 report["health_score"] -= 15
 
-        # Age-related recommendations
-        if health_metrics.age_months:
-            age_years = health_metrics.age_months / 12
-            if age_years < 1:
-                report["recommendations"].append(
-                    "Ensure puppy vaccination schedule is complete"
-                )
-                report["recommendations"].append(
-                    "Monitor growth rate and adjust portions accordingly"
-                )
-            elif age_years > 7:
-                report["recommendations"].append("Consider senior health screening")
-                report["recommendations"].append("Monitor for age-related conditions")
+    @staticmethod
+    def _assess_age(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
+        if not health_metrics.age_months:
+            return
+        age_years = health_metrics.age_months / 12
+        if age_years < 1:
+            report["recommendations"].append(
+                "Ensure puppy vaccination schedule is complete",
+            )
+            report["recommendations"].append(
+                "Monitor growth rate and adjust portions accordingly",
+            )
+        elif age_years > 7:
+            report["recommendations"].append("Consider senior health screening")
+            report["recommendations"].append("Monitor for age-related conditions")
 
-        # Activity recommendations
+    @staticmethod
+    def _assess_activity(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
         if health_metrics.activity_level == ActivityLevel.VERY_LOW:
             report["recommendations"].append(
-                "Gradually increase physical activity if health permits"
+                "Gradually increase physical activity if health permits",
             )
         elif health_metrics.activity_level == ActivityLevel.VERY_HIGH:
             report["positive_indicators"].append("excellent_activity_level")
 
-        # Finalize overall status
-        if report["health_score"] >= 90:
+    @staticmethod
+    def _finalize_status(report: Dict[str, Any]) -> None:
+        score = report["health_score"]
+        if score >= 90:
             report["overall_status"] = "excellent"
-        elif report["health_score"] >= 75:
+        elif score >= 75:
             report["overall_status"] = "good"
-        elif report["health_score"] >= 60:
+        elif score >= 60:
             report["overall_status"] = "needs_attention"
         else:
             report["overall_status"] = "concerning"
 
-        return report
-
     @staticmethod
     def activity_score(steps: int, age: int) -> float:
-        """Return activity score based on step count and age.
-
-        Args:
-            steps: Daily step count
-            age: Age in years
-
-        Returns:
-            Activity score (0-100)
-        """
+        """Return activity score based on step count and age."""
         base = min(steps / 1000, 10)  # Cap at 10,000 steps for score
         age_adjustment = 1.0 if age < 8 else 0.8
         return round(base * age_adjustment * 10, 1)
