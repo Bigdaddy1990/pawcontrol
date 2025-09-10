@@ -947,6 +947,65 @@ class DogManagementMixin:
             },
         )
 
+    def _validate_dog_id(self, dog_id: str) -> str | None:
+        """Validate dog ID and return error key if invalid."""
+        if not DOG_ID_PATTERN.match(dog_id):
+            return "invalid_dog_id_format"
+        if any(dog[CONF_DOG_ID] == dog_id for dog in self._dogs):
+            return "dog_id_already_exists"
+        if len(dog_id) < 2:
+            return "dog_id_too_short"
+        if len(dog_id) > 30:
+            return "dog_id_too_long"
+        return None
+
+    def _validate_dog_name(self, dog_name: str) -> str | None:
+        """Validate dog name and return error key if invalid."""
+        if not dog_name:
+            return "dog_name_required"
+        if len(dog_name) < MIN_DOG_NAME_LENGTH:
+            return "dog_name_too_short"
+        if len(dog_name) > MAX_DOG_NAME_LENGTH:
+            return "dog_name_too_long"
+        if any(dog[CONF_DOG_NAME].lower() == dog_name.lower() for dog in self._dogs):
+            return "dog_name_already_exists"
+        return None
+
+    def _validate_weight(self, weight: Any, size: str) -> str | None:
+        """Validate weight and return error key if invalid."""
+        if weight is None:
+            return None
+        try:
+            weight_float = float(weight)
+        except (ValueError, TypeError):
+            return "invalid_weight_format"
+        if weight_float < MIN_DOG_WEIGHT or weight_float > MAX_DOG_WEIGHT:
+            return "weight_out_of_range"
+        if not PawControlBaseConfigFlow._is_weight_size_compatible(
+            self, weight_float, size
+        ):
+            return "weight_size_mismatch"
+        return None
+
+    def _validate_age(self, age: Any) -> str | None:
+        """Validate age and return error key if invalid."""
+        if age is None:
+            return None
+        try:
+            age_int = int(age)
+        except (ValueError, TypeError):
+            return "invalid_age_format"
+        if age_int < MIN_DOG_AGE or age_int > MAX_DOG_AGE:
+            return "age_out_of_range"
+        return None
+
+    @staticmethod
+    def _validate_breed(breed: str) -> str | None:
+        """Validate breed and return error key if invalid."""
+        if breed and len(breed) > 100:
+            return "breed_name_too_long"
+        return None
+
     async def _async_validate_dog_config(
         self, user_input: dict[str, Any]
     ) -> dict[str, Any]:
@@ -979,54 +1038,28 @@ class DogManagementMixin:
                     return cached["result"]
 
             # Enhanced dog ID validation
-            if not DOG_ID_PATTERN.match(dog_id):
-                errors[CONF_DOG_ID] = "invalid_dog_id_format"
-            elif any(dog[CONF_DOG_ID] == dog_id for dog in self._dogs):
-                errors[CONF_DOG_ID] = "dog_id_already_exists"
-            elif len(dog_id) < 2:
-                errors[CONF_DOG_ID] = "dog_id_too_short"
-            elif len(dog_id) > 30:
-                errors[CONF_DOG_ID] = "dog_id_too_long"
+            if error := self._validate_dog_id(dog_id):
+                errors[CONF_DOG_ID] = error
 
             # Enhanced dog name validation
-            if not dog_name:
-                errors[CONF_DOG_NAME] = "dog_name_required"
-            elif len(dog_name) < MIN_DOG_NAME_LENGTH:
-                errors[CONF_DOG_NAME] = "dog_name_too_short"
-            elif len(dog_name) > MAX_DOG_NAME_LENGTH:
-                errors[CONF_DOG_NAME] = "dog_name_too_long"
-            elif any(
-                dog[CONF_DOG_NAME].lower() == dog_name.lower() for dog in self._dogs
-            ):
-                errors[CONF_DOG_NAME] = "dog_name_already_exists"
+            if error := self._validate_dog_name(dog_name):
+                errors[CONF_DOG_NAME] = error
 
             # Enhanced weight validation with size correlation
-            weight = user_input.get(CONF_DOG_WEIGHT)
             size = user_input.get(CONF_DOG_SIZE, "medium")
-            if weight is not None:
-                try:
-                    weight_float = float(weight)
-                    if weight_float < MIN_DOG_WEIGHT or weight_float > MAX_DOG_WEIGHT:
-                        errors[CONF_DOG_WEIGHT] = "weight_out_of_range"
-                    elif not self._is_weight_size_compatible(weight_float, size):
-                        errors[CONF_DOG_WEIGHT] = "weight_size_mismatch"
-                except (ValueError, TypeError):
-                    errors[CONF_DOG_WEIGHT] = "invalid_weight_format"
+
+            if error := self._validate_weight(user_input.get(CONF_DOG_WEIGHT), size):
+                errors[CONF_DOG_WEIGHT] = error
 
             # Enhanced age validation
-            age = user_input.get(CONF_DOG_AGE)
-            if age is not None:
-                try:
-                    age_int = int(age)
-                    if age_int < MIN_DOG_AGE or age_int > MAX_DOG_AGE:
-                        errors[CONF_DOG_AGE] = "age_out_of_range"
-                except (ValueError, TypeError):
-                    errors[CONF_DOG_AGE] = "invalid_age_format"
+            if error := self._validate_age(user_input.get(CONF_DOG_AGE)):
+                errors[CONF_DOG_AGE] = error
 
             # Breed validation (optional but helpful)
-            breed = user_input.get(CONF_DOG_BREED, "").strip()
-            if breed and len(breed) > 100:
-                errors[CONF_DOG_BREED] = "breed_name_too_long"
+            if error := self._validate_breed(
+                user_input.get(CONF_DOG_BREED, "").strip()
+            ):
+                errors[CONF_DOG_BREED] = error
 
             # Cache the result for performance
             result = {
