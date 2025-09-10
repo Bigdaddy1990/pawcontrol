@@ -17,8 +17,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
     DataUpdateCoordinator,
+    UpdateFailed,
 )
 
 from .const import (
@@ -94,7 +94,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Fail if all dogs failed
         if errors == len(self.dogs) and len(self.dogs) > 0:
-            raise CoordinatorUpdateFailed("All dogs failed to update")
+            raise UpdateFailed("All dogs failed to update")
 
         self._data = all_data
         return all_data

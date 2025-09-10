@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import sys
 from enum import StrEnum
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Callable
 
 # Prevent unexpected plugins from loading during test collection
@@ -34,7 +34,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     def ensure_list(value):  # pragma: no cover
         return [] if value is None else (value if isinstance(value, list) else [value])
 
-    def config_entry_only_config_schema(domain):
+    def config_entry_only_config_schema(domain):  # pragma: no cover
         def schema(config):
             return config
 
@@ -82,7 +82,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
         def __init__(self, *args, **kwargs):
             pass
 
-    def _selector(cfg):
+    def _selector(cfg):  # pragma: no cover
         return cfg
 
     selector.BooleanSelector = BooleanSelector
@@ -100,6 +100,16 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
     entity_platform.AddEntitiesCallback = Callable[..., None]
 
+    # ---- entity registry ---------------------------------------------------
+    entity_registry = ModuleType("homeassistant.helpers.entity_registry")
+
+    class EntityRegistry:  # pragma: no cover - simple placeholder
+        pass
+
+    entity_registry.EntityRegistry = EntityRegistry
+    helpers.entity_registry = entity_registry
+    sys.modules["homeassistant.helpers.entity_registry"] = entity_registry
+
     # ---- storage -----------------------------------------------------------
     storage = ModuleType("homeassistant.helpers.storage")
     helpers.storage = storage
@@ -116,3 +126,35 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
             self.data = data
 
     storage.Store = Store
+
+    # ---- update coordinator ------------------------------------------------
+    update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
+    helpers.update_coordinator = update_coordinator
+    sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
+
+    class UpdateFailed(Exception):  # pragma: no cover - simple placeholder
+        pass
+
+    update_coordinator.UpdateFailed = UpdateFailed
+    update_coordinator.CoordinatorUpdateFailed = UpdateFailed
+
+    # ---- core --------------------------------------------------------------
+    core = ModuleType("homeassistant.core")
+
+    class HomeAssistant:  # pragma: no cover - minimal stub
+        def __init__(self) -> None:
+            self.config: dict[str, object] = {}
+            self.services = SimpleNamespace(async_services=None)
+
+        @staticmethod
+        def callback(func: Callable) -> Callable:  # pragma: no cover
+            return func
+
+    class ServiceCall:  # pragma: no cover - simple placeholder
+        def __init__(self, data: dict | None = None) -> None:
+            self.data = data or {}
+
+    core.HomeAssistant = HomeAssistant
+    core.ServiceCall = ServiceCall
+    ha.core = core
+    sys.modules["homeassistant.core"] = core
