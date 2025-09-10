@@ -61,13 +61,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         # Import core components
         from .coordinator import PawControlCoordinator
-        from .entity_factory import ENTITY_PROFILES, EntityFactory
-        
+
         # Import critical managers for services
         from .data_manager import DataManager
+        from .entity_factory import ENTITY_PROFILES, EntityFactory
         from .feeding_manager import FeedingManager
         from .walk_manager import WalkManager
-        
+
     except ImportError as err:
         _LOGGER.error("Failed to import required modules: %s", err)
         raise ConfigEntryNotReady(f"Import error: {err}") from err
@@ -97,7 +97,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Initialize managers with dog configurations
         dog_ids = [dog.get("dog_id") for dog in dogs_config if dog.get("dog_id")]
-        
+
         await data_manager.async_initialize(dogs_config)
         await feeding_manager.async_initialize(dogs_config)
         await walk_manager.async_initialize(dog_ids)
@@ -140,49 +140,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 def _get_needed_platforms(dogs_config: list[DogConfigData]) -> list[Platform]:
     """Determine needed platforms based on dog configuration.
-    
+
     Args:
         dogs_config: List of dog configurations
-        
+
     Returns:
         List of required platforms
     """
     # Always include core platforms
     platforms = [Platform.SENSOR, Platform.BUTTON]
-    
+
     # Check what modules are enabled across all dogs
     enabled_modules = set()
     for dog in dogs_config:
         modules = dog.get("modules", {})
         enabled_modules.update(name for name, enabled in modules.items() if enabled)
-    
+
     # Add platforms based on enabled modules
     if "feeding" in enabled_modules:
         platforms.extend([Platform.SELECT, Platform.DATETIME, Platform.TEXT])
-    
+
     if "walk" in enabled_modules:
         platforms.extend([Platform.BINARY_SENSOR, Platform.NUMBER])
-        
+
     if "gps" in enabled_modules:
         platforms.extend([Platform.DEVICE_TRACKER, Platform.NUMBER])
-        
+
     if "health" in enabled_modules:
         platforms.extend([Platform.DATE, Platform.TEXT])
-        
+
     if "notifications" in enabled_modules:
         platforms.extend([Platform.SWITCH])
-    
+
     # Remove duplicates and return
     return list(set(platforms))
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to unload
-        
+
     Returns:
         True if unload was successful
     """
@@ -191,7 +191,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get stored data
     entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
     dogs_config = entry_data.get("dogs", [])
-    
+
     # Cleanup managers
     try:
         if data_manager := entry_data.get("data_manager"):
@@ -202,9 +202,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await walk_manager.async_cleanup()
     except Exception as err:
         _LOGGER.warning("Manager cleanup error: %s", err)
-    
+
     # Determine loaded platforms
-    loaded_platforms = _get_needed_platforms(dogs_config) if dogs_config else ALL_PLATFORMS
+    loaded_platforms = (
+        _get_needed_platforms(dogs_config) if dogs_config else ALL_PLATFORMS
+    )
 
     # Unload platforms
     unload_success = await hass.config_entries.async_unload_platforms(
@@ -221,7 +223,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to reload

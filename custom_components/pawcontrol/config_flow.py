@@ -4,7 +4,7 @@ SIMPLIFIED: Collapsed 5 mixin inheritance chain into single class.
 Removed ValidationCache, complex async patterns, enterprise features.
 Maintains core functionality: per-dog config, entity profiles, module selection.
 
-Quality Scale: Platinum  
+Quality Scale: Platinum
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
@@ -45,30 +45,44 @@ from .types import DogConfigData, is_dog_config_valid
 _LOGGER = logging.getLogger(__name__)
 
 # Simple schemas
-INTEGRATION_SCHEMA = vol.Schema({
-    vol.Required(CONF_NAME, default="Paw Control"): cv.string,
-})
+INTEGRATION_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_NAME, default="Paw Control"): cv.string,
+    }
+)
 
-DOG_SCHEMA = vol.Schema({
-    vol.Required(CONF_DOG_ID): cv.string,
-    vol.Required(CONF_DOG_NAME): cv.string,
-    vol.Optional(CONF_DOG_BREED, default=""): cv.string,
-    vol.Optional(CONF_DOG_AGE, default=3): vol.All(vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE)),
-    vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)),
-    vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(DOG_SIZES),
-})
+DOG_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_DOG_ID): cv.string,
+        vol.Required(CONF_DOG_NAME): cv.string,
+        vol.Optional(CONF_DOG_BREED, default=""): cv.string,
+        vol.Optional(CONF_DOG_AGE, default=3): vol.All(
+            vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE)
+        ),
+        vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
+            vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)
+        ),
+        vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(DOG_SIZES),
+    }
+)
 
-MODULES_SCHEMA = vol.Schema({
-    vol.Optional("feeding", default=True): cv.boolean,
-    vol.Optional("walk", default=True): cv.boolean,
-    vol.Optional("health", default=True): cv.boolean,
-    vol.Optional("gps", default=False): cv.boolean,
-    vol.Optional("notifications", default=True): cv.boolean,
-})
+MODULES_SCHEMA = vol.Schema(
+    {
+        vol.Optional("feeding", default=True): cv.boolean,
+        vol.Optional("walk", default=True): cv.boolean,
+        vol.Optional("health", default=True): cv.boolean,
+        vol.Optional("gps", default=False): cv.boolean,
+        vol.Optional("notifications", default=True): cv.boolean,
+    }
+)
 
-PROFILE_SCHEMA = vol.Schema({
-    vol.Required("entity_profile", default="standard"): vol.In(list(ENTITY_PROFILES.keys())),
-})
+PROFILE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_profile", default="standard"): vol.In(
+            list(ENTITY_PROFILES.keys())
+        ),
+    }
+)
 
 
 class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -83,13 +97,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._integration_name = "Paw Control"
         self._entity_profile = "standard"
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle initial setup step."""
         errors = {}
 
         if user_input is not None:
             integration_name = user_input[CONF_NAME].strip()
-            
+
             # Simple validation
             if len(integration_name) < 1:
                 errors[CONF_NAME] = "Name required"
@@ -100,7 +116,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 unique_id = integration_name.lower().replace(" ", "_")
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
-                
+
                 self._integration_name = integration_name
                 return await self.async_step_add_dog()
 
@@ -110,7 +126,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_add_dog(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_add_dog(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Add a dog configuration."""
         errors = {}
 
@@ -137,7 +155,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 20.0),
                     CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, "medium"),
                 }
-                
+
                 self._dogs.append(dog_config)
                 return await self.async_step_dog_modules()
 
@@ -147,10 +165,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "dogs_configured": str(len(self._dogs)),
-            }
+            },
         )
 
-    async def async_step_dog_modules(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_dog_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Configure modules for current dog."""
         if user_input is not None:
             # Add modules to current dog
@@ -171,10 +191,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=MODULES_SCHEMA,
-            description_placeholders={"dog_name": dog_name}
+            description_placeholders={"dog_name": dog_name},
         )
 
-    async def async_step_add_another(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_add_another(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Ask if user wants to add another dog."""
         if user_input is not None:
             if user_input.get("add_another", False) and len(self._dogs) < 10:
@@ -184,16 +206,20 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="add_another",
-            data_schema=vol.Schema({
-                vol.Optional("add_another", default=False): cv.boolean,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("add_another", default=False): cv.boolean,
+                }
+            ),
             description_placeholders={
                 "dogs_configured": str(len(self._dogs)),
                 "dogs_list": self._format_dogs_list(),
-            }
+            },
         )
 
-    async def async_step_entity_profile(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_entity_profile(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Select entity profile for performance optimization."""
         if user_input is not None:
             self._entity_profile = user_input["entity_profile"]
@@ -205,10 +231,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "dogs_count": str(len(self._dogs)),
                 "profiles_info": self._get_profiles_info(),
-            }
+            },
         )
 
-    async def async_step_final_setup(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_final_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Complete setup and create config entry."""
         if not self._dogs:
             return self.async_abort(reason="no_dogs_configured")
@@ -241,7 +269,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """Format list of configured dogs."""
         if not self._dogs:
             return "No dogs configured yet."
-        
+
         dogs_list = []
         for i, dog in enumerate(self._dogs, 1):
             modules = dog.get("modules", {})
@@ -249,7 +277,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             dogs_list.append(
                 f"{i}. {dog[CONF_DOG_NAME]} ({dog[CONF_DOG_ID]}) - {enabled_count} modules"
             )
-        
+
         return "\n".join(dogs_list)
 
     def _get_profiles_info(self) -> str:
