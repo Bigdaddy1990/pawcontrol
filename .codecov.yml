@@ -6,20 +6,20 @@ codecov:
   notify:
     wait_for_ci: true
   bot: <codecov-bot> #this is a username for Github/Gitlab/Bitbucket
-  
+
   coverage:
     status:
       project:
        default:   # default is the status check's name, not default settings
-        target: auto 
+        target: auto
         threshold: 1%
-        base: auto 
-        flags: 
+        base: auto
+        flags:
           - unit
-        paths: 
+        paths:
           - custom_components/pawcontrol
        # advanced settings
-        branches: 
+        branches:
           - main
         if_not_found: success
         if_ci_failed: success #success, failure, error, ignore
