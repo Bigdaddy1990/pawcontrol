@@ -41,8 +41,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          pytest --cov --junitxml=junit.xml -o junit_family=legacy
-          pytest --cov --cov-branch --cov-report=xml --fixtures --junitxml=junit.xml -o junit_family=legacy
+          pytest -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
