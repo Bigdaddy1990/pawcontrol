@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov coverage[toml] pytest-aio
+          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U homeassistant>=2025.9.1
           pip install -r requirements.txt
           pip install -r requirements_test.txt
