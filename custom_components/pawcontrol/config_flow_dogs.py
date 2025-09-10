@@ -1047,7 +1047,7 @@ class DogManagementMixin:
 
             # Enhanced weight validation with size correlation
             size = user_input.get(CONF_DOG_SIZE, "medium")
-            
+
             if error := self._validate_weight(user_input.get(CONF_DOG_WEIGHT), size):
                 errors[CONF_DOG_WEIGHT] = error
 
