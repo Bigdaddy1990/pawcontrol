@@ -84,6 +84,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
+        # Store config entry for use during setup and runtime
+        self.config_entry = entry
+
         # OPTIMIZED: Calculate optimal update interval with improved heuristics
         update_interval = self._calculate_optimal_update_interval()
 
@@ -93,7 +96,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name="PawControl Data",
             update_interval=timedelta(seconds=update_interval),
             always_update=False,
-            config_entry=entry,
         )
 
         # OPTIMIZED: Initialize specialized managers with reduced memory footprint
