@@ -584,7 +584,7 @@ def _linear_regression(values: list[float]) -> tuple[float, float]:
     ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred))
     r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
 
-    return slope, round(r_squared, 3)
+    return slope, round(max(0, min(r_squared, 1)), 3)
 
 
 def _trend_from_slope(slope: float) -> tuple[str, float]:
