@@ -38,10 +38,10 @@ _LOGGER = logging.getLogger(__name__)
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Simplified coordinator for PawControl integration.
-    
+
     Responsibilities:
     - Fetch and coordinate dog data updates
-    - Manage configuration and dog profiles  
+    - Manage configuration and dog profiles
     - Provide data interface for entities
     - Handle errors and recovery
     """
@@ -65,7 +65,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Simple data storage
         self._data: dict[str, Any] = {}
-        
+
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval",
             len(self.dogs),
@@ -101,10 +101,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Fetch data for a single dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Dog data dictionary
         """
@@ -118,13 +118,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Add module data based on enabled modules
         if modules.get(MODULE_FEEDING):
             data[MODULE_FEEDING] = await self._get_feeding_data(dog_id)
-            
+
         if modules.get(MODULE_WALK):
             data[MODULE_WALK] = await self._get_walk_data(dog_id)
-            
+
         if modules.get(MODULE_GPS):
             data[MODULE_GPS] = await self._get_gps_data(dog_id)
-            
+
         if modules.get(MODULE_HEALTH):
             data[MODULE_HEALTH] = await self._get_health_data(dog_id)
 
@@ -137,7 +137,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_feeding": None,
             "next_feeding": None,
             "daily_portions": 0,
-            "status": "unknown"
+            "status": "unknown",
         }
 
     async def _get_walk_data(self, dog_id: str) -> dict[str, Any]:
@@ -148,7 +148,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_walk": None,
             "daily_walks": 0,
             "total_distance": 0,
-            "status": "unknown"
+            "status": "unknown",
         }
 
     async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
@@ -159,7 +159,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "longitude": None,
             "accuracy": None,
             "last_update": None,
-            "status": "unknown"
+            "status": "unknown",
         }
 
     async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
@@ -169,7 +169,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "weight": None,
             "last_vet_visit": None,
             "medications": [],
-            "status": "unknown"
+            "status": "unknown",
         }
 
     def _calculate_update_interval(self) -> int:
@@ -181,19 +181,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         has_gps = any(
             dog.get("modules", {}).get(MODULE_GPS, False) for dog in self.dogs
         )
-        
+
         if has_gps:
             # Use GPS interval from options if available
             return self.config_entry.options.get(
                 CONF_GPS_UPDATE_INTERVAL, UPDATE_INTERVALS["frequent"]
             )
-            
+
         # Check module complexity
         total_modules = sum(
-            len([m for m in dog.get("modules", {}).values() if m])
-            for dog in self.dogs
+            len([m for m in dog.get("modules", {}).values() if m]) for dog in self.dogs
         )
-        
+
         if total_modules > 10:
             return UPDATE_INTERVALS["normal"]
         elif total_modules > 5:
@@ -205,8 +204,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def get_dog_config(self, dog_id: str) -> dict[str, Any] | None:
         """Get dog configuration."""
         return next(
-            (dog for dog in self._dogs_config if dog.get(CONF_DOG_ID) == dog_id), 
-            None
+            (dog for dog in self._dogs_config if dog.get(CONF_DOG_ID) == dog_id), None
         )
 
     def get_enabled_modules(self, dog_id: str) -> set[str]:
