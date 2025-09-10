@@ -255,9 +255,8 @@ def _format_duration_rounded(seconds: int) -> str:
         [(hours, "h"), (minutes, "m"), (secs if include_secs else 0, "s")]
     )
 
-
-def _format_duration_precise(seconds: int, precision: str) -> str:
-    """Format duration with full precision."""
+    parts: list[str] = []
+    parts.extend(_format_hours(hours, precision))
 
     hours, remainder = divmod(seconds, 3600)
     minutes, secs = divmod(remainder, 60)
@@ -272,11 +271,38 @@ def _format_duration_precise(seconds: int, precision: str) -> str:
 
     return _join_parts(parts)
 
+    if _include_seconds(secs, parts, precision, hours, minutes):
+        parts.append(f"{secs}s")
 
 def _join_parts(parts: list[tuple[int, str]]) -> str:
     """Join non-zero duration parts into a string."""
 
     return " ".join(f"{value}{suffix}" for value, suffix in parts if value)
+
+
+def _format_hours(hours: int, precision: str) -> list[str]:
+    """Format hour component, splitting into days when needed."""
+    if hours <= 0:
+        return []
+
+    if precision == "rounded" and hours >= 24:
+        days, remaining_hours = divmod(hours, 24)
+        parts = [f"{days}d"] if days else []
+        if remaining_hours > 0:
+            parts.append(f"{remaining_hours}h")
+        return parts
+
+    return [f"{hours}h"]
+
+
+def _include_seconds(
+    secs: int, parts: list[str], precision: str, hours: int, minutes: int
+) -> bool:
+    """Determine if seconds should be included in output."""
+    if secs > 0 or not parts:
+        if precision != "rounded" or (hours == 0 and minutes < 5):
+            return True
+    return False
 
 
 def format_distance_adaptive(meters: float, unit_preference: str = "auto") -> str:

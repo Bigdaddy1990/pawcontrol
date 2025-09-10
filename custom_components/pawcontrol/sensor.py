@@ -340,48 +340,56 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     @property
     def native_value(self) -> Optional[float]:
         """Calculate and return the activity score with caching."""
-        # OPTIMIZATION: Use cached score if still valid
         now = dt_util.utcnow()
-        if (
-            self._cached_score is not None
-            and self._score_cache_time is not None
-            and (now - self._score_cache_time).total_seconds()
-            < ACTIVITY_SCORE_CACHE_TTL
-        ):
-            return self._cached_score
+        if self._cached_score is not None and self._score_cache_time is not None:
+            if (
+                now - self._score_cache_time
+            ).total_seconds() < ACTIVITY_SCORE_CACHE_TTL:
+                return self._cached_score
 
-        # Calculate new score
         dog_data = self._get_dog_data()
         if not dog_data:
             return None
 
-        score_components = []
-
-        if walk_score := self._calculate_walk_score(dog_data.get("walk", {})):
-            score_components.append(("walk", walk_score, 0.4))
-
-        if feeding_score := self._calculate_feeding_score(dog_data.get("feeding", {})):
-            score_components.append(("feeding", feeding_score, 0.2))
-
-        if gps_score := self._calculate_gps_score(dog_data.get("gps", {})):
-            score_components.append(("gps", gps_score, 0.25))
-
-        if health_score := self._calculate_health_score(dog_data.get("health", {})):
-            score_components.append(("health", health_score, 0.15))
-
-        if not score_components:
+        components = self._collect_score_components(dog_data)
+        score = self._compute_weighted_score(components)
+        if score is None:
             return None
 
-        total_weight = sum(weight for _, _, weight in score_components)
-        weighted_sum = sum(score * weight for _, score, weight in score_components)
-
-        score = round((weighted_sum / total_weight) if total_weight > 0 else 0, 1)
-
-        # Cache the result
         self._cached_score = score
         self._score_cache_time = now
-
         return score
+
+    def _collect_score_components(self, dog_data: dict) -> list[tuple[float, float]]:
+        """Gather available score components and their weights."""
+        components: list[tuple[float, float]] = []
+        add = components.append
+
+        if walk_score := self._calculate_walk_score(dog_data.get("walk", {})):
+            add((walk_score, 0.4))
+        if feeding_score := self._calculate_feeding_score(dog_data.get("feeding", {})):
+            add((feeding_score, 0.2))
+        if gps_score := self._calculate_gps_score(dog_data.get("gps", {})):
+            add((gps_score, 0.25))
+        if health_score := self._calculate_health_score(dog_data.get("health", {})):
+            add((health_score, 0.15))
+
+        return components
+
+    @staticmethod
+    def _compute_weighted_score(
+        components: list[tuple[float, float]],
+    ) -> Optional[float]:
+        """Return weighted score or None if no components."""
+        if not components:
+            return None
+
+        total_weight = sum(weight for _, weight in components)
+        if total_weight == 0:
+            return None
+
+        weighted_sum = sum(score * weight for score, weight in components)
+        return round(weighted_sum / total_weight, 1)
 
     def _calculate_walk_score(self, walk_data: dict) -> Optional[float]:
         """Calculate walk activity score."""
