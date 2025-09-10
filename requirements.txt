@@ -5,7 +5,6 @@ aiousbwatcher>=1.1.0
 pyserial>=3.5
 aiodhcpwatcher>=1.2.1
 voluptuous>=0.14.0
-pytest-homeassistant-custom-component  # follows daily HA version
 cryptography>=44.0.1
 aiohttp>=3.12.14
 uv>=0.8.6
