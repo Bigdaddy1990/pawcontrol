@@ -14,6 +14,7 @@ import asyncio
 import logging
 from typing import Any, Final
 
+from homeassistant import config_entries
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
