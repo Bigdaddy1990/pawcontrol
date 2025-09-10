@@ -115,7 +115,7 @@ class ExternalEntityConfigurationMixin:
 
         if options:
             selector_config = selector.SelectSelectorConfig(
-                options=list(options),
+                options=options,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
             return {
