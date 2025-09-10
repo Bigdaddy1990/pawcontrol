@@ -5,36 +5,42 @@ codecov:
   require_ci_to_pass: false
   notify:
     wait_for_ci: true
-
-coverage:
+  bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
+  
+ coverage:
+  status:
+    project:
+      default:   # default is the status check's name, not default settings
+        target: auto 
+        threshold: 1%
+        base: auto 
+        flags: 
+          - unit
+        paths: 
+          - custom_components/pawcontrol
+       # advanced settings
+        branches: 
+          - main
+        if_not_found: success
+        if_ci_failed: success #success, failure, error, ignore
+        informational: false
+        only_pulls: false
+    tests:  # declare a new status context "tests"
+        target: 100%  # we always want 100% coverage here
+        paths: "tests/"  # only include coverage in "tests/" folder
+    patch:
+      default:
+        target: 90%
+        threshold: 1%
+        base: auto
+        if_not_found: success
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+    changes: false
   precision: 2
   round: down
   range: "75...100"
-
-  status:
-    project:
-      default:
-        target: 75%
-        threshold: 1%
-        base: auto
-        branches:
-          - main
-        if_not_found: success
-        if_ci_failed: error
-        informational: false
-        only_pulls: false
-
-    patch:
-      default:
-        target: 70%
-        threshold: 1%
-        base: auto
-        if_not_found: success
-        if_ci_failed: error
-        informational: false
-        only_pulls: false
-
-    changes: false
 
 parsers:
   gcov:
@@ -45,7 +51,7 @@ parsers:
       macro: false
 
 comment:
-  layout: "reach,diff,flags,files,footer"
+  layout: "header,reach,diff,flags,files,footer"
   behavior: default
   require_changes: false
   require_base: false
