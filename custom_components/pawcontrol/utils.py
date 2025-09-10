@@ -248,29 +248,42 @@ def format_duration_optimized(seconds: int, precision: str = "auto") -> str:
     hours, remainder = divmod(seconds, 3600)
     minutes, secs = divmod(remainder, 60)
 
-    # OPTIMIZED: Build parts list efficiently
-    parts = []
-
-    if hours > 0:
-        if precision == "rounded" and hours >= 24:
-            days, remaining_hours = divmod(hours, 24)
-            if days > 0:
-                parts.append(f"{days}d")
-            if remaining_hours > 0:
-                parts.append(f"{remaining_hours}h")
-        else:
-            parts.append(f"{hours}h")
+    parts: list[str] = []
+    parts.extend(_format_hours(hours, precision))
 
     if minutes > 0 and (precision != "rounded" or hours == 0):
         parts.append(f"{minutes}m")
 
-    if (secs > 0 or not parts) and (
-        precision != "rounded" or (hours == 0 and minutes < 5)
-    ):
+    if _include_seconds(secs, parts, precision, hours, minutes):
         parts.append(f"{secs}s")
 
     # OPTIMIZED: Fast string joining
     return " ".join(parts)
+
+
+def _format_hours(hours: int, precision: str) -> list[str]:
+    """Format hour component, splitting into days when needed."""
+    if hours <= 0:
+        return []
+
+    if precision == "rounded" and hours >= 24:
+        days, remaining_hours = divmod(hours, 24)
+        parts = [f"{days}d"] if days else []
+        if remaining_hours > 0:
+            parts.append(f"{remaining_hours}h")
+        return parts
+
+    return [f"{hours}h"]
+
+
+def _include_seconds(
+    secs: int, parts: list[str], precision: str, hours: int, minutes: int
+) -> bool:
+    """Determine if seconds should be included in output."""
+    if secs > 0 or not parts:
+        if precision != "rounded" or (hours == 0 and minutes < 5):
+            return True
+    return False
 
 
 def format_distance_adaptive(meters: float, unit_preference: str = "auto") -> str:
