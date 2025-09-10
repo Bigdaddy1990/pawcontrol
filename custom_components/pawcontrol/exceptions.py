@@ -203,6 +203,19 @@ class ConfigurationError(PawControlError):
         self.valid_values = valid_values
 
 
+class PawControlSetupError(PawControlError):
+    """Exception raised when integration setup fails."""
+
+    def __init__(self, message: str, error_code: str = "setup_failed") -> None:
+        """Initialize setup error."""
+        super().__init__(
+            message,
+            error_code=error_code,
+            severity=ErrorSeverity.CRITICAL,
+            category=ErrorCategory.CONFIGURATION,
+        )
+
+
 class DogNotFoundError(PawControlError):
     """Exception raised when a dog with the specified ID is not found."""
 
@@ -844,6 +857,7 @@ EXCEPTION_MAP: Final[dict[str, type[PawControlError]]] = {
     "notification_send_failed": NotificationError,
     "data_export_failed": DataExportError,
     "data_import_failed": DataImportError,
+    "setup_failed": PawControlSetupError,
 }
 
 

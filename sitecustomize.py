@@ -8,17 +8,13 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime
 from enum import StrEnum
 from types import ModuleType, SimpleNamespace
 from typing import Callable
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-try:  # pragma: no cover - ensure asyncio plugin available
-    import pytest  # noqa: F401
-    import pytest_asyncio  # noqa: F401
-except Exception:  # pragma: no cover - plugin optional
-    pass
 
 try:  # pragma: no cover - prefer real Home Assistant when present
     import homeassistant  # noqa: F401
@@ -40,6 +36,56 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     ha.helpers = helpers
     sys.modules["homeassistant.helpers"] = helpers
 
+    # ---- const -------------------------------------------------------------
+    class _ConstModule(ModuleType):
+        def __getattr__(self, name: str) -> str:  # pragma: no cover
+            return name.lower()
+
+    const = _ConstModule("homeassistant.const")
+    ha.const = const
+    sys.modules["homeassistant.const"] = const
+
+    class Platform(StrEnum):  # pragma: no cover
+        SENSOR = "sensor"
+        BUTTON = "button"
+        BINARY_SENSOR = "binary_sensor"
+        DATETIME = "datetime"
+        TEXT = "text"
+        DEVICE_TRACKER = "device_tracker"
+        NUMBER = "number"
+        SELECT = "select"
+        SWITCH = "switch"
+        DATE = "date"
+
+    const.Platform = Platform
+
+    exceptions = ModuleType("homeassistant.exceptions")
+
+    class HomeAssistantError(Exception):  # pragma: no cover - simple base
+        pass
+
+    class ConfigEntryNotReady(HomeAssistantError):  # pragma: no cover
+        pass
+
+    exceptions.HomeAssistantError = HomeAssistantError
+    exceptions.ConfigEntryNotReady = ConfigEntryNotReady
+    ha.exceptions = exceptions
+    sys.modules["homeassistant.exceptions"] = exceptions
+
+    util = ModuleType("homeassistant.util")
+    ha.util = util
+    sys.modules["homeassistant.util"] = util
+
+    dt_util = ModuleType("homeassistant.util.dt")
+    util.dt = dt_util
+    sys.modules["homeassistant.util.dt"] = dt_util
+
+    def now(tz=None):  # pragma: no cover
+        return datetime.now(tz)
+
+    dt_util.utcnow = datetime.utcnow
+    dt_util.now = now
+
     # ---- config entries ---------------------------------------------------
     config_entries = ModuleType("homeassistant.config_entries")
 
@@ -50,12 +96,17 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
             self.entry_id = "test"
 
     class ConfigFlow:  # pragma: no cover - simple placeholder
+        def __init_subclass__(cls, *, domain: str | None = None) -> None:
+            cls.domain = domain
+
+    class OptionsFlow:  # pragma: no cover - simple placeholder
         pass
 
     ConfigFlowResult = dict
 
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
+    config_entries.OptionsFlow = OptionsFlow
     config_entries.ConfigFlowResult = ConfigFlowResult
     ha.config_entries = config_entries
     sys.modules["homeassistant.config_entries"] = config_entries
@@ -128,6 +179,15 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     selector.SelectSelectorConfig = SelectSelectorConfig
     selector.selector = _selector
 
+    entity_helper = ModuleType("homeassistant.helpers.entity")
+
+    class Entity:  # pragma: no cover - simple placeholder
+        pass
+
+    entity_helper.Entity = Entity
+    helpers.entity = entity_helper
+    sys.modules["homeassistant.helpers.entity"] = entity_helper
+
     # ---- entity platform ---------------------------------------------------
     entity_platform = ModuleType("homeassistant.helpers.entity_platform")
     helpers.entity_platform = entity_platform
@@ -188,7 +248,11 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
         def __init__(self, data: dict | None = None) -> None:
             self.data = data or {}
 
+    def callback(func: Callable) -> Callable:  # pragma: no cover
+        return func
+
     core.HomeAssistant = HomeAssistant
     core.ServiceCall = ServiceCall
+    core.callback = callback
     ha.core = core
     sys.modules["homeassistant.core"] = core
