@@ -232,7 +232,7 @@ except Exception:  # pragma: no cover - create minimal stubs
     class CoordinatorEntity(Generic[_C]):
         def __init__(self, coordinator: _C) -> None:
             self.coordinator = coordinator
-    
+
     update_coordinator.UpdateFailed = UpdateFailed  # type: ignore[attr-defined]
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator  # type: ignore[attr-defined]
     update_coordinator.CoordinatorEntity = CoordinatorEntity  # type: ignore[attr-defined]
