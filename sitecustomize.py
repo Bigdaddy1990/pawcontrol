@@ -232,11 +232,12 @@ except Exception:  # pragma: no cover - create minimal stubs
     class CoordinatorEntity(Generic[_C]):
         def __init__(self, coordinator: _C) -> None:
             self.coordinator = coordinator
-
+    
     update_coordinator.UpdateFailed = UpdateFailed  # type: ignore[attr-defined]
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator  # type: ignore[attr-defined]
     update_coordinator.CoordinatorEntity = CoordinatorEntity  # type: ignore[attr-defined]
-
+    # Alias für CoordinatorUpdateFailed, damit alte Importe weiter funktionieren
+    update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # type: ignore[attr-defined]
 # Ensure ``homeassistant.util`` is loaded or provide minimal implementation
 try:  # pragma: no cover - Home Assistant provides util module
     import homeassistant.util as util  # type: ignore[assignment]
