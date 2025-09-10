@@ -2,11 +2,7 @@ aiofiles>=23.1.0
 aiodiscover>=2.0.0
 asyncio-mqtt>=0.16.0
 aiousbwatcher>=1.1.0
-coverage[toml]>=7.6.8
 pyserial>=3.5
 aiodhcpwatcher>=1.2.1
 voluptuous>=0.14.0
-pytest-asyncio>=1.1.0
-pytest-cov>=6.2.1
 pytest-homeassistant-custom-component  # follows daily HA version
-pytest>=8.4.1
