@@ -1,7 +1,7 @@
 """Ultra-optimized service handlers for PawControl.
 
 Quality Scale: Platinum
-Home Assistant: 2025.8.3+
+Home Assistant: 2025.9.1+
 Python: 3.13+
 """
 
