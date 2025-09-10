@@ -812,7 +812,6 @@ class HealthCalculator:
         return (10.0, 30.0)  # Default medium dog range
 
     @staticmethod
-    @staticmethod
     def generate_health_report(health_metrics: HealthMetrics) -> Dict[str, Any]:
         """Generate comprehensive health report with recommendations."""
         report = {
