@@ -27,6 +27,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
+from .exceptions import PawControlSetupError
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
