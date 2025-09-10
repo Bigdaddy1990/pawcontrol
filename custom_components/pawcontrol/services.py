@@ -942,25 +942,21 @@ class PawControlServiceManager:
         if feeding_manager:
             config = feeding_manager._configs.get(dog_id)
             if config:
-                # Update health-related fields
-                if "weight" in health_data:
-                    config.dog_weight = health_data["weight"]
-                if "ideal_weight" in health_data:
-                    config.ideal_weight = health_data["ideal_weight"]
-                if "body_condition_score" in health_data:
-                    config.body_condition_score = health_data["body_condition_score"]
-                if "age_months" in health_data:
-                    config.age_months = health_data["age_months"]
-                if "activity_level" in health_data:
-                    config.activity_level = health_data["activity_level"]
-                if "health_conditions" in health_data:
-                    config.health_conditions = health_data["health_conditions"]
-                if "weight_goal" in health_data:
-                    config.weight_goal = health_data["weight_goal"]
-                if "spayed_neutered" in health_data:
-                    config.spayed_neutered = health_data["spayed_neutered"]
+                field_map = {
+                    "weight": "dog_weight",
+                    "ideal_weight": "ideal_weight",
+                    "body_condition_score": "body_condition_score",
+                    "age_months": "age_months",
+                    "activity_level": "activity_level",
+                    "health_conditions": "health_conditions",
+                    "weight_goal": "weight_goal",
+                    "spayed_neutered": "spayed_neutered",
+                }
 
-                # Invalidate cache to force recalculation
+                for field, attr in field_map.items():
+                    if field in health_data:
+                        setattr(config, attr, health_data[field])
+
                 feeding_manager._invalidate_cache(dog_id)
 
         # Fire event
