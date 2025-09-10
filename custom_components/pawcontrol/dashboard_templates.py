@@ -526,12 +526,12 @@ class DashboardTemplates:
                 )
             )
 
-        wrapped = self._wrap_buttons_layout(buttons, layout)
-        if wrapped is not None:
-            return wrapped
+        result = self._wrap_buttons_layout(buttons, layout)
+        if result is None:
+            result = buttons
 
-        await self._cache.set(cache_key, {"buttons": buttons})
-        return buttons
+        await self._cache.set(cache_key, {"buttons": result})
+        return result
 
     def _get_button_style(self, theme: str) -> dict[str, Any]:
         """Return card style based on theme."""
