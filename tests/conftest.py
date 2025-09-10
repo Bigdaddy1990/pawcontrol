@@ -17,7 +17,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOGS,
     DOMAIN,
 )
-from homeassistant.config_entries import ConfigEntry
+
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
