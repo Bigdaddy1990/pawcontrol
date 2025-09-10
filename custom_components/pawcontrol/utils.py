@@ -53,6 +53,17 @@ FILENAME_INVALID_CHARS = re.compile(r'[<>:"/\\|?*]')
 MULTIPLE_UNDERSCORES = re.compile(r"_+")
 
 
+# Thresholds for time-ago formatting
+_TIME_AGO_THRESHOLDS: list[tuple[float, Callable[[float], str]]] = [
+    (60, lambda s: "now"),
+    (3600, lambda s: f"{int(s / 60)}m ago"),
+    (86400, lambda s: f"{int(s / 3600)}h ago"),
+    (604800, lambda s: f"{int(s / 86400)}d ago"),
+    (2592000, lambda s: f"{int(s / 604800)}w ago"),
+    (31536000, lambda s: f"{int(s / 2592000)}mo ago"),
+]
+
+
 def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
     """OPTIMIZED: Performance monitoring decorator with reduced overhead.
 
@@ -238,7 +249,7 @@ def format_duration_optimized(seconds: int, precision: str = "auto") -> str:
     if precision == "rounded":
         return _format_duration_rounded(seconds)
 
-    return _format_duration_precise(seconds, precision)
+    return _format_duration_precise(seconds)
 
 
 def _format_duration_rounded(seconds: int) -> str:
@@ -255,8 +266,9 @@ def _format_duration_rounded(seconds: int) -> str:
         [(hours, "h"), (minutes, "m"), (secs if include_secs else 0, "s")]
     )
 
-    parts: list[str] = []
-    parts.extend(_format_hours(hours, precision))
+
+def _format_duration_precise(seconds: int) -> str:
+    """Format duration with full precision."""
 
     hours, remainder = divmod(seconds, 3600)
     minutes, secs = divmod(remainder, 60)
@@ -264,46 +276,18 @@ def _format_duration_rounded(seconds: int) -> str:
     parts: list[tuple[int, str]] = []
     if hours:
         parts.append((hours, "h"))
-    if minutes and (precision != "rounded" or not hours):
+    if minutes:
         parts.append((minutes, "m"))
     if secs or not parts:
         parts.append((secs, "s"))
 
     return _join_parts(parts)
 
-    if _include_seconds(secs, parts, precision, hours, minutes):
-        parts.append(f"{secs}s")
-
 
 def _join_parts(parts: list[tuple[int, str]]) -> str:
     """Join non-zero duration parts into a string."""
 
     return " ".join(f"{value}{suffix}" for value, suffix in parts if value)
-
-
-def _format_hours(hours: int, precision: str) -> list[str]:
-    """Format hour component, splitting into days when needed."""
-    if hours <= 0:
-        return []
-
-    if precision == "rounded" and hours >= 24:
-        days, remaining_hours = divmod(hours, 24)
-        parts = [f"{days}d"] if days else []
-        if remaining_hours > 0:
-            parts.append(f"{remaining_hours}h")
-        return parts
-
-    return [f"{hours}h"]
-
-
-def _include_seconds(
-    secs: int, parts: list[str], precision: str, hours: int, minutes: int
-) -> bool:
-    """Determine if seconds should be included in output."""
-    if secs > 0 or not parts:
-        if precision != "rounded" or (hours == 0 and minutes < 5):
-            return True
-    return False
 
 
 def format_distance_adaptive(meters: float, unit_preference: str = "auto") -> str:
@@ -359,16 +343,7 @@ def format_time_ago_smart(
     if total_seconds < 0:
         return "future"
 
-    thresholds: list[tuple[float, Callable[[float], str]]] = [
-        (60, lambda s: "now"),
-        (3600, lambda s: f"{int(s / 60)}m ago"),
-        (86400, lambda s: f"{int(s / 3600)}h ago"),
-        (604800, lambda s: f"{int(s / 86400)}d ago"),
-        (2592000, lambda s: f"{int(s / 604800)}w ago"),
-        (31536000, lambda s: f"{int(s / 2592000)}mo ago"),
-    ]
-
-    for limit, formatter in thresholds:
+    for limit, formatter in _TIME_AGO_THRESHOLDS:
         if total_seconds < limit:
             return formatter(total_seconds)
 
