@@ -29,11 +29,12 @@ async def enable_custom_integrations(hass: HomeAssistant) -> None:
     # Required for HA versions >=2021.6.0b0
     pass
 
+
 @pytest.fixture
 def mock_config_entry():
     """Return a mock config entry using proper import."""
     from pytest_homeassistant_custom_component.common import MockConfigEntry
-    
+
     return MockConfigEntry(
         version=1,
         minor_version=1,
@@ -45,6 +46,7 @@ def mock_config_entry():
         source="test",
         unique_id="test_unique_id",
     )
+
 
 @pytest.fixture
 def event_loop():
@@ -266,4 +268,3 @@ def setup_integration(hass: HomeAssistant, mock_config_entry):
             return result
 
     return _setup
-
