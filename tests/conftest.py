@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-# Manually load required pytest plugins when auto-discovery is disabled.
-# Include pytest_asyncio so async tests run properly.
+# Manually load required pytest plugins
 pytest_plugins = ["pytest_cov", "pytest_asyncio"]
 
-# Ensure custom Home Assistant stubs are loaded before importing the integration
+# Ensure custom Home Assistant stubs are loaded
 import sitecustomize
+
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
@@ -22,38 +22,27 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-
 @pytest.fixture
 def event_loop():
     """Create a new event loop for each test."""
     import asyncio
-
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
 
-
 @pytest.fixture
 def hass(event_loop):
     """Return a minimal HomeAssistant instance."""
-    instance = HomeAssistant()
+    instance = HomeAssistant(config_dir=None)  # config_dir added
     instance.loop = event_loop
     return instance
 
-
-@pytest.fixture(autouse=True)
-async def enable_custom_integrations(hass: HomeAssistant) -> None:
-    """Enable loading custom integrations in all tests."""
-    # Required for HA versions >=2021.6.0b0
-    pass
-
-
 @pytest.fixture
 def mock_config_entry():
-    """Return a mock config entry using proper import."""
+    """Return a mock config entry using the proper import."""
     from pytest_homeassistant_custom_component.common import MockConfigEntry
-    
-    return ConfigEntry(
+
+    return MockConfigEntry(
         version=1,
         minor_version=1,
         domain=DOMAIN,
@@ -67,12 +56,7 @@ def mock_config_entry():
                     "dog_age": 5,
                     "dog_weight": 25.0,
                     "dog_size": "medium",
-                    "modules": {
-                        "feeding": True,
-                        "walk": True,
-                        "health": True,
-                        "gps": False,
-                    },
+                    "modules": {"feeding": True, "walk": True, "health": True, "gps": False},
                 }
             ]
         },
