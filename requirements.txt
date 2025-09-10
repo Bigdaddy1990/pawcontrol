@@ -1,5 +1,12 @@
-pytest>=8.4.1
+aiofiles>=23.1.0
+aiodiscover>=2.0.0
+asyncio-mqtt>=0.16.0
+aiousbwatcher>=1.1.0
+coverage[toml]>=7.10.0
+pyserial>=3.5
+aiodhcpwatcher>=1.2.1
+voluptuous>=0.14.0
 pytest-asyncio>=1.1.0
 pytest-cov>=6.2.1
-coverage[toml]>=7.10.0
-voluptuous
+pytest-homeassistant-custom-component  # follows daily HA version
+pytest>=8.4.1
