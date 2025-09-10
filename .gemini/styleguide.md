@@ -1,7 +1,7 @@
 <!-- .gemini/styleguide.md -->
 # PawControl – HA-Styleguide für Gemini Reviews
 
-**Domain:** `pawcontrol` • **Plattformen:** sensor, binary_sensor, button, switch, number, select, text, device_tracker, date, datetime. **Repo-Status:** vorhanden: `config_flow.py`, `options_flow.py`, `diagnostics.py`, `discovery.py`, `coordinator.py`, `services.yaml`; **fehlt:** `system_health.py` → Patch unten.
+**Domain:** `pawcontrol` • **Plattformen:** sensor, binary_sensor, button, switch, number, select, text, device_tracker, date, datetime. **Repo-Status:** vorhanden: `config_flow.py`, `options_flow.py`, `diagnostics.py`, `discovery.py`, `coordinator.py`, `services.yaml`; `system_health.py` → Patch unten.
 
 ## Muss nach HA-Docs
 1) **Config Flow + Options Flow**
