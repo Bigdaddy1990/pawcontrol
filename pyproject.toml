@@ -18,7 +18,7 @@ python_files = [
     "tests.py"
 ]
 filterwarnings =
-    error
+    "error"
 
 [tool.ruff]
 target-version = "py313"
