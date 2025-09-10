@@ -234,6 +234,8 @@ except Exception:  # pragma: no cover - create minimal stubs
             self.coordinator = coordinator
 
     update_coordinator.UpdateFailed = UpdateFailed  # type: ignore[attr-defined]
+    # Alias für CoordinatorUpdateFailed, damit alte Importe funktionieren
+    update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # type: ignore[attr-defined]
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator  # type: ignore[attr-defined]
     update_coordinator.CoordinatorEntity = CoordinatorEntity  # type: ignore[attr-defined]
 
