@@ -5,12 +5,12 @@ codecov:
   require_ci_to_pass: false
   notify:
     wait_for_ci: true
-  bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
+  bot: <codecov-bot> #this is a username for Github/Gitlab/Bitbucket
   
- coverage:
-  status:
-    project:
-      default:   # default is the status check's name, not default settings
+  coverage:
+    status:
+      project:
+       default:   # default is the status check's name, not default settings
         target: auto 
         threshold: 1%
         base: auto 
