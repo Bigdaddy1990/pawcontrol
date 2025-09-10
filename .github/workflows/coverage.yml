@@ -33,9 +33,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml] pytest-aio
           pip install -U homeassistant>=2025.9.1
-          pip install -U pytest-homeassistant-custom-component
           pip install -r requirements.txt
           pip install -r requirements_test.txt
+          pip install -U pytest-homeassistant-custom-component
 
       - name: Run tests with coverage
         env:
