@@ -1,8 +1,10 @@
 # custom_components/pawcontrol/system_health.py
 from __future__ import annotations
+
 from typing import Any
-from homeassistant.components import system_health
+
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.components import system_health
 
 DOMAIN = "pawcontrol"
 
