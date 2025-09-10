@@ -940,38 +940,10 @@ class PawControlServiceManager:
         # Update feeding manager config if available
         feeding_manager = runtime_data.get("feeding_manager")
         if feeding_manager:
-            config = feeding_manager._configs.get(dog_id)
-            if config:
-                # Update health-related fields
-                if "weight" in health_data:
-                    config.dog_weight = health_data["weight"]
-                if "ideal_weight" in health_data:
-                    config.ideal_weight = health_data["ideal_weight"]
-                if "body_condition_score" in health_data:
-                    config.body_condition_score = health_data["body_condition_score"]
-                if "age_months" in health_data:
-                    config.age_months = health_data["age_months"]
-                if "activity_level" in health_data:
-                    config.activity_level = health_data["activity_level"]
-                if "health_conditions" in health_data:
-                    config.health_conditions = health_data["health_conditions"]
-                if "weight_goal" in health_data:
-                    config.weight_goal = health_data["weight_goal"]
-                if "spayed_neutered" in health_data:
-                    config.spayed_neutered = health_data["spayed_neutered"]
-
-                # Invalidate cache to force recalculation
-                feeding_manager._invalidate_cache(dog_id)
+            self._update_feeding_config(feeding_manager, dog_id, health_data)
 
         # Fire event
-        self.hass.bus.async_fire(
-            f"{DOMAIN}_health_data_updated",
-            {
-                ATTR_DOG_ID: dog_id,
-                "updated_fields": list(health_data.keys()),
-                "timestamp": dt_util.utcnow().isoformat(),
-            },
-        )
+        self._fire_health_update_event(dog_id, list(health_data.keys()))
 
         _LOGGER.info(
             "Updated health data for %s: %s", dog_id, ", ".join(health_data.keys())
@@ -980,6 +952,45 @@ class PawControlServiceManager:
         # Update coordinator
         coordinator = runtime_data["coordinator"]
         await coordinator.async_request_selective_refresh([dog_id], priority=7)
+
+    def _update_feeding_config(
+        self,
+        feeding_manager: Any,
+        dog_id: str,
+        health_data: dict[str, Any],
+    ) -> None:
+        """Update feeding manager configuration with health data."""
+        config = feeding_manager._configs.get(dog_id)
+        if not config:
+            return
+
+        field_map = {
+            "weight": "dog_weight",
+            "ideal_weight": "ideal_weight",
+            "body_condition_score": "body_condition_score",
+            "age_months": "age_months",
+            "activity_level": "activity_level",
+            "health_conditions": "health_conditions",
+            "weight_goal": "weight_goal",
+            "spayed_neutered": "spayed_neutered",
+        }
+
+        for key, attr in field_map.items():
+            if key in health_data:
+                setattr(config, attr, health_data[key])
+
+        feeding_manager._invalidate_cache(dog_id)
+
+    def _fire_health_update_event(self, dog_id: str, updated: list[str]) -> None:
+        """Fire health data updated event."""
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_health_data_updated",
+            {
+                ATTR_DOG_ID: dog_id,
+                "updated_fields": updated,
+                "timestamp": dt_util.utcnow().isoformat(),
+            },
+        )
 
     @service_handler(require_dog=True, cache_priority=9, timeout=8.0)
     async def _handle_feed_with_medication(
