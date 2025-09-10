@@ -10,15 +10,17 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from contextlib import suppress
 from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
     DataUpdateCoordinator,
+    UpdateFailed,
 )
 
 from .const import (
@@ -34,6 +36,8 @@ from .const import (
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
+
+MAINTENANCE_INTERVAL = 3600
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -94,7 +98,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Fail if all dogs failed
         if errors == len(self.dogs) and len(self.dogs) > 0:
-            raise CoordinatorUpdateFailed("All dogs failed to update")
+            raise UpdateFailed("All dogs failed to update")
 
         self._data = all_data
         return all_data
@@ -249,3 +253,27 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "update_interval_seconds": self.update_interval.total_seconds(),
             "dogs_tracked": len(self._data),
         }
+
+    async def async_start_background_tasks(self) -> None:
+        """Start background maintenance task."""
+        self._maintenance_task = self.hass.loop.create_task(self._maintenance_loop())
+
+    async def _maintenance_loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(MAINTENANCE_INTERVAL)
+                await self._perform_maintenance()
+        except asyncio.CancelledError:
+            pass
+
+    async def _perform_maintenance(self) -> None:
+        """Perform periodic maintenance."""
+        _LOGGER.debug("Performing maintenance")
+
+    async def async_shutdown(self) -> None:
+        """Stop background tasks."""
+        task = getattr(self, "_maintenance_task", None)
+        if task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task

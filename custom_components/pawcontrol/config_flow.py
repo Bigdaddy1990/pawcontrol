@@ -11,8 +11,10 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import time
 from typing import Any
 
 import voluptuous as vol
@@ -43,6 +45,35 @@ from .options_flow import PawControlOptionsFlow
 from .types import DogConfigData, is_dog_config_valid
 
 _LOGGER = logging.getLogger(__name__)
+
+MAX_CONCURRENT_VALIDATIONS = 5
+VALIDATION_TIMEOUT = 1
+VALIDATION_CACHE_TTL = 60
+
+
+class ValidationCache:
+    """Simple in-memory TTL cache for validation results."""
+
+    def __init__(self, ttl: int = VALIDATION_CACHE_TTL) -> None:
+        self._ttl = ttl
+        self._data: dict[str, tuple[float, Any]] = {}
+        self._lock = asyncio.Lock()
+
+    async def get(self, key: str) -> Any | None:
+        async with self._lock:
+            item = self._data.get(key)
+            if not item:
+                return None
+            timestamp, value = item
+            if time.time() - timestamp > self._ttl:
+                del self._data[key]
+                return None
+            return value
+
+    async def set(self, key: str, value: Any) -> None:
+        async with self._lock:
+            self._data[key] = (time.time(), value)
+
 
 # Simple schemas
 INTEGRATION_SCHEMA = vol.Schema(

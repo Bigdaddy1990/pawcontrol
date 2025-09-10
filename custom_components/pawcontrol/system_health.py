@@ -1,16 +1,20 @@
 # custom_components/pawcontrol/system_health.py
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.components import system_health
-
 from typing import Any
+
+from homeassistant.components import system_health
+from homeassistant.core import HomeAssistant, callback
 
 DOMAIN = "pawcontrol"
 
+
 @callback
-def async_register(hass: HomeAssistant, register: system_health.SystemHealthRegistration) -> None:
+def async_register(
+    hass: HomeAssistant, register: system_health.SystemHealthRegistration
+) -> None:
     register.async_register_info(system_health_info)
+
 
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     # Beispiel: erste Config-Entry prüfen
