@@ -234,7 +234,7 @@ class UpdateFailed(Exception):
 update_coordinator.UpdateFailed = UpdateFailed
 
 # **Alias hinzufügen für alte Importe**
-update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # noqa: type: ignore[attr-defined]
+update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # type: ignore[attr-defined]
 
 # Stub for core HomeAssistant
 core = ModuleType("homeassistant.core")

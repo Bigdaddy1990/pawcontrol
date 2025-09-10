@@ -981,9 +981,7 @@ class DogManagementMixin:
             return "invalid_weight_format"
         if weight_float < MIN_DOG_WEIGHT or weight_float > MAX_DOG_WEIGHT:
             return "weight_out_of_range"
-        if not PawControlBaseConfigFlow._is_weight_size_compatible(
-            self, weight_float, size
-        ):
+        if not self._is_weight_size_compatible(weight_float, size):
             return "weight_size_mismatch"
         return None
 
@@ -1130,9 +1128,7 @@ class DogManagementMixin:
                 weight_float = float(weight)
                 if weight_float < MIN_DOG_WEIGHT or weight_float > MAX_DOG_WEIGHT:
                     return "weight_out_of_range"
-                if not PawControlBaseConfigFlow._is_weight_size_compatible(
-                    self, weight_float, size
-                ):
+                if not self._is_weight_size_compatible(weight_float, size):
                     return "weight_size_mismatch"
             except (ValueError, TypeError):
                 return "invalid_weight_format"
