@@ -1,4 +1,5 @@
-# custom_components/pawcontrol/system_health.py
+"""System health checks for the Paw Control integration."""
+
 from __future__ import annotations
 
 from typing import Any

@@ -515,14 +515,14 @@ class DashboardTemplates:
         if modules.get("walk"):
             buttons.extend(
                 self._create_walk_buttons(
-                    dog_id, base_button, button_style, theme_styles
+                    dog_id, base_button, button_style, theme_styles, theme
                 )
             )
 
         if modules.get("health"):
             buttons.append(
                 self._create_health_button(
-                    dog_id, base_button, button_style, theme_styles
+                    dog_id, base_button, button_style, theme_styles, theme
                 )
             )
 
@@ -533,24 +533,28 @@ class DashboardTemplates:
         await self._cache.set(cache_key, {"buttons": result})
         return result
 
+    def _gradient_style(self, primary: str, secondary: str) -> dict[str, Any]:
+        """Return gradient card_mod style with provided colors."""
+        return {
+            "card_mod": {
+                "style": f"""
+                    ha-card {{
+                        background: linear-gradient(135deg, {primary} 0%, {secondary} 100%);
+                        color: white;
+                        border-radius: 12px;
+                        transition: all 0.3s;
+                    }}
+                    ha-card:hover {{
+                        transform: scale(1.05);
+                    }}
+                """,
+            }
+        }
+
     def _get_button_style(self, theme: str) -> dict[str, Any]:
         """Return card style based on theme."""
         if theme == "modern":
-            return {
-                "card_mod": {
-                    "style": """
-                        ha-card {
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            color: white;
-                            border-radius: 12px;
-                            transition: all 0.3s;
-                        }
-                        ha-card:hover {
-                            transform: scale(1.05);
-                        }
-                    """,
-                }
-            }
+            return self._gradient_style("#667eea", "#764ba2")
         elif theme == "playful":
             return {
                 "card_mod": {
@@ -599,18 +603,14 @@ class DashboardTemplates:
         base_button: dict[str, Any],
         button_style: dict[str, Any],
         theme_styles: dict[str, Any],
+        theme: str,
     ) -> list[dict[str, Any]]:
         """Create start/end walk buttons."""
-        walk_style = button_style.copy()
-        if (
-            button_style.get("card_mod")
-            and "#667eea" in button_style["card_mod"]["style"]
-        ):
-            walk_style["card_mod"]["style"] = (
-                walk_style["card_mod"]["style"]
-                .replace("#667eea", "#00bfa5")
-                .replace("#764ba2", "#00acc1")
-            )
+        walk_style = (
+            self._gradient_style("#00bfa5", "#00acc1")
+            if theme == "modern"
+            else button_style
+        )
 
         return [
             {
@@ -657,18 +657,14 @@ class DashboardTemplates:
         base_button: dict[str, Any],
         button_style: dict[str, Any],
         theme_styles: dict[str, Any],
+        theme: str,
     ) -> dict[str, Any]:
         """Create health check button."""
-        health_style = button_style.copy()
-        if (
-            button_style.get("card_mod")
-            and "#667eea" in button_style["card_mod"]["style"]
-        ):
-            health_style["card_mod"]["style"] = (
-                health_style["card_mod"]["style"]
-                .replace("#667eea", "#e91e63")
-                .replace("#764ba2", "#f06292")
-            )
+        health_style = (
+            self._gradient_style("#e91e63", "#f06292")
+            if theme == "modern"
+            else button_style
+        )
 
         return {
             **base_button,
