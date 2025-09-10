@@ -5,6 +5,9 @@ from typing import Any
 
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.components import system_health
+
+from typing import Any
 
 DOMAIN = "pawcontrol"
 
