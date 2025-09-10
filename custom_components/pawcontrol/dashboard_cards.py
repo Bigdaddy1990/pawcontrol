@@ -299,26 +299,7 @@ class DogCardGenerator(BaseCardGenerator):
         action_buttons = await self.templates.get_action_buttons_template(
             dog_id, modules
         )
-        if action_buttons:
-            # Group regular and conditional buttons appropriately
-            regular_buttons = [
-                b for b in action_buttons if b.get("type") != "conditional"
-            ]
-            conditional_cards = [
-                b for b in action_buttons if b.get("type") == "conditional"
-            ]
-
-            # Add regular buttons as horizontal stack
-            if regular_buttons:
-                cards.append(
-                    {
-                        "type": "horizontal-stack",
-                        "cards": regular_buttons,
-                    }
-                )
-
-            # Add conditional cards individually
-            cards.extend(conditional_cards)
+        cards.extend(self._build_action_button_cards(action_buttons))
 
         # GPS map if enabled and available
         if modules.get(MODULE_GPS):
@@ -331,6 +312,23 @@ class DogCardGenerator(BaseCardGenerator):
         if activity_card:
             cards.append(activity_card)
 
+        return cards
+
+    def _build_action_button_cards(
+        self, action_buttons: list[dict[str, Any]] | None
+    ) -> list[dict[str, Any]]:
+        """Return card list for action buttons."""
+        if not action_buttons:
+            return []
+
+        regular = [b for b in action_buttons if b.get("type") != "conditional"]
+        conditional = [b for b in action_buttons if b.get("type") == "conditional"]
+
+        cards: list[dict[str, Any]] = []
+        if regular:
+            cards.append({"type": "horizontal-stack", "cards": regular})
+
+        cards.extend(conditional)
         return cards
 
     async def _generate_dog_header_card(
