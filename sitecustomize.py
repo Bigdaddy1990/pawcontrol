@@ -14,9 +14,23 @@ from typing import Callable
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+try:  # pragma: no cover - ensure asyncio plugin available
+    import pytest  # noqa: F401
+    import pytest_asyncio  # noqa: F401
+except Exception:  # pragma: no cover - plugin optional
+    pass
 
 try:  # pragma: no cover - prefer real Home Assistant when present
     import homeassistant  # noqa: F401
+
+    # Ensure ConfigEntry is available for legacy imports
+    try:  # pragma: no cover - best effort
+        from homeassistant.helpers import entity as ha_entity
+
+        if not hasattr(ha_entity, "ConfigEntry"):
+            ha_entity.ConfigEntry = object  # type: ignore[attr-defined]
+    except Exception:
+        pass
 except Exception:  # pragma: no cover - fall back to minimal stubs
     ha = sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
     ha.__path__ = []
@@ -25,6 +39,26 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     helpers.__path__ = []
     ha.helpers = helpers
     sys.modules["homeassistant.helpers"] = helpers
+
+    # ---- config entries ---------------------------------------------------
+    config_entries = ModuleType("homeassistant.config_entries")
+
+    class ConfigEntry:  # pragma: no cover - simple placeholder
+        def __init__(self, data: dict | None = None, options: dict | None = None):
+            self.data = data or {}
+            self.options = options or {}
+            self.entry_id = "test"
+
+    class ConfigFlow:  # pragma: no cover - simple placeholder
+        pass
+
+    ConfigFlowResult = dict
+
+    config_entries.ConfigEntry = ConfigEntry
+    config_entries.ConfigFlow = ConfigFlow
+    config_entries.ConfigFlowResult = ConfigFlowResult
+    ha.config_entries = config_entries
+    sys.modules["homeassistant.config_entries"] = config_entries
 
     # ---- config validation -------------------------------------------------
     config_validation = ModuleType("homeassistant.helpers.config_validation")
