@@ -274,6 +274,7 @@ def _format_duration_rounded(seconds: int) -> str:
     if _include_seconds(secs, parts, precision, hours, minutes):
         parts.append(f"{secs}s")
 
+
 def _join_parts(parts: list[tuple[int, str]]) -> str:
     """Join non-zero duration parts into a string."""
 
