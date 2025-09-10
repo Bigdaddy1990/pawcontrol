@@ -53,14 +53,36 @@ FILENAME_INVALID_CHARS = re.compile(r'[<>:"/\\|?*]')
 MULTIPLE_UNDERSCORES = re.compile(r"_+")
 
 
+def _format_hours_minutes(total_seconds: float) -> str:
+    """Format hours with optional minutes for time-ago strings."""
+
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    if minutes:
+        return f"{hours}h {minutes}m ago"
+    return f"{hours} hour{'s' if hours != 1 else ''} ago"
+
+
 # Thresholds for time-ago formatting
 _TIME_AGO_THRESHOLDS: list[tuple[float, Callable[[float], str]]] = [
-    (60, lambda s: "now"),
-    (3600, lambda s: f"{int(s / 60)}m ago"),
-    (86400, lambda s: f"{int(s / 3600)}h ago"),
-    (604800, lambda s: f"{int(s / 86400)}d ago"),
-    (2592000, lambda s: f"{int(s / 604800)}w ago"),
-    (31536000, lambda s: f"{int(s / 2592000)}mo ago"),
+    (60, lambda s: "just now"),
+    (
+        3600,
+        lambda s: f"{int(s / 60)} minute{'s' if int(s / 60) != 1 else ''} ago",
+    ),
+    (86400, _format_hours_minutes),
+    (
+        604800,
+        lambda s: f"{int(s / 86400)} day{'s' if int(s / 86400) != 1 else ''} ago",
+    ),
+    (
+        2592000,
+        lambda s: f"{int(s / 604800)} week{'s' if int(s / 604800) != 1 else ''} ago",
+    ),
+    (
+        31536000,
+        lambda s: f"{int(s / 2592000)} month{'s' if int(s / 2592000) != 1 else ''} ago",
+    ),
 ]
 
 
@@ -174,20 +196,22 @@ def _validate_weight_for_size(
     """Validate weight against size-specific ranges."""
 
     min_weight, max_weight = DOG_SIZE_WEIGHT_RANGES[dog_size]
+    adjusted_min = min_weight
+    adjusted_max = max_weight
 
     if age is not None:
         if age < 1:  # Puppy
-            min_weight *= 0.3
-            max_weight *= 0.8
+            adjusted_min = min_weight * 0.3
+            adjusted_max = max_weight * 0.8
         elif age > 8:  # Senior
-            max_weight *= 1.15
+            adjusted_max = max_weight * 1.15
 
-    if min_weight <= weight_val <= max_weight:
+    if adjusted_min <= weight_val <= adjusted_max:
         return True, None
 
     return (
         False,
-        f"{dog_size} dogs: {min_weight:.1f}-{max_weight:.1f}kg expected",
+        f"{dog_size} dogs: {adjusted_min:.1f}-{adjusted_max:.1f}kg expected",
     )
 
 
@@ -255,39 +279,44 @@ def format_duration_optimized(seconds: int, precision: str = "auto") -> str:
 def _format_duration_rounded(seconds: int) -> str:
     """Format duration using rounded precision."""
 
-    hours, remainder = divmod(seconds, 3600)
-    if hours >= 24:
-        days, hours = divmod(hours, 24)
-        return _join_parts([(days, "d"), (hours, "h")])
-
-    minutes, secs = divmod(remainder, 60)
-    include_secs = hours == 0 and minutes < 5 and secs > 0
-    return _join_parts(
-        [(hours, "h"), (minutes, "m"), (secs if include_secs else 0, "s")]
-    )
+    units = [
+        ("day", 86400),
+        ("hour", 3600),
+        ("minute", 60),
+        ("second", 1),
+    ]
+    for name, unit_seconds in units:
+        value = seconds // unit_seconds
+        if value:
+            unit_name = name if value == 1 else f"{name}s"
+            return f"{value} {unit_name}"
+    return "0 seconds"
 
 
 def _format_duration_precise(seconds: int) -> str:
     """Format duration with full precision."""
 
-    hours, remainder = divmod(seconds, 3600)
-    minutes, secs = divmod(remainder, 60)
+    units = [
+        ("day", 86400),
+        ("hour", 3600),
+        ("minute", 60),
+        ("second", 1),
+    ]
+    parts: list[str] = []
+    remaining = seconds
+    for name, unit_seconds in units:
+        value, remaining = divmod(remaining, unit_seconds)
+        if value:
+            unit_name = name if value == 1 else f"{name}s"
+            parts.append(f"{value} {unit_name}")
 
-    parts: list[tuple[int, str]] = []
-    if hours:
-        parts.append((hours, "h"))
-    if minutes:
-        parts.append((minutes, "m"))
-    if secs or not parts:
-        parts.append((secs, "s"))
+    if not parts:
+        return "0 seconds"
 
-    return _join_parts(parts)
+    if len(parts) == 1:
+        return parts[0]
 
-
-def _join_parts(parts: list[tuple[int, str]]) -> str:
-    """Join non-zero duration parts into a string."""
-
-    return " ".join(f"{value}{suffix}" for value, suffix in parts if value)
+    return f"{parts[0]} and {parts[1]}"
 
 
 def format_distance_adaptive(meters: float, unit_preference: str = "auto") -> str:
@@ -341,13 +370,13 @@ def format_time_ago_smart(
     total_seconds = (ref_time - timestamp).total_seconds()
 
     if total_seconds < 0:
-        return "future"
+        return "in the future"
 
     for limit, formatter in _TIME_AGO_THRESHOLDS:
         if total_seconds < limit:
             return formatter(total_seconds)
-
-    return f"{int(total_seconds / 31536000)}y ago"
+    years = int(total_seconds / 31536000)
+    return f"{years} year{'s' if years != 1 else ''} ago"
 
 
 # OPTIMIZED: Calculation functions with enhanced performance
