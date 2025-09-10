@@ -493,48 +493,70 @@ class DashboardTemplates:
         theme: str = "modern",
         layout: str = "cards",
     ) -> list[dict[str, Any]]:
-        """Get themed action buttons template for dog.
-
-        Args:
-            dog_id: Dog identifier
-            modules: Enabled modules
-            theme: Visual theme
-            layout: Layout type (cards, panels, grid, timeline)
-
-        Returns:
-            List of button card templates
-        """
+        """Get themed action buttons template for dog."""
         cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
-        # Try cache first
         cached = await self._cache.get(cache_key)
         if cached:
             return cached.get("buttons", [])
 
-        buttons = []
         base_button = self._get_base_card_template("button")
         theme_styles = self._get_theme_styles(theme)
+        button_style = self._get_button_style(theme)
 
-        # Style buttons based on theme
-        button_style = {}
-        if theme == "modern":
-            button_style = {
-                "card_mod": {
-                    "style": """
-                        ha-card {
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            color: white;
-                            border-radius: 12px;
-                            transition: all 0.3s;
-                        }
-                        ha-card:hover {
-                            transform: scale(1.05);
-                        }
-                    """
-                }
+        buttons: list[dict[str, Any]] = []
+        if modules.get("feeding"):
+            buttons.append(
+                self._create_feeding_button(
+                    dog_id, base_button, button_style, theme_styles, theme
+                )
+            )
+
+        if modules.get("walk"):
+            buttons.extend(
+                self._create_walk_buttons(
+                    dog_id, base_button, button_style, theme_styles, theme
+                )
+            )
+
+        if modules.get("health"):
+            buttons.append(
+                self._create_health_button(
+                    dog_id, base_button, button_style, theme_styles, theme
+                )
+            )
+
+        result = self._wrap_buttons_layout(buttons, layout)
+        if result is None:
+            result = buttons
+
+        await self._cache.set(cache_key, {"buttons": result})
+        return result
+
+    def _gradient_style(self, primary: str, secondary: str) -> dict[str, Any]:
+        """Return gradient card_mod style with provided colors."""
+        return {
+            "card_mod": {
+                "style": f"""
+                    ha-card {{
+                        background: linear-gradient(135deg, {primary} 0%, {secondary} 100%);
+                        color: white;
+                        border-radius: 12px;
+                        transition: all 0.3s;
+                    }}
+                    ha-card:hover {{
+                        transform: scale(1.05);
+                    }}
+                """,
             }
+        }
+
+    def _get_button_style(self, theme: str) -> dict[str, Any]:
+        """Return card style based on theme."""
+        if theme == "modern":
+            return self._gradient_style("#667eea", "#764ba2")
         elif theme == "playful":
-            button_style = {
+            return {
                 "card_mod": {
                     "style": """
                         ha-card {
@@ -548,135 +570,124 @@ class DashboardTemplates:
                             70% { box-shadow: 0 0 0 10px rgba(245,87,108,0); }
                             100% { box-shadow: 0 0 0 0 rgba(245,87,108,0); }
                         }
-                    """
+                    """,
                 }
             }
+        return {}
 
-        # Feeding button
-        if modules.get("feeding"):
-            buttons.append(
-                {
+    def _create_feeding_button(
+        self,
+        dog_id: str,
+        base_button: dict[str, Any],
+        button_style: dict[str, Any],
+        theme_styles: dict[str, Any],
+        theme: str,
+    ) -> dict[str, Any]:
+        """Create feeding button card."""
+        return {
+            **base_button,
+            **button_style,
+            "name": "Feed",
+            "icon": "mdi:food-drumstick" if theme != "playful" else "mdi:bone",
+            "icon_color": theme_styles["colors"]["accent"],
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.feed_dog",
+                "service_data": {"dog_id": dog_id, "meal_type": "regular"},
+            },
+        }
+
+    def _create_walk_buttons(
+        self,
+        dog_id: str,
+        base_button: dict[str, Any],
+        button_style: dict[str, Any],
+        theme_styles: dict[str, Any],
+        theme: str,
+    ) -> list[dict[str, Any]]:
+        """Create start/end walk buttons."""
+        walk_style = (
+            self._gradient_style("#00bfa5", "#00acc1")
+            if theme == "modern"
+            else button_style
+        )
+
+        return [
+            {
+                "type": "conditional",
+                "conditions": [
+                    {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "off"}
+                ],
+                "card": {
                     **base_button,
-                    **button_style,
-                    "name": "Feed",
-                    "icon": "mdi:food-drumstick" if theme != "playful" else "mdi:bone",
-                    "icon_color": theme_styles["colors"]["accent"],
+                    **walk_style,
+                    "name": "Start Walk",
+                    "icon": "mdi:walk",
+                    "icon_color": theme_styles["colors"]["primary"],
                     "tap_action": {
                         "action": "call-service",
-                        "service": f"{DOMAIN}.feed_dog",
-                        "service_data": {
-                            "dog_id": dog_id,
-                            "meal_type": "regular",
-                        },
-                    },
-                }
-            )
-
-        # Walk buttons (conditional based on walking state)
-        if modules.get("walk"):
-            walk_button_style = button_style.copy()
-            if theme == "modern":
-                walk_button_style["card_mod"]["style"] = (
-                    walk_button_style["card_mod"]["style"]
-                    .replace("#667eea", "#00bfa5")
-                    .replace("#764ba2", "#00acc1")
-                )
-
-            buttons.extend(
-                [
-                    {
-                        "type": "conditional",
-                        "conditions": [
-                            {
-                                "entity": f"binary_sensor.{dog_id}_is_walking",
-                                "state": "off",
-                            }
-                        ],
-                        "card": {
-                            **base_button,
-                            **walk_button_style,
-                            "name": "Start Walk",
-                            "icon": "mdi:walk",
-                            "icon_color": theme_styles["colors"]["primary"],
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": f"{DOMAIN}.start_walk",
-                                "service_data": {"dog_id": dog_id},
-                            },
-                        },
-                    },
-                    {
-                        "type": "conditional",
-                        "conditions": [
-                            {
-                                "entity": f"binary_sensor.{dog_id}_is_walking",
-                                "state": "on",
-                            }
-                        ],
-                        "card": {
-                            **base_button,
-                            **walk_button_style,
-                            "name": "End Walk",
-                            "icon": "mdi:stop",
-                            "icon_color": "red",
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": f"{DOMAIN}.end_walk",
-                                "service_data": {"dog_id": dog_id},
-                            },
-                        },
-                    },
-                ]
-            )
-
-        # Health button
-        if modules.get("health"):
-            health_button_style = button_style.copy()
-            if theme == "modern":
-                health_button_style["card_mod"]["style"] = (
-                    health_button_style["card_mod"]["style"]
-                    .replace("#667eea", "#e91e63")
-                    .replace("#764ba2", "#f06292")
-                )
-
-            buttons.append(
-                {
-                    **base_button,
-                    **health_button_style,
-                    "name": "Health Check",
-                    "icon": "mdi:heart-pulse",
-                    "icon_color": theme_styles["colors"]["accent"],
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.log_health",
+                        "service": f"{DOMAIN}.start_walk",
                         "service_data": {"dog_id": dog_id},
                     },
-                }
-            )
+                },
+            },
+            {
+                "type": "conditional",
+                "conditions": [
+                    {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "on"}
+                ],
+                "card": {
+                    **base_button,
+                    **walk_style,
+                    "name": "End Walk",
+                    "icon": "mdi:stop",
+                    "icon_color": "red",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.end_walk",
+                        "service_data": {"dog_id": dog_id},
+                    },
+                },
+            },
+        ]
 
-        # Layout-specific wrapping
+    def _create_health_button(
+        self,
+        dog_id: str,
+        base_button: dict[str, Any],
+        button_style: dict[str, Any],
+        theme_styles: dict[str, Any],
+        theme: str,
+    ) -> dict[str, Any]:
+        """Create health check button."""
+        health_style = (
+            self._gradient_style("#e91e63", "#f06292")
+            if theme == "modern"
+            else button_style
+        )
+
+        return {
+            **base_button,
+            **health_style,
+            "name": "Health Check",
+            "icon": "mdi:heart-pulse",
+            "icon_color": theme_styles["colors"]["accent"],
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.log_health",
+                "service_data": {"dog_id": dog_id},
+            },
+        }
+
+    def _wrap_buttons_layout(
+        self, buttons: list[dict[str, Any]], layout: str
+    ) -> list[dict[str, Any]] | None:
+        """Wrap buttons in layout-specific containers."""
         if layout == "grid":
-            # Return grid layout
-            return [
-                {
-                    "type": "grid",
-                    "columns": 3,
-                    "cards": buttons,
-                }
-            ]
-        elif layout == "panels":
-            # Return side-by-side panels
-            return [
-                {
-                    "type": "horizontal-stack",
-                    "cards": buttons[:3],
-                }
-            ]
-
-        template = {"buttons": buttons}
-        await self._cache.set(cache_key, template)
-
-        return buttons
+            return [{"type": "grid", "columns": 3, "cards": buttons}]
+        if layout == "panels":
+            return [{"type": "horizontal-stack", "cards": buttons[:3]}]
+        return None
 
     async def get_map_card_template(
         self, dog_id: str, options: dict[str, Any] | None = None, theme: str = "modern"
