@@ -812,9 +812,8 @@ class HealthCalculator:
         return (10.0, 30.0)  # Default medium dog range
 
     @staticmethod
-    @staticmethod
     def generate_health_report(health_metrics: HealthMetrics) -> Dict[str, Any]:
-        """Generate comprehensive health report with recommendations."""
+        """Generate a detailed health report with recommendations."""
         report = {
             "timestamp": dt_util.now().isoformat(),
             "overall_status": "good",
@@ -824,13 +823,12 @@ class HealthCalculator:
             "positive_indicators": [],
         }
 
-        cls = HealthCalculator
-        cls._assess_weight(health_metrics, report)
-        cls._assess_body_condition(health_metrics, report)
-        cls._assess_health_conditions(health_metrics, report)
-        cls._assess_age(health_metrics, report)
-        cls._assess_activity(health_metrics, report)
-        cls._finalize_status(report)
+        HealthCalculator._assess_weight(health_metrics, report)
+        HealthCalculator._assess_body_condition(health_metrics, report)
+        HealthCalculator._assess_health_conditions(health_metrics, report)
+        HealthCalculator._assess_age(health_metrics, report)
+        HealthCalculator._assess_activity(health_metrics, report)
+        HealthCalculator._finalize_status(report)
 
         return report
 
