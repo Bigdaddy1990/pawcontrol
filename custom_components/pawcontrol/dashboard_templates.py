@@ -551,7 +551,7 @@ class DashboardTemplates:
                     """,
                 }
             }
-        if theme == "playful":
+        elif theme == "playful":
             return {
                 "card_mod": {
                     "style": """
