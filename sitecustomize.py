@@ -234,10 +234,19 @@ except Exception:  # pragma: no cover - create minimal stubs
             self.coordinator = coordinator
 
     update_coordinator.UpdateFailed = UpdateFailed  # type: ignore[attr-defined]
-    # Alias für CoordinatorUpdateFailed, damit alte Importe funktionieren
-    update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # type: ignore[attr-defined]
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator  # type: ignore[attr-defined]
     update_coordinator.CoordinatorEntity = CoordinatorEntity  # type: ignore[attr-defined]
+    # Alias für CoordinatorUpdateFailed, um alte Importe zu simulieren
+
+try:
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+    # Nur wenn Home Assistant schon geladen ist, Alias setzen
+    import homeassistant.helpers.update_coordinator as update_coordinator
+    update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # Typ: ignore
+except ImportError:
+    # Falls Home Assistant noch nicht installiert ist, ist es egal
+    pass
+
 
 # Ensure ``homeassistant.util`` is loaded or provide minimal implementation
 try:  # pragma: no cover - Home Assistant provides util module
