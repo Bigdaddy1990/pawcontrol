@@ -81,7 +81,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize optimized coordinator with manager delegation."""
-        self.config_entry = entry
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
@@ -94,6 +93,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name="PawControl Data",
             update_interval=timedelta(seconds=update_interval),
             always_update=False,
+            config_entry=entry,
         )
 
         # OPTIMIZED: Initialize specialized managers with reduced memory footprint
