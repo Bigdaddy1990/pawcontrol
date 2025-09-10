@@ -23,7 +23,6 @@ from custom_components.pawcontrol.config_flow_base import (
     ENTITY_CREATION_DELAY,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
-    PawControlBaseConfigFlow,
 )
 from custom_components.pawcontrol.const import (
     CONF_BREAKFAST_TIME,
@@ -1010,9 +1009,7 @@ class DogManagementMixin:
     async def _async_validate_dog_config(
         self, user_input: dict[str, Any]
     ) -> dict[str, Any]:
-        """Validate dog configuration with rate-limiting.
-
-        FIXED: Controlled validation to prevent Entity Registry flooding.
+        """Validate dog configuration with rate limiting.
 
         Args:
             user_input: Dog configuration to validate
@@ -1036,7 +1033,7 @@ class DogManagementMixin:
             if cache_key in self._validation_cache:
                 cached = self._validation_cache[cache_key]
                 if (
-                    cached.get("timestamp", 0) > asyncio.get_event_loop().time() - 5
+                    cached.get("timestamp", 0) > asyncio.get_running_loop().time() - 5
                 ):  # 5 second cache
                     return cached["result"]
 
@@ -1050,6 +1047,7 @@ class DogManagementMixin:
 
             # Enhanced weight validation with size correlation
             size = user_input.get(CONF_DOG_SIZE, "medium")
+            
             if error := self._validate_weight(user_input.get(CONF_DOG_WEIGHT), size):
                 errors[CONF_DOG_WEIGHT] = error
 
@@ -1071,7 +1069,7 @@ class DogManagementMixin:
 
             self._validation_cache[cache_key] = {
                 "result": result,
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": asyncio.get_running_loop().time(),
             }
 
             return result
