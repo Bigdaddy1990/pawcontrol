@@ -239,9 +239,10 @@ except Exception:  # pragma: no cover - create minimal stubs
     # Alias für CoordinatorUpdateFailed, um alte Importe zu simulieren
 
 try:
-    from homeassistant.helpers.update_coordinator import UpdateFailed
     # Nur wenn Home Assistant schon geladen ist, Alias setzen
     import homeassistant.helpers.update_coordinator as update_coordinator
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
     update_coordinator.CoordinatorUpdateFailed = UpdateFailed  # Typ: ignore
 except ImportError:
     # Falls Home Assistant noch nicht installiert ist, ist es egal
