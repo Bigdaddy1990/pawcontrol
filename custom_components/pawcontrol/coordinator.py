@@ -16,10 +16,16 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
-    DataUpdateCoordinator,
-)
+try:  # pragma: no cover
+    from homeassistant.helpers.update_coordinator import (
+        CoordinatorUpdateFailed,
+        DataUpdateCoordinator,
+    )
+except ImportError:  # pragma: no cover
+    from homeassistant.helpers.update_coordinator import (
+        UpdateFailed as CoordinatorUpdateFailed,
+        DataUpdateCoordinator,
+    )
 
 from .const import (
     CONF_DOG_ID,

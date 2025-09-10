@@ -5,7 +5,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=5"
-asyncio_mode = "auto"
+# pytest-asyncio's configuration option causes an error when the plugin isn't
+# loaded during the initial configuration phase (we manually load plugins in
+# tests).  Removing it prevents "Unknown config option: asyncio_mode" errors in
+# environments where auto-loading is disabled.
 markers = [
   "asyncio: mark a test as using asyncio",
 ]
@@ -17,7 +20,13 @@ python_files = [
     "*_test.py",
     "tests.py"
 ]
-filterwarnings = "error"
+# Treat warnings as errors but ignore a known DeprecationWarning emitted by
+# aiohttp when Home Assistant subclasses its web application.  Without this
+# explicit filter the warning would abort test collection.
+filterwarnings = [
+    "error",
+    "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
+]
 
 [tool.ruff]
 target-version = "py313"
