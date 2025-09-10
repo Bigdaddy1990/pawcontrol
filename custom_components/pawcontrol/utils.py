@@ -53,6 +53,39 @@ FILENAME_INVALID_CHARS = re.compile(r'[<>:"/\\|?*]')
 MULTIPLE_UNDERSCORES = re.compile(r"_+")
 
 
+def _format_hours_minutes(total_seconds: float) -> str:
+    """Format hours with optional minutes for time-ago strings."""
+
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    if minutes:
+        return f"{hours}h {minutes}m ago"
+    return f"{hours} hour{'s' if hours != 1 else ''} ago"
+
+
+# Thresholds for time-ago formatting
+_TIME_AGO_THRESHOLDS: list[tuple[float, Callable[[float], str]]] = [
+    (60, lambda s: "just now"),
+    (
+        3600,
+        lambda s: f"{int(s / 60)} minute{'s' if int(s / 60) != 1 else ''} ago",
+    ),
+    (86400, _format_hours_minutes),
+    (
+        604800,
+        lambda s: f"{int(s / 86400)} day{'s' if int(s / 86400) != 1 else ''} ago",
+    ),
+    (
+        2592000,
+        lambda s: f"{int(s / 604800)} week{'s' if int(s / 604800) != 1 else ''} ago",
+    ),
+    (
+        31536000,
+        lambda s: f"{int(s / 2592000)} month{'s' if int(s / 2592000) != 1 else ''} ago",
+    ),
+]
+
+
 def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
     """OPTIMIZED: Performance monitoring decorator with reduced overhead.
 
@@ -138,48 +171,48 @@ async def async_validate_coordinates(
 def validate_weight_enhanced(
     weight: NumericType, dog_size: str | None = None, age: int | None = None
 ) -> ValidationResult:
-    """OPTIMIZED: Enhanced weight validation with size/age checks.
+    """OPTIMIZED: Enhanced weight validation with size/age checks."""
 
-    Args:
-        weight: Weight in kilograms
-        dog_size: Optional size category
-        age: Optional age for adjustments
-
-    Returns:
-        Tuple of (is_valid, error_message)
-    """
     try:
         weight_val = float(weight)
-
-        # OPTIMIZED: Fast basic validation
-        if weight_val <= 0 or not math.isfinite(weight_val):
-            return False, "Weight must be positive and finite"
-
-        if not (MIN_DOG_WEIGHT <= weight_val <= MAX_DOG_WEIGHT):
-            return False, f"Weight must be {MIN_DOG_WEIGHT}-{MAX_DOG_WEIGHT}kg"
-
-        # OPTIMIZED: Size-specific validation using pre-calculated ranges
-        if dog_size and dog_size in DOG_SIZE_WEIGHT_RANGES:
-            min_weight, max_weight = DOG_SIZE_WEIGHT_RANGES[dog_size]
-
-            # OPTIMIZED: Age adjustments without complex calculations
-            if age is not None:
-                if age < 1:  # Puppy
-                    min_weight *= 0.3
-                    max_weight *= 0.8
-                elif age > 8:  # Senior
-                    max_weight *= 1.15
-
-            if not (min_weight <= weight_val <= max_weight):
-                return (
-                    False,
-                    f"{dog_size} dogs: {min_weight:.1f}-{max_weight:.1f}kg expected",
-                )
-
-        return True, None
-
     except (ValueError, TypeError) as err:
         return False, f"Invalid weight: {err}"
+
+    if weight_val <= 0 or not math.isfinite(weight_val):
+        return False, "Weight must be positive and finite"
+
+    if not (MIN_DOG_WEIGHT <= weight_val <= MAX_DOG_WEIGHT):
+        return False, f"Weight must be {MIN_DOG_WEIGHT}-{MAX_DOG_WEIGHT}kg"
+
+    if dog_size and dog_size in DOG_SIZE_WEIGHT_RANGES:
+        return _validate_weight_for_size(weight_val, dog_size, age)
+
+    return True, None
+
+
+def _validate_weight_for_size(
+    weight_val: float, dog_size: str, age: int | None
+) -> ValidationResult:
+    """Validate weight against size-specific ranges."""
+
+    min_weight, max_weight = DOG_SIZE_WEIGHT_RANGES[dog_size]
+    adjusted_min = min_weight
+    adjusted_max = max_weight
+
+    if age is not None:
+        if age < 1:  # Puppy
+            adjusted_min = min_weight * 0.3
+            adjusted_max = max_weight * 0.8
+        elif age > 8:  # Senior
+            adjusted_max = max_weight * 1.15
+
+    if adjusted_min <= weight_val <= adjusted_max:
+        return True, None
+
+    return (
+        False,
+        f"{dog_size} dogs: {adjusted_min:.1f}-{adjusted_max:.1f}kg expected",
+    )
 
 
 @lru_cache(maxsize=CACHE_SIZE)
@@ -232,58 +265,58 @@ async def async_batch_validate(
 # OPTIMIZED: Formatting functions with better performance
 @lru_cache(maxsize=CACHE_SIZE)
 def format_duration_optimized(seconds: int, precision: str = "auto") -> str:
-    """OPTIMIZED: Fast duration formatting with intelligent precision.
+    """OPTIMIZED: Fast duration formatting with intelligent precision."""
 
-    Args:
-        seconds: Duration in seconds
-        precision: Precision level ('auto', 'exact', 'rounded')
-
-    Returns:
-        Formatted duration string
-    """
     if seconds <= 0:
         return "0 seconds"
 
-    # OPTIMIZED: Use divmod for efficient calculation
-    hours, remainder = divmod(seconds, 3600)
-    minutes, secs = divmod(remainder, 60)
+    if precision == "rounded":
+        return _format_duration_rounded(seconds)
 
+    return _format_duration_precise(seconds)
+
+
+def _format_duration_rounded(seconds: int) -> str:
+    """Format duration using rounded precision."""
+
+    units = [
+        ("day", 86400),
+        ("hour", 3600),
+        ("minute", 60),
+        ("second", 1),
+    ]
+    for name, unit_seconds in units:
+        value = seconds // unit_seconds
+        if value:
+            unit_name = name if value == 1 else f"{name}s"
+            return f"{value} {unit_name}"
+    return "0 seconds"
+
+
+def _format_duration_precise(seconds: int) -> str:
+    """Format duration with full precision."""
+
+    units = [
+        ("day", 86400),
+        ("hour", 3600),
+        ("minute", 60),
+        ("second", 1),
+    ]
     parts: list[str] = []
-    parts.extend(_format_hours(hours, precision))
+    remaining = seconds
+    for name, unit_seconds in units:
+        value, remaining = divmod(remaining, unit_seconds)
+        if value:
+            unit_name = name if value == 1 else f"{name}s"
+            parts.append(f"{value} {unit_name}")
 
-    if minutes > 0 and (precision != "rounded" or hours == 0):
-        parts.append(f"{minutes}m")
+    if not parts:
+        return "0 seconds"
 
-    if _include_seconds(secs, parts, precision, hours, minutes):
-        parts.append(f"{secs}s")
+    if len(parts) == 1:
+        return parts[0]
 
-    # OPTIMIZED: Fast string joining
-    return " ".join(parts)
-
-
-def _format_hours(hours: int, precision: str) -> list[str]:
-    """Format hour component, splitting into days when needed."""
-    if hours <= 0:
-        return []
-
-    if precision == "rounded" and hours >= 24:
-        days, remaining_hours = divmod(hours, 24)
-        parts = [f"{days}d"] if days else []
-        if remaining_hours > 0:
-            parts.append(f"{remaining_hours}h")
-        return parts
-
-    return [f"{hours}h"]
-
-
-def _include_seconds(
-    secs: int, parts: list[str], precision: str, hours: int, minutes: int
-) -> bool:
-    """Determine if seconds should be included in output."""
-    if secs > 0 or not parts:
-        if precision != "rounded" or (hours == 0 and minutes < 5):
-            return True
-    return False
+    return f"{parts[0]} and {parts[1]}"
 
 
 def format_distance_adaptive(meters: float, unit_preference: str = "auto") -> str:
@@ -336,27 +369,14 @@ def format_time_ago_smart(
 
     total_seconds = (ref_time - timestamp).total_seconds()
 
-    # OPTIMIZED: Fast path for common cases
     if total_seconds < 0:
-        return "future"
-    if total_seconds < 60:
-        return "now"
-    if total_seconds < 3600:
-        minutes = int(total_seconds / 60)
-        return f"{minutes}m ago"
-    if total_seconds < 86400:
-        hours = int(total_seconds / 3600)
-        return f"{hours}h ago"
+        return "in the future"
 
-    days = int(total_seconds / 86400)
-    if days < 7:
-        return f"{days}d ago"
-    if days < 30:
-        return f"{days // 7}w ago"
-    if days < 365:
-        return f"{days // 30}mo ago"
-
-    return f"{days // 365}y ago"
+    for limit, formatter in _TIME_AGO_THRESHOLDS:
+        if total_seconds < limit:
+            return formatter(total_seconds)
+    years = int(total_seconds / 31536000)
+    return f"{years} year{'s' if years != 1 else ''} ago"
 
 
 # OPTIMIZED: Calculation functions with enhanced performance
@@ -532,56 +552,55 @@ def deep_merge_dicts(
 def calculate_trend_advanced(
     values: tuple[float, ...], periods: int = 7
 ) -> dict[str, Any]:
-    """OPTIMIZED: Fast trend calculation with linear regression.
+    """OPTIMIZED: Fast trend calculation with linear regression."""
 
-    Args:
-        values: Tuple of values (most recent first)
-        periods: Number of periods to analyze
-
-    Returns:
-        Trend analysis results
-    """
     if len(values) < 2:
         return {"direction": "unknown", "strength": 0.0, "confidence": 0.0}
 
-    # OPTIMIZED: Take only needed periods
-    recent_values = list(values[:periods])
-    if len(recent_values) < 2:
+    recent = list(values[:periods])
+    if len(recent) < 2:
         return {"direction": "unknown", "strength": 0.0, "confidence": 0.0}
 
-    n = len(recent_values)
-    y = recent_values[::-1]  # Oldest first
-
-    # OPTIMIZED: Fast linear regression
-    x_mean = (n - 1) / 2  # Mean of 0,1,2,...,n-1
-    y_mean = sum(y) / n
-
-    numerator = sum((i - x_mean) * (y[i] - y_mean) for i in range(n))
-    denominator = sum((i - x_mean) ** 2 for i in range(n))
-
-    slope = numerator / denominator if denominator != 0 else 0
-
-    # OPTIMIZED: Simple R-squared calculation
-    y_pred = [slope * i + (y_mean - slope * x_mean) for i in range(n)]
-    ss_tot = sum((y[i] - y_mean) ** 2 for i in range(n))
-    ss_res = sum((y[i] - y_pred[i]) ** 2 for i in range(n))
-    r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
-
-    # OPTIMIZED: Determine direction and strength
-    abs_slope = abs(slope)
-    if abs_slope < 0.01:
-        direction, strength = "stable", 0.0
-    elif slope > 0:
-        direction, strength = "increasing", min(abs_slope * 10, 1.0)
-    else:
-        direction, strength = "decreasing", min(abs_slope * 10, 1.0)
+    slope, r_squared = _linear_regression(recent[::-1])
+    direction, strength = _trend_from_slope(slope)
 
     return {
         "direction": direction,
-        "strength": round(strength, 3),
-        "confidence": round(max(0, min(r_squared, 1)), 3),
-        "periods_analyzed": n,
+        "strength": strength,
+        "confidence": r_squared,
+        "periods_analyzed": len(recent),
     }
+
+
+def _linear_regression(values: list[float]) -> tuple[float, float]:
+    """Return slope and r-squared for given values."""
+
+    n = len(values)
+    x_mean = (n - 1) / 2
+    y_mean = sum(values) / n
+
+    numerator = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(values))
+    denominator = sum((i - x_mean) ** 2 for i in range(n))
+    slope = numerator / denominator if denominator else 0
+
+    y_pred = [slope * i + (y_mean - slope * x_mean) for i in range(n)]
+    ss_tot = sum((v - y_mean) ** 2 for v in values)
+    ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred))
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
+
+    return slope, round(max(0, min(r_squared, 1)), 3)
+
+
+def _trend_from_slope(slope: float) -> tuple[str, float]:
+    """Determine trend direction and strength from slope."""
+
+    abs_slope = abs(slope)
+    if abs_slope < 0.01:
+        return "stable", 0.0
+
+    direction = "increasing" if slope > 0 else "decreasing"
+    strength = round(min(abs_slope * 10, 1.0), 3)
+    return direction, strength
 
 
 def is_within_time_range_enhanced(

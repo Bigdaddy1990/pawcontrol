@@ -55,6 +55,18 @@ _LOGGER = logging.getLogger(__name__)
 # OPTIMIZATION: Schema cache for faster validation
 _SCHEMA_CACHE: dict[str, vol.Schema] = {}
 
+# Constant mapping for health data fields to feeding manager attributes
+_HEALTH_DATA_FIELD_MAP: Final[dict[str, str]] = {
+    "weight": "dog_weight",
+    "ideal_weight": "ideal_weight",
+    "body_condition_score": "body_condition_score",
+    "age_months": "age_months",
+    "activity_level": "activity_level",
+    "health_conditions": "health_conditions",
+    "weight_goal": "weight_goal",
+    "spayed_neutered": "spayed_neutered",
+}
+
 
 def _get_cached_schema(schema_id: str, builder: Callable[[], vol.Schema]) -> vol.Schema:
     """Get cached schema or build new one.
@@ -940,6 +952,14 @@ class PawControlServiceManager:
         # Update feeding manager config if available
         feeding_manager = runtime_data.get("feeding_manager")
         if feeding_manager:
+            config = feeding_manager._configs.get(dog_id)
+            if config:
+                for field, attr in _HEALTH_DATA_FIELD_MAP.items():
+                    if field in health_data:
+                        setattr(config, attr, health_data[field])
+
+                feeding_manager._invalidate_cache(dog_id)
+
             self._update_feeding_config(feeding_manager, dog_id, health_data)
 
         # Fire event
@@ -964,18 +984,7 @@ class PawControlServiceManager:
         if not config:
             return
 
-        field_map = {
-            "weight": "dog_weight",
-            "ideal_weight": "ideal_weight",
-            "body_condition_score": "body_condition_score",
-            "age_months": "age_months",
-            "activity_level": "activity_level",
-            "health_conditions": "health_conditions",
-            "weight_goal": "weight_goal",
-            "spayed_neutered": "spayed_neutered",
-        }
-
-        for key, attr in field_map.items():
+        for key, attr in _HEALTH_DATA_FIELD_MAP.items():
             if key in health_data:
                 setattr(config, attr, health_data[key])
 
