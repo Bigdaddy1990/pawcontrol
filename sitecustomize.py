@@ -31,7 +31,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     helpers.config_validation = config_validation
     sys.modules["homeassistant.helpers.config_validation"] = config_validation
 
-    def ensure_list(value):
+    def ensure_list(value):  # pragma: no cover
         return [] if value is None else (value if isinstance(value, list) else [value])
 
     def config_entry_only_config_schema(domain):
