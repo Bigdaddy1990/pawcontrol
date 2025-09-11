@@ -877,7 +877,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_START_WALK,
-                data={
+                service_data={
                     ATTR_DOG_ID: self._dog_id,
                     "label": "Manual walk",
                 },
@@ -930,7 +930,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_END_WALK,
-                data={ATTR_DOG_ID: self._dog_id},
+                service_data={ATTR_DOG_ID: self._dog_id},
                 blocking=False,
             )
 
@@ -974,7 +974,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_START_WALK,
-                data={
+                service_data={
                     ATTR_DOG_ID: self._dog_id,
                     "label": "Quick walk",
                 },
@@ -984,7 +984,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_END_WALK,
-                data={
+                service_data={
                     ATTR_DOG_ID: self._dog_id,
                     "duration": 10,
                     "distance": 800,

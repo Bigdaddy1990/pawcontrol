@@ -20,6 +20,7 @@ from .const import (
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
     MODULE_WALK,
     PLATFORMS,
 )
@@ -71,10 +72,14 @@ def get_platforms_for_profile_and_modules(
     if profile == "basic":
         if MODULE_WALK in enabled_modules or MODULE_GPS in enabled_modules:
             platforms.add(Platform.BINARY_SENSOR)
+        if MODULE_NOTIFICATIONS in enabled_modules:
+            platforms.add(Platform.SWITCH)
         return list(platforms)
 
-    # Profiles other than basic include switches
-    if enabled_modules:
+    # Profiles other than basic include switches for notifications or any module
+    if MODULE_NOTIFICATIONS in enabled_modules:
+        platforms.add(Platform.SWITCH)
+    elif enabled_modules:
         platforms.add(Platform.SWITCH)
 
     if MODULE_WALK in enabled_modules or MODULE_GPS in enabled_modules:
@@ -126,25 +131,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = PawControlCoordinator(hass, entry)
     data_manager = PawControlDataManager(hass, entry.entry_id)
     notification_manager = PawControlNotificationManager(hass, entry.entry_id)
+    feeding_manager = FeedingManager()
+    walk_manager = WalkManager()
     entity_factory = EntityFactory(coordinator)
 
     # Estimate entity count (used in performance tests)
-    def _estimate(dog: DogConfigData) -> None:
+    for dog in dogs_config:
         entity_factory.estimate_entity_count(profile, dog.get("modules", {}))
-
-    if len(dogs_config) > 3:
-        await asyncio.gather(
-            *[asyncio.to_thread(_estimate, dog) for dog in dogs_config]
-        )
-    else:
-        for dog in dogs_config:
-            await asyncio.to_thread(_estimate, dog)
 
     try:
         await asyncio.gather(
             coordinator.async_config_entry_first_refresh(),
             data_manager.async_initialize(),
             notification_manager.async_initialize(),
+            feeding_manager.async_initialize(dogs_config),
+            walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
     except Exception as err:
         raise ConfigEntryNotReady(f"Initialization failed: {err}") from err
@@ -163,6 +164,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "data_manager": data_manager,
         "notification_manager": notification_manager,
+        "feeding_manager": feeding_manager,
+        "walk_manager": walk_manager,
         "entity_factory": entity_factory,
         "entity_profile": profile,
         "dogs": dogs_config,
@@ -191,7 +194,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     if unload_ok and runtime_data:
-        for key in ("coordinator", "data_manager", "notification_manager"):
+        for key in (
+            "coordinator",
+            "data_manager",
+            "notification_manager",
+            "feeding_manager",
+            "walk_manager",
+        ):
             manager = runtime_data.get(key)
             if manager and hasattr(manager, "async_shutdown"):
                 await manager.async_shutdown()
