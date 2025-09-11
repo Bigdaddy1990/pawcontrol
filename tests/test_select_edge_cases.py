@@ -13,7 +13,6 @@ Test Areas:
 - Coordinator unavailability scenarios
 - Performance under stress conditions
 """
-
 # ruff: noqa: F403, F405
 from __future__ import annotations
 

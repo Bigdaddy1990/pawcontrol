@@ -8,22 +8,25 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import DOMAIN
 from .dashboard_renderer import DashboardRenderer
 
 _LOGGER = logging.getLogger(__name__)

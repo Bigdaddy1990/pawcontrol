@@ -4,63 +4,59 @@ Tests all number entities including base numbers, feeding numbers, walk numbers,
 GPS numbers, and health numbers. Validates proper functionality, state persistence,
 value validation, and device grouping for Gold Standard compliance.
 """
-
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_AGE,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.number import (
-    PawControlActivityGoalNumber,
-    PawControlCalorieTargetNumber,
-    PawControlDailyFoodAmountNumber,
-    PawControlDailyWalkTargetNumber,
-    PawControlDogAgeNumber,
-    PawControlDogWeightNumber,
-    PawControlFeedingReminderHoursNumber,
-    PawControlGeofenceRadiusNumber,
-    PawControlGPSAccuracyThresholdNumber,
-    PawControlGPSBatteryThresholdNumber,
-    PawControlGPSUpdateIntervalNumber,
-    PawControlGroomingIntervalNumber,
-    PawControlHealthScoreThresholdNumber,
-    PawControlLocationUpdateDistanceNumber,
-    PawControlMaxWalkSpeedNumber,
-    PawControlMealsPerDayNumber,
-    PawControlNumberBase,
-    PawControlPortionSizeNumber,
-    PawControlTargetWeightNumber,
-    PawControlVetCheckupIntervalNumber,
-    PawControlWalkDistanceTargetNumber,
-    PawControlWalkDurationTargetNumber,
-    PawControlWalkReminderHoursNumber,
-    PawControlWeightChangeThresholdNumber,
-    async_setup_entry,
-)
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfMass
+from homeassistant.const import UnitOfSpeed
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from custom_components.pawcontrol.const import CONF_DOG_AGE
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.number import async_setup_entry
+from custom_components.pawcontrol.number import PawControlActivityGoalNumber
+from custom_components.pawcontrol.number import PawControlCalorieTargetNumber
+from custom_components.pawcontrol.number import PawControlDailyFoodAmountNumber
+from custom_components.pawcontrol.number import PawControlDailyWalkTargetNumber
+from custom_components.pawcontrol.number import PawControlDogAgeNumber
+from custom_components.pawcontrol.number import PawControlDogWeightNumber
+from custom_components.pawcontrol.number import PawControlFeedingReminderHoursNumber
+from custom_components.pawcontrol.number import PawControlGeofenceRadiusNumber
+from custom_components.pawcontrol.number import PawControlGPSAccuracyThresholdNumber
+from custom_components.pawcontrol.number import PawControlGPSBatteryThresholdNumber
+from custom_components.pawcontrol.number import PawControlGPSUpdateIntervalNumber
+from custom_components.pawcontrol.number import PawControlGroomingIntervalNumber
+from custom_components.pawcontrol.number import PawControlHealthScoreThresholdNumber
+from custom_components.pawcontrol.number import PawControlLocationUpdateDistanceNumber
+from custom_components.pawcontrol.number import PawControlMaxWalkSpeedNumber
+from custom_components.pawcontrol.number import PawControlMealsPerDayNumber
+from custom_components.pawcontrol.number import PawControlNumberBase
+from custom_components.pawcontrol.number import PawControlPortionSizeNumber
+from custom_components.pawcontrol.number import PawControlTargetWeightNumber
+from custom_components.pawcontrol.number import PawControlVetCheckupIntervalNumber
+from custom_components.pawcontrol.number import PawControlWalkDistanceTargetNumber
+from custom_components.pawcontrol.number import PawControlWalkDurationTargetNumber
+from custom_components.pawcontrol.number import PawControlWalkReminderHoursNumber
+from custom_components.pawcontrol.number import PawControlWeightChangeThresholdNumber
 
 
 def _create_mock_coordinator(module_data: dict | None = None):

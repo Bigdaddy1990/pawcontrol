@@ -8,7 +8,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
@@ -18,16 +17,14 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .const import (
-    CONF_MODULES,
-    FEEDING_SCHEDULE_TYPES,
-    FOOD_TYPES,
-    MODULE_DASHBOARD,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    SPECIAL_DIET_OPTIONS,
-)
+from .const import CONF_MODULES
+from .const import FEEDING_SCHEDULE_TYPES
+from .const import FOOD_TYPES
+from .const import MODULE_DASHBOARD
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import SPECIAL_DIET_OPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -6,16 +6,19 @@ entity count estimation, and platform prioritization.
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.entity_factory import EntityFactory
 
 
 @pytest.fixture

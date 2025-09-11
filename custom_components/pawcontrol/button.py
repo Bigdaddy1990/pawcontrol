@@ -7,7 +7,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -15,35 +14,36 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
+from homeassistant.components.button import ButtonDeviceClass
+from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    SERVICE_END_WALK,
-    SERVICE_FEED_DOG,
-    SERVICE_LOG_HEALTH,
-    SERVICE_NOTIFY_TEST,
-    SERVICE_START_GROOMING,
-    SERVICE_START_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
+from .const import SERVICE_END_WALK
+from .const import SERVICE_FEED_DOG
+from .const import SERVICE_LOG_HEALTH
+from .const import SERVICE_NOTIFY_TEST
+from .const import SERVICE_START_GROOMING
+from .const import SERVICE_START_WALK
 from .coordinator import PawControlCoordinator
-from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
+from .exceptions import WalkAlreadyInProgressError
+from .exceptions import WalkNotInProgressError
 from .utils import create_device_info
 
 _LOGGER = logging.getLogger(__name__)

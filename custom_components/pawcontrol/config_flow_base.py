@@ -8,36 +8,34 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
 import time
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
-from .const import (
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
-    CONF_DOG_WEIGHT,
-    DOG_SIZES,
-    DOMAIN,
-    MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
-    MIN_DOG_WEIGHT,
-)
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import DOG_SIZES
+from .const import DOMAIN
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_NAME_LENGTH
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_NAME_LENGTH
+from .const import MIN_DOG_WEIGHT
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
