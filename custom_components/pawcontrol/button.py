@@ -542,7 +542,7 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         icon: str | None = None,
         entity_category: str | None = None,
         action_description: str | None = None,
-        ) -> None:
+    ) -> None:
         """Initialize optimized button entity."""
         super().__init__(coordinator)
         self._dog_id = dog_id

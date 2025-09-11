@@ -1720,7 +1720,8 @@ class FeedingManager:
                         portion, base_unadjusted * PUPPY_PORTION_SAFEGUARD_FACTOR
                     )
                 elif (
-                    health_metrics.life_stage in (LifeStage.SENIOR, LifeStage.GERIATRIC)
+                    health_metrics.life_stage in (
+                        LifeStage.SENIOR, LifeStage.GERIATRIC)
                     and config.dog_weight
                     and config.dog_weight <= 10
                 ):
