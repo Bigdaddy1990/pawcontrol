@@ -135,10 +135,10 @@ def validate_dog_id(dog_id: str) -> ValidationResult:
         return False, "Dog ID cannot be empty"
 
     if not (1 <= len(dog_id) <= 50):
-        return False, f"Dog ID must be 1-50 characters (got {len(dog_id)})"
+        return False, "Dog ID must be between 1 and 50 characters"
 
     if not DOG_ID_PATTERN.match(dog_id):
-        return False, "Dog ID: letters, numbers, underscores only"
+        return False, "Dog ID can only contain letters, numbers, and underscores"
 
     return True, None
 
@@ -158,13 +158,17 @@ async def async_validate_coordinates(
     try:
         lat, lon = float(latitude), float(longitude)
 
-        # OPTIMIZED: Fast NaN/inf checks
-        if not (math.isfinite(lat) and math.isfinite(lon)):
-            return False, "Coordinates must be finite numbers"
+        if math.isnan(lat) or math.isnan(lon):
+            return False, "Coordinates cannot be NaN"
 
-        # OPTIMIZED: Combined range check
-        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-            return False, f"Invalid coordinates: lat={lat}, lon={lon}"
+        if math.isinf(lat) or math.isinf(lon):
+            return False, "Coordinates cannot be infinite"
+
+        if not (-90 <= lat <= 90):
+            return False, "Latitude must be between -90 and 90"
+
+        if not (-180 <= lon <= 180):
+            return False, "Longitude must be between -180 and 180"
 
         return True, None
 
@@ -180,13 +184,16 @@ def validate_weight_enhanced(
     try:
         weight_val = float(weight)
     except (ValueError, TypeError) as err:
-        return False, f"Invalid weight: {err}"
+        return False, f"Invalid weight format: {err}"
 
-    if weight_val <= 0 or not math.isfinite(weight_val):
-        return False, "Weight must be positive and finite"
+    if not math.isfinite(weight_val):
+        return False, "Weight must be a valid number"
+
+    if weight_val <= 0:
+        return False, "Weight must be positive"
 
     if not (MIN_DOG_WEIGHT <= weight_val <= MAX_DOG_WEIGHT):
-        return False, f"Weight must be {MIN_DOG_WEIGHT}-{MAX_DOG_WEIGHT}kg"
+        return False, f"Weight must be between {MIN_DOG_WEIGHT}-{MAX_DOG_WEIGHT}kg"
 
     if dog_size and dog_size in DOG_SIZE_WEIGHT_RANGES:
         return _validate_weight_for_size(weight_val, dog_size, age)
@@ -215,7 +222,7 @@ def _validate_weight_for_size(
 
     return (
         False,
-        f"{dog_size} dogs: {adjusted_min:.1f}-{adjusted_max:.1f}kg expected",
+        f"{dog_size} dogs should weigh between {adjusted_min:.1f} and {adjusted_max:.1f}kg",
     )
 
 
@@ -234,7 +241,7 @@ def validate_enum_value(
         Tuple of (is_valid, error_message)
     """
     if not isinstance(value, str):
-        return False, f"{field_name} must be string"
+        return False, f"{field_name} must be a string"
 
     if value not in valid_values:
         return False, f"{field_name} must be one of: {', '.join(valid_values)}"
