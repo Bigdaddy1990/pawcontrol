@@ -1,5 +1,6 @@
 """Test configuration and fixtures for Paw Control integration."""
 
+import tempfile
 from datetime import datetime, timedelta
 from types import MappingProxyType
 from unittest.mock import AsyncMock, Mock, patch
@@ -34,7 +35,13 @@ def event_loop():
 @pytest.fixture
 def hass(event_loop):
     """Return a minimal HomeAssistant instance."""
-    instance = HomeAssistant(config_dir=None)  # config_dir added
+
+    temp_dir = tempfile.mkdtemp()
+
+    async def _create_instance() -> HomeAssistant:
+        return HomeAssistant(config_dir=temp_dir)
+
+    instance = event_loop.run_until_complete(_create_instance())
     instance.loop = event_loop
     return instance
 

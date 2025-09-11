@@ -39,6 +39,9 @@ _LOGGER = logging.getLogger(__name__)
 
 MAINTENANCE_INTERVAL = 3600
 
+# Simple state constant exposed for tests
+STATE_ONLINE = "online"
+
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Simplified coordinator for PawControl integration.
