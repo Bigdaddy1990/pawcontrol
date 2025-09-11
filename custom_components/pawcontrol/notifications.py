@@ -16,7 +16,6 @@ import logging
 from contextlib import suppress
 from datetime import timedelta
 from typing import Any
-from typing import Optional
 from typing import TYPE_CHECKING
 
 from homeassistant.components import persistent_notification
@@ -275,7 +274,7 @@ class PawControlNotificationManager:
 
                 # Process delivery results
                 successful_deliveries = []
-                for method, result in zip(methods, results):
+                for method, result in zip(methods, results, strict=False):
                     if isinstance(result, Exception):
                         _LOGGER.error(
                             "Delivery failed for %s: %s", method, result)

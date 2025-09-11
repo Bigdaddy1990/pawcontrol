@@ -14,10 +14,6 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from homeassistant.util import dt as dt_util
 
@@ -510,7 +506,7 @@ class WalkManager:
         streak = 0
         current_date = today
 
-        for i in range(30):  # Check last 30 days
+        for _i in range(30):  # Check last 30 days
             day_walks = [
                 w
                 for w in recent_walks

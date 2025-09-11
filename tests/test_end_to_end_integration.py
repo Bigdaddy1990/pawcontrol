@@ -575,7 +575,7 @@ class TestEndToEndIntegration:
             coordinator, "feeding_manager", new=AsyncMock()
         ) as mock_feeding:
             # Scenario 1: Manager timeout
-            mock_feeding.async_get_feeding_data.side_effect = asyncio.TimeoutError(
+            mock_feeding.async_get_feeding_data.side_effect = TimeoutError(
                 "Timeout test"
             )
 

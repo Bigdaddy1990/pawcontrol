@@ -687,7 +687,7 @@ class TestDogConfigurationEdgeCases:
             ("A" * 100, "a" * 20),  # Very long name
         ]
 
-        for name, expected_pattern in edge_cases:
+        for name, _expected_pattern in edge_cases:
             suggestion = await config_flow._generate_smart_dog_id_suggestion(
                 {CONF_DOG_NAME: name}
             )
@@ -908,7 +908,7 @@ class TestDietValidationEdgeCases:
             (12, "giant", "low"),  # Senior giant dog
         ]
 
-        for age, size, expected_level in test_cases:
+        for age, size, _expected_level in test_cases:
             suggestion = config_flow._suggest_activity_level(age, size)
 
             assert suggestion in ["very_low", "low",
@@ -1198,13 +1198,13 @@ class TestPerformanceAndStressScenarios:
         """Test error recovery mechanisms under stress conditions."""
         # Simulate various error conditions
         error_scenarios = [
-            ("timeout", asyncio.TimeoutError()),
+            ("timeout", TimeoutError()),
             ("validation", ValueError("Validation failed")),
             ("network", ConnectionError("Network error")),
             ("memory", MemoryError("Out of memory")),
         ]
 
-        for error_name, error in error_scenarios:
+        for _error_name, error in error_scenarios:
             # Test error handling doesn't break the flow
             with patch.object(
                 config_flow, "_async_validate_dog_config", side_effect=error

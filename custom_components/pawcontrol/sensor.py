@@ -10,7 +10,6 @@ import logging
 from contextlib import suppress
 from datetime import datetime
 from typing import Any
-from typing import Optional
 from typing import Union
 
 from homeassistant.components.sensor import SensorDeviceClass

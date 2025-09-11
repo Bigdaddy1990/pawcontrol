@@ -143,7 +143,7 @@ class TestEntityProfileManagement:
     @pytest.mark.asyncio
     async def test_entity_profiles_step_valid_selection(self, options_flow):
         """Test entity profile selection with valid profiles."""
-        for profile_name in ENTITY_PROFILES.keys():
+        for profile_name in ENTITY_PROFILES:
             result = await options_flow.async_step_entity_profiles(
                 {"entity_profile": profile_name}
             )
@@ -205,7 +205,7 @@ class TestEntityProfileManagement:
 
     def test_performance_impact_description_all_profiles(self, options_flow):
         """Test performance impact descriptions for all profiles."""
-        for profile in ENTITY_PROFILES.keys():
+        for profile in ENTITY_PROFILES:
             description = options_flow._get_performance_impact_description(
                 profile)
             assert isinstance(description, str)
@@ -1000,7 +1000,7 @@ class TestSchemaValidationEdgeCases:
         """Test entity profiles schema accepts all valid profiles."""
         schema = options_flow._get_entity_profiles_schema()
 
-        for profile_name in ENTITY_PROFILES.keys():
+        for profile_name in ENTITY_PROFILES:
             test_data = {"entity_profile": profile_name}
             validated = schema(test_data)
             assert validated["entity_profile"] == profile_name
@@ -1237,7 +1237,7 @@ class TestPerformanceAndStressScenarios:
         """Test error recovery mechanisms under various failure conditions."""
         error_scenarios = [
             ("network_error", ConnectionError("Network failed")),
-            ("timeout_error", asyncio.TimeoutError()),
+            ("timeout_error", TimeoutError()),
             ("value_error", ValueError("Invalid value")),
             ("type_error", TypeError("Wrong type")),
             ("generic_error", Exception("Generic failure")),
@@ -1281,7 +1281,7 @@ class TestEntityFactoryIntegration:
         }
 
         # Test estimation for each profile
-        for profile_name in ENTITY_PROFILES.keys():
+        for profile_name in ENTITY_PROFILES:
             estimate = options_flow._entity_factory.estimate_entity_count(
                 profile_name, test_modules
             )
@@ -1304,7 +1304,7 @@ class TestEntityFactoryIntegration:
         ]
 
         for modules in edge_cases:
-            for profile_name in ENTITY_PROFILES.keys():
+            for profile_name in ENTITY_PROFILES:
                 estimate = options_flow._entity_factory.estimate_entity_count(
                     profile_name, modules
                 )

@@ -794,79 +794,85 @@ class TestPawControlDeviceTracker:
     def test_get_tracking_status_variations(self, device_tracker):
         """Test tracking status assessment."""
         # Test no location
-        with patch.object(
-            device_tracker, "_assess_gps_signal_quality", return_value="good"
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                device_tracker, "_assess_gps_signal_quality", return_value="good"
+            ),
+            patch.object(
                 device_tracker, "_assess_data_freshness", return_value="current"
-            ):
-                with patch.object(
-                    device_tracker, "_get_battery_status", return_value="good"
-                ):
-                    status = device_tracker._get_tracking_status(
-                        {"latitude": None, "longitude": None}
-                    )
-                    assert status == "no_location"
+            ),
+            patch.object(device_tracker, "_get_battery_status",
+                         return_value="good"),
+        ):
+            status = device_tracker._get_tracking_status(
+                {"latitude": None, "longitude": None}
+            )
+            assert status == "no_location"
 
         # Test active tracking
-        with patch.object(
-            device_tracker, "_assess_gps_signal_quality", return_value="excellent"
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                device_tracker, "_assess_gps_signal_quality", return_value="excellent"
+            ),
+            patch.object(
                 device_tracker, "_assess_data_freshness", return_value="current"
-            ):
-                with patch.object(
-                    device_tracker, "_get_battery_status", return_value="good"
-                ):
-                    status = device_tracker._get_tracking_status(
-                        {"latitude": 37.7749, "longitude": -122.4194}
-                    )
-                    assert status == "tracking_active"
+            ),
+            patch.object(device_tracker, "_get_battery_status",
+                         return_value="good"),
+        ):
+            status = device_tracker._get_tracking_status(
+                {"latitude": 37.7749, "longitude": -122.4194}
+            )
+            assert status == "tracking_active"
 
         # Test tracking with low battery
-        with patch.object(
-            device_tracker, "_assess_gps_signal_quality", return_value="good"
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                device_tracker, "_assess_gps_signal_quality", return_value="good"
+            ),
+            patch.object(
                 device_tracker, "_assess_data_freshness", return_value="current"
-            ):
-                with patch.object(
-                    device_tracker, "_get_battery_status", return_value="low"
-                ):
-                    status = device_tracker._get_tracking_status(
-                        {"latitude": 37.7749, "longitude": -122.4194}
-                    )
-                    assert status == "tracking_battery_low"
+            ),
+            patch.object(device_tracker, "_get_battery_status",
+                         return_value="low"),
+        ):
+            status = device_tracker._get_tracking_status(
+                {"latitude": 37.7749, "longitude": -122.4194}
+            )
+            assert status == "tracking_battery_low"
 
         # Test tracking with critical battery
-        with patch.object(
-            device_tracker, "_assess_gps_signal_quality", return_value="good"
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                device_tracker, "_assess_gps_signal_quality", return_value="good"
+            ),
+            patch.object(
                 device_tracker, "_assess_data_freshness", return_value="current"
-            ):
-                with patch.object(
-                    device_tracker, "_get_battery_status", return_value="critical"
-                ):
-                    status = device_tracker._get_tracking_status(
-                        {"latitude": 37.7749, "longitude": -122.4194}
-                    )
-                    assert status == "tracking_battery_critical"
+            ),
+            patch.object(
+                device_tracker, "_get_battery_status", return_value="critical"
+            ),
+        ):
+            status = device_tracker._get_tracking_status(
+                {"latitude": 37.7749, "longitude": -122.4194}
+            )
+            assert status == "tracking_battery_critical"
 
         # Test degraded tracking
-        with patch.object(
-            device_tracker, "_assess_gps_signal_quality", return_value="poor"
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                device_tracker, "_assess_gps_signal_quality", return_value="poor"
+            ),
+            patch.object(
                 device_tracker, "_assess_data_freshness", return_value="stale"
-            ):
-                with patch.object(
-                    device_tracker, "_get_battery_status", return_value="good"
-                ):
-                    status = device_tracker._get_tracking_status(
-                        {"latitude": 37.7749, "longitude": -122.4194}
-                    )
-                    assert status == "tracking_degraded"
+            ),
+            patch.object(device_tracker, "_get_battery_status",
+                         return_value="good"),
+        ):
+            status = device_tracker._get_tracking_status(
+                {"latitude": 37.7749, "longitude": -122.4194}
+            )
+            assert status == "tracking_degraded"
 
     def test_available_with_recent_gps_data(self, device_tracker, mock_coordinator):
         """Test availability with recent GPS data."""

@@ -14,7 +14,6 @@ from contextlib import suppress
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Optional
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.binary_sensor import BinarySensorEntity

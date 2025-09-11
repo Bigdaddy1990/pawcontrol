@@ -13,7 +13,6 @@ from enum import StrEnum
 from types import ModuleType
 from types import SimpleNamespace
 from typing import Any
-from typing import Generic
 from typing import TypeVar
 
 # Prevent unexpected plugins from loading during test collection
@@ -250,7 +249,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
     T = TypeVar("T")
 
-    class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - minimal stand-in
+    class DataUpdateCoordinator[T]:  # pragma: no cover - minimal stand-in
         """Basic subset of Home Assistant's DataUpdateCoordinator."""
 
         def __init__(

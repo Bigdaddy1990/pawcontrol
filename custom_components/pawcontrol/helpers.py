@@ -10,9 +10,6 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -101,13 +98,13 @@ class PawControlDataStorage:
         try:
             # Load all data stores concurrently for better performance
             load_tasks = [
-                self._load_store_data(store_key) for store_key in self._stores.keys()
+                self._load_store_data(store_key) for store_key in self._stores
             ]
 
             results = await asyncio.gather(*load_tasks, return_exceptions=True)
 
             data = {}
-            for store_key, result in zip(self._stores.keys(), results):
+            for store_key, result in zip(self._stores.keys(), results, strict=False):
                 if isinstance(result, Exception):
                     _LOGGER.error("Failed to load %s data: %s",
                                   store_key, result)
@@ -173,7 +170,7 @@ class PawControlDataStorage:
         cutoff_date = dt_util.utcnow() - timedelta(days=retention_days)
 
         # Clean up each data store
-        for store_key in self._stores.keys():
+        for store_key in self._stores:
             try:
                 data = await self._load_store_data(store_key)
                 cleaned_data = self._cleanup_store_data(data, cutoff_date)

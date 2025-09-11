@@ -491,7 +491,7 @@ class TestConfigurationMigrationScenarios:
         )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        assert all(key in result["data"] for key in new_settings.keys())
+        assert all(key in result["data"] for key in new_settings)
 
     @pytest.mark.asyncio
     async def test_dog_module_configuration_evolution(self, advanced_options_flow):
@@ -902,7 +902,7 @@ class TestAdvancedErrorRecoveryScenarios:
         """Test recovery from network timeouts during configuration saves."""
         # Simulate network timeout
         advanced_options_flow.hass.config_entries.async_update_entry.side_effect = (
-            asyncio.TimeoutError()
+            TimeoutError()
         )
 
         result = await advanced_options_flow.async_step_gps_settings(
@@ -1071,7 +1071,7 @@ class TestPerformanceValidationScenarios:
         start_time = time.time()
 
         # Validate multiple schemas rapidly
-        for schema, data in zip(schemas, test_data_sets):
+        for schema, data in zip(schemas, test_data_sets, strict=False):
             validated = schema(data)
             assert validated is not None
 

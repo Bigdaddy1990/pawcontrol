@@ -98,7 +98,7 @@ class TestProfileOptimizedSwitchFactory:
         assert MODULE_NOTIFICATIONS in feature_switches
 
         # Each feature switch should have proper structure
-        for module, switches in feature_switches.items():
+        for switches in feature_switches.values():
             assert isinstance(switches, list)
             for switch_id, switch_name, icon in switches:
                 assert isinstance(switch_id, str)
@@ -1249,7 +1249,7 @@ class TestSwitchConstants:
         """Test that feature switches have proper structure."""
         feature_switches = ProfileOptimizedSwitchFactory.FEATURE_SWITCHES
 
-        for module, switches in feature_switches.items():
+        for switches in feature_switches.values():
             assert isinstance(switches, list)
             assert len(switches) > 0
 

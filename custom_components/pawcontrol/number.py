@@ -10,9 +10,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.components.number import NumberDeviceClass
 from homeassistant.components.number import NumberEntity
@@ -52,7 +49,7 @@ from .coordinator import PawControlCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes

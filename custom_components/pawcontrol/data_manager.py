@@ -15,8 +15,6 @@ from contextlib import suppress
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Deque
-from typing import Optional
 from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
@@ -56,7 +54,7 @@ class AdaptiveCache:
         """
         self._data: dict[str, Any] = {}
         self._metadata: dict[str, dict[str, Any]] = {}
-        self._access_history: Deque[tuple[str, datetime]] = deque(maxlen=1000)
+        self._access_history: deque[tuple[str, datetime]] = deque(maxlen=1000)
         self._hit_count = 0
         self._miss_count = 0
         self._max_memory_bytes = max_memory_mb * 1024 * 1024
@@ -650,9 +648,9 @@ class PawControlDataManager:
                 for namespace in self._namespaces:
                     namespace_data = await self._get_namespace_data(namespace)
 
-                    if namespace == "dogs" and dog_id in namespace_data:
-                        del namespace_data[dog_id]
-                    elif isinstance(namespace_data.get(dog_id), (list, dict)):
+                    if (namespace == "dogs" and dog_id in namespace_data) or isinstance(
+                        namespace_data.get(dog_id), list | dict
+                    ):
                         del namespace_data[dog_id]
 
                     await self._save_namespace(namespace, namespace_data)
@@ -986,7 +984,7 @@ class PawControlDataManager:
 
         if dog_id == "all":
             dogs = await self._get_namespace_data("dogs")
-            for single_id in dogs.keys():
+            for single_id in dogs:
                 await self.async_update_dog_data(single_id, reset_data)
         else:
             await self.async_update_dog_data(dog_id, reset_data)

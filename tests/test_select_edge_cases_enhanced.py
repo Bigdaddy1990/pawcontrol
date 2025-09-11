@@ -934,7 +934,7 @@ class TestConfigurationMigrationBackwardCompatibility:
             "normal": "balanced",  # Old -> New performance mode
         }
 
-        for old_value, new_value in legacy_value_mappings.items():
+        for new_value in legacy_value_mappings.values():
             # Simulate select with legacy initial value
             select = PawControlSelectBase(
                 coordinator=mock_coordinator,

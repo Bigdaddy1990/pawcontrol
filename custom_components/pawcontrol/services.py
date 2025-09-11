@@ -6,7 +6,6 @@ Python: 3.13+
 """
 from __future__ import annotations
 
-import asyncio
 import functools
 import logging
 from collections.abc import Callable
@@ -149,12 +148,12 @@ SERVICE_HEALTH_SCHEMA: Final = _build_dog_service_schema(
         vol.Optional("temperature"): vol.All(
             vol.Coerce(float), vol.Range(min=35.0, max=42.0)
         ),
-        vol.Optional("mood", default=""): vol.In([""] + list(MOOD_OPTIONS)),
+        vol.Optional("mood", default=""): vol.In(["", *list(MOOD_OPTIONS)]),
         vol.Optional("activity_level", default=""): vol.In(
-            [""] + list(ACTIVITY_LEVELS)
+            ["", *list(ACTIVITY_LEVELS)]
         ),
         vol.Optional("health_status", default=""): vol.In(
-            [""] + list(HEALTH_STATUS_OPTIONS)
+            ["", *list(HEALTH_STATUS_OPTIONS)]
         ),
         vol.Optional("note", default=""): vol.All(cv.string, vol.Length(max=1000)),
     }
@@ -300,7 +299,7 @@ def service_handler(
                 raise ServiceValidationError(err.user_message) from err
             except ServiceValidationError:
                 raise
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Service %s timed out after %ss",
                               func.__name__, timeout)
                 raise ServiceValidationError(
@@ -510,7 +509,7 @@ class PawControlServiceManager:
             Runtime data or None
         """
         # Find the correct entry for this dog
-        for entry_id, entry_data in self.hass.data.get(DOMAIN, {}).items():
+        for entry_data in self.hass.data.get(DOMAIN, {}).values():
             if isinstance(entry_data, dict):
                 # Check modern runtime_data first
                 if coordinator := entry_data.get("coordinator"):
@@ -545,7 +544,7 @@ class PawControlServiceManager:
         """
         dog_ids = []
 
-        for entry_id, entry_data in self.hass.data.get(DOMAIN, {}).items():
+        for entry_data in self.hass.data.get(DOMAIN, {}).values():
             if isinstance(entry_data, dict):
                 if coordinator := entry_data.get("coordinator"):
                     if hasattr(coordinator, "get_dog_ids"):

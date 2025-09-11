@@ -67,7 +67,7 @@ class TestConstants:
     def test_meal_types(self):
         """Test meal types constant."""
         expected_meals = ["breakfast", "lunch", "dinner", "snack"]
-        assert MEAL_TYPES == expected_meals
+        assert expected_meals == MEAL_TYPES
         assert isinstance(MEAL_TYPES, list)
         assert all(isinstance(meal, str) for meal in MEAL_TYPES)
 
@@ -75,14 +75,14 @@ class TestConstants:
         """Test food types constant."""
         expected_foods = ["dry_food", "wet_food",
                           "barf", "home_cooked", "mixed"]
-        assert FOOD_TYPES == expected_foods
+        assert expected_foods == FOOD_TYPES
         assert isinstance(FOOD_TYPES, list)
         assert all(isinstance(food, str) for food in FOOD_TYPES)
 
     def test_dog_sizes(self):
         """Test dog sizes constant."""
         expected_sizes = ["toy", "small", "medium", "large", "giant"]
-        assert DOG_SIZES == expected_sizes
+        assert expected_sizes == DOG_SIZES
         assert isinstance(DOG_SIZES, list)
         assert all(isinstance(size, str) for size in DOG_SIZES)
 
@@ -97,7 +97,7 @@ class TestConstants:
             "webhook",
             "mqtt",
         ]
-        assert GPS_SOURCES == expected_sources
+        assert expected_sources == GPS_SOURCES
         assert isinstance(GPS_SOURCES, list)
         assert all(isinstance(source, str) for source in GPS_SOURCES)
 
@@ -111,7 +111,7 @@ class TestConstants:
             "unwell",
             "sick",
         ]
-        assert HEALTH_STATUS_OPTIONS == expected_statuses
+        assert expected_statuses == HEALTH_STATUS_OPTIONS
         assert isinstance(HEALTH_STATUS_OPTIONS, list)
         assert all(isinstance(status, str) for status in HEALTH_STATUS_OPTIONS)
 
@@ -119,14 +119,14 @@ class TestConstants:
         """Test mood options."""
         expected_moods = ["happy", "neutral",
                           "sad", "angry", "anxious", "tired"]
-        assert MOOD_OPTIONS == expected_moods
+        assert expected_moods == MOOD_OPTIONS
         assert isinstance(MOOD_OPTIONS, list)
         assert all(isinstance(mood, str) for mood in MOOD_OPTIONS)
 
     def test_activity_levels(self):
         """Test activity levels."""
         expected_levels = ["very_low", "low", "normal", "high", "very_high"]
-        assert ACTIVITY_LEVELS == expected_levels
+        assert expected_levels == ACTIVITY_LEVELS
         assert isinstance(ACTIVITY_LEVELS, list)
         assert all(isinstance(level, str) for level in ACTIVITY_LEVELS)
 

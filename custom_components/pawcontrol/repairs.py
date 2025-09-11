@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import Optional
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
@@ -1041,7 +1039,7 @@ async def async_register_repairs(hass: HomeAssistant) -> None:
     _LOGGER.debug("Registering Paw Control repair checks")
 
     # Iterate over all entries and run checks
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
+    for data in hass.data.get(DOMAIN, {}).values():
         entry = data.get("entry")
         if entry:
             await async_check_for_issues(hass, entry)

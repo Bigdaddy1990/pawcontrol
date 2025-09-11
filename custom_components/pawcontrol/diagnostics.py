@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -652,8 +649,4 @@ def _looks_like_sensitive_string(value: str) -> bool:
 
     import re
 
-    for pattern in sensitive_patterns:
-        if re.search(pattern, value):
-            return True
-
-    return False
+    return any(re.search(pattern, value) for pattern in sensitive_patterns)

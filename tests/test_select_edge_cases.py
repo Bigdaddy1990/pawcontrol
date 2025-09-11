@@ -71,13 +71,16 @@ class TestSelectBaseEdgeCases:
     @pytest.mark.asyncio
     async def test_option_selection_with_service_failure(self, base_select):
         """Test option selection when underlying service fails."""
-        with patch.object(
-            base_select,
-            "_async_set_select_option",
-            side_effect=Exception("Service failed"),
+        with (
+            patch.object(
+                base_select,
+                "_async_set_select_option",
+                side_effect=Exception("Service failed"),
+            ),
+            pytest.raises(HomeAssistantError,
+                          match="Failed to set test_select"),
         ):
-            with pytest.raises(HomeAssistantError, match="Failed to set test_select"):
-                await base_select.async_select_option("option2")
+            await base_select.async_select_option("option2")
 
         # Option should not change on failure
         assert base_select.current_option == "option1"

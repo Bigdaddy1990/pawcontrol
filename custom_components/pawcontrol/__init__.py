@@ -32,6 +32,7 @@ from .services import async_setup_daily_reset_scheduler
 from .services import PawControlServiceManager
 from .types import DogConfigData
 from .walk_manager import WalkManager
+
 # Expose commonly patched classes/functions for tests
 
 
@@ -72,9 +73,7 @@ def get_platforms_for_profile_and_modules(
         return list(platforms)
 
     # Profiles other than basic include switches for notifications or any module
-    if MODULE_NOTIFICATIONS in enabled_modules:
-        platforms.add(Platform.SWITCH)
-    elif enabled_modules:
+    if MODULE_NOTIFICATIONS in enabled_modules or enabled_modules:
         platforms.add(Platform.SWITCH)
 
     if MODULE_WALK in enabled_modules or MODULE_GPS in enabled_modules:

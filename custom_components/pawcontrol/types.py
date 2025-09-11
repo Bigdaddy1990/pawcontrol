@@ -10,12 +10,8 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import TYPE_CHECKING
 from typing import TypedDict
-from typing import Union
 
 from homeassistant.config_entries import ConfigEntry
 
@@ -27,6 +23,7 @@ from .const import GPS_SOURCES
 from .const import HEALTH_STATUS_OPTIONS
 from .const import MEAL_TYPES
 from .const import MOOD_OPTIONS
+
 # Import validation constants from const.py (single source of truth)
 
 # Type aliases for better readability
@@ -34,8 +31,8 @@ DogId = str
 ConfigEntryId = str
 EntityId = str
 Timestamp = datetime
-ServiceData = Dict[str, Any]
-ConfigData = Dict[str, Any]
+ServiceData = dict[str, Any]
+ConfigData = dict[str, Any]
 
 
 class DogConfigData(TypedDict, total=False):
@@ -339,8 +336,8 @@ def is_gps_location_valid(location: Any) -> bool:
         isinstance(location, dict)
         and "latitude" in location
         and "longitude" in location
-        and isinstance(location["latitude"], (int, float))
-        and isinstance(location["longitude"], (int, float))
+        and isinstance(location["latitude"], int | float)
+        and isinstance(location["longitude"], int | float)
         and -90 <= location["latitude"] <= 90
         and -180 <= location["longitude"] <= 180
     )
@@ -353,7 +350,7 @@ def is_feeding_data_valid(data: Any) -> bool:
         and "meal_type" in data
         and "portion_size" in data
         and isinstance(data["meal_type"], str)
-        and isinstance(data["portion_size"], (int, float))
+        and isinstance(data["portion_size"], int | float)
         and data["portion_size"] >= 0
     )
 

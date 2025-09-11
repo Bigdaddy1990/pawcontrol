@@ -10,9 +10,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -48,7 +45,7 @@ from .coordinator import PawControlCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 # Additional option lists for selects
 WALK_MODES = [

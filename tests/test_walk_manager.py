@@ -517,7 +517,7 @@ class TestWalkManagerWalkData:
     async def test_walk_history_multiple_walks(self, initialized_walk_manager):
         """Test walk history with multiple completed walks."""
         # Complete multiple walks
-        for i in range(3):
+        for _i in range(3):
             await initialized_walk_manager.async_start_walk("dog1")
             await asyncio.sleep(0.001)  # Ensure different timestamps
             await initialized_walk_manager.async_end_walk("dog1")
@@ -1131,7 +1131,7 @@ class TestWalkManagerEdgeCases:
         try:
             walk_data = await walk_manager.async_get_walk_data("dog1")
             # Might return empty dict or raise exception - both are acceptable
-            assert isinstance(walk_data, (dict, str)) or walk_data is None
+            assert isinstance(walk_data, dict | str) or walk_data is None
         except (TypeError, AttributeError):
             # Exception is also acceptable for corrupted data
             pass
@@ -1302,7 +1302,7 @@ class TestWalkManagerIntegration:
         await walk_manager.async_initialize(["performance_test_dog"])
 
         # Add many walks to history
-        for i in range(50):
+        for _i in range(50):
             walk_id = await walk_manager.async_start_walk("performance_test_dog")
             if walk_id:
                 await walk_manager.async_end_walk("performance_test_dog")
