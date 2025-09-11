@@ -11,6 +11,8 @@ Python: 3.13+
 """
 from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
 from contextlib import suppress
 from datetime import date
@@ -59,8 +61,6 @@ async def _async_add_entities_in_batches(
         batch_size: Number of entities per batch (default: 12)
         delay_between_batches: Seconds to wait between batches (default: 0.1s)
     """
-    import asyncio
-
     total_entities = len(entities)
 
     _LOGGER.debug(
@@ -83,7 +83,9 @@ async def _async_add_entities_in_batches(
         )
 
         # Add batch without update_before_add to reduce Registry load
-        async_add_entities_func(batch, update_before_add=False)
+        result = async_add_entities_func(batch, update_before_add=False)
+        if inspect.isawaitable(result):
+            await result
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
@@ -334,23 +336,23 @@ class PawControlDateBase(
         await super().async_added_to_hass()
 
         # Restore previous state with error handling
-        if (last_state := await self.async_get_last_state()) is not None:
-            if last_state.state not in ("unknown", "unavailable"):
-                try:
-                    self._current_value = dt_util.parse_date(last_state.state)
-                    _LOGGER.debug(
-                        "Restored %s for %s: %s",
-                        self._date_type,
-                        self._dog_name,
-                        self._current_value,
-                    )
-                except (ValueError, TypeError) as err:
-                    _LOGGER.warning(
-                        "Failed to restore date state for %s: %s",
-                        self.entity_id,
-                        err,
-                    )
-                    self._current_value = None
+        last_state = await self.async_get_last_state()
+        if last_state and last_state.state not in ("unknown", "unavailable"):
+            try:
+                self._current_value = dt_util.parse_date(last_state.state)
+                _LOGGER.debug(
+                    "Restored %s for %s: %s",
+                    self._date_type,
+                    self._dog_name,
+                    self._current_value,
+                )
+            except (ValueError, TypeError) as err:
+                _LOGGER.warning(
+                    "Failed to restore date state for %s: %s",
+                    self.entity_id,
+                    err,
+                )
+                self._current_value = None
 
     @performance_monitor(timeout=5.0)
     async def async_set_value(self, value: date) -> None:
