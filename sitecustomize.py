@@ -11,10 +11,12 @@ import sys
 from datetime import datetime
 from enum import StrEnum
 from types import ModuleType, SimpleNamespace
-from typing import Callable
+from typing import Any, Awaitable, Callable, Generic, TypeVar
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+
+T = TypeVar("T")
 
 try:  # pragma: no cover - prefer real Home Assistant when present
     import homeassistant  # noqa: F401
@@ -35,6 +37,44 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     helpers.__path__ = []
     ha.helpers = helpers
     sys.modules["homeassistant.helpers"] = helpers
+
+    components = ModuleType("homeassistant.components")
+    components.__path__ = []
+    ha.components = components
+    sys.modules["homeassistant.components"] = components
+
+    event = ModuleType("homeassistant.helpers.event")
+    helpers.event = event
+    sys.modules["homeassistant.helpers.event"] = event
+
+    def async_track_time_change(hass, action, *args, **kwargs):  # pragma: no cover
+        action()
+        return lambda: None
+
+    event.async_track_time_change = async_track_time_change
+
+    persistent_notification = ModuleType(
+        "homeassistant.components.persistent_notification"
+    )
+
+    async def async_create(
+        hass, message, title=None, notification_id=None
+    ):  # pragma: no cover
+        return None
+
+    async def async_dismiss(hass, notification_id):  # pragma: no cover
+        return None
+
+    persistent_notification.async_create = async_create
+    persistent_notification.async_dismiss = async_dismiss
+    components.persistent_notification = persistent_notification
+    sys.modules["homeassistant.components.persistent_notification"] = (
+        persistent_notification
+    )
+
+    binary_sensor = ModuleType("homeassistant.components.binary_sensor")
+    components.binary_sensor = binary_sensor
+    sys.modules["homeassistant.components.binary_sensor"] = binary_sensor
 
     # ---- const -------------------------------------------------------------
     class _ConstModule(ModuleType):
@@ -67,8 +107,12 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     class ConfigEntryNotReady(HomeAssistantError):  # pragma: no cover
         pass
 
+    class ServiceValidationError(HomeAssistantError):  # pragma: no cover
+        pass
+
     exceptions.HomeAssistantError = HomeAssistantError
     exceptions.ConfigEntryNotReady = ConfigEntryNotReady
+    exceptions.ServiceValidationError = ServiceValidationError
     ha.exceptions = exceptions
     sys.modules["homeassistant.exceptions"] = exceptions
 
@@ -231,6 +275,51 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
     update_coordinator.UpdateFailed = UpdateFailed
     update_coordinator.CoordinatorUpdateFailed = UpdateFailed
+
+    class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - minimal stub
+        def __init__(
+            self,
+            hass: HomeAssistant,
+            logger: Any,
+            name: str,
+            update_method: Callable[[], Awaitable[T]] | None = None,
+        ) -> None:
+            self.hass = hass
+            self.logger = logger
+            self.name = name
+            self.update_method = update_method
+            self.last_update_success = True
+            self.data: T | None = None
+            self._listeners: list[Callable[[], None]] = []
+
+        async def async_refresh(self) -> None:
+            if self.update_method is None:
+                return
+            try:
+                self.data = await self.update_method()
+                self.last_update_success = True
+                for listener in list(self._listeners):
+                    listener()
+            except Exception as err:  # pragma: no cover - minimal error handling
+                self.last_update_success = False
+                raise UpdateFailed(f"Error fetching {self.name} data: {err}") from err
+
+        def async_add_listener(
+            self, listener: Callable[[], None]
+        ) -> Callable[[], None]:
+            self._listeners.append(listener)
+
+            def remove() -> None:
+                self._listeners.remove(listener)
+
+            return remove
+
+        def async_set_updated_data(self, data: T) -> None:
+            self.data = data
+            for listener in list(self._listeners):
+                listener()
+
+    update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
 
     # ---- core --------------------------------------------------------------
     core = ModuleType("homeassistant.core")
