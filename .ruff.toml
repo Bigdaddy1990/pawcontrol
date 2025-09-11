@@ -13,7 +13,7 @@ indent-width = 4
 # Ignore long lines initially; ruff format will wrap many cases
 #select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 ignore = ["E501"]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP"]
 fixable = ["ALL"]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 unfixable = []
