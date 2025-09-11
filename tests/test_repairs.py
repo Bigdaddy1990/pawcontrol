@@ -9,60 +9,59 @@ This test suite covers all aspects of the repairs system including:
 The repairs module is critical for automatic problem detection and
 user-guided repair flows, so comprehensive testing is essential.
 """
+from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
 import voluptuous as vol
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-)
-from custom_components.pawcontrol.repairs import (
-    ISSUE_COORDINATOR_ERROR,
-    ISSUE_DUPLICATE_DOG_IDS,
-    ISSUE_INVALID_DOG_DATA,
-    ISSUE_INVALID_GPS_CONFIG,
-    # Issue types
-    ISSUE_MISSING_DOG_CONFIG,
-    ISSUE_MISSING_NOTIFICATIONS,
-    ISSUE_MODULE_CONFLICT,
-    ISSUE_OUTDATED_CONFIG,
-    ISSUE_PERFORMANCE_WARNING,
-    ISSUE_STORAGE_WARNING,
-    REPAIR_FLOW_CONFIG_MIGRATION,
-    # Repair flow types
-    REPAIR_FLOW_DOG_CONFIG,
-    REPAIR_FLOW_GPS_SETUP,
-    REPAIR_FLOW_NOTIFICATION_SETUP,
-    REPAIR_FLOW_PERFORMANCE_OPTIMIZATION,
-    # Repair flow class
-    PawControlRepairsFlow,
-    _check_coordinator_health,
-    _check_dog_configuration_issues,
-    _check_gps_configuration_issues,
-    _check_notification_configuration_issues,
-    _check_outdated_configuration,
-    _check_performance_issues,
-    _check_storage_issues,
-    async_check_for_issues,
-    # Functions
-    async_create_issue,
-    async_create_repair_flow,
-)
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.repairs import _check_coordinator_health
+from custom_components.pawcontrol.repairs import _check_dog_configuration_issues
+from custom_components.pawcontrol.repairs import _check_gps_configuration_issues
+from custom_components.pawcontrol.repairs import _check_notification_configuration_issues
+from custom_components.pawcontrol.repairs import _check_outdated_configuration
+from custom_components.pawcontrol.repairs import _check_performance_issues
+from custom_components.pawcontrol.repairs import _check_storage_issues
+from custom_components.pawcontrol.repairs import async_check_for_issues
+from custom_components.pawcontrol.repairs import async_create_issue
+from custom_components.pawcontrol.repairs import async_create_repair_flow
+from custom_components.pawcontrol.repairs import ISSUE_COORDINATOR_ERROR
+from custom_components.pawcontrol.repairs import ISSUE_DUPLICATE_DOG_IDS
+from custom_components.pawcontrol.repairs import ISSUE_INVALID_DOG_DATA
+from custom_components.pawcontrol.repairs import ISSUE_INVALID_GPS_CONFIG
+from custom_components.pawcontrol.repairs import ISSUE_MISSING_DOG_CONFIG
+from custom_components.pawcontrol.repairs import ISSUE_MISSING_NOTIFICATIONS
+from custom_components.pawcontrol.repairs import ISSUE_MODULE_CONFLICT
+from custom_components.pawcontrol.repairs import ISSUE_OUTDATED_CONFIG
+from custom_components.pawcontrol.repairs import ISSUE_PERFORMANCE_WARNING
+from custom_components.pawcontrol.repairs import ISSUE_STORAGE_WARNING
+from custom_components.pawcontrol.repairs import PawControlRepairsFlow
+from custom_components.pawcontrol.repairs import REPAIR_FLOW_CONFIG_MIGRATION
+from custom_components.pawcontrol.repairs import REPAIR_FLOW_DOG_CONFIG
+from custom_components.pawcontrol.repairs import REPAIR_FLOW_GPS_SETUP
+from custom_components.pawcontrol.repairs import REPAIR_FLOW_NOTIFICATION_SETUP
+from custom_components.pawcontrol.repairs import REPAIR_FLOW_PERFORMANCE_OPTIMIZATION
 
 
 # Test fixtures
@@ -410,7 +409,8 @@ class TestDogConfigurationIssues:
             if call[1]["translation_key"] == ISSUE_INVALID_DOG_DATA
         )
 
-        assert len(invalid_call[1]["translation_placeholders"]["invalid_dogs"]) >= 1
+        assert len(
+            invalid_call[1]["translation_placeholders"]["invalid_dogs"]) >= 1
 
     async def test_check_dog_configuration_valid(
         self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
@@ -681,7 +681,8 @@ class TestCoordinatorHealth:
         coordinator.last_update_success = False
         coordinator.last_update_time = dt_util.utcnow()
 
-        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {
+            "coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
@@ -700,7 +701,8 @@ class TestCoordinatorHealth:
         coordinator = Mock()
         coordinator.last_update_success = True
 
-        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {
+            "coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
@@ -813,7 +815,8 @@ class TestPawControlRepairsFlow:
         mock_flow._issue_data = mock_issue_data
 
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(return_value=mock_config_entry)
+        hass.config_entries.async_get_entry = Mock(
+            return_value=mock_config_entry)
         hass.config_entries.async_update_entry = Mock()
 
         user_input = {
@@ -883,7 +886,8 @@ class TestPawControlRepairsFlow:
         }
 
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(return_value=config_entry_gps_issues)
+        hass.config_entries.async_get_entry = Mock(
+            return_value=config_entry_gps_issues)
         hass.config_entries.async_update_entry = Mock()
 
         # Configure GPS
@@ -959,7 +963,8 @@ class TestRepairFlowFactory:
 
     def test_async_create_repair_flow(self, hass: HomeAssistant):
         """Test repair flow creation."""
-        flow = async_create_repair_flow(hass, "test_issue_id", {"test": "data"})
+        flow = async_create_repair_flow(
+            hass, "test_issue_id", {"test": "data"})
 
         assert isinstance(flow, PawControlRepairsFlow)
 
@@ -986,7 +991,8 @@ class TestRepairsIntegration:
 
         # Step 2: Create repair flow
         flow = async_create_repair_flow(
-            hass, "test_issue", {"config_entry_id": minimal_config_entry.entry_id}
+            hass, "test_issue", {
+                "config_entry_id": minimal_config_entry.entry_id}
         )
 
         # Step 3: Complete repair

@@ -3,15 +3,19 @@
 If the real Home Assistant package isn't available, this module
 creates lightweight stand‑ins for the parts of the API used in tests.
 """
-
 from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Awaitable
+from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
-from types import ModuleType, SimpleNamespace
-from typing import Any, Awaitable, Callable, Generic, TypeVar
+from types import ModuleType
+from types import SimpleNamespace
+from typing import Any
+from typing import Generic
+from typing import TypeVar
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
@@ -302,7 +306,8 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
                     listener()
             except Exception as err:  # pragma: no cover - minimal error handling
                 self.last_update_success = False
-                raise UpdateFailed(f"Error fetching {self.name} data: {err}") from err
+                raise UpdateFailed(
+                    f"Error fetching {self.name} data: {err}") from err
 
         def async_add_listener(
             self, listener: Callable[[], None]

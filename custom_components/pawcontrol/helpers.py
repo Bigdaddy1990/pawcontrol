@@ -3,13 +3,16 @@
 This module provides core data management and notification functionality
 required for the Paw Control integration to achieve Platinum quality standards.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -18,24 +21,22 @@ from homeassistant.helpers import storage
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    CONF_NOTIFICATIONS,
-    CONF_QUIET_END,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
-    DATA_FILE_FEEDINGS,
-    DATA_FILE_HEALTH,
-    DATA_FILE_ROUTES,
-    DATA_FILE_STATS,
-    DATA_FILE_WALKS,
-    DOMAIN,
-    EVENT_FEEDING_LOGGED,
-    EVENT_HEALTH_LOGGED,
-    EVENT_WALK_ENDED,
-    EVENT_WALK_STARTED,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOGS
+from .const import CONF_NOTIFICATIONS
+from .const import CONF_QUIET_END
+from .const import CONF_QUIET_HOURS
+from .const import CONF_QUIET_START
+from .const import DATA_FILE_FEEDINGS
+from .const import DATA_FILE_HEALTH
+from .const import DATA_FILE_ROUTES
+from .const import DATA_FILE_STATS
+from .const import DATA_FILE_WALKS
+from .const import DOMAIN
+from .const import EVENT_FEEDING_LOGGED
+from .const import EVENT_HEALTH_LOGGED
+from .const import EVENT_WALK_ENDED
+from .const import EVENT_WALK_STARTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class PawControlDataStorage:
         """
         self.hass = hass
         self.config_entry = config_entry
-        self._stores: Dict[str, storage.Store] = {}
+        self._stores: dict[str, storage.Store] = {}
 
         # Initialize storage for each data type
         self._initialize_stores()
@@ -88,7 +89,7 @@ class PawControlDataStorage:
                 atomic_writes=True,
             )
 
-    async def async_load_all_data(self) -> Dict[str, Any]:
+    async def async_load_all_data(self) -> dict[str, Any]:
         """Load all stored data for the integration.
 
         Returns:
@@ -108,7 +109,8 @@ class PawControlDataStorage:
             data = {}
             for store_key, result in zip(self._stores.keys(), results):
                 if isinstance(result, Exception):
-                    _LOGGER.error("Failed to load %s data: %s", store_key, result)
+                    _LOGGER.error("Failed to load %s data: %s",
+                                  store_key, result)
                     data[store_key] = {}
                 else:
                     data[store_key] = result or {}
@@ -120,7 +122,7 @@ class PawControlDataStorage:
             _LOGGER.error("Failed to load integration data: %s", err)
             raise HomeAssistantError(f"Data loading failed: {err}") from err
 
-    async def _load_store_data(self, store_key: str) -> Dict[str, Any]:
+    async def _load_store_data(self, store_key: str) -> dict[str, Any]:
         """Load data from a specific store.
 
         Args:
@@ -140,7 +142,7 @@ class PawControlDataStorage:
             _LOGGER.error("Failed to load %s store: %s", store_key, err)
             return {}
 
-    async def async_save_data(self, store_key: str, data: Dict[str, Any]) -> None:
+    async def async_save_data(self, store_key: str, data: dict[str, Any]) -> None:
         """Save data to a specific store.
 
         Args:
@@ -159,7 +161,8 @@ class PawControlDataStorage:
             _LOGGER.debug("Saved data to %s store", store_key)
         except Exception as err:
             _LOGGER.error("Failed to save %s data: %s", store_key, err)
-            raise HomeAssistantError(f"Failed to save {store_key} data") from err
+            raise HomeAssistantError(
+                f"Failed to save {store_key} data") from err
 
     async def async_cleanup_old_data(self, retention_days: int = 90) -> None:
         """Clean up old data based on retention policy.
@@ -177,14 +180,15 @@ class PawControlDataStorage:
 
                 if data != cleaned_data:
                     await self.async_save_data(store_key, cleaned_data)
-                    _LOGGER.debug("Cleaned up old data from %s store", store_key)
+                    _LOGGER.debug(
+                        "Cleaned up old data from %s store", store_key)
 
             except Exception as err:
                 _LOGGER.error("Failed to cleanup %s data: %s", store_key, err)
 
     def _cleanup_store_data(
-        self, data: Dict[str, Any], cutoff_date: datetime
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], cutoff_date: datetime
+    ) -> dict[str, Any]:
         """Remove entries older than cutoff date from store data.
 
         Args:
@@ -231,8 +235,8 @@ class PawControlData:
         self.hass = hass
         self.config_entry = config_entry
         self.storage = PawControlDataStorage(hass, config_entry)
-        self._data: Dict[str, Any] = {}
-        self._dogs: List[Dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
+        self._data: dict[str, Any] = {}
+        self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
 
     async def async_load_data(self) -> None:
         """Load all data from storage.
@@ -256,7 +260,7 @@ class PawControlData:
             }
 
     async def async_log_feeding(
-        self, dog_id: str, feeding_data: Dict[str, Any]
+        self, dog_id: str, feeding_data: dict[str, Any]
     ) -> None:
         """Log a feeding event for a dog.
 
@@ -302,7 +306,7 @@ class PawControlData:
             _LOGGER.error("Failed to log feeding for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to log feeding: {err}") from err
 
-    async def async_start_walk(self, dog_id: str, walk_data: Dict[str, Any]) -> None:
+    async def async_start_walk(self, dog_id: str, walk_data: dict[str, Any]) -> None:
         """Start a walk for a dog.
 
         Args:
@@ -347,7 +351,7 @@ class PawControlData:
             _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to start walk: {err}") from err
 
-    async def async_end_walk(self, dog_id: str) -> Optional[Dict[str, Any]]:
+    async def async_end_walk(self, dog_id: str) -> dict[str, Any] | None:
         """End an active walk for a dog.
 
         Args:
@@ -412,14 +416,15 @@ class PawControlData:
                 },
             )
 
-            _LOGGER.debug("Ended walk for %s: %d minutes", dog_id, duration_minutes)
+            _LOGGER.debug("Ended walk for %s: %d minutes",
+                          dog_id, duration_minutes)
             return completed_walk
 
         except Exception as err:
             _LOGGER.error("Failed to end walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to end walk: {err}") from err
 
-    async def async_log_health(self, dog_id: str, health_data: Dict[str, Any]) -> None:
+    async def async_log_health(self, dog_id: str, health_data: dict[str, Any]) -> None:
         """Log health data for a dog.
 
         Args:
@@ -462,7 +467,8 @@ class PawControlData:
 
         except Exception as err:
             _LOGGER.error("Failed to log health data for %s: %s", dog_id, err)
-            raise HomeAssistantError(f"Failed to log health data: {err}") from err
+            raise HomeAssistantError(
+                f"Failed to log health data: {err}") from err
 
     async def async_daily_reset(self) -> None:
         """Reset daily statistics for all dogs.
@@ -479,7 +485,8 @@ class PawControlData:
                     stats_data[dog_id] = {}
 
                 # Archive yesterday's stats and reset daily counters
-                yesterday = (dt_util.utcnow() - timedelta(days=1)).date().isoformat()
+                yesterday = (dt_util.utcnow() - timedelta(days=1)
+                             ).date().isoformat()
 
                 if "daily" in stats_data[dog_id]:
                     if "history" not in stats_data[dog_id]:
@@ -533,7 +540,7 @@ class PawControlNotificationManager:
         """
         self.hass = hass
         self.config_entry = config_entry
-        self._notification_queue: List[Dict[str, Any]] = []
+        self._notification_queue: list[dict[str, Any]] = []
         self._setup_notification_processor()
 
     def _setup_notification_processor(self) -> None:
@@ -571,7 +578,7 @@ class PawControlNotificationManager:
         title: str,
         message: str,
         priority: str = "normal",
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """Send a notification for a specific dog.
 
@@ -602,7 +609,7 @@ class PawControlNotificationManager:
             # Queue normal and low priority notifications
             self._notification_queue.append(notification)
 
-    async def _send_notification_now(self, notification: Dict[str, Any]) -> None:
+    async def _send_notification_now(self, notification: dict[str, Any]) -> None:
         """Send a notification immediately.
 
         Args:
@@ -650,7 +657,8 @@ class PawControlNotificationManager:
         Returns:
             True if notification should be sent, False otherwise
         """
-        notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS, {})
+        notification_config = self.config_entry.options.get(
+            CONF_NOTIFICATIONS, {})
 
         # Always send urgent notifications
         if priority == "urgent":
@@ -665,7 +673,8 @@ class PawControlNotificationManager:
         quiet_end = notification_config.get(CONF_QUIET_END, "07:00:00")
 
         try:
-            quiet_start_time = datetime.strptime(quiet_start, "%H:%M:%S").time()
+            quiet_start_time = datetime.strptime(
+                quiet_start, "%H:%M:%S").time()
             quiet_end_time = datetime.strptime(quiet_end, "%H:%M:%S").time()
         except ValueError:
             # Invalid time format, allow notification

@@ -6,19 +6,19 @@ entity count estimation, and platform prioritization.
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.entity_factory import (
-    ENTITY_PROFILES,
-    EntityFactory,
-)
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.entity_factory import EntityFactory
 
 
 @pytest.fixture
@@ -140,7 +140,8 @@ class TestEntityFactory:
         """Test entity count estimation with invalid profile falls back to standard."""
         modules = {"feeding": True}
 
-        count = entity_factory.estimate_entity_count("invalid_profile", modules)
+        count = entity_factory.estimate_entity_count(
+            "invalid_profile", modules)
         assert count > 0  # Should still return a valid count
 
     def test_should_create_entity_critical_priority(self, entity_factory):
@@ -258,27 +259,34 @@ class TestEntityFactory:
 
     def test_get_platform_priority_basic(self, entity_factory):
         """Test platform loading priority for basic profile."""
-        assert entity_factory.get_platform_priority(Platform.SENSOR, "basic") == 1
-        assert entity_factory.get_platform_priority(Platform.BUTTON, "basic") == 2
+        assert entity_factory.get_platform_priority(
+            Platform.SENSOR, "basic") == 1
+        assert entity_factory.get_platform_priority(
+            Platform.BUTTON, "basic") == 2
         assert (
-            entity_factory.get_platform_priority(Platform.BINARY_SENSOR, "basic") == 3
+            entity_factory.get_platform_priority(
+                Platform.BINARY_SENSOR, "basic") == 3
         )
 
         # Platforms not in basic profile should have low priority
         assert (
-            entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "basic") == 99
+            entity_factory.get_platform_priority(
+                Platform.DEVICE_TRACKER, "basic") == 99
         )
 
     def test_get_platform_priority_gps_focus(self, entity_factory):
         """Test platform loading priority for GPS focus profile."""
         assert (
-            entity_factory.get_platform_priority(Platform.DEVICE_TRACKER, "gps_focus")
+            entity_factory.get_platform_priority(
+                Platform.DEVICE_TRACKER, "gps_focus")
             == 1
         )
-        assert entity_factory.get_platform_priority(Platform.SENSOR, "gps_focus") == 2
+        assert entity_factory.get_platform_priority(
+            Platform.SENSOR, "gps_focus") == 2
 
         # Non-GPS platforms should have lower priority
-        assert entity_factory.get_platform_priority(Platform.DATE, "gps_focus") == 99
+        assert entity_factory.get_platform_priority(
+            Platform.DATE, "gps_focus") == 99
 
     def test_create_entity_config_filtered(self, entity_factory):
         """Test that entity config is filtered based on profile."""
@@ -360,7 +368,8 @@ class TestEntityReduction:
             "gps": True,
             "health": True,
         }
-        standard_count = entity_factory.estimate_entity_count("standard", modules)
+        standard_count = entity_factory.estimate_entity_count(
+            "standard", modules)
 
         legacy_count = 54
         reduction_percent = (1 - standard_count / legacy_count) * 100
@@ -378,7 +387,8 @@ class TestEntityReduction:
             "notifications": True,
             "medication": True,
         }
-        advanced_count = entity_factory.estimate_entity_count("advanced", modules)
+        advanced_count = entity_factory.estimate_entity_count(
+            "advanced", modules)
 
         legacy_count = 54
         reduction_percent = (1 - advanced_count / legacy_count) * 100
@@ -394,11 +404,13 @@ class TestProfileMigration:
         """Test recommended upgrade path from basic to advanced."""
         # Start with basic profile
         basic_modules = {"feeding": True, "walk": True}
-        basic_count = entity_factory.estimate_entity_count("basic", basic_modules)
+        basic_count = entity_factory.estimate_entity_count(
+            "basic", basic_modules)
 
         # Add GPS module - should consider GPS focus
         gps_modules = {**basic_modules, "gps": True}
-        gps_count = entity_factory.estimate_entity_count("gps_focus", gps_modules)
+        gps_count = entity_factory.estimate_entity_count(
+            "gps_focus", gps_modules)
 
         # Add health module - should consider standard
         standard_modules = {**gps_modules, "health": True}
@@ -413,7 +425,8 @@ class TestProfileMigration:
             "medication": True,
             "training": True,
         }
-        advanced_count = entity_factory.estimate_entity_count("advanced", all_modules)
+        advanced_count = entity_factory.estimate_entity_count(
+            "advanced", all_modules)
 
         # Verify progressive increase
         assert basic_count < gps_count < standard_count < advanced_count
@@ -425,8 +438,10 @@ class TestProfileMigration:
         # GPS-focused setup
         gps_modules = {"gps": True, "walk": True}
 
-        gps_focus_count = entity_factory.estimate_entity_count("gps_focus", gps_modules)
-        standard_count = entity_factory.estimate_entity_count("standard", gps_modules)
+        gps_focus_count = entity_factory.estimate_entity_count(
+            "gps_focus", gps_modules)
+        standard_count = entity_factory.estimate_entity_count(
+            "standard", gps_modules)
 
         # GPS focus should be more efficient for GPS-only setup
         assert gps_focus_count <= standard_count

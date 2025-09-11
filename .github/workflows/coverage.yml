@@ -36,7 +36,7 @@ jobs:
           pip install codecov-cli
           pre-commit install --install-hooks
           pre-commit autoupdate
-          
+
       - name: Run tests with coverage
         env:
           PYTHONPATH: .

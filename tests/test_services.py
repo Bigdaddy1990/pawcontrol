@@ -7,60 +7,59 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, call, patch
+from datetime import datetime
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import call
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
 import voluptuous as vol
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_MEAL_TYPE,
-    ATTR_PORTION_SIZE,
-    CONF_DOG_ID,
-    CONF_DOGS,
-    CONF_RESET_TIME,
-    DEFAULT_RESET_TIME,
-    DOMAIN,
-    EVENT_FEEDING_LOGGED,
-    EVENT_HEALTH_LOGGED,
-    EVENT_WALK_ENDED,
-    EVENT_WALK_STARTED,
-    SERVICE_DAILY_RESET,
-    SERVICE_END_WALK,
-    SERVICE_FEED_DOG,
-    SERVICE_LOG_HEALTH,
-    SERVICE_LOG_MEDICATION,
-    SERVICE_NOTIFY_TEST,
-    SERVICE_START_GROOMING,
-    SERVICE_START_WALK,
-)
-from custom_components.pawcontrol.exceptions import (
-    DogNotFoundError,
-    PawControlError,
-)
-from custom_components.pawcontrol.services import (
-    SERVICE_DAILY_RESET_SCHEMA,
-    SERVICE_FEED_DOG_SCHEMA,
-    SERVICE_GROOMING_SCHEMA,
-    SERVICE_HEALTH_SCHEMA,
-    SERVICE_MEDICATION_SCHEMA,
-    SERVICE_NOTIFY_TEST_SCHEMA,
-    SERVICE_WALK_SCHEMA,
-    PawControlServiceManager,
-    _build_dog_service_schema,
-    _get_cached_schema,
-    async_setup_daily_reset_scheduler,
-    async_track_time_change,
-    service_handler,
-)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant
+from homeassistant.core import ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util.dt import utcnow
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_MEAL_TYPE
+from custom_components.pawcontrol.const import ATTR_PORTION_SIZE
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_RESET_TIME
+from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
+from custom_components.pawcontrol.const import EVENT_HEALTH_LOGGED
+from custom_components.pawcontrol.const import EVENT_WALK_ENDED
+from custom_components.pawcontrol.const import EVENT_WALK_STARTED
+from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
+from custom_components.pawcontrol.const import SERVICE_END_WALK
+from custom_components.pawcontrol.const import SERVICE_FEED_DOG
+from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
+from custom_components.pawcontrol.const import SERVICE_LOG_MEDICATION
+from custom_components.pawcontrol.const import SERVICE_NOTIFY_TEST
+from custom_components.pawcontrol.const import SERVICE_START_GROOMING
+from custom_components.pawcontrol.const import SERVICE_START_WALK
+from custom_components.pawcontrol.exceptions import DogNotFoundError
+from custom_components.pawcontrol.exceptions import PawControlError
+from custom_components.pawcontrol.services import _build_dog_service_schema
+from custom_components.pawcontrol.services import _get_cached_schema
+from custom_components.pawcontrol.services import async_setup_daily_reset_scheduler
+from custom_components.pawcontrol.services import async_track_time_change
+from custom_components.pawcontrol.services import PawControlServiceManager
+from custom_components.pawcontrol.services import SERVICE_DAILY_RESET_SCHEMA
+from custom_components.pawcontrol.services import SERVICE_FEED_DOG_SCHEMA
+from custom_components.pawcontrol.services import SERVICE_GROOMING_SCHEMA
+from custom_components.pawcontrol.services import service_handler
+from custom_components.pawcontrol.services import SERVICE_HEALTH_SCHEMA
+from custom_components.pawcontrol.services import SERVICE_MEDICATION_SCHEMA
+from custom_components.pawcontrol.services import SERVICE_NOTIFY_TEST_SCHEMA
+from custom_components.pawcontrol.services import SERVICE_WALK_SCHEMA
 
 
 class TestSchemaFunctions:
@@ -224,7 +223,8 @@ class TestServiceHandlerDecorator:
         """Create mock service manager."""
         manager = Mock()
         manager._get_runtime_data_cached = Mock()
-        manager._get_available_dog_ids = Mock(return_value=["test_dog", "other_dog"])
+        manager._get_available_dog_ids = Mock(
+            return_value=["test_dog", "other_dog"])
         return manager
 
     def test_service_handler_decorator_basic(self, mock_service_manager):
@@ -548,15 +548,18 @@ class TestPawControlServiceManager:
     def test_estimate_calories(self):
         """Test calorie estimation."""
         # Test dry food
-        calories = PawControlServiceManager._estimate_calories(100.0, "dry_food")
+        calories = PawControlServiceManager._estimate_calories(
+            100.0, "dry_food")
         assert calories == 350.0
 
         # Test wet food
-        calories = PawControlServiceManager._estimate_calories(200.0, "wet_food")
+        calories = PawControlServiceManager._estimate_calories(
+            200.0, "wet_food")
         assert calories == 170.0
 
         # Test unknown food type
-        calories = PawControlServiceManager._estimate_calories(100.0, "unknown")
+        calories = PawControlServiceManager._estimate_calories(
+            100.0, "unknown")
         assert calories == 200.0
 
     def test_get_cache_stats(self, service_manager):
@@ -600,7 +603,8 @@ class TestServiceHandlers:
         data_manager.async_get_current_walk = AsyncMock()
         data_manager.async_end_walk = AsyncMock()
         data_manager.async_log_health = AsyncMock()
-        data_manager.async_start_grooming = AsyncMock(return_value="grooming_123")
+        data_manager.async_start_grooming = AsyncMock(
+            return_value="grooming_123")
         data_manager.async_reset_dog_daily_stats = AsyncMock()
 
         coordinator = Mock()
@@ -1250,7 +1254,8 @@ class TestServiceIntegration:
         }
         mock_runtime_data["data_manager"].async_feed_dog = AsyncMock()
         mock_runtime_data["data_manager"].async_log_feeding = AsyncMock()
-        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock()
+        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock(
+        )
 
         with patch.object(service_manager, "_get_runtime_data_cached") as mock_get_data:
             mock_get_data.return_value = mock_runtime_data
@@ -1403,11 +1408,13 @@ class TestServiceErrorHandling:
         assert calories == 0.0
 
         # Very large portion
-        calories = PawControlServiceManager._estimate_calories(10000.0, "dry_food")
+        calories = PawControlServiceManager._estimate_calories(
+            10000.0, "dry_food")
         assert calories == 35000.0
 
         # Unknown food type defaults
-        calories = PawControlServiceManager._estimate_calories(100.0, "exotic_food")
+        calories = PawControlServiceManager._estimate_calories(
+            100.0, "exotic_food")
         assert calories == 200.0
 
     @pytest.mark.asyncio
@@ -1422,7 +1429,8 @@ class TestServiceErrorHandling:
         }
         mock_runtime_data["data_manager"].async_feed_dog = AsyncMock()
         mock_runtime_data["data_manager"].async_log_feeding = AsyncMock()
-        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock()
+        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock(
+        )
 
         # Simulate concurrent calls
         tasks = []

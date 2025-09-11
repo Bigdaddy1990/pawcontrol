@@ -8,7 +8,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -16,10 +15,12 @@ import json
 import logging
 import weakref
 from functools import lru_cache
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -917,7 +918,7 @@ class DashboardTemplates:
             # Grid arrangement
             grouped_buttons = []
             for i in range(0, len(buttons), 2):
-                button_pair = buttons[i : i + 2]
+                button_pair = buttons[i: i + 2]
                 grouped_buttons.append(
                     {
                         "type": "horizontal-stack",

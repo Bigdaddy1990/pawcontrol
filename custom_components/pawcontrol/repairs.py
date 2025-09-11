@@ -5,30 +5,30 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality standards.
 """
-
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ async def async_create_issue(
     entry: ConfigEntry,
     issue_id: str,
     issue_type: str,
-    data: Optional[Dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
     severity: str = "warning",
 ) -> None:
     """Create a repair issue for the integration.
@@ -106,7 +106,8 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         hass: Home Assistant instance
         entry: Configuration entry to check
     """
-    _LOGGER.debug("Checking for issues in Paw Control entry: %s", entry.entry_id)
+    _LOGGER.debug("Checking for issues in Paw Control entry: %s",
+                  entry.entry_id)
 
     try:
         # Check dog configuration issues
@@ -133,7 +134,8 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
 
     except Exception as err:
-        _LOGGER.error("Error during issue check for entry %s: %s", entry.entry_id, err)
+        _LOGGER.error("Error during issue check for entry %s: %s",
+                      entry.entry_id, err)
 
 
 async def _check_dog_configuration_issues(
@@ -161,7 +163,8 @@ async def _check_dog_configuration_issues(
 
     # Check for duplicate dog IDs
     dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs]
-    duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
+    duplicate_ids = [dog_id for dog_id in set(
+        dog_ids) if dog_ids.count(dog_id) > 1]
 
     if duplicate_ids:
         await async_create_issue(
@@ -433,11 +436,11 @@ class PawControlRepairsFlow(RepairsFlow):
     def __init__(self) -> None:
         """Initialize the repair flow."""
         super().__init__()
-        self._issue_data: Dict[str, Any] = {}
+        self._issue_data: dict[str, Any] = {}
         self._repair_type: str = ""
 
     async def async_step_init(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
 
@@ -475,7 +478,7 @@ class PawControlRepairsFlow(RepairsFlow):
             return await self.async_step_unknown_issue()
 
     async def async_step_missing_dog_config(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
 
@@ -524,7 +527,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_add_first_dog(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle adding the first dog.
 
@@ -547,7 +550,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 else:
                     # Get the config entry and update it
                     config_entry_id = self._issue_data["config_entry_id"]
-                    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+                    entry = self.hass.config_entries.async_get_entry(
+                        config_entry_id)
 
                     if entry:
                         # Create new dog configuration
@@ -605,7 +609,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_duplicate_dog_ids(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
 
@@ -659,7 +663,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_gps_config(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
 
@@ -710,7 +714,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_configure_gps(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle GPS configuration step.
 
@@ -724,7 +728,8 @@ class PawControlRepairsFlow(RepairsFlow):
             try:
                 # Update GPS configuration
                 config_entry_id = self._issue_data["config_entry_id"]
-                entry = self.hass.config_entries.async_get_entry(config_entry_id)
+                entry = self.hass.config_entries.async_get_entry(
+                    config_entry_id)
 
                 if entry:
                     new_options = entry.options.copy()
@@ -775,7 +780,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_missing_notifications(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
 
@@ -830,7 +835,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_performance_warning(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle performance warning repair flow.
 
@@ -880,7 +885,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_complete_repair(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Complete the repair flow.
 
@@ -899,7 +904,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_unknown_issue(
-        self, user_input: Dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle unknown issue types.
 
@@ -1016,7 +1021,7 @@ class PawControlRepairsFlow(RepairsFlow):
 def async_create_repair_flow(
     hass: HomeAssistant,
     issue_id: str,
-    data: Dict[str, Any] | None,
+    data: dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
     """Create a repair flow.
 

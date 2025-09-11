@@ -1,31 +1,33 @@
 """Tests for the refactored Paw Control coordinator with specialized managers."""
+from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    CONF_GPS_UPDATE_INTERVAL,
-    DEFAULT_GPS_UPDATE_INTERVAL,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    UPDATE_INTERVALS,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.exceptions import (
-    DogNotFoundError,
-    GPSUnavailableError,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
+from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import UPDATE_INTERVALS
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.exceptions import DogNotFoundError
+from custom_components.pawcontrol.exceptions import GPSUnavailableError
 
 
 class TestRefactoredPawControlCoordinator:
@@ -217,7 +219,8 @@ class TestRefactoredPawControlCoordinator:
     async def test_performance_monitor_integration(self, coordinator):
         """Test integration with PerformanceMonitor."""
         # Record some performance data
-        coordinator._performance_monitor.record_update(0.5, 0)  # 500ms, no errors
+        coordinator._performance_monitor.record_update(
+            0.5, 0)  # 500ms, no errors
         coordinator._performance_monitor.record_update(1.2, 1)  # 1.2s, 1 error
 
         # Get performance stats
@@ -328,7 +331,8 @@ class TestRefactoredPawControlCoordinator:
         mock_managers["feeding_manager"].async_get_feeding_data = slow_response
 
         # Mock other managers to return quickly
-        mock_managers["walk_manager"].async_get_walk_data.return_value = {"quick": True}
+        mock_managers["walk_manager"].async_get_walk_data.return_value = {
+            "quick": True}
         mock_managers["walk_manager"].async_get_gps_data.return_value = {
             "available": False
         }
@@ -352,7 +356,8 @@ class TestRefactoredPawControlCoordinator:
         )
 
         # Other managers work normally
-        mock_managers["walk_manager"].async_get_walk_data.return_value = {"walks": 0}
+        mock_managers["walk_manager"].async_get_walk_data.return_value = {
+            "walks": 0}
         mock_managers["walk_manager"].async_get_gps_data.return_value = {
             "available": False
         }
@@ -428,7 +433,8 @@ class TestRefactoredPawControlCoordinator:
         """Test performance health score calculation."""
         # Record good performance
         for _ in range(10):
-            coordinator._performance_monitor.record_update(0.1, 0)  # Fast, no errors
+            coordinator._performance_monitor.record_update(
+                0.1, 0)  # Fast, no errors
 
         health_score = coordinator._performance_monitor.get_performance_health_score()
 
@@ -446,12 +452,14 @@ class TestRefactoredPawControlCoordinator:
 
         # Test get_enabled_modules
         modules = coordinator.get_enabled_modules("test_dog")
-        expected_modules = {MODULE_FEEDING, MODULE_WALK, MODULE_HEALTH, MODULE_GPS}
+        expected_modules = {MODULE_FEEDING,
+                            MODULE_WALK, MODULE_HEALTH, MODULE_GPS}
         assert modules == expected_modules
 
         # Test is_module_enabled
         assert coordinator.is_module_enabled("test_dog", MODULE_GPS) is True
-        assert coordinator.is_module_enabled("test_dog", "nonexistent_module") is False
+        assert coordinator.is_module_enabled(
+            "test_dog", "nonexistent_module") is False
 
         # Test get_dog_ids
         dog_ids = coordinator.get_dog_ids()
@@ -544,13 +552,17 @@ class TestRefactoredPawControlCoordinator:
         # Make all managers fail
         for manager in mock_managers.values():
             if hasattr(manager, "async_get_feeding_data"):
-                manager.async_get_feeding_data.side_effect = Exception("Manager failed")
+                manager.async_get_feeding_data.side_effect = Exception(
+                    "Manager failed")
             if hasattr(manager, "async_get_walk_data"):
-                manager.async_get_walk_data.side_effect = Exception("Manager failed")
+                manager.async_get_walk_data.side_effect = Exception(
+                    "Manager failed")
             if hasattr(manager, "async_get_gps_data"):
-                manager.async_get_gps_data.side_effect = Exception("Manager failed")
+                manager.async_get_gps_data.side_effect = Exception(
+                    "Manager failed")
             if hasattr(manager, "async_get_dog_data"):
-                manager.async_get_dog_data.side_effect = Exception("Manager failed")
+                manager.async_get_dog_data.side_effect = Exception(
+                    "Manager failed")
 
         # Coordinator should still provide basic structure
         data = await coordinator._fetch_dog_data_delegated("test_dog")
@@ -592,7 +604,8 @@ class TestRefactoredPawControlCoordinator:
         # Test with low complexity (feeding only)
         entry_simple = Mock(spec=ConfigEntry)
         entry_simple.data = {
-            CONF_DOGS: [{CONF_DOG_ID: "simple_dog", "modules": {MODULE_FEEDING: True}}]
+            CONF_DOGS: [{CONF_DOG_ID: "simple_dog",
+                         "modules": {MODULE_FEEDING: True}}]
         }
         entry_simple.options = {}
 
