@@ -48,7 +48,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     sys.modules["homeassistant.helpers.event"] = event
 
     def async_track_time_change(hass, action, *args, **kwargs):  # pragma: no cover
-        action()
+        action(datetime.now())
         return lambda: None
 
     event.async_track_time_change = async_track_time_change
