@@ -7,13 +7,17 @@ Python: 3.13+
 Handles walk tracking, GPS data processing, and location-based features
 separated from the main coordinator for better maintainability.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 from homeassistant.util import dt as dt_util
 
@@ -29,15 +33,15 @@ class WalkManager:
 
     def __init__(self) -> None:
         """Initialize walk manager."""
-        self._walk_data: Dict[str, Dict[str, Any]] = {}
-        self._gps_data: Dict[str, Dict[str, Any]] = {}
-        self._current_walks: Dict[str, Dict[str, Any]] = {}
-        self._walk_history: Dict[str, List[Dict[str, Any]]] = {}
+        self._walk_data: dict[str, dict[str, Any]] = {}
+        self._gps_data: dict[str, dict[str, Any]] = {}
+        self._current_walks: dict[str, dict[str, Any]] = {}
+        self._walk_history: dict[str, list[dict[str, Any]]] = {}
         self._data_lock = asyncio.Lock()
 
         # GPS processing cache
-        self._location_cache: Dict[str, Tuple[float, float, datetime]] = {}
-        self._zone_cache: Dict[str, str] = {}
+        self._location_cache: dict[str, tuple[float, float, datetime]] = {}
+        self._zone_cache: dict[str, str] = {}
 
         # Walk detection parameters
         self._walk_detection_enabled = True
@@ -47,7 +51,7 @@ class WalkManager:
 
         _LOGGER.debug("WalkManager initialized")
 
-    async def async_initialize(self, dog_ids: List[str]) -> None:
+    async def async_initialize(self, dog_ids: list[str]) -> None:
         """Initialize walk manager for specified dogs.
 
         Args:
@@ -92,9 +96,9 @@ class WalkManager:
         dog_id: str,
         latitude: float,
         longitude: float,
-        accuracy: Optional[float] = None,
-        speed: Optional[float] = None,
-        heading: Optional[float] = None,
+        accuracy: float | None = None,
+        speed: float | None = None,
+        heading: float | None = None,
         source: str = "unknown",
     ) -> bool:
         """Update GPS data for a dog.
@@ -119,7 +123,8 @@ class WalkManager:
 
         async with self._data_lock:
             if dog_id not in self._gps_data:
-                _LOGGER.warning("Dog %s not initialized for GPS tracking", dog_id)
+                _LOGGER.warning(
+                    "Dog %s not initialized for GPS tracking", dog_id)
                 return False
 
             now = dt_util.now()
@@ -172,7 +177,7 @@ class WalkManager:
 
     async def async_start_walk(
         self, dog_id: str, walk_type: str = "manual"
-    ) -> Optional[str]:
+    ) -> str | None:
         """Start a walk for a dog.
 
         Args:
@@ -184,7 +189,8 @@ class WalkManager:
         """
         async with self._data_lock:
             if dog_id not in self._walk_data:
-                _LOGGER.warning("Dog %s not initialized for walk tracking", dog_id)
+                _LOGGER.warning(
+                    "Dog %s not initialized for walk tracking", dog_id)
                 return None
 
             if dog_id in self._current_walks:
@@ -226,10 +232,11 @@ class WalkManager:
             self._walk_data[dog_id]["walk_in_progress"] = True
             self._walk_data[dog_id]["current_walk"] = walk_data
 
-            _LOGGER.info("Started %s walk for %s (ID: %s)", walk_type, dog_id, walk_id)
+            _LOGGER.info("Started %s walk for %s (ID: %s)",
+                         walk_type, dog_id, walk_id)
             return walk_id
 
-    async def async_end_walk(self, dog_id: str) -> Optional[Dict[str, Any]]:
+    async def async_end_walk(self, dog_id: str) -> dict[str, Any] | None:
         """End the current walk for a dog.
 
         Args:
@@ -274,8 +281,10 @@ class WalkManager:
                 walk_data["distance"] = self._calculate_total_distance(
                     walk_data["path"]
                 )
-                walk_data["average_speed"] = self._calculate_average_speed(walk_data)
-                walk_data["max_speed"] = self._calculate_max_speed(walk_data["path"])
+                walk_data["average_speed"] = self._calculate_average_speed(
+                    walk_data)
+                walk_data["max_speed"] = self._calculate_max_speed(
+                    walk_data["path"])
                 walk_data["calories_burned"] = self._estimate_calories_burned(
                     dog_id, walk_data
                 )
@@ -303,7 +312,7 @@ class WalkManager:
             )
             return walk_data
 
-    async def async_get_current_walk(self, dog_id: str) -> Optional[Dict[str, Any]]:
+    async def async_get_current_walk(self, dog_id: str) -> dict[str, Any] | None:
         """Get current walk data for a dog.
 
         Args:
@@ -319,7 +328,7 @@ class WalkManager:
                 else None
             )
 
-    async def async_get_walk_data(self, dog_id: str) -> Dict[str, Any]:
+    async def async_get_walk_data(self, dog_id: str) -> dict[str, Any]:
         """Get walk statistics for a dog.
 
         Args:
@@ -344,7 +353,7 @@ class WalkManager:
 
             return data
 
-    async def async_get_gps_data(self, dog_id: str) -> Dict[str, Any]:
+    async def async_get_gps_data(self, dog_id: str) -> dict[str, Any]:
         """Get GPS data for a dog.
 
         Args:
@@ -361,7 +370,7 @@ class WalkManager:
 
     async def async_get_walk_history(
         self, dog_id: str, days: int = 7
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get walk history for a dog.
 
         Args:
@@ -434,8 +443,8 @@ class WalkManager:
     async def _process_walk_detection(
         self,
         dog_id: str,
-        old_location: Tuple[float, float],
-        new_location: Tuple[float, float],
+        old_location: tuple[float, float],
+        new_location: tuple[float, float],
     ) -> None:
         """Process automatic walk detection.
 
@@ -466,7 +475,7 @@ class WalkManager:
             self._current_walks[dog_id]["path"].append(path_point)
 
     async def _update_daily_walk_stats(
-        self, dog_id: str, walk_data: Dict[str, Any]
+        self, dog_id: str, walk_data: dict[str, Any]
     ) -> None:
         """Update daily walk statistics.
 
@@ -516,7 +525,7 @@ class WalkManager:
         self._walk_data[dog_id]["walk_streak"] = streak
 
     def _calculate_distance(
-        self, point1: Tuple[float, float], point2: Tuple[float, float]
+        self, point1: tuple[float, float], point2: tuple[float, float]
     ) -> float:
         """Calculate distance between two GPS points using Haversine formula.
 
@@ -546,7 +555,7 @@ class WalkManager:
 
         return c * r
 
-    def _calculate_total_distance(self, path: List[Dict[str, Any]]) -> float:
+    def _calculate_total_distance(self, path: list[dict[str, Any]]) -> float:
         """Calculate total distance from path points.
 
         Args:
@@ -566,7 +575,7 @@ class WalkManager:
 
         return total_distance
 
-    def _calculate_average_speed(self, walk_data: Dict[str, Any]) -> Optional[float]:
+    def _calculate_average_speed(self, walk_data: dict[str, Any]) -> float | None:
         """Calculate average speed for a walk.
 
         Args:
@@ -584,7 +593,7 @@ class WalkManager:
 
         return distance_km / duration_hours if duration_hours > 0 else None
 
-    def _calculate_max_speed(self, path: List[Dict[str, Any]]) -> Optional[float]:
+    def _calculate_max_speed(self, path: list[dict[str, Any]]) -> float | None:
         """Calculate maximum speed from path.
 
         Args:
@@ -599,8 +608,8 @@ class WalkManager:
         return max(speeds) if speeds else None
 
     def _estimate_calories_burned(
-        self, dog_id: str, walk_data: Dict[str, Any]
-    ) -> Optional[float]:
+        self, dog_id: str, walk_data: dict[str, Any]
+    ) -> float | None:
         """Estimate calories burned during walk.
 
         Args:
@@ -621,7 +630,7 @@ class WalkManager:
 
         return estimated_weight * duration_minutes * 0.5
 
-    async def async_get_statistics(self) -> Dict[str, Any]:
+    async def async_get_statistics(self) -> dict[str, Any]:
         """Get walk manager statistics.
 
         Returns:

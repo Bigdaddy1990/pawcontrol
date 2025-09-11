@@ -16,32 +16,33 @@ Test Areas:
 - Manager delegation performance
 - Resource cleanup and memory leaks
 """
-
 from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import (
-    MAINTENANCE_INTERVAL,
-    PawControlCoordinator,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import MAINTENANCE_INTERVAL
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestHighEntityLoadPerformance:
@@ -374,7 +375,8 @@ class TestUpdateCycleOptimization:
 
         mock_feeding_manager.async_get_feeding_data.side_effect = slow_feeding_data
         mock_walk_manager.async_get_walk_data.side_effect = fast_walk_data
-        mock_walk_manager.async_get_gps_data.return_value = {"lat": 0, "lon": 0}
+        mock_walk_manager.async_get_gps_data.return_value = {
+            "lat": 0, "lon": 0}
 
         coordinator.set_managers(
             feeding_manager=mock_feeding_manager,
@@ -415,7 +417,8 @@ class TestUpdateCycleOptimization:
 
         # Statistics should reflect optimization
         final_stats = optimization_coordinator.get_cache_stats()
-        assert final_stats["cache"]["hit_rate"] >= 0  # Should have cache activity
+        # Should have cache activity
+        assert final_stats["cache"]["hit_rate"] >= 0
 
     @pytest.mark.asyncio
     async def test_update_interval_optimization(
@@ -497,7 +500,8 @@ class TestBackgroundTaskPerformance:
         # Mock managers
         mock_feeding_manager = AsyncMock()
         mock_walk_manager = AsyncMock()
-        mock_feeding_manager.async_get_feeding_data.return_value = {"status": "ok"}
+        mock_feeding_manager.async_get_feeding_data.return_value = {
+            "status": "ok"}
         mock_walk_manager.async_get_walk_data.return_value = {"status": "ok"}
 
         coordinator.set_managers(
@@ -604,7 +608,8 @@ class TestBackgroundTaskPerformance:
 
         # Verify resource usage is reasonable
         final_measurement = resource_measurements[-1]
-        assert final_measurement["cache_entries"] < 100  # Reasonable cache size
+        # Reasonable cache size
+        assert final_measurement["cache_entries"] < 100
         assert final_measurement["dogs_tracked"] == 20  # All dogs tracked
 
         # Cleanup
@@ -755,7 +760,8 @@ class TestResourceCleanupAndMemoryLeaks:
 
             # Mock manager
             mock_feeding_manager = AsyncMock()
-            mock_feeding_manager.async_get_feeding_data.return_value = {"status": "ok"}
+            mock_feeding_manager.async_get_feeding_data.return_value = {
+                "status": "ok"}
             coordinator.set_managers(feeding_manager=mock_feeding_manager)
 
             coordinators.append(coordinator)
@@ -802,7 +808,8 @@ class TestResourceCleanupAndMemoryLeaks:
         # Mock managers
         mock_feeding_manager = AsyncMock()
         mock_walk_manager = AsyncMock()
-        mock_feeding_manager.async_get_feeding_data.return_value = {"status": "ok"}
+        mock_feeding_manager.async_get_feeding_data.return_value = {
+            "status": "ok"}
         mock_walk_manager.async_get_walk_data.return_value = {"status": "ok"}
 
         coordinator.set_managers(
@@ -818,7 +825,8 @@ class TestResourceCleanupAndMemoryLeaks:
             await coordinator.async_refresh()
 
             # Request selective refreshes
-            dog_subset = [f"leak_test_dog_{i:02d}" for i in range(cycle % 5, 25, 5)]
+            dog_subset = [
+                f"leak_test_dog_{i:02d}" for i in range(cycle % 5, 25, 5)]
             await coordinator.async_request_selective_refresh(dog_subset, priority=7)
 
             # Invalidate some caches
@@ -842,15 +850,19 @@ class TestResourceCleanupAndMemoryLeaks:
 
         # Analyze for memory leaks
         # Cache entries should not grow indefinitely
-        max_cache_entries = max(snap["cache_entries"] for snap in memory_snapshots)
-        min_cache_entries = min(snap["cache_entries"] for snap in memory_snapshots)
+        max_cache_entries = max(snap["cache_entries"]
+                                for snap in memory_snapshots)
+        min_cache_entries = min(snap["cache_entries"]
+                                for snap in memory_snapshots)
 
         # Should not have unbounded growth
         assert max_cache_entries < min_cache_entries * 3  # Max 3x growth
 
         # Dogs tracked should remain stable
-        dogs_tracked_values = [snap["dogs_tracked"] for snap in memory_snapshots[-5:]]
-        assert all(val == 25 for val in dogs_tracked_values)  # Should remain constant
+        dogs_tracked_values = [snap["dogs_tracked"]
+                               for snap in memory_snapshots[-5:]]
+        # Should remain constant
+        assert all(val == 25 for val in dogs_tracked_values)
 
         # Cleanup
         await coordinator.async_shutdown()
@@ -1004,7 +1016,8 @@ class TestStressTestingAndEdgeCases:
 
             # Continue with selective refreshes even after failures
             try:
-                dog_subset = [f"error_dog_{i:02d}" for i in range(update_cycle, 30, 10)]
+                dog_subset = [f"error_dog_{i:02d}" for i in range(
+                    update_cycle, 30, 10)]
                 await coordinator.async_request_selective_refresh(
                     dog_subset, priority=6
                 )

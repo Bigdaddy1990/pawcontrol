@@ -15,9 +15,7 @@ Additional Test Areas:
 - Memory efficiency with large option sets
 - Configuration migration and backward compatibility
 """
-
 # ruff: noqa: F403, F405
-
 from __future__ import annotations
 
 from .select_edge_cases_common import *
@@ -224,7 +222,8 @@ class TestDynamicOptionListUpdates:
 
         # Current option is now invalid for new list
         with pytest.raises(HomeAssistantError):
-            await dynamic_select.async_select_option("initial2")  # No longer valid
+            # No longer valid
+            await dynamic_select.async_select_option("initial2")
 
     def test_empty_options_list_handling(self, mock_coordinator):
         """Test handling of empty options list."""
@@ -550,7 +549,8 @@ class TestEntityRegistryCollisionResolution:
     def test_device_info_collision_prevention(self, mock_coordinator):
         """Test device info collision prevention."""
         # Create selects for same dog but different types
-        select_types = ["size", "performance", "food_type", "walk_mode", "gps_source"]
+        select_types = ["size", "performance",
+                        "food_type", "walk_mode", "gps_source"]
         selects = []
 
         for select_type in select_types:

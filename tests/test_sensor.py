@@ -1,61 +1,61 @@
 """Tests for the Paw Control sensor platform."""
+from __future__ import annotations
 
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.sensor import (
-    PawControlActivityScoreSensor,
-    PawControlAverageWalkDurationSensor,
-    PawControlCurrentSpeedSensor,
-    PawControlCurrentZoneSensor,
-    PawControlDailyCaloriesSensor,
-    PawControlDistanceFromHomeSensor,
-    PawControlDogStatusSensor,
-    PawControlFeedingCountTodaySensor,
-    PawControlFeedingScheduleAdherenceSensor,
-    PawControlGPSAccuracySensor,
-    PawControlGPSBatteryLevelSensor,
-    PawControlHealthStatusSensor,
-    PawControlLastActionSensor,
-    PawControlLastFeedingSensor,
-    PawControlLastVetVisitSensor,
-    PawControlLastWalkDistanceSensor,
-    PawControlLastWalkDurationSensor,
-    PawControlLastWalkSensor,
-    PawControlSensorBase,
-    PawControlTotalDistanceTodaySensor,
-    PawControlTotalFeedingsTodaySensor,
-    PawControlTotalWalkTimeTodaySensor,
-    PawControlWalkCountTodaySensor,
-    PawControlWeeklyWalkCountSensor,
-    PawControlWeightSensor,
-    PawControlWeightTrendSensor,
-    async_setup_entry,
-)
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfEnergy,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import UnitOfEnergy
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfMass
+from homeassistant.const import UnitOfSpeed
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.sensor import async_setup_entry
+from custom_components.pawcontrol.sensor import PawControlActivityScoreSensor
+from custom_components.pawcontrol.sensor import PawControlAverageWalkDurationSensor
+from custom_components.pawcontrol.sensor import PawControlCurrentSpeedSensor
+from custom_components.pawcontrol.sensor import PawControlCurrentZoneSensor
+from custom_components.pawcontrol.sensor import PawControlDailyCaloriesSensor
+from custom_components.pawcontrol.sensor import PawControlDistanceFromHomeSensor
+from custom_components.pawcontrol.sensor import PawControlDogStatusSensor
+from custom_components.pawcontrol.sensor import PawControlFeedingCountTodaySensor
+from custom_components.pawcontrol.sensor import PawControlFeedingScheduleAdherenceSensor
+from custom_components.pawcontrol.sensor import PawControlGPSAccuracySensor
+from custom_components.pawcontrol.sensor import PawControlGPSBatteryLevelSensor
+from custom_components.pawcontrol.sensor import PawControlHealthStatusSensor
+from custom_components.pawcontrol.sensor import PawControlLastActionSensor
+from custom_components.pawcontrol.sensor import PawControlLastFeedingSensor
+from custom_components.pawcontrol.sensor import PawControlLastVetVisitSensor
+from custom_components.pawcontrol.sensor import PawControlLastWalkDistanceSensor
+from custom_components.pawcontrol.sensor import PawControlLastWalkDurationSensor
+from custom_components.pawcontrol.sensor import PawControlLastWalkSensor
+from custom_components.pawcontrol.sensor import PawControlSensorBase
+from custom_components.pawcontrol.sensor import PawControlTotalDistanceTodaySensor
+from custom_components.pawcontrol.sensor import PawControlTotalFeedingsTodaySensor
+from custom_components.pawcontrol.sensor import PawControlTotalWalkTimeTodaySensor
+from custom_components.pawcontrol.sensor import PawControlWalkCountTodaySensor
+from custom_components.pawcontrol.sensor import PawControlWeeklyWalkCountSensor
+from custom_components.pawcontrol.sensor import PawControlWeightSensor
+from custom_components.pawcontrol.sensor import PawControlWeightTrendSensor
 
 
 class TestAsyncSetupEntry:
@@ -277,7 +277,8 @@ class TestPawControlSensorBase:
 
         result = base_sensor._get_module_data("feeding")
 
-        mock_coordinator.get_module_data.assert_called_once_with("test_dog", "feeding")
+        mock_coordinator.get_module_data.assert_called_once_with(
+            "test_dog", "feeding")
         assert result == {"test": "data"}
 
     def test_available_property(self, base_sensor, mock_coordinator):
@@ -606,12 +607,14 @@ class TestActivityScoreSensor:
     def test_calculate_feeding_score(self, activity_sensor):
         """Test feeding score calculation."""
         # Perfect adherence with target met
-        feeding_data = {"feeding_schedule_adherence": 90, "daily_target_met": True}
+        feeding_data = {"feeding_schedule_adherence": 90,
+                        "daily_target_met": True}
         score = activity_sensor._calculate_feeding_score(feeding_data)
         assert score == 100  # 90 + 20 = 110, capped at 100
 
         # Good adherence without target met
-        feeding_data = {"feeding_schedule_adherence": 80, "daily_target_met": False}
+        feeding_data = {"feeding_schedule_adherence": 80,
+                        "daily_target_met": False}
         score = activity_sensor._calculate_feeding_score(feeding_data)
         assert score == 80
 
@@ -721,7 +724,8 @@ class TestFeedingSensors:
 
     def test_last_feeding_sensor(self, mock_coordinator):
         """Test last feeding sensor."""
-        sensor = PawControlLastFeedingSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastFeedingSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._sensor_type == "last_feeding"
         assert sensor._attr_device_class == SensorDeviceClass.TIMESTAMP
@@ -758,7 +762,8 @@ class TestFeedingSensors:
 
     def test_daily_calories_sensor(self, mock_coordinator):
         """Test daily calories sensor."""
-        sensor = PawControlDailyCaloriesSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlDailyCaloriesSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._sensor_type == "daily_calories"
         assert sensor._attr_native_unit_of_measurement == UnitOfEnergy.KILO_CALORIE
@@ -800,7 +805,8 @@ class TestWalkSensors:
 
     def test_last_walk_sensor(self, mock_coordinator):
         """Test last walk sensor."""
-        sensor = PawControlLastWalkSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastWalkSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._sensor_type == "last_walk"
         assert sensor._attr_device_class == SensorDeviceClass.TIMESTAMP
@@ -888,7 +894,8 @@ class TestGPSSensors:
 
     def test_current_speed_sensor(self, mock_coordinator):
         """Test current speed sensor."""
-        sensor = PawControlCurrentSpeedSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlCurrentSpeedSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._attr_device_class == SensorDeviceClass.SPEED
         assert (
@@ -912,7 +919,8 @@ class TestGPSSensors:
 
     def test_gps_accuracy_sensor(self, mock_coordinator):
         """Test GPS accuracy sensor."""
-        sensor = PawControlGPSAccuracySensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlGPSAccuracySensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._attr_device_class == SensorDeviceClass.DISTANCE
         assert sensor._attr_native_unit_of_measurement == UnitOfLength.METERS
@@ -922,7 +930,8 @@ class TestGPSSensors:
 
     def test_current_zone_sensor(self, mock_coordinator):
         """Test current zone sensor."""
-        sensor = PawControlCurrentZoneSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlCurrentZoneSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result == "park"
@@ -962,7 +971,8 @@ class TestHealthSensors:
 
     def test_weight_sensor(self, mock_coordinator):
         """Test weight sensor."""
-        sensor = PawControlWeightSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlWeightSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._attr_device_class == SensorDeviceClass.WEIGHT
         assert sensor._attr_native_unit_of_measurement == UnitOfMass.KILOGRAMS
@@ -972,14 +982,16 @@ class TestHealthSensors:
 
     def test_weight_trend_sensor(self, mock_coordinator):
         """Test weight trend sensor."""
-        sensor = PawControlWeightTrendSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlWeightTrendSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result == "increasing"
 
     def test_last_vet_visit_sensor(self, mock_coordinator):
         """Test last vet visit sensor."""
-        sensor = PawControlLastVetVisitSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastVetVisitSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor._attr_device_class == SensorDeviceClass.TIMESTAMP
 
@@ -989,7 +1001,8 @@ class TestHealthSensors:
 
     def test_health_status_sensor(self, mock_coordinator):
         """Test health status sensor."""
-        sensor = PawControlHealthStatusSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlHealthStatusSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result == "excellent"
@@ -1009,7 +1022,8 @@ class TestSensorErrorHandling:
         """Test sensor behavior when module data returns None."""
         mock_coordinator.get_module_data.return_value = None
 
-        sensor = PawControlLastFeedingSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastFeedingSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result is None
@@ -1020,7 +1034,8 @@ class TestSensorErrorHandling:
             "last_feeding": "invalid_timestamp"
         }
 
-        sensor = PawControlLastFeedingSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastFeedingSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         result = sensor.native_value
         assert result is None
@@ -1045,7 +1060,8 @@ class TestSensorErrorHandling:
         """Test sensor availability when coordinator is unavailable."""
         mock_coordinator.available = False
 
-        sensor = PawControlLastFeedingSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastFeedingSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor.available is False
 
@@ -1053,7 +1069,8 @@ class TestSensorErrorHandling:
         """Test sensor availability when dog data is None."""
         mock_coordinator.get_dog_data.return_value = None
 
-        sensor = PawControlLastFeedingSensor(mock_coordinator, "test_dog", "Test Dog")
+        sensor = PawControlLastFeedingSensor(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert sensor.available is False
 
@@ -1101,7 +1118,8 @@ class TestSensorIntegration:
         # Base sensors
         assert any("last_action" in sensor_type for sensor_type in sensor_types)
         assert any("status" in sensor_type for sensor_type in sensor_types)
-        assert any("activity_score" in sensor_type for sensor_type in sensor_types)
+        assert any(
+            "activity_score" in sensor_type for sensor_type in sensor_types)
 
         # Feeding sensors
         assert any("feeding" in sensor_type for sensor_type in sensor_types)

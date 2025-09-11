@@ -4,7 +4,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -13,18 +12,20 @@ import json
 import logging
 from collections import deque
 from contextlib import suppress
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Deque, Optional
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Deque
+from typing import Optional
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    DEFAULT_DATA_RETENTION_DAYS,
-    DOMAIN,
-    STORAGE_VERSION,
-)
+from .const import DEFAULT_DATA_RETENTION_DAYS
+from .const import DOMAIN
+from .const import STORAGE_VERSION
 from .exceptions import StorageError
 from .utils import deep_merge_dicts
 
@@ -63,7 +64,7 @@ class AdaptiveCache:
         self._ttl_multipliers: dict[str, float] = {}
         self._lock = asyncio.Lock()
 
-    async def get(self, key: str) -> tuple[Optional[Any], bool]:
+    async def get(self, key: str) -> tuple[Any | None, bool]:
         """Get value with hit/miss tracking.
 
         Args:
@@ -191,7 +192,8 @@ class AdaptiveCache:
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self._hit_count + self._miss_count
-        hit_rate = (self._hit_count / total_requests * 100) if total_requests > 0 else 0
+        hit_rate = (self._hit_count / total_requests *
+                    100) if total_requests > 0 else 0
 
         return {
             "entries": len(self._data),
@@ -200,7 +202,8 @@ class AdaptiveCache:
             "hits": self._hit_count,
             "misses": self._miss_count,
             "avg_ttl_multiplier": (
-                sum(self._ttl_multipliers.values()) / len(self._ttl_multipliers)
+                sum(self._ttl_multipliers.values()) /
+                len(self._ttl_multipliers)
                 if self._ttl_multipliers
                 else 1.0
             ),
@@ -218,7 +221,7 @@ class OptimizedStorage:
         """
         self._store = store
         self._index: dict[str, dict[str, Any]] = {}
-        self._checksum: Optional[str] = None
+        self._checksum: str | None = None
 
     async def load(self) -> dict[str, Any]:
         """Load data with integrity check."""
@@ -329,7 +332,7 @@ class OptimizedStorage:
 
         return compressed
 
-    def query_index(self, namespace: str, key: str) -> Optional[dict[str, Any]]:
+    def query_index(self, namespace: str, key: str) -> dict[str, Any] | None:
         """Query index for quick metadata."""
         return self._index.get(f"{namespace}:{key}")
 
@@ -369,12 +372,12 @@ class PawControlDataManager:
 
         # Adaptive batch save
         self._dirty_namespaces: set[str] = set()
-        self._save_task: Optional[asyncio.Task] = None
+        self._save_task: asyncio.Task | None = None
         self._save_delay = BATCH_SAVE_MIN_DELAY
         self._consecutive_saves = 0
 
         # Background tasks
-        self._maintenance_task: Optional[asyncio.Task] = None
+        self._maintenance_task: asyncio.Task | None = None
 
         # Locks
         self._lock = asyncio.Lock()
@@ -398,7 +401,8 @@ class PawControlDataManager:
             await self._load_initial_data()
 
             # Start maintenance with adaptive interval
-            self._maintenance_task = asyncio.create_task(self._adaptive_maintenance())
+            self._maintenance_task = asyncio.create_task(
+                self._adaptive_maintenance())
 
             # Initialize statistics
             await self._initialize_statistics()
@@ -603,7 +607,8 @@ class PawControlDataManager:
             + (100 - cache_stats["memory_mb"] / MAX_MEMORY_MB * 100) * 0.3
             + (
                 100
-                - self._metrics["errors"] / max(self._metrics["operations"], 1) * 100
+                - self._metrics["errors"] /
+                max(self._metrics["operations"], 1) * 100
             )
             * 0.2
         )
@@ -618,7 +623,7 @@ class PawControlDataManager:
             )
 
     # Core operations
-    async def async_get_dog_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get dog data with caching."""
         dogs_data = await self._get_namespace_data("dogs")
         self._metrics["operations"] += 1
@@ -664,9 +669,9 @@ class PawControlDataManager:
         self,
         module: str,
         dog_id: str,
-        limit: Optional[int] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        limit: int | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """Get module data with optimized filtering."""
         try:
@@ -711,8 +716,8 @@ class PawControlDataManager:
     async def _filter_by_date(
         self,
         entries: list[dict[str, Any]],
-        start_date: Optional[datetime],
-        end_date: Optional[datetime],
+        start_date: datetime | None,
+        end_date: datetime | None,
     ) -> list[dict[str, Any]]:
         """Filter entries by date with batch processing."""
         if not start_date and not end_date:
@@ -722,7 +727,7 @@ class PawControlDataManager:
 
         # Process in batches for better performance
         for i in range(0, len(entries), CLEANUP_BATCH_SIZE):
-            batch = entries[i : i + CLEANUP_BATCH_SIZE]
+            batch = entries[i: i + CLEANUP_BATCH_SIZE]
 
             for entry in batch:
                 try:
@@ -753,7 +758,7 @@ class PawControlDataManager:
         return filtered
 
     async def async_cleanup_old_data(
-        self, retention_days: Optional[int] = None
+        self, retention_days: int | None = None
     ) -> dict[str, int]:
         """Cleanup with batch processing."""
         if retention_days is None:
@@ -780,14 +785,16 @@ class PawControlDataManager:
                         if cutoff_index > 0:
                             original_count = len(entries)
                             module_data[dog_id] = entries[cutoff_index:]
-                            total_deleted += original_count - len(module_data[dog_id])
+                            total_deleted += original_count - \
+                                len(module_data[dog_id])
                     else:
                         # Small list, filter normally
                         original_count = len(entries)
                         module_data[dog_id] = await self._filter_by_date(
                             entries, cutoff, None
                         )
-                        total_deleted += original_count - len(module_data[dog_id])
+                        total_deleted += original_count - \
+                            len(module_data[dog_id])
 
                 if total_deleted > 0:
                     await self._save_namespace(module, module_data)
@@ -892,7 +899,7 @@ class PawControlDataManager:
         return walk_id
 
     async def async_end_walk(
-        self, dog_id: str, walk_data: Optional[dict[str, Any]] = None
+        self, dog_id: str, walk_data: dict[str, Any] | None = None
     ) -> None:
         """End walk session."""
         dog_data = await self.async_get_dog_data(dog_id)
@@ -912,7 +919,8 @@ class PawControlDataManager:
         if start_str:
             with suppress(ValueError, TypeError):
                 start_time = datetime.fromisoformat(start_str)
-                duration_minutes = int((timestamp - start_time).total_seconds() / 60)
+                duration_minutes = int(
+                    (timestamp - start_time).total_seconds() / 60)
 
         # Update walk entry
         walk_updates = {
@@ -938,7 +946,7 @@ class PawControlDataManager:
             },
         )
 
-    async def async_get_current_walk(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_current_walk(self, dog_id: str) -> dict[str, Any] | None:
         """Get current walk if active."""
         dog_data = await self.async_get_dog_data(dog_id)
         if not dog_data or not dog_data.get("walk", {}).get("walk_in_progress"):
@@ -955,7 +963,7 @@ class PawControlDataManager:
 
         return None
 
-    async def async_get_current_gps_data(self, dog_id: str) -> Optional[dict[str, Any]]:
+    async def async_get_current_gps_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get current GPS data."""
         dog_data = await self.async_get_dog_data(dog_id)
         return dog_data.get("gps") if dog_data else None

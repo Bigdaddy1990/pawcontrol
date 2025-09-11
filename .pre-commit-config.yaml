@@ -35,13 +35,13 @@ repos:
       - id: debug-statements
       - id: name-tests-test
       - id: requirements-txt-fixer
-      
+
   - repo: https://github.com/asottile/reorder-python-imports
     rev: v3.15.0
     hooks:
     -   id: reorder-python-imports
-        args: [--py313-plus, --add-import, 'from __future__ import annotations'] 
-        
+        args: [--py313-plus, --add-import, 'from __future__ import annotations']
+
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0
     hooks:
@@ -54,7 +54,7 @@ repos:
     rev: v1.17.1
     hooks:
       -   id: mypy
-      
+
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:

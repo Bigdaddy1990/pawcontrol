@@ -17,53 +17,54 @@ Test Coverage:
 - Emergency notification management
 - Service call error handling
 """
+from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.datetime import (
-    PawControlAdoptionDateDateTime,
-    PawControlBirthdateDateTime,
-    PawControlBreakfastTimeDateTime,
-    PawControlDateTimeBase,
-    PawControlDinnerTimeDateTime,
-    PawControlEmergencyDateTime,
-    PawControlLastFeedingDateTime,
-    PawControlLastGroomingDateTime,
-    PawControlLastMedicationDateTime,
-    PawControlLastVetVisitDateTime,
-    PawControlLastWalkDateTime,
-    PawControlLunchTimeDateTime,
-    PawControlNextFeedingDateTime,
-    PawControlNextGroomingDateTime,
-    PawControlNextMedicationDateTime,
-    PawControlNextVetAppointmentDateTime,
-    PawControlNextWalkReminderDateTime,
-    PawControlTrainingSessionDateTime,
-    PawControlVaccinationDateDateTime,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
 from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.datetime import _async_add_entities_in_batches
+from custom_components.pawcontrol.datetime import async_setup_entry
+from custom_components.pawcontrol.datetime import PawControlAdoptionDateDateTime
+from custom_components.pawcontrol.datetime import PawControlBirthdateDateTime
+from custom_components.pawcontrol.datetime import PawControlBreakfastTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlDateTimeBase
+from custom_components.pawcontrol.datetime import PawControlDinnerTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlEmergencyDateTime
+from custom_components.pawcontrol.datetime import PawControlLastFeedingDateTime
+from custom_components.pawcontrol.datetime import PawControlLastGroomingDateTime
+from custom_components.pawcontrol.datetime import PawControlLastMedicationDateTime
+from custom_components.pawcontrol.datetime import PawControlLastVetVisitDateTime
+from custom_components.pawcontrol.datetime import PawControlLastWalkDateTime
+from custom_components.pawcontrol.datetime import PawControlLunchTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlNextFeedingDateTime
+from custom_components.pawcontrol.datetime import PawControlNextGroomingDateTime
+from custom_components.pawcontrol.datetime import PawControlNextMedicationDateTime
+from custom_components.pawcontrol.datetime import PawControlNextVetAppointmentDateTime
+from custom_components.pawcontrol.datetime import PawControlNextWalkReminderDateTime
+from custom_components.pawcontrol.datetime import PawControlTrainingSessionDateTime
+from custom_components.pawcontrol.datetime import PawControlVaccinationDateDateTime
 
 
 class TestAsyncAddEntitiesInBatches:
@@ -78,7 +79,8 @@ class TestAsyncAddEntitiesInBatches:
         await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=15)
 
         # Should be called once with all entities
-        mock_add_entities.assert_called_once_with(entities, update_before_add=False)
+        mock_add_entities.assert_called_once_with(
+            entities, update_before_add=False)
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -326,7 +328,8 @@ class TestAsyncSetupEntry:
 
         # Mock getattr to return None
         with patch("builtins.getattr", return_value=None):
-            hass.data[DOMAIN] = {"test_entry": {"coordinator": mock_coordinator}}
+            hass.data[DOMAIN] = {"test_entry": {
+                "coordinator": mock_coordinator}}
 
             entry.data = {
                 CONF_DOGS: [
@@ -689,7 +692,8 @@ class TestPawControlLastFeedingDateTime:
         self, last_feeding_entity, mock_coordinator
     ):
         """Test getting native value from coordinator data."""
-        mock_feeding_data = {"feeding": {"last_feeding": "2023-06-15T12:30:00+00:00"}}
+        mock_feeding_data = {"feeding": {
+            "last_feeding": "2023-06-15T12:30:00+00:00"}}
 
         mock_coordinator.get_dog_data.return_value = mock_feeding_data
         last_feeding_entity.coordinator = mock_coordinator
@@ -912,7 +916,8 @@ class TestPawControlHealthDateTimeEntities:
         self, last_vet_visit_entity, mock_coordinator
     ):
         """Test getting last vet visit from coordinator data."""
-        mock_health_data = {"health": {"last_vet_visit": "2023-05-10T14:30:00+00:00"}}
+        mock_health_data = {"health": {
+            "last_vet_visit": "2023-05-10T14:30:00+00:00"}}
 
         mock_coordinator.get_dog_data.return_value = mock_health_data
         last_vet_visit_entity.coordinator = mock_coordinator
@@ -937,7 +942,8 @@ class TestPawControlHealthDateTimeEntities:
         self, last_grooming_entity, mock_coordinator
     ):
         """Test getting last grooming from coordinator data."""
-        mock_health_data = {"health": {"last_grooming": "2023-04-20T10:00:00+00:00"}}
+        mock_health_data = {"health": {
+            "last_grooming": "2023-04-20T10:00:00+00:00"}}
 
         mock_coordinator.get_dog_data.return_value = mock_health_data
         last_grooming_entity.coordinator = mock_coordinator
@@ -1289,7 +1295,8 @@ class TestPawControlSpecialDateTimeEntities:
 
         # Mock the hass.data structure for notification manager
         mock_notification_manager = AsyncMock()
-        hass.data[DOMAIN] = {"test_entry": {"notifications": mock_notification_manager}}
+        hass.data[DOMAIN] = {"test_entry": {
+            "notifications": mock_notification_manager}}
 
         with patch.object(
             hass.services, "async_call", new_callable=AsyncMock
@@ -1352,7 +1359,8 @@ class TestPawControlSpecialDateTimeEntities:
             "Notification error"
         )
 
-        hass.data[DOMAIN] = {"test_entry": {"notifications": mock_notification_manager}}
+        hass.data[DOMAIN] = {"test_entry": {
+            "notifications": mock_notification_manager}}
 
         with patch.object(hass.services, "async_call", new_callable=AsyncMock):
             with patch.object(emergency_entity, "async_write_ha_state"):
@@ -1417,7 +1425,8 @@ class TestDateTimeEntityIntegrationScenarios:
                 PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name)
             )
             entities.append(
-                PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name)
+                PawControlBreakfastTimeDateTime(
+                    mock_coordinator, dog_id, dog_name)
             )
 
         unique_ids = [entity._attr_unique_id for entity in entities]
@@ -1433,7 +1442,8 @@ class TestDateTimeEntityIntegrationScenarios:
     def test_entity_attributes_isolation(self, mock_coordinator):
         """Test that entity attributes don't interfere with each other."""
         # Create multiple entities of same type for different dogs
-        entity1 = PawControlBirthdateDateTime(mock_coordinator, "dog1", "Buddy")
+        entity1 = PawControlBirthdateDateTime(
+            mock_coordinator, "dog1", "Buddy")
         entity2 = PawControlBirthdateDateTime(mock_coordinator, "dog2", "Max")
 
         datetime1 = datetime(2020, 5, 15, 10, 30, 0)
@@ -1489,26 +1499,37 @@ class TestDateTimeEntityIntegrationScenarios:
             # Create all datetime entity types for this dog (17 entities per dog)
             entities.extend(
                 [
-                    PawControlBirthdateDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlAdoptionDateDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlBreakfastTimeDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlLunchTimeDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlDinnerTimeDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlLastFeedingDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlNextFeedingDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlLastVetVisitDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlBirthdateDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlAdoptionDateDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlBreakfastTimeDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlLunchTimeDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlDinnerTimeDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlLastFeedingDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextFeedingDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlLastVetVisitDateTime(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlNextVetAppointmentDateTime(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlLastGroomingDateTime(mock_coordinator, dog_id, dog_name),
-                    PawControlNextGroomingDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLastGroomingDateTime(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextGroomingDateTime(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlLastMedicationDateTime(
                         mock_coordinator, dog_id, dog_name
                     ),
                     PawControlNextMedicationDateTime(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlLastWalkDateTime(mock_coordinator, dog_id, dog_name),
+                    PawControlLastWalkDateTime(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlNextWalkReminderDateTime(
                         mock_coordinator, dog_id, dog_name
                     ),
@@ -1539,7 +1560,8 @@ class TestDateTimeEntityIntegrationScenarios:
             "feeding": {"last_feeding": "not-a-datetime"},
         }
 
-        entity = PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy")
+        entity = PawControlLastFeedingDateTime(
+            mock_coordinator, "dog1", "Buddy")
         entity.coordinator = mock_coordinator
 
         # Should not raise exception and return None for invalid data
@@ -1584,9 +1606,11 @@ class TestDateTimeEntityIntegrationScenarios:
 
     def test_feeding_time_consistency(self, mock_coordinator):
         """Test that feeding times have consistent behavior."""
-        breakfast = PawControlBreakfastTimeDateTime(mock_coordinator, "dog1", "Buddy")
+        breakfast = PawControlBreakfastTimeDateTime(
+            mock_coordinator, "dog1", "Buddy")
         lunch = PawControlLunchTimeDateTime(mock_coordinator, "dog1", "Buddy")
-        dinner = PawControlDinnerTimeDateTime(mock_coordinator, "dog1", "Buddy")
+        dinner = PawControlDinnerTimeDateTime(
+            mock_coordinator, "dog1", "Buddy")
 
         # All should have default times set
         assert breakfast.native_value is not None
@@ -1606,7 +1630,8 @@ class TestDateTimeEntityIntegrationScenarios:
         self, hass: HomeAssistant, mock_coordinator
     ):
         """Test service integration with error handling."""
-        entity = PawControlLastVetVisitDateTime(mock_coordinator, "dog1", "Buddy")
+        entity = PawControlLastVetVisitDateTime(
+            mock_coordinator, "dog1", "Buddy")
         entity.hass = hass
         test_datetime = datetime(2023, 5, 10, 14, 30, 0)
 
@@ -1623,7 +1648,8 @@ class TestDateTimeEntityIntegrationScenarios:
 
     def test_coordinator_data_extraction_edge_cases(self, mock_coordinator):
         """Test coordinator data extraction with various edge cases."""
-        entity = PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy")
+        entity = PawControlLastFeedingDateTime(
+            mock_coordinator, "dog1", "Buddy")
         entity.coordinator = mock_coordinator
 
         edge_cases = [
@@ -1684,7 +1710,8 @@ class TestDateTimeEntityIntegrationScenarios:
             PawControlLastFeedingDateTime(mock_coordinator, "dog1", "Buddy"),
             PawControlLastVetVisitDateTime(mock_coordinator, "dog1", "Buddy"),
             PawControlLastWalkDateTime(mock_coordinator, "dog1", "Buddy"),
-            PawControlVaccinationDateDateTime(mock_coordinator, "dog1", "Buddy"),
+            PawControlVaccinationDateDateTime(
+                mock_coordinator, "dog1", "Buddy"),
         ]
 
         test_datetime = datetime(2023, 6, 15, 14, 30, 0)

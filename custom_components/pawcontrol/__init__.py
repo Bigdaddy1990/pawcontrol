@@ -1,10 +1,10 @@
 """Core setup for the Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -13,31 +13,26 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-    PLATFORMS,
-)
-
-# Expose commonly patched classes/functions for tests
+from .const import CONF_DOG_ID
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
+from .const import PLATFORMS
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .exceptions import PawControlSetupError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
 from .notifications import PawControlNotificationManager
-from .services import (
-    PawControlServiceManager,
-    async_setup_daily_reset_scheduler,
-)
+from .services import async_setup_daily_reset_scheduler
+from .services import PawControlServiceManager
 from .types import DogConfigData
 from .walk_manager import WalkManager
+# Expose commonly patched classes/functions for tests
 
 
 # Minimal DogDataManager stub for patching in tests
@@ -112,7 +107,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Paw Control from a config entry."""
-    _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
+    _LOGGER.info("Setting up Paw Control integration entry: %s",
+                 entry.entry_id)
 
     dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
     if not dogs_config:
@@ -145,7 +141,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             data_manager.async_initialize(),
             notification_manager.async_initialize(),
             feeding_manager.async_initialize(dogs_config),
-            walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
+            walk_manager.async_initialize(
+                [dog[CONF_DOG_ID] for dog in dogs_config]),
         )
     except Exception as err:
         raise ConfigEntryNotReady(f"Initialization failed: {err}") from err
@@ -179,7 +176,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     runtime_data = getattr(entry, "runtime_data", None)
     dogs = (
-        runtime_data.get("dogs", []) if runtime_data else entry.data.get(CONF_DOGS, [])
+        runtime_data.get("dogs", []) if runtime_data else entry.data.get(
+            CONF_DOGS, [])
     )
     profile = (
         runtime_data.get("entity_profile")

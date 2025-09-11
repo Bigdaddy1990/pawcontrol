@@ -7,11 +7,12 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
@@ -176,7 +177,8 @@ class EntityFactory:
 
         elif profile == "health_focus":
             # Health-related entities prioritized
-            health_types = ["sensor", "number", "date", "text", "binary_sensor"]
+            health_types = ["sensor", "number",
+                            "date", "text", "binary_sensor"]
             health_modules = ["health", "feeding", "medication"]
             return (
                 entity_type in health_types and module in health_modules
@@ -241,7 +243,8 @@ class EntityFactory:
             },
         }
 
-        profile_priorities = priority_map.get(profile, priority_map["standard"])
+        profile_priorities = priority_map.get(
+            profile, priority_map["standard"])
         return profile_priorities.get(platform, 99)
 
     def create_entity_config(

@@ -7,51 +7,49 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.text import (
-    PawControlAllergiesText,
-    PawControlBehaviorNotesText,
-    PawControlBreederInfoText,
-    PawControlCurrentWalkLabelText,
-    PawControlCustomLabelText,
-    PawControlCustomMessageText,
-    PawControlDogNotesText,
-    PawControlEmergencyContactText,
-    PawControlGroomingNotesText,
-    PawControlHealthNotesText,
-    PawControlInsuranceText,
-    PawControlLocationDescriptionText,
-    PawControlMedicationNotesText,
-    PawControlMicrochipText,
-    PawControlRegistrationText,
-    PawControlTextBase,
-    PawControlTrainingNotesText,
-    PawControlVetNotesText,
-    PawControlWalkNotesText,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
 from homeassistant.components.text import TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.text import _async_add_entities_in_batches
+from custom_components.pawcontrol.text import async_setup_entry
+from custom_components.pawcontrol.text import PawControlAllergiesText
+from custom_components.pawcontrol.text import PawControlBehaviorNotesText
+from custom_components.pawcontrol.text import PawControlBreederInfoText
+from custom_components.pawcontrol.text import PawControlCurrentWalkLabelText
+from custom_components.pawcontrol.text import PawControlCustomLabelText
+from custom_components.pawcontrol.text import PawControlCustomMessageText
+from custom_components.pawcontrol.text import PawControlDogNotesText
+from custom_components.pawcontrol.text import PawControlEmergencyContactText
+from custom_components.pawcontrol.text import PawControlGroomingNotesText
+from custom_components.pawcontrol.text import PawControlHealthNotesText
+from custom_components.pawcontrol.text import PawControlInsuranceText
+from custom_components.pawcontrol.text import PawControlLocationDescriptionText
+from custom_components.pawcontrol.text import PawControlMedicationNotesText
+from custom_components.pawcontrol.text import PawControlMicrochipText
+from custom_components.pawcontrol.text import PawControlRegistrationText
+from custom_components.pawcontrol.text import PawControlTextBase
+from custom_components.pawcontrol.text import PawControlTrainingNotesText
+from custom_components.pawcontrol.text import PawControlVetNotesText
+from custom_components.pawcontrol.text import PawControlWalkNotesText
 
 
 class TestAsyncSetupEntry:
@@ -486,7 +484,8 @@ class TestWalkNotesText:
     def mock_coordinator(self):
         """Create a mock coordinator."""
         coordinator = Mock(spec=PawControlCoordinator)
-        coordinator.get_dog_data.return_value = {"walk": {"walk_in_progress": True}}
+        coordinator.get_dog_data.return_value = {
+            "walk": {"walk_in_progress": True}}
         return coordinator
 
     @pytest.fixture
@@ -1067,7 +1066,8 @@ class TestLocationDescriptionText:
     ):
         """Test availability when GPS module is disabled."""
         mock_coordinator.get_dog_data.return_value = {"test": "data"}
-        mock_coordinator.get_dog_info.return_value = {"modules": {"gps": False}}
+        mock_coordinator.get_dog_info.return_value = {
+            "modules": {"gps": False}}
 
         assert location_description_text.available is False
 
@@ -1166,7 +1166,8 @@ class TestTextIntegration:
         coordinator = Mock(spec=PawControlCoordinator)
         coordinator.available = True
 
-        dog_notes_text = PawControlDogNotesText(coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(
+            coordinator, "test_dog", "Test Dog")
 
         # Set a value
         with patch.object(dog_notes_text, "async_write_ha_state"):
@@ -1282,7 +1283,8 @@ class TestTextConstants:
         assert dog_notes._attr_mode == TextMode.TEXT
 
         # Microchip should use PASSWORD mode for privacy
-        microchip = PawControlMicrochipText(coordinator, "test_dog", "Test Dog")
+        microchip = PawControlMicrochipText(
+            coordinator, "test_dog", "Test Dog")
         assert microchip._attr_mode == TextMode.PASSWORD
 
     def test_text_max_lengths_reasonable(self):
@@ -1290,11 +1292,13 @@ class TestTextConstants:
         coordinator = Mock(spec=PawControlCoordinator)
 
         # Short texts
-        custom_label = PawControlCustomLabelText(coordinator, "test_dog", "Test Dog")
+        custom_label = PawControlCustomLabelText(
+            coordinator, "test_dog", "Test Dog")
         assert custom_label._attr_native_max == 50
 
         # Medium texts
-        walk_notes = PawControlWalkNotesText(coordinator, "test_dog", "Test Dog")
+        walk_notes = PawControlWalkNotesText(
+            coordinator, "test_dog", "Test Dog")
         assert walk_notes._attr_native_max == 500
 
         # Long texts
@@ -1302,7 +1306,8 @@ class TestTextConstants:
         assert dog_notes._attr_native_max == 1000
 
         # Very short texts
-        microchip = PawControlMicrochipText(coordinator, "test_dog", "Test Dog")
+        microchip = PawControlMicrochipText(
+            coordinator, "test_dog", "Test Dog")
         assert microchip._attr_native_max == 20
 
     def test_text_icons_appropriate(self):
@@ -1378,7 +1383,8 @@ class TestTextPerformance:
         """Test that texts don't store unnecessary data."""
         coordinator = Mock(spec=PawControlCoordinator)
 
-        dog_notes_text = PawControlDogNotesText(coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(
+            coordinator, "test_dog", "Test Dog")
 
         # Check that only essential attributes are stored
         essential_attrs = {
