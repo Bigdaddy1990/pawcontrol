@@ -8,7 +8,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -16,15 +15,21 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
-from homeassistant.components import bluetooth, dhcp, usb, zeroconf
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.components import bluetooth
+from homeassistant.components import dhcp
+from homeassistant.components import usb
+from homeassistant.components import zeroconf
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
-from .const import DEVICE_CATEGORIES, DOMAIN
+from .const import DEVICE_CATEGORIES
+from .const import DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,8 +91,10 @@ class PawControlDiscovery:
             _LOGGER.info("Paw Control discovery initialized successfully")
 
         except Exception as err:
-            _LOGGER.error("Failed to initialize discovery: %s", err, exc_info=True)
-            raise HomeAssistantError(f"Discovery initialization failed: {err}") from err
+            _LOGGER.error("Failed to initialize discovery: %s",
+                          err, exc_info=True)
+            raise HomeAssistantError(
+                f"Discovery initialization failed: {err}") from err
 
     async def async_discover_devices(
         self, categories: list[str] | None = None, quick_scan: bool = False
@@ -105,7 +112,8 @@ class PawControlDiscovery:
             PawControlError: If discovery fails
         """
         if self._scan_active:
-            _LOGGER.warning("Discovery scan already active, waiting for completion")
+            _LOGGER.warning(
+                "Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
         categories = categories or DEVICE_CATEGORIES
@@ -140,7 +148,8 @@ class PawControlDiscovery:
                 # Process results and handle exceptions
                 for idx, result in enumerate(discovery_results):
                     if isinstance(result, Exception):
-                        _LOGGER.warning("Discovery method %d failed: %s", idx, result)
+                        _LOGGER.warning(
+                            "Discovery method %d failed: %s", idx, result)
                         continue
 
                     if isinstance(result, list):
@@ -160,8 +169,9 @@ class PawControlDiscovery:
 
             return unique_devices
 
-        except asyncio.TimeoutError:
-            _LOGGER.warning("Device discovery timed out after %ds", scan_timeout)
+        except TimeoutError:
+            _LOGGER.warning(
+                "Device discovery timed out after %ds", scan_timeout)
             return list(self._discovered_devices.values())
         except Exception as err:
             _LOGGER.error("Discovery failed: %s", err, exc_info=True)
@@ -344,7 +354,8 @@ class PawControlDiscovery:
 
                 discovered.append(device)
 
-            _LOGGER.debug("Bluetooth discovery found %d devices", len(discovered))
+            _LOGGER.debug("Bluetooth discovery found %d devices",
+                          len(discovered))
 
         except Exception as err:
             _LOGGER.error("Bluetooth discovery failed: %s", err)
@@ -369,7 +380,8 @@ class PawControlDiscovery:
             try:
                 await zeroconf.async_get_instance(self.hass)
             except Exception:
-                _LOGGER.debug("Zeroconf not available for discovery", exc_info=True)
+                _LOGGER.debug(
+                    "Zeroconf not available for discovery", exc_info=True)
                 return discovered
 
             # Zeroconf service patterns for dog devices
@@ -423,12 +435,14 @@ class PawControlDiscovery:
                     capabilities=device_info["capabilities"],
                     discovered_at=utcnow().isoformat(),
                     confidence=0.7,  # Moderate confidence for network discovery
-                    metadata={"protocol": "zeroconf", "service_type": service_type},
+                    metadata={"protocol": "zeroconf",
+                              "service_type": service_type},
                 )
 
                 discovered.append(device)
 
-            _LOGGER.debug("Zeroconf discovery found %d devices", len(discovered))
+            _LOGGER.debug("Zeroconf discovery found %d devices",
+                          len(discovered))
 
         except Exception as err:
             _LOGGER.error("Zeroconf discovery failed: %s", err)
@@ -453,7 +467,8 @@ class PawControlDiscovery:
             try:
                 await dhcp.async_get_dhcp_entries(self.hass)
             except Exception:
-                _LOGGER.debug("DHCP not available for discovery", exc_info=True)
+                _LOGGER.debug(
+                    "DHCP not available for discovery", exc_info=True)
                 return discovered
 
             # DHCP hostname patterns for dog devices
@@ -514,7 +529,8 @@ class PawControlDiscovery:
                             capabilities=device_info["capabilities"],
                             discovered_at=utcnow().isoformat(),
                             confidence=0.6,  # Lower confidence for hostname matching
-                            metadata={"protocol": "dhcp", "hostname": hostname},
+                            metadata={"protocol": "dhcp",
+                                      "hostname": hostname},
                         )
 
                         discovered.append(device)
@@ -664,7 +680,8 @@ class PawControlDiscovery:
             _LOGGER.debug("Discovery listeners registered")
 
         except Exception as err:
-            _LOGGER.warning("Failed to register some discovery listeners: %s", err)
+            _LOGGER.warning(
+                "Failed to register some discovery listeners: %s", err)
 
     async def _wait_for_scan_completion(self) -> None:
         """Wait for active discovery scan to complete."""
@@ -676,7 +693,8 @@ class PawControlDiscovery:
             waited += 0.5
 
         if self._scan_active:
-            _LOGGER.warning("Discovery scan did not complete within %ds", max_wait)
+            _LOGGER.warning(
+                "Discovery scan did not complete within %ds", max_wait)
 
     async def async_shutdown(self) -> None:
         """Shutdown discovery and cleanup resources."""

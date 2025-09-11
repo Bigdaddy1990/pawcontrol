@@ -1,32 +1,32 @@
 """Tests for type definitions and validation."""
+from __future__ import annotations
 
 from datetime import datetime
 
 import pytest
-from custom_components.pawcontrol.types import (
-    VALID_ACTIVITY_LEVELS,
-    VALID_DOG_SIZES,
-    VALID_FOOD_TYPES,
-    VALID_GEOFENCE_TYPES,
-    VALID_GPS_SOURCES,
-    VALID_HEALTH_STATUS,
-    VALID_MEAL_TYPES,
-    VALID_MOOD_OPTIONS,
-    VALID_NOTIFICATION_PRIORITIES,
-    DailyStats,
-    DogConfigData,
-    DogProfile,
-    FeedingData,
-    GeofenceZone,
-    GPSLocation,
-    HealthData,
-    NotificationData,
-    WalkData,
-    is_dog_config_valid,
-    is_feeding_data_valid,
-    is_gps_location_valid,
-)
 from homeassistant.config_entries import ConfigEntry
+
+from custom_components.pawcontrol.types import DailyStats
+from custom_components.pawcontrol.types import DogConfigData
+from custom_components.pawcontrol.types import DogProfile
+from custom_components.pawcontrol.types import FeedingData
+from custom_components.pawcontrol.types import GeofenceZone
+from custom_components.pawcontrol.types import GPSLocation
+from custom_components.pawcontrol.types import HealthData
+from custom_components.pawcontrol.types import is_dog_config_valid
+from custom_components.pawcontrol.types import is_feeding_data_valid
+from custom_components.pawcontrol.types import is_gps_location_valid
+from custom_components.pawcontrol.types import NotificationData
+from custom_components.pawcontrol.types import VALID_ACTIVITY_LEVELS
+from custom_components.pawcontrol.types import VALID_DOG_SIZES
+from custom_components.pawcontrol.types import VALID_FOOD_TYPES
+from custom_components.pawcontrol.types import VALID_GEOFENCE_TYPES
+from custom_components.pawcontrol.types import VALID_GPS_SOURCES
+from custom_components.pawcontrol.types import VALID_HEALTH_STATUS
+from custom_components.pawcontrol.types import VALID_MEAL_TYPES
+from custom_components.pawcontrol.types import VALID_MOOD_OPTIONS
+from custom_components.pawcontrol.types import VALID_NOTIFICATION_PRIORITIES
+from custom_components.pawcontrol.types import WalkData
 
 
 class TestDataStructures:
@@ -224,7 +224,8 @@ class TestTypeGuards:
         ]
 
         for config in valid_configs:
-            assert is_dog_config_valid(config), f"Expected {config} to be valid"
+            assert is_dog_config_valid(
+                config), f"Expected {config} to be valid"
 
     def test_is_dog_config_valid_false(self):
         """Test invalid dog configurations."""
@@ -241,7 +242,8 @@ class TestTypeGuards:
         ]
 
         for config in invalid_configs:
-            assert not is_dog_config_valid(config), f"Expected {config} to be invalid"
+            assert not is_dog_config_valid(
+                config), f"Expected {config} to be invalid"
 
     def test_is_gps_location_valid_true(self):
         """Test valid GPS locations."""
@@ -254,7 +256,8 @@ class TestTypeGuards:
         ]
 
         for location in valid_locations:
-            assert is_gps_location_valid(location), f"Expected {location} to be valid"
+            assert is_gps_location_valid(
+                location), f"Expected {location} to be valid"
 
     def test_is_gps_location_valid_false(self):
         """Test invalid GPS locations."""
@@ -298,13 +301,15 @@ class TestTypeGuards:
                 "meal_type": "breakfast",
                 "portion_size": "invalid",
             },  # Wrong type for portion_size
-            {"meal_type": "breakfast", "portion_size": -10.0},  # Negative portion_size
+            # Negative portion_size
+            {"meal_type": "breakfast", "portion_size": -10.0},
             "not_a_dict",  # Not a dict
             None,  # None
         ]
 
         for data in invalid_data:
-            assert not is_feeding_data_valid(data), f"Expected {data} to be invalid"
+            assert not is_feeding_data_valid(
+                data), f"Expected {data} to be invalid"
 
 
 class TestValidationConstants:
@@ -404,7 +409,8 @@ class TestValidationConstants:
         ]
 
         for constant in validation_constants:
-            assert isinstance(constant, set), f"Expected set, got {type(constant)}"
+            assert isinstance(
+                constant, set), f"Expected set, got {type(constant)}"
             assert len(constant) > 0, "Validation set should not be empty"
 
     def test_no_empty_strings_in_validation_sets(self):
@@ -423,7 +429,8 @@ class TestValidationConstants:
 
         for constant in validation_constants:
             for value in constant:
-                assert isinstance(value, str), f"Expected string, got {type(value)}"
+                assert isinstance(
+                    value, str), f"Expected string, got {type(value)}"
                 assert len(value) > 0, "Validation values should not be empty"
                 assert value.strip() == value, (
                     "Validation values should not have leading/trailing whitespace"
@@ -530,11 +537,14 @@ class TestDataStructureValidation:
     def test_feeding_data_edge_cases(self):
         """Test feeding data validation edge cases."""
         # Test zero portion size (should be valid)
-        assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 0.0})
+        assert is_feeding_data_valid(
+            {"meal_type": "snack", "portion_size": 0.0})
 
         # Test float vs int portion size
-        assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 100})
-        assert is_feeding_data_valid({"meal_type": "snack", "portion_size": 100.5})
+        assert is_feeding_data_valid(
+            {"meal_type": "snack", "portion_size": 100})
+        assert is_feeding_data_valid(
+            {"meal_type": "snack", "portion_size": 100.5})
 
     def test_dog_config_edge_cases(self):
         """Test dog config validation edge cases."""

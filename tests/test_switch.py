@@ -1,43 +1,16 @@
 """Comprehensive tests for PawControl switch platform with profile optimization."""
+from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, Mock, patch
+from typing import Any
+from typing import Dict
+from typing import List
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_GROOMING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-    MODULE_NOTIFICATIONS,
-    MODULE_TRAINING,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.switch import (
-    BATCH_DELAY,
-    BATCH_SIZE,
-    MAX_CONCURRENT_BATCHES,
-    OptimizedSwitchBase,
-    PawControlDoNotDisturbSwitch,
-    PawControlFeatureSwitch,
-    PawControlMainPowerSwitch,
-    PawControlModuleSwitch,
-    PawControlVisitorModeSwitch,
-    ProfileOptimizedSwitchFactory,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
@@ -46,6 +19,35 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_GROOMING
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_MEDICATION
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_TRAINING
+from custom_components.pawcontrol.const import MODULE_VISITOR
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import _async_add_entities_in_batches
+from custom_components.pawcontrol.switch import async_setup_entry
+from custom_components.pawcontrol.switch import BATCH_DELAY
+from custom_components.pawcontrol.switch import BATCH_SIZE
+from custom_components.pawcontrol.switch import MAX_CONCURRENT_BATCHES
+from custom_components.pawcontrol.switch import OptimizedSwitchBase
+from custom_components.pawcontrol.switch import PawControlDoNotDisturbSwitch
+from custom_components.pawcontrol.switch import PawControlFeatureSwitch
+from custom_components.pawcontrol.switch import PawControlMainPowerSwitch
+from custom_components.pawcontrol.switch import PawControlModuleSwitch
+from custom_components.pawcontrol.switch import PawControlVisitorModeSwitch
+from custom_components.pawcontrol.switch import ProfileOptimizedSwitchFactory
 
 
 class TestProfileOptimizedSwitchFactory:
@@ -96,7 +98,7 @@ class TestProfileOptimizedSwitchFactory:
         assert MODULE_NOTIFICATIONS in feature_switches
 
         # Each feature switch should have proper structure
-        for module, switches in feature_switches.items():
+        for switches in feature_switches.values():
             assert isinstance(switches, list)
             for switch_id, switch_name, icon in switches:
                 assert isinstance(switch_id, str)
@@ -185,7 +187,8 @@ class TestProfileOptimizedSwitchFactory:
         )
 
         # Check that only enabled modules have switches
-        module_switches = [s for s in switches if isinstance(s, PawControlModuleSwitch)]
+        module_switches = [s for s in switches if isinstance(
+            s, PawControlModuleSwitch)]
         feature_switches = [
             s for s in switches if isinstance(s, PawControlFeatureSwitch)
         ]
@@ -618,7 +621,8 @@ class TestOptimizedSwitchBase:
         switch_base.hass = hass
 
         # Mock _async_set_state to raise exception
-        switch_base._async_set_state = AsyncMock(side_effect=Exception("Test error"))
+        switch_base._async_set_state = AsyncMock(
+            side_effect=Exception("Test error"))
 
         with pytest.raises(HomeAssistantError, match="Failed to turn on test_switch"):
             await switch_base.async_turn_on()
@@ -629,7 +633,8 @@ class TestOptimizedSwitchBase:
         switch_base.hass = hass
 
         # Mock _async_set_state to raise exception
-        switch_base._async_set_state = AsyncMock(side_effect=Exception("Test error"))
+        switch_base._async_set_state = AsyncMock(
+            side_effect=Exception("Test error"))
 
         with pytest.raises(HomeAssistantError, match="Failed to turn off test_switch"):
             await switch_base.async_turn_off()
@@ -674,7 +679,8 @@ class TestSpecificSwitchClasses:
 
     def test_main_power_switch_initialization(self, mock_coordinator):
         """Test main power switch initialization."""
-        switch = PawControlMainPowerSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlMainPowerSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert switch._switch_type == "main_power"
         assert switch._attr_device_class == SwitchDeviceClass.SWITCH
@@ -684,7 +690,8 @@ class TestSpecificSwitchClasses:
     @pytest.mark.asyncio
     async def test_main_power_switch_set_state(self, mock_coordinator, mock_hass):
         """Test main power switch state setting."""
-        switch = PawControlMainPowerSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlMainPowerSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = mock_hass
 
         # Mock data manager
@@ -703,7 +710,8 @@ class TestSpecificSwitchClasses:
 
     def test_do_not_disturb_switch_initialization(self, mock_coordinator):
         """Test do not disturb switch initialization."""
-        switch = PawControlDoNotDisturbSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlDoNotDisturbSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert switch._switch_type == "do_not_disturb"
         assert switch._attr_icon == "mdi:sleep"
@@ -712,7 +720,8 @@ class TestSpecificSwitchClasses:
     @pytest.mark.asyncio
     async def test_do_not_disturb_switch_set_state(self, mock_coordinator, mock_hass):
         """Test do not disturb switch state setting."""
-        switch = PawControlDoNotDisturbSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlDoNotDisturbSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = mock_hass
 
         # Mock notification manager with async_set_dnd_mode method
@@ -729,7 +738,8 @@ class TestSpecificSwitchClasses:
 
     def test_visitor_mode_switch_initialization(self, mock_coordinator):
         """Test visitor mode switch initialization."""
-        switch = PawControlVisitorModeSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlVisitorModeSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert switch._switch_type == "visitor_mode"
         assert switch._attr_icon == "mdi:account-group"
@@ -737,19 +747,22 @@ class TestSpecificSwitchClasses:
 
     def test_visitor_mode_switch_is_on_property(self, mock_coordinator):
         """Test visitor mode switch is_on property."""
-        switch = PawControlVisitorModeSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlVisitorModeSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         # Should read from dog data
         assert switch.is_on is False
 
         # Update dog data
-        mock_coordinator.get_dog_data.return_value = {"visitor_mode_active": True}
+        mock_coordinator.get_dog_data.return_value = {
+            "visitor_mode_active": True}
         assert switch.is_on is True
 
     @pytest.mark.asyncio
     async def test_visitor_mode_switch_set_state(self, mock_coordinator, mock_hass):
         """Test visitor mode switch state setting."""
-        switch = PawControlVisitorModeSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlVisitorModeSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = mock_hass
 
         await switch._async_set_state(True)
@@ -868,7 +881,8 @@ class TestSpecificSwitchClasses:
         await switch._async_set_state(True)
 
         # Should call data manager for GPS tracking
-        data_manager.async_set_gps_tracking.assert_called_once_with("test_dog", True)
+        data_manager.async_set_gps_tracking.assert_called_once_with(
+            "test_dog", True)
 
     @pytest.mark.asyncio
     async def test_feature_switch_set_notifications(self, mock_coordinator, mock_hass):
@@ -1037,7 +1051,8 @@ class TestSwitchErrorHandling:
             }
         }
 
-        switch = PawControlMainPowerSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlMainPowerSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = hass
 
         # Should handle missing data manager gracefully
@@ -1055,7 +1070,8 @@ class TestSwitchErrorHandling:
             }
         }
 
-        switch = PawControlDoNotDisturbSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlDoNotDisturbSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = hass
 
         # Should handle missing method gracefully
@@ -1095,7 +1111,8 @@ class TestSwitchErrorHandling:
 
     def test_switch_cache_edge_cases(self, mock_coordinator):
         """Test switch caching edge cases."""
-        switch = PawControlMainPowerSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlMainPowerSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         # Test cache with expired timestamp
         cache_key = f"{switch._dog_id}_{switch._switch_type}"
@@ -1139,7 +1156,8 @@ class TestSwitchIntegration:
     @pytest.mark.asyncio
     async def test_switch_coordinator_integration(self, mock_coordinator):
         """Test switch integration with coordinator."""
-        switch = PawControlMainPowerSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlMainPowerSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
 
         # Mock hass with data manager
         hass = Mock()
@@ -1162,7 +1180,8 @@ class TestSwitchIntegration:
         self, mock_coordinator, mock_hass_with_full_data
     ):
         """Test switch integration with Home Assistant services."""
-        switch = PawControlVisitorModeSwitch(mock_coordinator, "test_dog", "Test Dog")
+        switch = PawControlVisitorModeSwitch(
+            mock_coordinator, "test_dog", "Test Dog")
         switch.hass = mock_hass_with_full_data
 
         await switch._async_set_state(True)
@@ -1230,7 +1249,7 @@ class TestSwitchConstants:
         """Test that feature switches have proper structure."""
         feature_switches = ProfileOptimizedSwitchFactory.FEATURE_SWITCHES
 
-        for module, switches in feature_switches.items():
+        for switches in feature_switches.values():
             assert isinstance(switches, list)
             assert len(switches) > 0
 

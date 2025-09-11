@@ -6,14 +6,16 @@ and generates detailed coverage reports for all components.
 
 Usage: python test_coverage_validation.py
 """
-
 from __future__ import annotations
 
 import ast
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict
+from typing import List
+from typing import Set
+from typing import Tuple
 
 
 class CoverageValidator:
@@ -26,9 +28,9 @@ class CoverageValidator:
         self.tests_path = base_path / "tests"
 
         # Coverage tracking
-        self.integration_files: Dict[str, Set[str]] = {}
-        self.test_files: Dict[str, Set[str]] = {}
-        self.coverage_report: Dict[str, Dict[str, any]] = {}
+        self.integration_files: dict[str, set[str]] = {}
+        self.test_files: dict[str, set[str]] = {}
+        self.coverage_report: dict[str, dict[str, any]] = {}
 
     def validate_coverage(self) -> bool:
         """Run comprehensive coverage validation.
@@ -66,7 +68,7 @@ class CoverageValidator:
 
             print(f"  Analyzing: {py_file.name}")
 
-            with open(py_file, "r", encoding="utf-8") as f:
+            with open(py_file, encoding="utf-8") as f:
                 content = f.read()
 
             try:
@@ -81,7 +83,8 @@ class CoverageValidator:
                     "file_path": str(py_file),
                 }
 
-                print(f"    Functions: {len(functions)}, Classes: {len(classes)}")
+                print(
+                    f"    Functions: {len(functions)}, Classes: {len(classes)}")
 
             except SyntaxError as e:
                 print(f"    ❌ Syntax error: {e}")
@@ -93,7 +96,8 @@ class CoverageValidator:
                 }
 
         total_files = len(self.integration_files)
-        total_items = sum(f["total_items"] for f in self.integration_files.values())
+        total_items = sum(f["total_items"]
+                          for f in self.integration_files.values())
         print(
             f"  ✅ Integration Analysis Complete: {total_files} files, {total_items} items"
         )
@@ -107,7 +111,7 @@ class CoverageValidator:
         for test_file in test_files:
             print(f"  Analyzing: {test_file.name}")
 
-            with open(test_file, "r", encoding="utf-8") as f:
+            with open(test_file, encoding="utf-8") as f:
                 content = f.read()
 
             try:
@@ -184,7 +188,8 @@ class CoverageValidator:
                     coverage_data["covered_functions"]
                     | coverage_data["covered_classes"]
                 )
-                coverage_data["missing_coverage"] = all_items - covered_items_set
+                coverage_data["missing_coverage"] = all_items - \
+                    covered_items_set
 
             self.coverage_report[integration_file] = coverage_data
 
@@ -200,7 +205,7 @@ class CoverageValidator:
             )
 
     def _match_coverage(
-        self, integration_data: Dict, test_data: Dict, integration_file: str
+        self, integration_data: dict, test_data: dict, integration_file: str
     ) -> int:
         """Match integration items to test coverage."""
         covered_count = 0
@@ -232,7 +237,7 @@ class CoverageValidator:
 
         return covered_count
 
-    def _extract_functions(self, tree: ast.AST) -> Set[str]:
+    def _extract_functions(self, tree: ast.AST) -> set[str]:
         """Extract function names from AST."""
         functions = set()
         for node in ast.walk(tree):
@@ -241,7 +246,7 @@ class CoverageValidator:
                     functions.add(node.name)
         return functions
 
-    def _extract_classes(self, tree: ast.AST) -> Set[str]:
+    def _extract_classes(self, tree: ast.AST) -> set[str]:
         """Extract class names from AST."""
         classes = set()
         for node in ast.walk(tree):
@@ -249,7 +254,7 @@ class CoverageValidator:
                 classes.add(node.name)
         return classes
 
-    def _extract_test_methods(self, tree: ast.AST) -> Set[str]:
+    def _extract_test_methods(self, tree: ast.AST) -> set[str]:
         """Extract test method names from AST."""
         test_methods = set()
         for node in ast.walk(tree):
@@ -258,7 +263,7 @@ class CoverageValidator:
                     test_methods.add(node.name)
         return test_methods
 
-    def _extract_test_classes(self, tree: ast.AST) -> Set[str]:
+    def _extract_test_classes(self, tree: ast.AST) -> set[str]:
         """Extract test class names from AST."""
         test_classes = set()
         for node in ast.walk(tree):
@@ -273,8 +278,10 @@ class CoverageValidator:
         print("=" * 60)
 
         total_files = len(self.coverage_report)
-        total_items = sum(r["integration_items"] for r in self.coverage_report.values())
-        total_covered = sum(r["test_coverage"] for r in self.coverage_report.values())
+        total_items = sum(r["integration_items"]
+                          for r in self.coverage_report.values())
+        total_covered = sum(r["test_coverage"]
+                            for r in self.coverage_report.values())
         overall_coverage = (total_covered / max(1, total_items)) * 100
 
         print(
@@ -352,8 +359,10 @@ class CoverageValidator:
         print("\n🏆 GOLD STANDARD VALIDATION")
         print("=" * 60)
 
-        total_items = sum(r["integration_items"] for r in self.coverage_report.values())
-        total_covered = sum(r["test_coverage"] for r in self.coverage_report.values())
+        total_items = sum(r["integration_items"]
+                          for r in self.coverage_report.values())
+        total_covered = sum(r["test_coverage"]
+                            for r in self.coverage_report.values())
         overall_coverage = (total_covered / max(1, total_items)) * 100
 
         # Gold Standard requirements
@@ -415,7 +424,8 @@ class CoverageValidator:
             "test_select_edge_cases_enhanced.py",
         ]
 
-        found_edge_tests = sum(1 for test in edge_case_tests if test in self.test_files)
+        found_edge_tests = sum(
+            1 for test in edge_case_tests if test in self.test_files)
         return found_edge_tests >= 3  # At least 3 edge case test files
 
     def _check_performance_tests(self) -> bool:

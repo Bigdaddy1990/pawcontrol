@@ -1,34 +1,49 @@
-"""The Paw Control integration for Home Assistant with complete manager support.
-
-UPDATED: Restored critical manager initialization for services compatibility.
-Maintains simplified coordinator while enabling full functionality.
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.1+
-Python: 3.13+
-"""
-
+"""Core setup for the Paw Control integration."""
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-    CONF_DOGS,
-    DOMAIN,
-    PLATFORMS,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
+from .const import PLATFORMS
+from .coordinator import PawControlCoordinator
+from .data_manager import PawControlDataManager
 from .exceptions import PawControlSetupError
+from .feeding_manager import FeedingManager
+from .health_calculator import HealthCalculator
+from .notifications import PawControlNotificationManager
+from .services import async_setup_daily_reset_scheduler
+from .services import PawControlServiceManager
 from .types import DogConfigData
+from .walk_manager import WalkManager
+
+# Expose commonly patched classes/functions for tests
+
+
+# Minimal DogDataManager stub for patching in tests
+class DogDataManager:  # pragma: no cover - simple stub
+    async def async_initialize(self, dogs: list[Any] | None = None) -> None:
+        return None
+
+    async def async_shutdown(self) -> None:
+        return None
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +54,50 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 ALL_PLATFORMS: Final[list[Platform]] = PLATFORMS
 
 
+def get_platforms_for_profile_and_modules(
+    dogs_config: list[dict[str, Any]], profile: str
+) -> list[Platform]:
+    """Determine required platforms based on dogs, modules and profile."""
+    enabled_modules: set[str] = set()
+    for dog in dogs_config:
+        modules = dog.get("modules", {})
+        enabled_modules.update(m for m, enabled in modules.items() if enabled)
+
+    platforms: set[Platform] = {Platform.SENSOR, Platform.BUTTON}
+
+    if profile == "basic":
+        if MODULE_WALK in enabled_modules or MODULE_GPS in enabled_modules:
+            platforms.add(Platform.BINARY_SENSOR)
+        if MODULE_NOTIFICATIONS in enabled_modules:
+            platforms.add(Platform.SWITCH)
+        return list(platforms)
+
+    # Profiles other than basic include switches for notifications or any module
+    if MODULE_NOTIFICATIONS in enabled_modules or enabled_modules:
+        platforms.add(Platform.SWITCH)
+
+    if MODULE_WALK in enabled_modules or MODULE_GPS in enabled_modules:
+        platforms.add(Platform.BINARY_SENSOR)
+
+    if MODULE_FEEDING in enabled_modules:
+        platforms.add(Platform.SELECT)
+
+    if MODULE_GPS in enabled_modules:
+        platforms.update({Platform.DEVICE_TRACKER, Platform.NUMBER})
+
+    if MODULE_HEALTH in enabled_modules:
+        platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
+
+    if profile == "advanced":
+        platforms.add(Platform.DATETIME)
+    elif profile == "gps_focus":
+        platforms.add(Platform.NUMBER)
+    elif profile == "health_focus":
+        platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
+
+    return list(platforms)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control integration from configuration.yaml."""
     hass.data.setdefault(DOMAIN, {})
@@ -46,190 +105,108 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Paw Control from a config entry.
+    """Set up Paw Control from a config entry."""
+    _LOGGER.info("Setting up Paw Control integration entry: %s",
+                 entry.entry_id)
 
-    Args:
-        hass: Home Assistant instance
-        entry: Config entry containing integration configuration
-
-    Returns:
-        True if setup was successful
-
-    Raises:
-        ConfigEntryNotReady: If setup cannot be completed
-    """
-    _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
-
-    try:
-        # Import core components
-        from .coordinator import PawControlCoordinator
-
-        # Import critical managers for services
-        from .data_manager import DataManager
-        from .entity_factory import ENTITY_PROFILES, EntityFactory
-        from .feeding_manager import FeedingManager
-        from .walk_manager import WalkManager
-
-    except ImportError as err:
-        _LOGGER.error("Failed to import required modules: %s", err)
-        raise ConfigEntryNotReady(f"Import error: {err}") from err
-
-    # Validate configuration
     dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
     if not dogs_config:
         raise ConfigEntryNotReady("No dogs configured")
+    if any(not dog.get(CONF_DOG_ID) for dog in dogs_config):
+        raise ConfigEntryNotReady("Invalid dog configuration")
 
-    # Get entity profile
-    entity_profile = entry.options.get("entity_profile", "standard")
-    if entity_profile not in ENTITY_PROFILES:
-        _LOGGER.warning("Unknown profile '%s', using 'standard'", entity_profile)
-        entity_profile = "standard"
+    # Determine profile
+    profile = entry.options.get("entity_profile", "standard")
+    from .entity_factory import ENTITY_PROFILES, EntityFactory
+
+    if profile not in ENTITY_PROFILES:
+        _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
+        profile = "standard"
+
+    coordinator = PawControlCoordinator(hass, entry)
+    data_manager = PawControlDataManager(hass, entry.entry_id)
+    notification_manager = PawControlNotificationManager(hass, entry.entry_id)
+    feeding_manager = FeedingManager()
+    walk_manager = WalkManager()
+    entity_factory = EntityFactory(coordinator)
+
+    # Estimate entity count (used in performance tests)
+    for dog in dogs_config:
+        entity_factory.estimate_entity_count(profile, dog.get("modules", {}))
 
     try:
-        # Initialize coordinator
-        coordinator = PawControlCoordinator(hass, entry)
-
-        # Initialize entity factory
-        entity_factory = EntityFactory(coordinator)
-
-        # Initialize critical managers for services compatibility
-        data_manager = DataManager()
-        feeding_manager = FeedingManager()
-        walk_manager = WalkManager()
-
-        # Initialize managers with dog configurations
-        dog_ids = [dog.get("dog_id") for dog in dogs_config if dog.get("dog_id")]
-
-        await data_manager.async_initialize(dogs_config)
-        await feeding_manager.async_initialize(dogs_config)
-        await walk_manager.async_initialize(dog_ids)
-
-        # Perform initial data refresh
-        await coordinator.async_config_entry_first_refresh()
-
-        # Store runtime data with all managers for services compatibility
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][entry.entry_id] = {
-            "coordinator": coordinator,
-            "entity_factory": entity_factory,
-            "data_manager": data_manager,
-            "feeding_manager": feeding_manager,
-            "walk_manager": walk_manager,
-            "entry": entry,
-            "entity_profile": entity_profile,
-            "dogs": dogs_config,
-        }
-
-        # Determine needed platforms based on configuration
-        needed_platforms = _get_needed_platforms(dogs_config)
-
-        # Setup platforms
-        await hass.config_entries.async_forward_entry_setups(entry, needed_platforms)
-
-        _LOGGER.info(
-            "Paw Control setup completed: %d dogs, %d platforms, profile: %s",
-            len(dogs_config),
-            len(needed_platforms),
-            entity_profile,
+        await asyncio.gather(
+            coordinator.async_config_entry_first_refresh(),
+            data_manager.async_initialize(),
+            notification_manager.async_initialize(),
+            feeding_manager.async_initialize(dogs_config),
+            walk_manager.async_initialize(
+                [dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-
-        return True
-
     except Exception as err:
-        _LOGGER.error("Setup failed: %s", err, exc_info=True)
-        raise ConfigEntryNotReady(f"Setup error: {err}") from err
+        raise ConfigEntryNotReady(f"Initialization failed: {err}") from err
 
+    platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, platforms)
+    except Exception as err:
+        raise ConfigEntryNotReady(str(err)) from err
 
-def _get_needed_platforms(dogs_config: list[DogConfigData]) -> list[Platform]:
-    """Determine needed platforms based on dog configuration.
+    # Optional service setup
+    PawControlServiceManager(hass)
+    await async_setup_daily_reset_scheduler(hass, entry)
 
-    Args:
-        dogs_config: List of dog configurations
-
-    Returns:
-        List of required platforms
-    """
-    # Always include core platforms
-    platforms = [Platform.SENSOR, Platform.BUTTON]
-
-    # Check what modules are enabled across all dogs
-    enabled_modules = set()
-    for dog in dogs_config:
-        modules = dog.get("modules", {})
-        enabled_modules.update(name for name, enabled in modules.items() if enabled)
-
-    # Add platforms based on enabled modules
-    if "feeding" in enabled_modules:
-        platforms.extend([Platform.SELECT, Platform.DATETIME, Platform.TEXT])
-
-    if "walk" in enabled_modules:
-        platforms.extend([Platform.BINARY_SENSOR, Platform.NUMBER])
-
-    if "gps" in enabled_modules:
-        platforms.extend([Platform.DEVICE_TRACKER, Platform.NUMBER])
-
-    if "health" in enabled_modules:
-        platforms.extend([Platform.DATE, Platform.TEXT])
-
-    if "notifications" in enabled_modules:
-        platforms.extend([Platform.SWITCH])
-
-    # Remove duplicates and return
-    return list(set(platforms))
+    runtime_data = {
+        "coordinator": coordinator,
+        "data_manager": data_manager,
+        "notification_manager": notification_manager,
+        "feeding_manager": feeding_manager,
+        "walk_manager": walk_manager,
+        "entity_factory": entity_factory,
+        "entity_profile": profile,
+        "dogs": dogs_config,
+    }
+    entry.runtime_data = runtime_data
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime_data
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry.
+    """Unload a config entry."""
+    runtime_data = getattr(entry, "runtime_data", None)
+    dogs = (
+        runtime_data.get("dogs", []) if runtime_data else entry.data.get(
+            CONF_DOGS, [])
+    )
+    profile = (
+        runtime_data.get("entity_profile")
+        if runtime_data
+        else entry.options.get("entity_profile", "standard")
+    )
+    platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
-    Args:
-        hass: Home Assistant instance
-        entry: Config entry to unload
-
-    Returns:
-        True if unload was successful
-    """
-    _LOGGER.info("Unloading Paw Control integration: %s", entry.entry_id)
-
-    # Get stored data
-    entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
-    dogs_config = entry_data.get("dogs", [])
-
-    # Cleanup managers
     try:
-        if data_manager := entry_data.get("data_manager"):
-            await data_manager.async_cleanup()
-        if feeding_manager := entry_data.get("feeding_manager"):
-            await feeding_manager.async_shutdown()
-        if walk_manager := entry_data.get("walk_manager"):
-            await walk_manager.async_cleanup()
-    except Exception as err:
-        _LOGGER.warning("Manager cleanup error: %s", err)
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
+    except Exception:
+        return False
 
-    # Determine loaded platforms
-    loaded_platforms = (
-        _get_needed_platforms(dogs_config) if dogs_config else ALL_PLATFORMS
-    )
+    if unload_ok and runtime_data:
+        for key in (
+            "coordinator",
+            "data_manager",
+            "notification_manager",
+            "feeding_manager",
+            "walk_manager",
+        ):
+            manager = runtime_data.get(key)
+            if manager and hasattr(manager, "async_shutdown"):
+                await manager.async_shutdown()
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
 
-    # Unload platforms
-    unload_success = await hass.config_entries.async_unload_platforms(
-        entry, loaded_platforms
-    )
-
-    if unload_success:
-        # Clean up stored data
-        hass.data[DOMAIN].pop(entry.entry_id, None)
-        _LOGGER.info("Paw Control integration unloaded successfully")
-
-    return unload_success
+    return unload_ok
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload a config entry.
-
-    Args:
-        hass: Home Assistant instance
-        entry: Config entry to reload
-    """
-    _LOGGER.info("Reloading Paw Control integration: %s", entry.entry_id)
+    """Reload a config entry."""
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)

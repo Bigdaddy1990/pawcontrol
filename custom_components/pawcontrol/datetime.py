@@ -1,5 +1,4 @@
 """DateTime platform for Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
@@ -15,17 +14,15 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,7 +55,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -111,11 +108,15 @@ async def async_setup_entry(
         if modules.get(MODULE_FEEDING, False):
             entities.extend(
                 [
-                    PawControlBreakfastTimeDateTime(coordinator, dog_id, dog_name),
+                    PawControlBreakfastTimeDateTime(
+                        coordinator, dog_id, dog_name),
                     PawControlLunchTimeDateTime(coordinator, dog_id, dog_name),
-                    PawControlDinnerTimeDateTime(coordinator, dog_id, dog_name),
-                    PawControlLastFeedingDateTime(coordinator, dog_id, dog_name),
-                    PawControlNextFeedingDateTime(coordinator, dog_id, dog_name),
+                    PawControlDinnerTimeDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlLastFeedingDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlNextFeedingDateTime(
+                        coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -123,12 +124,18 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(
                 [
-                    PawControlLastVetVisitDateTime(coordinator, dog_id, dog_name),
-                    PawControlNextVetAppointmentDateTime(coordinator, dog_id, dog_name),
-                    PawControlLastGroomingDateTime(coordinator, dog_id, dog_name),
-                    PawControlNextGroomingDateTime(coordinator, dog_id, dog_name),
-                    PawControlLastMedicationDateTime(coordinator, dog_id, dog_name),
-                    PawControlNextMedicationDateTime(coordinator, dog_id, dog_name),
+                    PawControlLastVetVisitDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlNextVetAppointmentDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlLastGroomingDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlNextGroomingDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlLastMedicationDateTime(
+                        coordinator, dog_id, dog_name),
+                    PawControlNextMedicationDateTime(
+                        coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -137,7 +144,8 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlLastWalkDateTime(coordinator, dog_id, dog_name),
-                    PawControlNextWalkReminderDateTime(coordinator, dog_id, dog_name),
+                    PawControlNextWalkReminderDateTime(
+                        coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -206,7 +214,8 @@ class PawControlDateTimeBase(
         if (last_state := await self.async_get_last_state()) is not None:
             if last_state.state not in ("unknown", "unavailable"):
                 try:
-                    self._current_value = dt_util.parse_datetime(last_state.state)
+                    self._current_value = dt_util.parse_datetime(
+                        last_state.state)
                 except (ValueError, TypeError):
                     self._current_value = None
 
@@ -214,7 +223,8 @@ class PawControlDateTimeBase(
         """Set new datetime value."""
         self._current_value = value
         self.async_write_ha_state()
-        _LOGGER.debug("Set %s for %s to %s", self._datetime_type, self._dog_name, value)
+        _LOGGER.debug("Set %s for %s to %s",
+                      self._datetime_type, self._dog_name, value)
 
 
 class PawControlBirthdateDateTime(PawControlDateTimeBase):
@@ -356,7 +366,8 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # This could schedule a reminder automation
-        _LOGGER.debug("Next feeding reminder set for %s at %s", self._dog_name, value)
+        _LOGGER.debug("Next feeding reminder set for %s at %s",
+                      self._dog_name, value)
 
 
 class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
@@ -573,7 +584,8 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # This could schedule walk reminder
-        _LOGGER.debug("Next walk reminder set for %s at %s", self._dog_name, value)
+        _LOGGER.debug("Next walk reminder set for %s at %s",
+                      self._dog_name, value)
 
 
 class PawControlVaccinationDateDateTime(PawControlDateTimeBase):

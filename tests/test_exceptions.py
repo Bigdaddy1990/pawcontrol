@@ -1,38 +1,36 @@
 """Tests for the Paw Control exceptions module."""
+from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.exceptions import (
-    EXCEPTION_MAP,
-    # Specific exceptions
-    ConfigurationError,
-    DataExportError,
-    DataImportError,
-    DogNotFoundError,
-    ErrorCategory,
-    ErrorSeverity,
-    GPSError,
-    GPSUnavailableError,
-    InvalidCoordinatesError,
-    InvalidMealTypeError,
-    InvalidWeightError,
-    NotificationError,
-    # Base classes and enums
-    PawControlError,
-    RateLimitError,
-    StorageError,
-    ValidationError,
-    WalkAlreadyInProgressError,
-    WalkError,
-    WalkNotInProgressError,
-    create_error_context,
-    # Helper functions
-    get_exception_class,
-    handle_exception_gracefully,
-    raise_from_error_code,
-)
+
+from custom_components.pawcontrol.exceptions import ConfigurationError
+from custom_components.pawcontrol.exceptions import create_error_context
+from custom_components.pawcontrol.exceptions import DataExportError
+from custom_components.pawcontrol.exceptions import DataImportError
+from custom_components.pawcontrol.exceptions import DogNotFoundError
+from custom_components.pawcontrol.exceptions import ErrorCategory
+from custom_components.pawcontrol.exceptions import ErrorSeverity
+from custom_components.pawcontrol.exceptions import EXCEPTION_MAP
+from custom_components.pawcontrol.exceptions import get_exception_class
+from custom_components.pawcontrol.exceptions import GPSError
+from custom_components.pawcontrol.exceptions import GPSUnavailableError
+from custom_components.pawcontrol.exceptions import handle_exception_gracefully
+from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
+from custom_components.pawcontrol.exceptions import InvalidMealTypeError
+from custom_components.pawcontrol.exceptions import InvalidWeightError
+from custom_components.pawcontrol.exceptions import NotificationError
+from custom_components.pawcontrol.exceptions import PawControlError
+from custom_components.pawcontrol.exceptions import raise_from_error_code
+from custom_components.pawcontrol.exceptions import RateLimitError
+from custom_components.pawcontrol.exceptions import StorageError
+from custom_components.pawcontrol.exceptions import ValidationError
+from custom_components.pawcontrol.exceptions import WalkAlreadyInProgressError
+from custom_components.pawcontrol.exceptions import WalkError
+from custom_components.pawcontrol.exceptions import WalkNotInProgressError
 
 
 class TestErrorSeverity:
@@ -213,7 +211,8 @@ class TestConfigurationError:
 
     def test_configuration_error_with_value(self):
         """Test configuration error with value."""
-        error = ConfigurationError("test_setting", "invalid_value", "Too short")
+        error = ConfigurationError(
+            "test_setting", "invalid_value", "Too short")
 
         assert "test_setting" in str(error)
         assert "invalid_value" in str(error)
@@ -359,7 +358,8 @@ class TestGPSUnavailableError:
     def test_gps_unavailable_with_last_location(self):
         """Test GPS unavailable error with last known location."""
         last_location = MagicMock()
-        error = GPSUnavailableError("test_dog", last_known_location=last_location)
+        error = GPSUnavailableError(
+            "test_dog", last_known_location=last_location)
 
         assert error.last_known_location == last_location
         assert error.context["has_last_known_location"] is True
@@ -405,7 +405,8 @@ class TestValidationError:
 
     def test_basic_validation_error(self):
         """Test basic validation error."""
-        error = ValidationError("test_field", "invalid_value", "Must be positive")
+        error = ValidationError(
+            "test_field", "invalid_value", "Must be positive")
 
         assert "test_field" in str(error)
         assert "invalid_value" in str(error)
@@ -634,10 +635,12 @@ class TestHelperFunctions:
         """Test graceful exception handling with critical error reraise."""
 
         def critical_function():
-            raise PawControlError("Critical error", severity=ErrorSeverity.CRITICAL)
+            raise PawControlError(
+                "Critical error", severity=ErrorSeverity.CRITICAL)
 
         with pytest.raises(PawControlError):
-            handle_exception_gracefully(critical_function, reraise_critical=True)()
+            handle_exception_gracefully(
+                critical_function, reraise_critical=True)()
 
     def test_handle_exception_gracefully_unexpected_error(self):
         """Test graceful exception handling with unexpected error."""
@@ -772,7 +775,8 @@ class TestExceptionHierarchy:
     def test_walk_errors_inherit_from_walk_error(self):
         """Test that walk-specific errors inherit from WalkError."""
         assert isinstance(WalkNotInProgressError("test_dog"), WalkError)
-        assert isinstance(WalkAlreadyInProgressError("test_dog", "walk_123"), WalkError)
+        assert isinstance(WalkAlreadyInProgressError(
+            "test_dog", "walk_123"), WalkError)
 
     def test_validation_errors_inherit_from_validation_error(self):
         """Test that validation-specific errors inherit from ValidationError."""

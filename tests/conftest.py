@@ -1,24 +1,28 @@
 """Test configuration and fixtures for Paw Control integration."""
+from __future__ import annotations
 
-from datetime import datetime, timedelta
+import tempfile
+from datetime import datetime
+from datetime import timedelta
 from types import MappingProxyType
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
+from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
+
+import sitecustomize
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
 
 # Manually load required pytest plugins
 pytest_plugins = ["pytest_cov", "pytest_asyncio"]
 
 # Ensure custom Home Assistant stubs are loaded
-import sitecustomize
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-)
-from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 
 
 @pytest.fixture
@@ -34,7 +38,13 @@ def event_loop():
 @pytest.fixture
 def hass(event_loop):
     """Return a minimal HomeAssistant instance."""
-    instance = HomeAssistant(config_dir=None)  # config_dir added
+
+    temp_dir = tempfile.mkdtemp()
+
+    async def _create_instance() -> HomeAssistant:
+        return HomeAssistant(config_dir=temp_dir)
+
+    instance = event_loop.run_until_complete(_create_instance())
     instance.loop = event_loop
     return instance
 

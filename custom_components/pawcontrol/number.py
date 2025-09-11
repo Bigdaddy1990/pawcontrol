@@ -5,22 +5,21 @@ including weight settings, timing controls, thresholds, and system parameters.
 All number entities are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust validation.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
+from homeassistant.components.number import NumberDeviceClass
+from homeassistant.components.number import NumberEntity
+from homeassistant.components.number import NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfMass
+from homeassistant.const import UnitOfSpeed
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
@@ -29,30 +28,28 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_AGE,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
-    CONF_DOGS,
-    DOMAIN,
-    MAX_DOG_AGE,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MIN_DOG_WEIGHT,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_WEIGHT
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_WEIGHT
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = Dict[str, Any]
+AttributeDict = dict[str, Any]
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
@@ -63,7 +60,7 @@ DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: List[PawControlNumberBase],
+    entities: list[PawControlNumberBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -88,7 +85,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -127,36 +124,41 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: List[PawControlNumberBase] = []
+    entities: list[PawControlNumberBase] = []
 
     # Create number entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: Dict[str, bool] = dog.get("modules", {})
+        modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
+        _LOGGER.debug("Creating number entities for dog: %s (%s)",
+                      dog_name, dog_id)
 
         # Base numbers - always created for every dog
-        entities.extend(_create_base_numbers(coordinator, dog_id, dog_name, dog))
+        entities.extend(_create_base_numbers(
+            coordinator, dog_id, dog_name, dog))
 
         # Module-specific numbers
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(_create_feeding_numbers(coordinator, dog_id, dog_name))
+            entities.extend(_create_feeding_numbers(
+                coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_numbers(coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_numbers(
+                coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
             entities.extend(_create_gps_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(_create_health_numbers(coordinator, dog_id, dog_name))
+            entities.extend(_create_health_numbers(
+                coordinator, dog_id, dog_name))
 
     # Add entities in smaller batches to prevent Entity Registry overload
     # With 46+ number entities (2 dogs), batching prevents Registry flooding
@@ -173,8 +175,8 @@ def _create_base_numbers(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: Dict[str, Any],
-) -> List[PawControlNumberBase]:
+    dog_config: dict[str, Any],
+) -> list[PawControlNumberBase]:
     """Create base numbers that are always present for every dog.
 
     Args:
@@ -195,7 +197,7 @@ def _create_base_numbers(
 
 def _create_feeding_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create feeding-related numbers for a dog.
 
     Args:
@@ -217,7 +219,7 @@ def _create_feeding_numbers(
 
 def _create_walk_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create walk-related numbers for a dog.
 
     Args:
@@ -239,7 +241,7 @@ def _create_walk_numbers(
 
 def _create_gps_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create GPS and location-related numbers for a dog.
 
     Args:
@@ -261,7 +263,7 @@ def _create_gps_numbers(
 
 def _create_health_numbers(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> List[PawControlNumberBase]:
+) -> list[PawControlNumberBase]:
     """Create health and medical-related numbers for a dog.
 
     Args:
@@ -298,15 +300,15 @@ class PawControlNumberBase(
         dog_name: str,
         number_type: str,
         *,
-        device_class: Optional[NumberDeviceClass] = None,
+        device_class: NumberDeviceClass | None = None,
         mode: NumberMode = NumberMode.AUTO,
-        native_unit_of_measurement: Optional[str] = None,
+        native_unit_of_measurement: str | None = None,
         native_min_value: float = 0,
         native_max_value: float = 100,
         native_step: float = 1,
-        icon: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
-        initial_value: Optional[float] = None,
+        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
+        initial_value: float | None = None,
     ) -> None:
         """Initialize the number entity.
 
@@ -384,7 +386,7 @@ class PawControlNumberBase(
                 )
 
     @property
-    def native_value(self) -> Optional[float]:
+    def native_value(self) -> float | None:
         """Return the current value of the number.
 
         Returns:
@@ -458,7 +460,8 @@ class PawControlNumberBase(
             _LOGGER.error(
                 "Failed to set %s for %s: %s", self._number_type, self._dog_name, err
             )
-            raise HomeAssistantError(f"Failed to set {self._number_type}") from err
+            raise HomeAssistantError(
+                f"Failed to set {self._number_type}") from err
 
     async def _async_set_number_value(self, value: float) -> None:
         """Set the number value implementation.
@@ -472,7 +475,7 @@ class PawControlNumberBase(
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this number's dog from the coordinator.
 
         Returns:
@@ -483,7 +486,7 @@ class PawControlNumberBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[Dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:
@@ -516,7 +519,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: Dict[str, Any],
+        dog_config: dict[str, Any],
     ) -> None:
         """Initialize the dog weight number."""
         current_weight = dog_config.get(CONF_DOG_WEIGHT, 20.0)
@@ -573,7 +576,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: Dict[str, Any],
+        dog_config: dict[str, Any],
     ) -> None:
         """Initialize the dog age number."""
         current_age = dog_config.get(CONF_DOG_AGE, 3)
@@ -602,7 +605,8 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
 
         # Persist the change if the data manager is available
-        runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
+        runtime_data = getattr(
+            self.coordinator.config_entry, "runtime_data", None)
         if runtime_data and (data_manager := runtime_data.get("data_manager")):
             try:
                 await data_manager.async_update_dog_data(
