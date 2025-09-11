@@ -45,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 # Portion safeguard constants
-PUPPY_PORTION_SAFEGUARD_FACTOR = 0.8
+PUPPY_PORTION_SAFEGUARD_FACTOR = 0.95
 MINIMUM_NUTRITION_PORTION_G = 50.1
 # Portion safety limits relative to daily ration (0.0-1.0)
 # Defines min/max allowable portion size as fraction of daily ration
@@ -308,9 +308,6 @@ class FeedingConfig:
         else:
             portion = base_portion
 
-        # Ensure minimum nutrition thresholds
-        portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
-
         # Apply safety limits
         min_portion = (
             adjusted_daily_grams * MIN_PORTION_SAFETY_FACTOR
@@ -320,6 +317,9 @@ class FeedingConfig:
             adjusted_daily_grams * max_factor
         )  # Max 60% of daily amount (100% if single meal)
         portion = max(min_portion, min(portion, max_portion))
+
+        # Ensure minimum nutrition thresholds after safety limits
+        portion = max(portion, MINIMUM_NUTRITION_PORTION_G)
 
         # Log diet validation adjustments if applied
         if self.diet_validation:
@@ -1719,6 +1719,12 @@ class FeedingManager:
                     portion = max(
                         portion, base_unadjusted * PUPPY_PORTION_SAFEGUARD_FACTOR
                     )
+                elif (
+                    health_metrics.life_stage in (LifeStage.SENIOR, LifeStage.GERIATRIC)
+                    and config.dog_weight
+                    and config.dog_weight <= 10
+                ):
+                    portion = max(portion, 7 * config.dog_weight)
 
                 # Validate portion safety with diet considerations
                 if config.dog_weight and portion > 0:

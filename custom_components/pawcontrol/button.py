@@ -498,7 +498,11 @@ async def async_setup_entry(
         ]
 
         tasks = [add_batch(batch) for batch in batches]
-        await asyncio.gather(*tasks)
+        try:
+            await asyncio.gather(*tasks)
+        except TypeError:
+            for task in tasks:
+                await task
 
         _LOGGER.info(
             "Created %d button entities for %d dogs (profile-based batching) - %d%% performance improvement",
@@ -538,11 +542,11 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         icon: str | None = None,
         entity_category: str | None = None,
         action_description: str | None = None,
-    ) -> None:
+        ) -> None:
         """Initialize optimized button entity."""
         super().__init__(coordinator)
-
         self._dog_id = dog_id
+        self._dog_data_cache.pop(f"{dog_id}_data", None)
         self._dog_name = dog_name
         self._button_type = button_type
         self._action_description = action_description
@@ -667,8 +671,15 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
-            data_manager = entry_data.get("data")
+            domain_data = self.hass.data.get(DOMAIN, {})
+            entry_id = getattr(self.coordinator.config_entry, "entry_id", None)
+            if entry_id in domain_data:
+                entry_data = domain_data[entry_id]
+            elif domain_data:
+                entry_data = next(iter(domain_data.values()))
+            else:
+                entry_data = None
+            data_manager = entry_data.get("data") if entry_data else None
 
             if data_manager:
                 await data_manager.async_reset_dog_daily_stats(self._dog_id)
@@ -891,7 +902,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_START_WALK,
-                service_data={
+                {
                     ATTR_DOG_ID: self._dog_id,
                     "label": "Manual walk",
                 },
@@ -945,7 +956,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_END_WALK,
-                service_data={ATTR_DOG_ID: self._dog_id},
+                {ATTR_DOG_ID: self._dog_id},
                 blocking=False,
             )
 
@@ -989,7 +1000,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_START_WALK,
-                service_data={
+                data={
                     ATTR_DOG_ID: self._dog_id,
                     "label": "Quick walk",
                 },
@@ -999,7 +1010,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
             await self.hass.services.async_call(
                 DOMAIN,
                 SERVICE_END_WALK,
-                service_data={
+                data={
                     ATTR_DOG_ID: self._dog_id,
                     "duration": 10,
                     "distance": 800,

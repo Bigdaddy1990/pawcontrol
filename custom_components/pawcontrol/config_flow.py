@@ -156,6 +156,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=INTEGRATION_SCHEMA,
             errors=errors,
+            description_placeholders={"integration_name": "Paw Control"},
         )
 
     async def async_step_add_dog(

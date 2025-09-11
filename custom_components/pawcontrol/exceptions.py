@@ -385,6 +385,8 @@ class WalkError(PawControlError):
         message: str,
         dog_id: str,
         walk_id: str | None = None,
+        *,
+        context: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize walk error.
@@ -395,13 +397,13 @@ class WalkError(PawControlError):
             walk_id: Walk ID if applicable
             **kwargs: Additional arguments for parent class
         """
+        base_context = {"dog_id": dog_id, "walk_id": walk_id}
+        if context:
+            base_context.update(context)
         super().__init__(
             message,
             category=ErrorCategory.BUSINESS_LOGIC,
-            context={
-                "dog_id": dog_id,
-                "walk_id": walk_id,
-            },
+            context=base_context,
             **kwargs,
         )
 
