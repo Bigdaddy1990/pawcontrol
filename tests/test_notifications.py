@@ -256,7 +256,7 @@ class TestCoreNotificationFunctionality:
         assert result is True
 
         # Check stored notification data
-        notification = list(manager._active_notifications.values())[0]
+        notification = next(iter(manager._active_notifications.values()))
         assert notification["title"] == "Custom Title"
         assert notification["priority"] == PRIORITY_HIGH
         assert notification["data"] == data
@@ -400,7 +400,7 @@ class TestPriorityManagement:
                 "test_dog", NOTIFICATION_WALK, "Walk reminder", priority=PRIORITY_HIGH
             )
 
-            notification = list(manager._active_notifications.values())[0]
+            notification = next(iter(manager._active_notifications.values()))
             assert DELIVERY_MOBILE_APP in notification["delivery_status"]
 
     async def test_title_generation_with_priority(
@@ -705,7 +705,7 @@ class TestDeliveryMethods:
             assert manager._metrics["delivery_failures"] == 1
 
             # Check delivery status
-            notification = list(manager._active_notifications.values())[0]
+            notification = next(iter(manager._active_notifications.values()))
             assert notification["delivery_status"][DELIVERY_PERSISTENT] == "success"
             assert notification["delivery_status"][DELIVERY_MOBILE_APP] == "failed"
 
@@ -1010,7 +1010,7 @@ class TestErrorHandling:
             assert result is True
 
             # Check generated notification ID is still valid
-            notification = list(manager._active_notifications.values())[0]
+            notification = next(iter(manager._active_notifications.values()))
             assert notification["dog_id"] == "dog-with-special-chars_123!@#"
 
 
@@ -1141,7 +1141,7 @@ class TestNotificationIntegration:
             )
 
             # Should create persistent notification
-            notification = list(manager._active_notifications.values())[0]
+            notification = next(iter(manager._active_notifications.values()))
             assert notification["delivery_status"][DELIVERY_PERSISTENT] == "success"
 
 

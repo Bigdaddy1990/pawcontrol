@@ -159,16 +159,17 @@ class TestPawControlDiscovery:
     @pytest.mark.asyncio
     async def test_async_initialize_failure(self, discovery):
         """Test discovery initialization failure."""
-        with patch.object(
-            discovery,
-            "_start_background_scanning",
-            new_callable=AsyncMock,
-            side_effect=Exception("Test error"),
+        with (
+            patch.object(
+                discovery,
+                "_start_background_scanning",
+                new_callable=AsyncMock,
+                side_effect=Exception("Test error"),
+            ),
+            pytest.raises(HomeAssistantError,
+                          match="Discovery initialization failed"),
         ):
-            with pytest.raises(
-                HomeAssistantError, match="Discovery initialization failed"
-            ):
-                await discovery.async_initialize()
+            await discovery.async_initialize()
 
     @pytest.mark.asyncio
     async def test_async_discover_devices_all_categories(self, discovery):
@@ -995,10 +996,17 @@ class TestDiscoveryConstants:
 
     def test_device_categories_complete(self):
         """Test that all expected device categories are defined."""
-        expected_categories = (
-            "gps_tracker smart_feeder activity_monitor health_device "
-            "smart_collar treat_dispenser water_fountain camera door_sensor"
-        ).split()
+        expected_categories = [
+            "gps_tracker",
+            "smart_feeder",
+            "activity_monitor",
+            "health_device",
+            "smart_collar",
+            "treat_dispenser",
+            "water_fountain",
+            "camera",
+            "door_sensor",
+        ]
         assert list(DEVICE_CATEGORIES) == expected_categories
 
     def test_discovery_timeouts_valid(self):

@@ -20,10 +20,6 @@ from datetime import datetime
 from datetime import timedelta
 from enum import Enum
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from homeassistant.util import dt as dt_util
 
@@ -689,8 +685,7 @@ class HealthCalculator:
         for event in feeding_events:
             event_time = event.get("time")
             if isinstance(event_time, str):
-                event_time = datetime.fromisoformat(
-                    event_time.replace("Z", "+00:00"))
+                event_time = datetime.fromisoformat(event_time)
 
             if event_time and event_time > week_ago:
                 date_key = event_time.date()

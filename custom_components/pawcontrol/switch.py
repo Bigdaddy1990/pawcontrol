@@ -12,9 +12,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.components.switch import SwitchEntity

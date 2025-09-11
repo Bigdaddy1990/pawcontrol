@@ -790,12 +790,14 @@ class TestPawControlLastFeedingDateTime:
         last_feeding_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 12, 30, 0)
 
-        with patch.object(
-            hass.services, "async_call", side_effect=Exception("Service error")
+        with (
+            patch.object(
+                hass.services, "async_call", side_effect=Exception("Service error")
+            ),
+            patch.object(last_feeding_entity, "async_write_ha_state"),
         ):
-            with patch.object(last_feeding_entity, "async_write_ha_state"):
-                # Should not raise exception despite service error
-                await last_feeding_entity.async_set_value(test_datetime)
+            # Should not raise exception despite service error
+            await last_feeding_entity.async_set_value(test_datetime)
 
         # Value should still be set
         assert last_feeding_entity._current_value == test_datetime
@@ -1068,12 +1070,14 @@ class TestPawControlHealthDateTimeEntities:
         for entity, test_datetime in entities_and_times:
             entity.hass = hass
 
-            with patch.object(
-                hass.services, "async_call", side_effect=Exception("Service error")
+            with (
+                patch.object(
+                    hass.services, "async_call", side_effect=Exception("Service error")
+                ),
+                patch.object(entity, "async_write_ha_state"),
             ):
-                with patch.object(entity, "async_write_ha_state"):
-                    # Should not raise exception despite service error
-                    await entity.async_set_value(test_datetime)
+                # Should not raise exception despite service error
+                await entity.async_set_value(test_datetime)
 
             # Value should still be set
             assert entity._current_value == test_datetime
@@ -1145,11 +1149,13 @@ class TestPawControlWalkDateTimeEntities:
         last_walk_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 16, 30, 0)
 
-        with patch.object(
-            hass.services, "async_call", new_callable=AsyncMock
-        ) as mock_service_call:
-            with patch.object(last_walk_entity, "async_write_ha_state"):
-                await last_walk_entity.async_set_value(test_datetime)
+        with (
+            patch.object(
+                hass.services, "async_call", new_callable=AsyncMock
+            ) as mock_service_call,
+            patch.object(last_walk_entity, "async_write_ha_state"),
+        ):
+            await last_walk_entity.async_set_value(test_datetime)
 
         # Should call start_walk and end_walk services
         assert mock_service_call.call_count == 2
@@ -1172,12 +1178,14 @@ class TestPawControlWalkDateTimeEntities:
         last_walk_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 16, 30, 0)
 
-        with patch.object(
-            hass.services, "async_call", side_effect=Exception("Service error")
+        with (
+            patch.object(
+                hass.services, "async_call", side_effect=Exception("Service error")
+            ),
+            patch.object(last_walk_entity, "async_write_ha_state"),
         ):
-            with patch.object(last_walk_entity, "async_write_ha_state"):
-                # Should not raise exception despite service errors
-                await last_walk_entity.async_set_value(test_datetime)
+            # Should not raise exception despite service errors
+            await last_walk_entity.async_set_value(test_datetime)
 
         # Value should still be set
         assert last_walk_entity._current_value == test_datetime
@@ -1269,11 +1277,13 @@ class TestPawControlSpecialDateTimeEntities:
         training_entity.hass = hass
         test_datetime = datetime(2023, 6, 25, 15, 0, 0)
 
-        with patch.object(
-            hass.services, "async_call", new_callable=AsyncMock
-        ) as mock_service_call:
-            with patch.object(training_entity, "async_write_ha_state"):
-                await training_entity.async_set_value(test_datetime)
+        with (
+            patch.object(
+                hass.services, "async_call", new_callable=AsyncMock
+            ) as mock_service_call,
+            patch.object(training_entity, "async_write_ha_state"),
+        ):
+            await training_entity.async_set_value(test_datetime)
 
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
@@ -1298,11 +1308,13 @@ class TestPawControlSpecialDateTimeEntities:
         hass.data[DOMAIN] = {"test_entry": {
             "notifications": mock_notification_manager}}
 
-        with patch.object(
-            hass.services, "async_call", new_callable=AsyncMock
-        ) as mock_service_call:
-            with patch.object(emergency_entity, "async_write_ha_state"):
-                await emergency_entity.async_set_value(test_datetime)
+        with (
+            patch.object(
+                hass.services, "async_call", new_callable=AsyncMock
+            ) as mock_service_call,
+            patch.object(emergency_entity, "async_write_ha_state"),
+        ):
+            await emergency_entity.async_set_value(test_datetime)
 
         # Should call log_health_data service
         mock_service_call.assert_called_once_with(
@@ -1335,12 +1347,14 @@ class TestPawControlSpecialDateTimeEntities:
             "test_entry": {}  # Missing notifications
         }
 
-        with patch.object(
-            hass.services, "async_call", new_callable=AsyncMock
-        ) as mock_service_call:
-            with patch.object(emergency_entity, "async_write_ha_state"):
-                # Should not raise exception even without notification manager
-                await emergency_entity.async_set_value(test_datetime)
+        with (
+            patch.object(
+                hass.services, "async_call", new_callable=AsyncMock
+            ) as mock_service_call,
+            patch.object(emergency_entity, "async_write_ha_state"),
+        ):
+            # Should not raise exception even without notification manager
+            await emergency_entity.async_set_value(test_datetime)
 
         # Should still call health service
         mock_service_call.assert_called_once()
@@ -1636,12 +1650,14 @@ class TestDateTimeEntityIntegrationScenarios:
         test_datetime = datetime(2023, 5, 10, 14, 30, 0)
 
         # Mock service call to raise exception
-        with patch.object(
-            hass.services, "async_call", side_effect=Exception("Service error")
+        with (
+            patch.object(
+                hass.services, "async_call", side_effect=Exception("Service error")
+            ),
+            patch.object(entity, "async_write_ha_state"),
         ):
-            with patch.object(entity, "async_write_ha_state"):
-                # Should not raise exception - service errors should be handled gracefully
-                await entity.async_set_value(test_datetime)
+            # Should not raise exception - service errors should be handled gracefully
+            await entity.async_set_value(test_datetime)
 
         # Value should still be set despite service error
         assert entity._current_value == test_datetime

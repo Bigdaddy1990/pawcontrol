@@ -254,7 +254,7 @@ class TestNetworkTimeoutAndFailureRecovery:
         """Test switch behavior when coordinator times out."""
         # Mock coordinator timeout
         network_sensitive_switch.coordinator.async_request_selective_refresh = (
-            AsyncMock(side_effect=asyncio.TimeoutError("Coordinator timeout"))
+            AsyncMock(side_effect=TimeoutError("Coordinator timeout"))
         )
 
         # Switch should handle timeout gracefully
@@ -275,7 +275,7 @@ class TestNetworkTimeoutAndFailureRecovery:
         # Mock service call timeout
         with patch.object(switch, "hass") as mock_hass:
             mock_hass.services.async_call = AsyncMock(
-                side_effect=asyncio.TimeoutError("Service timeout")
+                side_effect=TimeoutError("Service timeout")
             )
 
             # Should handle timeout without crashing

@@ -316,9 +316,9 @@ class TestAsyncSetupEntry:
                 "async_forward_entry_setups",
                 side_effect=Exception("Platform setup failed"),
             ),
+            pytest.raises(ConfigEntryNotReady, match="Platform setup failed"),
         ):
-            with pytest.raises(ConfigEntryNotReady, match="Platform setup failed"):
-                await async_setup_entry(hass, mock_config_entry)
+            await async_setup_entry(hass, mock_config_entry)
 
     @pytest.mark.asyncio
     async def test_setup_entry_coordinator_refresh_timeout(
@@ -331,9 +331,7 @@ class TestAsyncSetupEntry:
         mock_entity_factory,
     ):
         """Test setup when coordinator refresh times out."""
-        mock_coordinator.async_config_entry_first_refresh.side_effect = (
-            asyncio.TimeoutError()
-        )
+        mock_coordinator.async_config_entry_first_refresh.side_effect = TimeoutError()
 
         with (
             patch(
@@ -836,7 +834,7 @@ class TestAsyncUnloadEntry:
         with patch.object(
             hass.config_entries,
             "async_unload_platforms",
-            side_effect=asyncio.TimeoutError(),
+            side_effect=TimeoutError(),
         ):
             result = await async_unload_entry(hass, mock_config_entry)
             assert result is False
@@ -866,12 +864,14 @@ class TestAsyncReloadEntry:
     @pytest.mark.asyncio
     async def test_reload_entry_failure(self, hass: HomeAssistant, mock_config_entry):
         """Test reload when unload or setup fails."""
-        with patch(
-            "custom_components.pawcontrol.async_unload_entry",
-            side_effect=Exception("Unload failed"),
+        with (
+            patch(
+                "custom_components.pawcontrol.async_unload_entry",
+                side_effect=Exception("Unload failed"),
+            ),
+            pytest.raises(Exception, match="Unload failed"),
         ):
-            with pytest.raises(Exception, match="Unload failed"):
-                await async_reload_entry(hass, mock_config_entry)
+            await async_reload_entry(hass, mock_config_entry)
 
 
 class TestProfileSystemValidation:
@@ -890,7 +890,7 @@ class TestProfileSystemValidation:
 
     def test_profile_configuration_validity(self):
         """Test that all profiles have valid configuration."""
-        for profile_name, profile_config in ENTITY_PROFILES.items():
+        for profile_config in ENTITY_PROFILES.values():
             assert "max_entities" in profile_config
             assert "description" in profile_config
             assert "modules" in profile_config

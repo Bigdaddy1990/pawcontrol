@@ -337,12 +337,14 @@ class TestAsyncSetupEntry:
         mock_add_entities = Mock()
 
         # Mock exception during entity creation
-        with patch(
-            "custom_components.pawcontrol.date.PawControlBirthdateDate",
-            side_effect=Exception("Entity creation failed"),
+        with (
+            patch(
+                "custom_components.pawcontrol.date.PawControlBirthdateDate",
+                side_effect=Exception("Entity creation failed"),
+            ),
+            pytest.raises(PawControlError) as exc_info,
         ):
-            with pytest.raises(PawControlError) as exc_info:
-                await async_setup_entry(hass, entry, mock_add_entities)
+            await async_setup_entry(hass, entry, mock_add_entities)
 
         assert exc_info.value.error_code == "platform_setup_error"
 
@@ -626,13 +628,15 @@ class TestPawControlDateBase:
         base_date_entity.hass = hass
         test_date = date(2023, 7, 20)
 
-        with patch.object(
-            base_date_entity,
-            "_async_handle_date_set",
-            side_effect=Exception("Handler error"),
+        with (
+            patch.object(
+                base_date_entity,
+                "_async_handle_date_set",
+                side_effect=Exception("Handler error"),
+            ),
+            pytest.raises(ValidationError) as exc_info,
         ):
-            with pytest.raises(ValidationError) as exc_info:
-                await base_date_entity.async_set_value(test_date)
+            await base_date_entity.async_set_value(test_date)
 
         assert "Failed to set date: Handler error" in exc_info.value.reason
 

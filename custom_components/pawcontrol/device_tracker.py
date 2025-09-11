@@ -13,10 +13,6 @@ from contextlib import suppress
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
@@ -47,8 +43,8 @@ from .coordinator import PawControlCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-LocationTuple = Tuple[float, float]  # (latitude, longitude)
-AttributeDict = Dict[str, Any]
+LocationTuple = tuple[float, float]  # (latitude, longitude)
+AttributeDict = dict[str, Any]
 
 # GPS tracking constants
 DEFAULT_GPS_ACCURACY = 100  # meters
@@ -719,9 +715,7 @@ class PawControlDeviceTracker(
             gps_data.get("accuracy", "unknown"),
         )
 
-    def _handle_zone_change(
-        self, old_zone: str | None, new_zone: str | None
-    ) -> None:
+    def _handle_zone_change(self, old_zone: str | None, new_zone: str | None) -> None:
         """Handle zone change events.
 
         Fires events and logs zone transitions for automation purposes.

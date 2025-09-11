@@ -347,10 +347,10 @@ class TestCoordinatorManagerDelegationFailures:
 
         timeout_walk = AsyncMock()
         timeout_walk.async_get_walk_data = AsyncMock(
-            side_effect=asyncio.TimeoutError("Walk timeout")
+            side_effect=TimeoutError("Walk timeout")
         )
         timeout_walk.async_get_gps_data = AsyncMock(
-            side_effect=asyncio.TimeoutError("GPS timeout")
+            side_effect=TimeoutError("GPS timeout")
         )
 
         missing_dog_data = AsyncMock()
@@ -568,7 +568,7 @@ class TestCoordinatorPerformanceStressScenarios:
             await asyncio.sleep(delay)
 
             if hash(dog_id) % 15 == 0:
-                raise asyncio.TimeoutError("GPS service timeout")
+                raise TimeoutError("GPS service timeout")
 
             return {"last_walk": "2024-09-07 07:00:00", "distance": 2.5}
 
@@ -615,7 +615,7 @@ class TestCoordinatorPerformanceStressScenarios:
         update_times = []
         error_count = 0
 
-        for cycle in range(10):
+        for _cycle in range(10):
             start_time = time.time()
             try:
                 await coordinator.async_request_refresh()
@@ -658,7 +658,7 @@ class TestCoordinatorPerformanceStressScenarios:
         async def concurrent_selective_refresh(refresh_id):
             """Perform concurrent selective refreshes."""
             try:
-                for i in range(5):
+                for _i in range(5):
                     # Select different dog subsets
                     start_idx = (refresh_id * 3) % 30
                     dog_ids = [
@@ -1202,7 +1202,7 @@ async def test_comprehensive_coordinator_integration():
     async def comprehensive_gps_data(dog_id):
         await asyncio.sleep(0.02)
         if hash(dog_id) % 15 == 0:  # GPS failures
-            raise asyncio.TimeoutError("GPS timeout")
+            raise TimeoutError("GPS timeout")
         return {"lat": 52.5, "lon": 13.4, "accuracy": 5}
 
     async def comprehensive_dog_data(dog_id):

@@ -1298,11 +1298,11 @@ class TestServiceIntegration:
         hass = Mock()
         service_manager = PawControlServiceManager(hass)
 
-        for service_name, (
+        for (
             handler,
             schema,
             options,
-        ) in service_manager._service_registry.items():
+        ) in service_manager._service_registry.values():
             # Each service should have a handler, schema, and options
             assert callable(handler)
             assert isinstance(schema, vol.Schema)
@@ -1465,7 +1465,7 @@ class TestServiceConstants:
 
         for food_type in expected_food_types:
             assert food_type in calorie_table
-            assert isinstance(calorie_table[food_type], (int, float))
+            assert isinstance(calorie_table[food_type], int | float)
             assert calorie_table[food_type] > 0
 
     def test_service_timeouts_reasonable(self):
@@ -1473,13 +1473,13 @@ class TestServiceConstants:
         hass = Mock()
         service_manager = PawControlServiceManager(hass)
 
-        for service_name, (
-            handler,
-            schema,
+        for (
+            _handler,
+            _schema,
             options,
-        ) in service_manager._service_registry.items():
+        ) in service_manager._service_registry.values():
             timeout = options["timeout"]
-            assert isinstance(timeout, (int, float))
+            assert isinstance(timeout, int | float)
             assert 0 < timeout <= 30  # Reasonable timeout range
 
     def test_service_priorities_valid(self):
@@ -1487,11 +1487,11 @@ class TestServiceConstants:
         hass = Mock()
         service_manager = PawControlServiceManager(hass)
 
-        for service_name, (
-            handler,
-            schema,
+        for (
+            _handler,
+            _schema,
             options,
-        ) in service_manager._service_registry.items():
+        ) in service_manager._service_registry.values():
             priority = options["priority"]
             assert isinstance(priority, int)
             assert 1 <= priority <= 10  # Valid priority range

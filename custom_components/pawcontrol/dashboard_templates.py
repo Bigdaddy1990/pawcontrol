@@ -760,28 +760,28 @@ class DashboardTemplates:
         stats_content = f"## 📊 {dog_name} Statistics\n\n"
 
         if modules.get("feeding"):
-            stats_content += """
+            stats_content += f"""
 ### 🍖 Feeding
-- **Today's Meals**: {{{{ states('sensor.{}_meals_today') }}}}
-- **Daily Amount**: {{{{ states('sensor.{}_daily_food_consumed') }}}}g
-- **Schedule Adherence**: {{{{ states('sensor.{}_feeding_schedule_adherence') }}}}%
-""".format(dog_id, dog_id, dog_id)
+- **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
+- **Daily Amount**: {{{{ states('sensor.{dog_id}_daily_food_consumed') }}}}g
+- **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
+"""
 
         if modules.get("walk"):
-            stats_content += """
+            stats_content += f"""
 ### 🚶 Walking
-- **Daily Walk Time**: {{{{ states('sensor.{}_daily_walk_time') }}}} min
-- **Daily Distance**: {{{{ states('sensor.{}_daily_walk_distance') }}}} km
-- **Walk Goal**: {{{{ states('sensor.{}_walk_goal_progress') }}}}%
-""".format(dog_id, dog_id, dog_id)
+- **Daily Walk Time**: {{{{ states('sensor.{dog_id}_daily_walk_time') }}}} min
+- **Daily Distance**: {{{{ states('sensor.{dog_id}_daily_walk_distance') }}}} km
+- **Walk Goal**: {{{{ states('sensor.{dog_id}_walk_goal_progress') }}}}%
+"""
 
         if modules.get("health"):
-            stats_content += """
+            stats_content += f"""
 ### ❤️ Health
-- **Weight**: {{{{ states('sensor.{}_weight') }}}} kg
-- **Health Score**: {{{{ states('sensor.{}_health_score') }}}}/100
-- **Activity Level**: {{{{ states('sensor.{}_activity_level') }}}}
-""".format(dog_id, dog_id, dog_id)
+- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
+- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
+- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
+"""
 
         template = {
             "type": "markdown",

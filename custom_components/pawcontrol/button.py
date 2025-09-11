@@ -13,9 +13,6 @@ import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.components.button import ButtonEntity

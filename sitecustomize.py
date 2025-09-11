@@ -14,7 +14,6 @@ from enum import StrEnum
 from types import ModuleType
 from types import SimpleNamespace
 from typing import Any
-from typing import Generic
 from typing import TypeVar
 
 # Prevent unexpected plugins from loading during test collection
@@ -280,7 +279,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     update_coordinator.UpdateFailed = UpdateFailed
     update_coordinator.CoordinatorUpdateFailed = UpdateFailed
 
-    class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - minimal stub
+    class DataUpdateCoordinator[T]:  # pragma: no cover - minimal stub
         def __init__(
             self,
             hass: HomeAssistant,

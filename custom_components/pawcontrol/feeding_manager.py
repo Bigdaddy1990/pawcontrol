@@ -22,7 +22,6 @@ from datetime import time
 from datetime import timedelta
 from enum import Enum
 from typing import Any
-from typing import Optional
 
 from homeassistant.util import dt as dt_util
 
@@ -770,7 +769,7 @@ class FeedingManager:
                             # Event was set - recalculate
                             event.clear()
                             continue
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             # Time to send reminder
                             schedule = await self._get_reminder_schedule(
                                 config, next_reminder
@@ -794,9 +793,7 @@ class FeedingManager:
                     "Error in reminder handler for %s: %s", dog_id, err)
                 await asyncio.sleep(60)  # Error recovery
 
-    async def _calculate_next_reminder(
-        self, config: FeedingConfig
-    ) -> datetime | None:
+    async def _calculate_next_reminder(self, config: FeedingConfig) -> datetime | None:
         """Calculate next reminder time for a config.
 
         Args:
@@ -1460,9 +1457,7 @@ class FeedingManager:
 
             return analysis
 
-    async def async_generate_health_report(
-        self, dog_id: str
-    ) -> dict[str, Any] | None:
+    async def async_generate_health_report(self, dog_id: str) -> dict[str, Any] | None:
         """Generate comprehensive health report for a dog.
 
         Args:

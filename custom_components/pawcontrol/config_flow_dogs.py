@@ -156,7 +156,7 @@ class DogManagementMixin:
                 else:
                     errors = validation_result["errors"]
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Dog validation timed out")
                 errors["base"] = "validation_timeout"
             except Exception as err:
@@ -1325,9 +1325,7 @@ class DogManagementMixin:
 
         schema = vol.Schema(
             {
-                vol.Required(
-                    "add_another", default=False and not at_limit
-                ): selector.BooleanSelector(),
+                vol.Required("add_another", default=False): selector.BooleanSelector(),
             }
         )
 
@@ -1478,7 +1476,7 @@ class DogManagementMixin:
                 warnings.append(
                     {
                         "type": "raw_medical_warning",
-                        "diets": ["raw_diet"] + conflicting_medical,
+                        "diets": ["raw_diet", *conflicting_medical],
                         "message": "Raw diets may require veterinary supervision with medical conditions",
                     }
                 )
@@ -1512,7 +1510,7 @@ class DogManagementMixin:
                 warnings.append(
                     {
                         "type": "hypoallergenic_warning",
-                        "diets": ["hypoallergenic"] + conflicting_allergens,
+                        "diets": ["hypoallergenic", *conflicting_allergens],
                         "message": "Hypoallergenic diets should be carefully managed with other diet types",
                     }
                 )

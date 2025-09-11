@@ -104,7 +104,7 @@ def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
         async def async_wrapper(*args, **kwargs) -> T:
             try:
                 return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Function %s timed out after %ss",
                               func.__name__, timeout)
                 raise
@@ -597,7 +597,7 @@ def _linear_regression(values: list[float]) -> tuple[float, float]:
 
     y_pred = [slope * i + (y_mean - slope * x_mean) for i in range(n)]
     ss_tot = sum((v - y_mean) ** 2 for v in values)
-    ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred))
+    ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred, strict=False))
     r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
 
     return slope, round(max(0, min(r_squared, 1)), 3)
@@ -748,32 +748,32 @@ def safe_str(value: Any, default: str = "") -> str:
 
 # OPTIMIZED: Streamlined exports - only essential functions
 __all__ = (
-    # Core validation
-    "validate_dog_id",
-    "async_validate_coordinates",
-    "validate_weight_enhanced",
-    "validate_enum_value",
     "async_batch_validate",
-    # Formatting
-    "format_duration_optimized",
-    "format_distance_adaptive",
-    "format_time_ago_smart",
     # Calculations
     "async_calculate_haversine_distance",
+    "async_validate_coordinates",
     "calculate_bmr_advanced",
     "calculate_trend_advanced",
     # Utilities
     "create_device_info",
-    "safe_convert",
     "deep_merge_dicts",
     "deep_merge_dicts_optimized",
-    "is_within_time_range_enhanced",
+    "format_distance_adaptive",
+    # Formatting
+    "format_duration_optimized",
+    "format_time_ago_smart",
     "is_within_quiet_hours",
-    "sanitize_filename_advanced",
+    "is_within_time_range_enhanced",
     # Performance
     "performance_monitor",
+    "safe_convert",
     # Legacy (deprecated)
     "safe_float",
     "safe_int",
     "safe_str",
+    "sanitize_filename_advanced",
+    # Core validation
+    "validate_dog_id",
+    "validate_enum_value",
+    "validate_weight_enhanced",
 )

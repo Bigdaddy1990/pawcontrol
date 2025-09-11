@@ -906,13 +906,15 @@ class TestDashboardRendererPerformance:
         # Exceeds timeout
         slow_generator.side_effect = lambda *args: asyncio.sleep(35)
 
-        with patch.object(
-            renderer.overview_generator, "generate_welcome_card", slow_generator
+        with (
+            patch.object(
+                renderer.overview_generator, "generate_welcome_card", slow_generator
+            ),
+            pytest.raises(HomeAssistantError, match="timeout"),
         ):
-            with pytest.raises(HomeAssistantError, match="timeout"):
-                await renderer.render_main_dashboard(
-                    [{"dog_id": "test", "dog_name": "Test"}]
-                )
+            await renderer.render_main_dashboard(
+                [{"dog_id": "test", "dog_name": "Test"}]
+            )
 
     async def test_memory_efficient_batch_processing(self, hass: HomeAssistant):
         """Test memory-efficient processing of large dog lists."""

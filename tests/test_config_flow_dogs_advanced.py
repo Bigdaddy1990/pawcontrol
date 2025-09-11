@@ -1102,7 +1102,7 @@ class TestErrorRecoveryAndEdgeCases:
         with patch.object(
             mock_config_flow, "_async_validate_dog_config"
         ) as mock_validate:
-            mock_validate.side_effect = asyncio.TimeoutError()
+            mock_validate.side_effect = TimeoutError()
 
             dog_config = {
                 CONF_DOG_ID: "timeout_dog",
@@ -1403,7 +1403,7 @@ class TestCrossValidationAndConsistency:
             assert result3["type"] == FlowResultType.FORM
 
         # Verify feeding configurations make sense relative to dog sizes
-        for i, dog in enumerate(mock_config_flow._dogs):
+        for _i, dog in enumerate(mock_config_flow._dogs):
             feeding_config = dog["feeding_config"]
             dog_weight = dog[CONF_DOG_WEIGHT]
             daily_amount = feeding_config[CONF_DAILY_FOOD_AMOUNT]

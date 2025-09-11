@@ -514,13 +514,14 @@ class TestErrorHandlingEdgeCases:
     async def test_turn_off_with_service_failure(self, switch):
         """Test turn_off when underlying service fails."""
         # Mock service failure
-        with patch.object(
-            switch, "_async_set_state", side_effect=Exception("Service failed")
+        with (
+            patch.object(
+                switch, "_async_set_state", side_effect=Exception("Service failed")
+            ),
+            pytest.raises(HomeAssistantError,
+                          match="Failed to turn off main_power"),
         ):
-            with pytest.raises(
-                HomeAssistantError, match="Failed to turn off main_power"
-            ):
-                await switch.async_turn_off()
+            await switch.async_turn_off()
 
         # State should not change on failure
         assert switch._is_on is False  # Initial state

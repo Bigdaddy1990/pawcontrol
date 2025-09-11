@@ -27,6 +27,7 @@ import logging
 import time
 import weakref
 from contextlib import asynccontextmanager
+from contextlib import suppress
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
@@ -492,7 +493,7 @@ class TestComplexAsyncValidationRaceConditions:
                     await asyncio.sleep(0.001)
 
             except Exception as e:
-                cache_errors.append(f"Worker {worker_id} error: {str(e)}")
+                cache_errors.append(f"Worker {worker_id} error: {e!s}")
 
         # Run concurrent cache workers
         await asyncio.gather(
@@ -536,7 +537,7 @@ class TestComplexAsyncValidationRaceConditions:
                     else:
                         success_count += 1
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 timeout_count += 1
             except Exception:
                 # Other exceptions are acceptable
@@ -644,7 +645,7 @@ class TestConfigurationMigrationCorruption:
         # Add circular reference to test resilience
         corrupted_legacy_configs[3]["self"] = corrupted_legacy_configs[3]
 
-        for i, corrupted_config in enumerate(corrupted_legacy_configs):
+        for _i, corrupted_config in enumerate(corrupted_legacy_configs):
             try:
                 # Simulate legacy config migration
                 migrated_config = config_flow._migrate_legacy_config(
@@ -703,7 +704,7 @@ class TestConfigurationMigrationCorruption:
                     # If accepted, should be sanitized
                     sanitized_data = validation_result.get(
                         "sanitized_data", {})
-                    for key, value in sanitized_data.items():
+                    for value in sanitized_data.values():
                         if isinstance(value, str):
                             assert len(value) < 1000  # Should limit length
                             assert "\x00" not in value  # Should remove null bytes
@@ -739,10 +740,8 @@ class TestConfigurationMigrationCorruption:
         }
 
         # Should detect corruption and rollback to previous state
-        try:
+        with suppress(Exception):
             config_flow._apply_config_update(corrupted_update)
-        except Exception:
-            pass
 
         # Configuration should remain in valid state
         assert len(config_flow._dogs) == 1
@@ -772,7 +771,7 @@ class TestConfigurationMigrationCorruption:
                     await asyncio.sleep(0.001)
 
             except Exception as e:
-                modification_errors.append(f"Modifier {modifier_id}: {str(e)}")
+                modification_errors.append(f"Modifier {modifier_id}: {e!s}")
 
         # Run concurrent modifications
         await asyncio.gather(
@@ -837,7 +836,7 @@ class TestSecurityValidationBypassAttempts:
                 sanitized = config_flow._sanitize_user_input(malicious_input)
 
                 # Should sanitize dangerous content
-                for key, value in sanitized.items():
+                for value in sanitized.values():
                     if isinstance(value, str):
                         assert "<script" not in value.lower()
                         assert "javascript:" not in value.lower()
@@ -872,7 +871,7 @@ class TestSecurityValidationBypassAttempts:
 
                 # Should not allow cache poisoning to affect normal operations
                 if retrieved:
-                    assert isinstance(retrieved, (dict, type(None)))
+                    assert isinstance(retrieved, dict | type(None))
 
             except Exception:
                 # Rejection of malicious cache entries is acceptable
@@ -905,7 +904,7 @@ class TestSecurityValidationBypassAttempts:
                     if end_time - start_time > VALIDATION_TIMEOUT + 2:
                         bypass_attempts.append("Timeout bypass successful")
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Expected behavior - timeout should be enforced
                 pass
             except Exception:
@@ -1323,7 +1322,7 @@ class TestExtremeStressScenarios:
         flows = []
 
         # Create maximum concurrent flows
-        for i in range(max_flows):
+        for _i in range(max_flows):
             flow = PawControlConfigFlow()
             flow.hass = mock_hass
             flows.append(flow)
@@ -1336,7 +1335,7 @@ class TestExtremeStressScenarios:
                 )
                 return result.get("type", "unknown")
             except Exception as e:
-                return f"error: {str(e)}"
+                return f"error: {e!s}"
 
         # Execute all flows concurrently
         results = await asyncio.gather(
@@ -1366,7 +1365,7 @@ class TestExtremeStressScenarios:
 
         try:
             # Create memory pressure
-            for i in range(1000):
+            for _i in range(1000):
                 large_object = {
                     "data": [j for j in range(10000)],  # Large list
                     "text": "x" * 100000,  # Large string

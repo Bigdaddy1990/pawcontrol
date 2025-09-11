@@ -384,46 +384,46 @@ PERFORMANCE_THRESHOLDS: Final = {
 
 # OPTIMIZED: Streamlined exports - only frequently used constants
 __all__ = (
-    # Core essentials
-    "DOMAIN",
-    "PLATFORMS",
+    "ACTIVITY_LEVELS",
     "ALL_MODULES",
+    # Dashboard configuration
+    "CONF_DASHBOARD_ENABLED",
     # Configuration keys (most commonly used)
     "CONF_DOGS",
     "CONF_DOG_ID",
     "CONF_DOG_NAME",
     "CONF_MODULES",
-    # Module identifiers
-    "MODULE_GPS",
-    "MODULE_FEEDING",
-    "MODULE_HEALTH",
-    "MODULE_WALK",
-    "MODULE_NOTIFICATIONS",
-    "MODULE_DASHBOARD",
-    "MODULE_VISITOR",
-    # Validation constants
-    "FOOD_TYPES",
+    "CORE_SERVICES",
+    "DEFAULT_DASHBOARD_ENABLED",
+    "DEFAULT_GPS_UPDATE_INTERVAL",
     "DOG_SIZES",
     "DOG_SIZE_WEIGHT_RANGES",
-    "HEALTH_STATUS_OPTIONS",
-    "ACTIVITY_LEVELS",
-    # Service identifiers
-    "SERVICE_FEED_DOG",
-    "SERVICE_START_WALK",
-    "SERVICE_LOG_HEALTH",
-    "CORE_SERVICES",
-    # Event types
-    "EVENT_WALK_STARTED",
+    # Core essentials
+    "DOMAIN",
     "EVENT_FEEDING_LOGGED",
     "EVENT_HEALTH_LOGGED",
-    # Performance constants
-    "UPDATE_INTERVALS",
-    "PERFORMANCE_THRESHOLDS",
+    # Event types
+    "EVENT_WALK_STARTED",
+    # Validation constants
+    "FOOD_TYPES",
+    "HEALTH_STATUS_OPTIONS",
+    "MAX_DOG_WEIGHT",
     # Limits and defaults
     "MIN_DOG_WEIGHT",
-    "MAX_DOG_WEIGHT",
-    "DEFAULT_GPS_UPDATE_INTERVAL",
-    # Dashboard configuration
-    "CONF_DASHBOARD_ENABLED",
-    "DEFAULT_DASHBOARD_ENABLED",
+    "MODULE_DASHBOARD",
+    "MODULE_FEEDING",
+    # Module identifiers
+    "MODULE_GPS",
+    "MODULE_HEALTH",
+    "MODULE_NOTIFICATIONS",
+    "MODULE_VISITOR",
+    "MODULE_WALK",
+    "PERFORMANCE_THRESHOLDS",
+    "PLATFORMS",
+    # Service identifiers
+    "SERVICE_FEED_DOG",
+    "SERVICE_LOG_HEALTH",
+    "SERVICE_START_WALK",
+    # Performance constants
+    "UPDATE_INTERVALS",
 )
