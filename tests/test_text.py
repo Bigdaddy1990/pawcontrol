@@ -7,49 +7,51 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.text import (
+    PawControlAllergiesText,
+    PawControlBehaviorNotesText,
+    PawControlBreederInfoText,
+    PawControlCurrentWalkLabelText,
+    PawControlCustomLabelText,
+    PawControlCustomMessageText,
+    PawControlDogNotesText,
+    PawControlEmergencyContactText,
+    PawControlGroomingNotesText,
+    PawControlHealthNotesText,
+    PawControlInsuranceText,
+    PawControlLocationDescriptionText,
+    PawControlMedicationNotesText,
+    PawControlMicrochipText,
+    PawControlRegistrationText,
+    PawControlTextBase,
+    PawControlTrainingNotesText,
+    PawControlVetNotesText,
+    PawControlWalkNotesText,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
 from homeassistant.components.text import TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.text import _async_add_entities_in_batches
-from custom_components.pawcontrol.text import async_setup_entry
-from custom_components.pawcontrol.text import PawControlAllergiesText
-from custom_components.pawcontrol.text import PawControlBehaviorNotesText
-from custom_components.pawcontrol.text import PawControlBreederInfoText
-from custom_components.pawcontrol.text import PawControlCurrentWalkLabelText
-from custom_components.pawcontrol.text import PawControlCustomLabelText
-from custom_components.pawcontrol.text import PawControlCustomMessageText
-from custom_components.pawcontrol.text import PawControlDogNotesText
-from custom_components.pawcontrol.text import PawControlEmergencyContactText
-from custom_components.pawcontrol.text import PawControlGroomingNotesText
-from custom_components.pawcontrol.text import PawControlHealthNotesText
-from custom_components.pawcontrol.text import PawControlInsuranceText
-from custom_components.pawcontrol.text import PawControlLocationDescriptionText
-from custom_components.pawcontrol.text import PawControlMedicationNotesText
-from custom_components.pawcontrol.text import PawControlMicrochipText
-from custom_components.pawcontrol.text import PawControlRegistrationText
-from custom_components.pawcontrol.text import PawControlTextBase
-from custom_components.pawcontrol.text import PawControlTrainingNotesText
-from custom_components.pawcontrol.text import PawControlVetNotesText
-from custom_components.pawcontrol.text import PawControlWalkNotesText
 
 
 class TestAsyncSetupEntry:

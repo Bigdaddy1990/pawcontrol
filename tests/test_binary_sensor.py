@@ -15,71 +15,72 @@ Test Coverage:
 - Performance testing with large setups
 - Integration scenarios and coordinator interaction
 """
+
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlActivityLevelConcernBinarySensor,
+    PawControlAttentionNeededBinarySensor,
+    PawControlBinarySensorBase,
+    PawControlDailyFeedingGoalMetBinarySensor,
+    PawControlFeedingDueBinarySensor,
+    PawControlFeedingScheduleOnTrackBinarySensor,
+    PawControlGeofenceAlertBinarySensor,
+    PawControlGPSAccuratelyTrackedBinarySensor,
+    PawControlGPSBatteryLowBinarySensor,
+    PawControlGroomingDueBinarySensor,
+    PawControlHealthAlertBinarySensor,
+    PawControlInSafeZoneBinarySensor,
+    PawControlIsHomeBinarySensor,
+    PawControlIsHungryBinarySensor,
+    PawControlLongWalkOverdueBinarySensor,
+    PawControlMedicationDueBinarySensor,
+    PawControlMovingBinarySensor,
+    PawControlNeedsWalkBinarySensor,
+    PawControlOnlineBinarySensor,
+    PawControlVetCheckupDueBinarySensor,
+    PawControlVisitorModeBinarySensor,
+    PawControlWalkGoalMetBinarySensor,
+    PawControlWalkInProgressBinarySensor,
+    PawControlWeightAlertBinarySensor,
+    _async_add_entities_in_batches,
+    _create_base_binary_sensors,
+    _create_feeding_binary_sensors,
+    _create_gps_binary_sensors,
+    _create_health_binary_sensors,
+    _create_walk_binary_sensors,
+    async_setup_entry,
 )
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from homeassistant.components.binary_sensor import (
     DOMAIN as BINARY_SENSOR_DOMAIN,
+)
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.binary_sensor import _async_add_entities_in_batches
-from custom_components.pawcontrol.binary_sensor import _create_base_binary_sensors
-from custom_components.pawcontrol.binary_sensor import _create_feeding_binary_sensors
-from custom_components.pawcontrol.binary_sensor import _create_gps_binary_sensors
-from custom_components.pawcontrol.binary_sensor import _create_health_binary_sensors
-from custom_components.pawcontrol.binary_sensor import _create_walk_binary_sensors
-from custom_components.pawcontrol.binary_sensor import async_setup_entry
-from custom_components.pawcontrol.binary_sensor import PawControlActivityLevelConcernBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlAttentionNeededBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlBinarySensorBase
-from custom_components.pawcontrol.binary_sensor import PawControlDailyFeedingGoalMetBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlFeedingDueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlFeedingScheduleOnTrackBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGeofenceAlertBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGPSAccuratelyTrackedBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGPSBatteryLowBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGroomingDueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlHealthAlertBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlInSafeZoneBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlIsHomeBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlIsHungryBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlLongWalkOverdueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlMedicationDueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlMovingBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlNeedsWalkBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlOnlineBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlVetCheckupDueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlVisitorModeBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlWalkGoalMetBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlWalkInProgressBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlWeightAlertBinarySensor
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestAsyncAddEntitiesInBatches:

@@ -15,55 +15,51 @@ Additional Test Areas:
 - Concurrent modification protection
 - Configuration migration edge cases
 """
+
 from __future__ import annotations
 
 import asyncio
 import gc
 import weakref
 from contextlib import contextmanager
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import (
+    BATCH_DELAY,
+    BATCH_SIZE,
+    MAX_CONCURRENT_BATCHES,
+    OptimizedSwitchBase,
+    PawControlDoNotDisturbSwitch,
+    PawControlFeatureSwitch,
+    PawControlMainPowerSwitch,
+    PawControlModuleSwitch,
+    PawControlVisitorModeSwitch,
+    ProfileOptimizedSwitchFactory,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity_registry import EntityRegistry
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.switch import _async_add_entities_in_batches
-from custom_components.pawcontrol.switch import async_setup_entry
-from custom_components.pawcontrol.switch import BATCH_DELAY
-from custom_components.pawcontrol.switch import BATCH_SIZE
-from custom_components.pawcontrol.switch import MAX_CONCURRENT_BATCHES
-from custom_components.pawcontrol.switch import OptimizedSwitchBase
-from custom_components.pawcontrol.switch import PawControlDoNotDisturbSwitch
-from custom_components.pawcontrol.switch import PawControlFeatureSwitch
-from custom_components.pawcontrol.switch import PawControlMainPowerSwitch
-from custom_components.pawcontrol.switch import PawControlModuleSwitch
-from custom_components.pawcontrol.switch import PawControlVisitorModeSwitch
-from custom_components.pawcontrol.switch import ProfileOptimizedSwitchFactory
 
 
 @pytest.fixture

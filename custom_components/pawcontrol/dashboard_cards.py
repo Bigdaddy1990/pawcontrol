@@ -8,23 +8,25 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import logging
 from typing import Any
 
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)

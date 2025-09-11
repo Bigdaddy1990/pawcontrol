@@ -17,52 +17,52 @@ Test Coverage:
 - Performance monitor decorator integration
 - Exception handling and edge cases
 """
+
 from __future__ import annotations
 
 import asyncio
-from datetime import date
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.date import (
+    PawControlAdoptionDate,
+    PawControlBirthdateDate,
+    PawControlDateBase,
+    PawControlDewormingDate,
+    PawControlDietEndDate,
+    PawControlDietStartDate,
+    PawControlLastGroomingDate,
+    PawControlLastVetVisitDate,
+    PawControlNextDewormingDate,
+    PawControlNextGroomingDate,
+    PawControlNextTrainingDate,
+    PawControlNextVaccinationDate,
+    PawControlNextVetAppointmentDate,
+    PawControlTrainingStartDate,
+    PawControlVaccinationDate,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
+from custom_components.pawcontrol.exceptions import PawControlError, ValidationError
 from homeassistant.components.date import DOMAIN as DATE_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.date import _async_add_entities_in_batches
-from custom_components.pawcontrol.date import async_setup_entry
-from custom_components.pawcontrol.date import PawControlAdoptionDate
-from custom_components.pawcontrol.date import PawControlBirthdateDate
-from custom_components.pawcontrol.date import PawControlDateBase
-from custom_components.pawcontrol.date import PawControlDewormingDate
-from custom_components.pawcontrol.date import PawControlDietEndDate
-from custom_components.pawcontrol.date import PawControlDietStartDate
-from custom_components.pawcontrol.date import PawControlLastGroomingDate
-from custom_components.pawcontrol.date import PawControlLastVetVisitDate
-from custom_components.pawcontrol.date import PawControlNextDewormingDate
-from custom_components.pawcontrol.date import PawControlNextGroomingDate
-from custom_components.pawcontrol.date import PawControlNextTrainingDate
-from custom_components.pawcontrol.date import PawControlNextVaccinationDate
-from custom_components.pawcontrol.date import PawControlNextVetAppointmentDate
-from custom_components.pawcontrol.date import PawControlTrainingStartDate
-from custom_components.pawcontrol.date import PawControlVaccinationDate
-from custom_components.pawcontrol.exceptions import PawControlError
-from custom_components.pawcontrol.exceptions import ValidationError
 
 
 class TestAsyncAddEntitiesInBatches:

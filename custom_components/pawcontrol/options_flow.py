@@ -11,6 +11,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -18,42 +19,41 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.config_entries import OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
 from homeassistant.helpers import selector
 
-from .const import CONF_DASHBOARD_MODE
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_BREED
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOG_WEIGHT
-from .const import CONF_DOGS
-from .const import CONF_GPS_ACCURACY_FILTER
-from .const import CONF_GPS_DISTANCE_FILTER
-from .const import CONF_GPS_UPDATE_INTERVAL
-from .const import CONF_NOTIFICATIONS
-from .const import CONF_QUIET_END
-from .const import CONF_QUIET_HOURS
-from .const import CONF_QUIET_START
-from .const import CONF_REMINDER_REPEAT_MIN
-from .const import CONF_RESET_TIME
-from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
-from .const import DEFAULT_GPS_ACCURACY_FILTER
-from .const import DEFAULT_GPS_DISTANCE_FILTER
-from .const import DEFAULT_GPS_UPDATE_INTERVAL
-from .const import DEFAULT_REMINDER_REPEAT_MIN
-from .const import DEFAULT_RESET_TIME
-from .const import GPS_ACCURACY_FILTER_SELECTOR
-from .const import GPS_UPDATE_INTERVAL_SELECTOR
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
-from .entity_factory import ENTITY_PROFILES
-from .entity_factory import EntityFactory
+from .const import (
+    CONF_DASHBOARD_MODE,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_GPS_ACCURACY_FILTER,
+    CONF_GPS_DISTANCE_FILTER,
+    CONF_GPS_UPDATE_INTERVAL,
+    CONF_NOTIFICATIONS,
+    CONF_QUIET_END,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    CONF_REMINDER_REPEAT_MIN,
+    CONF_RESET_TIME,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_DISTANCE_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_REMINDER_REPEAT_MIN,
+    DEFAULT_RESET_TIME,
+    GPS_ACCURACY_FILTER_SELECTOR,
+    GPS_UPDATE_INTERVAL_SELECTOR,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

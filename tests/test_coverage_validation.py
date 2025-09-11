@@ -6,16 +6,14 @@ and generates detailed coverage reports for all components.
 
 Usage: python test_coverage_validation.py
 """
+
 from __future__ import annotations
 
 import ast
 import json
 import sys
 from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
+from typing import Dict, List, Set, Tuple
 
 
 class CoverageValidator:
