@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 from enum import StrEnum
 from types import ModuleType, SimpleNamespace
-from typing import Callable
+from typing import Any, Callable, Generic, TypeVar
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
@@ -67,8 +67,12 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     class ConfigEntryNotReady(HomeAssistantError):  # pragma: no cover
         pass
 
+    class ServiceValidationError(HomeAssistantError):  # pragma: no cover
+        pass
+
     exceptions.HomeAssistantError = HomeAssistantError
     exceptions.ConfigEntryNotReady = ConfigEntryNotReady
+    exceptions.ServiceValidationError = ServiceValidationError
     ha.exceptions = exceptions
     sys.modules["homeassistant.exceptions"] = exceptions
 
@@ -221,6 +225,15 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
     storage.Store = Store
 
+    event_helper = ModuleType("homeassistant.helpers.event")
+    helpers.event = event_helper
+    sys.modules["homeassistant.helpers.event"] = event_helper
+
+    async def async_track_time_change(*args, **kwargs):  # pragma: no cover
+        return None
+
+    event_helper.async_track_time_change = async_track_time_change
+
     # ---- update coordinator ------------------------------------------------
     update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
     helpers.update_coordinator = update_coordinator
@@ -231,6 +244,49 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
     update_coordinator.UpdateFailed = UpdateFailed
     update_coordinator.CoordinatorUpdateFailed = UpdateFailed
+
+    T = TypeVar("T")
+
+    class DataUpdateCoordinator(Generic[T]):  # pragma: no cover - minimal stand-in
+        """Basic subset of Home Assistant's DataUpdateCoordinator."""
+
+        def __init__(
+            self,
+            hass: Any,
+            logger: Any,
+            *,
+            name: str | None = None,
+            update_interval: Any | None = None,
+            always_update: bool = False,
+        ) -> None:
+            self.hass = hass
+            self.logger = logger
+            self.name = name
+            self.update_interval = update_interval
+            self.always_update = always_update
+            self.data: Any | None = None
+            self.last_update_success = True
+
+        async def async_config_entry_first_refresh(self) -> None:
+            await self.async_refresh()
+
+        async def async_request_refresh(self) -> None:
+            await self.async_refresh()
+
+        async def async_refresh(self) -> None:
+            try:
+                update_method = getattr(self, "_async_update_data", None)
+                if update_method is not None:
+                    self.data = await update_method()
+                self.last_update_success = True
+            except Exception:  # pragma: no cover - minimal error handling
+                self.last_update_success = False
+                raise
+
+        def async_set_updated_data(self, data: Any) -> None:
+            self.data = data
+
+    update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
 
     # ---- core --------------------------------------------------------------
     core = ModuleType("homeassistant.core")
@@ -256,3 +312,21 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     core.callback = callback
     ha.core = core
     sys.modules["homeassistant.core"] = core
+
+    # ---- components -------------------------------------------------------
+    components = ModuleType("homeassistant.components")
+    ha.components = components
+    sys.modules["homeassistant.components"] = components
+
+    persistent_notification = ModuleType(
+        "homeassistant.components.persistent_notification"
+    )
+
+    async def async_create(*args, **kwargs):  # pragma: no cover - simple stub
+        return None
+
+    persistent_notification.async_create = async_create
+    components.persistent_notification = persistent_notification
+    sys.modules["homeassistant.components.persistent_notification"] = (
+        persistent_notification
+    )
