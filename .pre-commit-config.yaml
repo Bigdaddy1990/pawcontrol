@@ -39,7 +39,10 @@ repos:
     rev: v3.15.0
     hooks:
     -   id: reorder-python-imports
-        args: [--py313-plus, --add-import, 'from __future__ import annotations', 'from homeassistant.components import system_health']
+        args:
+          - --py313-plus
+          - --add-import
+          - from __future__ import annotations
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0

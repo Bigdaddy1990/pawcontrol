@@ -1,70 +1,68 @@
 """Comprehensive tests for PawControl button platform with profile optimization."""
-
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.button import (
-    BUTTON_PRIORITIES,
-    PROFILE_BUTTON_LIMITS,
-    PawControlButtonBase,
-    PawControlCallDogButton,
-    PawControlCenterMapButton,
-    PawControlEndWalkButton,
-    PawControlExportRouteButton,
-    PawControlFeedMealButton,
-    PawControlHealthCheckButton,
-    PawControlLogCustomFeedingButton,
-    PawControlLogMedicationButton,
-    PawControlLogWalkManuallyButton,
-    PawControlLogWeightButton,
-    PawControlMarkFedButton,
-    PawControlQuickWalkButton,
-    PawControlRefreshLocationButton,
-    PawControlResetDailyStatsButton,
-    PawControlScheduleVetButton,
-    PawControlStartGroomingButton,
-    PawControlStartWalkButton,
-    PawControlTestNotificationButton,
-    PawControlToggleVisitorModeButton,
-    ProfileAwareButtonFactory,
-    async_setup_entry,
-)
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    SERVICE_END_WALK,
-    SERVICE_FEED_DOG,
-    SERVICE_LOG_HEALTH,
-    SERVICE_NOTIFY_TEST,
-    SERVICE_START_GROOMING,
-    SERVICE_START_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.exceptions import (
-    WalkAlreadyInProgressError,
-    WalkNotInProgressError,
-)
-from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from homeassistant.components.button import ButtonDeviceClass
+from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.button import async_setup_entry
+from custom_components.pawcontrol.button import BUTTON_PRIORITIES
+from custom_components.pawcontrol.button import PawControlButtonBase
+from custom_components.pawcontrol.button import PawControlCallDogButton
+from custom_components.pawcontrol.button import PawControlCenterMapButton
+from custom_components.pawcontrol.button import PawControlEndWalkButton
+from custom_components.pawcontrol.button import PawControlExportRouteButton
+from custom_components.pawcontrol.button import PawControlFeedMealButton
+from custom_components.pawcontrol.button import PawControlHealthCheckButton
+from custom_components.pawcontrol.button import PawControlLogCustomFeedingButton
+from custom_components.pawcontrol.button import PawControlLogMedicationButton
+from custom_components.pawcontrol.button import PawControlLogWalkManuallyButton
+from custom_components.pawcontrol.button import PawControlLogWeightButton
+from custom_components.pawcontrol.button import PawControlMarkFedButton
+from custom_components.pawcontrol.button import PawControlQuickWalkButton
+from custom_components.pawcontrol.button import PawControlRefreshLocationButton
+from custom_components.pawcontrol.button import PawControlResetDailyStatsButton
+from custom_components.pawcontrol.button import PawControlScheduleVetButton
+from custom_components.pawcontrol.button import PawControlStartGroomingButton
+from custom_components.pawcontrol.button import PawControlStartWalkButton
+from custom_components.pawcontrol.button import PawControlTestNotificationButton
+from custom_components.pawcontrol.button import PawControlToggleVisitorModeButton
+from custom_components.pawcontrol.button import PROFILE_BUTTON_LIMITS
+from custom_components.pawcontrol.button import ProfileAwareButtonFactory
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import SERVICE_END_WALK
+from custom_components.pawcontrol.const import SERVICE_FEED_DOG
+from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
+from custom_components.pawcontrol.const import SERVICE_NOTIFY_TEST
+from custom_components.pawcontrol.const import SERVICE_START_GROOMING
+from custom_components.pawcontrol.const import SERVICE_START_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.exceptions import WalkAlreadyInProgressError
+from custom_components.pawcontrol.exceptions import WalkNotInProgressError
 
 
 class TestProfileAwareButtonFactory:
