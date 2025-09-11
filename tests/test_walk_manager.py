@@ -5,19 +5,16 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 Coverage: 100%
 """
+
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.walk_manager import WalkManager
+from homeassistant.util import dt as dt_util
 
 
 class TestWalkManagerInitialization:
@@ -279,29 +276,21 @@ class TestWalkManagerGPSOperations:
 
     def test_validate_coordinates_valid(self, initialized_walk_manager):
         """Test coordinate validation with valid coordinates."""
-        assert initialized_walk_manager._validate_coordinates(
-            52.5200, 13.4050) is True
+        assert initialized_walk_manager._validate_coordinates(52.5200, 13.4050) is True
         assert initialized_walk_manager._validate_coordinates(0.0, 0.0) is True
-        assert initialized_walk_manager._validate_coordinates(
-            -90.0, -180.0) is True
-        assert initialized_walk_manager._validate_coordinates(
-            90.0, 180.0) is True
+        assert initialized_walk_manager._validate_coordinates(-90.0, -180.0) is True
+        assert initialized_walk_manager._validate_coordinates(90.0, 180.0) is True
 
     def test_validate_coordinates_invalid(self, initialized_walk_manager):
         """Test coordinate validation with invalid coordinates."""
-        assert initialized_walk_manager._validate_coordinates(
-            95.0, 13.4050) is False
-        assert initialized_walk_manager._validate_coordinates(
-            52.5200, 190.0) is False
-        assert initialized_walk_manager._validate_coordinates(
-            -95.0, -190.0) is False
+        assert initialized_walk_manager._validate_coordinates(95.0, 13.4050) is False
+        assert initialized_walk_manager._validate_coordinates(52.5200, 190.0) is False
+        assert initialized_walk_manager._validate_coordinates(-95.0, -190.0) is False
         assert (
-            initialized_walk_manager._validate_coordinates(
-                "invalid", 13.4050) is False
+            initialized_walk_manager._validate_coordinates("invalid", 13.4050) is False
         )
         assert (
-            initialized_walk_manager._validate_coordinates(
-                52.5200, "invalid") is False
+            initialized_walk_manager._validate_coordinates(52.5200, "invalid") is False
         )
 
 
@@ -517,7 +506,7 @@ class TestWalkManagerWalkData:
     async def test_walk_history_multiple_walks(self, initialized_walk_manager):
         """Test walk history with multiple completed walks."""
         # Complete multiple walks
-        for _i in range(3):
+        for i in range(3):
             await initialized_walk_manager.async_start_walk("dog1")
             await asyncio.sleep(0.001)  # Ensure different timestamps
             await initialized_walk_manager.async_end_walk("dog1")
@@ -526,8 +515,7 @@ class TestWalkManagerWalkData:
 
         assert len(history) == 3
         # Should be in reverse chronological order
-        timestamps = [dt_util.parse_datetime(
-            walk["start_time"]) for walk in history]
+        timestamps = [dt_util.parse_datetime(walk["start_time"]) for walk in history]
         assert timestamps == sorted(timestamps, reverse=True)
 
     async def test_walk_history_days_filter(self, initialized_walk_manager):
@@ -1092,8 +1080,7 @@ class TestWalkManagerEdgeCases:
         # Should be approximately half the Earth's circumference
         earth_circumference = 2 * 3.14159 * 6371000  # meters
         expected_distance = earth_circumference / 2
-        # Allow 100km variance
-        assert abs(distance - expected_distance) < 100000
+        assert abs(distance - expected_distance) < 100000  # Allow 100km variance
 
     async def test_speed_calculation_edge_cases(self, walk_manager):
         """Test speed calculation edge cases."""
@@ -1131,7 +1118,7 @@ class TestWalkManagerEdgeCases:
         try:
             walk_data = await walk_manager.async_get_walk_data("dog1")
             # Might return empty dict or raise exception - both are acceptable
-            assert isinstance(walk_data, dict | str) or walk_data is None
+            assert isinstance(walk_data, (dict, str)) or walk_data is None
         except (TypeError, AttributeError):
             # Exception is also acceptable for corrupted data
             pass
@@ -1240,8 +1227,7 @@ class TestWalkManagerIntegration:
         assert stats["active_walks"] == 3
 
         # Add GPS tracking for each dog
-        base_coords = [(52.5200, 13.4050), (52.5300, 13.4150),
-                       (52.5400, 13.4250)]
+        base_coords = [(52.5200, 13.4050), (52.5300, 13.4150), (52.5400, 13.4250)]
 
         for i, dog_id in enumerate(dogs):
             lat, lon = base_coords[i]
@@ -1302,7 +1288,7 @@ class TestWalkManagerIntegration:
         await walk_manager.async_initialize(["performance_test_dog"])
 
         # Add many walks to history
-        for _i in range(50):
+        for i in range(50):
             walk_id = await walk_manager.async_start_walk("performance_test_dog")
             if walk_id:
                 await walk_manager.async_end_walk("performance_test_dog")

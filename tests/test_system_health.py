@@ -5,21 +5,21 @@ Home Assistant: 2025.9.0+
 Python: 3.13+
 Coverage: 100%
 """
+
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.system_health import (
+    async_register,
+    system_health_info,
+)
 from homeassistant.components import system_health
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.system_health import async_register
-from custom_components.pawcontrol.system_health import system_health_info
 
 
 class TestSystemHealthRegistration:
@@ -42,8 +42,7 @@ class TestSystemHealthRegistration:
         async_register(mock_hass, mock_register)
 
         # Should call async_register_info with our system_health_info function
-        mock_register.async_register_info.assert_called_once_with(
-            system_health_info)
+        mock_register.async_register_info.assert_called_once_with(system_health_info)
 
     def test_async_register_function_signature(self, mock_hass, mock_register):
         """Test async_register function signature."""
@@ -102,8 +101,7 @@ class TestSystemHealthInfo:
             assert "remaining_quota" in result
 
             # Should use default URL when no entries
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == "unknown"
 
     async def test_system_health_info_with_entry_no_runtime(
@@ -111,8 +109,7 @@ class TestSystemHealthInfo:
     ):
         """Test system health info with entry but no runtime data."""
         mock_config_entry.runtime_data = None
-        mock_hass.config_entries.async_entries.return_value = [
-            mock_config_entry]
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
 
         with patch(
             "homeassistant.components.system_health.async_check_can_reach_url"
@@ -126,8 +123,7 @@ class TestSystemHealthInfo:
             assert "remaining_quota" in result
 
             # Should use default URL when no runtime data
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == "unknown"
 
     async def test_system_health_info_with_runtime_no_api(
@@ -138,8 +134,7 @@ class TestSystemHealthInfo:
         runtime.api = None
         runtime.remaining_quota = 500
         mock_config_entry.runtime_data = runtime
-        mock_hass.config_entries.async_entries.return_value = [
-            mock_config_entry]
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
 
         with patch(
             "homeassistant.components.system_health.async_check_can_reach_url"
@@ -153,8 +148,7 @@ class TestSystemHealthInfo:
             assert "remaining_quota" in result
 
             # Should use default URL when no API
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == 500
 
     async def test_system_health_info_complete_setup(
@@ -162,8 +156,7 @@ class TestSystemHealthInfo:
     ):
         """Test system health info with complete setup."""
         mock_config_entry.runtime_data = mock_runtime_data
-        mock_hass.config_entries.async_entries.return_value = [
-            mock_config_entry]
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
 
         with patch(
             "homeassistant.components.system_health.async_check_can_reach_url"
@@ -204,16 +197,14 @@ class TestSystemHealthInfo:
 
             assert isinstance(result, dict)
             # Should use first entry (which has no runtime data)
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
 
     async def test_system_health_info_url_check_result(
         self, mock_hass, mock_config_entry, mock_runtime_data
     ):
         """Test that URL check result is properly returned."""
         mock_config_entry.runtime_data = mock_runtime_data
-        mock_hass.config_entries.async_entries.return_value = [
-            mock_config_entry]
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
 
         # Test different URL check results
         test_results = ["ok", "failed", "timeout", "error"]
@@ -233,8 +224,7 @@ class TestSystemHealthInfo:
     ):
         """Test that only PawControl domain entries are considered."""
         mock_config_entry.runtime_data = mock_runtime_data
-        mock_hass.config_entries.async_entries.return_value = [
-            mock_config_entry]
+        mock_hass.config_entries.async_entries.return_value = [mock_config_entry]
 
         with patch(
             "homeassistant.components.system_health.async_check_can_reach_url"
@@ -244,8 +234,7 @@ class TestSystemHealthInfo:
             await system_health_info(mock_hass)
 
             # Should call async_entries with DOMAIN
-            mock_hass.config_entries.async_entries.assert_called_once_with(
-                DOMAIN)
+            mock_hass.config_entries.async_entries.assert_called_once_with(DOMAIN)
 
 
 class TestSystemHealthInfoEdgeCases:
@@ -278,8 +267,7 @@ class TestSystemHealthInfoEdgeCases:
             result = await system_health_info(mock_hass)
 
             # Should fall back to default URL
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == 100
 
     async def test_system_health_info_missing_remaining_quota(self, mock_hass):
@@ -321,8 +309,7 @@ class TestSystemHealthInfoEdgeCases:
             result = await system_health_info(mock_hass)
 
             # Should handle None runtime_data gracefully
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == "unknown"
 
     async def test_system_health_info_complex_nesting(self, mock_hass):
@@ -333,8 +320,7 @@ class TestSystemHealthInfoEdgeCases:
             None  # This will make getattr(api, "base_url", ...) return default
         )
         runtime.remaining_quota = (
-            # This will make getattr(..., "remaining_quota", ...) return default
-            None
+            None  # This will make getattr(..., "remaining_quota", ...) return default
         )
         entry.runtime_data = runtime
 
@@ -347,8 +333,7 @@ class TestSystemHealthInfoEdgeCases:
 
             result = await system_health_info(mock_hass)
 
-            mock_check_url.assert_called_once_with(
-                mock_hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(mock_hass, "https://example.invalid")
             assert result["remaining_quota"] == "unknown"
 
     async def test_system_health_info_exception_handling(self, mock_hass):
@@ -458,10 +443,8 @@ class TestSystemHealthIntegration:
         async_register(mock_hass, mock_register1)
         async_register(mock_hass, mock_register2)
 
-        mock_register1.async_register_info.assert_called_once_with(
-            system_health_info)
-        mock_register2.async_register_info.assert_called_once_with(
-            system_health_info)
+        mock_register1.async_register_info.assert_called_once_with(system_health_info)
+        mock_register2.async_register_info.assert_called_once_with(system_health_info)
 
     async def test_system_health_with_coordinator_data(self, mock_hass):
         """Test system health with coordinator-like data structure."""
@@ -610,8 +593,7 @@ class TestSystemHealthRealWorld:
 
             result = await system_health_info(hass)
 
-            assert result == {"can_reach_backend": "ok",
-                              "remaining_quota": 8500}
+            assert result == {"can_reach_backend": "ok", "remaining_quota": 8500}
 
             mock_check_url.assert_called_once_with(
                 hass, "https://api.pawcontrol-backend.com/v1"
@@ -727,5 +709,4 @@ class TestSystemHealthRealWorld:
             # Should use first entry and handle None values gracefully
             assert result["can_reach_backend"] == "timeout"
             assert result["remaining_quota"] == "unknown"
-            mock_check_url.assert_called_once_with(
-                hass, "https://example.invalid")
+            mock_check_url.assert_called_once_with(hass, "https://example.invalid")

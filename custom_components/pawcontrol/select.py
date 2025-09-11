@@ -5,11 +5,12 @@ including mode selections, option choices, and status settings. All select entit
 are designed to meet Home Assistant's Platinum quality standards with full type
 annotations, async operations, and robust validation.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -21,31 +22,33 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ACTIVITY_LEVELS
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOGS
-from .const import DOG_SIZES
-from .const import DOMAIN
-from .const import FOOD_TYPES
-from .const import GPS_SOURCES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
-from .const import MOOD_OPTIONS
-from .const import PERFORMANCE_MODES
+from .const import (
+    ACTIVITY_LEVELS,
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOGS,
+    DOG_SIZES,
+    DOMAIN,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    PERFORMANCE_MODES,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-AttributeDict = dict[str, Any]
+AttributeDict = Dict[str, Any]
 
 # Additional option lists for selects
 WALK_MODES = [
@@ -96,7 +99,7 @@ WEATHER_CONDITIONS = [
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: list[PawControlSelectBase],
+    entities: List[PawControlSelectBase],
     batch_size: int = 10,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -121,7 +124,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -160,41 +163,36 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: list[PawControlSelectBase] = []
+    entities: List[PawControlSelectBase] = []
 
     # Create select entities for each configured dog
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+        modules: Dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating select entities for dog: %s (%s)",
-                      dog_name, dog_id)
+        _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
 
         # Base selects - always created for every dog
-        entities.extend(_create_base_selects(
-            coordinator, dog_id, dog_name, dog))
+        entities.extend(_create_base_selects(coordinator, dog_id, dog_name, dog))
 
         # Module-specific selects
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(_create_feeding_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_feeding_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
             entities.extend(_create_gps_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(_create_health_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_health_selects(coordinator, dog_id, dog_name))
 
     # Add entities in smaller batches to prevent Entity Registry overload
     # With 32+ select entities (2 dogs), batching prevents Registry flooding
@@ -211,8 +209,8 @@ def _create_base_selects(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: dict[str, Any],
-) -> list[PawControlSelectBase]:
+    dog_config: Dict[str, Any],
+) -> List[PawControlSelectBase]:
     """Create base selects that are always present for every dog.
 
     Args:
@@ -233,7 +231,7 @@ def _create_base_selects(
 
 def _create_feeding_selects(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> list[PawControlSelectBase]:
+) -> List[PawControlSelectBase]:
     """Create feeding-related selects for a dog.
 
     Args:
@@ -254,7 +252,7 @@ def _create_feeding_selects(
 
 def _create_walk_selects(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> list[PawControlSelectBase]:
+) -> List[PawControlSelectBase]:
     """Create walk-related selects for a dog.
 
     Args:
@@ -274,7 +272,7 @@ def _create_walk_selects(
 
 def _create_gps_selects(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> list[PawControlSelectBase]:
+) -> List[PawControlSelectBase]:
     """Create GPS and location-related selects for a dog.
 
     Args:
@@ -294,7 +292,7 @@ def _create_gps_selects(
 
 def _create_health_selects(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> list[PawControlSelectBase]:
+) -> List[PawControlSelectBase]:
     """Create health and medical-related selects for a dog.
 
     Args:
@@ -330,10 +328,10 @@ class PawControlSelectBase(
         dog_name: str,
         select_type: str,
         *,
-        options: list[str],
-        icon: str | None = None,
-        entity_category: EntityCategory | None = None,
-        initial_option: str | None = None,
+        options: List[str],
+        icon: Optional[str] = None,
+        entity_category: Optional[EntityCategory] = None,
+        initial_option: Optional[str] = None,
     ) -> None:
         """Initialize the select entity.
 
@@ -390,7 +388,7 @@ class PawControlSelectBase(
             )
 
     @property
-    def current_option(self) -> str | None:
+    def current_option(self) -> Optional[str]:
         """Return the current selected option.
 
         Returns:
@@ -460,8 +458,7 @@ class PawControlSelectBase(
             _LOGGER.error(
                 "Failed to set %s for %s: %s", self._select_type, self._dog_name, err
             )
-            raise HomeAssistantError(
-                f"Failed to set {self._select_type}") from err
+            raise HomeAssistantError(f"Failed to set {self._select_type}") from err
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the select option implementation.
@@ -475,7 +472,7 @@ class PawControlSelectBase(
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
         """Get data for this select's dog from the coordinator.
 
         Returns:
@@ -486,7 +483,7 @@ class PawControlSelectBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
+    def _get_module_data(self, module: str) -> Optional[Dict[str, Any]]:
         """Get specific module data for this dog.
 
         Args:
@@ -519,7 +516,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: dict[str, Any],
+        dog_config: Dict[str, Any],
     ) -> None:
         """Initialize the dog size select."""
         current_size = dog_config.get(CONF_DOG_SIZE, "medium")
@@ -552,7 +549,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_size_info(self, size: str | None) -> dict[str, Any]:
+    def _get_size_info(self, size: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected size.
 
         Args:
@@ -625,7 +622,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_performance_mode_info(self, mode: str | None) -> dict[str, Any]:
+    def _get_performance_mode_info(self, mode: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected performance mode.
 
         Args:
@@ -716,7 +713,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_food_type_info(self, food_type: str | None) -> dict[str, Any]:
+    def _get_food_type_info(self, food_type: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected food type.
 
         Args:
@@ -863,7 +860,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_walk_mode_info(self, mode: str | None) -> dict[str, Any]:
+    def _get_walk_mode_info(self, mode: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected walk mode.
 
         Args:
@@ -973,7 +970,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_gps_source_info(self, source: str | None) -> dict[str, Any]:
+    def _get_gps_source_info(self, source: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected GPS source.
 
         Args:
@@ -1089,7 +1086,7 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
         )
 
     @property
-    def current_option(self) -> str | None:
+    def current_option(self) -> Optional[str]:
         """Return the current health status from data."""
         health_data = self._get_module_data("health")
         if health_data:
@@ -1121,7 +1118,7 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
         )
 
     @property
-    def current_option(self) -> str | None:
+    def current_option(self) -> Optional[str]:
         """Return the current activity level from data."""
         health_data = self._get_module_data("health")
         if health_data:
@@ -1190,7 +1187,7 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
 
         return attrs
 
-    def _get_grooming_type_info(self, grooming_type: str | None) -> dict[str, Any]:
+    def _get_grooming_type_info(self, grooming_type: Optional[str]) -> Dict[str, Any]:
         """Get information about the selected grooming type.
 
         Args:

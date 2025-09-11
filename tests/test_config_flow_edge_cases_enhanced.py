@@ -18,6 +18,7 @@ Additional Test Areas:
 - Dashboard configuration corruption and regeneration
 - Service unavailability cascading failure prevention
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -27,58 +28,53 @@ import logging
 import time
 import weakref
 from contextlib import asynccontextmanager
-from contextlib import suppress
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigFlowResult
+from custom_components.pawcontrol.config_flow import (
+    ENTITY_PROFILES,
+    MAX_CONCURRENT_VALIDATIONS,
+    PROFILE_SCHEMA,
+    VALIDATION_CACHE_TTL,
+    VALIDATION_TIMEOUT,
+    PawControlConfigFlow,
+    ValidationCache,
+)
+from custom_components.pawcontrol.config_flow_base import (
+    DOG_BASE_SCHEMA,
+    DOG_ID_PATTERN,
+    INTEGRATION_SCHEMA,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+    PawControlBaseConfigFlow,
+)
+from custom_components.pawcontrol.const import (
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_MODULES,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
-
-from custom_components.pawcontrol.config_flow import ENTITY_PROFILES
-from custom_components.pawcontrol.config_flow import MAX_CONCURRENT_VALIDATIONS
-from custom_components.pawcontrol.config_flow import PawControlConfigFlow
-from custom_components.pawcontrol.config_flow import PROFILE_SCHEMA
-from custom_components.pawcontrol.config_flow import VALIDATION_CACHE_TTL
-from custom_components.pawcontrol.config_flow import VALIDATION_TIMEOUT
-from custom_components.pawcontrol.config_flow import ValidationCache
-from custom_components.pawcontrol.config_flow_base import DOG_BASE_SCHEMA
-from custom_components.pawcontrol.config_flow_base import DOG_ID_PATTERN
-from custom_components.pawcontrol.config_flow_base import INTEGRATION_SCHEMA
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.config_flow_base import PawControlBaseConfigFlow
-from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
 
 
 @pytest.fixture
@@ -452,8 +448,7 @@ class TestComplexAsyncValidationRaceConditions:
                     )
 
                     if not result.get("valid", False):
-                        # Small delay on validation failure
-                        await asyncio.sleep(0.001)
+                        await asyncio.sleep(0.001)  # Small delay on validation failure
 
                     await asyncio.sleep(0.001)  # Prevent tight loop
 
@@ -493,7 +488,7 @@ class TestComplexAsyncValidationRaceConditions:
                     await asyncio.sleep(0.001)
 
             except Exception as e:
-                cache_errors.append(f"Worker {worker_id} error: {e!s}")
+                cache_errors.append(f"Worker {worker_id} error: {str(e)}")
 
         # Run concurrent cache workers
         await asyncio.gather(
@@ -537,7 +532,7 @@ class TestComplexAsyncValidationRaceConditions:
                     else:
                         success_count += 1
 
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 timeout_count += 1
             except Exception:
                 # Other exceptions are acceptable
@@ -622,8 +617,7 @@ class TestConfigurationMigrationCorruption:
                 "dogs": [
                     {
                         CONF_DOG_ID: 123,  # Should be string
-                        # Should be string
-                        CONF_DOG_NAME: ["not", "a", "string"],
+                        CONF_DOG_NAME: ["not", "a", "string"],  # Should be string
                         CONF_DOG_AGE: "not_a_number",  # Should be number
                     }
                 ]
@@ -645,11 +639,10 @@ class TestConfigurationMigrationCorruption:
         # Add circular reference to test resilience
         corrupted_legacy_configs[3]["self"] = corrupted_legacy_configs[3]
 
-        for _i, corrupted_config in enumerate(corrupted_legacy_configs):
+        for i, corrupted_config in enumerate(corrupted_legacy_configs):
             try:
                 # Simulate legacy config migration
-                migrated_config = config_flow._migrate_legacy_config(
-                    corrupted_config)
+                migrated_config = config_flow._migrate_legacy_config(corrupted_config)
 
                 # Should either succeed with clean data or return empty/default config
                 if migrated_config:
@@ -696,15 +689,13 @@ class TestConfigurationMigrationCorruption:
         for scenario in corruption_scenarios:
             # Should sanitize or reject corrupted input
             try:
-                validation_result = config_flow._validate_input_security(
-                    scenario)
+                validation_result = config_flow._validate_input_security(scenario)
 
                 # Should either pass security validation or be rejected
                 if validation_result.get("valid", False):
                     # If accepted, should be sanitized
-                    sanitized_data = validation_result.get(
-                        "sanitized_data", {})
-                    for value in sanitized_data.values():
+                    sanitized_data = validation_result.get("sanitized_data", {})
+                    for key, value in sanitized_data.items():
                         if isinstance(value, str):
                             assert len(value) < 1000  # Should limit length
                             assert "\x00" not in value  # Should remove null bytes
@@ -740,8 +731,10 @@ class TestConfigurationMigrationCorruption:
         }
 
         # Should detect corruption and rollback to previous state
-        with suppress(Exception):
+        try:
             config_flow._apply_config_update(corrupted_update)
+        except Exception:
+            pass
 
         # Configuration should remain in valid state
         assert len(config_flow._dogs) == 1
@@ -771,7 +764,7 @@ class TestConfigurationMigrationCorruption:
                     await asyncio.sleep(0.001)
 
             except Exception as e:
-                modification_errors.append(f"Modifier {modifier_id}: {e!s}")
+                modification_errors.append(f"Modifier {modifier_id}: {str(e)}")
 
         # Run concurrent modifications
         await asyncio.gather(
@@ -809,8 +802,7 @@ class TestSecurityValidationBypassAttempts:
                 assert is_valid  # Baseline should pass
             else:
                 # Injection attempts should be rejected by pattern validation
-                assert not is_valid or len(
-                    injection_attempt) > 30  # Rejected by length
+                assert not is_valid or len(injection_attempt) > 30  # Rejected by length
 
     @pytest.mark.asyncio
     async def test_configuration_data_sanitization(self, config_flow):
@@ -836,7 +828,7 @@ class TestSecurityValidationBypassAttempts:
                 sanitized = config_flow._sanitize_user_input(malicious_input)
 
                 # Should sanitize dangerous content
-                for value in sanitized.values():
+                for key, value in sanitized.items():
                     if isinstance(value, str):
                         assert "<script" not in value.lower()
                         assert "javascript:" not in value.lower()
@@ -854,11 +846,9 @@ class TestSecurityValidationBypassAttempts:
         # Attempt to poison cache with malicious entries
         poisoning_attempts = [
             ("normal_key", {"valid": True, "errors": {}}),  # Normal entry
-            # Path traversal key
-            ("../etc/passwd", {"valid": True, "errors": {}}),
+            ("../etc/passwd", {"valid": True, "errors": {}}),  # Path traversal key
             ("key\x00admin", {"valid": True, "errors": {}}),  # Null byte key
-            # Malicious value
-            ("key", {"valid": True, "malicious": "eval(code)"}),
+            ("key", {"valid": True, "malicious": "eval(code)"}),  # Malicious value
             ("key", None),  # Null value
             ("key", {"valid": "not_boolean"}),  # Type confusion
         ]
@@ -871,7 +861,7 @@ class TestSecurityValidationBypassAttempts:
 
                 # Should not allow cache poisoning to affect normal operations
                 if retrieved:
-                    assert isinstance(retrieved, dict | type(None))
+                    assert isinstance(retrieved, (dict, type(None)))
 
             except Exception:
                 # Rejection of malicious cache entries is acceptable
@@ -886,8 +876,7 @@ class TestSecurityValidationBypassAttempts:
             try:
                 # Attempt to bypass timeout with nested async operations
                 async def nested_slow_operation():
-                    # Longer than timeout
-                    await asyncio.sleep(VALIDATION_TIMEOUT + 5)
+                    await asyncio.sleep(VALIDATION_TIMEOUT + 5)  # Longer than timeout
                     return {"valid": True, "errors": {}}
 
                 # Should not allow bypass of timeout protection
@@ -904,7 +893,7 @@ class TestSecurityValidationBypassAttempts:
                     if end_time - start_time > VALIDATION_TIMEOUT + 2:
                         bypass_attempts.append("Timeout bypass successful")
 
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 # Expected behavior - timeout should be enforced
                 pass
             except Exception:
@@ -943,8 +932,7 @@ class TestNetworkPartitionRecoveryOfflineMode:
         result = await flow.async_step_user({CONF_NAME: "Offline Integration"})
 
         # Should proceed despite network unavailability
-        assert result["type"] in [
-            FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+        assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
     @pytest.mark.asyncio
     async def test_external_entity_discovery_network_failure(
@@ -1017,10 +1005,8 @@ class TestDataCorruptionDetectionRepair:
         """Test detection and repair of JSON data corruption."""
         corrupted_json_scenarios = [
             '{"dogs": [{"dog_id": "test_dog"',  # Truncated JSON
-            # Invalid syntax
-            '{"dogs": [{"dog_id": "test_dog", "invalid": }]}',
-            # Missing closing
-            '{"dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"]}',
+            '{"dogs": [{"dog_id": "test_dog", "invalid": }]}',  # Invalid syntax
+            '{"dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"]}',  # Missing closing
             '{"dogs": null, "invalid": undefined}',  # Invalid values
             b"\x89PNG\r\n\x1a\n",  # Binary data instead of JSON
         ]
@@ -1083,8 +1069,7 @@ class TestDataCorruptionDetectionRepair:
         test_configs[4] = circular_config
 
         for i, test_config in enumerate(test_configs):
-            integrity_result = config_flow._verify_config_integrity(
-                test_config)
+            integrity_result = config_flow._verify_config_integrity(test_config)
 
             # Should always return a result
             assert isinstance(integrity_result, dict)
@@ -1322,7 +1307,7 @@ class TestExtremeStressScenarios:
         flows = []
 
         # Create maximum concurrent flows
-        for _i in range(max_flows):
+        for i in range(max_flows):
             flow = PawControlConfigFlow()
             flow.hass = mock_hass
             flows.append(flow)
@@ -1335,7 +1320,7 @@ class TestExtremeStressScenarios:
                 )
                 return result.get("type", "unknown")
             except Exception as e:
-                return f"error: {e!s}"
+                return f"error: {str(e)}"
 
         # Execute all flows concurrently
         results = await asyncio.gather(
@@ -1365,7 +1350,7 @@ class TestExtremeStressScenarios:
 
         try:
             # Create memory pressure
-            for _i in range(1000):
+            for i in range(1000):
                 large_object = {
                     "data": [j for j in range(10000)],  # Large list
                     "text": "x" * 100000,  # Large string
@@ -1437,8 +1422,7 @@ class TestExtremeStressScenarios:
                         for j in range(20)
                     ],
                     "tracking_history": [
-                        {"timestamp": time.time() - j * 3600,
-                         "lat": 40.7, "lon": -74.0}
+                        {"timestamp": time.time() - j * 3600, "lat": 40.7, "lon": -74.0}
                         for j in range(1000)
                     ],
                 },

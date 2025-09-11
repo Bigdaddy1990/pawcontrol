@@ -4,35 +4,34 @@ This module provides comprehensive type definitions for all Paw Control
 components, ensuring type safety and better IDE support across the integration.
 Designed for Home Assistant 2025.8.2+ with Platinum quality standards.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
-from typing import TYPE_CHECKING
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, Union
 
 from homeassistant.config_entries import ConfigEntry
 
-from .const import ACTIVITY_LEVELS
-from .const import DOG_SIZES
-from .const import FOOD_TYPES
-from .const import GEOFENCE_TYPES
-from .const import GPS_SOURCES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MOOD_OPTIONS
-
 # Import validation constants from const.py (single source of truth)
+from .const import (
+    ACTIVITY_LEVELS,
+    DOG_SIZES,
+    FOOD_TYPES,
+    GEOFENCE_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MOOD_OPTIONS,
+)
 
 # Type aliases for better readability
 DogId = str
 ConfigEntryId = str
 EntityId = str
 Timestamp = datetime
-ServiceData = dict[str, Any]
-ConfigData = dict[str, Any]
+ServiceData = Dict[str, Any]
+ConfigData = Dict[str, Any]
 
 
 class DogConfigData(TypedDict, total=False):
@@ -40,14 +39,14 @@ class DogConfigData(TypedDict, total=False):
 
     dog_id: str
     dog_name: str
-    dog_breed: str | None
-    dog_age: int | None
-    dog_weight: float | None
-    dog_size: str | None
-    dog_color: str | None
-    microchip_id: str | None
-    vet_contact: str | None
-    emergency_contact: str | None
+    dog_breed: Optional[str]
+    dog_age: Optional[int]
+    dog_weight: Optional[float]
+    dog_size: Optional[str]
+    dog_color: Optional[str]
+    microchip_id: Optional[str]
+    vet_contact: Optional[str]
+    emergency_contact: Optional[str]
 
 
 class ModuleConfigData(TypedDict, total=False):
@@ -65,12 +64,12 @@ class ModuleConfigData(TypedDict, total=False):
 class SourceConfigData(TypedDict, total=False):
     """Type definition for source entity configuration."""
 
-    door_sensor: str | None
-    person_entities: list[str]
-    device_trackers: list[str]
-    notify_fallback: str | None
-    calendar: str | None
-    weather: str | None
+    door_sensor: Optional[str]
+    person_entities: List[str]
+    device_trackers: List[str]
+    notify_fallback: Optional[str]
+    calendar: Optional[str]
+    weather: Optional[str]
 
 
 class GPSConfigData(TypedDict, total=False):
@@ -83,7 +82,7 @@ class GPSConfigData(TypedDict, total=False):
     home_zone_radius: int
     auto_walk_detection: bool
     geofencing: bool
-    geofence_zones: list[dict[str, Any]]
+    geofence_zones: List[Dict[str, Any]]
 
 
 class NotificationConfigData(TypedDict, total=False):
@@ -102,12 +101,12 @@ class NotificationConfigData(TypedDict, total=False):
 class FeedingConfigData(TypedDict, total=False):
     """Type definition for feeding configuration."""
 
-    feeding_times: list[str]
-    breakfast_time: str | None
-    lunch_time: str | None
-    dinner_time: str | None
-    snack_times: list[str]
-    daily_food_amount: float | None
+    feeding_times: List[str]
+    breakfast_time: Optional[str]
+    lunch_time: Optional[str]
+    dinner_time: Optional[str]
+    snack_times: List[str]
+    daily_food_amount: Optional[float]
     meals_per_day: int
     food_type: str
 
@@ -135,7 +134,7 @@ class SystemConfigData(TypedDict, total=False):
 class PawControlConfigData(TypedDict, total=False):
     """Complete configuration data structure."""
 
-    dogs: list[DogConfigData]
+    dogs: List[DogConfigData]
     modules: ModuleConfigData
     sources: SourceConfigData
     gps: GPSConfigData
@@ -155,7 +154,7 @@ class FeedingData:
     timestamp: datetime
     notes: str = ""
     logged_by: str = ""
-    calories: float | None = None
+    calories: Optional[float] = None
 
 
 @dataclass
@@ -163,10 +162,10 @@ class WalkData:
     """Data structure for walk information."""
 
     start_time: datetime
-    end_time: datetime | None = None
-    duration: int | None = None  # seconds
-    distance: float | None = None  # meters
-    route: list[dict[str, float]] = field(default_factory=list)
+    end_time: Optional[datetime] = None
+    duration: Optional[int] = None  # seconds
+    distance: Optional[float] = None  # meters
+    route: List[Dict[str, float]] = field(default_factory=list)
     label: str = ""
     location: str = ""
     notes: str = ""
@@ -180,13 +179,13 @@ class HealthData:
     """Data structure for health information."""
 
     timestamp: datetime
-    weight: float | None = None
-    temperature: float | None = None
+    weight: Optional[float] = None
+    temperature: Optional[float] = None
     mood: str = ""
     activity_level: str = ""
     health_status: str = ""
     symptoms: str = ""
-    medication: dict[str, Any] | None = None
+    medication: Optional[Dict[str, Any]] = None
     note: str = ""
     logged_by: str = ""
 
@@ -197,8 +196,8 @@ class GPSLocation:
 
     latitude: float
     longitude: float
-    accuracy: float | None = None
-    altitude: float | None = None
+    accuracy: Optional[float] = None
+    altitude: Optional[float] = None
     timestamp: datetime = field(default_factory=datetime.now)
     source: str = ""
 
@@ -213,7 +212,7 @@ class GeofenceZone:
     radius: float
     zone_type: str = "safe_zone"
     notifications: bool = True
-    auto_actions: list[str] = field(default_factory=list)
+    auto_actions: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -226,7 +225,7 @@ class NotificationData:
     channel: str = "mobile"
     timestamp: datetime = field(default_factory=datetime.now)
     persistent: bool = False
-    actions: list[dict[str, str]] = field(default_factory=list)
+    actions: List[Dict[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -240,8 +239,8 @@ class DailyStats:
     total_walk_time: int = 0  # seconds
     total_walk_distance: float = 0.0  # meters
     health_logs_count: int = 0
-    last_feeding_time: datetime | None = None
-    last_walk_time: datetime | None = None
+    last_feeding_time: Optional[datetime] = None
+    last_walk_time: Optional[datetime] = None
 
 
 @dataclass
@@ -252,8 +251,8 @@ class DogProfile:
     dog_name: str
     config: DogConfigData
     daily_stats: DailyStats
-    current_walk: WalkData | None = None
-    last_location: GPSLocation | None = None
+    current_walk: Optional[WalkData] = None
+    last_location: Optional[GPSLocation] = None
     is_visitor_mode: bool = False
 
 
@@ -271,16 +270,16 @@ class PawControlRuntimeData(TypedDict):
     data_manager: PawControlDataManager
     notification_manager: PawControlNotificationManager
     config_entry: ConfigEntry
-    dogs: list[DogConfigData]
+    dogs: List[DogConfigData]
 
 
 class EntityStateData(TypedDict, total=False):
     """Type definition for entity state data."""
 
-    state: str | int | float | bool | None
-    attributes: dict[str, Any]
+    state: Union[str, int, float, bool, None]
+    attributes: Dict[str, Any]
     last_updated: datetime
-    context_id: str | None
+    context_id: Optional[str]
 
 
 class ServiceCallData(TypedDict, total=False):
@@ -289,21 +288,21 @@ class ServiceCallData(TypedDict, total=False):
     domain: str
     service: str
     service_data: ServiceData
-    target: dict[str, Any] | None
+    target: Optional[Dict[str, Any]]
     blocking: bool
-    context: Any | None
+    context: Optional[Any]
 
 
 class DiagnosticsData(TypedDict):
     """Type definition for diagnostics data."""
 
-    config_entry: dict[str, Any]
-    dogs: list[dict[str, Any]]
-    entities: list[dict[str, Any]]
-    services: list[str]
-    statistics: dict[str, Any]
-    performance: dict[str, Any]
-    errors: list[dict[str, Any]]
+    config_entry: Dict[str, Any]
+    dogs: List[Dict[str, Any]]
+    entities: List[Dict[str, Any]]
+    services: List[str]
+    statistics: Dict[str, Any]
+    performance: Dict[str, Any]
+    errors: List[Dict[str, Any]]
 
 
 class RepairIssueData(TypedDict):
@@ -312,8 +311,8 @@ class RepairIssueData(TypedDict):
     issue_id: str
     translation_key: str
     severity: str
-    learn_more_url: str | None
-    translation_placeholders: dict[str, str] | None
+    learn_more_url: Optional[str]
+    translation_placeholders: Optional[Dict[str, str]]
 
 
 # Type guards for runtime type checking
@@ -336,8 +335,8 @@ def is_gps_location_valid(location: Any) -> bool:
         isinstance(location, dict)
         and "latitude" in location
         and "longitude" in location
-        and isinstance(location["latitude"], int | float)
-        and isinstance(location["longitude"], int | float)
+        and isinstance(location["latitude"], (int, float))
+        and isinstance(location["longitude"], (int, float))
         and -90 <= location["latitude"] <= 90
         and -180 <= location["longitude"] <= 180
     )
@@ -350,7 +349,7 @@ def is_feeding_data_valid(data: Any) -> bool:
         and "meal_type" in data
         and "portion_size" in data
         and isinstance(data["meal_type"], str)
-        and isinstance(data["portion_size"], int | float)
+        and isinstance(data["portion_size"], (int, float))
         and data["portion_size"] >= 0
     )
 
@@ -395,7 +394,7 @@ class PawControlError:
     code: str
     message: str
     timestamp: datetime = field(default_factory=datetime.now)
-    context: dict[str, Any] = field(default_factory=dict)
+    context: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -419,7 +418,7 @@ class GPSError(PawControlError):
     """GPS-related error."""
 
     location_source: str = ""
-    last_known_location: GPSLocation | None = None
+    last_known_location: Optional[GPSLocation] = None
 
 
 @dataclass

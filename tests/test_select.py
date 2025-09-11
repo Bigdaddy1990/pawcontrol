@@ -1,15 +1,65 @@
 """Comprehensive tests for PawControl select platform."""
-from __future__ import annotations
 
 import asyncio
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    ACTIVITY_LEVELS,
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOGS,
+    DOG_SIZES,
+    DOMAIN,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    PERFORMANCE_MODES,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.select import (
+    FEEDING_SCHEDULES,
+    GROOMING_TYPES,
+    NOTIFICATION_PRIORITIES,
+    TRACKING_MODES,
+    WALK_MODES,
+    WEATHER_CONDITIONS,
+    PawControlActivityLevelSelect,
+    PawControlDefaultMealTypeSelect,
+    PawControlDogSizeSelect,
+    PawControlFeedingModeSelect,
+    PawControlFeedingScheduleSelect,
+    PawControlFoodTypeSelect,
+    PawControlGPSSourceSelect,
+    PawControlGroomingTypeSelect,
+    PawControlHealthStatusSelect,
+    PawControlLocationAccuracySelect,
+    PawControlMoodSelect,
+    PawControlNotificationPrioritySelect,
+    PawControlPerformanceModeSelect,
+    PawControlSelectBase,
+    PawControlTrackingModeSelect,
+    PawControlWalkIntensitySelect,
+    PawControlWalkModeSelect,
+    PawControlWeatherPreferenceSelect,
+    _async_add_entities_in_batches,
+    _create_base_selects,
+    _create_feeding_selects,
+    _create_gps_selects,
+    _create_health_selects,
+    _create_walk_selects,
+    async_setup_entry,
+)
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,58 +67,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import ACTIVITY_LEVELS
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import FOOD_TYPES
-from custom_components.pawcontrol.const import GPS_SOURCES
-from custom_components.pawcontrol.const import HEALTH_STATUS_OPTIONS
-from custom_components.pawcontrol.const import MEAL_TYPES
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import MOOD_OPTIONS
-from custom_components.pawcontrol.const import PERFORMANCE_MODES
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.select import _async_add_entities_in_batches
-from custom_components.pawcontrol.select import _create_base_selects
-from custom_components.pawcontrol.select import _create_feeding_selects
-from custom_components.pawcontrol.select import _create_gps_selects
-from custom_components.pawcontrol.select import _create_health_selects
-from custom_components.pawcontrol.select import _create_walk_selects
-from custom_components.pawcontrol.select import async_setup_entry
-from custom_components.pawcontrol.select import FEEDING_SCHEDULES
-from custom_components.pawcontrol.select import GROOMING_TYPES
-from custom_components.pawcontrol.select import NOTIFICATION_PRIORITIES
-from custom_components.pawcontrol.select import PawControlActivityLevelSelect
-from custom_components.pawcontrol.select import PawControlDefaultMealTypeSelect
-from custom_components.pawcontrol.select import PawControlDogSizeSelect
-from custom_components.pawcontrol.select import PawControlFeedingModeSelect
-from custom_components.pawcontrol.select import PawControlFeedingScheduleSelect
-from custom_components.pawcontrol.select import PawControlFoodTypeSelect
-from custom_components.pawcontrol.select import PawControlGPSSourceSelect
-from custom_components.pawcontrol.select import PawControlGroomingTypeSelect
-from custom_components.pawcontrol.select import PawControlHealthStatusSelect
-from custom_components.pawcontrol.select import PawControlLocationAccuracySelect
-from custom_components.pawcontrol.select import PawControlMoodSelect
-from custom_components.pawcontrol.select import PawControlNotificationPrioritySelect
-from custom_components.pawcontrol.select import PawControlPerformanceModeSelect
-from custom_components.pawcontrol.select import PawControlSelectBase
-from custom_components.pawcontrol.select import PawControlTrackingModeSelect
-from custom_components.pawcontrol.select import PawControlWalkIntensitySelect
-from custom_components.pawcontrol.select import PawControlWalkModeSelect
-from custom_components.pawcontrol.select import PawControlWeatherPreferenceSelect
-from custom_components.pawcontrol.select import TRACKING_MODES
-from custom_components.pawcontrol.select import WALK_MODES
-from custom_components.pawcontrol.select import WEATHER_CONDITIONS
 
 
 class TestAsyncSetupEntry:
@@ -391,8 +389,7 @@ class TestCreateSelectFunctions:
 
     def test_create_feeding_selects(self, mock_coordinator):
         """Test creation of feeding selects."""
-        selects = _create_feeding_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_feeding_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create feeding selects
         assert len(selects) == 4
@@ -405,8 +402,7 @@ class TestCreateSelectFunctions:
 
     def test_create_walk_selects(self, mock_coordinator):
         """Test creation of walk selects."""
-        selects = _create_walk_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_walk_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create walk selects
         assert len(selects) == 3
@@ -430,8 +426,7 @@ class TestCreateSelectFunctions:
 
     def test_create_health_selects(self, mock_coordinator):
         """Test creation of health selects."""
-        selects = _create_health_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_health_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create health selects
         assert len(selects) == 4
@@ -742,8 +737,7 @@ class TestSpecificSelectClasses:
 
     def test_food_type_select_initialization(self, mock_coordinator):
         """Test food type select initialization."""
-        select = PawControlFoodTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlFoodTypeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "food_type"
         assert select._attr_options == FOOD_TYPES
@@ -752,8 +746,7 @@ class TestSpecificSelectClasses:
 
     def test_food_type_select_get_food_info(self, mock_coordinator):
         """Test food type select food info."""
-        select = PawControlFoodTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlFoodTypeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         food_info = select._get_food_type_info("wet_food")
         assert "calories_per_gram" in food_info
@@ -785,8 +778,7 @@ class TestSpecificSelectClasses:
 
     def test_feeding_mode_select_initialization(self, mock_coordinator):
         """Test feeding mode select initialization."""
-        select = PawControlFeedingModeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlFeedingModeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "feeding_mode"
         assert select._attr_options == ["manual", "scheduled", "automatic"]
@@ -795,8 +787,7 @@ class TestSpecificSelectClasses:
 
     def test_walk_mode_select_initialization(self, mock_coordinator):
         """Test walk mode select initialization."""
-        select = PawControlWalkModeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlWalkModeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "walk_mode"
         assert select._attr_options == WALK_MODES
@@ -805,8 +796,7 @@ class TestSpecificSelectClasses:
 
     def test_walk_mode_select_get_mode_info(self, mock_coordinator):
         """Test walk mode select mode info."""
-        select = PawControlWalkModeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlWalkModeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         mode_info = select._get_walk_mode_info("hybrid")
         assert "description" in mode_info
@@ -826,19 +816,16 @@ class TestSpecificSelectClasses:
 
     def test_walk_intensity_select_initialization(self, mock_coordinator):
         """Test walk intensity select initialization."""
-        select = PawControlWalkIntensitySelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlWalkIntensitySelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "walk_intensity"
-        assert select._attr_options == [
-            "relaxed", "moderate", "vigorous", "mixed"]
+        assert select._attr_options == ["relaxed", "moderate", "vigorous", "mixed"]
         assert select._attr_icon == "mdi:run"
         assert select._current_option == "moderate"
 
     def test_gps_source_select_initialization(self, mock_coordinator):
         """Test GPS source select initialization."""
-        select = PawControlGPSSourceSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlGPSSourceSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "gps_source"
         assert select._attr_options == GPS_SOURCES
@@ -848,8 +835,7 @@ class TestSpecificSelectClasses:
 
     def test_gps_source_select_get_source_info(self, mock_coordinator):
         """Test GPS source select source info."""
-        select = PawControlGPSSourceSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlGPSSourceSelect(mock_coordinator, "test_dog", "Test Dog")
 
         source_info = select._get_gps_source_info("tractive")
         assert "accuracy" in source_info
@@ -858,8 +844,7 @@ class TestSpecificSelectClasses:
 
     def test_tracking_mode_select_initialization(self, mock_coordinator):
         """Test tracking mode select initialization."""
-        select = PawControlTrackingModeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlTrackingModeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "tracking_mode"
         assert select._attr_options == TRACKING_MODES
@@ -880,8 +865,7 @@ class TestSpecificSelectClasses:
 
     def test_health_status_select_initialization(self, mock_coordinator):
         """Test health status select initialization."""
-        select = PawControlHealthStatusSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlHealthStatusSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "health_status"
         assert select._attr_options == HEALTH_STATUS_OPTIONS
@@ -890,19 +874,16 @@ class TestSpecificSelectClasses:
 
     def test_health_status_select_current_option_from_data(self, mock_coordinator):
         """Test health status select reads from data."""
-        mock_coordinator.get_module_data.return_value = {
-            "health_status": "excellent"}
+        mock_coordinator.get_module_data.return_value = {"health_status": "excellent"}
 
-        select = PawControlHealthStatusSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlHealthStatusSelect(mock_coordinator, "test_dog", "Test Dog")
 
         # Should read from data
         assert select.current_option == "excellent"
 
     def test_activity_level_select_initialization(self, mock_coordinator):
         """Test activity level select initialization."""
-        select = PawControlActivityLevelSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlActivityLevelSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "activity_level"
         assert select._attr_options == ACTIVITY_LEVELS
@@ -911,11 +892,9 @@ class TestSpecificSelectClasses:
 
     def test_activity_level_select_current_option_from_data(self, mock_coordinator):
         """Test activity level select reads from data."""
-        mock_coordinator.get_module_data.return_value = {
-            "activity_level": "high"}
+        mock_coordinator.get_module_data.return_value = {"activity_level": "high"}
 
-        select = PawControlActivityLevelSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlActivityLevelSelect(mock_coordinator, "test_dog", "Test Dog")
 
         # Should read from data
         assert select.current_option == "high"
@@ -931,8 +910,7 @@ class TestSpecificSelectClasses:
 
     def test_grooming_type_select_initialization(self, mock_coordinator):
         """Test grooming type select initialization."""
-        select = PawControlGroomingTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlGroomingTypeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         assert select._select_type == "grooming_type"
         assert select._attr_options == GROOMING_TYPES
@@ -941,8 +919,7 @@ class TestSpecificSelectClasses:
 
     def test_grooming_type_select_get_grooming_info(self, mock_coordinator):
         """Test grooming type select grooming info."""
-        select = PawControlGroomingTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlGroomingTypeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         grooming_info = select._get_grooming_type_info("full_grooming")
         assert "frequency" in grooming_info
@@ -951,8 +928,7 @@ class TestSpecificSelectClasses:
 
     def test_grooming_type_select_extra_state_attributes(self, mock_coordinator):
         """Test grooming type select extra state attributes."""
-        select = PawControlGroomingTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlGroomingTypeSelect(mock_coordinator, "test_dog", "Test Dog")
 
         attrs = select.extra_state_attributes
         assert "frequency" in attrs
@@ -1048,8 +1024,7 @@ class TestSelectErrorHandling:
     @pytest.mark.asyncio
     async def test_select_set_option_error_handling(self, mock_coordinator):
         """Test select option setting error handling."""
-        select = PawControlDogSizeSelect(
-            mock_coordinator, "test_dog", "Test Dog", {})
+        select = PawControlDogSizeSelect(mock_coordinator, "test_dog", "Test Dog", {})
 
         # Mock coordinator to raise exception
         mock_coordinator.async_refresh_dog = AsyncMock(
@@ -1061,15 +1036,13 @@ class TestSelectErrorHandling:
 
     def test_select_get_info_methods_with_none(self, mock_coordinator):
         """Test info getter methods with None input."""
-        select = PawControlDogSizeSelect(
-            mock_coordinator, "test_dog", "Test Dog", {})
+        select = PawControlDogSizeSelect(mock_coordinator, "test_dog", "Test Dog", {})
 
         # Should handle None gracefully
         size_info = select._get_size_info(None)
         assert size_info == {}
 
-        food_select = PawControlFoodTypeSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        food_select = PawControlFoodTypeSelect(mock_coordinator, "test_dog", "Test Dog")
         food_info = food_select._get_food_type_info(None)
         assert food_info == {}
 
@@ -1107,8 +1080,7 @@ class TestSelectIntegration:
     @pytest.mark.asyncio
     async def test_select_coordinator_integration(self, mock_coordinator):
         """Test select integration with coordinator."""
-        select = PawControlDogSizeSelect(
-            mock_coordinator, "test_dog", "Test Dog", {})
+        select = PawControlDogSizeSelect(mock_coordinator, "test_dog", "Test Dog", {})
 
         await select._async_set_select_option("large")
 
@@ -1135,24 +1107,19 @@ class TestSelectIntegration:
 
     def test_select_module_data_integration(self, mock_coordinator):
         """Test select integration with module data."""
-        mock_coordinator.get_module_data.return_value = {
-            "health_status": "excellent"}
+        mock_coordinator.get_module_data.return_value = {"health_status": "excellent"}
 
-        select = PawControlHealthStatusSelect(
-            mock_coordinator, "test_dog", "Test Dog")
+        select = PawControlHealthStatusSelect(mock_coordinator, "test_dog", "Test Dog")
 
         # Should read from module data
         assert select.current_option == "excellent"
-        mock_coordinator.get_module_data.assert_called_with(
-            "test_dog", "health")
+        mock_coordinator.get_module_data.assert_called_with("test_dog", "health")
 
     def test_select_device_grouping(self, mock_coordinator):
         """Test that selects are properly grouped by device."""
-        select1 = PawControlDogSizeSelect(
-            mock_coordinator, "dog1", "Dog 1", {})
+        select1 = PawControlDogSizeSelect(mock_coordinator, "dog1", "Dog 1", {})
         select2 = PawControlFoodTypeSelect(mock_coordinator, "dog1", "Dog 1")
-        select3 = PawControlDogSizeSelect(
-            mock_coordinator, "dog2", "Dog 2", {})
+        select3 = PawControlDogSizeSelect(mock_coordinator, "dog2", "Dog 2", {})
 
         # Same dog selects should have same device identifiers
         assert (

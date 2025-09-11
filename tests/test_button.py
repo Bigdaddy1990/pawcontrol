@@ -1,70 +1,68 @@
 """Comprehensive tests for PawControl button platform with profile optimization."""
-from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.button import ButtonDeviceClass
+from custom_components.pawcontrol.button import (
+    BUTTON_PRIORITIES,
+    PROFILE_BUTTON_LIMITS,
+    PawControlButtonBase,
+    PawControlCallDogButton,
+    PawControlCenterMapButton,
+    PawControlEndWalkButton,
+    PawControlExportRouteButton,
+    PawControlFeedMealButton,
+    PawControlHealthCheckButton,
+    PawControlLogCustomFeedingButton,
+    PawControlLogMedicationButton,
+    PawControlLogWalkManuallyButton,
+    PawControlLogWeightButton,
+    PawControlMarkFedButton,
+    PawControlQuickWalkButton,
+    PawControlRefreshLocationButton,
+    PawControlResetDailyStatsButton,
+    PawControlScheduleVetButton,
+    PawControlStartGroomingButton,
+    PawControlStartWalkButton,
+    PawControlTestNotificationButton,
+    PawControlToggleVisitorModeButton,
+    ProfileAwareButtonFactory,
+    async_setup_entry,
+)
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_HEALTH,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_START_GROOMING,
+    SERVICE_START_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.exceptions import (
+    WalkAlreadyInProgressError,
+    WalkNotInProgressError,
+)
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
+from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.button import async_setup_entry
-from custom_components.pawcontrol.button import BUTTON_PRIORITIES
-from custom_components.pawcontrol.button import PawControlButtonBase
-from custom_components.pawcontrol.button import PawControlCallDogButton
-from custom_components.pawcontrol.button import PawControlCenterMapButton
-from custom_components.pawcontrol.button import PawControlEndWalkButton
-from custom_components.pawcontrol.button import PawControlExportRouteButton
-from custom_components.pawcontrol.button import PawControlFeedMealButton
-from custom_components.pawcontrol.button import PawControlHealthCheckButton
-from custom_components.pawcontrol.button import PawControlLogCustomFeedingButton
-from custom_components.pawcontrol.button import PawControlLogMedicationButton
-from custom_components.pawcontrol.button import PawControlLogWalkManuallyButton
-from custom_components.pawcontrol.button import PawControlLogWeightButton
-from custom_components.pawcontrol.button import PawControlMarkFedButton
-from custom_components.pawcontrol.button import PawControlQuickWalkButton
-from custom_components.pawcontrol.button import PawControlRefreshLocationButton
-from custom_components.pawcontrol.button import PawControlResetDailyStatsButton
-from custom_components.pawcontrol.button import PawControlScheduleVetButton
-from custom_components.pawcontrol.button import PawControlStartGroomingButton
-from custom_components.pawcontrol.button import PawControlStartWalkButton
-from custom_components.pawcontrol.button import PawControlTestNotificationButton
-from custom_components.pawcontrol.button import PawControlToggleVisitorModeButton
-from custom_components.pawcontrol.button import PROFILE_BUTTON_LIMITS
-from custom_components.pawcontrol.button import ProfileAwareButtonFactory
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import SERVICE_END_WALK
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
-from custom_components.pawcontrol.const import SERVICE_NOTIFY_TEST
-from custom_components.pawcontrol.const import SERVICE_START_GROOMING
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.exceptions import WalkAlreadyInProgressError
-from custom_components.pawcontrol.exceptions import WalkNotInProgressError
 
 
 class TestProfileAwareButtonFactory:
@@ -112,8 +110,7 @@ class TestProfileAwareButtonFactory:
         assert factory_basic.coordinator == mock_coordinator
 
         # Test unknown profile falls back to 6
-        factory_unknown = ProfileAwareButtonFactory(
-            mock_coordinator, "unknown")
+        factory_unknown = ProfileAwareButtonFactory(mock_coordinator, "unknown")
         assert factory_unknown.profile == "unknown"
         assert factory_unknown.max_buttons == 6
 
@@ -727,8 +724,7 @@ class TestSpecificButtonClasses:
         await button.async_press()
 
         # Should reset stats and refresh coordinator
-        data_manager.async_reset_dog_daily_stats.assert_called_once_with(
-            "test_dog")
+        data_manager.async_reset_dog_daily_stats.assert_called_once_with("test_dog")
         mock_coordinator.async_request_selective_refresh.assert_called_once_with(
             ["test_dog"], priority=8
         )
@@ -782,8 +778,7 @@ class TestSpecificButtonClasses:
 
     def test_mark_fed_button(self, mock_coordinator):
         """Test mark fed button initialization."""
-        button = PawControlMarkFedButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlMarkFedButton(mock_coordinator, "test_dog", "Test Dog")
 
         assert button._button_type == "mark_fed"
         assert button._attr_icon == "mdi:food-drumstick"
@@ -791,8 +786,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_mark_fed_button_press_morning(self, mock_coordinator, mock_hass):
         """Test mark fed button press in morning."""
-        button = PawControlMarkFedButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlMarkFedButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         # Mock time to morning
@@ -816,8 +810,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_mark_fed_button_press_evening(self, mock_coordinator, mock_hass):
         """Test mark fed button press in evening."""
-        button = PawControlMarkFedButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlMarkFedButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         # Mock time to evening
@@ -872,16 +865,14 @@ class TestSpecificButtonClasses:
 
     def test_start_walk_button(self, mock_coordinator):
         """Test start walk button initialization."""
-        button = PawControlStartWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartWalkButton(mock_coordinator, "test_dog", "Test Dog")
 
         assert button._button_type == "start_walk"
         assert button._attr_icon == "mdi:walk"
 
     def test_start_walk_button_availability(self, mock_coordinator):
         """Test start walk button availability."""
-        button = PawControlStartWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartWalkButton(mock_coordinator, "test_dog", "Test Dog")
 
         # Should be available when no walk in progress
         assert button.available is True
@@ -896,8 +887,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_start_walk_button_press(self, mock_coordinator, mock_hass):
         """Test start walk button press."""
-        button = PawControlStartWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         await button.async_press()
@@ -927,8 +917,7 @@ class TestSpecificButtonClasses:
             }
         }
 
-        button = PawControlStartWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         with pytest.raises(HomeAssistantError):
@@ -936,16 +925,14 @@ class TestSpecificButtonClasses:
 
     def test_end_walk_button(self, mock_coordinator):
         """Test end walk button initialization."""
-        button = PawControlEndWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlEndWalkButton(mock_coordinator, "test_dog", "Test Dog")
 
         assert button._button_type == "end_walk"
         assert button._attr_icon == "mdi:stop"
 
     def test_end_walk_button_availability(self, mock_coordinator):
         """Test end walk button availability."""
-        button = PawControlEndWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlEndWalkButton(mock_coordinator, "test_dog", "Test Dog")
 
         # Should be unavailable when no walk in progress
         assert button.available is False
@@ -965,8 +952,7 @@ class TestSpecificButtonClasses:
             "walk": {"walk_in_progress": True}
         }
 
-        button = PawControlEndWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlEndWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         await button.async_press()
@@ -984,8 +970,7 @@ class TestSpecificButtonClasses:
         self, mock_coordinator, mock_hass
     ):
         """Test end walk button press when no walk in progress."""
-        button = PawControlEndWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlEndWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         with pytest.raises(HomeAssistantError):
@@ -994,8 +979,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_quick_walk_button_press(self, mock_coordinator, mock_hass):
         """Test quick walk button press."""
-        button = PawControlQuickWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlQuickWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         await button.async_press()
@@ -1044,8 +1028,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_call_dog_button_press(self, mock_coordinator):
         """Test call dog button press."""
-        button = PawControlCallDogButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlCallDogButton(mock_coordinator, "test_dog", "Test Dog")
 
         await button.async_press()
         # Should complete without error when GPS tracker available
@@ -1054,11 +1037,9 @@ class TestSpecificButtonClasses:
     async def test_call_dog_button_press_no_gps(self, mock_coordinator):
         """Test call dog button press without GPS tracker."""
         # Mock no GPS data
-        mock_coordinator.get_dog_data.return_value = {
-            "gps": {"source": "none"}}
+        mock_coordinator.get_dog_data.return_value = {"gps": {"source": "none"}}
 
-        button = PawControlCallDogButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlCallDogButton(mock_coordinator, "test_dog", "Test Dog")
 
         with pytest.raises(HomeAssistantError, match="GPS tracker not available"):
             await button.async_press()
@@ -1066,8 +1047,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_log_weight_button_press(self, mock_coordinator, mock_hass):
         """Test log weight button press."""
-        button = PawControlLogWeightButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlLogWeightButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         await button.async_press()
@@ -1086,8 +1066,7 @@ class TestSpecificButtonClasses:
     @pytest.mark.asyncio
     async def test_start_grooming_button_press(self, mock_coordinator, mock_hass):
         """Test start grooming button press."""
-        button = PawControlStartGroomingButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartGroomingButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = mock_hass
 
         await button.async_press()
@@ -1195,8 +1174,7 @@ class TestButtonErrorHandling:
         """Test button service call error handling."""
         hass = Mock()
         hass.services = Mock()
-        hass.services.async_call = AsyncMock(
-            side_effect=Exception("Service error"))
+        hass.services.async_call = AsyncMock(side_effect=Exception("Service error"))
 
         button = PawControlTestNotificationButton(
             mock_coordinator, "test_dog", "Test Dog"
@@ -1210,8 +1188,7 @@ class TestButtonErrorHandling:
         """Test button behavior when dog data is missing."""
         mock_coordinator.get_dog_data.return_value = None
 
-        button = PawControlMarkFedButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlMarkFedButton(mock_coordinator, "test_dog", "Test Dog")
 
         # Should handle missing data gracefully
         module_data = button._get_module_data("feeding")
@@ -1226,8 +1203,7 @@ class TestButtonErrorHandling:
             side_effect=ServiceValidationError("Invalid service call")
         )
 
-        button = PawControlStartWalkButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlStartWalkButton(mock_coordinator, "test_dog", "Test Dog")
         button.hass = hass
 
         with pytest.raises(HomeAssistantError):
@@ -1235,8 +1211,7 @@ class TestButtonErrorHandling:
 
     def test_button_cache_edge_cases(self, mock_coordinator):
         """Test button caching edge cases."""
-        button = PawControlMarkFedButton(
-            mock_coordinator, "test_dog", "Test Dog")
+        button = PawControlMarkFedButton(mock_coordinator, "test_dog", "Test Dog")
 
         # Test cache with empty data
         mock_coordinator.get_dog_data.return_value = {}
@@ -1305,5 +1280,4 @@ class TestButtonIntegration:
 
         # Should call data manager
         data_manager = mock_hass_with_full_data.data[DOMAIN]["test_entry"]["data"]
-        data_manager.async_reset_dog_daily_stats.assert_called_once_with(
-            "test_dog")
+        data_manager.async_reset_dog_daily_stats.assert_called_once_with("test_dog")

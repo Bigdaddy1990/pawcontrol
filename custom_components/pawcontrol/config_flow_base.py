@@ -8,34 +8,36 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
 import time
-from typing import Any
-from typing import Final
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_BREED
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOG_WEIGHT
-from .const import DOG_SIZES
-from .const import DOMAIN
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_NAME_LENGTH
-from .const import MAX_DOG_WEIGHT
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_NAME_LENGTH
-from .const import MIN_DOG_WEIGHT
+from .const import (
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_NAME_LENGTH,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_NAME_LENGTH,
+    MIN_DOG_WEIGHT,
+)
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,8 +77,7 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
             ),
         ),
         vol.Required(CONF_DOG_NAME): vol.All(
-            cv.string, vol.Length(min=MIN_DOG_NAME_LENGTH,
-                                  max=MAX_DOG_NAME_LENGTH)
+            cv.string, vol.Length(min=MIN_DOG_NAME_LENGTH, max=MAX_DOG_NAME_LENGTH)
         ),
         vol.Optional(CONF_DOG_BREED, default=""): vol.All(
             cv.string, vol.Length(max=50)
@@ -85,8 +86,7 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
             vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE)
         ),
         vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-            vol.Coerce(float), vol.Range(
-                min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)
+            vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)
         ),
         vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(DOG_SIZES),
     }
@@ -195,16 +195,13 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         # Consistent realistic weight ranges with overlap to accommodate breed variations
         size_ranges = {
             "toy": (1.0, 15.0),  # Chihuahua, Yorkshire Terrier
-            # Beagle, Cocker Spaniel (overlap with toy/medium)
-            "small": (4.0, 25.0),
-            # Border Collie, Labrador (overlap with small/large)
-            "medium": (8.0, 45.0),
+            "small": (4.0, 25.0),  # Beagle, Cocker Spaniel (overlap with toy/medium)
+            "medium": (8.0, 45.0),  # Border Collie, Labrador (overlap with small/large)
             "large": (
                 10.0,
                 80.0,
             ),  # German Shepherd, Golden Retriever (overlap with medium/giant)
-            # Great Dane, Saint Bernard (overlap with large)
-            "giant": (14.0, 120.0),
+            "giant": (14.0, 120.0),  # Great Dane, Saint Bernard (overlap with large)
         }
 
         range_min, range_max = size_ranges.get(size, (1.0, 90.0))
@@ -297,8 +294,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             if dog.get("health_config"):
                 special_configs.append("🏥 Health")
 
-            special_text = " | ".join(
-                special_configs) if special_configs else ""
+            special_text = " | ".join(special_configs) if special_configs else ""
 
             dogs_list.append(
                 f"{i}. {size_emoji} **{dog[CONF_DOG_NAME]}** ({dog[CONF_DOG_ID]})\n"
@@ -436,8 +432,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         for entity_id in self.hass.states.async_entity_ids("device_tracker"):
             state = self.hass.states.get(entity_id)
             if state and state.state not in ["unknown", "unavailable"]:
-                friendly_name = state.attributes.get(
-                    "friendly_name", entity_id)
+                friendly_name = state.attributes.get("friendly_name", entity_id)
                 # Filter out the Home Assistant companion apps to avoid confusion
                 if "home_assistant" not in entity_id.lower():
                     device_trackers[entity_id] = friendly_name
@@ -455,8 +450,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         for entity_id in self.hass.states.async_entity_ids("person"):
             state = self.hass.states.get(entity_id)
             if state:
-                friendly_name = state.attributes.get(
-                    "friendly_name", entity_id)
+                friendly_name = state.attributes.get("friendly_name", entity_id)
                 person_entities[entity_id] = friendly_name
 
         return person_entities
@@ -474,8 +468,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             if state:
                 device_class = state.attributes.get("device_class")
                 if device_class in ["door", "window", "opening", "garage_door"]:
-                    friendly_name = state.attributes.get(
-                        "friendly_name", entity_id)
+                    friendly_name = state.attributes.get("friendly_name", entity_id)
                     door_sensors[entity_id] = friendly_name
 
         return door_sensors
@@ -508,8 +501,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         summaries = []
         for dog in self._dogs:
             modules = dog.get("modules", {})
-            enabled_modules = [name for name,
-                               enabled in modules.items() if enabled]
+            enabled_modules = [name for name, enabled in modules.items() if enabled]
 
             if enabled_modules:
                 modules_text = ", ".join(enabled_modules[:3])
@@ -531,8 +523,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Comma-separated feature string for dashboard descriptions.
         """
-        features = ["Statistics", "Alerts",
-                    "Mobile-Friendly", "Multiple Themes"]
+        features = ["Statistics", "Alerts", "Mobile-Friendly", "Multiple Themes"]
         if has_gps:
             features.insert(0, "GPS Maps")
         if len(self._dogs) > 1:
@@ -558,13 +549,11 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
             for dog in self._dogs
         )
         has_feeding = any(
-            dog.get("modules", {}).get(
-                "feeding", False) or dog.get("feeding_config")
+            dog.get("modules", {}).get("feeding", False) or dog.get("feeding_config")
             for dog in self._dogs
         )
         has_health = any(
-            dog.get("modules", {}).get(
-                "health", False) or dog.get("health_config")
+            dog.get("modules", {}).get("health", False) or dog.get("health_config")
             for dog in self._dogs
         )
 

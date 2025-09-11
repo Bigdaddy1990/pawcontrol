@@ -15,61 +15,60 @@ Test Areas:
 - Performance under stress conditions
 - User workflow interruption scenarios
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
+from custom_components.pawcontrol.config_flow import (
+    ENTITY_PROFILES,
+    MAX_CONCURRENT_VALIDATIONS,
+    PROFILE_SCHEMA,
+    VALIDATION_CACHE_TTL,
+    VALIDATION_TIMEOUT,
+    PawControlConfigFlow,
+    ValidationCache,
+)
+from custom_components.pawcontrol.config_flow_base import (
+    DOG_BASE_SCHEMA,
+    DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    INTEGRATION_SCHEMA,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+)
+from custom_components.pawcontrol.config_flow_dogs import (
+    DIET_COMPATIBILITY_RULES,
+)
+from custom_components.pawcontrol.const import (
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_MODULES,
+    DOG_SIZES,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    SPECIAL_DIET_OPTIONS,
+)
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.config_flow import ENTITY_PROFILES
-from custom_components.pawcontrol.config_flow import MAX_CONCURRENT_VALIDATIONS
-from custom_components.pawcontrol.config_flow import PawControlConfigFlow
-from custom_components.pawcontrol.config_flow import PROFILE_SCHEMA
-from custom_components.pawcontrol.config_flow import VALIDATION_CACHE_TTL
-from custom_components.pawcontrol.config_flow import VALIDATION_TIMEOUT
-from custom_components.pawcontrol.config_flow import ValidationCache
-from custom_components.pawcontrol.config_flow_base import DOG_BASE_SCHEMA
-from custom_components.pawcontrol.config_flow_base import DOG_ID_PATTERN
-from custom_components.pawcontrol.config_flow_base import ENTITY_CREATION_DELAY
-from custom_components.pawcontrol.config_flow_base import INTEGRATION_SCHEMA
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
-from custom_components.pawcontrol.config_flow_dogs import (
-    DIET_COMPATIBILITY_RULES,
-)
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
 
 
 class TestValidationCacheEdgeCases:
@@ -687,7 +686,7 @@ class TestDogConfigurationEdgeCases:
             ("A" * 100, "a" * 20),  # Very long name
         ]
 
-        for name, _expected_pattern in edge_cases:
+        for name, expected_pattern in edge_cases:
             suggestion = await config_flow._generate_smart_dog_id_suggestion(
                 {CONF_DOG_NAME: name}
             )
@@ -733,8 +732,7 @@ class TestDogConfigurationEdgeCases:
         result = await config_flow.async_step_add_another_dog({"add_another": True})
 
         # Should either prevent adding or handle gracefully
-        assert result["type"] in [
-            FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+        assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
 
 class TestDietValidationEdgeCases:
@@ -773,8 +771,7 @@ class TestDietValidationEdgeCases:
         ]
 
         for diet_combination, should_have_conflicts in conflict_cases:
-            validation = config_flow._validate_diet_combinations(
-                diet_combination)
+            validation = config_flow._validate_diet_combinations(diet_combination)
 
             if should_have_conflicts:
                 assert len(validation["conflicts"]) > 0
@@ -793,8 +790,7 @@ class TestDietValidationEdgeCases:
         ]
 
         for diet_combination in warning_cases:
-            validation = config_flow._validate_diet_combinations(
-                diet_combination)
+            validation = config_flow._validate_diet_combinations(diet_combination)
 
             # Should generate warnings for complex combinations
             # Note: Some may not generate warnings depending on rules
@@ -805,8 +801,7 @@ class TestDietValidationEdgeCases:
         """Test diet validation with empty and edge cases."""
         edge_cases = [
             [],  # No diets
-            # Invalid diet (should be handled gracefully)
-            ["nonexistent_diet"],
+            ["nonexistent_diet"],  # Invalid diet (should be handled gracefully)
             SPECIAL_DIET_OPTIONS,  # All diets at once
             ["prescription"] * 5,  # Duplicate diets
         ]
@@ -908,11 +903,10 @@ class TestDietValidationEdgeCases:
             (12, "giant", "low"),  # Senior giant dog
         ]
 
-        for age, size, _expected_level in test_cases:
+        for age, size, expected_level in test_cases:
             suggestion = config_flow._suggest_activity_level(age, size)
 
-            assert suggestion in ["very_low", "low",
-                                  "moderate", "high", "very_high"]
+            assert suggestion in ["very_low", "low", "moderate", "high", "very_high"]
             # Note: Exact matches may vary based on implementation
 
 
@@ -1198,13 +1192,13 @@ class TestPerformanceAndStressScenarios:
         """Test error recovery mechanisms under stress conditions."""
         # Simulate various error conditions
         error_scenarios = [
-            ("timeout", TimeoutError()),
+            ("timeout", asyncio.TimeoutError()),
             ("validation", ValueError("Validation failed")),
             ("network", ConnectionError("Network error")),
             ("memory", MemoryError("Out of memory")),
         ]
 
-        for _error_name, error in error_scenarios:
+        for error_name, error in error_scenarios:
             # Test error handling doesn't break the flow
             with patch.object(
                 config_flow, "_async_validate_dog_config", side_effect=error

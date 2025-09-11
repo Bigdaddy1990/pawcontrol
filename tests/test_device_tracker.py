@@ -18,46 +18,46 @@ Test Coverage:
 - Error handling and edge cases
 - Performance testing with large setups
 """
-from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.device_tracker import (
+    DEFAULT_GPS_ACCURACY,
+    HOME_ZONE_RADIUS,
+    LOCATION_UPDATE_THRESHOLD,
+    MAX_GPS_AGE,
+    PawControlDeviceTracker,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_BATTERY_LEVEL
-from homeassistant.const import ATTR_GPS_ACCURACY
-from homeassistant.const import ATTR_LATITUDE
-from homeassistant.const import ATTR_LONGITUDE
-from homeassistant.const import STATE_HOME
-from homeassistant.const import STATE_NOT_HOME
+from homeassistant.const import (
+    ATTR_BATTERY_LEVEL,
+    ATTR_GPS_ACCURACY,
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.device_tracker import _async_add_entities_in_batches
-from custom_components.pawcontrol.device_tracker import async_setup_entry
-from custom_components.pawcontrol.device_tracker import DEFAULT_GPS_ACCURACY
-from custom_components.pawcontrol.device_tracker import HOME_ZONE_RADIUS
-from custom_components.pawcontrol.device_tracker import LOCATION_UPDATE_THRESHOLD
-from custom_components.pawcontrol.device_tracker import MAX_GPS_AGE
-from custom_components.pawcontrol.device_tracker import PawControlDeviceTracker
 
 
 class TestAsyncAddEntitiesInBatches:
@@ -72,8 +72,7 @@ class TestAsyncAddEntitiesInBatches:
         await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=8)
 
         # Should be called once with all entities
-        mock_add_entities.assert_called_once_with(
-            entities, update_before_add=False)
+        mock_add_entities.assert_called_once_with(entities, update_before_add=False)
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -594,8 +593,7 @@ class TestPawControlDeviceTracker:
 
         # Mock zone state with missing attributes
         mock_zone_state = Mock()
-        mock_zone_state.attributes = {
-            "friendly_name": "Dog Park"}  # Missing lat/lon
+        mock_zone_state.attributes = {"friendly_name": "Dog Park"}  # Missing lat/lon
         mock_zone_state.entity_id = "zone.dog_park"
 
         with patch.object(hass.states, "async_all", return_value=[mock_zone_state]):
@@ -706,48 +704,39 @@ class TestPawControlDeviceTracker:
         # Test running
         mock_gps_data["speed"] = 15.0
         with patch.object(device_tracker, "_is_currently_moving", return_value=True):
-            assert device_tracker._get_movement_status(
-                mock_gps_data) == "running"
+            assert device_tracker._get_movement_status(mock_gps_data) == "running"
 
         # Test walking
         mock_gps_data["speed"] = 5.0
         with patch.object(device_tracker, "_is_currently_moving", return_value=True):
-            assert device_tracker._get_movement_status(
-                mock_gps_data) == "walking"
+            assert device_tracker._get_movement_status(mock_gps_data) == "walking"
 
         # Test moving slowly
         mock_gps_data["speed"] = 2.0
         with patch.object(device_tracker, "_is_currently_moving", return_value=True):
-            assert device_tracker._get_movement_status(
-                mock_gps_data) == "moving_slowly"
+            assert device_tracker._get_movement_status(mock_gps_data) == "moving_slowly"
 
         # Test stationary
         with patch.object(device_tracker, "_is_currently_moving", return_value=False):
-            assert device_tracker._get_movement_status(
-                mock_gps_data) == "stationary"
+            assert device_tracker._get_movement_status(mock_gps_data) == "stationary"
 
     def test_assess_gps_signal_quality_variations(self, device_tracker):
         """Test GPS signal quality assessment."""
         # Test excellent signal
-        assert device_tracker._assess_gps_signal_quality(
-            {"accuracy": 3}) == "excellent"
+        assert device_tracker._assess_gps_signal_quality({"accuracy": 3}) == "excellent"
 
         # Test good signal
-        assert device_tracker._assess_gps_signal_quality(
-            {"accuracy": 10}) == "good"
+        assert device_tracker._assess_gps_signal_quality({"accuracy": 10}) == "good"
 
         # Test fair signal
-        assert device_tracker._assess_gps_signal_quality(
-            {"accuracy": 30}) == "fair"
+        assert device_tracker._assess_gps_signal_quality({"accuracy": 30}) == "fair"
 
         # Test poor signal
-        assert device_tracker._assess_gps_signal_quality(
-            {"accuracy": 100}) == "poor"
+        assert device_tracker._assess_gps_signal_quality({"accuracy": 100}) == "poor"
 
         # Test unknown signal
         assert (
-            device_tracker._assess_gps_signal_quality(
-                {"accuracy": None}) == "unknown"
+            device_tracker._assess_gps_signal_quality({"accuracy": None}) == "unknown"
         )
 
     def test_assess_data_freshness_variations(self, device_tracker):
@@ -771,115 +760,104 @@ class TestPawControlDeviceTracker:
         # Test stale data
         stale_time = (now - timedelta(minutes=10)).isoformat()
         assert (
-            device_tracker._assess_data_freshness(
-                {"last_seen": stale_time}) == "stale"
+            device_tracker._assess_data_freshness({"last_seen": stale_time}) == "stale"
         )
 
         # Test old data
         old_time = (now - timedelta(minutes=30)).isoformat()
-        assert device_tracker._assess_data_freshness(
-            {"last_seen": old_time}) == "old"
+        assert device_tracker._assess_data_freshness({"last_seen": old_time}) == "old"
 
         # Test missing data
-        assert device_tracker._assess_data_freshness(
-            {"last_seen": None}) == "unknown"
+        assert device_tracker._assess_data_freshness({"last_seen": None}) == "unknown"
 
         # Test invalid date format
         assert (
-            device_tracker._assess_data_freshness(
-                {"last_seen": "invalid-date"})
+            device_tracker._assess_data_freshness({"last_seen": "invalid-date"})
             == "unknown"
         )
 
     def test_get_tracking_status_variations(self, device_tracker):
         """Test tracking status assessment."""
         # Test no location
-        with (
-            patch.object(
-                device_tracker, "_assess_gps_signal_quality", return_value="good"
-            ),
-            patch.object(
-                device_tracker, "_assess_data_freshness", return_value="current"
-            ),
-            patch.object(device_tracker, "_get_battery_status",
-                         return_value="good"),
+        with patch.object(
+            device_tracker, "_assess_gps_signal_quality", return_value="good"
         ):
-            status = device_tracker._get_tracking_status(
-                {"latitude": None, "longitude": None}
-            )
-            assert status == "no_location"
+            with patch.object(
+                device_tracker, "_assess_data_freshness", return_value="current"
+            ):
+                with patch.object(
+                    device_tracker, "_get_battery_status", return_value="good"
+                ):
+                    status = device_tracker._get_tracking_status(
+                        {"latitude": None, "longitude": None}
+                    )
+                    assert status == "no_location"
 
         # Test active tracking
-        with (
-            patch.object(
-                device_tracker, "_assess_gps_signal_quality", return_value="excellent"
-            ),
-            patch.object(
-                device_tracker, "_assess_data_freshness", return_value="current"
-            ),
-            patch.object(device_tracker, "_get_battery_status",
-                         return_value="good"),
+        with patch.object(
+            device_tracker, "_assess_gps_signal_quality", return_value="excellent"
         ):
-            status = device_tracker._get_tracking_status(
-                {"latitude": 37.7749, "longitude": -122.4194}
-            )
-            assert status == "tracking_active"
+            with patch.object(
+                device_tracker, "_assess_data_freshness", return_value="current"
+            ):
+                with patch.object(
+                    device_tracker, "_get_battery_status", return_value="good"
+                ):
+                    status = device_tracker._get_tracking_status(
+                        {"latitude": 37.7749, "longitude": -122.4194}
+                    )
+                    assert status == "tracking_active"
 
         # Test tracking with low battery
-        with (
-            patch.object(
-                device_tracker, "_assess_gps_signal_quality", return_value="good"
-            ),
-            patch.object(
-                device_tracker, "_assess_data_freshness", return_value="current"
-            ),
-            patch.object(device_tracker, "_get_battery_status",
-                         return_value="low"),
+        with patch.object(
+            device_tracker, "_assess_gps_signal_quality", return_value="good"
         ):
-            status = device_tracker._get_tracking_status(
-                {"latitude": 37.7749, "longitude": -122.4194}
-            )
-            assert status == "tracking_battery_low"
+            with patch.object(
+                device_tracker, "_assess_data_freshness", return_value="current"
+            ):
+                with patch.object(
+                    device_tracker, "_get_battery_status", return_value="low"
+                ):
+                    status = device_tracker._get_tracking_status(
+                        {"latitude": 37.7749, "longitude": -122.4194}
+                    )
+                    assert status == "tracking_battery_low"
 
         # Test tracking with critical battery
-        with (
-            patch.object(
-                device_tracker, "_assess_gps_signal_quality", return_value="good"
-            ),
-            patch.object(
-                device_tracker, "_assess_data_freshness", return_value="current"
-            ),
-            patch.object(
-                device_tracker, "_get_battery_status", return_value="critical"
-            ),
+        with patch.object(
+            device_tracker, "_assess_gps_signal_quality", return_value="good"
         ):
-            status = device_tracker._get_tracking_status(
-                {"latitude": 37.7749, "longitude": -122.4194}
-            )
-            assert status == "tracking_battery_critical"
+            with patch.object(
+                device_tracker, "_assess_data_freshness", return_value="current"
+            ):
+                with patch.object(
+                    device_tracker, "_get_battery_status", return_value="critical"
+                ):
+                    status = device_tracker._get_tracking_status(
+                        {"latitude": 37.7749, "longitude": -122.4194}
+                    )
+                    assert status == "tracking_battery_critical"
 
         # Test degraded tracking
-        with (
-            patch.object(
-                device_tracker, "_assess_gps_signal_quality", return_value="poor"
-            ),
-            patch.object(
-                device_tracker, "_assess_data_freshness", return_value="stale"
-            ),
-            patch.object(device_tracker, "_get_battery_status",
-                         return_value="good"),
+        with patch.object(
+            device_tracker, "_assess_gps_signal_quality", return_value="poor"
         ):
-            status = device_tracker._get_tracking_status(
-                {"latitude": 37.7749, "longitude": -122.4194}
-            )
-            assert status == "tracking_degraded"
+            with patch.object(
+                device_tracker, "_assess_data_freshness", return_value="stale"
+            ):
+                with patch.object(
+                    device_tracker, "_get_battery_status", return_value="good"
+                ):
+                    status = device_tracker._get_tracking_status(
+                        {"latitude": 37.7749, "longitude": -122.4194}
+                    )
+                    assert status == "tracking_degraded"
 
     def test_available_with_recent_gps_data(self, device_tracker, mock_coordinator):
         """Test availability with recent GPS data."""
         mock_coordinator.available = True
         recent_time = dt_util.utcnow().isoformat()
-        mock_coordinator.get_module_data.return_value = {
-            "last_seen": recent_time}
+        mock_coordinator.get_module_data.return_value = {"last_seen": recent_time}
         device_tracker.coordinator = mock_coordinator
 
         assert device_tracker.available is True
@@ -900,8 +878,7 @@ class TestPawControlDeviceTracker:
         mock_coordinator.available = True
         mock_coordinator.get_module_data.return_value = None  # No GPS data
         device_tracker.coordinator = mock_coordinator
-        device_tracker._restored_data = {
-            "latitude": 37.7749, "longitude": -122.4194}
+        device_tracker._restored_data = {"latitude": 37.7749, "longitude": -122.4194}
 
         assert device_tracker.available is True
 
@@ -915,8 +892,7 @@ class TestPawControlDeviceTracker:
     def test_available_invalid_last_seen_format(self, device_tracker, mock_coordinator):
         """Test availability with invalid last_seen format."""
         mock_coordinator.available = True
-        mock_coordinator.get_module_data.return_value = {
-            "last_seen": "invalid-date"}
+        mock_coordinator.get_module_data.return_value = {"last_seen": "invalid-date"}
         device_tracker.coordinator = mock_coordinator
         device_tracker._restored_data = {}
 
@@ -1034,8 +1010,7 @@ class TestPawControlDeviceTracker:
         device_tracker.coordinator = mock_coordinator
         device_tracker._last_known_location = None  # No previous location
 
-        new_gps_data = {"latitude": 37.7749,
-                        "longitude": -122.4194, "accuracy": 5}
+        new_gps_data = {"latitude": 37.7749, "longitude": -122.4194, "accuracy": 5}
 
         mock_coordinator.get_module_data.return_value = new_gps_data
 
@@ -1158,21 +1133,18 @@ class TestPawControlDeviceTracker:
 
     def test_get_walk_data(self, device_tracker, mock_coordinator):
         """Test getting walk data from coordinator."""
-        mock_walk_data = {"walk_in_progress": True,
-                          "current_walk_distance": 500}
+        mock_walk_data = {"walk_in_progress": True, "current_walk_distance": 500}
         mock_coordinator.get_module_data.return_value = mock_walk_data
         device_tracker.coordinator = mock_coordinator
 
         result = device_tracker._get_walk_data()
 
         assert result == mock_walk_data
-        mock_coordinator.get_module_data.assert_called_once_with(
-            "dog1", "walk")
+        mock_coordinator.get_module_data.assert_called_once_with("dog1", "walk")
 
     def test_get_dog_data(self, device_tracker, mock_coordinator):
         """Test getting dog data from coordinator."""
-        mock_dog_data = {"dog_info": {
-            "dog_breed": "Golden Retriever", "dog_age": 5}}
+        mock_dog_data = {"dog_info": {"dog_breed": "Golden Retriever", "dog_age": 5}}
         mock_coordinator.available = True
         mock_coordinator.get_dog_data.return_value = mock_dog_data
         device_tracker.coordinator = mock_coordinator
@@ -1389,8 +1361,7 @@ class TestDeviceTrackerIntegrationScenarios:
 
         trackers = []
         for dog_id, dog_name in dogs:
-            trackers.append(PawControlDeviceTracker(
-                mock_coordinator, dog_id, dog_name))
+            trackers.append(PawControlDeviceTracker(mock_coordinator, dog_id, dog_name))
 
         unique_ids = [tracker._attr_unique_id for tracker in trackers]
 
@@ -1454,8 +1425,7 @@ class TestDeviceTrackerIntegrationScenarios:
         for dog_num in range(50):  # Create 50 GPS trackers
             dog_id = f"dog{dog_num}"
             dog_name = f"Dog{dog_num}"
-            trackers.append(PawControlDeviceTracker(
-                mock_coordinator, dog_id, dog_name))
+            trackers.append(PawControlDeviceTracker(mock_coordinator, dog_id, dog_name))
 
         creation_time = time.time() - start_time
 
@@ -1474,8 +1444,7 @@ class TestDeviceTrackerIntegrationScenarios:
 
         edge_cases = [
             ({}, None, None),  # Empty GPS data
-            ({"latitude": None, "longitude": None},
-             None, None),  # None coordinates
+            ({"latitude": None, "longitude": None}, None, None),  # None coordinates
             (
                 {"latitude": "invalid", "longitude": "invalid"},
                 None,
@@ -1503,8 +1472,7 @@ class TestDeviceTrackerIntegrationScenarios:
                 assert lat == expected_lat
                 assert lon == expected_lon
             except Exception as e:
-                pytest.fail(
-                    f"GPS data edge case should be handled gracefully: {e}")
+                pytest.fail(f"GPS data edge case should be handled gracefully: {e}")
 
     def test_zone_detection_comprehensive(self, mock_coordinator, hass: HomeAssistant):
         """Test comprehensive zone detection scenarios."""

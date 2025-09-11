@@ -6,6 +6,7 @@ Python: 3.13+
 
 Tests diet validation adjustments, conflict handling, and portion safety.
 """
+
 from __future__ import annotations
 
 import sys
@@ -339,8 +340,7 @@ class TestPortionAdjustmentFactorIntegration:
             special_diet=["weight_control", "senior_formula"],
         )
 
-        diet_validation = {"conflicts": [
-            {"type": "age_conflict"}], "warnings": []}
+        diet_validation = {"conflicts": [{"type": "age_conflict"}], "warnings": []}
 
         adjustment = HealthCalculator.calculate_portion_adjustment_factor(
             health_metrics, feeding_goals=None, diet_validation=diet_validation
@@ -408,8 +408,7 @@ class TestPortionAdjustmentFactorIntegration:
             special_diet=["weight_control", "low_fat"],
         )
 
-        diet_validation = {"conflicts": [
-            {"type": "age_conflict"}], "warnings": []}
+        diet_validation = {"conflicts": [{"type": "age_conflict"}], "warnings": []}
 
         feeding_goals = {"weight_goal": "lose"}
 
@@ -457,8 +456,7 @@ class TestDietInteractionEffects:
         """Synergistic diet combinations should be detected."""
         special_diets = ["senior_formula", "joint_support", "low_fat"]
 
-        interactions = HealthCalculator.get_diet_interaction_effects(
-            special_diets)
+        interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
 
         # Should detect senior + joint support and senior + low fat synergies
         assert len(interactions["synergistic"]) >= 2
@@ -468,8 +466,7 @@ class TestDietInteractionEffects:
         """Conflicting diet combinations should be detected."""
         special_diets = ["puppy_formula", "senior_formula"]
 
-        interactions = HealthCalculator.get_diet_interaction_effects(
-            special_diets)
+        interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
 
         # Should detect puppy vs senior conflict
         assert len(interactions["conflicting"]) >= 1
@@ -479,8 +476,7 @@ class TestDietInteractionEffects:
         """Combinations requiring caution should be detected."""
         special_diets = ["raw_diet", "prescription"]
 
-        interactions = HealthCalculator.get_diet_interaction_effects(
-            special_diets)
+        interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
 
         # Should detect raw + prescription caution
         assert len(interactions["caution"]) >= 1
@@ -497,8 +493,7 @@ class TestDietInteractionEffects:
             "prescription",  # Caution
         ]
 
-        interactions = HealthCalculator.get_diet_interaction_effects(
-            special_diets)
+        interactions = HealthCalculator.get_diet_interaction_effects(special_diets)
 
         assert interactions["overall_complexity"] == 6
         assert len(interactions["synergistic"]) >= 2
