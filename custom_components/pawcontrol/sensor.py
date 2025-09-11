@@ -3,36 +3,32 @@
 Performance-optimized for Home Assistant 2025.9.0+ with Python 3.13.
 Reduces entity count from 54+ to 8-18 per dog using profile-based factory.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, STATE_UNKNOWN
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .utils import create_device_info
@@ -40,7 +36,7 @@ from .utils import create_device_info
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases
-SensorValue = Union[str, int, float, datetime, None]
+SensorValue = str | int | float | datetime | None
 AttributeDict = dict[str, Any]
 
 # OPTIMIZATION: Performance tuning for profile-based setup
