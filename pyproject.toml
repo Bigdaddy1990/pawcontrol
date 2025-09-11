@@ -4,7 +4,7 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "-q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=5 -p pytest_asyncio"
+addopts = "-p pytest-asyncio -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3 --cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml --junitxml=junit.xml -o junit_family=legacy"
 markers = [
   "asyncio: mark a test as using asyncio",
 ]
