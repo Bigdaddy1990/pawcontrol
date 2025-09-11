@@ -7,14 +7,14 @@ Python: 3.13+
 This module implements profile-optimized switch entities that only create switches
 for enabled modules, significantly reducing entity count and improving performance.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -24,23 +24,21 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_GROOMING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-    MODULE_NOTIFICATIONS,
-    MODULE_TRAINING,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_GROOMING
+from .const import MODULE_HEALTH
+from .const import MODULE_MEDICATION
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_TRAINING
+from .const import MODULE_VISITOR
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,8 +124,8 @@ class ProfileOptimizedSwitchFactory:
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        modules: Dict[str, bool],
-    ) -> List[OptimizedSwitchBase]:
+        modules: dict[str, bool],
+    ) -> list[OptimizedSwitchBase]:
         """Create profile-optimized switches for a dog.
 
         Only creates switches for enabled modules to minimize entity count.
@@ -141,7 +139,7 @@ class ProfileOptimizedSwitchFactory:
         Returns:
             List of switch entities (profile-optimized)
         """
-        switches: List[OptimizedSwitchBase] = []
+        switches: list[OptimizedSwitchBase] = []
         enabled_modules = {m for m, e in modules.items() if e}
 
         _LOGGER.debug(
@@ -160,7 +158,8 @@ class ProfileOptimizedSwitchFactory:
 
         # Visitor mode switch - only if visitor module enabled OR as fallback
         if MODULE_VISITOR in enabled_modules or not enabled_modules:
-            switches.append(PawControlVisitorModeSwitch(coordinator, dog_id, dog_name))
+            switches.append(PawControlVisitorModeSwitch(
+                coordinator, dog_id, dog_name))
 
         # Module control switches - only for enabled modules
         for module_id, module_name, icon in cls.MODULE_CONFIGS:
@@ -205,7 +204,7 @@ class ProfileOptimizedSwitchFactory:
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: List[OptimizedSwitchBase],
+    entities: list[OptimizedSwitchBase],
     batch_size: int = BATCH_SIZE,
     delay_between_batches: float = BATCH_DELAY,
 ) -> None:
@@ -231,7 +230,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -261,13 +260,13 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
     # Profile-optimized entity creation
-    all_entities: List[OptimizedSwitchBase] = []
+    all_entities: list[OptimizedSwitchBase] = []
     total_modules_enabled = 0
 
     for dog in dogs:
@@ -316,7 +315,7 @@ class OptimizedSwitchBase(
     _attr_has_entity_name = True
 
     # OPTIMIZATION: Enhanced state cache with TTL
-    _state_cache: Dict[str, tuple[bool, float]] = {}
+    _state_cache: dict[str, tuple[bool, float]] = {}
     _cache_ttl = 3.0  # Reduced to 3 seconds for better responsiveness
 
     def __init__(
@@ -326,9 +325,9 @@ class OptimizedSwitchBase(
         dog_name: str,
         switch_type: str,
         *,
-        device_class: Optional[SwitchDeviceClass] = None,
-        icon: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
+        device_class: SwitchDeviceClass | None = None,
+        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
         initial_state: bool = False,
     ) -> None:
         """Initialize optimized switch with profile awareness."""
@@ -389,7 +388,7 @@ class OptimizedSwitchBase(
         return self._is_on
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return enhanced attributes with profile information."""
         attrs = {
             ATTR_DOG_ID: self._dog_id,
@@ -431,7 +430,8 @@ class OptimizedSwitchBase(
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(f"Failed to turn on {self._switch_type}") from err
+            raise HomeAssistantError(
+                f"Failed to turn on {self._switch_type}") from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with enhanced error handling."""
@@ -455,7 +455,8 @@ class OptimizedSwitchBase(
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(f"Failed to turn off {self._switch_type}") from err
+            raise HomeAssistantError(
+                f"Failed to turn off {self._switch_type}") from err
 
     async def _async_set_state(self, state: bool) -> None:
         """Set switch state - override in subclasses."""
@@ -467,7 +468,7 @@ class OptimizedSwitchBase(
         cache_key = f"{self._dog_id}_{self._switch_type}"
         self._state_cache[cache_key] = (state, dt_util.utcnow().timestamp())
 
-    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get dog data from coordinator."""
         if self.coordinator.available:
             return self.coordinator.get_dog_data(self._dog_id)
@@ -513,7 +514,8 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
             )
 
         except Exception as err:
-            _LOGGER.warning("Power state update failed for %s: %s", self._dog_name, err)
+            _LOGGER.warning(
+                "Power state update failed for %s: %s", self._dog_name, err)
 
 
 class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
@@ -543,7 +545,8 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
                 await notification_manager.async_set_dnd_mode(self._dog_id, state)
 
         except Exception as err:
-            _LOGGER.error("Failed to update DND for %s: %s", self._dog_name, err)
+            _LOGGER.error("Failed to update DND for %s: %s",
+                          self._dog_name, err)
 
 
 class PawControlVisitorModeSwitch(OptimizedSwitchBase):
@@ -677,7 +680,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         self._attr_name = f"{dog_name} {feature_name}"
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return feature-specific attributes."""
         attrs = super().extra_state_attributes
         attrs.update(

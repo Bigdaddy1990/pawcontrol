@@ -5,20 +5,18 @@ including status indicators, alerts, and automated detection sensors. All
 binary sensors are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust error handling.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
 from contextlib import suppress
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
 
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntity,
-)
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -27,18 +25,16 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +70,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -126,10 +122,12 @@ async def async_setup_entry(
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating binary sensors for dog: %s (%s)", dog_name, dog_id)
+        _LOGGER.debug("Creating binary sensors for dog: %s (%s)",
+                      dog_name, dog_id)
 
         # Base binary sensors - always created for every dog
-        entities.extend(_create_base_binary_sensors(coordinator, dog_id, dog_name))
+        entities.extend(_create_base_binary_sensors(
+            coordinator, dog_id, dog_name))
 
         # Module-specific binary sensors
         if modules.get(MODULE_FEEDING, False):
@@ -138,10 +136,12 @@ async def async_setup_entry(
             )
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_binary_sensors(coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_binary_sensors(
+                coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
-            entities.extend(_create_gps_binary_sensors(coordinator, dog_id, dog_name))
+            entities.extend(_create_gps_binary_sensors(
+                coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
             entities.extend(
@@ -195,8 +195,10 @@ def _create_feeding_binary_sensors(
     return [
         PawControlIsHungryBinarySensor(coordinator, dog_id, dog_name),
         PawControlFeedingDueBinarySensor(coordinator, dog_id, dog_name),
-        PawControlFeedingScheduleOnTrackBinarySensor(coordinator, dog_id, dog_name),
-        PawControlDailyFeedingGoalMetBinarySensor(coordinator, dog_id, dog_name),
+        PawControlFeedingScheduleOnTrackBinarySensor(
+            coordinator, dog_id, dog_name),
+        PawControlDailyFeedingGoalMetBinarySensor(
+            coordinator, dog_id, dog_name),
     ]
 
 
@@ -237,7 +239,8 @@ def _create_gps_binary_sensors(
     return [
         PawControlIsHomeBinarySensor(coordinator, dog_id, dog_name),
         PawControlInSafeZoneBinarySensor(coordinator, dog_id, dog_name),
-        PawControlGPSAccuratelyTrackedBinarySensor(coordinator, dog_id, dog_name),
+        PawControlGPSAccuratelyTrackedBinarySensor(
+            coordinator, dog_id, dog_name),
         PawControlMovingBinarySensor(coordinator, dog_id, dog_name),
         PawControlGeofenceAlertBinarySensor(coordinator, dog_id, dog_name),
         PawControlGPSBatteryLowBinarySensor(coordinator, dog_id, dog_name),
@@ -263,7 +266,8 @@ def _create_health_binary_sensors(
         PawControlMedicationDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlVetCheckupDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlGroomingDueBinarySensor(coordinator, dog_id, dog_name),
-        PawControlActivityLevelConcernBinarySensor(coordinator, dog_id, dog_name),
+        PawControlActivityLevelConcernBinarySensor(
+            coordinator, dog_id, dog_name),
     ]
 
 
@@ -284,10 +288,10 @@ class PawControlBinarySensorBase(
         dog_name: str,
         sensor_type: str,
         *,
-        device_class: Optional[BinarySensorDeviceClass] = None,
-        icon_on: Optional[str] = None,
-        icon_off: Optional[str] = None,
-        entity_category: Optional[EntityCategory] = None,
+        device_class: BinarySensorDeviceClass | None = None,
+        icon_on: str | None = None,
+        icon_off: str | None = None,
+        entity_category: EntityCategory | None = None,
     ) -> None:
         """Initialize the binary sensor entity.
 
@@ -350,7 +354,7 @@ class PawControlBinarySensorBase(
         return False
 
     @property
-    def icon(self) -> Optional[str]:
+    def icon(self) -> str | None:
         """Return the icon to use in the frontend.
 
         Dynamically changes icon based on sensor state for better UX.
@@ -398,7 +402,7 @@ class PawControlBinarySensorBase(
 
         return attrs
 
-    def _get_dog_data(self) -> Optional[dict[str, Any]]:
+    def _get_dog_data(self) -> dict[str, Any] | None:
         """Get data for this sensor's dog from the coordinator.
 
         Returns:
@@ -409,7 +413,7 @@ class PawControlBinarySensorBase(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> Optional[dict[str, Any]]:
+    def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get specific module data for this dog.
 
         Args:
@@ -871,7 +875,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
 
         return attrs
 
-    def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> Optional[int]:
+    def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> int | None:
         """Estimate remaining walk time based on typical patterns.
 
         Args:

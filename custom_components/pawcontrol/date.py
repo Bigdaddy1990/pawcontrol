@@ -9,7 +9,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
@@ -19,25 +18,25 @@ from typing import Any
 
 from homeassistant.components.date import DateEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
-from .exceptions import PawControlError, ValidationError
+from .exceptions import PawControlError
+from .exceptions import ValidationError
 from .utils import performance_monitor
 
 _LOGGER = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -109,7 +108,8 @@ async def async_setup_entry(
     Raises:
         PawControlError: If setup fails due to configuration issues
     """
-    _LOGGER.debug("Setting up Paw Control date platform for entry %s", entry.entry_id)
+    _LOGGER.debug(
+        "Setting up Paw Control date platform for entry %s", entry.entry_id)
 
     try:
         # Get runtime data using modern approach with fallback
@@ -150,18 +150,24 @@ async def async_setup_entry(
                 if modules.get(MODULE_HEALTH, False):
                     entities.extend(
                         [
-                            PawControlLastVetVisitDate(coordinator, dog_id, dog_name),
+                            PawControlLastVetVisitDate(
+                                coordinator, dog_id, dog_name),
                             PawControlNextVetAppointmentDate(
                                 coordinator, dog_id, dog_name
                             ),
-                            PawControlLastGroomingDate(coordinator, dog_id, dog_name),
-                            PawControlNextGroomingDate(coordinator, dog_id, dog_name),
-                            PawControlVaccinationDate(coordinator, dog_id, dog_name),
+                            PawControlLastGroomingDate(
+                                coordinator, dog_id, dog_name),
+                            PawControlNextGroomingDate(
+                                coordinator, dog_id, dog_name),
+                            PawControlVaccinationDate(
+                                coordinator, dog_id, dog_name),
                             PawControlNextVaccinationDate(
                                 coordinator, dog_id, dog_name
                             ),
-                            PawControlDewormingDate(coordinator, dog_id, dog_name),
-                            PawControlNextDewormingDate(coordinator, dog_id, dog_name),
+                            PawControlDewormingDate(
+                                coordinator, dog_id, dog_name),
+                            PawControlNextDewormingDate(
+                                coordinator, dog_id, dog_name),
                         ]
                     )
 
@@ -169,8 +175,10 @@ async def async_setup_entry(
                 if modules.get(MODULE_FEEDING, False):
                     entities.extend(
                         [
-                            PawControlDietStartDate(coordinator, dog_id, dog_name),
-                            PawControlDietEndDate(coordinator, dog_id, dog_name),
+                            PawControlDietStartDate(
+                                coordinator, dog_id, dog_name),
+                            PawControlDietEndDate(
+                                coordinator, dog_id, dog_name),
                         ]
                     )
 
@@ -178,13 +186,16 @@ async def async_setup_entry(
                 if modules.get(MODULE_WALK, False):
                     entities.extend(
                         [
-                            PawControlTrainingStartDate(coordinator, dog_id, dog_name),
-                            PawControlNextTrainingDate(coordinator, dog_id, dog_name),
+                            PawControlTrainingStartDate(
+                                coordinator, dog_id, dog_name),
+                            PawControlNextTrainingDate(
+                                coordinator, dog_id, dog_name),
                         ]
                     )
 
             except KeyError as err:
-                _LOGGER.error("Missing required configuration for dog: %s", err)
+                _LOGGER.error(
+                    "Missing required configuration for dog: %s", err)
                 continue
             except Exception as err:
                 _LOGGER.error(
@@ -482,7 +493,8 @@ class PawControlBirthdateDate(PawControlDateBase):
 
         # Update dog profile if data manager is available
         try:
-            runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
+            runtime_data = getattr(
+                self.coordinator.config_entry, "runtime_data", None)
             if runtime_data and "data_manager" in runtime_data:
                 data_manager = runtime_data["data_manager"]
                 await data_manager.async_update_dog_profile(
@@ -553,7 +565,8 @@ class PawControlLastVetVisitDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vet visit date update - log health entry."""
-        _LOGGER.info("Updated last vet visit for %s: %s", self._dog_name, value)
+        _LOGGER.info("Updated last vet visit for %s: %s",
+                     self._dog_name, value)
 
         # Log vet visit in health records
         try:
@@ -587,7 +600,8 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle next vet appointment date update."""
-        _LOGGER.info("Scheduled next vet appointment for %s: %s", self._dog_name, value)
+        _LOGGER.info("Scheduled next vet appointment for %s: %s",
+                     self._dog_name, value)
 
         # Create reminder if close to appointment date
         today = dt_util.now().date()
@@ -650,7 +664,8 @@ class PawControlVaccinationDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vaccination date update - log health entry."""
-        _LOGGER.info("Updated vaccination date for %s: %s", self._dog_name, value)
+        _LOGGER.info("Updated vaccination date for %s: %s",
+                     self._dog_name, value)
 
         # Log vaccination in health records
         try:
@@ -690,7 +705,8 @@ class PawControlDewormingDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle deworming date update - log health entry."""
-        _LOGGER.info("Updated deworming date for %s: %s", self._dog_name, value)
+        _LOGGER.info("Updated deworming date for %s: %s",
+                     self._dog_name, value)
 
         # Log deworming in health records
         try:

@@ -5,11 +5,10 @@ and support purposes. It collects system information, configuration details,
 and operational data while ensuring sensitive information is properly redacted.
 Designed to meet Home Assistant's Platinum quality standards.
 """
-
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,17 +16,15 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +50,7 @@ REDACTED_KEYS = {
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
     This function collects comprehensive diagnostic information including
@@ -67,11 +64,13 @@ async def async_get_config_entry_diagnostics(
     Returns:
         Dictionary containing diagnostic information
     """
-    _LOGGER.debug("Generating diagnostics for Paw Control entry: %s", entry.entry_id)
+    _LOGGER.debug(
+        "Generating diagnostics for Paw Control entry: %s", entry.entry_id)
 
     # Get integration data
     integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coordinator: Optional[PawControlCoordinator] = integration_data.get("coordinator")
+    coordinator: PawControlCoordinator | None = integration_data.get(
+        "coordinator")
 
     # Base diagnostics structure
     diagnostics = {
@@ -95,11 +94,12 @@ async def async_get_config_entry_diagnostics(
     # --- Patch: hier sicherstellen, dass Redaction auf alles angewandt wird ---
     return _redact_sensitive_data(diagnostics)
 
-    _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
+    _LOGGER.info(
+        "Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
 
-async def _get_config_entry_diagnostics(entry: ConfigEntry) -> Dict[str, Any]:
+async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
     """Get configuration entry diagnostic information.
 
     Args:
@@ -128,7 +128,7 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> Dict[str, Any]:
     }
 
 
-async def _get_system_diagnostics(hass: HomeAssistant) -> Dict[str, Any]:
+async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
     """Get Home Assistant system diagnostic information.
 
     Args:
@@ -151,8 +151,8 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> Dict[str, Any]:
 
 
 async def _get_integration_status(
-    hass: HomeAssistant, entry: ConfigEntry, integration_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    hass: HomeAssistant, entry: ConfigEntry, integration_data: dict[str, Any]
+) -> dict[str, Any]:
     """Get integration status diagnostics.
 
     Args:
@@ -185,8 +185,8 @@ async def _get_integration_status(
 
 
 async def _get_coordinator_diagnostics(
-    coordinator: Optional[PawControlCoordinator],
-) -> Dict[str, Any]:
+    coordinator: PawControlCoordinator | None,
+) -> dict[str, Any]:
     """Get coordinator diagnostic information.
 
     Args:
@@ -218,7 +218,7 @@ async def _get_coordinator_diagnostics(
 
 async def _get_entities_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get entities diagnostic information.
 
     Args:
@@ -231,10 +231,11 @@ async def _get_entities_diagnostics(
     entity_registry = er.async_get(hass)
 
     # Get all entities for this integration
-    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    entities = er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id)
 
     # Group entities by platform
-    entities_by_platform: Dict[str, List[Dict[str, Any]]] = {}
+    entities_by_platform: dict[str, list[dict[str, Any]]] = {}
 
     for entity in entities:
         platform = entity.platform
@@ -286,7 +287,7 @@ async def _get_entities_diagnostics(
 
 async def _get_devices_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get devices diagnostic information.
 
     Args:
@@ -299,7 +300,8 @@ async def _get_devices_diagnostics(
     device_registry = dr.async_get(hass)
 
     # Get all devices for this integration
-    devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+    devices = dr.async_entries_for_config_entry(
+        device_registry, entry.entry_id)
 
     devices_info = []
     for device in devices:
@@ -328,8 +330,8 @@ async def _get_devices_diagnostics(
 
 
 async def _get_dogs_summary(
-    entry: ConfigEntry, coordinator: Optional[PawControlCoordinator]
-) -> Dict[str, Any]:
+    entry: ConfigEntry, coordinator: PawControlCoordinator | None
+) -> dict[str, Any]:
     """Get summary of configured dogs.
 
     Args:
@@ -381,8 +383,8 @@ async def _get_dogs_summary(
 
 
 async def _get_performance_metrics(
-    coordinator: Optional[PawControlCoordinator],
-) -> Dict[str, Any]:
+    coordinator: PawControlCoordinator | None,
+) -> dict[str, Any]:
     """Get performance metrics.
 
     Args:
@@ -407,7 +409,7 @@ async def _get_performance_metrics(
     }
 
 
-async def _get_data_statistics(integration_data: Dict[str, Any]) -> Dict[str, Any]:
+async def _get_data_statistics(integration_data: dict[str, Any]) -> dict[str, Any]:
     """Get data storage statistics.
 
     Args:
@@ -432,7 +434,7 @@ async def _get_data_statistics(integration_data: Dict[str, Any]) -> Dict[str, An
     }
 
 
-async def _get_recent_errors(entry_id: str) -> List[Dict[str, Any]]:
+async def _get_recent_errors(entry_id: str) -> list[dict[str, Any]]:
     """Get recent error logs for this integration.
 
     Args:
@@ -453,7 +455,7 @@ async def _get_recent_errors(entry_id: str) -> List[Dict[str, Any]]:
 
 async def _get_debug_information(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get debug information.
 
     Args:
@@ -487,7 +489,7 @@ async def _get_debug_information(
     }
 
 
-async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> List[str]:
+async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list[str]:
     """Get list of loaded platforms for this entry.
 
     Args:
@@ -519,7 +521,7 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> List
     return loaded_platforms
 
 
-async def _get_registered_services(hass: HomeAssistant) -> List[str]:
+async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     """Get list of registered services for this domain.
 
     Args:
@@ -547,7 +549,7 @@ async def _get_registered_services(hass: HomeAssistant) -> List[str]:
     return services
 
 
-def _calculate_module_usage(dogs: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
     """Calculate module usage statistics across all dogs.
 
     Args:
@@ -604,7 +606,8 @@ def _redact_sensitive_data(data: Any) -> Any:
         for key, value in data.items():
             # Check if key contains sensitive information
             key_lower = key.lower()
-            is_sensitive = any(sensitive in key_lower for sensitive in REDACTED_KEYS)
+            is_sensitive = any(
+                sensitive in key_lower for sensitive in REDACTED_KEYS)
 
             if is_sensitive:
                 redacted[key] = "**REDACTED**"
@@ -636,16 +639,14 @@ def _looks_like_sensitive_string(value: str) -> bool:
     """
     # Check for common sensitive patterns
     sensitive_patterns = [
-        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",  # UUID
+        # UUID
+        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
         r"\b[A-Za-z0-9]{20,}\b",  # Long alphanumeric strings (tokens)
         r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",  # IP addresses
-        r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",  # Email addresses
+        # Email addresses
+        r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
     ]
 
     import re
 
-    for pattern in sensitive_patterns:
-        if re.search(pattern, value):
-            return True
-
-    return False
+    return any(re.search(pattern, value) for pattern in sensitive_patterns)

@@ -17,50 +17,52 @@ Test Coverage:
 - Performance monitor decorator integration
 - Exception handling and edge cases
 """
+from __future__ import annotations
 
 import asyncio
-from datetime import date, timedelta
+from datetime import date
+from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.date import (
-    PawControlAdoptionDate,
-    PawControlBirthdateDate,
-    PawControlDateBase,
-    PawControlDewormingDate,
-    PawControlDietEndDate,
-    PawControlDietStartDate,
-    PawControlLastGroomingDate,
-    PawControlLastVetVisitDate,
-    PawControlNextDewormingDate,
-    PawControlNextGroomingDate,
-    PawControlNextTrainingDate,
-    PawControlNextVaccinationDate,
-    PawControlNextVetAppointmentDate,
-    PawControlTrainingStartDate,
-    PawControlVaccinationDate,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
-from custom_components.pawcontrol.exceptions import PawControlError, ValidationError
 from homeassistant.components.date import DOMAIN as DATE_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.date import _async_add_entities_in_batches
+from custom_components.pawcontrol.date import async_setup_entry
+from custom_components.pawcontrol.date import PawControlAdoptionDate
+from custom_components.pawcontrol.date import PawControlBirthdateDate
+from custom_components.pawcontrol.date import PawControlDateBase
+from custom_components.pawcontrol.date import PawControlDewormingDate
+from custom_components.pawcontrol.date import PawControlDietEndDate
+from custom_components.pawcontrol.date import PawControlDietStartDate
+from custom_components.pawcontrol.date import PawControlLastGroomingDate
+from custom_components.pawcontrol.date import PawControlLastVetVisitDate
+from custom_components.pawcontrol.date import PawControlNextDewormingDate
+from custom_components.pawcontrol.date import PawControlNextGroomingDate
+from custom_components.pawcontrol.date import PawControlNextTrainingDate
+from custom_components.pawcontrol.date import PawControlNextVaccinationDate
+from custom_components.pawcontrol.date import PawControlNextVetAppointmentDate
+from custom_components.pawcontrol.date import PawControlTrainingStartDate
+from custom_components.pawcontrol.date import PawControlVaccinationDate
+from custom_components.pawcontrol.exceptions import PawControlError
+from custom_components.pawcontrol.exceptions import ValidationError
 
 
 class TestAsyncAddEntitiesInBatches:
@@ -75,7 +77,8 @@ class TestAsyncAddEntitiesInBatches:
         await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=15)
 
         # Should be called once with all entities
-        mock_add_entities.assert_called_once_with(entities, update_before_add=False)
+        mock_add_entities.assert_called_once_with(
+            entities, update_before_add=False)
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -334,12 +337,14 @@ class TestAsyncSetupEntry:
         mock_add_entities = Mock()
 
         # Mock exception during entity creation
-        with patch(
-            "custom_components.pawcontrol.date.PawControlBirthdateDate",
-            side_effect=Exception("Entity creation failed"),
+        with (
+            patch(
+                "custom_components.pawcontrol.date.PawControlBirthdateDate",
+                side_effect=Exception("Entity creation failed"),
+            ),
+            pytest.raises(PawControlError) as exc_info,
         ):
-            with pytest.raises(PawControlError) as exc_info:
-                await async_setup_entry(hass, entry, mock_add_entities)
+            await async_setup_entry(hass, entry, mock_add_entities)
 
         assert exc_info.value.error_code == "platform_setup_error"
 
@@ -501,10 +506,12 @@ class TestPawControlDateBase:
 
     def test_extra_state_attributes_birthdate_age_calculation(self, mock_coordinator):
         """Test age calculation for birthdate entity."""
-        birthdate_entity = PawControlBirthdateDate(mock_coordinator, "dog1", "Buddy")
+        birthdate_entity = PawControlBirthdateDate(
+            mock_coordinator, "dog1", "Buddy")
 
         today = dt_util.now().date()
-        birth_date = today - timedelta(days=365 * 2 + 30)  # ~2 years and 1 month old
+        # ~2 years and 1 month old
+        birth_date = today - timedelta(days=365 * 2 + 30)
         birthdate_entity._current_value = birth_date
 
         attrs = birthdate_entity.extra_state_attributes
@@ -621,13 +628,15 @@ class TestPawControlDateBase:
         base_date_entity.hass = hass
         test_date = date(2023, 7, 20)
 
-        with patch.object(
-            base_date_entity,
-            "_async_handle_date_set",
-            side_effect=Exception("Handler error"),
+        with (
+            patch.object(
+                base_date_entity,
+                "_async_handle_date_set",
+                side_effect=Exception("Handler error"),
+            ),
+            pytest.raises(ValidationError) as exc_info,
         ):
-            with pytest.raises(ValidationError) as exc_info:
-                await base_date_entity.async_set_value(test_date)
+            await base_date_entity.async_set_value(test_date)
 
         assert "Failed to set date: Handler error" in exc_info.value.reason
 
@@ -701,7 +710,8 @@ class TestPawControlDateBase:
         self, base_date_entity, mock_coordinator
     ):
         """Test coordinator update when extraction raises exception."""
-        mock_coordinator.get_dog_data.side_effect = Exception("Coordinator error")
+        mock_coordinator.get_dog_data.side_effect = Exception(
+            "Coordinator error")
 
         # Should not raise exception
         base_date_entity._handle_coordinator_update()
@@ -1210,8 +1220,10 @@ class TestDateEntityIntegrationScenarios:
 
         entities = []
         for dog_id, dog_name in dogs:
-            entities.append(PawControlBirthdateDate(mock_coordinator, dog_id, dog_name))
-            entities.append(PawControlAdoptionDate(mock_coordinator, dog_id, dog_name))
+            entities.append(PawControlBirthdateDate(
+                mock_coordinator, dog_id, dog_name))
+            entities.append(PawControlAdoptionDate(
+                mock_coordinator, dog_id, dog_name))
 
         unique_ids = [entity._attr_unique_id for entity in entities]
 
@@ -1282,22 +1294,33 @@ class TestDateEntityIntegrationScenarios:
             # Create all date entity types for this dog (14 entities per dog)
             entities.extend(
                 [
-                    PawControlBirthdateDate(mock_coordinator, dog_id, dog_name),
+                    PawControlBirthdateDate(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlAdoptionDate(mock_coordinator, dog_id, dog_name),
-                    PawControlLastVetVisitDate(mock_coordinator, dog_id, dog_name),
+                    PawControlLastVetVisitDate(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlNextVetAppointmentDate(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlLastGroomingDate(mock_coordinator, dog_id, dog_name),
-                    PawControlNextGroomingDate(mock_coordinator, dog_id, dog_name),
-                    PawControlVaccinationDate(mock_coordinator, dog_id, dog_name),
-                    PawControlNextVaccinationDate(mock_coordinator, dog_id, dog_name),
-                    PawControlDewormingDate(mock_coordinator, dog_id, dog_name),
-                    PawControlNextDewormingDate(mock_coordinator, dog_id, dog_name),
-                    PawControlDietStartDate(mock_coordinator, dog_id, dog_name),
+                    PawControlLastGroomingDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextGroomingDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlVaccinationDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextVaccinationDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlDewormingDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextDewormingDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlDietStartDate(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlDietEndDate(mock_coordinator, dog_id, dog_name),
-                    PawControlTrainingStartDate(mock_coordinator, dog_id, dog_name),
-                    PawControlNextTrainingDate(mock_coordinator, dog_id, dog_name),
+                    PawControlTrainingStartDate(
+                        mock_coordinator, dog_id, dog_name),
+                    PawControlNextTrainingDate(
+                        mock_coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -1323,7 +1346,8 @@ class TestDateEntityIntegrationScenarios:
 
         # Should not raise exception and return None for invalid data
         try:
-            result = entity._extract_date_from_dog_data(mock_coordinator.get_dog_data())
+            result = entity._extract_date_from_dog_data(
+                mock_coordinator.get_dog_data())
             assert result is None
         except Exception as e:
             pytest.fail(
@@ -1430,7 +1454,8 @@ class TestDateEntityIntegrationScenarios:
             ({"health": {"last_vet_visit": ""}}, None),  # Empty string
             ({"health": {"other_field": "value"}}, None),  # Missing field
             ({"health": {"last_vet_visit": "2023-13-40"}}, None),  # Invalid date
-            ({"health": {"last_vet_visit": "2023-02-29"}}, None),  # Invalid leap year
+            # Invalid leap year
+            ({"health": {"last_vet_visit": "2023-02-29"}}, None),
         ]
 
         for dog_data, expected_result in edge_cases:

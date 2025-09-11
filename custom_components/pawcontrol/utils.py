@@ -11,7 +11,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -19,19 +18,23 @@ import inspect
 import logging
 import math
 import re
-from collections.abc import Awaitable, Callable, Iterable
-from datetime import datetime, time
-from functools import lru_cache, wraps
-from typing import Any, TypeVar, overload
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from datetime import datetime
+from datetime import time
+from functools import lru_cache
+from functools import wraps
+from typing import Any
+from typing import overload
+from typing import TypeVar
 
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    DOG_SIZE_WEIGHT_RANGES,
-    DOMAIN,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_WEIGHT,
-)
+from .const import DOG_SIZE_WEIGHT_RANGES
+from .const import DOMAIN
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_WEIGHT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,8 +104,9 @@ def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
         async def async_wrapper(*args, **kwargs) -> T:
             try:
                 return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
-            except asyncio.TimeoutError:
-                _LOGGER.error("Function %s timed out after %ss", func.__name__, timeout)
+            except TimeoutError:
+                _LOGGER.error("Function %s timed out after %ss",
+                              func.__name__, timeout)
                 raise
 
         @wraps(func)
@@ -404,7 +408,8 @@ async def async_calculate_haversine_distance(
     # OPTIMIZED: Haversine formula
     a = (
         math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) *
+        math.sin(delta_lon / 2) ** 2
     )
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
@@ -467,13 +472,19 @@ def calculate_bmr_advanced(
 
 # OPTIMIZED: Utility functions with better performance
 @overload
-def safe_convert(value: Any, target_type: type[int], default: int = 0) -> int: ...
+def safe_convert(
+    value: Any, target_type: type[int], default: int = 0) -> int: ...
+
+
 @overload
 def safe_convert(
     value: Any, target_type: type[float], default: float = 0.0
 ) -> float: ...
+
+
 @overload
-def safe_convert(value: Any, target_type: type[str], default: str = "") -> str: ...
+def safe_convert(
+    value: Any, target_type: type[str], default: str = "") -> str: ...
 
 
 def safe_convert(value: Any, target_type: type[T], default: T | None = None) -> T:
@@ -527,7 +538,8 @@ def deep_merge_dicts_optimized(
 
     for key, value in dict2.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge_dicts_optimized(result[key], value, max_depth - 1)
+            result[key] = deep_merge_dicts_optimized(
+                result[key], value, max_depth - 1)
         else:
             result[key] = value
 
@@ -585,7 +597,7 @@ def _linear_regression(values: list[float]) -> tuple[float, float]:
 
     y_pred = [slope * i + (y_mean - slope * x_mean) for i in range(n)]
     ss_tot = sum((v - y_mean) ** 2 for v in values)
-    ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred))
+    ss_res = sum((v - p) ** 2 for v, p in zip(values, y_pred, strict=False))
     r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
 
     return slope, round(max(0, min(r_squared, 1)), 3)
@@ -736,32 +748,32 @@ def safe_str(value: Any, default: str = "") -> str:
 
 # OPTIMIZED: Streamlined exports - only essential functions
 __all__ = (
-    # Core validation
-    "validate_dog_id",
-    "async_validate_coordinates",
-    "validate_weight_enhanced",
-    "validate_enum_value",
     "async_batch_validate",
-    # Formatting
-    "format_duration_optimized",
-    "format_distance_adaptive",
-    "format_time_ago_smart",
     # Calculations
     "async_calculate_haversine_distance",
+    "async_validate_coordinates",
     "calculate_bmr_advanced",
     "calculate_trend_advanced",
     # Utilities
     "create_device_info",
-    "safe_convert",
     "deep_merge_dicts",
     "deep_merge_dicts_optimized",
-    "is_within_time_range_enhanced",
+    "format_distance_adaptive",
+    # Formatting
+    "format_duration_optimized",
+    "format_time_ago_smart",
     "is_within_quiet_hours",
-    "sanitize_filename_advanced",
+    "is_within_time_range_enhanced",
     # Performance
     "performance_monitor",
+    "safe_convert",
     # Legacy (deprecated)
     "safe_float",
     "safe_int",
     "safe_str",
+    "sanitize_filename_advanced",
+    # Core validation
+    "validate_dog_id",
+    "validate_enum_value",
+    "validate_weight_enhanced",
 )

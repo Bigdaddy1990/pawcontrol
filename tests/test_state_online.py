@@ -1,4 +1,5 @@
 """Test STATE_ONLINE compatibility."""
+from __future__ import annotations
 
 from custom_components.pawcontrol.coordinator import STATE_ONLINE
 

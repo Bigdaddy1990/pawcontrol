@@ -8,7 +8,6 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -16,10 +15,12 @@ import json
 import logging
 import weakref
 from functools import lru_cache
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -759,28 +760,28 @@ class DashboardTemplates:
         stats_content = f"## 📊 {dog_name} Statistics\n\n"
 
         if modules.get("feeding"):
-            stats_content += """
+            stats_content += f"""
 ### 🍖 Feeding
-- **Today's Meals**: {{{{ states('sensor.{}_meals_today') }}}}
-- **Daily Amount**: {{{{ states('sensor.{}_daily_food_consumed') }}}}g
-- **Schedule Adherence**: {{{{ states('sensor.{}_feeding_schedule_adherence') }}}}%
-""".format(dog_id, dog_id, dog_id)
+- **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
+- **Daily Amount**: {{{{ states('sensor.{dog_id}_daily_food_consumed') }}}}g
+- **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
+"""
 
         if modules.get("walk"):
-            stats_content += """
+            stats_content += f"""
 ### 🚶 Walking
-- **Daily Walk Time**: {{{{ states('sensor.{}_daily_walk_time') }}}} min
-- **Daily Distance**: {{{{ states('sensor.{}_daily_walk_distance') }}}} km
-- **Walk Goal**: {{{{ states('sensor.{}_walk_goal_progress') }}}}%
-""".format(dog_id, dog_id, dog_id)
+- **Daily Walk Time**: {{{{ states('sensor.{dog_id}_daily_walk_time') }}}} min
+- **Daily Distance**: {{{{ states('sensor.{dog_id}_daily_walk_distance') }}}} km
+- **Walk Goal**: {{{{ states('sensor.{dog_id}_walk_goal_progress') }}}}%
+"""
 
         if modules.get("health"):
-            stats_content += """
+            stats_content += f"""
 ### ❤️ Health
-- **Weight**: {{{{ states('sensor.{}_weight') }}}} kg
-- **Health Score**: {{{{ states('sensor.{}_health_score') }}}}/100
-- **Activity Level**: {{{{ states('sensor.{}_activity_level') }}}}
-""".format(dog_id, dog_id, dog_id)
+- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
+- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
+- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
+"""
 
         template = {
             "type": "markdown",
@@ -917,7 +918,7 @@ class DashboardTemplates:
             # Grid arrangement
             grouped_buttons = []
             for i in range(0, len(buttons), 2):
-                button_pair = buttons[i : i + 2]
+                button_pair = buttons[i: i + 2]
                 grouped_buttons.append(
                     {
                         "type": "horizontal-stack",

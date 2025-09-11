@@ -1,18 +1,16 @@
 """Common tests for async_setup_entry edge cases."""
-
 from __future__ import annotations
 
 from unittest.mock import Mock
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-)
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
 
 
 class SetupEntryEdgeCaseTests:
@@ -38,7 +36,8 @@ class SetupEntryEdgeCaseTests:
         self, hass: HomeAssistant, mock_entry, mock_coordinator
     ) -> None:
         """Test setup_entry with legacy hass.data format."""
-        hass.data[DOMAIN] = {mock_entry.entry_id: {"coordinator": mock_coordinator}}
+        hass.data[DOMAIN] = {mock_entry.entry_id: {
+            "coordinator": mock_coordinator}}
         add_entities_mock = Mock()
         await self.setup_entry(hass, mock_entry, add_entities_mock)
         add_entities_mock.assert_called()

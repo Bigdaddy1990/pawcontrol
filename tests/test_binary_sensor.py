@@ -15,70 +15,71 @@ Test Coverage:
 - Performance testing with large setups
 - Integration scenarios and coordinator interaction
 """
+from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.binary_sensor import (
-    PawControlActivityLevelConcernBinarySensor,
-    PawControlAttentionNeededBinarySensor,
-    PawControlBinarySensorBase,
-    PawControlDailyFeedingGoalMetBinarySensor,
-    PawControlFeedingDueBinarySensor,
-    PawControlFeedingScheduleOnTrackBinarySensor,
-    PawControlGeofenceAlertBinarySensor,
-    PawControlGPSAccuratelyTrackedBinarySensor,
-    PawControlGPSBatteryLowBinarySensor,
-    PawControlGroomingDueBinarySensor,
-    PawControlHealthAlertBinarySensor,
-    PawControlInSafeZoneBinarySensor,
-    PawControlIsHomeBinarySensor,
-    PawControlIsHungryBinarySensor,
-    PawControlLongWalkOverdueBinarySensor,
-    PawControlMedicationDueBinarySensor,
-    PawControlMovingBinarySensor,
-    PawControlNeedsWalkBinarySensor,
-    PawControlOnlineBinarySensor,
-    PawControlVetCheckupDueBinarySensor,
-    PawControlVisitorModeBinarySensor,
-    PawControlWalkGoalMetBinarySensor,
-    PawControlWalkInProgressBinarySensor,
-    PawControlWeightAlertBinarySensor,
-    _async_add_entities_in_batches,
-    _create_base_binary_sensors,
-    _create_feeding_binary_sensors,
-    _create_gps_binary_sensors,
-    _create_health_binary_sensors,
-    _create_walk_binary_sensors,
-    async_setup_entry,
-)
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from homeassistant.components.binary_sensor import (
-    DOMAIN as BINARY_SENSOR_DOMAIN,
-)
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
+)
+from homeassistant.components.binary_sensor import (
+    DOMAIN as BINARY_SENSOR_DOMAIN,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.binary_sensor import _async_add_entities_in_batches
+from custom_components.pawcontrol.binary_sensor import _create_base_binary_sensors
+from custom_components.pawcontrol.binary_sensor import _create_feeding_binary_sensors
+from custom_components.pawcontrol.binary_sensor import _create_gps_binary_sensors
+from custom_components.pawcontrol.binary_sensor import _create_health_binary_sensors
+from custom_components.pawcontrol.binary_sensor import _create_walk_binary_sensors
+from custom_components.pawcontrol.binary_sensor import async_setup_entry
+from custom_components.pawcontrol.binary_sensor import PawControlActivityLevelConcernBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlAttentionNeededBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlBinarySensorBase
+from custom_components.pawcontrol.binary_sensor import PawControlDailyFeedingGoalMetBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlFeedingDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlFeedingScheduleOnTrackBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlGeofenceAlertBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlGPSAccuratelyTrackedBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlGPSBatteryLowBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlGroomingDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlHealthAlertBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlInSafeZoneBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlIsHomeBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlIsHungryBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlLongWalkOverdueBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlMedicationDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlMovingBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlNeedsWalkBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlOnlineBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlVetCheckupDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlVisitorModeBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlWalkGoalMetBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlWalkInProgressBinarySensor
+from custom_components.pawcontrol.binary_sensor import PawControlWeightAlertBinarySensor
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestAsyncAddEntitiesInBatches:
@@ -93,7 +94,8 @@ class TestAsyncAddEntitiesInBatches:
         await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=15)
 
         # Should be called once with all entities
-        mock_add_entities.assert_called_once_with(entities, update_before_add=False)
+        mock_add_entities.assert_called_once_with(
+            entities, update_before_add=False)
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -280,7 +282,8 @@ class TestEntityCreationFunctions:
 
     def test_create_base_binary_sensors(self, mock_coordinator):
         """Test creation of base binary sensors."""
-        entities = _create_base_binary_sensors(mock_coordinator, "dog1", "Buddy")
+        entities = _create_base_binary_sensors(
+            mock_coordinator, "dog1", "Buddy")
 
         assert len(entities) == 3
         assert isinstance(entities[0], PawControlOnlineBinarySensor)
@@ -289,17 +292,21 @@ class TestEntityCreationFunctions:
 
     def test_create_feeding_binary_sensors(self, mock_coordinator):
         """Test creation of feeding binary sensors."""
-        entities = _create_feeding_binary_sensors(mock_coordinator, "dog1", "Buddy")
+        entities = _create_feeding_binary_sensors(
+            mock_coordinator, "dog1", "Buddy")
 
         assert len(entities) == 4
         assert isinstance(entities[0], PawControlIsHungryBinarySensor)
         assert isinstance(entities[1], PawControlFeedingDueBinarySensor)
-        assert isinstance(entities[2], PawControlFeedingScheduleOnTrackBinarySensor)
-        assert isinstance(entities[3], PawControlDailyFeedingGoalMetBinarySensor)
+        assert isinstance(
+            entities[2], PawControlFeedingScheduleOnTrackBinarySensor)
+        assert isinstance(
+            entities[3], PawControlDailyFeedingGoalMetBinarySensor)
 
     def test_create_walk_binary_sensors(self, mock_coordinator):
         """Test creation of walk binary sensors."""
-        entities = _create_walk_binary_sensors(mock_coordinator, "dog1", "Buddy")
+        entities = _create_walk_binary_sensors(
+            mock_coordinator, "dog1", "Buddy")
 
         assert len(entities) == 4
         assert isinstance(entities[0], PawControlWalkInProgressBinarySensor)
@@ -309,19 +316,22 @@ class TestEntityCreationFunctions:
 
     def test_create_gps_binary_sensors(self, mock_coordinator):
         """Test creation of GPS binary sensors."""
-        entities = _create_gps_binary_sensors(mock_coordinator, "dog1", "Buddy")
+        entities = _create_gps_binary_sensors(
+            mock_coordinator, "dog1", "Buddy")
 
         assert len(entities) == 6
         assert isinstance(entities[0], PawControlIsHomeBinarySensor)
         assert isinstance(entities[1], PawControlInSafeZoneBinarySensor)
-        assert isinstance(entities[2], PawControlGPSAccuratelyTrackedBinarySensor)
+        assert isinstance(
+            entities[2], PawControlGPSAccuratelyTrackedBinarySensor)
         assert isinstance(entities[3], PawControlMovingBinarySensor)
         assert isinstance(entities[4], PawControlGeofenceAlertBinarySensor)
         assert isinstance(entities[5], PawControlGPSBatteryLowBinarySensor)
 
     def test_create_health_binary_sensors(self, mock_coordinator):
         """Test creation of health binary sensors."""
-        entities = _create_health_binary_sensors(mock_coordinator, "dog1", "Buddy")
+        entities = _create_health_binary_sensors(
+            mock_coordinator, "dog1", "Buddy")
 
         assert len(entities) == 6
         assert isinstance(entities[0], PawControlHealthAlertBinarySensor)
@@ -329,7 +339,8 @@ class TestEntityCreationFunctions:
         assert isinstance(entities[2], PawControlMedicationDueBinarySensor)
         assert isinstance(entities[3], PawControlVetCheckupDueBinarySensor)
         assert isinstance(entities[4], PawControlGroomingDueBinarySensor)
-        assert isinstance(entities[5], PawControlActivityLevelConcernBinarySensor)
+        assert isinstance(
+            entities[5], PawControlActivityLevelConcernBinarySensor)
 
 
 class TestPawControlBinarySensorBase:
@@ -454,7 +465,8 @@ class TestPawControlBinarySensorBase:
 
         result = base_sensor._get_module_data("feeding")
 
-        mock_coordinator.get_module_data.assert_called_once_with("dog1", "feeding")
+        mock_coordinator.get_module_data.assert_called_once_with(
+            "dog1", "feeding")
         assert result == {"feeding": "data"}
 
     def test_base_sensor_available_coordinator_available_with_dog_data(
@@ -558,7 +570,8 @@ class TestPawControlOnlineBinarySensor:
 
     def test_extra_state_attributes_offline(self, online_sensor):
         """Test extra state attributes when system is offline."""
-        mock_dog_data = {"last_update": "2023-01-01T12:00:00", "status": "offline"}
+        mock_dog_data = {
+            "last_update": "2023-01-01T12:00:00", "status": "offline"}
 
         with patch.object(online_sensor, "_get_dog_data", return_value=mock_dog_data):
             with patch.object(online_sensor, "is_on", False):
@@ -681,7 +694,8 @@ class TestPawControlAttentionNeededBinarySensor:
 
     def test_calculate_urgency_level_high(self, attention_sensor):
         """Test urgency level calculation for high urgency."""
-        attention_sensor._attention_reasons = ["critically_hungry", "health_alert"]
+        attention_sensor._attention_reasons = [
+            "critically_hungry", "health_alert"]
 
         urgency = attention_sensor._calculate_urgency_level()
 
@@ -995,9 +1009,11 @@ class TestBinarySensorIntegrationScenarios:
         sensors = [
             PawControlOnlineBinarySensor(mock_coordinator, "dog1", "Buddy"),
             PawControlIsHungryBinarySensor(mock_coordinator, "dog1", "Buddy"),
-            PawControlWalkInProgressBinarySensor(mock_coordinator, "dog1", "Buddy"),
+            PawControlWalkInProgressBinarySensor(
+                mock_coordinator, "dog1", "Buddy"),
             PawControlIsHomeBinarySensor(mock_coordinator, "dog1", "Buddy"),
-            PawControlHealthAlertBinarySensor(mock_coordinator, "dog1", "Buddy"),
+            PawControlHealthAlertBinarySensor(
+                mock_coordinator, "dog1", "Buddy"),
         ]
 
         for sensor in sensors:
@@ -1010,10 +1026,12 @@ class TestBinarySensorIntegrationScenarios:
         sensors = []
         for dog_id, dog_name in dogs:
             sensors.append(
-                PawControlOnlineBinarySensor(mock_coordinator, dog_id, dog_name)
+                PawControlOnlineBinarySensor(
+                    mock_coordinator, dog_id, dog_name)
             )
             sensors.append(
-                PawControlIsHungryBinarySensor(mock_coordinator, dog_id, dog_name)
+                PawControlIsHungryBinarySensor(
+                    mock_coordinator, dog_id, dog_name)
             )
 
         unique_ids = [sensor._attr_unique_id for sensor in sensors]
@@ -1040,8 +1058,10 @@ class TestBinarySensorIntegrationScenarios:
         needs_walk_sensor = PawControlNeedsWalkBinarySensor(
             mock_coordinator, "dog1", "Buddy"
         )
-        moving_sensor = PawControlMovingBinarySensor(mock_coordinator, "dog1", "Buddy")
-        is_home_sensor = PawControlIsHomeBinarySensor(mock_coordinator, "dog1", "Buddy")
+        moving_sensor = PawControlMovingBinarySensor(
+            mock_coordinator, "dog1", "Buddy")
+        is_home_sensor = PawControlIsHomeBinarySensor(
+            mock_coordinator, "dog1", "Buddy")
 
         # Walk in progress should be True
         assert walk_progress_sensor.is_on is True
@@ -1060,7 +1080,8 @@ class TestBinarySensorIntegrationScenarios:
             "nested": {"malformed": None},
         }
 
-        sensor = PawControlIsHungryBinarySensor(mock_coordinator, "dog1", "Buddy")
+        sensor = PawControlIsHungryBinarySensor(
+            mock_coordinator, "dog1", "Buddy")
 
         # Should not raise exception and return False for missing data
         try:
@@ -1088,7 +1109,8 @@ class TestBinarySensorIntegrationScenarios:
             sensors.extend(
                 [
                     # Base sensors (3)
-                    PawControlOnlineBinarySensor(mock_coordinator, dog_id, dog_name),
+                    PawControlOnlineBinarySensor(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlAttentionNeededBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
@@ -1096,7 +1118,8 @@ class TestBinarySensorIntegrationScenarios:
                         mock_coordinator, dog_id, dog_name
                     ),
                     # Feeding sensors (4)
-                    PawControlIsHungryBinarySensor(mock_coordinator, dog_id, dog_name),
+                    PawControlIsHungryBinarySensor(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlFeedingDueBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
@@ -1110,7 +1133,8 @@ class TestBinarySensorIntegrationScenarios:
                     PawControlWalkInProgressBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlNeedsWalkBinarySensor(mock_coordinator, dog_id, dog_name),
+                    PawControlNeedsWalkBinarySensor(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlWalkGoalMetBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
@@ -1118,14 +1142,16 @@ class TestBinarySensorIntegrationScenarios:
                         mock_coordinator, dog_id, dog_name
                     ),
                     # GPS sensors (6)
-                    PawControlIsHomeBinarySensor(mock_coordinator, dog_id, dog_name),
+                    PawControlIsHomeBinarySensor(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlInSafeZoneBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
                     PawControlGPSAccuratelyTrackedBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlMovingBinarySensor(mock_coordinator, dog_id, dog_name),
+                    PawControlMovingBinarySensor(
+                        mock_coordinator, dog_id, dog_name),
                     PawControlGeofenceAlertBinarySensor(
                         mock_coordinator, dog_id, dog_name
                     ),
@@ -1167,8 +1193,10 @@ class TestBinarySensorIntegrationScenarios:
     def test_sensor_attributes_isolation(self, mock_coordinator):
         """Test that sensor attributes don't interfere with each other."""
         # Create multiple sensors of same type for different dogs
-        sensor1 = PawControlIsHungryBinarySensor(mock_coordinator, "dog1", "Buddy")
-        sensor2 = PawControlIsHungryBinarySensor(mock_coordinator, "dog2", "Max")
+        sensor1 = PawControlIsHungryBinarySensor(
+            mock_coordinator, "dog1", "Buddy")
+        sensor2 = PawControlIsHungryBinarySensor(
+            mock_coordinator, "dog2", "Max")
 
         # Mock different data for each dog
         def mock_get_module_data(dog_id, module):

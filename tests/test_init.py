@@ -1,52 +1,55 @@
 """Tests for the Paw Control integration __init__ module."""
+from __future__ import annotations
 
 import asyncio
-from datetime import datetime, time
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from datetime import datetime
+from datetime import time
+from unittest.mock import AsyncMock
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol import (
-    PawControlSetupError,
-    async_reload_entry,
-    async_setup,
-    async_setup_entry,
-    async_unload_entry,
-    get_platforms_for_profile_and_modules,
-)
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_MEAL_TYPE,
-    ATTR_PORTION_SIZE,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    EVENT_FEEDING_LOGGED,
-    EVENT_WALK_ENDED,
-    EVENT_WALK_STARTED,
-    MODULE_DASHBOARD,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_VISITOR,
-    MODULE_WALK,
-    PLATFORMS,
-    SERVICE_DAILY_RESET,
-    SERVICE_END_WALK,
-    SERVICE_FEED_DOG,
-    SERVICE_LOG_HEALTH,
-    SERVICE_START_WALK,
-)
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.exceptions import (
-    ConfigurationError,
-    DogNotFoundError,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.core import HomeAssistant
+from homeassistant.core import ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ServiceValidationError
+
+from custom_components.pawcontrol import async_reload_entry
+from custom_components.pawcontrol import async_setup
+from custom_components.pawcontrol import async_setup_entry
+from custom_components.pawcontrol import async_unload_entry
+from custom_components.pawcontrol import get_platforms_for_profile_and_modules
+from custom_components.pawcontrol import PawControlSetupError
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_MEAL_TYPE
+from custom_components.pawcontrol.const import ATTR_PORTION_SIZE
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
+from custom_components.pawcontrol.const import EVENT_WALK_ENDED
+from custom_components.pawcontrol.const import EVENT_WALK_STARTED
+from custom_components.pawcontrol.const import MODULE_DASHBOARD
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_VISITOR
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import PLATFORMS
+from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
+from custom_components.pawcontrol.const import SERVICE_END_WALK
+from custom_components.pawcontrol.const import SERVICE_FEED_DOG
+from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
+from custom_components.pawcontrol.const import SERVICE_START_WALK
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.exceptions import ConfigurationError
+from custom_components.pawcontrol.exceptions import DogNotFoundError
 
 
 class TestAsync_Setup:
@@ -221,7 +224,8 @@ class TestAsyncSetupEntry:
         entry = Mock()
         entry.data = {
             CONF_DOGS: [
-                {CONF_DOG_ID: "", CONF_DOG_NAME: "Test Dog"}  # Invalid: empty dog_id
+                # Invalid: empty dog_id
+                {CONF_DOG_ID: "", CONF_DOG_NAME: "Test Dog"}
             ]
         }
         entry.entry_id = "test_entry"
@@ -312,9 +316,9 @@ class TestAsyncSetupEntry:
                 "async_forward_entry_setups",
                 side_effect=Exception("Platform setup failed"),
             ),
+            pytest.raises(ConfigEntryNotReady, match="Platform setup failed"),
         ):
-            with pytest.raises(ConfigEntryNotReady, match="Platform setup failed"):
-                await async_setup_entry(hass, mock_config_entry)
+            await async_setup_entry(hass, mock_config_entry)
 
     @pytest.mark.asyncio
     async def test_setup_entry_coordinator_refresh_timeout(
@@ -327,9 +331,7 @@ class TestAsyncSetupEntry:
         mock_entity_factory,
     ):
         """Test setup when coordinator refresh times out."""
-        mock_coordinator.async_config_entry_first_refresh.side_effect = (
-            asyncio.TimeoutError()
-        )
+        mock_coordinator.async_config_entry_first_refresh.side_effect = TimeoutError()
 
         with (
             patch(
@@ -432,7 +434,8 @@ class TestProfileBasedPlatformSelection:
         platforms = get_platforms_for_profile_and_modules(dogs, "basic")
 
         # Basic profile should have minimal platforms
-        expected_platforms = {Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR}
+        expected_platforms = {Platform.SENSOR,
+                              Platform.BUTTON, Platform.BINARY_SENSOR}
         assert set(platforms).issubset(expected_platforms)
         assert Platform.SENSOR in platforms  # Always required
         assert Platform.BUTTON in platforms  # Always required
@@ -560,7 +563,8 @@ class TestProfileBasedPlatformSelection:
         ]
 
         basic_platforms = get_platforms_for_profile_and_modules(dogs, "basic")
-        advanced_platforms = get_platforms_for_profile_and_modules(dogs, "advanced")
+        advanced_platforms = get_platforms_for_profile_and_modules(
+            dogs, "advanced")
 
         # Advanced should have more platforms than basic
         assert len(advanced_platforms) > len(basic_platforms)
@@ -577,7 +581,8 @@ class TestProfileBasedSetupOptimization:
     def mock_entity_factory(self):
         """Mock entity factory with realistic estimate_entity_count."""
         factory = Mock()
-        factory.estimate_entity_count = Mock(side_effect=self._estimate_entities)
+        factory.estimate_entity_count = Mock(
+            side_effect=self._estimate_entities)
         return factory
 
     def _estimate_entities(self, profile, modules):
@@ -829,7 +834,7 @@ class TestAsyncUnloadEntry:
         with patch.object(
             hass.config_entries,
             "async_unload_platforms",
-            side_effect=asyncio.TimeoutError(),
+            side_effect=TimeoutError(),
         ):
             result = await async_unload_entry(hass, mock_config_entry)
             assert result is False
@@ -859,12 +864,14 @@ class TestAsyncReloadEntry:
     @pytest.mark.asyncio
     async def test_reload_entry_failure(self, hass: HomeAssistant, mock_config_entry):
         """Test reload when unload or setup fails."""
-        with patch(
-            "custom_components.pawcontrol.async_unload_entry",
-            side_effect=Exception("Unload failed"),
+        with (
+            patch(
+                "custom_components.pawcontrol.async_unload_entry",
+                side_effect=Exception("Unload failed"),
+            ),
+            pytest.raises(Exception, match="Unload failed"),
         ):
-            with pytest.raises(Exception, match="Unload failed"):
-                await async_reload_entry(hass, mock_config_entry)
+            await async_reload_entry(hass, mock_config_entry)
 
 
 class TestProfileSystemValidation:
@@ -883,7 +890,7 @@ class TestProfileSystemValidation:
 
     def test_profile_configuration_validity(self):
         """Test that all profiles have valid configuration."""
-        for profile_name, profile_config in ENTITY_PROFILES.items():
+        for profile_config in ENTITY_PROFILES.values():
             assert "max_entities" in profile_config
             assert "description" in profile_config
             assert "modules" in profile_config
@@ -929,7 +936,8 @@ class TestEntityFactoryIntegration:
         """Mock entity factory with all required methods."""
         factory = Mock()
         factory.estimate_entity_count = Mock(return_value=12)
-        factory.create_entities_for_dog = Mock(return_value=[Mock(), Mock(), Mock()])
+        factory.create_entities_for_dog = Mock(
+            return_value=[Mock(), Mock(), Mock()])
         factory.get_profile_info = Mock(
             return_value={"description": "Test profile", "max_entities": 12}
         )
@@ -1040,7 +1048,8 @@ class TestPerformanceMetrics:
         )
 
         total_platforms = len(PLATFORMS)
-        basic_reduction = (total_platforms - len(basic_platforms)) / total_platforms
+        basic_reduction = (total_platforms -
+                           len(basic_platforms)) / total_platforms
         advanced_reduction = (
             total_platforms - len(advanced_platforms)
         ) / total_platforms
@@ -1152,7 +1161,8 @@ class TestServiceHandlers:
                 await service_handler(call)
 
             # Verify data manager was called
-            mock_runtime_data["data_manager"].async_log_feeding.assert_called_once()
+            mock_runtime_data["data_manager"].async_log_feeding.assert_called_once(
+            )
 
             # Verify event was fired
             assert len(bus_events) == 1
@@ -1167,7 +1177,8 @@ class TestHelperFunctions:
         self, hass: HomeAssistant, mock_config_entry
     ):
         """Test finding runtime data for existing dog."""
-        runtime_data = {"dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"}]}
+        runtime_data = {
+            "dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"}]}
         mock_config_entry.runtime_data = runtime_data
 
         with patch.object(

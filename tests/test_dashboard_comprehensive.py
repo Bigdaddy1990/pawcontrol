@@ -7,38 +7,37 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.dashboard_cards import (
-    DogCardGenerator,
-    HealthAwareFeedingCardGenerator,
-    ModuleCardGenerator,
-    OverviewCardGenerator,
-    StatisticsCardGenerator,
-)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.dashboard_cards import DogCardGenerator
+from custom_components.pawcontrol.dashboard_cards import HealthAwareFeedingCardGenerator
+from custom_components.pawcontrol.dashboard_cards import ModuleCardGenerator
+from custom_components.pawcontrol.dashboard_cards import OverviewCardGenerator
+from custom_components.pawcontrol.dashboard_cards import StatisticsCardGenerator
 from custom_components.pawcontrol.dashboard_generator import (
     PawControlDashboardGenerator,
 )
 from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 
 # Test Fixtures
 
@@ -168,7 +167,8 @@ def mock_hass_with_entities(hass: HomeAssistant) -> HomeAssistant:
         f"sensor.{DOMAIN}_dogs_walking": Mock(state="1"),
     }
 
-    hass.states.get = Mock(side_effect=lambda entity_id: mock_states.get(entity_id))
+    hass.states.get = Mock(
+        side_effect=lambda entity_id: mock_states.get(entity_id))
     return hass
 
 
@@ -234,7 +234,8 @@ class TestDashboardGeneratorCore:
                 "_create_dashboard_file",
                 AsyncMock(return_value=Path("/test/dashboard.json")),
             ),
-            patch.object(dashboard_generator, "_save_dashboard_metadata", AsyncMock()),
+            patch.object(dashboard_generator,
+                         "_save_dashboard_metadata", AsyncMock()),
         ):
             url = await dashboard_generator.async_create_dashboard(
                 multi_dog_config, complex_dashboard_options
@@ -275,9 +276,11 @@ class TestDashboardGeneratorCore:
             patch.object(
                 dashboard_generator,
                 "_create_dashboard_file",
-                AsyncMock(side_effect=lambda *args: Path(f"/test/{args[0]}.json")),
+                AsyncMock(
+                    side_effect=lambda *args: Path(f"/test/{args[0]}.json")),
             ),
-            patch.object(dashboard_generator, "_save_dashboard_metadata", AsyncMock()),
+            patch.object(dashboard_generator,
+                         "_save_dashboard_metadata", AsyncMock()),
         ):
             # Create dashboards for all dogs
             created_urls = []
@@ -318,7 +321,8 @@ class TestDashboardGeneratorCore:
                 "_create_dashboard_file",
                 AsyncMock(return_value=Path("/test/dashboard.json")),
             ),
-            patch.object(dashboard_generator, "_save_dashboard_metadata", AsyncMock()),
+            patch.object(dashboard_generator,
+                         "_save_dashboard_metadata", AsyncMock()),
         ):
             url = await dashboard_generator.async_create_dashboard(multi_dog_config)
             dashboard_url = url.lstrip("/")
@@ -346,7 +350,8 @@ class TestDashboardGeneratorCore:
             assert success
 
             # Verify metadata updated
-            dashboard_info = dashboard_generator.get_dashboard_info(dashboard_url)
+            dashboard_info = dashboard_generator.get_dashboard_info(
+                dashboard_url)
             assert dashboard_info is not None
             assert "updated" in dashboard_info
 
@@ -429,7 +434,8 @@ class TestDashboardAutoGeneration:
         multi_dog_config: list[dict[str, any]],
     ):
         """Test automatic module detection and appropriate card generation."""
-        generator = PawControlDashboardGenerator(mock_hass_with_entities, MagicMock())
+        generator = PawControlDashboardGenerator(
+            mock_hass_with_entities, MagicMock())
 
         # Mock specific card generators to track calls
         with (
@@ -451,9 +457,11 @@ class TestDashboardAutoGeneration:
             mock_store.async_save = AsyncMock()
 
             # Configure return values
-            mock_feeding.return_value = [{"type": "entities", "title": "Feeding"}]
+            mock_feeding.return_value = [
+                {"type": "entities", "title": "Feeding"}]
             mock_walk.return_value = [{"type": "entities", "title": "Walk"}]
-            mock_health.return_value = [{"type": "entities", "title": "Health"}]
+            mock_health.return_value = [
+                {"type": "entities", "title": "Health"}]
             mock_gps.return_value = [{"type": "map", "title": "GPS"}]
 
             await generator.async_initialize()
@@ -474,7 +482,8 @@ class TestDashboardAutoGeneration:
         multi_dog_config: list[dict[str, any]],
     ):
         """Test conditional dashboard features based on available entities."""
-        generator = PawControlDashboardGenerator(mock_hass_with_entities, MagicMock())
+        generator = PawControlDashboardGenerator(
+            mock_hass_with_entities, MagicMock())
 
         with (
             patch.object(generator, "_store") as mock_store,
@@ -568,7 +577,8 @@ class TestDashboardEdgeCases:
             mock_store.async_save = AsyncMock()
 
             # Mock path existence check
-            mock_exists.side_effect = lambda path: str(path) == "/valid/path.json"
+            mock_exists.side_effect = lambda path: str(
+                path) == "/valid/path.json"
 
             await generator.async_initialize()
 
@@ -600,9 +610,11 @@ class TestDashboardEdgeCases:
             patch.object(
                 dashboard_generator,
                 "_create_dashboard_file",
-                AsyncMock(side_effect=lambda *args: Path(f"/test/{args[0]}.json")),
+                AsyncMock(
+                    side_effect=lambda *args: Path(f"/test/{args[0]}.json")),
             ),
-            patch.object(dashboard_generator, "_save_dashboard_metadata", AsyncMock()),
+            patch.object(dashboard_generator,
+                         "_save_dashboard_metadata", AsyncMock()),
         ):
             # Create multiple dashboards concurrently
             tasks = [
@@ -683,7 +695,8 @@ class TestDashboardEdgeCases:
                 "_create_dashboard_file",
                 AsyncMock(return_value=Path("/test/large.json")),
             ),
-            patch.object(dashboard_generator, "_save_dashboard_metadata", AsyncMock()),
+            patch.object(dashboard_generator,
+                         "_save_dashboard_metadata", AsyncMock()),
         ):
             # Should handle large configuration without issues
             url = await dashboard_generator.async_create_dashboard(large_config)
@@ -726,7 +739,8 @@ class TestDashboardCardGeneration:
         self, mock_hass_with_entities: HomeAssistant, mock_templates, multi_dog_config
     ):
         """Test overview dashboard card generation."""
-        generator = OverviewCardGenerator(mock_hass_with_entities, mock_templates)
+        generator = OverviewCardGenerator(
+            mock_hass_with_entities, mock_templates)
 
         # Test welcome card
         welcome_card = await generator.generate_welcome_card(
@@ -785,7 +799,8 @@ class TestDashboardCardGeneration:
         self, mock_hass_with_entities: HomeAssistant, mock_templates
     ):
         """Test module card generation based on enabled modules."""
-        generator = ModuleCardGenerator(mock_hass_with_entities, mock_templates)
+        generator = ModuleCardGenerator(
+            mock_hass_with_entities, mock_templates)
 
         # Dog with selective modules
         dog_config = {
@@ -815,7 +830,8 @@ class TestDashboardCardGeneration:
         self, mock_hass_with_entities: HomeAssistant, mock_templates, multi_dog_config
     ):
         """Test statistics card generation with multi-dog data aggregation."""
-        generator = StatisticsCardGenerator(mock_hass_with_entities, mock_templates)
+        generator = StatisticsCardGenerator(
+            mock_hass_with_entities, mock_templates)
 
         cards = await generator.generate_statistics_cards(multi_dog_config, {})
 
@@ -887,15 +903,18 @@ class TestDashboardRendererPerformance:
 
         # Mock a slow card generator that times out
         slow_generator = AsyncMock()
-        slow_generator.side_effect = lambda *args: asyncio.sleep(35)  # Exceeds timeout
+        # Exceeds timeout
+        slow_generator.side_effect = lambda *args: asyncio.sleep(35)
 
-        with patch.object(
-            renderer.overview_generator, "generate_welcome_card", slow_generator
+        with (
+            patch.object(
+                renderer.overview_generator, "generate_welcome_card", slow_generator
+            ),
+            pytest.raises(HomeAssistantError, match="timeout"),
         ):
-            with pytest.raises(HomeAssistantError, match="timeout"):
-                await renderer.render_main_dashboard(
-                    [{"dog_id": "test", "dog_name": "Test"}]
-                )
+            await renderer.render_main_dashboard(
+                [{"dog_id": "test", "dog_name": "Test"}]
+            )
 
     async def test_memory_efficient_batch_processing(self, hass: HomeAssistant):
         """Test memory-efficient processing of large dog lists."""

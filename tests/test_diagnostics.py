@@ -10,49 +10,54 @@ This test suite covers all aspects of the diagnostic system including:
 
 The diagnostics module is critical for support and troubleshooting.
 """
+from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.diagnostics import (
-    REDACTED_KEYS,
-    _calculate_module_usage,
-    _get_config_entry_diagnostics,
-    _get_coordinator_diagnostics,
-    _get_data_statistics,
-    _get_debug_information,
-    _get_devices_diagnostics,
-    _get_dogs_summary,
-    _get_entities_diagnostics,
-    _get_integration_status,
-    _get_loaded_platforms,
-    _get_performance_metrics,
-    _get_recent_errors,
-    _get_registered_services,
-    _get_system_diagnostics,
-    _looks_like_sensitive_string,
-    _redact_sensitive_data,
-    async_get_config_entry_diagnostics,
-)
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.diagnostics import _calculate_module_usage
+from custom_components.pawcontrol.diagnostics import _get_config_entry_diagnostics
+from custom_components.pawcontrol.diagnostics import _get_coordinator_diagnostics
+from custom_components.pawcontrol.diagnostics import _get_data_statistics
+from custom_components.pawcontrol.diagnostics import _get_debug_information
+from custom_components.pawcontrol.diagnostics import _get_devices_diagnostics
+from custom_components.pawcontrol.diagnostics import _get_dogs_summary
+from custom_components.pawcontrol.diagnostics import _get_entities_diagnostics
+from custom_components.pawcontrol.diagnostics import _get_integration_status
+from custom_components.pawcontrol.diagnostics import _get_loaded_platforms
+from custom_components.pawcontrol.diagnostics import _get_performance_metrics
+from custom_components.pawcontrol.diagnostics import _get_recent_errors
+from custom_components.pawcontrol.diagnostics import _get_registered_services
+from custom_components.pawcontrol.diagnostics import _get_system_diagnostics
+from custom_components.pawcontrol.diagnostics import _looks_like_sensitive_string
+from custom_components.pawcontrol.diagnostics import _redact_sensitive_data
+from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
+from custom_components.pawcontrol.diagnostics import REDACTED_KEYS
 
 
 # Test fixtures
@@ -273,7 +278,8 @@ def mock_hass_with_states(hass: HomeAssistant):
             state="30.5",
             last_changed=dt_util.utcnow(),
             last_updated=dt_util.utcnow(),
-            attributes={"unit_of_measurement": "kg", "friendly_name": "Buddy Weight"},
+            attributes={"unit_of_measurement": "kg",
+                        "friendly_name": "Buddy Weight"},
         ),
         "binary_sensor.luna_walk_active": Mock(
             state="on",
@@ -543,7 +549,7 @@ class TestSystemDiagnostics:
         assert diagnostics["timezone"] == "Europe/Berlin"
         assert diagnostics["is_running"] is True
         assert diagnostics["safe_mode"] is False
-        assert isinstance(diagnostics["uptime_seconds"], (int, float))
+        assert isinstance(diagnostics["uptime_seconds"], int | float)
         assert diagnostics["uptime_seconds"] > 0
 
     async def test_get_system_diagnostics_recovery_mode(self, mock_hass_with_states):
@@ -881,7 +887,8 @@ class TestDogsSummary:
         assert len(diagnostics["dogs"]) == 2
 
         # Check dog information
-        buddy_dog = next(dog for dog in diagnostics["dogs"] if dog["dog_id"] == "buddy")
+        buddy_dog = next(
+            dog for dog in diagnostics["dogs"] if dog["dog_id"] == "buddy")
 
         expected_dog_keys = [
             "dog_id",
@@ -1231,12 +1238,14 @@ class TestSensitiveDataRedaction:
         """Test detection of sensitive string patterns."""
         # UUID
         assert (
-            _looks_like_sensitive_string("123e4567-e89b-12d3-a456-426614174000") is True
+            _looks_like_sensitive_string(
+                "123e4567-e89b-12d3-a456-426614174000") is True
         )
 
         # Long alphanumeric (token-like)
         assert (
-            _looks_like_sensitive_string("abcdef123456789012345678901234567890") is True
+            _looks_like_sensitive_string(
+                "abcdef123456789012345678901234567890") is True
         )
 
         # IP address

@@ -8,33 +8,38 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    CONF_GPS_UPDATE_INTERVAL,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    UPDATE_INTERVALS,
-)
-from custom_components.pawcontrol.coordinator import (
-    MAINTENANCE_INTERVAL,
-    PawControlCoordinator,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.const import UPDATE_INTERVALS
+from custom_components.pawcontrol.coordinator import MAINTENANCE_INTERVAL
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestCoordinatorMassiveEntityLoadScenarios:
@@ -206,20 +211,23 @@ class TestCoordinatorMassiveEntityLoadScenarios:
                         config = coordinator.get_dog_config(dog_id)
                         data = config
 
-                    access_results.append((accessor_id, dog_id, data is not None))
+                    access_results.append(
+                        (accessor_id, dog_id, data is not None))
                     await asyncio.sleep(0.001)  # Small delay
             except Exception as e:
                 errors.append((accessor_id, e))
 
         # Start many concurrent accessors
-        accessors = [asyncio.create_task(concurrent_accessor(i)) for i in range(20)]
+        accessors = [asyncio.create_task(
+            concurrent_accessor(i)) for i in range(20)]
         await asyncio.gather(*accessors, return_exceptions=True)
 
         # Should handle concurrent access without errors
         assert len(errors) == 0, f"Concurrent access errors: {errors}"
 
         # Should process many requests
-        assert len(access_results) >= 350  # 20 accessors * 20 requests = 400 expected
+        # 20 accessors * 20 requests = 400 expected
+        assert len(access_results) >= 350
 
         # Most requests should succeed
         success_rate = sum(1 for _, _, success in access_results if success) / len(
@@ -244,8 +252,10 @@ class TestCoordinatorMassiveEntityLoadScenarios:
 
         # Test selective refresh patterns
         selective_tests = [
-            (["dog_000", "dog_001", "dog_002"], 10),  # High priority small batch
-            ([f"dog_{i:03d}" for i in range(10)], 5),  # Medium priority larger batch
+            # High priority small batch
+            (["dog_000", "dog_001", "dog_002"], 10),
+            # Medium priority larger batch
+            ([f"dog_{i:03d}" for i in range(10)], 5),
             ([f"dog_{i:03d}" for i in range(20, 30)], 1),  # Low priority batch
         ]
 
@@ -337,10 +347,10 @@ class TestCoordinatorManagerDelegationFailures:
 
         timeout_walk = AsyncMock()
         timeout_walk.async_get_walk_data = AsyncMock(
-            side_effect=asyncio.TimeoutError("Walk timeout")
+            side_effect=TimeoutError("Walk timeout")
         )
         timeout_walk.async_get_gps_data = AsyncMock(
-            side_effect=asyncio.TimeoutError("GPS timeout")
+            side_effect=TimeoutError("GPS timeout")
         )
 
         missing_dog_data = AsyncMock()
@@ -558,7 +568,7 @@ class TestCoordinatorPerformanceStressScenarios:
             await asyncio.sleep(delay)
 
             if hash(dog_id) % 15 == 0:
-                raise asyncio.TimeoutError("GPS service timeout")
+                raise TimeoutError("GPS service timeout")
 
             return {"last_walk": "2024-09-07 07:00:00", "distance": 2.5}
 
@@ -605,7 +615,7 @@ class TestCoordinatorPerformanceStressScenarios:
         update_times = []
         error_count = 0
 
-        for cycle in range(10):
+        for _cycle in range(10):
             start_time = time.time()
             try:
                 await coordinator.async_request_refresh()
@@ -648,10 +658,11 @@ class TestCoordinatorPerformanceStressScenarios:
         async def concurrent_selective_refresh(refresh_id):
             """Perform concurrent selective refreshes."""
             try:
-                for i in range(5):
+                for _i in range(5):
                     # Select different dog subsets
                     start_idx = (refresh_id * 3) % 30
-                    dog_ids = [f"stress_dog_{(start_idx + j) % 30}" for j in range(5)]
+                    dog_ids = [
+                        f"stress_dog_{(start_idx + j) % 30}" for j in range(5)]
                     priority = (refresh_id % 10) + 1
 
                     start_time = time.time()
@@ -938,7 +949,8 @@ class TestCoordinatorUpdateIntervalCalculation:
         coordinator = PawControlCoordinator(hass, entry)
 
         # Should use slow interval for no dogs
-        assert coordinator.update_interval.total_seconds() == UPDATE_INTERVALS["slow"]
+        assert coordinator.update_interval.total_seconds(
+        ) == UPDATE_INTERVALS["slow"]
 
     def test_minimal_complexity_interval_calculation(self, hass):
         """Test interval calculation with minimal complexity."""
@@ -1120,14 +1132,16 @@ class TestCoordinatorDataIntegrityEdgeCases:
                         )
                     else:
                         await coordinator.invalidate_dog_cache("integrity_dog")
-                        modification_results.append((modifier_id, "invalidate", True))
+                        modification_results.append(
+                            (modifier_id, "invalidate", True))
 
                     await asyncio.sleep(0.001)
             except Exception as e:
                 modification_results.append((modifier_id, "error", str(e)))
 
         # Run concurrent modifiers
-        modifiers = [asyncio.create_task(concurrent_modifier(i)) for i in range(5)]
+        modifiers = [asyncio.create_task(
+            concurrent_modifier(i)) for i in range(5)]
         await asyncio.gather(*modifiers, return_exceptions=True)
 
         # Should handle concurrent modifications safely
@@ -1188,7 +1202,7 @@ async def test_comprehensive_coordinator_integration():
     async def comprehensive_gps_data(dog_id):
         await asyncio.sleep(0.02)
         if hash(dog_id) % 15 == 0:  # GPS failures
-            raise asyncio.TimeoutError("GPS timeout")
+            raise TimeoutError("GPS timeout")
         return {"lat": 52.5, "lon": 13.4, "accuracy": 5}
 
     async def comprehensive_dog_data(dog_id):
@@ -1219,7 +1233,8 @@ async def test_comprehensive_coordinator_integration():
 
     # 2. Verify data integrity
     all_data = coordinator.get_all_dogs_data()
-    assert len(all_data) >= 20  # Most dogs should have data despite some failures
+    # Most dogs should have data despite some failures
+    assert len(all_data) >= 20
 
     # 3. Test selective refresh performance
     selective_dogs = [f"integration_dog_{i:02d}" for i in range(5)]

@@ -4,63 +4,59 @@ Tests all number entities including base numbers, feeding numbers, walk numbers,
 GPS numbers, and health numbers. Validates proper functionality, state persistence,
 value validation, and device grouping for Gold Standard compliance.
 """
-
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_AGE,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.number import (
-    PawControlActivityGoalNumber,
-    PawControlCalorieTargetNumber,
-    PawControlDailyFoodAmountNumber,
-    PawControlDailyWalkTargetNumber,
-    PawControlDogAgeNumber,
-    PawControlDogWeightNumber,
-    PawControlFeedingReminderHoursNumber,
-    PawControlGeofenceRadiusNumber,
-    PawControlGPSAccuracyThresholdNumber,
-    PawControlGPSBatteryThresholdNumber,
-    PawControlGPSUpdateIntervalNumber,
-    PawControlGroomingIntervalNumber,
-    PawControlHealthScoreThresholdNumber,
-    PawControlLocationUpdateDistanceNumber,
-    PawControlMaxWalkSpeedNumber,
-    PawControlMealsPerDayNumber,
-    PawControlNumberBase,
-    PawControlPortionSizeNumber,
-    PawControlTargetWeightNumber,
-    PawControlVetCheckupIntervalNumber,
-    PawControlWalkDistanceTargetNumber,
-    PawControlWalkDurationTargetNumber,
-    PawControlWalkReminderHoursNumber,
-    PawControlWeightChangeThresholdNumber,
-    async_setup_entry,
-)
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfMass
+from homeassistant.const import UnitOfSpeed
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from custom_components.pawcontrol.const import CONF_DOG_AGE
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.number import async_setup_entry
+from custom_components.pawcontrol.number import PawControlActivityGoalNumber
+from custom_components.pawcontrol.number import PawControlCalorieTargetNumber
+from custom_components.pawcontrol.number import PawControlDailyFoodAmountNumber
+from custom_components.pawcontrol.number import PawControlDailyWalkTargetNumber
+from custom_components.pawcontrol.number import PawControlDogAgeNumber
+from custom_components.pawcontrol.number import PawControlDogWeightNumber
+from custom_components.pawcontrol.number import PawControlFeedingReminderHoursNumber
+from custom_components.pawcontrol.number import PawControlGeofenceRadiusNumber
+from custom_components.pawcontrol.number import PawControlGPSAccuracyThresholdNumber
+from custom_components.pawcontrol.number import PawControlGPSBatteryThresholdNumber
+from custom_components.pawcontrol.number import PawControlGPSUpdateIntervalNumber
+from custom_components.pawcontrol.number import PawControlGroomingIntervalNumber
+from custom_components.pawcontrol.number import PawControlHealthScoreThresholdNumber
+from custom_components.pawcontrol.number import PawControlLocationUpdateDistanceNumber
+from custom_components.pawcontrol.number import PawControlMaxWalkSpeedNumber
+from custom_components.pawcontrol.number import PawControlMealsPerDayNumber
+from custom_components.pawcontrol.number import PawControlNumberBase
+from custom_components.pawcontrol.number import PawControlPortionSizeNumber
+from custom_components.pawcontrol.number import PawControlTargetWeightNumber
+from custom_components.pawcontrol.number import PawControlVetCheckupIntervalNumber
+from custom_components.pawcontrol.number import PawControlWalkDistanceTargetNumber
+from custom_components.pawcontrol.number import PawControlWalkDurationTargetNumber
+from custom_components.pawcontrol.number import PawControlWalkReminderHoursNumber
+from custom_components.pawcontrol.number import PawControlWeightChangeThresholdNumber
 
 
 def _create_mock_coordinator(module_data: dict | None = None):
@@ -364,7 +360,8 @@ class TestDogWeightNumber:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
+        coordinator.get_dog_data.return_value = {
+            "dog_info": {"dog_weight": 25.0}}
         coordinator.get_module_data.return_value = {
             "weight_trend": "increasing",
             "weight_change_percent": 5.2,
@@ -432,7 +429,8 @@ class TestDogAgeNumber:
         config_entry.runtime_data = {
             "data_manager": MagicMock(spec_set=["async_update_dog_data"])
         }
-        config_entry.runtime_data["data_manager"].async_update_dog_data = AsyncMock()
+        config_entry.runtime_data["data_manager"].async_update_dog_data = AsyncMock(
+        )
         coordinator.config_entry = config_entry
 
         return coordinator
@@ -513,7 +511,8 @@ class TestFeedingNumbers:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 20.0}}
+        coordinator.get_dog_data.return_value = {
+            "dog_info": {"dog_weight": 20.0}}
         return coordinator
 
     def test_daily_food_amount_number(self, mock_coordinator):
@@ -547,7 +546,8 @@ class TestFeedingNumbers:
 
     def test_meals_per_day_number(self, mock_coordinator):
         """Test meals per day number entity."""
-        number = PawControlMealsPerDayNumber(mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlMealsPerDayNumber(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "meals_per_day"
         assert number.native_value == 2
@@ -557,7 +557,8 @@ class TestFeedingNumbers:
 
     def test_portion_size_number(self, mock_coordinator):
         """Test portion size number entity."""
-        number = PawControlPortionSizeNumber(mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlPortionSizeNumber(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "portion_size"
         assert number.native_unit_of_measurement == "g"
@@ -566,7 +567,8 @@ class TestFeedingNumbers:
 
     def test_calorie_target_number(self, mock_coordinator):
         """Test calorie target number entity."""
-        number = PawControlCalorieTargetNumber(mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlCalorieTargetNumber(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "calorie_target"
         assert number.native_unit_of_measurement == "kcal"
@@ -632,7 +634,8 @@ class TestWalkNumbers:
 
     def test_max_walk_speed_number(self, mock_coordinator):
         """Test max walk speed number entity."""
-        number = PawControlMaxWalkSpeedNumber(mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlMaxWalkSpeedNumber(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "max_walk_speed"
         assert number.native_unit_of_measurement == UnitOfSpeed.KILOMETERS_PER_HOUR
@@ -721,7 +724,8 @@ class TestHealthNumbers:
 
     def test_target_weight_number(self, mock_coordinator):
         """Test target weight number entity."""
-        number = PawControlTargetWeightNumber(mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlTargetWeightNumber(
+            mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "target_weight"
         assert number.device_class.value == "weight"
@@ -861,7 +865,8 @@ class TestNumberEntityIntegration:
         """Test multiple number entities for the same dog."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
+        coordinator.get_dog_data.return_value = {
+            "dog_info": {"dog_weight": 25.0}}
 
         # Create multiple numbers for same dog
         weight_number = PawControlDogWeightNumber(
@@ -887,7 +892,8 @@ class TestNumberEntityIntegration:
         coordinator.get_dog_data.return_value = {"dog_info": {}}
 
         # Create number entity
-        number = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
+        number = PawControlActivityGoalNumber(
+            coordinator, "test_dog", "Test Dog")
 
         # Simulate setting a value
         with patch.object(number, "async_write_ha_state"):
@@ -895,7 +901,8 @@ class TestNumberEntityIntegration:
         assert number.native_value == 150
 
         # Simulate restart - create new entity and restore state
-        number2 = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
+        number2 = PawControlActivityGoalNumber(
+            coordinator, "test_dog", "Test Dog")
 
         # Mock restored state
         mock_state = MagicMock()
@@ -914,7 +921,8 @@ class TestNumberEntityIntegration:
         coordinator.available = True
         coordinator.get_dog_data.return_value = {"dog_info": {}}
 
-        number = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
+        number = PawControlActivityGoalNumber(
+            coordinator, "test_dog", "Test Dog")
 
         # Test minimum boundary
         with patch.object(number, "async_write_ha_state"):

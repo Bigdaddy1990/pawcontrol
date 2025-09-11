@@ -9,43 +9,48 @@ This test suite covers all aspects of the helper classes including:
 
 The helpers module is critical for data management and requires thorough testing.
 """
+from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from datetime import datetime
+from datetime import timedelta
+from typing import Any
+from typing import Dict
+from typing import List
+from unittest.mock import AsyncMock
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    CONF_NOTIFICATIONS,
-    CONF_QUIET_END,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
-    DATA_FILE_FEEDINGS,
-    DATA_FILE_HEALTH,
-    DATA_FILE_ROUTES,
-    DATA_FILE_STATS,
-    DATA_FILE_WALKS,
-    DOMAIN,
-    EVENT_FEEDING_LOGGED,
-    EVENT_HEALTH_LOGGED,
-    EVENT_WALK_ENDED,
-    EVENT_WALK_STARTED,
-)
-from custom_components.pawcontrol.helpers import (
-    STORAGE_VERSION,
-    PawControlData,
-    PawControlDataStorage,
-    PawControlNotificationManager,
-    _data_encoder,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
+from custom_components.pawcontrol.const import CONF_QUIET_END
+from custom_components.pawcontrol.const import CONF_QUIET_HOURS
+from custom_components.pawcontrol.const import CONF_QUIET_START
+from custom_components.pawcontrol.const import DATA_FILE_FEEDINGS
+from custom_components.pawcontrol.const import DATA_FILE_HEALTH
+from custom_components.pawcontrol.const import DATA_FILE_ROUTES
+from custom_components.pawcontrol.const import DATA_FILE_STATS
+from custom_components.pawcontrol.const import DATA_FILE_WALKS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
+from custom_components.pawcontrol.const import EVENT_HEALTH_LOGGED
+from custom_components.pawcontrol.const import EVENT_WALK_ENDED
+from custom_components.pawcontrol.const import EVENT_WALK_STARTED
+from custom_components.pawcontrol.helpers import _data_encoder
+from custom_components.pawcontrol.helpers import PawControlData
+from custom_components.pawcontrol.helpers import PawControlDataStorage
+from custom_components.pawcontrol.helpers import PawControlNotificationManager
+from custom_components.pawcontrol.helpers import STORAGE_VERSION
 
 
 # Test fixtures
@@ -167,7 +172,8 @@ class TestPawControlDataStorage:
         )  # walks, feedings, health, routes, stats
 
         # Verify stores were created with correct parameters
-        expected_stores = ["walks", "feedings", "health", "routes", "statistics"]
+        expected_stores = ["walks", "feedings",
+                           "health", "routes", "statistics"]
         assert set(storage_manager._stores.keys()) == set(expected_stores)
 
     def test_initialize_stores(
@@ -242,7 +248,8 @@ class TestPawControlDataStorage:
 
     async def test_load_all_data_complete_failure(self, data_storage, mock_storage):
         """Test handling when all data loading fails."""
-        mock_storage["instance"].async_load.side_effect = Exception("Complete failure")
+        mock_storage["instance"].async_load.side_effect = Exception(
+            "Complete failure")
 
         with pytest.raises(HomeAssistantError) as exc_info:
             await data_storage.async_load_all_data()
@@ -290,7 +297,8 @@ class TestPawControlDataStorage:
 
     async def test_save_data_storage_error(self, data_storage, mock_storage):
         """Test handling storage errors during save."""
-        mock_storage["instance"].async_save.side_effect = Exception("Storage error")
+        mock_storage["instance"].async_save.side_effect = Exception(
+            "Storage error")
 
         with pytest.raises(HomeAssistantError) as exc_info:
             await data_storage.async_save_data("walks", {})
@@ -314,7 +322,8 @@ class TestPawControlDataStorage:
         await data_storage.async_cleanup_old_data(retention_days=90)
 
         # Should have saved cleaned data
-        assert mock_storage["instance"].async_save.call_count == 5  # One for each store
+        # One for each store
+        assert mock_storage["instance"].async_save.call_count == 5
 
         # Check the data that was saved (last call for walks store)
         saved_calls = mock_storage["instance"].async_save.call_args_list
@@ -391,7 +400,8 @@ class TestPawControlData:
             await data_manager.async_load_data()
 
             # Should initialize with empty data
-            expected_keys = ["walks", "feedings", "health", "routes", "statistics"]
+            expected_keys = ["walks", "feedings",
+                             "health", "routes", "statistics"]
             assert all(key in data_manager._data for key in expected_keys)
             assert all(
                 isinstance(data_manager._data[key], dict) for key in expected_keys
@@ -469,7 +479,8 @@ class TestPawControlData:
             assert "history" in data_manager._data["walks"]["test_dog"]
 
             # Check storage was called
-            mock_save.assert_called_once_with("walks", data_manager._data["walks"])
+            mock_save.assert_called_once_with(
+                "walks", data_manager._data["walks"])
 
     async def test_start_walk_already_active(self, data_manager, sample_walk_data):
         """Test starting walk when one is already active."""
@@ -525,11 +536,13 @@ class TestPawControlData:
             )
 
             # Check storage was called
-            mock_save.assert_called_once_with("walks", data_manager._data["walks"])
+            mock_save.assert_called_once_with(
+                "walks", data_manager._data["walks"])
 
     async def test_end_walk_no_active_walk(self, data_manager):
         """Test ending walk when none is active."""
-        data_manager._data = {"walks": {"test_dog": {"active": None, "history": []}}}
+        data_manager._data = {
+            "walks": {"test_dog": {"active": None, "history": []}}}
 
         completed_walk = await data_manager.async_end_walk("test_dog")
 
@@ -575,7 +588,8 @@ class TestPawControlData:
             assert "timestamp" in logged_health
 
             # Check storage was called
-            mock_save.assert_called_once_with("health", data_manager._data["health"])
+            mock_save.assert_called_once_with(
+                "health", data_manager._data["health"])
 
     async def test_log_health_invalid_dog(self, data_manager, sample_health_data):
         """Test health logging with invalid dog ID."""
@@ -900,7 +914,8 @@ class TestHelpersIntegration:
         data_manager = PawControlData(hass, mock_config_entry)
 
         with (
-            patch.object(data_manager.storage, "async_load_all_data", return_value={}),
+            patch.object(data_manager.storage,
+                         "async_load_all_data", return_value={}),
             patch.object(data_manager.storage, "async_save_data") as mock_save,
         ):
             await data_manager.async_load_data()
@@ -950,10 +965,12 @@ class TestHelpersIntegration:
 
         hass.services.async_call = AsyncMock()
         events_fired = []
-        hass.bus.async_fire = lambda event, data: events_fired.append((event, data))
+        hass.bus.async_fire = lambda event, data: events_fired.append(
+            (event, data))
 
         with (
-            patch.object(data_manager.storage, "async_load_all_data", return_value={}),
+            patch.object(data_manager.storage,
+                         "async_load_all_data", return_value={}),
             patch.object(data_manager.storage, "async_save_data"),
             patch("homeassistant.helpers.event.async_track_time_interval"),
         ):
@@ -991,7 +1008,8 @@ class TestHelpersPerformance:
         """Test concurrent storage operations."""
         with patch.object(data_storage, "_load_store_data", return_value={}):
             # Simulate concurrent loading
-            tasks = [data_storage._load_store_data(f"store_{i}") for i in range(10)]
+            tasks = [data_storage._load_store_data(
+                f"store_{i}") for i in range(10)]
             results = await asyncio.gather(*tasks)
 
             assert len(results) == 10
@@ -1002,7 +1020,8 @@ class TestHelpersPerformance:
         with patch.object(data_manager.storage, "async_save_data"):
             # Log many feedings
             tasks = [
-                data_manager.async_log_feeding("test_dog", {"meal": f"feeding_{i}"})
+                data_manager.async_log_feeding(
+                    "test_dog", {"meal": f"feeding_{i}"})
                 for i in range(100)
             ]
 
@@ -1094,7 +1113,8 @@ class TestHelpersErrorHandling:
         }
 
         cutoff_date = dt_util.utcnow() - timedelta(days=30)
-        cleaned_data = data_storage._cleanup_store_data(malformed_data, cutoff_date)
+        cleaned_data = data_storage._cleanup_store_data(
+            malformed_data, cutoff_date)
 
         # Should handle malformed data gracefully
         assert isinstance(cleaned_data, dict)
