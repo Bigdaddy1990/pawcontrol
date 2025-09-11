@@ -8,6 +8,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,15 +17,17 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_DASHBOARD_AUTO_CREATE
-from .const import CONF_DASHBOARD_ENABLED
-from .const import CONF_DASHBOARD_MODE
-from .const import CONF_DASHBOARD_PER_DOG
-from .const import CONF_DASHBOARD_THEME
-from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
-from .const import DEFAULT_DASHBOARD_AUTO_CREATE
-from .const import DEFAULT_DASHBOARD_MODE
-from .const import DEFAULT_DASHBOARD_THEME
+from .const import (
+    CONF_DASHBOARD_AUTO_CREATE,
+    CONF_DASHBOARD_ENABLED,
+    CONF_DASHBOARD_MODE,
+    CONF_DASHBOARD_PER_DOG,
+    CONF_DASHBOARD_THEME,
+    DASHBOARD_MODE_SELECTOR_OPTIONS,
+    DEFAULT_DASHBOARD_AUTO_CREATE,
+    DEFAULT_DASHBOARD_MODE,
+    DEFAULT_DASHBOARD_THEME,
+)
 
 
 class DashboardFlowMixin:

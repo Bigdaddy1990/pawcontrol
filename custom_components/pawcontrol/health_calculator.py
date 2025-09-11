@@ -12,14 +12,14 @@ Provides comprehensive health metrics for dogs including:
 - Weight management recommendations
 - Diet validation integration
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.util import dt as dt_util
 
@@ -66,24 +66,24 @@ class HealthMetrics:
 
     # Basic measurements
     current_weight: float
-    ideal_weight: float | None = None
-    height_cm: float | None = None
-    age_months: int | None = None
+    ideal_weight: Optional[float] = None
+    height_cm: Optional[float] = None
+    age_months: Optional[int] = None
 
     # Health assessments
-    body_condition_score: BodyConditionScore | None = None
-    activity_level: ActivityLevel | None = None
-    life_stage: LifeStage | None = None
+    body_condition_score: Optional[BodyConditionScore] = None
+    activity_level: Optional[ActivityLevel] = None
+    life_stage: Optional[LifeStage] = None
 
     # Health conditions
-    health_conditions: list[str] = None
-    medications: list[str] = None
-    special_diet: list[str] = None
+    health_conditions: List[str] = None
+    medications: List[str] = None
+    special_diet: List[str] = None
 
     # Calculated values
-    daily_calorie_requirement: float | None = None
+    daily_calorie_requirement: Optional[float] = None
     portion_adjustment_factor: float = 1.0
-    weight_goal: str | None = None  # "maintain", "lose", "gain"
+    weight_goal: Optional[str] = None  # "maintain", "lose", "gain"
 
     def __post_init__(self) -> None:
         """Initialize default values."""
@@ -159,10 +159,8 @@ class HealthCalculator:
 
         # Adjust adult/senior thresholds based on breed size
         size_adjustments = {
-            # 10 months to adult, 8 years to senior
-            "toy": {"adult": 10, "senior": 96},
-            # 1 year to adult, 7 years to senior
-            "small": {"adult": 12, "senior": 84},
+            "toy": {"adult": 10, "senior": 96},  # 10 months to adult, 8 years to senior
+            "small": {"adult": 12, "senior": 84},  # 1 year to adult, 7 years to senior
             "medium": {
                 "adult": 15,
                 "senior": 84,
@@ -171,12 +169,10 @@ class HealthCalculator:
                 "adult": 18,
                 "senior": 72,
             },  # 18 months to adult, 6 years to senior
-            # 2 years to adult, 5 years to senior
-            "giant": {"adult": 24, "senior": 60},
+            "giant": {"adult": 24, "senior": 60},  # 2 years to adult, 5 years to senior
         }
 
-        thresholds = size_adjustments.get(
-            breed_size, size_adjustments["medium"])
+        thresholds = size_adjustments.get(breed_size, size_adjustments["medium"])
 
         if age_months < thresholds["adult"]:
             return LifeStage.PUPPY
@@ -207,8 +203,8 @@ class HealthCalculator:
     @staticmethod
     def estimate_body_condition_score(
         current_weight: float,
-        ideal_weight: float | None = None,
-        visual_assessment: int | None = None,
+        ideal_weight: Optional[float] = None,
+        visual_assessment: Optional[int] = None,
     ) -> BodyConditionScore:
         """Estimate body condition score from weight and visual assessment.
 
@@ -255,8 +251,8 @@ class HealthCalculator:
         weight: float,
         life_stage: LifeStage,
         activity_level: ActivityLevel,
-        body_condition_score: BodyConditionScore | None = None,
-        health_conditions: list[str] | None = None,
+        body_condition_score: Optional[BodyConditionScore] = None,
+        health_conditions: Optional[List[str]] = None,
         spayed_neutered: bool = True,
     ) -> float:
         """Calculate daily calorie requirements.
@@ -313,8 +309,8 @@ class HealthCalculator:
     @staticmethod
     def calculate_portion_adjustment_factor(
         health_metrics: HealthMetrics,
-        feeding_goals: dict[str, Any] | None = None,
-        diet_validation: dict[str, Any] | None = None,
+        feeding_goals: Optional[Dict[str, Any]] = None,
+        diet_validation: Optional[Dict[str, Any]] = None,
     ) -> float:
         """Calculate comprehensive portion adjustment factor with diet validation.
 
@@ -377,8 +373,7 @@ class HealthCalculator:
                 adjustment_factor *= 1.2  # 20% increase for weight gain
 
             # Time-based adjustments
-            weight_loss_rate = feeding_goals.get(
-                "weight_loss_rate", "moderate")
+            weight_loss_rate = feeding_goals.get("weight_loss_rate", "moderate")
             if weight_loss_rate == "aggressive" and weight_goal == "lose":
                 adjustment_factor *= 0.9  # Additional 10% reduction
             elif weight_loss_rate == "gradual" and weight_goal == "lose":
@@ -391,7 +386,7 @@ class HealthCalculator:
 
     @staticmethod
     def calculate_diet_validation_adjustment(
-        diet_validation: dict[str, Any], special_diets: list[str]
+        diet_validation: Dict[str, Any], special_diets: List[str]
     ) -> float:
         """Calculate portion adjustment based on diet validation results.
 
@@ -495,9 +490,9 @@ class HealthCalculator:
         calculated_portion: float,
         dog_weight: float,
         life_stage: LifeStage,
-        special_diets: list[str],
-        diet_validation: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        special_diets: List[str],
+        diet_validation: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """Validate calculated portion for safety concerns.
 
         Args:
@@ -571,7 +566,7 @@ class HealthCalculator:
         return safety_result
 
     @staticmethod
-    def get_diet_interaction_effects(special_diets: list[str]) -> dict[str, Any]:
+    def get_diet_interaction_effects(special_diets: List[str]) -> Dict[str, Any]:
         """Analyze potential interactions between special diets.
 
         Args:
@@ -657,10 +652,10 @@ class HealthCalculator:
 
     @staticmethod
     def analyze_feeding_history(
-        feeding_events: list[dict[str, Any]],
+        feeding_events: List[Dict[str, Any]],
         target_calories: float,
         food_calories_per_gram: float = 3.5,
-    ) -> dict[str, Any]:
+    ) -> Dict[str, Any]:
         """Analyze feeding history for patterns and recommendations.
 
         Args:
@@ -685,7 +680,7 @@ class HealthCalculator:
         for event in feeding_events:
             event_time = event.get("time")
             if isinstance(event_time, str):
-                event_time = datetime.fromisoformat(event_time)
+                event_time = datetime.fromisoformat(event_time.replace("Z", "+00:00"))
 
             if event_time and event_time > week_ago:
                 date_key = event_time.date()
@@ -742,11 +737,9 @@ class HealthCalculator:
 
         # Meal frequency recommendations
         if avg_daily_meals < 1.5:
-            recommendations.append(
-                "Consider splitting daily food into 2+ meals")
+            recommendations.append("Consider splitting daily food into 2+ meals")
         elif avg_daily_meals > 4:
-            recommendations.append(
-                "Consider consolidating into 2-3 larger meals")
+            recommendations.append("Consider consolidating into 2-3 larger meals")
 
         return {
             "status": status,
@@ -760,11 +753,11 @@ class HealthCalculator:
 
     @staticmethod
     def calculate_ideal_weight_range(
-        breed: str | None = None,
-        height_cm: float | None = None,
+        breed: Optional[str] = None,
+        height_cm: Optional[float] = None,
         current_weight: float = 0,
-        age_months: int | None = None,
-    ) -> tuple[float, float]:
+        age_months: Optional[int] = None,
+    ) -> Tuple[float, float]:
         """Calculate ideal weight range for a dog.
 
         Args:
@@ -819,7 +812,7 @@ class HealthCalculator:
         return (10.0, 30.0)  # Default medium dog range
 
     @staticmethod
-    def generate_health_report(health_metrics: HealthMetrics) -> dict[str, Any]:
+    def generate_health_report(health_metrics: HealthMetrics) -> Dict[str, Any]:
         """Generate a detailed health report with recommendations."""
         report = {
             "timestamp": dt_util.now().isoformat(),
@@ -840,25 +833,23 @@ class HealthCalculator:
         return report
 
     @staticmethod
-    def _assess_weight(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_weight(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
         if health_metrics.ideal_weight and health_metrics.current_weight:
             weight_ratio = health_metrics.current_weight / health_metrics.ideal_weight
             if weight_ratio < 0.85:
                 report["areas_of_concern"].append("underweight")
-                report["recommendations"].append(
-                    "Consult vet about weight gain plan")
+                report["recommendations"].append("Consult vet about weight gain plan")
                 report["health_score"] -= 15
             elif weight_ratio > 1.2:
                 report["areas_of_concern"].append("overweight")
-                report["recommendations"].append(
-                    "Implement weight management plan")
+                report["recommendations"].append("Implement weight management plan")
                 report["health_score"] -= 10
             else:
                 report["positive_indicators"].append("healthy_weight")
 
     @staticmethod
     def _assess_body_condition(
-        health_metrics: HealthMetrics, report: dict[str, Any]
+        health_metrics: HealthMetrics, report: Dict[str, Any]
     ) -> None:
         if not health_metrics.body_condition_score:
             return
@@ -874,15 +865,14 @@ class HealthCalculator:
         elif bcs in [BodyConditionScore.OBESE, BodyConditionScore.SEVERELY_OBESE]:
             report["overall_status"] = "needs_attention"
             report["areas_of_concern"].append("obesity")
-            report["recommendations"].append(
-                "Urgent weight management required")
+            report["recommendations"].append("Urgent weight management required")
             report["health_score"] -= 20
         elif bcs == BodyConditionScore.IDEAL:
             report["positive_indicators"].append("ideal_body_condition")
 
     @staticmethod
     def _assess_health_conditions(
-        health_metrics: HealthMetrics, report: dict[str, Any]
+        health_metrics: HealthMetrics, report: Dict[str, Any]
     ) -> None:
         serious_conditions = {
             "diabetes",
@@ -901,7 +891,7 @@ class HealthCalculator:
                 report["health_score"] -= 15
 
     @staticmethod
-    def _assess_age(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_age(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
         if not health_metrics.age_months:
             return
         age_years = health_metrics.age_months / 12
@@ -913,13 +903,11 @@ class HealthCalculator:
                 "Monitor growth rate and adjust portions accordingly",
             )
         elif age_years > 7:
-            report["recommendations"].append(
-                "Consider senior health screening")
-            report["recommendations"].append(
-                "Monitor for age-related conditions")
+            report["recommendations"].append("Consider senior health screening")
+            report["recommendations"].append("Monitor for age-related conditions")
 
     @staticmethod
-    def _assess_activity(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_activity(health_metrics: HealthMetrics, report: Dict[str, Any]) -> None:
         if health_metrics.activity_level == ActivityLevel.VERY_LOW:
             report["recommendations"].append(
                 "Gradually increase physical activity if health permits",
@@ -928,7 +916,7 @@ class HealthCalculator:
             report["positive_indicators"].append("excellent_activity_level")
 
     @staticmethod
-    def _finalize_status(report: dict[str, Any]) -> None:
+    def _finalize_status(report: Dict[str, Any]) -> None:
         score = report["health_score"]
         if score >= 90:
             report["overall_status"] = "excellent"

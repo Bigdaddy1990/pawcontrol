@@ -18,57 +18,51 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import copy
 import json
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigFlowResult
+from custom_components.pawcontrol.const import (
+    CONF_DASHBOARD_MODE,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_GPS_ACCURACY_FILTER,
+    CONF_GPS_DISTANCE_FILTER,
+    CONF_GPS_UPDATE_INTERVAL,
+    CONF_NOTIFICATIONS,
+    CONF_QUIET_END,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    CONF_REMINDER_REPEAT_MIN,
+    CONF_RESET_TIME,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_DISTANCE_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_REMINDER_REPEAT_MIN,
+    DEFAULT_RESET_TIME,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
+from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.const import CONF_DASHBOARD_MODE
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_DISTANCE_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
-from custom_components.pawcontrol.const import CONF_QUIET_END
-from custom_components.pawcontrol.const import CONF_QUIET_HOURS
-from custom_components.pawcontrol.const import CONF_QUIET_START
-from custom_components.pawcontrol.const import CONF_REMINDER_REPEAT_MIN
-from custom_components.pawcontrol.const import CONF_RESET_TIME
-from custom_components.pawcontrol.const import DEFAULT_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_DISTANCE_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import DEFAULT_REMINDER_REPEAT_MIN
-from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.entity_factory import EntityFactory
-from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 
 
 @pytest.fixture
@@ -132,10 +126,8 @@ def complex_config_entry():
                 "gps_config": {
                     "device_id": "gps_tracker_001",
                     "geofences": [
-                        {"name": "Home", "lat": 51.5074,
-                            "lon": -0.1278, "radius": 100},
-                        {"name": "Park", "lat": 51.5080,
-                            "lon": -0.1290, "radius": 50},
+                        {"name": "Home", "lat": 51.5074, "lon": -0.1278, "radius": 100},
+                        {"name": "Park", "lat": 51.5080, "lon": -0.1290, "radius": 50},
                     ],
                 },
             },
@@ -491,14 +483,13 @@ class TestConfigurationMigrationScenarios:
         )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        assert all(key in result["data"] for key in new_settings)
+        assert all(key in result["data"] for key in new_settings.keys())
 
     @pytest.mark.asyncio
     async def test_dog_module_configuration_evolution(self, advanced_options_flow):
         """Test evolution of dog module configuration."""
         # Add new modules to existing dog
-        existing_dog = advanced_options_flow._config_entry.data[CONF_DOGS][0].copy(
-        )
+        existing_dog = advanced_options_flow._config_entry.data[CONF_DOGS][0].copy()
         existing_modules = existing_dog.get("modules", {})
 
         # Add new modules
@@ -545,8 +536,7 @@ class TestSecurityValidationScenarios:
             )
 
             # Should either succeed with sanitized ID or show form again
-            assert result["type"] in [
-                FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+            assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
     @pytest.mark.asyncio
     async def test_dog_name_injection_prevention(self, advanced_options_flow):
@@ -876,8 +866,7 @@ class TestAdvancedErrorRecoveryScenarios:
     async def test_concurrent_modification_handling(self, advanced_options_flow):
         """Test handling of concurrent configuration modifications."""
         # Simulate config being modified externally during options flow
-        original_config = copy.deepcopy(
-            advanced_options_flow._config_entry.data)
+        original_config = copy.deepcopy(advanced_options_flow._config_entry.data)
 
         # Start editing a dog
         advanced_options_flow._current_dog = original_config[CONF_DOGS][0]
@@ -902,7 +891,7 @@ class TestAdvancedErrorRecoveryScenarios:
         """Test recovery from network timeouts during configuration saves."""
         # Simulate network timeout
         advanced_options_flow.hass.config_entries.async_update_entry.side_effect = (
-            TimeoutError()
+            asyncio.TimeoutError()
         )
 
         result = await advanced_options_flow.async_step_gps_settings(
@@ -1018,8 +1007,7 @@ class TestPerformanceValidationScenarios:
 
         # Apply all changes rapidly
         for step_name, config in config_changes:
-            step_method = getattr(advanced_options_flow,
-                                  f"async_step_{step_name}")
+            step_method = getattr(advanced_options_flow, f"async_step_{step_name}")
             await step_method(config)
 
         end_time = time.time()
@@ -1071,7 +1059,7 @@ class TestPerformanceValidationScenarios:
         start_time = time.time()
 
         # Validate multiple schemas rapidly
-        for schema, data in zip(schemas, test_data_sets, strict=False):
+        for schema, data in zip(schemas, test_data_sets):
             validated = schema(data)
             assert validated is not None
 

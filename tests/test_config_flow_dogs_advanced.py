@@ -18,63 +18,63 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import copy
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
 import voluptuous as vol
+from custom_components.pawcontrol.config_flow_base import (
+    DOG_ID_PATTERN,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+)
+from custom_components.pawcontrol.config_flow_dogs import (
+    DIET_COMPATIBILITY_RULES,
+    DogManagementMixin,
+)
+from custom_components.pawcontrol.const import (
+    CONF_BREAKFAST_TIME,
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_DINNER_TIME,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_FOOD_TYPE,
+    CONF_GPS_SOURCE,
+    CONF_LUNCH_TIME,
+    CONF_MEALS_PER_DAY,
+    CONF_MODULES,
+    CONF_SNACK_TIMES,
+    MAX_DOG_AGE,
+    MAX_DOG_NAME_LENGTH,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_NAME_LENGTH,
+    MIN_DOG_WEIGHT,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_VISITOR,
+    MODULE_WALK,
+    SPECIAL_DIET_OPTIONS,
+)
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.config_flow_base import DOG_ID_PATTERN
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
-from custom_components.pawcontrol.config_flow_dogs import DIET_COMPATIBILITY_RULES
-from custom_components.pawcontrol.config_flow_dogs import DogManagementMixin
-from custom_components.pawcontrol.const import CONF_BREAKFAST_TIME
-from custom_components.pawcontrol.const import CONF_DAILY_FOOD_AMOUNT
-from custom_components.pawcontrol.const import CONF_DINNER_TIME
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_FOOD_TYPE
-from custom_components.pawcontrol.const import CONF_GPS_SOURCE
-from custom_components.pawcontrol.const import CONF_LUNCH_TIME
-from custom_components.pawcontrol.const import CONF_MEALS_PER_DAY
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import CONF_SNACK_TIMES
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_GROOMING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_MEDICATION
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_TRAINING
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
 
 
 class MockDogConfigFlow(DogManagementMixin):
@@ -83,11 +83,11 @@ class MockDogConfigFlow(DogManagementMixin):
     def __init__(self, hass: HomeAssistant):
         """Initialize mock config flow."""
         self.hass = hass
-        self._dogs: list[dict[str, Any]] = []
-        self._errors: dict[str, str] = {}
-        self._validation_cache: dict[str, Any] = {}
-        self._current_dog_config: dict[str, Any] | None = None
-        self._global_modules: dict[str, Any] = {}
+        self._dogs: List[Dict[str, Any]] = []
+        self._errors: Dict[str, str] = {}
+        self._validation_cache: Dict[str, Any] = {}
+        self._current_dog_config: Dict[str, Any] | None = None
+        self._global_modules: Dict[str, Any] = {}
 
     def async_show_form(self, **kwargs) -> ConfigFlowResult:
         """Mock form display."""
@@ -128,7 +128,7 @@ class MockDogConfigFlow(DogManagementMixin):
         return min_weight <= weight <= max_weight
 
     async def _generate_smart_dog_id_suggestion(
-        self, user_input: dict[str, Any] | None
+        self, user_input: Dict[str, Any] | None
     ) -> str:
         """Generate smart dog ID suggestion."""
         if user_input and user_input.get(CONF_DOG_NAME):
@@ -136,11 +136,11 @@ class MockDogConfigFlow(DogManagementMixin):
             return base_name[:20]
         return f"dog_{len(self._dogs) + 1}"
 
-    async def _suggest_dog_breed(self, user_input: dict[str, Any] | None) -> str:
+    async def _suggest_dog_breed(self, user_input: Dict[str, Any] | None) -> str:
         """Suggest dog breed based on input."""
         return ""
 
-    def _get_available_device_trackers(self) -> dict[str, str]:
+    def _get_available_device_trackers(self) -> Dict[str, str]:
         """Get available device trackers."""
         return {
             "device_tracker.phone_1": "Phone 1",
@@ -148,7 +148,7 @@ class MockDogConfigFlow(DogManagementMixin):
             "device_tracker.car": "Family Car",
         }
 
-    def _get_available_person_entities(self) -> dict[str, str]:
+    def _get_available_person_entities(self) -> Dict[str, str]:
         """Get available person entities."""
         return {
             "person.owner": "Owner",
@@ -602,8 +602,7 @@ class TestMultiDogSetupWorkflows:
                     assert result3["step_id"] == "add_another_dog"
             elif modules_config["enable_feeding"]:
                 assert result2["step_id"] == "dog_feeding"
-                feeding_config = {CONF_MEALS_PER_DAY: 2,
-                                  CONF_DAILY_FOOD_AMOUNT: 400}
+                feeding_config = {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 400}
                 result3 = await mock_config_flow.async_step_dog_feeding(feeding_config)
                 if modules_config["enable_health"]:
                     assert result3["step_id"] == "dog_health"
@@ -796,8 +795,7 @@ class TestAdvancedDietValidationScenarios:
         # Should have validation warnings/conflicts for this many diets
         if "feeding_config" in dog:
             diet_validation = dog["feeding_config"].get("diet_validation", {})
-            assert diet_validation.get(
-                "total_diets") == len(SPECIAL_DIET_OPTIONS)
+            assert diet_validation.get("total_diets") == len(SPECIAL_DIET_OPTIONS)
 
     def test_diet_compatibility_rules_validation(self, mock_config_flow):
         """Test the diet compatibility rules validation logic."""
@@ -875,8 +873,7 @@ class TestPerformanceAndStressScenarios:
 
         # All should complete successfully
         for i, result in enumerate(results):
-            assert not isinstance(
-                result, Exception), f"Task {i} failed: {result}"
+            assert not isinstance(result, Exception), f"Task {i} failed: {result}"
             assert result["valid"] is True
 
         # Should take some time due to rate limiting
@@ -1084,8 +1081,7 @@ class TestPerformanceAndStressScenarios:
         results = await asyncio.gather(*add_tasks, return_exceptions=True)
 
         # At least some should succeed (the first one definitely should)
-        successful_results = [
-            r for r in results if not isinstance(r, Exception)]
+        successful_results = [r for r in results if not isinstance(r, Exception)]
         assert len(successful_results) >= 1
 
         # The validation cache should handle concurrent access
@@ -1102,7 +1098,7 @@ class TestErrorRecoveryAndEdgeCases:
         with patch.object(
             mock_config_flow, "_async_validate_dog_config"
         ) as mock_validate:
-            mock_validate.side_effect = TimeoutError()
+            mock_validate.side_effect = asyncio.TimeoutError()
 
             dog_config = {
                 CONF_DOG_ID: "timeout_dog",
@@ -1288,8 +1284,7 @@ class TestErrorRecoveryAndEdgeCases:
     async def test_gps_configuration_edge_cases(self, mock_config_flow):
         """Test edge cases in GPS configuration."""
         # Setup dog first
-        dog_config = {CONF_DOG_ID: "gps_test_dog",
-                      CONF_DOG_NAME: "GPS Test Dog"}
+        dog_config = {CONF_DOG_ID: "gps_test_dog", CONF_DOG_NAME: "GPS Test Dog"}
         await mock_config_flow.async_step_add_dog(dog_config)
         await mock_config_flow.async_step_dog_modules({"enable_gps": True})
 
@@ -1336,8 +1331,7 @@ class TestErrorRecoveryAndEdgeCases:
 
             # Verify GPS config was stored
             if mock_config_flow._current_dog_config:
-                gps_config = mock_config_flow._current_dog_config.get(
-                    "gps_config", {})
+                gps_config = mock_config_flow._current_dog_config.get("gps_config", {})
                 assert CONF_GPS_SOURCE in gps_config
                 assert gps_config[CONF_GPS_SOURCE] == case["config"][CONF_GPS_SOURCE]
 
@@ -1403,7 +1397,7 @@ class TestCrossValidationAndConsistency:
             assert result3["type"] == FlowResultType.FORM
 
         # Verify feeding configurations make sense relative to dog sizes
-        for _i, dog in enumerate(mock_config_flow._dogs):
+        for i, dog in enumerate(mock_config_flow._dogs):
             feeding_config = dog["feeding_config"]
             dog_weight = dog[CONF_DOG_WEIGHT]
             daily_amount = feeding_config[CONF_DAILY_FOOD_AMOUNT]

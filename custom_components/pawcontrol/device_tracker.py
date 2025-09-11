@@ -5,46 +5,49 @@ device tracker entities. It supports real-time location tracking, geofencing,
 route recording, and integration with Home Assistant's map and zone features.
 Designed to meet Home Assistant's Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_BATTERY_LEVEL
-from homeassistant.const import ATTR_GPS_ACCURACY
-from homeassistant.const import ATTR_LATITUDE
-from homeassistant.const import ATTR_LONGITUDE
-from homeassistant.const import STATE_HOME
-from homeassistant.const import STATE_NOT_HOME
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_BATTERY_LEVEL,
+    ATTR_GPS_ACCURACY,
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_GPS
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability
-LocationTuple = tuple[float, float]  # (latitude, longitude)
-AttributeDict = dict[str, Any]
+LocationTuple = Tuple[float, float]  # (latitude, longitude)
+AttributeDict = Dict[str, Any]
 
 # GPS tracking constants
 DEFAULT_GPS_ACCURACY = 100  # meters
@@ -56,7 +59,7 @@ MAX_GPS_AGE = timedelta(minutes=30)  # Maximum age for GPS data
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
-    entities: list[PawControlDeviceTracker],
+    entities: List[PawControlDeviceTracker],
     batch_size: int = 8,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -81,7 +84,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -120,25 +123,23 @@ async def async_setup_entry(
 
     if runtime_data:
         coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
+        dogs: List[Dict[str, Any]] = runtime_data.get("dogs", [])
     else:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
         dogs = entry.data.get(CONF_DOGS, [])
 
-    entities: list[PawControlDeviceTracker] = []
+    entities: List[PawControlDeviceTracker] = []
 
     # Create device tracker entities for dogs with GPS enabled
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+        modules: Dict[str, bool] = dog.get("modules", {})
 
         # Only create device tracker if GPS module is enabled
         if modules.get(MODULE_GPS, False):
-            _LOGGER.debug(
-                "Creating device tracker for dog: %s (%s)", dog_name, dog_id)
-            entities.append(PawControlDeviceTracker(
-                coordinator, dog_id, dog_name))
+            _LOGGER.debug("Creating device tracker for dog: %s (%s)", dog_name, dog_id)
+            entities.append(PawControlDeviceTracker(coordinator, dog_id, dog_name))
 
     if entities:
         # Add entities in smaller batches to prevent Entity Registry overload
@@ -198,13 +199,13 @@ class PawControlDeviceTracker(
         }
 
         # Internal state
-        self._last_known_location: LocationTuple | None = None
-        self._last_update_time: datetime | None = None
-        self._location_history: list[dict[str, Any]] = []
-        self._current_zone: str | None = None
+        self._last_known_location: Optional[LocationTuple] = None
+        self._last_update_time: Optional[datetime] = None
+        self._location_history: List[Dict[str, Any]] = []
+        self._current_zone: Optional[str] = None
 
         # Restore previous state
-        self._restored_data: dict[str, Any] = {}
+        self._restored_data: Dict[str, Any] = {}
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
@@ -231,8 +232,7 @@ class PawControlDeviceTracker(
             if lat is not None and lon is not None:
                 self._last_known_location = (float(lat), float(lon))
 
-            _LOGGER.debug(
-                "Restored previous state for %s GPS tracker", self._dog_name)
+            _LOGGER.debug("Restored previous state for %s GPS tracker", self._dog_name)
 
     @property
     def source_type(self) -> SourceType:
@@ -244,7 +244,7 @@ class PawControlDeviceTracker(
         return SourceType.GPS
 
     @property
-    def latitude(self) -> float | None:
+    def latitude(self) -> Optional[float]:
         """Return the latitude of the dog's current location.
 
         Returns:
@@ -261,7 +261,7 @@ class PawControlDeviceTracker(
         return None
 
     @property
-    def longitude(self) -> float | None:
+    def longitude(self) -> Optional[float]:
         """Return the longitude of the dog's current location.
 
         Returns:
@@ -295,7 +295,7 @@ class PawControlDeviceTracker(
         return DEFAULT_GPS_ACCURACY
 
     @property
-    def battery_level(self) -> int | None:
+    def battery_level(self) -> Optional[int]:
         """Return the battery level of the GPS tracker.
 
         Returns:
@@ -312,7 +312,7 @@ class PawControlDeviceTracker(
         return None
 
     @property
-    def location_name(self) -> str | None:
+    def location_name(self) -> Optional[str]:
         """Return the name of the current location/zone.
 
         Determines the current zone based on GPS coordinates and
@@ -336,14 +336,13 @@ class PawControlDeviceTracker(
             return STATE_HOME
 
         # Check other configured zones
-        zone_name = self._determine_zone_from_coordinates(
-            current_lat, current_lon)
+        zone_name = self._determine_zone_from_coordinates(current_lat, current_lon)
         if zone_name:
             return zone_name
 
         return STATE_NOT_HOME
 
-    def _determine_zone_from_coordinates(self, lat: float, lon: float) -> str | None:
+    def _determine_zone_from_coordinates(self, lat: float, lon: float) -> Optional[str]:
         """Determine zone name from coordinates.
 
         Checks if the given coordinates fall within any configured
@@ -473,7 +472,7 @@ class PawControlDeviceTracker(
         else:
             return "good"
 
-    def _is_currently_moving(self, gps_data: dict[str, Any]) -> bool:
+    def _is_currently_moving(self, gps_data: Dict[str, Any]) -> bool:
         """Determine if the dog is currently moving.
 
         Args:
@@ -496,15 +495,14 @@ class PawControlDeviceTracker(
             and self._last_known_location is not None
         ):
             last_lat, last_lon = self._last_known_location
-            location_change = distance(
-                current_lat, current_lon, last_lat, last_lon)
+            location_change = distance(current_lat, current_lon, last_lat, last_lon)
 
             # Consider moving if location changed by more than threshold
             return location_change > LOCATION_UPDATE_THRESHOLD
 
         return False
 
-    def _get_movement_status(self, gps_data: dict[str, Any]) -> str:
+    def _get_movement_status(self, gps_data: Dict[str, Any]) -> str:
         """Get detailed movement status.
 
         Args:
@@ -524,7 +522,7 @@ class PawControlDeviceTracker(
         else:
             return "stationary"
 
-    def _assess_gps_signal_quality(self, gps_data: dict[str, Any]) -> str:
+    def _assess_gps_signal_quality(self, gps_data: Dict[str, Any]) -> str:
         """Assess GPS signal quality based on accuracy.
 
         Args:
@@ -546,7 +544,7 @@ class PawControlDeviceTracker(
         else:
             return "poor"
 
-    def _assess_data_freshness(self, gps_data: dict[str, Any]) -> str:
+    def _assess_data_freshness(self, gps_data: Dict[str, Any]) -> str:
         """Assess how fresh the GPS data is.
 
         Args:
@@ -574,7 +572,7 @@ class PawControlDeviceTracker(
         except (ValueError, TypeError):
             return "unknown"
 
-    def _get_tracking_status(self, gps_data: dict[str, Any]) -> str:
+    def _get_tracking_status(self, gps_data: Dict[str, Any]) -> str:
         """Get overall tracking status.
 
         Args:
@@ -685,7 +683,7 @@ class PawControlDeviceTracker(
         super()._handle_coordinator_update()
 
     def _update_location_history(
-        self, location: LocationTuple, gps_data: dict[str, Any]
+        self, location: LocationTuple, gps_data: Dict[str, Any]
     ) -> None:
         """Update the location history with a new position.
 
@@ -715,7 +713,9 @@ class PawControlDeviceTracker(
             gps_data.get("accuracy", "unknown"),
         )
 
-    def _handle_zone_change(self, old_zone: str | None, new_zone: str | None) -> None:
+    def _handle_zone_change(
+        self, old_zone: Optional[str], new_zone: Optional[str]
+    ) -> None:
         """Handle zone change events.
 
         Fires events and logs zone transitions for automation purposes.
@@ -768,7 +768,7 @@ class PawControlDeviceTracker(
             new_zone or "unknown",
         )
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_dog_data(self) -> Optional[Dict[str, Any]]:
         """Get data for this tracker's dog from the coordinator.
 
         Returns:
@@ -779,7 +779,7 @@ class PawControlDeviceTracker(
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_gps_data(self) -> dict[str, Any] | None:
+    def _get_gps_data(self) -> Optional[Dict[str, Any]]:
         """Get GPS module data for this dog.
 
         Returns:
@@ -787,7 +787,7 @@ class PawControlDeviceTracker(
         """
         return self.coordinator.get_module_data(self._dog_id, "gps")
 
-    def _get_walk_data(self) -> dict[str, Any] | None:
+    def _get_walk_data(self) -> Optional[Dict[str, Any]]:
         """Get walk module data for this dog.
 
         Returns:
@@ -796,7 +796,7 @@ class PawControlDeviceTracker(
         return self.coordinator.get_module_data(self._dog_id, "walk")
 
     async def async_update_location(
-        self, latitude: float, longitude: float, accuracy: float | None = None
+        self, latitude: float, longitude: float, accuracy: Optional[float] = None
     ) -> None:
         """Manually update the dog's location.
 
@@ -821,7 +821,7 @@ class PawControlDeviceTracker(
         # Trigger coordinator refresh to process the new data
         await self.coordinator.async_refresh_dog(self._dog_id)
 
-    def get_location_history(self, hours: int = 24) -> list[dict[str, Any]]:
+    def get_location_history(self, hours: int = 24) -> List[Dict[str, Any]]:
         """Get location history for the specified time period.
 
         Args:

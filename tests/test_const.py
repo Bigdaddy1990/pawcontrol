@@ -1,37 +1,37 @@
 """Tests for constants module."""
-from __future__ import annotations
 
 import pytest
-
-from custom_components.pawcontrol.const import ACTIVITY_LEVELS
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
-from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
-from custom_components.pawcontrol.const import EVENT_WALK_ENDED
-from custom_components.pawcontrol.const import EVENT_WALK_STARTED
-from custom_components.pawcontrol.const import FOOD_TYPES
-from custom_components.pawcontrol.const import GPS_SOURCES
-from custom_components.pawcontrol.const import HEALTH_STATUS_OPTIONS
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MEAL_TYPES
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import MOOD_OPTIONS
-from custom_components.pawcontrol.const import SERVICE_END_WALK
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.const import STORAGE_VERSION
-from custom_components.pawcontrol.const import UPDATE_INTERVALS
+from custom_components.pawcontrol.const import (
+    ACTIVITY_LEVELS,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_RESET_TIME,
+    DOG_SIZES,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MEAL_TYPES,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_START_WALK,
+    STORAGE_VERSION,
+    UPDATE_INTERVALS,
+)
 
 
 class TestConstants:
@@ -67,22 +67,21 @@ class TestConstants:
     def test_meal_types(self):
         """Test meal types constant."""
         expected_meals = ["breakfast", "lunch", "dinner", "snack"]
-        assert expected_meals == MEAL_TYPES
+        assert MEAL_TYPES == expected_meals
         assert isinstance(MEAL_TYPES, list)
         assert all(isinstance(meal, str) for meal in MEAL_TYPES)
 
     def test_food_types(self):
         """Test food types constant."""
-        expected_foods = ["dry_food", "wet_food",
-                          "barf", "home_cooked", "mixed"]
-        assert expected_foods == FOOD_TYPES
+        expected_foods = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
+        assert FOOD_TYPES == expected_foods
         assert isinstance(FOOD_TYPES, list)
         assert all(isinstance(food, str) for food in FOOD_TYPES)
 
     def test_dog_sizes(self):
         """Test dog sizes constant."""
         expected_sizes = ["toy", "small", "medium", "large", "giant"]
-        assert expected_sizes == DOG_SIZES
+        assert DOG_SIZES == expected_sizes
         assert isinstance(DOG_SIZES, list)
         assert all(isinstance(size, str) for size in DOG_SIZES)
 
@@ -97,7 +96,7 @@ class TestConstants:
             "webhook",
             "mqtt",
         ]
-        assert expected_sources == GPS_SOURCES
+        assert GPS_SOURCES == expected_sources
         assert isinstance(GPS_SOURCES, list)
         assert all(isinstance(source, str) for source in GPS_SOURCES)
 
@@ -111,22 +110,21 @@ class TestConstants:
             "unwell",
             "sick",
         ]
-        assert expected_statuses == HEALTH_STATUS_OPTIONS
+        assert HEALTH_STATUS_OPTIONS == expected_statuses
         assert isinstance(HEALTH_STATUS_OPTIONS, list)
         assert all(isinstance(status, str) for status in HEALTH_STATUS_OPTIONS)
 
     def test_mood_options(self):
         """Test mood options."""
-        expected_moods = ["happy", "neutral",
-                          "sad", "angry", "anxious", "tired"]
-        assert expected_moods == MOOD_OPTIONS
+        expected_moods = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
+        assert MOOD_OPTIONS == expected_moods
         assert isinstance(MOOD_OPTIONS, list)
         assert all(isinstance(mood, str) for mood in MOOD_OPTIONS)
 
     def test_activity_levels(self):
         """Test activity levels."""
         expected_levels = ["very_low", "low", "normal", "high", "very_high"]
-        assert expected_levels == ACTIVITY_LEVELS
+        assert ACTIVITY_LEVELS == expected_levels
         assert isinstance(ACTIVITY_LEVELS, list)
         assert all(isinstance(level, str) for level in ACTIVITY_LEVELS)
 

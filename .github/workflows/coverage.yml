@@ -6,10 +6,10 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-
+  
 env:
   PYTHON_VERSION: "3.13"
-
+  
 jobs:
   coverage:
     name: Test Coverage & Analysis
@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
+        
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -36,13 +36,13 @@ jobs:
           pip install codecov-cli
           pre-commit install --install-hooks
           pre-commit autoupdate
-
+          
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
           python -m pytest --maxfail=5 --tb=short tests/
-          python -m pytest-cov
+          python -m pytest-cov 
 
       - name: Codecov
         uses: codecov/codecov-action@v5.5.1

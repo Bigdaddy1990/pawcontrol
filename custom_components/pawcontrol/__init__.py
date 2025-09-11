@@ -7,12 +7,12 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
-from typing import Final
+from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -22,9 +22,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import PLATFORMS
+from .const import (
+    CONF_DOGS,
+    DOMAIN,
+    PLATFORMS,
+)
 from .exceptions import PawControlSetupError
 from .types import DogConfigData
 
@@ -56,8 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Raises:
         ConfigEntryNotReady: If setup cannot be completed
     """
-    _LOGGER.info("Setting up Paw Control integration entry: %s",
-                 entry.entry_id)
+    _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     try:
         # Import core components
@@ -81,8 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get entity profile
     entity_profile = entry.options.get("entity_profile", "standard")
     if entity_profile not in ENTITY_PROFILES:
-        _LOGGER.warning(
-            "Unknown profile '%s', using 'standard'", entity_profile)
+        _LOGGER.warning("Unknown profile '%s', using 'standard'", entity_profile)
         entity_profile = "standard"
 
     try:
@@ -98,8 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         walk_manager = WalkManager()
 
         # Initialize managers with dog configurations
-        dog_ids = [dog.get("dog_id")
-                   for dog in dogs_config if dog.get("dog_id")]
+        dog_ids = [dog.get("dog_id") for dog in dogs_config if dog.get("dog_id")]
 
         await data_manager.async_initialize(dogs_config)
         await feeding_manager.async_initialize(dogs_config)
@@ -157,8 +156,7 @@ def _get_needed_platforms(dogs_config: list[DogConfigData]) -> list[Platform]:
     enabled_modules = set()
     for dog in dogs_config:
         modules = dog.get("modules", {})
-        enabled_modules.update(
-            name for name, enabled in modules.items() if enabled)
+        enabled_modules.update(name for name, enabled in modules.items() if enabled)
 
     # Add platforms based on enabled modules
     if "feeding" in enabled_modules:

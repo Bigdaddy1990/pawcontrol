@@ -15,7 +15,9 @@ Additional Test Areas:
 - Memory efficiency with large option sets
 - Configuration migration and backward compatibility
 """
+
 # ruff: noqa: F403, F405
+
 from __future__ import annotations
 
 from .select_edge_cases_common import *
@@ -222,8 +224,7 @@ class TestDynamicOptionListUpdates:
 
         # Current option is now invalid for new list
         with pytest.raises(HomeAssistantError):
-            # No longer valid
-            await dynamic_select.async_select_option("initial2")
+            await dynamic_select.async_select_option("initial2")  # No longer valid
 
     def test_empty_options_list_handling(self, mock_coordinator):
         """Test handling of empty options list."""
@@ -549,8 +550,7 @@ class TestEntityRegistryCollisionResolution:
     def test_device_info_collision_prevention(self, mock_coordinator):
         """Test device info collision prevention."""
         # Create selects for same dog but different types
-        select_types = ["size", "performance",
-                        "food_type", "walk_mode", "gps_source"]
+        select_types = ["size", "performance", "food_type", "walk_mode", "gps_source"]
         selects = []
 
         for select_type in select_types:
@@ -934,7 +934,7 @@ class TestConfigurationMigrationBackwardCompatibility:
             "normal": "balanced",  # Old -> New performance mode
         }
 
-        for new_value in legacy_value_mappings.values():
+        for old_value, new_value in legacy_value_mappings.items():
             # Simulate select with legacy initial value
             select = PawControlSelectBase(
                 coordinator=mock_coordinator,

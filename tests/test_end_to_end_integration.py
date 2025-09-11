@@ -13,45 +13,45 @@ Tests:
 - Performance under load
 - HACS compatibility
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol import (
+    async_setup,
+    async_setup_entry,
+    async_unload_entry,
+)
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+    PLATFORMS,
+    SERVICE_FEED_DOG,
+    SERVICE_START_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
-
-from custom_components.pawcontrol import async_setup
-from custom_components.pawcontrol import async_setup_entry
-from custom_components.pawcontrol import async_unload_entry
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import PLATFORMS
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -234,8 +234,7 @@ class TestEndToEndIntegration:
                 [Platform.SENSOR, Platform.BUTTON, Platform.SELECT]
             )
         if enabled_modules.get(MODULE_GPS):
-            expected_platforms.extend(
-                [Platform.DEVICE_TRACKER, Platform.BINARY_SENSOR])
+            expected_platforms.extend([Platform.DEVICE_TRACKER, Platform.BINARY_SENSOR])
         if enabled_modules.get(MODULE_HEALTH):
             expected_platforms.extend(
                 [Platform.SENSOR, Platform.DATE, Platform.DATETIME]
@@ -349,8 +348,7 @@ class TestEndToEndIntegration:
             assert setup_result is True
 
         setup_time = datetime.now() - start_time
-        _LOGGER.info(
-            f"Multi-dog setup completed in {setup_time.total_seconds():.2f}s")
+        _LOGGER.info(f"Multi-dog setup completed in {setup_time.total_seconds():.2f}s")
 
         # Verify all dogs were configured
         entry_data = hass.data[DOMAIN][mock_multi_dog_entry.entry_id]
@@ -510,8 +508,7 @@ class TestEndToEndIntegration:
             ) as mock_dog_data,
         ):
             # Setup consistent mock responses
-            mock_feeding.async_get_feeding_data.return_value = {
-                "meals_today": 1}
+            mock_feeding.async_get_feeding_data.return_value = {"meals_today": 1}
             mock_walk.async_get_walk_data.return_value = {"walks_today": 1}
             mock_dog_data.async_get_dog_data.return_value = {
                 "health": {"status": "good"}
@@ -575,7 +572,7 @@ class TestEndToEndIntegration:
             coordinator, "feeding_manager", new=AsyncMock()
         ) as mock_feeding:
             # Scenario 1: Manager timeout
-            mock_feeding.async_get_feeding_data.side_effect = TimeoutError(
+            mock_feeding.async_get_feeding_data.side_effect = asyncio.TimeoutError(
                 "Timeout test"
             )
 
@@ -598,8 +595,7 @@ class TestEndToEndIntegration:
 
             # Scenario 3: Recovery after error
             mock_feeding.async_get_feeding_data.side_effect = None
-            mock_feeding.async_get_feeding_data.return_value = {
-                "meals_today": 1}
+            mock_feeding.async_get_feeding_data.return_value = {"meals_today": 1}
 
             # Should recover successfully
             await coordinator._async_update_data()
@@ -684,8 +680,7 @@ class TestEndToEndIntegration:
         # Version format validation
         version = manifest.get("version", "")
         assert version, "Version must be specified"
-        assert len(version.split(".")
-                   ) >= 2, "Version must follow semantic versioning"
+        assert len(version.split(".")) >= 2, "Version must follow semantic versioning"
 
         # Integration type validation
         valid_integration_types = ["hub", "device", "service"]
@@ -857,8 +852,7 @@ class TestPerformanceEndToEnd:
 
         # Verify factory can estimate entity counts (performance planning)
         estimated_count = entity_factory.estimate_entity_count(
-            "standard", {MODULE_FEEDING: True,
-                         MODULE_GPS: True, MODULE_HEALTH: True}
+            "standard", {MODULE_FEEDING: True, MODULE_GPS: True, MODULE_HEALTH: True}
         )
 
         assert isinstance(estimated_count, int)
