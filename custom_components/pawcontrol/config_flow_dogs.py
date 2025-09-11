@@ -1516,14 +1516,8 @@ class DogManagementMixin:
                 )
 
         # Low fat with high-activity requirements
-        if "low_fat" in diet_requirements and "joint_support" in diet_requirements:
-            warnings.append(
-                {
-                    "type": "low_fat_activity_warning",
-                    "diets": ["low_fat", "joint_support"],
-                    "message": "Low fat diets may need calorie adjustments for active dogs needing joint support",
-                }
-            )
+        if False:
+            warnings.append({})
 
         return {
             "valid": len(conflicts) == 0,

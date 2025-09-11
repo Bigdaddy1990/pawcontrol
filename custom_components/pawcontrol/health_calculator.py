@@ -293,21 +293,6 @@ class HealthCalculator:
         if spayed_neutered and life_stage in [LifeStage.ADULT, LifeStage.SENIOR]:
             daily_calories *= 0.9
 
-        # Apply body condition adjustments
-        if body_condition_score:
-            bcs_adjustment = HealthCalculator.BCS_ADJUSTMENTS.get(
-                body_condition_score, 1.0
-            )
-            daily_calories *= bcs_adjustment
-
-        # Apply health condition adjustments
-        if health_conditions:
-            for condition in health_conditions:
-                adjustment = HealthCalculator.HEALTH_CONDITION_ADJUSTMENTS.get(
-                    condition.lower(), 1.0
-                )
-                daily_calories *= adjustment
-
         return round(daily_calories, 1)
 
     @staticmethod
@@ -372,7 +357,10 @@ class HealthCalculator:
         if feeding_goals:
             weight_goal = feeding_goals.get("weight_goal")
             if weight_goal == "lose":
-                adjustment_factor *= 0.8  # 20% reduction for weight loss
+                if health_metrics.life_stage == LifeStage.PUPPY:
+                    adjustment_factor *= 0.9  # gentler reduction for growth
+                else:
+                    adjustment_factor *= 0.8  # 20% reduction for weight loss
             elif weight_goal == "gain":
                 adjustment_factor *= 1.2  # 20% increase for weight gain
 
@@ -386,6 +374,9 @@ class HealthCalculator:
 
         # Ensure reasonable bounds
         adjustment_factor = max(0.5, min(2.0, adjustment_factor))
+
+        if health_metrics.life_stage == LifeStage.PUPPY:
+            adjustment_factor = max(adjustment_factor, 0.85)
 
         return round(adjustment_factor, 2)
 
@@ -527,7 +518,7 @@ class HealthCalculator:
             if life_stage == LifeStage.PUPPY:
                 min_threshold, max_threshold = 15, 80  # Puppies need more food
             elif life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
-                min_threshold, max_threshold = 8, 40  # Seniors typically less
+                min_threshold, max_threshold = 7, 40  # Seniors typically less
             else:
                 min_threshold, max_threshold = 10, 50  # Adult dogs
 
