@@ -490,9 +490,8 @@ async def async_setup_entry(
             for i in range(0, len(all_entities), batch_size)
         ]
 
-        for batch in batches:
-            await add_batch(batch)
-        asyncio.gather(*[])  # Call gather for test instrumentation
+        tasks = [add_batch(batch) for batch in batches]
+        await asyncio.gather(*tasks)
 
         _LOGGER.info(
             "Created %d button entities for %d dogs (profile-based batching) - %d%% performance improvement",
