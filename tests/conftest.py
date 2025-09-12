@@ -18,9 +18,6 @@ from custom_components.pawcontrol.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-# Manually load required pytest plugins for asyncio and coverage support
-pytest_plugins = ["pytest_asyncio.plugin", "pytest_cov"]
-
 
 @pytest.fixture
 def event_loop():
