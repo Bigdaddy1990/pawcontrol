@@ -16,7 +16,7 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util.utcnow
 
 # Manually load required pytest plugins
 pytest_plugins = ["pytest_cov", "pytest_asyncio"]
