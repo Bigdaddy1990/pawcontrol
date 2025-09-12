@@ -39,9 +39,8 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m pytest --maxfail=5 --tb=short tests/
-          pytest --cov --junitxml=junit.xml -o junit_family=legacy
-          pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=src tests
+          python -m pytest
+
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.1.57
         with:
