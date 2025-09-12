@@ -31,6 +31,7 @@ async def hass(tmp_path):
 @pytest.mark.asyncio
 async def test_full_config_flow(hass):
     """Test a full successful config flow."""
+    hass.config_entries.flow._async_add_handler(DOMAIN, PawControlConfigFlow)
     init = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
