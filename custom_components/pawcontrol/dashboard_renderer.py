@@ -8,6 +8,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -21,10 +22,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from .dashboard_cards import DogCardGenerator
-from .dashboard_cards import ModuleCardGenerator
-from .dashboard_cards import OverviewCardGenerator
-from .dashboard_cards import StatisticsCardGenerator
+from .dashboard_cards import (
+    DogCardGenerator,
+    ModuleCardGenerator,
+    OverviewCardGenerator,
+    StatisticsCardGenerator,
+)
 from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)

@@ -8,6 +8,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -15,21 +16,15 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
-from typing import Final
+from typing import Any, Final
 
-from homeassistant.components import bluetooth
-from homeassistant.components import dhcp
-from homeassistant.components import usb
-from homeassistant.components import zeroconf
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.components import bluetooth, dhcp, usb, zeroconf
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
-from .const import DEVICE_CATEGORIES
-from .const import DOMAIN
+from .const import DEVICE_CATEGORIES, DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)

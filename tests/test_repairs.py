@@ -9,58 +9,58 @@ This test suite covers all aspects of the repairs system including:
 The repairs module is critical for automatic problem detection and
 user-guided repair flows, so comprehensive testing is essential.
 """
+
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import voluptuous as vol
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+)
+from custom_components.pawcontrol.repairs import (
+    ISSUE_COORDINATOR_ERROR,
+    ISSUE_DUPLICATE_DOG_IDS,
+    ISSUE_INVALID_DOG_DATA,
+    ISSUE_INVALID_GPS_CONFIG,
+    ISSUE_MISSING_DOG_CONFIG,
+    ISSUE_MISSING_NOTIFICATIONS,
+    ISSUE_MODULE_CONFLICT,
+    ISSUE_OUTDATED_CONFIG,
+    ISSUE_PERFORMANCE_WARNING,
+    ISSUE_STORAGE_WARNING,
+    REPAIR_FLOW_CONFIG_MIGRATION,
+    REPAIR_FLOW_DOG_CONFIG,
+    REPAIR_FLOW_GPS_SETUP,
+    REPAIR_FLOW_NOTIFICATION_SETUP,
+    REPAIR_FLOW_PERFORMANCE_OPTIMIZATION,
+    PawControlRepairsFlow,
+    _check_coordinator_health,
+    _check_dog_configuration_issues,
+    _check_gps_configuration_issues,
+    _check_notification_configuration_issues,
+    _check_outdated_configuration,
+    _check_performance_issues,
+    _check_storage_issues,
+    async_check_for_issues,
+    async_create_issue,
+    async_create_repair_flow,
+)
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.repairs import _check_coordinator_health
-from custom_components.pawcontrol.repairs import _check_dog_configuration_issues
-from custom_components.pawcontrol.repairs import _check_gps_configuration_issues
-from custom_components.pawcontrol.repairs import _check_notification_configuration_issues
-from custom_components.pawcontrol.repairs import _check_outdated_configuration
-from custom_components.pawcontrol.repairs import _check_performance_issues
-from custom_components.pawcontrol.repairs import _check_storage_issues
-from custom_components.pawcontrol.repairs import async_check_for_issues
-from custom_components.pawcontrol.repairs import async_create_issue
-from custom_components.pawcontrol.repairs import async_create_repair_flow
-from custom_components.pawcontrol.repairs import ISSUE_COORDINATOR_ERROR
-from custom_components.pawcontrol.repairs import ISSUE_DUPLICATE_DOG_IDS
-from custom_components.pawcontrol.repairs import ISSUE_INVALID_DOG_DATA
-from custom_components.pawcontrol.repairs import ISSUE_INVALID_GPS_CONFIG
-from custom_components.pawcontrol.repairs import ISSUE_MISSING_DOG_CONFIG
-from custom_components.pawcontrol.repairs import ISSUE_MISSING_NOTIFICATIONS
-from custom_components.pawcontrol.repairs import ISSUE_MODULE_CONFLICT
-from custom_components.pawcontrol.repairs import ISSUE_OUTDATED_CONFIG
-from custom_components.pawcontrol.repairs import ISSUE_PERFORMANCE_WARNING
-from custom_components.pawcontrol.repairs import ISSUE_STORAGE_WARNING
-from custom_components.pawcontrol.repairs import PawControlRepairsFlow
-from custom_components.pawcontrol.repairs import REPAIR_FLOW_CONFIG_MIGRATION
-from custom_components.pawcontrol.repairs import REPAIR_FLOW_DOG_CONFIG
-from custom_components.pawcontrol.repairs import REPAIR_FLOW_GPS_SETUP
-from custom_components.pawcontrol.repairs import REPAIR_FLOW_NOTIFICATION_SETUP
-from custom_components.pawcontrol.repairs import REPAIR_FLOW_PERFORMANCE_OPTIMIZATION
 
 
 # Test fixtures

@@ -2,27 +2,27 @@
 
 Validates that specialized managers improve performance and don't introduce regressions.
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
-from statistics import mean
-from statistics import stdev
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from statistics import mean, stdev
+from unittest.mock import AsyncMock, Mock
 
 import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestCoordinatorPerformanceBenchmark:

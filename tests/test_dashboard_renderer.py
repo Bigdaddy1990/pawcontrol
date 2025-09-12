@@ -7,20 +7,17 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer, RenderJob
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-
-from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
-from custom_components.pawcontrol.dashboard_renderer import RenderJob
 
 
 @pytest.fixture

@@ -1,9 +1,9 @@
 """Tests for the lightweight FeedingManager."""
+
 from __future__ import annotations
 
 import sys
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from importlib import util
 from pathlib import Path
 from typing import Any

@@ -7,28 +7,30 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.const import STATE_UNKNOWN
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.dashboard_cards import (
+    DogCardGenerator,
+    HealthAwareFeedingCardGenerator,
+    ModuleCardGenerator,
+    OverviewCardGenerator,
+    StatisticsCardGenerator,
+)
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.dashboard_cards import DogCardGenerator
-from custom_components.pawcontrol.dashboard_cards import HealthAwareFeedingCardGenerator
-from custom_components.pawcontrol.dashboard_cards import ModuleCardGenerator
-from custom_components.pawcontrol.dashboard_cards import OverviewCardGenerator
-from custom_components.pawcontrol.dashboard_cards import StatisticsCardGenerator
 
 
 @pytest.fixture

@@ -5,39 +5,42 @@ device tracker entities. It supports real-time location tracking, geofencing,
 route recording, and integration with Home Assistant's map and zone features.
 Designed to meet Home Assistant's Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_BATTERY_LEVEL
-from homeassistant.const import ATTR_GPS_ACCURACY
-from homeassistant.const import ATTR_LATITUDE
-from homeassistant.const import ATTR_LONGITUDE
-from homeassistant.const import STATE_HOME
-from homeassistant.const import STATE_NOT_HOME
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_BATTERY_LEVEL,
+    ATTR_GPS_ACCURACY,
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_GPS
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)

@@ -10,52 +10,51 @@ This test suite covers all aspects of the diagnostic system including:
 
 The diagnostics module is critical for support and troubleshooting.
 """
+
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigEntryState
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.diagnostics import (
+    REDACTED_KEYS,
+    _calculate_module_usage,
+    _get_config_entry_diagnostics,
+    _get_coordinator_diagnostics,
+    _get_data_statistics,
+    _get_debug_information,
+    _get_devices_diagnostics,
+    _get_dogs_summary,
+    _get_entities_diagnostics,
+    _get_integration_status,
+    _get_loaded_platforms,
+    _get_performance_metrics,
+    _get_recent_errors,
+    _get_registered_services,
+    _get_system_diagnostics,
+    _looks_like_sensitive_string,
+    _redact_sensitive_data,
+    async_get_config_entry_diagnostics,
+)
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.diagnostics import _calculate_module_usage
-from custom_components.pawcontrol.diagnostics import _get_config_entry_diagnostics
-from custom_components.pawcontrol.diagnostics import _get_coordinator_diagnostics
-from custom_components.pawcontrol.diagnostics import _get_data_statistics
-from custom_components.pawcontrol.diagnostics import _get_debug_information
-from custom_components.pawcontrol.diagnostics import _get_devices_diagnostics
-from custom_components.pawcontrol.diagnostics import _get_dogs_summary
-from custom_components.pawcontrol.diagnostics import _get_entities_diagnostics
-from custom_components.pawcontrol.diagnostics import _get_integration_status
-from custom_components.pawcontrol.diagnostics import _get_loaded_platforms
-from custom_components.pawcontrol.diagnostics import _get_performance_metrics
-from custom_components.pawcontrol.diagnostics import _get_recent_errors
-from custom_components.pawcontrol.diagnostics import _get_registered_services
-from custom_components.pawcontrol.diagnostics import _get_system_diagnostics
-from custom_components.pawcontrol.diagnostics import _looks_like_sensitive_string
-from custom_components.pawcontrol.diagnostics import _redact_sensitive_data
-from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
-from custom_components.pawcontrol.diagnostics import REDACTED_KEYS
 
 
 # Test fixtures
