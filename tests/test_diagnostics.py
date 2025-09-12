@@ -10,6 +10,7 @@ This test suite covers all aspects of the diagnostic system including:
 
 The diagnostics module is critical for support and troubleshooting.
 """
+
 from __future__ import annotations
 
 import re

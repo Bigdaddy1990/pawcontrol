@@ -5,6 +5,7 @@ including mode selections, option choices, and status settings. All select entit
 are designed to meet Home Assistant's Platinum quality standards with full type
 annotations, async operations, and robust validation.
 """
+
 from __future__ import annotations
 
 import asyncio

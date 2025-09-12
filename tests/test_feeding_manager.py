@@ -1,4 +1,5 @@
 """Tests for the lightweight FeedingManager."""
+
 from __future__ import annotations
 
 import sys

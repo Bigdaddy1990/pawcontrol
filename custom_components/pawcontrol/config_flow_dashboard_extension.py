@@ -8,6 +8,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -5,6 +5,7 @@ device tracker entities. It supports real-time location tracking, geofencing,
 route recording, and integration with Home Assistant's map and zone features.
 Designed to meet Home Assistant's Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio

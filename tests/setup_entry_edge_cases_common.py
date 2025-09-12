@@ -1,4 +1,5 @@
 """Common tests for async_setup_entry edge cases."""
+
 from __future__ import annotations
 
 from unittest.mock import Mock

@@ -7,6 +7,7 @@ Python: 3.13+
 This module implements profile-optimized switch entities that only create switches
 for enabled modules, significantly reducing entity count and improving performance.
 """
+
 from __future__ import annotations
 
 import asyncio

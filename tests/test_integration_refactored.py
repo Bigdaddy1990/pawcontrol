@@ -3,6 +3,7 @@
 Validates that entities can properly access data through the refactored coordinator
 with manager delegation.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

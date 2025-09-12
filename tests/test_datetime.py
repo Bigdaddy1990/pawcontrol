@@ -17,6 +17,7 @@ Test Coverage:
 - Emergency notification management
 - Service call error handling
 """
+
 from __future__ import annotations
 
 import asyncio

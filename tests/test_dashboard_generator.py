@@ -1,4 +1,5 @@
 """Simplified tests for the Paw Control dashboard generator."""
+
 from __future__ import annotations
 
 from pathlib import Path

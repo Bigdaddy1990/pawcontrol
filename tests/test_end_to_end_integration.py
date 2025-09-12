@@ -13,6 +13,7 @@ Tests:
 - Performance under load
 - HACS compatibility
 """
+
 from __future__ import annotations
 
 import asyncio

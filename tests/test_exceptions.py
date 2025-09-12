@@ -1,4 +1,5 @@
 """Tests for the Paw Control exceptions module."""
+
 from __future__ import annotations
 
 from datetime import datetime

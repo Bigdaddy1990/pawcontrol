@@ -6,6 +6,7 @@ entity count estimation, and platform prioritization.
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

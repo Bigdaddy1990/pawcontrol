@@ -5,6 +5,7 @@ and support purposes. It collects system information, configuration details,
 and operational data while ensuring sensitive information is properly redacted.
 Designed to meet Home Assistant's Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import logging

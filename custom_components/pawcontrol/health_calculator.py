@@ -12,6 +12,7 @@ Provides comprehensive health metrics for dogs including:
 - Weight management recommendations
 - Diet validation integration
 """
+
 from __future__ import annotations
 
 import logging

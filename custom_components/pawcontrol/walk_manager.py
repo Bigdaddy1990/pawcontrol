@@ -7,6 +7,7 @@ Python: 3.13+
 Handles walk tracking, GPS data processing, and location-based features
 separated from the main coordinator for better maintainability.
 """
+
 from __future__ import annotations
 
 import asyncio

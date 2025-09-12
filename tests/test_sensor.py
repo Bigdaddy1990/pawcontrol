@@ -1,4 +1,5 @@
 """Tests for the Paw Control sensor platform."""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -15,6 +15,7 @@ Additional Test Areas:
 - Concurrent modification protection
 - Configuration migration edge cases
 """
+
 from __future__ import annotations
 
 import asyncio

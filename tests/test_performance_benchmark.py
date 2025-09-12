@@ -2,6 +2,7 @@
 
 Validates that specialized managers improve performance and don't introduce regressions.
 """
+
 from __future__ import annotations
 
 import asyncio

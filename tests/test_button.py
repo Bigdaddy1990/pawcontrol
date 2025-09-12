@@ -1,4 +1,5 @@
 """Comprehensive tests for PawControl button platform with profile optimization."""
+
 from __future__ import annotations
 
 import asyncio

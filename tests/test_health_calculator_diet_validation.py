@@ -6,6 +6,7 @@ Python: 3.13+
 
 Tests diet validation adjustments, conflict handling, and portion safety.
 """
+
 from __future__ import annotations
 
 import sys

@@ -4,6 +4,7 @@ This module provides comprehensive type definitions for all Paw Control
 components, ensuring type safety and better IDE support across the integration.
 Designed for Home Assistant 2025.8.2+ with Platinum quality standards.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

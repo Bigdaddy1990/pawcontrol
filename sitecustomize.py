@@ -3,6 +3,7 @@
 If the real Home Assistant package isn't available, this module
 creates lightweight stand‑ins for the parts of the API used in tests.
 """
+
 from __future__ import annotations
 
 import os

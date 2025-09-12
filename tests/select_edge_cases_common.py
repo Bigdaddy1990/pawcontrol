@@ -1,4 +1,5 @@
 """Shared imports and fixtures for select edge case tests."""
+
 from __future__ import annotations
 
 import asyncio

@@ -3,6 +3,7 @@
 This module provides core data management and notification functionality
 required for the Paw Control integration to achieve Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio

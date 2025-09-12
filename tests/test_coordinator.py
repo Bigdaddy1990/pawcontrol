@@ -1,4 +1,5 @@
 """Tests for the refactored Paw Control coordinator with specialized managers."""
+
 from __future__ import annotations
 
 import asyncio

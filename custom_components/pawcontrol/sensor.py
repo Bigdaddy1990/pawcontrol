@@ -3,6 +3,7 @@
 Performance-optimized for Home Assistant 2025.9.0+ with Python 3.13.
 Reduces entity count from 54+ to 8-18 per dog using profile-based factory.
 """
+
 from __future__ import annotations
 
 import asyncio

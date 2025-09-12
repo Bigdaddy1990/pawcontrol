@@ -5,6 +5,7 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import logging

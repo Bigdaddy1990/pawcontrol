@@ -13,6 +13,7 @@ Test Areas:
 - Switch type specific edge cases
 - Performance under stress conditions
 """
+
 from __future__ import annotations
 
 import asyncio

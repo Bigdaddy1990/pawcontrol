@@ -11,6 +11,7 @@ Features:
 - Medical condition adjustments
 - Event-based reminders with caching
 """
+
 from __future__ import annotations
 
 import asyncio

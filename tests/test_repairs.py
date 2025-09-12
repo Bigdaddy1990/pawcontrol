@@ -9,6 +9,7 @@ This test suite covers all aspects of the repairs system including:
 The repairs module is critical for automatic problem detection and
 user-guided repair flows, so comprehensive testing is essential.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

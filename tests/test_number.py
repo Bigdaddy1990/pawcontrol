@@ -4,6 +4,7 @@ Tests all number entities including base numbers, feeding numbers, walk numbers,
 GPS numbers, and health numbers. Validates proper functionality, state persistence,
 value validation, and device grouping for Gold Standard compliance.
 """
+
 from __future__ import annotations
 
 import asyncio

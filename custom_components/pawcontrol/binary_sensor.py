@@ -5,6 +5,7 @@ including status indicators, alerts, and automated detection sensors. All
 binary sensors are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust error handling.
 """
+
 from __future__ import annotations
 
 import asyncio

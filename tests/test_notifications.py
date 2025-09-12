@@ -10,6 +10,7 @@ This test suite covers all aspects of the notification system including:
 
 The notification module is critical for user experience and requires thorough testing.
 """
+
 from __future__ import annotations
 
 import asyncio
