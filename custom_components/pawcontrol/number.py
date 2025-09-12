@@ -5,21 +5,22 @@ including weight settings, timing controls, thresholds, and system parameters.
 All number entities are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust validation.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components.number import NumberDeviceClass
-from homeassistant.components.number import NumberEntity
-from homeassistant.components.number import NumberMode
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfMass
-from homeassistant.const import UnitOfSpeed
-from homeassistant.const import UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfLength,
+    UnitOfMass,
+    UnitOfSpeed,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
@@ -28,22 +29,24 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_WEIGHT
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_WEIGHT
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_WEIGHT
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_AGE,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -85,7 +88,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -137,28 +140,23 @@ async def async_setup_entry(
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating number entities for dog: %s (%s)",
-                      dog_name, dog_id)
+        _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
 
         # Base numbers - always created for every dog
-        entities.extend(_create_base_numbers(
-            coordinator, dog_id, dog_name, dog))
+        entities.extend(_create_base_numbers(coordinator, dog_id, dog_name, dog))
 
         # Module-specific numbers
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(_create_feeding_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_feeding_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
             entities.extend(_create_gps_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(_create_health_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_health_numbers(coordinator, dog_id, dog_name))
 
     # Add entities in smaller batches to prevent Entity Registry overload
     # With 46+ number entities (2 dogs), batching prevents Registry flooding
@@ -460,8 +458,7 @@ class PawControlNumberBase(
             _LOGGER.error(
                 "Failed to set %s for %s: %s", self._number_type, self._dog_name, err
             )
-            raise HomeAssistantError(
-                f"Failed to set {self._number_type}") from err
+            raise HomeAssistantError(f"Failed to set {self._number_type}") from err
 
     async def _async_set_number_value(self, value: float) -> None:
         """Set the number value implementation.
@@ -605,8 +602,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
 
         # Persist the change if the data manager is available
-        runtime_data = getattr(
-            self.coordinator.config_entry, "runtime_data", None)
+        runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
         if runtime_data and (data_manager := runtime_data.get("data_manager")):
             try:
                 await data_manager.async_update_dog_data(

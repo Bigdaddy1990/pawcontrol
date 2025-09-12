@@ -1,27 +1,29 @@
 """Text platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components.text import TextEntity
-from homeassistant.components.text import TextMode
+from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -108,8 +110,7 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlWalkNotesText(coordinator, dog_id, dog_name),
-                    PawControlCurrentWalkLabelText(
-                        coordinator, dog_id, dog_name),
+                    PawControlCurrentWalkLabelText(coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -118,8 +119,7 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlHealthNotesText(coordinator, dog_id, dog_name),
-                    PawControlMedicationNotesText(
-                        coordinator, dog_id, dog_name),
+                    PawControlMedicationNotesText(coordinator, dog_id, dog_name),
                     PawControlVetNotesText(coordinator, dog_id, dog_name),
                     PawControlGroomingNotesText(coordinator, dog_id, dog_name),
                 ]
@@ -130,8 +130,7 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlCustomMessageText(coordinator, dog_id, dog_name),
-                    PawControlEmergencyContactText(
-                        coordinator, dog_id, dog_name),
+                    PawControlEmergencyContactText(coordinator, dog_id, dog_name),
                 ]
             )
 

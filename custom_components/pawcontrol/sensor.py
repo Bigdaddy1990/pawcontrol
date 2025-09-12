@@ -3,33 +3,36 @@
 Performance-optimized for Home Assistant 2025.9.0+ with Python 3.13.
 Reduces entity count from 54+ to 8-18 per dog using profile-based factory.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
 from datetime import datetime
-from typing import Any
-from typing import Union
+from typing import Any, Union
 
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.components.sensor import SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import PERCENTAGE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+)
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .utils import create_device_info
@@ -74,8 +77,7 @@ async def async_setup_entry(
     # Get profile from options (default to 'standard')
     profile = entry.options.get("entity_profile", "standard")
 
-    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs",
-                 profile, len(dogs))
+    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs", profile, len(dogs))
 
     # PERFORMANCE OPTIMIZATION: Profile-based entity creation
     all_entities = []
@@ -122,7 +124,7 @@ async def async_setup_entry(
         # Create tasks for parallel entity addition
         tasks = []
         for i in range(0, len(all_entities), MAX_ENTITIES_PER_BATCH):
-            batch = all_entities[i: i + MAX_ENTITIES_PER_BATCH]
+            batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
             tasks.append(add_entity_batch(batch))
 
             # Add small delay between batches
@@ -275,8 +277,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
             if timestamp_str := module_data.get(timestamp_key):
                 if isinstance(timestamp_str, str):
                     with suppress(ValueError, TypeError):
-                        timestamps.append(
-                            datetime.fromisoformat(timestamp_str))
+                        timestamps.append(datetime.fromisoformat(timestamp_str))
                 elif isinstance(timestamp_str, datetime):
                     timestamps.append(timestamp_str)
 
@@ -950,8 +951,7 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
         return (
-            health_data.get("health_status",
-                            "good") if health_data else STATE_UNKNOWN
+            health_data.get("health_status", "good") if health_data else STATE_UNKNOWN
         )
 
 
@@ -1017,8 +1017,7 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
         return (
-            health_data.get(
-                "weight_trend", "stable") if health_data else STATE_UNKNOWN
+            health_data.get("weight_trend", "stable") if health_data else STATE_UNKNOWN
         )
 
 

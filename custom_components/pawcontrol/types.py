@@ -4,25 +4,25 @@ This module provides comprehensive type definitions for all Paw Control
 components, ensuring type safety and better IDE support across the integration.
 Designed for Home Assistant 2025.8.2+ with Platinum quality standards.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
-from typing import TYPE_CHECKING
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 
-from .const import ACTIVITY_LEVELS
-from .const import DOG_SIZES
-from .const import FOOD_TYPES
-from .const import GEOFENCE_TYPES
-from .const import GPS_SOURCES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MOOD_OPTIONS
+from .const import (
+    ACTIVITY_LEVELS,
+    DOG_SIZES,
+    FOOD_TYPES,
+    GEOFENCE_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MOOD_OPTIONS,
+)
 
 # Import validation constants from const.py (single source of truth)
 

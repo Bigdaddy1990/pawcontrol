@@ -15,55 +15,49 @@ Test Areas:
 - Configuration persistence and rollback scenarios
 - Performance under stress conditions
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigFlowResult
+from custom_components.pawcontrol.const import (
+    CONF_DASHBOARD_MODE,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_GPS_ACCURACY_FILTER,
+    CONF_GPS_DISTANCE_FILTER,
+    CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
+    CONF_NOTIFICATIONS,
+    CONF_QUIET_END,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    CONF_REMINDER_REPEAT_MIN,
+    CONF_RESET_TIME,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_DISTANCE_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_REMINDER_REPEAT_MIN,
+    DEFAULT_RESET_TIME,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
+from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.const import CONF_DASHBOARD_MODE
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_DISTANCE_FILTER
-from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import CONF_NOTIFICATIONS
-from custom_components.pawcontrol.const import CONF_QUIET_END
-from custom_components.pawcontrol.const import CONF_QUIET_HOURS
-from custom_components.pawcontrol.const import CONF_QUIET_START
-from custom_components.pawcontrol.const import CONF_REMINDER_REPEAT_MIN
-from custom_components.pawcontrol.const import CONF_RESET_TIME
-from custom_components.pawcontrol.const import DEFAULT_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_DISTANCE_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import DEFAULT_REMINDER_REPEAT_MIN
-from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.entity_factory import EntityFactory
-from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
 
 
 @pytest.fixture
@@ -206,8 +200,7 @@ class TestEntityProfileManagement:
     def test_performance_impact_description_all_profiles(self, options_flow):
         """Test performance impact descriptions for all profiles."""
         for profile in ENTITY_PROFILES:
-            description = options_flow._get_performance_impact_description(
-                profile)
+            description = options_flow._get_performance_impact_description(profile)
             assert isinstance(description, str)
             assert len(description) > 0
 
@@ -367,16 +360,14 @@ class TestDogManagementOperations:
     async def test_manage_dogs_navigation(self, options_flow):
         """Test dog management navigation menu."""
         # Test each action option
-        actions = ["add_dog", "edit_dog",
-                   "configure_modules", "remove_dog", "back"]
+        actions = ["add_dog", "edit_dog", "configure_modules", "remove_dog", "back"]
 
         for action in actions:
             result = await options_flow.async_step_manage_dogs({"action": action})
 
             if action == "back":
                 # Should show menu (implementation may vary)
-                assert result["type"] in [
-                    FlowResultType.FORM, FlowResultType.MENU]
+                assert result["type"] in [FlowResultType.FORM, FlowResultType.MENU]
             else:
                 # Should redirect to appropriate step
                 assert result["type"] == FlowResultType.FORM

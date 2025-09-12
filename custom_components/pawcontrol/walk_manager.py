@@ -7,12 +7,12 @@ Python: 3.13+
 Handles walk tracking, GPS data processing, and location-based features
 separated from the main coordinator for better maintainability.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.util import dt as dt_util
@@ -119,8 +119,7 @@ class WalkManager:
 
         async with self._data_lock:
             if dog_id not in self._gps_data:
-                _LOGGER.warning(
-                    "Dog %s not initialized for GPS tracking", dog_id)
+                _LOGGER.warning("Dog %s not initialized for GPS tracking", dog_id)
                 return False
 
             now = dt_util.now()
@@ -185,8 +184,7 @@ class WalkManager:
         """
         async with self._data_lock:
             if dog_id not in self._walk_data:
-                _LOGGER.warning(
-                    "Dog %s not initialized for walk tracking", dog_id)
+                _LOGGER.warning("Dog %s not initialized for walk tracking", dog_id)
                 return None
 
             if dog_id in self._current_walks:
@@ -228,8 +226,7 @@ class WalkManager:
             self._walk_data[dog_id]["walk_in_progress"] = True
             self._walk_data[dog_id]["current_walk"] = walk_data
 
-            _LOGGER.info("Started %s walk for %s (ID: %s)",
-                         walk_type, dog_id, walk_id)
+            _LOGGER.info("Started %s walk for %s (ID: %s)", walk_type, dog_id, walk_id)
             return walk_id
 
     async def async_end_walk(self, dog_id: str) -> dict[str, Any] | None:
@@ -277,10 +274,8 @@ class WalkManager:
                 walk_data["distance"] = self._calculate_total_distance(
                     walk_data["path"]
                 )
-                walk_data["average_speed"] = self._calculate_average_speed(
-                    walk_data)
-                walk_data["max_speed"] = self._calculate_max_speed(
-                    walk_data["path"])
+                walk_data["average_speed"] = self._calculate_average_speed(walk_data)
+                walk_data["max_speed"] = self._calculate_max_speed(walk_data["path"])
                 walk_data["calories_burned"] = self._estimate_calories_burned(
                     dog_id, walk_data
                 )

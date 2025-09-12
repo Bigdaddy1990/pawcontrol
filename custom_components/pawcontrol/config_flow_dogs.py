@@ -9,6 +9,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -17,50 +18,53 @@ import time
 from typing import Any
 
 import voluptuous as vol
+from custom_components.pawcontrol.config_flow_base import (
+    DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+)
+from custom_components.pawcontrol.const import (
+    CONF_BREAKFAST_TIME,
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_DINNER_TIME,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_FOOD_TYPE,
+    CONF_GPS_SOURCE,
+    CONF_LUNCH_TIME,
+    CONF_MEALS_PER_DAY,
+    CONF_MODULES,
+    CONF_SNACK_TIMES,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    GPS_ACCURACY_FILTER_SELECTOR,
+    GPS_UPDATE_INTERVAL_SELECTOR,
+    MAX_DOG_AGE,
+    MAX_DOG_NAME_LENGTH,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_NAME_LENGTH,
+    MIN_DOG_WEIGHT,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_VISITOR,
+    MODULE_WALK,
+    SPECIAL_DIET_OPTIONS,
+)
+from custom_components.pawcontrol.types import DogConfigData
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
-
-from custom_components.pawcontrol.config_flow_base import DOG_ID_PATTERN
-from custom_components.pawcontrol.config_flow_base import ENTITY_CREATION_DELAY
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
-from custom_components.pawcontrol.const import CONF_BREAKFAST_TIME
-from custom_components.pawcontrol.const import CONF_DAILY_FOOD_AMOUNT
-from custom_components.pawcontrol.const import CONF_DINNER_TIME
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_FOOD_TYPE
-from custom_components.pawcontrol.const import CONF_GPS_SOURCE
-from custom_components.pawcontrol.const import CONF_LUNCH_TIME
-from custom_components.pawcontrol.const import CONF_MEALS_PER_DAY
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import CONF_SNACK_TIMES
-from custom_components.pawcontrol.const import DEFAULT_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import GPS_ACCURACY_FILTER_SELECTOR
-from custom_components.pawcontrol.const import GPS_UPDATE_INTERVAL_SELECTOR
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_GROOMING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_MEDICATION
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_TRAINING
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
-from custom_components.pawcontrol.types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -323,8 +327,7 @@ class DogManagementMixin:
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
-        gps_options = [
-            {"value": "manual", "label": "📝 Manual GPS (configure later)"}]
+        gps_options = [{"value": "manual", "label": "📝 Manual GPS (configure later)"}]
 
         if device_trackers:
             gps_options.extend(
@@ -442,8 +445,7 @@ class DogManagementMixin:
                 )
 
             if user_input.get("snacks_enabled", False):
-                feeding_config[CONF_SNACK_TIMES] = [
-                    "10:00:00", "15:00:00", "20:00:00"]
+                feeding_config[CONF_SNACK_TIMES] = ["10:00:00", "15:00:00", "20:00:00"]
 
             self._current_dog_config["feeding_config"] = feeding_config
 
@@ -461,8 +463,7 @@ class DogManagementMixin:
         # Calculate suggested daily food amount based on weight and size
         dog_weight = self._current_dog_config.get(CONF_DOG_WEIGHT, 20)
         dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
-        suggested_amount = self._calculate_suggested_food_amount(
-            dog_weight, dog_size)
+        suggested_amount = self._calculate_suggested_food_amount(dog_weight, dog_size)
 
         schema = vol.Schema(
             {
@@ -585,8 +586,7 @@ class DogManagementMixin:
                 "weight_tracking": user_input.get("weight_tracking", True),
                 # Health-aware feeding integration
                 "ideal_weight": user_input.get(
-                    "ideal_weight", self._current_dog_config.get(
-                        CONF_DOG_WEIGHT)
+                    "ideal_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)
                 ),
                 "body_condition_score": user_input.get("body_condition_score", 5),
                 "activity_level": user_input.get("activity_level", "moderate"),
@@ -852,8 +852,7 @@ class DogManagementMixin:
                 )
 
         # Lifestyle/Care diet requirements
-        lifestyle_diets = ["organic", "raw_diet",
-                           "dental_care", "joint_support"]
+        lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]
         for diet in lifestyle_diets:
             if diet in SPECIAL_DIET_OPTIONS:
                 # Smart defaults based on dog characteristics
@@ -1060,8 +1059,7 @@ class DogManagementMixin:
         if len(dog_name) > MAX_DOG_NAME_LENGTH:
             return "dog_name_too_long"
         if len(self._lower_dog_names) != len(self._dogs):
-            self._lower_dog_names = {
-                dog[CONF_DOG_NAME].lower() for dog in self._dogs}
+            self._lower_dog_names = {dog[CONF_DOG_NAME].lower() for dog in self._dogs}
         if dog_name.lower() in self._lower_dog_names:
             return "dog_name_already_exists"
         return None
@@ -1212,8 +1210,7 @@ class DogManagementMixin:
         return vol.Schema(
             {
                 vol.Required(
-                    CONF_DOG_ID, default=current_values.get(
-                        CONF_DOG_ID, suggested_id)
+                    CONF_DOG_ID, default=current_values.get(CONF_DOG_ID, suggested_id)
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1221,8 +1218,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Required(
-                    CONF_DOG_NAME, default=current_values.get(
-                        CONF_DOG_NAME, "")
+                    CONF_DOG_NAME, default=current_values.get(CONF_DOG_NAME, "")
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1231,8 +1227,7 @@ class DogManagementMixin:
                 ),
                 vol.Optional(
                     CONF_DOG_BREED,
-                    default=current_values.get(
-                        CONF_DOG_BREED, suggested_breed),
+                    default=current_values.get(CONF_DOG_BREED, suggested_breed),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1251,8 +1246,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Optional(
-                    CONF_DOG_WEIGHT, default=current_values.get(
-                        CONF_DOG_WEIGHT, 20.0)
+                    CONF_DOG_WEIGHT, default=current_values.get(CONF_DOG_WEIGHT, 20.0)
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=MIN_DOG_WEIGHT,
@@ -1263,8 +1257,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Optional(
-                    CONF_DOG_SIZE, default=current_values.get(
-                        CONF_DOG_SIZE, "medium")
+                    CONF_DOG_SIZE, default=current_values.get(CONF_DOG_SIZE, "medium")
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -1370,8 +1363,7 @@ class DogManagementMixin:
                 conditions.append(condition)
 
         # Add other conditions from text field
-        other_conditions = user_input.get(
-            "other_health_conditions", "").strip()
+        other_conditions = user_input.get("other_health_conditions", "").strip()
         if other_conditions:
             # Split by comma and clean up
             additional = [

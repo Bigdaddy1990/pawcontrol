@@ -5,39 +5,42 @@ device tracker entities. It supports real-time location tracking, geofencing,
 route recording, and integration with Home Assistant's map and zone features.
 Designed to meet Home Assistant's Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_BATTERY_LEVEL
-from homeassistant.const import ATTR_GPS_ACCURACY
-from homeassistant.const import ATTR_LATITUDE
-from homeassistant.const import ATTR_LONGITUDE
-from homeassistant.const import STATE_HOME
-from homeassistant.const import STATE_NOT_HOME
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_BATTERY_LEVEL,
+    ATTR_GPS_ACCURACY,
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 from homeassistant.util.location import distance
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_GPS
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,7 +84,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -135,10 +138,8 @@ async def async_setup_entry(
 
         # Only create device tracker if GPS module is enabled
         if modules.get(MODULE_GPS, False):
-            _LOGGER.debug(
-                "Creating device tracker for dog: %s (%s)", dog_name, dog_id)
-            entities.append(PawControlDeviceTracker(
-                coordinator, dog_id, dog_name))
+            _LOGGER.debug("Creating device tracker for dog: %s (%s)", dog_name, dog_id)
+            entities.append(PawControlDeviceTracker(coordinator, dog_id, dog_name))
 
     if entities:
         # Add entities in smaller batches to prevent Entity Registry overload
@@ -231,8 +232,7 @@ class PawControlDeviceTracker(
             if lat is not None and lon is not None:
                 self._last_known_location = (float(lat), float(lon))
 
-            _LOGGER.debug(
-                "Restored previous state for %s GPS tracker", self._dog_name)
+            _LOGGER.debug("Restored previous state for %s GPS tracker", self._dog_name)
 
     @property
     def source_type(self) -> SourceType:
@@ -336,8 +336,7 @@ class PawControlDeviceTracker(
             return STATE_HOME
 
         # Check other configured zones
-        zone_name = self._determine_zone_from_coordinates(
-            current_lat, current_lon)
+        zone_name = self._determine_zone_from_coordinates(current_lat, current_lon)
         if zone_name:
             return zone_name
 
@@ -496,8 +495,7 @@ class PawControlDeviceTracker(
             and self._last_known_location is not None
         ):
             last_lat, last_lon = self._last_known_location
-            location_change = distance(
-                current_lat, current_lon, last_lat, last_lon)
+            location_change = distance(current_lat, current_lon, last_lat, last_lon)
 
             # Consider moving if location changed by more than threshold
             return location_change > LOCATION_UPDATE_THRESHOLD

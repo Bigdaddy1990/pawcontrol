@@ -8,6 +8,7 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import logging
@@ -17,9 +18,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_DOOR_SENSOR
-from .const import CONF_GPS_SOURCE
-from .const import CONF_NOTIFY_FALLBACK
+from .const import CONF_DOOR_SENSOR, CONF_GPS_SOURCE, CONF_NOTIFY_FALLBACK
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,8 +119,7 @@ class ExternalEntityConfigurationMixin:
             }
 
         selector_config = selector.SelectSelectorConfig(
-            options=[
-                {"value": "manual", "label": "📝 Manual GPS (configure later)"}],
+            options=[{"value": "manual", "label": "📝 Manual GPS (configure later)"}],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
         return {
@@ -188,10 +186,8 @@ class ExternalEntityConfigurationMixin:
         """
         validated = {}
 
-        validated.update(self._validate_gps_source(
-            user_input.get(CONF_GPS_SOURCE)))
-        validated.update(self._validate_door_sensor(
-            user_input.get(CONF_DOOR_SENSOR)))
+        validated.update(self._validate_gps_source(user_input.get(CONF_GPS_SOURCE)))
+        validated.update(self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR)))
         validated.update(
             self._validate_notify_service(user_input.get(CONF_NOTIFY_FALLBACK))
         )
@@ -231,7 +227,6 @@ class ExternalEntityConfigurationMixin:
 
         services = self.hass.services.async_services().get("notify", {})
         if service_parts[1] not in services:
-            raise ValueError(
-                f"Notification service {service_parts[1]} not found")
+            raise ValueError(f"Notification service {service_parts[1]} not found")
 
         return {CONF_NOTIFY_FALLBACK: notify_service}
