@@ -18,50 +18,53 @@ import time
 from typing import Any
 
 import voluptuous as vol
+from custom_components.pawcontrol.config_flow_base import (
+    DOG_ID_PATTERN,
+    ENTITY_CREATION_DELAY,
+    MAX_DOGS_PER_ENTRY,
+    VALIDATION_SEMAPHORE,
+)
+from custom_components.pawcontrol.const import (
+    CONF_BREAKFAST_TIME,
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_DINNER_TIME,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_FOOD_TYPE,
+    CONF_GPS_SOURCE,
+    CONF_LUNCH_TIME,
+    CONF_MEALS_PER_DAY,
+    CONF_MODULES,
+    CONF_SNACK_TIMES,
+    DEFAULT_GPS_ACCURACY_FILTER,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    GPS_ACCURACY_FILTER_SELECTOR,
+    GPS_UPDATE_INTERVAL_SELECTOR,
+    MAX_DOG_AGE,
+    MAX_DOG_NAME_LENGTH,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_NAME_LENGTH,
+    MIN_DOG_WEIGHT,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_NOTIFICATIONS,
+    MODULE_TRAINING,
+    MODULE_VISITOR,
+    MODULE_WALK,
+    SPECIAL_DIET_OPTIONS,
+)
+from custom_components.pawcontrol.types import DogConfigData
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
-
-from custom_components.pawcontrol.config_flow_base import DOG_ID_PATTERN
-from custom_components.pawcontrol.config_flow_base import ENTITY_CREATION_DELAY
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.config_flow_base import VALIDATION_SEMAPHORE
-from custom_components.pawcontrol.const import CONF_BREAKFAST_TIME
-from custom_components.pawcontrol.const import CONF_DAILY_FOOD_AMOUNT
-from custom_components.pawcontrol.const import CONF_DINNER_TIME
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_FOOD_TYPE
-from custom_components.pawcontrol.const import CONF_GPS_SOURCE
-from custom_components.pawcontrol.const import CONF_LUNCH_TIME
-from custom_components.pawcontrol.const import CONF_MEALS_PER_DAY
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import CONF_SNACK_TIMES
-from custom_components.pawcontrol.const import DEFAULT_GPS_ACCURACY_FILTER
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import GPS_ACCURACY_FILTER_SELECTOR
-from custom_components.pawcontrol.const import GPS_UPDATE_INTERVAL_SELECTOR
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_NAME_LENGTH
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_GROOMING
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_MEDICATION
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_TRAINING
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
-from custom_components.pawcontrol.types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 

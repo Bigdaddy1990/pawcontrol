@@ -5,13 +5,14 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+)
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
 
 
 class SetupEntryEdgeCaseTests:

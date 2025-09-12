@@ -18,17 +18,18 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOGS
-from .const import CONF_GPS_UPDATE_INTERVAL
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
-from .const import UPDATE_INTERVALS
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOGS,
+    CONF_GPS_UPDATE_INTERVAL,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    UPDATE_INTERVALS,
+)
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

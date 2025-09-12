@@ -2,61 +2,62 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from datetime import timedelta
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.components.sensor import SensorStateClass
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.sensor import (
+    PawControlActivityScoreSensor,
+    PawControlAverageWalkDurationSensor,
+    PawControlCurrentSpeedSensor,
+    PawControlCurrentZoneSensor,
+    PawControlDailyCaloriesSensor,
+    PawControlDistanceFromHomeSensor,
+    PawControlDogStatusSensor,
+    PawControlFeedingCountTodaySensor,
+    PawControlFeedingScheduleAdherenceSensor,
+    PawControlGPSAccuracySensor,
+    PawControlGPSBatteryLevelSensor,
+    PawControlHealthStatusSensor,
+    PawControlLastActionSensor,
+    PawControlLastFeedingSensor,
+    PawControlLastVetVisitSensor,
+    PawControlLastWalkDistanceSensor,
+    PawControlLastWalkDurationSensor,
+    PawControlLastWalkSensor,
+    PawControlSensorBase,
+    PawControlTotalDistanceTodaySensor,
+    PawControlTotalFeedingsTodaySensor,
+    PawControlTotalWalkTimeTodaySensor,
+    PawControlWalkCountTodaySensor,
+    PawControlWeeklyWalkCountSensor,
+    PawControlWeightSensor,
+    PawControlWeightTrendSensor,
+    async_setup_entry,
+)
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import UnitOfEnergy
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfMass
-from homeassistant.const import UnitOfSpeed
-from homeassistant.const import UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfEnergy,
+    UnitOfLength,
+    UnitOfMass,
+    UnitOfSpeed,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.sensor import async_setup_entry
-from custom_components.pawcontrol.sensor import PawControlActivityScoreSensor
-from custom_components.pawcontrol.sensor import PawControlAverageWalkDurationSensor
-from custom_components.pawcontrol.sensor import PawControlCurrentSpeedSensor
-from custom_components.pawcontrol.sensor import PawControlCurrentZoneSensor
-from custom_components.pawcontrol.sensor import PawControlDailyCaloriesSensor
-from custom_components.pawcontrol.sensor import PawControlDistanceFromHomeSensor
-from custom_components.pawcontrol.sensor import PawControlDogStatusSensor
-from custom_components.pawcontrol.sensor import PawControlFeedingCountTodaySensor
-from custom_components.pawcontrol.sensor import PawControlFeedingScheduleAdherenceSensor
-from custom_components.pawcontrol.sensor import PawControlGPSAccuracySensor
-from custom_components.pawcontrol.sensor import PawControlGPSBatteryLevelSensor
-from custom_components.pawcontrol.sensor import PawControlHealthStatusSensor
-from custom_components.pawcontrol.sensor import PawControlLastActionSensor
-from custom_components.pawcontrol.sensor import PawControlLastFeedingSensor
-from custom_components.pawcontrol.sensor import PawControlLastVetVisitSensor
-from custom_components.pawcontrol.sensor import PawControlLastWalkDistanceSensor
-from custom_components.pawcontrol.sensor import PawControlLastWalkDurationSensor
-from custom_components.pawcontrol.sensor import PawControlLastWalkSensor
-from custom_components.pawcontrol.sensor import PawControlSensorBase
-from custom_components.pawcontrol.sensor import PawControlTotalDistanceTodaySensor
-from custom_components.pawcontrol.sensor import PawControlTotalFeedingsTodaySensor
-from custom_components.pawcontrol.sensor import PawControlTotalWalkTimeTodaySensor
-from custom_components.pawcontrol.sensor import PawControlWalkCountTodaySensor
-from custom_components.pawcontrol.sensor import PawControlWeeklyWalkCountSensor
-from custom_components.pawcontrol.sensor import PawControlWeightSensor
-from custom_components.pawcontrol.sensor import PawControlWeightTrendSensor
 
 
 class TestAsyncSetupEntry:

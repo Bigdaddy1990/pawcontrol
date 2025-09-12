@@ -13,32 +13,32 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.dashboard_cards import DogCardGenerator
-from custom_components.pawcontrol.dashboard_cards import HealthAwareFeedingCardGenerator
-from custom_components.pawcontrol.dashboard_cards import ModuleCardGenerator
-from custom_components.pawcontrol.dashboard_cards import OverviewCardGenerator
-from custom_components.pawcontrol.dashboard_cards import StatisticsCardGenerator
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.dashboard_cards import (
+    DogCardGenerator,
+    HealthAwareFeedingCardGenerator,
+    ModuleCardGenerator,
+    OverviewCardGenerator,
+    StatisticsCardGenerator,
+)
 from custom_components.pawcontrol.dashboard_generator import (
     PawControlDashboardGenerator,
 )
 from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 # Test Fixtures
 

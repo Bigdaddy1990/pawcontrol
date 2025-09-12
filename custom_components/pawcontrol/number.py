@@ -12,15 +12,15 @@ import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components.number import NumberDeviceClass
-from homeassistant.components.number import NumberEntity
-from homeassistant.components.number import NumberMode
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
-from homeassistant.const import UnitOfLength
-from homeassistant.const import UnitOfMass
-from homeassistant.const import UnitOfSpeed
-from homeassistant.const import UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfLength,
+    UnitOfMass,
+    UnitOfSpeed,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
@@ -29,22 +29,24 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_WEIGHT
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_WEIGHT
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_WEIGHT
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_AGE,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    DOMAIN,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)

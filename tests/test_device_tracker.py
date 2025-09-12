@@ -22,42 +22,44 @@ Test Coverage:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.device_tracker import (
+    DEFAULT_GPS_ACCURACY,
+    HOME_ZONE_RADIUS,
+    LOCATION_UPDATE_THRESHOLD,
+    MAX_GPS_AGE,
+    PawControlDeviceTracker,
+    _async_add_entities_in_batches,
+    async_setup_entry,
+)
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_BATTERY_LEVEL
-from homeassistant.const import ATTR_GPS_ACCURACY
-from homeassistant.const import ATTR_LATITUDE
-from homeassistant.const import ATTR_LONGITUDE
-from homeassistant.const import STATE_HOME
-from homeassistant.const import STATE_NOT_HOME
+from homeassistant.const import (
+    ATTR_BATTERY_LEVEL,
+    ATTR_GPS_ACCURACY,
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    STATE_HOME,
+    STATE_NOT_HOME,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.device_tracker import _async_add_entities_in_batches
-from custom_components.pawcontrol.device_tracker import async_setup_entry
-from custom_components.pawcontrol.device_tracker import DEFAULT_GPS_ACCURACY
-from custom_components.pawcontrol.device_tracker import HOME_ZONE_RADIUS
-from custom_components.pawcontrol.device_tracker import LOCATION_UPDATE_THRESHOLD
-from custom_components.pawcontrol.device_tracker import MAX_GPS_AGE
-from custom_components.pawcontrol.device_tracker import PawControlDeviceTracker
 
 
 class TestAsyncAddEntitiesInBatches:

@@ -13,32 +13,30 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Optional
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    CONF_GPS_UPDATE_INTERVAL,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    UPDATE_INTERVALS,
+)
+from custom_components.pawcontrol.coordinator import (
+    MAINTENANCE_INTERVAL,
+    PawControlCoordinator,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import UPDATE_INTERVALS
-from custom_components.pawcontrol.coordinator import MAINTENANCE_INTERVAL
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
 
 class TestCoordinatorMassiveEntityLoadScenarios:

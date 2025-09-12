@@ -3,36 +3,37 @@
 from __future__ import annotations
 
 import pytest
-
-from custom_components.pawcontrol.const import ACTIVITY_LEVELS
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DEFAULT_GPS_UPDATE_INTERVAL
-from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
-from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
-from custom_components.pawcontrol.const import EVENT_WALK_ENDED
-from custom_components.pawcontrol.const import EVENT_WALK_STARTED
-from custom_components.pawcontrol.const import FOOD_TYPES
-from custom_components.pawcontrol.const import GPS_SOURCES
-from custom_components.pawcontrol.const import HEALTH_STATUS_OPTIONS
-from custom_components.pawcontrol.const import MAX_DOG_AGE
-from custom_components.pawcontrol.const import MAX_DOG_WEIGHT
-from custom_components.pawcontrol.const import MEAL_TYPES
-from custom_components.pawcontrol.const import MIN_DOG_AGE
-from custom_components.pawcontrol.const import MIN_DOG_WEIGHT
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import MOOD_OPTIONS
-from custom_components.pawcontrol.const import SERVICE_END_WALK
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.const import STORAGE_VERSION
-from custom_components.pawcontrol.const import UPDATE_INTERVALS
+from custom_components.pawcontrol.const import (
+    ACTIVITY_LEVELS,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_RESET_TIME,
+    DOG_SIZES,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MEAL_TYPES,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_START_WALK,
+    STORAGE_VERSION,
+    UPDATE_INTERVALS,
+)
 
 
 class TestConstants:
