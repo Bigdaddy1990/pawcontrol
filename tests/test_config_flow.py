@@ -15,7 +15,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-
 # Remove this fixture and use the built-in one from pytest-homeassistant-custom-component
 # Add this import at the top:
 # from pytest_homeassistant_custom_component.common import async_test_home_assistant
