@@ -162,17 +162,18 @@ async def test_unique_id_conflict(mock_load, hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_abort_no_dogs(hass: HomeAssistant) -> None:
     """Test aborting final setup when no dogs configured."""
-    with patch.dict(config_entries.HANDLERS, {DOMAIN: PawControlConfigFlow}):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
-        # Configure through normal flow to reach final_setup with no dogs
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_NAME: "Test"}
-        )
-        # Skip adding dogs and go directly to final setup
-        flow = hass.config_entries.flow._flows[result["flow_id"]]
-        flow._dogs = []  # Ensure no dogs
-        result = await flow.async_step_final_setup()
-        assert result["type"] == FlowResultType.ABORT
-        assert result["reason"] == "no_dogs_configured"
+    with patch("homeassistant.config_entries._load_integration", new=AsyncMock(return_value=None)):
+        with patch.dict(config_entries.HANDLERS, {DOMAIN: PawControlConfigFlow}):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+            # Configure through normal flow to reach final_setup with no dogs
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], {CONF_NAME: "Test"}
+            )
+            # Skip adding dogs and go directly to final setup
+            flow = hass.config_entries.flow._flows[result["flow_id"]]
+            flow._dogs = []  # Ensure no dogs
+            result = await flow.async_step_final_setup()
+            assert result["type"] == FlowResultType.ABORT
+            assert result["reason"] == "no_dogs_configured"
