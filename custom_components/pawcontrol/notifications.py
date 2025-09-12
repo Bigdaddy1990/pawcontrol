@@ -9,18 +9,17 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from contextlib import suppress
 from datetime import timedelta
-from typing import Any
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import persistent_notification
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -133,8 +132,7 @@ class PawControlNotificationManager:
         Raises:
             NotificationError: If initialization fails
         """
-        _LOGGER.debug(
-            "Initializing notification manager for entry %s", self.entry_id)
+        _LOGGER.debug("Initializing notification manager for entry %s", self.entry_id)
 
         try:
             # Load configuration from config entry
@@ -178,8 +176,7 @@ class PawControlNotificationManager:
             _LOGGER.info("Notification manager shutdown complete")
 
         except Exception as err:
-            _LOGGER.error(
-                "Error during notification manager shutdown: %s", err)
+            _LOGGER.error("Error during notification manager shutdown: %s", err)
 
     async def async_send_notification(
         self,
@@ -276,8 +273,7 @@ class PawControlNotificationManager:
                 successful_deliveries = []
                 for method, result in zip(methods, results, strict=False):
                     if isinstance(result, Exception):
-                        _LOGGER.error(
-                            "Delivery failed for %s: %s", method, result)
+                        _LOGGER.error("Delivery failed for %s: %s", method, result)
                         notification_data["delivery_status"][method] = "failed"
                         self._metrics["delivery_failures"] += 1
                     elif result:
@@ -406,15 +402,13 @@ class PawControlNotificationManager:
                     and hasattr(config_entry, "options")
                     and config_entry.options
                 ):
-                    notifications_config = config_entry.options.get(
-                        "notifications", {})
+                    notifications_config = config_entry.options.get("notifications", {})
                     self._config.update(notifications_config)
                     _LOGGER.debug(
                         "Loaded notification configuration: %s", notifications_config
                     )
         except Exception as err:
-            _LOGGER.warning(
-                "Failed to load notification configuration: %s", err)
+            _LOGGER.warning("Failed to load notification configuration: %s", err)
 
     async def _start_background_tasks(self) -> None:
         """Start background tasks for cleanup and summaries."""
@@ -423,8 +417,7 @@ class PawControlNotificationManager:
 
         # Summary task if enabled
         if self._config.get("summary_notifications", False):
-            self._summary_task = asyncio.create_task(
-                self._background_summary())
+            self._summary_task = asyncio.create_task(self._background_summary())
 
     async def _background_cleanup(self) -> None:
         """Background task for periodic cleanup."""
@@ -443,8 +436,7 @@ class PawControlNotificationManager:
             try:
                 # Wait until 8 AM for daily summary
                 now = dt_util.now()
-                next_summary = now.replace(
-                    hour=8, minute=0, second=0, microsecond=0)
+                next_summary = now.replace(hour=8, minute=0, second=0, microsecond=0)
                 if next_summary <= now:
                     next_summary += timedelta(days=1)
 
@@ -490,11 +482,9 @@ class PawControlNotificationManager:
                 # Clean suppressed notifications
                 self._suppressed_notifications.clear()
 
-                cleaned_count = original_count - \
-                    len(self._notification_history)
+                cleaned_count = original_count - len(self._notification_history)
                 if cleaned_count > 0:
-                    _LOGGER.debug(
-                        "Cleaned up %d old notifications", cleaned_count)
+                    _LOGGER.debug("Cleaned up %d old notifications", cleaned_count)
 
             except Exception as err:
                 _LOGGER.error("Error during cleanup: %s", err)
@@ -650,8 +640,7 @@ class PawControlNotificationManager:
     ) -> list[str]:
         """Get appropriate delivery methods for notification."""
         # Start with configured default methods
-        methods = self._config.get(
-            "delivery_methods", [DELIVERY_PERSISTENT]).copy()
+        methods = self._config.get("delivery_methods", [DELIVERY_PERSISTENT]).copy()
 
         # Get dog-specific overrides
         dog_settings = self._dog_settings.get(dog_id, {})
@@ -662,8 +651,7 @@ class PawControlNotificationManager:
         # Priority-based method enhancement
         if priority == PRIORITY_URGENT:
             # Add all available methods for urgent notifications
-            urgent_methods = [DELIVERY_PERSISTENT,
-                              DELIVERY_MOBILE_APP, DELIVERY_TTS]
+            urgent_methods = [DELIVERY_PERSISTENT, DELIVERY_MOBILE_APP, DELIVERY_TTS]
             for method in urgent_methods:
                 if method not in methods:
                     methods.append(method)
@@ -763,8 +751,7 @@ class PawControlNotificationManager:
             return True
 
         except Exception as err:
-            _LOGGER.error("Failed to dismiss notification %s: %s",
-                          notification_id, err)
+            _LOGGER.error("Failed to dismiss notification %s: %s", notification_id, err)
             return False
 
     async def async_set_dnd_mode(self, dog_id: str, enabled: bool) -> bool:
@@ -868,5 +855,4 @@ class PawControlNotificationManager:
             dogs = call.data.get("dogs")
             await self.async_send_summary_notification(timeframe, dogs)
 
-        self.hass.services.async_register(
-            DOMAIN, "send_summary", _handle_send_summary)
+        self.hass.services.async_register(DOMAIN, "send_summary", _handle_send_summary)

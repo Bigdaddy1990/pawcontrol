@@ -12,12 +12,12 @@ Provides comprehensive health metrics for dogs including:
 - Weight management recommendations
 - Diet validation integration
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -175,8 +175,7 @@ class HealthCalculator:
             "giant": {"adult": 24, "senior": 60},
         }
 
-        thresholds = size_adjustments.get(
-            breed_size, size_adjustments["medium"])
+        thresholds = size_adjustments.get(breed_size, size_adjustments["medium"])
 
         if age_months < thresholds["adult"]:
             return LifeStage.PUPPY
@@ -365,8 +364,7 @@ class HealthCalculator:
                 adjustment_factor *= 1.2  # 20% increase for weight gain
 
             # Time-based adjustments
-            weight_loss_rate = feeding_goals.get(
-                "weight_loss_rate", "moderate")
+            weight_loss_rate = feeding_goals.get("weight_loss_rate", "moderate")
             if weight_loss_rate == "aggressive" and weight_goal == "lose":
                 adjustment_factor *= 0.9  # Additional 10% reduction
             elif weight_loss_rate == "gradual" and weight_goal == "lose":
@@ -733,11 +731,9 @@ class HealthCalculator:
 
         # Meal frequency recommendations
         if avg_daily_meals < 1.5:
-            recommendations.append(
-                "Consider splitting daily food into 2+ meals")
+            recommendations.append("Consider splitting daily food into 2+ meals")
         elif avg_daily_meals > 4:
-            recommendations.append(
-                "Consider consolidating into 2-3 larger meals")
+            recommendations.append("Consider consolidating into 2-3 larger meals")
 
         return {
             "status": status,
@@ -836,13 +832,11 @@ class HealthCalculator:
             weight_ratio = health_metrics.current_weight / health_metrics.ideal_weight
             if weight_ratio < 0.85:
                 report["areas_of_concern"].append("underweight")
-                report["recommendations"].append(
-                    "Consult vet about weight gain plan")
+                report["recommendations"].append("Consult vet about weight gain plan")
                 report["health_score"] -= 15
             elif weight_ratio > 1.2:
                 report["areas_of_concern"].append("overweight")
-                report["recommendations"].append(
-                    "Implement weight management plan")
+                report["recommendations"].append("Implement weight management plan")
                 report["health_score"] -= 10
             else:
                 report["positive_indicators"].append("healthy_weight")
@@ -865,8 +859,7 @@ class HealthCalculator:
         elif bcs in [BodyConditionScore.OBESE, BodyConditionScore.SEVERELY_OBESE]:
             report["overall_status"] = "needs_attention"
             report["areas_of_concern"].append("obesity")
-            report["recommendations"].append(
-                "Urgent weight management required")
+            report["recommendations"].append("Urgent weight management required")
             report["health_score"] -= 20
         elif bcs == BodyConditionScore.IDEAL:
             report["positive_indicators"].append("ideal_body_condition")
@@ -904,10 +897,8 @@ class HealthCalculator:
                 "Monitor growth rate and adjust portions accordingly",
             )
         elif age_years > 7:
-            report["recommendations"].append(
-                "Consider senior health screening")
-            report["recommendations"].append(
-                "Monitor for age-related conditions")
+            report["recommendations"].append("Consider senior health screening")
+            report["recommendations"].append("Monitor for age-related conditions")
 
     @staticmethod
     def _assess_activity(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:

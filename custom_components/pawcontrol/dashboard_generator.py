@@ -8,25 +8,22 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any
-from typing import Final
+from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import DOMAIN
+from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN
 from .dashboard_renderer import DashboardRenderer
 
 _LOGGER = logging.getLogger(__name__)
@@ -196,10 +193,8 @@ class PawControlDashboardGenerator:
                 return f"/{dashboard_url}"
 
             except Exception as err:
-                _LOGGER.error("Dashboard creation failed: %s",
-                              err, exc_info=True)
-                raise HomeAssistantError(
-                    f"Dashboard creation failed: {err}") from err
+                _LOGGER.error("Dashboard creation failed: %s", err, exc_info=True)
+                raise HomeAssistantError(f"Dashboard creation failed: {err}") from err
 
     async def async_create_dog_dashboard(
         self,
@@ -318,24 +313,20 @@ class PawControlDashboardGenerator:
                 # Generate updated configuration using renderer
                 if dashboard_info["type"] == "main":
                     dashboard_config = await self._renderer.render_main_dashboard(
-                        dogs_config, options or dashboard_info.get(
-                            "options", {})
+                        dogs_config, options or dashboard_info.get("options", {})
                     )
                 else:
                     # Find specific dog config for dog dashboard
                     dog_id = dashboard_info.get("dog_id")
                     dog_config = next(
-                        (d for d in dogs_config if d.get(
-                            CONF_DOG_ID) == dog_id), None
+                        (d for d in dogs_config if d.get(CONF_DOG_ID) == dog_id), None
                     )
                     if not dog_config:
-                        _LOGGER.warning(
-                            "Dog %s not found for dashboard update", dog_id)
+                        _LOGGER.warning("Dog %s not found for dashboard update", dog_id)
                         return False
 
                     dashboard_config = await self._renderer.render_dog_dashboard(
-                        dog_config, options or dashboard_info.get(
-                            "options", {})
+                        dog_config, options or dashboard_info.get("options", {})
                     )
 
                 # Update dashboard file
@@ -380,8 +371,7 @@ class PawControlDashboardGenerator:
             True if deletion successful
         """
         if dashboard_url not in self._dashboards:
-            _LOGGER.warning(
-                "Dashboard %s not found for deletion", dashboard_url)
+            _LOGGER.warning("Dashboard %s not found for deletion", dashboard_url)
             return False
 
         async with self._lock:
@@ -410,8 +400,7 @@ class PawControlDashboardGenerator:
 
     async def async_cleanup(self) -> None:
         """Clean up all dashboards and resources."""
-        _LOGGER.info("Cleaning up dashboards for entry %s",
-                     self.entry.entry_id)
+        _LOGGER.info("Cleaning up dashboards for entry %s", self.entry.entry_id)
 
         async with self._lock:
             # Delete all dashboard files
@@ -420,12 +409,10 @@ class PawControlDashboardGenerator:
                 try:
                     dashboard_path = Path(dashboard_info["path"])
                     cleanup_tasks.append(
-                        asyncio.to_thread(
-                            dashboard_path.unlink, missing_ok=True)
+                        asyncio.to_thread(dashboard_path.unlink, missing_ok=True)
                     )
                 except Exception as err:
-                    _LOGGER.warning(
-                        "Error preparing dashboard cleanup: %s", err)
+                    _LOGGER.warning("Error preparing dashboard cleanup: %s", err)
 
             # Execute cleanup tasks concurrently
             if cleanup_tasks:
@@ -501,10 +488,8 @@ class PawControlDashboardGenerator:
             )
 
         except Exception as err:
-            _LOGGER.error("Dashboard metadata save failed: %s",
-                          err, exc_info=True)
-            raise HomeAssistantError(
-                f"Dashboard metadata save failed: {err}") from err
+            _LOGGER.error("Dashboard metadata save failed: %s", err, exc_info=True)
+            raise HomeAssistantError(f"Dashboard metadata save failed: {err}") from err
 
     async def _validate_stored_dashboards(self) -> None:
         """Validate and clean up stored dashboard metadata."""

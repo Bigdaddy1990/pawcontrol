@@ -10,49 +10,45 @@ This test suite covers all aspects of the notification system including:
 
 The notification module is critical for user experience and requires thorough testing.
 """
+
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import Dict
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.exceptions import NotificationError
+from custom_components.pawcontrol.notifications import (
+    DELIVERY_DISCORD,
+    DELIVERY_EMAIL,
+    DELIVERY_MOBILE_APP,
+    DELIVERY_PERSISTENT,
+    DELIVERY_SLACK,
+    DELIVERY_TTS,
+    DELIVERY_WEBHOOK,
+    MAX_HISTORY_COUNT,
+    MAX_HISTORY_DAYS,
+    NOTIFICATION_FEEDING,
+    NOTIFICATION_GPS,
+    NOTIFICATION_GROOMING,
+    NOTIFICATION_HEALTH,
+    NOTIFICATION_MEDICATION,
+    NOTIFICATION_SAFETY,
+    NOTIFICATION_SYSTEM,
+    NOTIFICATION_WALK,
+    PRIORITY_HIGH,
+    PRIORITY_LOW,
+    PRIORITY_NORMAL,
+    PRIORITY_URGENT,
+    RATE_LIMIT_INTERVALS,
+    PawControlNotificationManager,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceNotFound
 from homeassistant.util import dt as dt_util
-
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.exceptions import NotificationError
-from custom_components.pawcontrol.notifications import DELIVERY_DISCORD
-from custom_components.pawcontrol.notifications import DELIVERY_EMAIL
-from custom_components.pawcontrol.notifications import DELIVERY_MOBILE_APP
-from custom_components.pawcontrol.notifications import DELIVERY_PERSISTENT
-from custom_components.pawcontrol.notifications import DELIVERY_SLACK
-from custom_components.pawcontrol.notifications import DELIVERY_TTS
-from custom_components.pawcontrol.notifications import DELIVERY_WEBHOOK
-from custom_components.pawcontrol.notifications import MAX_HISTORY_COUNT
-from custom_components.pawcontrol.notifications import MAX_HISTORY_DAYS
-from custom_components.pawcontrol.notifications import NOTIFICATION_FEEDING
-from custom_components.pawcontrol.notifications import NOTIFICATION_GPS
-from custom_components.pawcontrol.notifications import NOTIFICATION_GROOMING
-from custom_components.pawcontrol.notifications import NOTIFICATION_HEALTH
-from custom_components.pawcontrol.notifications import NOTIFICATION_MEDICATION
-from custom_components.pawcontrol.notifications import NOTIFICATION_SAFETY
-from custom_components.pawcontrol.notifications import NOTIFICATION_SYSTEM
-from custom_components.pawcontrol.notifications import NOTIFICATION_WALK
-from custom_components.pawcontrol.notifications import PawControlNotificationManager
-from custom_components.pawcontrol.notifications import PRIORITY_HIGH
-from custom_components.pawcontrol.notifications import PRIORITY_LOW
-from custom_components.pawcontrol.notifications import PRIORITY_NORMAL
-from custom_components.pawcontrol.notifications import PRIORITY_URGENT
-from custom_components.pawcontrol.notifications import RATE_LIMIT_INTERVALS
 
 
 # Test fixtures
@@ -138,8 +134,7 @@ def mock_hass_services(hass: HomeAssistant):
 
     hass.services.async_services = Mock(return_value=services_data)
     hass.services.has_service = Mock(
-        side_effect=lambda domain, service: service in services_data.get(domain, {
-        })
+        side_effect=lambda domain, service: service in services_data.get(domain, {})
     )
     hass.services.async_call = AsyncMock()
 
@@ -236,10 +231,8 @@ class TestCoreNotificationFunctionality:
         data = {"custom_field": "custom_value"}
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
-            patch.object(manager, "_send_mobile_app_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
+            patch.object(manager, "_send_mobile_app_notification", return_value=True),
         ):
             result = await manager.async_send_notification(
                 "test_dog",
@@ -330,8 +323,7 @@ class TestPriorityManagement:
         # Set quiet hours active
         with (
             patch.object(manager, "_is_in_quiet_hours", return_value=True),
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
         ):
             # Normal priority should be suppressed
             result_normal = await manager.async_send_notification(
@@ -386,14 +378,11 @@ class TestPriorityManagement:
     ):
         """Test priority affects delivery method selection."""
         manager = await initialized_manager()
-        manager._config["delivery_methods"] = [
-            DELIVERY_PERSISTENT]  # Base methods
+        manager._config["delivery_methods"] = [DELIVERY_PERSISTENT]  # Base methods
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
-            patch.object(manager, "_send_mobile_app_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
+            patch.object(manager, "_send_mobile_app_notification", return_value=True),
         ):
             # High priority should add mobile app
             await manager.async_send_notification(
@@ -543,8 +532,7 @@ class TestRateLimiting:
         manager = await initialized_manager()
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
             patch.object(
                 manager, "_get_dog_name", side_effect=lambda dog_id: f"Dog {dog_id}"
             ),
@@ -685,8 +673,7 @@ class TestDeliveryMethods:
 
         # Mock one method succeeding, one failing
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
             patch.object(
                 manager,
                 "_send_mobile_app_notification",
@@ -908,8 +895,7 @@ class TestUtilityMethods:
 
         # Add notification to active list
         notification_id = "test_notification"
-        manager._active_notifications[notification_id] = {
-            "id": notification_id}
+        manager._active_notifications[notification_id] = {"id": notification_id}
 
         result = await manager._dismiss_notification_internal(notification_id)
 
@@ -1110,8 +1096,7 @@ class TestNotificationIntegration:
         manager = await initialized_manager()
 
         # Test service availability check
-        assert manager.hass.services.has_service(
-            "notify", "mobile_app_test_device")
+        assert manager.hass.services.has_service("notify", "mobile_app_test_device")
 
         # Test service calling
         with patch.object(

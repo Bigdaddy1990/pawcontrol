@@ -5,6 +5,7 @@ including mode selections, option choices, and status settings. All select entit
 are designed to meet Home Assistant's Platinum quality standards with full type
 annotations, async operations, and robust validation.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -21,25 +22,27 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ACTIVITY_LEVELS
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOGS
-from .const import DOG_SIZES
-from .const import DOMAIN
-from .const import FOOD_TYPES
-from .const import GPS_SOURCES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
-from .const import MOOD_OPTIONS
-from .const import PERFORMANCE_MODES
+from .const import (
+    ACTIVITY_LEVELS,
+    ATTR_DOG_ID,
+    ATTR_DOG_NAME,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOGS,
+    DOG_SIZES,
+    DOMAIN,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    PERFORMANCE_MODES,
+)
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -121,7 +124,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -173,28 +176,23 @@ async def async_setup_entry(
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating select entities for dog: %s (%s)",
-                      dog_name, dog_id)
+        _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
 
         # Base selects - always created for every dog
-        entities.extend(_create_base_selects(
-            coordinator, dog_id, dog_name, dog))
+        entities.extend(_create_base_selects(coordinator, dog_id, dog_name, dog))
 
         # Module-specific selects
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(_create_feeding_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_feeding_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
             entities.extend(_create_gps_selects(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(_create_health_selects(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_health_selects(coordinator, dog_id, dog_name))
 
     # Add entities in smaller batches to prevent Entity Registry overload
     # With 32+ select entities (2 dogs), batching prevents Registry flooding
@@ -460,8 +458,7 @@ class PawControlSelectBase(
             _LOGGER.error(
                 "Failed to set %s for %s: %s", self._select_type, self._dog_name, err
             )
-            raise HomeAssistantError(
-                f"Failed to set {self._select_type}") from err
+            raise HomeAssistantError(f"Failed to set {self._select_type}") from err
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the select option implementation.

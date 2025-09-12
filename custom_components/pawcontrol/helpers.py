@@ -3,12 +3,12 @@
 This module provides core data management and notification functionality
 required for the Paw Control integration to achieve Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -18,22 +18,24 @@ from homeassistant.helpers import storage
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOGS
-from .const import CONF_NOTIFICATIONS
-from .const import CONF_QUIET_END
-from .const import CONF_QUIET_HOURS
-from .const import CONF_QUIET_START
-from .const import DATA_FILE_FEEDINGS
-from .const import DATA_FILE_HEALTH
-from .const import DATA_FILE_ROUTES
-from .const import DATA_FILE_STATS
-from .const import DATA_FILE_WALKS
-from .const import DOMAIN
-from .const import EVENT_FEEDING_LOGGED
-from .const import EVENT_HEALTH_LOGGED
-from .const import EVENT_WALK_ENDED
-from .const import EVENT_WALK_STARTED
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOGS,
+    CONF_NOTIFICATIONS,
+    CONF_QUIET_END,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    DATA_FILE_FEEDINGS,
+    DATA_FILE_HEALTH,
+    DATA_FILE_ROUTES,
+    DATA_FILE_STATS,
+    DATA_FILE_WALKS,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_HEALTH_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,8 +108,7 @@ class PawControlDataStorage:
             data = {}
             for store_key, result in zip(self._stores.keys(), results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.error("Failed to load %s data: %s",
-                                  store_key, result)
+                    _LOGGER.error("Failed to load %s data: %s", store_key, result)
                     data[store_key] = {}
                 else:
                     data[store_key] = result or {}
@@ -158,8 +159,7 @@ class PawControlDataStorage:
             _LOGGER.debug("Saved data to %s store", store_key)
         except Exception as err:
             _LOGGER.error("Failed to save %s data: %s", store_key, err)
-            raise HomeAssistantError(
-                f"Failed to save {store_key} data") from err
+            raise HomeAssistantError(f"Failed to save {store_key} data") from err
 
     async def async_cleanup_old_data(self, retention_days: int = 90) -> None:
         """Clean up old data based on retention policy.
@@ -177,8 +177,7 @@ class PawControlDataStorage:
 
                 if data != cleaned_data:
                     await self.async_save_data(store_key, cleaned_data)
-                    _LOGGER.debug(
-                        "Cleaned up old data from %s store", store_key)
+                    _LOGGER.debug("Cleaned up old data from %s store", store_key)
 
             except Exception as err:
                 _LOGGER.error("Failed to cleanup %s data: %s", store_key, err)
@@ -413,8 +412,7 @@ class PawControlData:
                 },
             )
 
-            _LOGGER.debug("Ended walk for %s: %d minutes",
-                          dog_id, duration_minutes)
+            _LOGGER.debug("Ended walk for %s: %d minutes", dog_id, duration_minutes)
             return completed_walk
 
         except Exception as err:
@@ -464,8 +462,7 @@ class PawControlData:
 
         except Exception as err:
             _LOGGER.error("Failed to log health data for %s: %s", dog_id, err)
-            raise HomeAssistantError(
-                f"Failed to log health data: {err}") from err
+            raise HomeAssistantError(f"Failed to log health data: {err}") from err
 
     async def async_daily_reset(self) -> None:
         """Reset daily statistics for all dogs.
@@ -482,8 +479,7 @@ class PawControlData:
                     stats_data[dog_id] = {}
 
                 # Archive yesterday's stats and reset daily counters
-                yesterday = (dt_util.utcnow() - timedelta(days=1)
-                             ).date().isoformat()
+                yesterday = (dt_util.utcnow() - timedelta(days=1)).date().isoformat()
 
                 if "daily" in stats_data[dog_id]:
                     if "history" not in stats_data[dog_id]:
@@ -654,8 +650,7 @@ class PawControlNotificationManager:
         Returns:
             True if notification should be sent, False otherwise
         """
-        notification_config = self.config_entry.options.get(
-            CONF_NOTIFICATIONS, {})
+        notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS, {})
 
         # Always send urgent notifications
         if priority == "urgent":
@@ -670,8 +665,7 @@ class PawControlNotificationManager:
         quiet_end = notification_config.get(CONF_QUIET_END, "07:00:00")
 
         try:
-            quiet_start_time = datetime.strptime(
-                quiet_start, "%H:%M:%S").time()
+            quiet_start_time = datetime.strptime(quiet_start, "%H:%M:%S").time()
             quiet_end_time = datetime.strptime(quiet_end, "%H:%M:%S").time()
         except ValueError:
             # Invalid time format, allow notification

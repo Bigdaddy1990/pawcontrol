@@ -5,6 +5,7 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality standards.
 """
+
 from __future__ import annotations
 
 import logging
@@ -13,20 +14,21 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,8 +106,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         hass: Home Assistant instance
         entry: Configuration entry to check
     """
-    _LOGGER.debug("Checking for issues in Paw Control entry: %s",
-                  entry.entry_id)
+    _LOGGER.debug("Checking for issues in Paw Control entry: %s", entry.entry_id)
 
     try:
         # Check dog configuration issues
@@ -132,8 +133,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
 
     except Exception as err:
-        _LOGGER.error("Error during issue check for entry %s: %s",
-                      entry.entry_id, err)
+        _LOGGER.error("Error during issue check for entry %s: %s", entry.entry_id, err)
 
 
 async def _check_dog_configuration_issues(
@@ -161,8 +161,7 @@ async def _check_dog_configuration_issues(
 
     # Check for duplicate dog IDs
     dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs]
-    duplicate_ids = [dog_id for dog_id in set(
-        dog_ids) if dog_ids.count(dog_id) > 1]
+    duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
 
     if duplicate_ids:
         await async_create_issue(
@@ -548,8 +547,7 @@ class PawControlRepairsFlow(RepairsFlow):
                 else:
                     # Get the config entry and update it
                     config_entry_id = self._issue_data["config_entry_id"]
-                    entry = self.hass.config_entries.async_get_entry(
-                        config_entry_id)
+                    entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
                     if entry:
                         # Create new dog configuration
@@ -726,8 +724,7 @@ class PawControlRepairsFlow(RepairsFlow):
             try:
                 # Update GPS configuration
                 config_entry_id = self._issue_data["config_entry_id"]
-                entry = self.hass.config_entries.async_get_entry(
-                    config_entry_id)
+                entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
                 if entry:
                     new_options = entry.options.copy()

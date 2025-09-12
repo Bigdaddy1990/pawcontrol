@@ -4,50 +4,49 @@ Quality Scale: Platinum
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any
-from typing import Final
+from typing import Any, Final
 
 import voluptuous as vol
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from .const import ACTIVITY_LEVELS
-from .const import ATTR_DOG_ID
-from .const import ATTR_MEAL_TYPE
-from .const import ATTR_PORTION_SIZE
-from .const import CONF_DOG_ID
-from .const import CONF_DOGS
-from .const import CONF_RESET_TIME
-from .const import DEFAULT_RESET_TIME
-from .const import DOMAIN
-from .const import EVENT_FEEDING_LOGGED
-from .const import EVENT_HEALTH_LOGGED
-from .const import EVENT_WALK_ENDED
-from .const import EVENT_WALK_STARTED
-from .const import FOOD_TYPES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MOOD_OPTIONS
-from .const import SERVICE_DAILY_RESET
-from .const import SERVICE_END_WALK
-from .const import SERVICE_FEED_DOG
-from .const import SERVICE_LOG_HEALTH
-from .const import SERVICE_LOG_MEDICATION
-from .const import SERVICE_NOTIFY_TEST
-from .const import SERVICE_START_GROOMING
-from .const import SERVICE_START_WALK
-from .exceptions import DogNotFoundError
-from .exceptions import PawControlError
+from .const import (
+    ACTIVITY_LEVELS,
+    ATTR_DOG_ID,
+    ATTR_MEAL_TYPE,
+    ATTR_PORTION_SIZE,
+    CONF_DOG_ID,
+    CONF_DOGS,
+    CONF_RESET_TIME,
+    DEFAULT_RESET_TIME,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_HEALTH_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+    FOOD_TYPES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MOOD_OPTIONS,
+    SERVICE_DAILY_RESET,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_START_GROOMING,
+    SERVICE_START_WALK,
+)
+from .exceptions import DogNotFoundError, PawControlError
 from .types import PawControlRuntimeData
 from .utils import performance_monitor
 
@@ -89,8 +88,7 @@ def _build_dog_service_schema(
     additional_fields: dict[vol.Marker, Any] | None = None,
 ) -> vol.Schema:
     """Build service schema with dog_id and optional fields."""
-    base = {vol.Required(ATTR_DOG_ID): vol.All(
-        cv.string, vol.Length(min=1, max=50))}
+    base = {vol.Required(ATTR_DOG_ID): vol.All(cv.string, vol.Length(min=1, max=50))}
     if additional_fields:
         base.update(additional_fields)
     return vol.Schema(base)
@@ -286,24 +284,20 @@ def service_handler(
                         dog_id, priority=cache_priority
                     )
                     if not runtime_data:
-                        raise DogNotFoundError(
-                            dog_id, self._get_available_dog_ids())
+                        raise DogNotFoundError(dog_id, self._get_available_dog_ids())
 
                     await func(self, call, dog_id, runtime_data)
                 else:
                     await func(self, call)
 
             except PawControlError as err:
-                _LOGGER.error("Service error in %s: %s",
-                              func.__name__, err.to_dict())
+                _LOGGER.error("Service error in %s: %s", func.__name__, err.to_dict())
                 raise ServiceValidationError(err.user_message) from err
             except ServiceValidationError:
                 raise
             except TimeoutError:
-                _LOGGER.error("Service %s timed out after %ss",
-                              func.__name__, timeout)
-                raise ServiceValidationError(
-                    f"Service timed out after {timeout}s")
+                _LOGGER.error("Service %s timed out after %ss", func.__name__, timeout)
+                raise ServiceValidationError(f"Service timed out after {timeout}s")
             except Exception as err:
                 _LOGGER.error("Unexpected error in %s: %s", func.__name__, err)
                 raise ServiceValidationError(f"Service failed: {err}") from err
@@ -335,8 +329,7 @@ class PawControlServiceManager:
         self._registered_services: set[str] = set()
 
         # OPTIMIZATION: Dynamic cache with priority-based TTL
-        self._runtime_cache: dict[str,
-                                  tuple[PawControlRuntimeData, float, int]] = {}
+        self._runtime_cache: dict[str, tuple[PawControlRuntimeData, float, int]] = {}
         self._base_ttl = 30.0  # Base TTL in seconds
         self._cache_hits = 0
         self._cache_misses = 0
@@ -427,8 +420,7 @@ class PawControlServiceManager:
                 )
                 self._registered_services.add(service_name)
 
-            _LOGGER.info("Registered %d services",
-                         len(self._registered_services))
+            _LOGGER.info("Registered %d services", len(self._registered_services))
 
         except Exception as err:
             _LOGGER.error("Service registration failed: %s", err)
@@ -442,8 +434,7 @@ class PawControlServiceManager:
                 self.hass.services.async_remove(DOMAIN, service_name)
                 self._registered_services.discard(service_name)
             except Exception as err:
-                _LOGGER.warning("Failed to unregister %s: %s",
-                                service_name, err)
+                _LOGGER.warning("Failed to unregister %s: %s", service_name, err)
 
         # Clear caches
         self._runtime_cache.clear()
@@ -563,8 +554,7 @@ class PawControlServiceManager:
         Returns:
             Estimated calories
         """
-        calories_per_100g = PawControlServiceManager._CALORIE_TABLE.get(
-            food_type, 200)
+        calories_per_100g = PawControlServiceManager._CALORIE_TABLE.get(food_type, 200)
         return round((portion_size / 100) * calories_per_100g, 1)
 
     # Service handlers with optimized decorators
@@ -840,10 +830,8 @@ class PawControlServiceManager:
             )
 
         except Exception as err:
-            _LOGGER.error(
-                "Health portion recalculation failed for %s: %s", dog_id, err)
-            raise ServiceValidationError(
-                f"Recalculation failed: {err}") from err
+            _LOGGER.error("Health portion recalculation failed for %s: %s", dog_id, err)
+            raise ServiceValidationError(f"Recalculation failed: {err}") from err
 
         # Update coordinator with high priority
         coordinator = runtime_data["coordinator"]
@@ -882,8 +870,7 @@ class PawControlServiceManager:
                         portion_size = config.calculate_portion_size()
                         calculation_method = "health_aware_fallback"
                 else:
-                    raise ServiceValidationError(
-                        "Health-aware feeding not configured")
+                    raise ServiceValidationError("Health-aware feeding not configured")
             else:
                 # Use standard calculation
                 config = feeding_manager._configs.get(dog_id)
@@ -891,8 +878,7 @@ class PawControlServiceManager:
                     portion_size = config.calculate_portion_size()
                     calculation_method = "standard"
                 else:
-                    raise ServiceValidationError(
-                        "No feeding configuration found")
+                    raise ServiceValidationError("No feeding configuration found")
 
             # Add feeding event with health calculation info
             combined_notes = f"Health-aware feeding ({calculation_method})"
@@ -930,10 +916,8 @@ class PawControlServiceManager:
             )
 
         except Exception as err:
-            _LOGGER.error(
-                "Health-aware feeding failed for %s: %s", dog_id, err)
-            raise ServiceValidationError(
-                f"Health-aware feeding failed: {err}") from err
+            _LOGGER.error("Health-aware feeding failed for %s: %s", dog_id, err)
+            raise ServiceValidationError(f"Health-aware feeding failed: {err}") from err
 
         # Update coordinator
         coordinator = runtime_data["coordinator"]
@@ -982,8 +966,7 @@ class PawControlServiceManager:
         self._fire_health_update_event(dog_id, list(health_data.keys()))
 
         _LOGGER.info(
-            "Updated health data for %s: %s", dog_id, ", ".join(
-                health_data.keys())
+            "Updated health data for %s: %s", dog_id, ", ".join(health_data.keys())
         )
 
         # Update coordinator
@@ -1023,8 +1006,7 @@ class PawControlServiceManager:
         self, call: ServiceCall, dog_id: str, runtime_data: PawControlRuntimeData
     ) -> None:
         """Handle feed_with_medication service."""
-        medication_name = call.data.get(
-            "medication_name", "Scheduled Medication")
+        medication_name = call.data.get("medication_name", "Scheduled Medication")
         dosage = call.data.get("dosage", "As prescribed")
         auto_calculate = call.data.get("auto_calculate_portion", True)
         timing = call.data.get("medication_timing", "optimal")
@@ -1110,8 +1092,7 @@ class PawControlServiceManager:
 
         except Exception as err:
             _LOGGER.error("Medication feeding failed for %s: %s", dog_id, err)
-            raise ServiceValidationError(
-                f"Medication feeding failed: {err}") from err
+            raise ServiceValidationError(f"Medication feeding failed: {err}") from err
 
         # Update coordinator with high priority
         coordinator = runtime_data["coordinator"]

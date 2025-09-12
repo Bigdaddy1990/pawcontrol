@@ -3,28 +3,30 @@
 Validates that entities can properly access data through the refactored coordinator
 with manager delegation.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.sensor import (
+    PawControlDietValidationStatusSensor,
+    PawControlHealthAwarePortionSensor,
+    PawControlLastFeedingSensor,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.sensor import PawControlDietValidationStatusSensor
-from custom_components.pawcontrol.sensor import PawControlHealthAwarePortionSensor
-from custom_components.pawcontrol.sensor import PawControlLastFeedingSensor
 
 
 class TestRefactoredCoordinatorIntegration:
@@ -423,8 +425,7 @@ class TestRefactoredCoordinatorIntegration:
         await coordinator._async_update_data()
 
         # Sensor should handle missing feeding data
-        PawControlLastFeedingSensor(
-            coordinator, "integration_test_dog", "Test Dog")
+        PawControlLastFeedingSensor(coordinator, "integration_test_dog", "Test Dog")
 
         # Should not crash, might return None
         # Value might be None due to error, but should not raise exception

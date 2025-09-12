@@ -1,39 +1,41 @@
 """Tests for the Paw Control config flow."""
+
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import aiofiles
 import pytest
+from custom_components.pawcontrol.config_flow import (
+    PawControlConfigFlow,
+    PawControlOptionsFlow,
+)
+from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
+from custom_components.pawcontrol.const import (
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_DOGS,
+    CONF_MEALS_PER_DAY,
+    CONF_MODULES,
+    DOMAIN,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.utils import DOG_ID_PATTERN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.pawcontrol.config_flow import PawControlConfigFlow
-from custom_components.pawcontrol.config_flow import PawControlOptionsFlow
-from custom_components.pawcontrol.config_flow_base import MAX_DOGS_PER_ENTRY
-from custom_components.pawcontrol.const import CONF_DAILY_FOOD_AMOUNT
-from custom_components.pawcontrol.const import CONF_DOG_AGE
-from custom_components.pawcontrol.const import CONF_DOG_BREED
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOG_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_MEALS_PER_DAY
-from custom_components.pawcontrol.const import CONF_MODULES
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.utils import DOG_ID_PATTERN
 
 
 class TestPawControlConfigFlow:
@@ -65,8 +67,7 @@ class TestPawControlConfigFlow:
         user_input = {"name": "My Paw Control"}
 
         with (
-            patch.object(flow, "_generate_unique_id",
-                         return_value="my_paw_control"),
+            patch.object(flow, "_generate_unique_id", return_value="my_paw_control"),
             patch.object(flow, "async_set_unique_id"),
             patch.object(flow, "_abort_if_unique_id_configured"),
             patch.object(flow, "async_step_add_dog") as mock_add_dog,
@@ -357,12 +358,10 @@ class TestPawControlConfigFlow:
         invalid_ids = ["my-dog", "test dog", "", "!invalid"]
 
         for dog_id in valid_ids:
-            assert DOG_ID_PATTERN.match(
-                dog_id), f"Expected {dog_id} to be valid"
+            assert DOG_ID_PATTERN.match(dog_id), f"Expected {dog_id} to be valid"
 
         for dog_id in invalid_ids:
-            assert not DOG_ID_PATTERN.match(
-                dog_id), f"Expected {dog_id} to be invalid"
+            assert not DOG_ID_PATTERN.match(dog_id), f"Expected {dog_id} to be invalid"
 
     @pytest.mark.asyncio
     async def test_validate_dog_config_caching(self, hass: HomeAssistant):
