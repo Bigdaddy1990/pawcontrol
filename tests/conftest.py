@@ -18,8 +18,8 @@ from custom_components.pawcontrol.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-# Manually load required pytest plugins
-pytest_plugins = ["pytest_cov", "pytest_asyncio"]
+# Manually load required pytest plugins for asyncio support
+pytest_plugins = ["pytest_asyncio.plugin"]
 
 # Ensure custom Home Assistant stubs are loaded
 
