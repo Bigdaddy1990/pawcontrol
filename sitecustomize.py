@@ -245,6 +245,9 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
         pass
 
+    # Ensure the exception appears to originate from the real module
+    UpdateFailedError.__module__ = "homeassistant.helpers.update_coordinator"
+
     # Backwards-compat: keep legacy name at module level
     UpdateFailed = UpdateFailedError
 
