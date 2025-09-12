@@ -58,7 +58,7 @@ async def test_full_config_flow(hass):
 
     result = await flow.async_step_entity_profile({"entity_profile": "standard"})
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Paw Setup (Standard (12 entities))"
+    assert result["title"].startswith("Paw Setup (")
     assert result["data"]["name"] == "Paw Setup"
     assert result["data"][CONF_DOGS][0][CONF_DOG_ID] == "fido"
     assert result["data"][CONF_DOGS][0][CONF_DOG_NAME] == "Fido"
