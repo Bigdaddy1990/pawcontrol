@@ -858,7 +858,7 @@ class TestSecurityValidationBypassAttempts:
         for key, value in poisoning_attempts:
             # Cache should handle malicious entries safely
             try:
-                asyncio.create_task(cache.set(key, value))
+                asyncio.create_task(cache.set(key, value))  # noqa: RUF006
                 retrieved = asyncio.create_task(cache.get(key))
 
                 # Should not allow cache poisoning to affect normal operations

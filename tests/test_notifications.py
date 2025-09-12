@@ -413,7 +413,7 @@ class TestPriorityManagement:
         assert "🚨 URGENT" in title_urgent
         assert "⚠️ Important" in title_high
         assert "🐕" in title_normal
-        assert "ℹ️" in title_low
+        assert "ℹ️" in title_low  # noqa: RUF001
 
         # All should contain dog name
         assert "Buddy" in title_urgent

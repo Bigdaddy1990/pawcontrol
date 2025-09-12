@@ -514,7 +514,7 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     for platform in platforms:
         # In a real implementation, this would check if the platform is actually loaded
         # For now, we'll assume all platforms are loaded
-        loaded_platforms.append(platform)
+        loaded_platforms.append(platform)  # noqa: PERF402
 
     return loaded_platforms
 

@@ -125,7 +125,7 @@ class TestMemoryPressureScenarios:
         try:
             # Create objects to consume memory
             for _ in range(1000):
-                memory_hogs.append([0] * 10000)  # Create large lists
+                memory_hogs.append([0] * 10000)  # Create large lists  # noqa: PERF401
             yield
         finally:
             # Clean up

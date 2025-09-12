@@ -1340,7 +1340,7 @@ class TestTextPerformance:
         # Create many dogs to test batching
         dogs = []
         for i in range(8):  # 8 dogs with all modules
-            dogs.append(
+            dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"dog_{i}",
                     CONF_DOG_NAME: f"Dog {i}",

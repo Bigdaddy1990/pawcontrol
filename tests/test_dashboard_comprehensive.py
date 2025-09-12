@@ -659,7 +659,7 @@ class TestDashboardEdgeCases:
         # Create configuration for 50 dogs
         large_config = []
         for i in range(50):
-            large_config.append(
+            large_config.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"dog_{i:03d}",
                     CONF_DOG_NAME: f"Dog {i + 1}",
@@ -907,7 +907,7 @@ class TestDashboardRendererPerformance:
         # Create large dog configuration
         large_dog_config = []
         for i in range(100):
-            large_dog_config.append(
+            large_dog_config.append(  # noqa: PERF401
                 {
                     "dog_id": f"dog_{i:03d}",
                     "dog_name": f"Dog {i + 1}",

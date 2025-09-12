@@ -211,7 +211,7 @@ class TestAsyncSetupEntry:
         mock_batch_add.assert_called_once()
 
         # Get the entities that were passed to batching
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]  # Second argument is the entities list
 
         # Dog1 has all modules: 3 base + 4 feeding + 4 walk + 6 gps + 6 health = 23 entities
@@ -267,7 +267,7 @@ class TestAsyncSetupEntry:
 
         # Should still call batching function but with empty entity list
         mock_batch_add.assert_called_once()
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]
         assert len(entities) == 0
 

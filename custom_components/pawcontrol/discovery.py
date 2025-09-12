@@ -762,7 +762,7 @@ async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, An
         # Convert to legacy format
         legacy_devices = []
         for device in devices:
-            legacy_devices.append(
+            legacy_devices.append(  # noqa: PERF401
                 {
                     "source": device.connection_type,
                     "data": {

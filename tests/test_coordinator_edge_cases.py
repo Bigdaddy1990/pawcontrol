@@ -970,7 +970,7 @@ class TestCoordinatorUpdateIntervalCalculation:
         """Test interval calculation with high complexity."""
         dogs = []
         for i in range(15):  # Many dogs
-            dogs.append(
+            dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"complex_dog_{i}",
                     CONF_DOG_NAME: f"Complex Dog {i}",
@@ -1152,7 +1152,7 @@ async def test_comprehensive_coordinator_integration():
     # Create large-scale test scenario
     dogs = []
     for i in range(25):  # 25 dogs for comprehensive testing
-        dogs.append(
+        dogs.append(  # noqa: PERF401
             {
                 CONF_DOG_ID: f"integration_dog_{i:02d}",
                 CONF_DOG_NAME: f"Integration Dog {i:02d}",

@@ -1099,7 +1099,7 @@ class TestPerformanceAndStressScenarios:
         # Add many dogs to test performance
         many_dogs = []
         for i in range(20):
-            many_dogs.append(
+            many_dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"stress_dog_{i}",
                     CONF_DOG_NAME: f"Stress Dog {i}",

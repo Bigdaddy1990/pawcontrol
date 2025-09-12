@@ -55,7 +55,7 @@ class ProfileOptimizedSwitchFactory:
     """Factory for efficient profile-based switch creation with minimal entity count."""
 
     # Module configurations - only for modules that support switches
-    MODULE_CONFIGS = [
+    MODULE_CONFIGS = [  # noqa: RUF012
         (MODULE_FEEDING, "Feeding Tracking", "mdi:food-drumstick"),
         (MODULE_WALK, "Walk Tracking", "mdi:walk"),
         (MODULE_GPS, "GPS Tracking", "mdi:map-marker"),
@@ -67,7 +67,7 @@ class ProfileOptimizedSwitchFactory:
     ]
 
     # Feature switches grouped by module - only created if module is enabled
-    FEATURE_SWITCHES = {
+    FEATURE_SWITCHES = {  # noqa: RUF012
         MODULE_FEEDING: [
             ("auto_feeding_reminders", "Auto Feeding Reminders", "mdi:clock-alert"),
             ("feeding_schedule", "Feeding Schedule", "mdi:calendar-check"),
@@ -316,7 +316,7 @@ class OptimizedSwitchBase(
     _attr_has_entity_name = True
 
     # OPTIMIZATION: Enhanced state cache with TTL
-    _state_cache: dict[str, tuple[bool, float]] = {}
+    _state_cache: dict[str, tuple[bool, float]] = {}  # noqa: RUF012
     _cache_ttl = 3.0  # Reduced to 3 seconds for better responsiveness
 
     def __init__(

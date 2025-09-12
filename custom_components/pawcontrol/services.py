@@ -313,7 +313,7 @@ class PawControlServiceManager:
     """Ultra-optimized service manager with dynamic caching."""
 
     # OPTIMIZATION: Calorie lookup table
-    _CALORIE_TABLE = {
+    _CALORIE_TABLE = {  # noqa: RUF012
         "dry_food": 350,
         "wet_food": 85,
         "barf": 150,

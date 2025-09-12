@@ -229,7 +229,7 @@ class TestAsyncSetupEntry:
         mock_batch_add.assert_called_once()
 
         # Get the entities that were passed to batching
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]  # Second argument is the entities list
 
         # Only 2 dogs have GPS enabled, so should create 2 entities

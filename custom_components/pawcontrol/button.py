@@ -521,7 +521,7 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
     _attr_has_entity_name = True
 
     # OPTIMIZATION: Class-level caches
-    _dog_data_cache: dict[str, tuple[Any, float]] = {}
+    _dog_data_cache: dict[str, tuple[Any, float]] = {}  # noqa: RUF012
     _cache_ttl = 2.0  # 2 second cache for button actions
 
     def __init__(
@@ -730,7 +730,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
     """Button to mark dog as fed."""
 
     # OPTIMIZATION: Meal type by hour lookup table
-    _meal_schedule = {
+    _meal_schedule = {  # noqa: RUF012
         range(5, 11): "breakfast",
         range(11, 16): "lunch",
         range(16, 22): "dinner",

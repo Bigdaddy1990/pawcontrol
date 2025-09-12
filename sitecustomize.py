@@ -2,7 +2,7 @@
 
 If the real Home Assistant package isn't available, this module
 creates lightweight stand‑ins for the parts of the API used in tests.
-"""
+"""  # noqa: RUF002
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     class HomeAssistantError(Exception):  # pragma: no cover - simple base
         pass
 
-    class ConfigEntryNotReady(HomeAssistantError):  # pragma: no cover
+    class ConfigEntryNotReady(HomeAssistantError):  # pragma: no cover  # noqa: N818
         pass
 
     class ServiceValidationError(HomeAssistantError):  # pragma: no cover
@@ -240,7 +240,7 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     helpers.update_coordinator = update_coordinator
     sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
 
-    class UpdateFailed(Exception):  # pragma: no cover - simple placeholder
+    class UpdateFailed(Exception):  # pragma: no cover - simple placeholder  # noqa: N818
         pass
 
     update_coordinator.UpdateFailed = UpdateFailed

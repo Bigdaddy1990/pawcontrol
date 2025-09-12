@@ -48,7 +48,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 
 
-class TestAsync_Setup:
+class TestAsync_Setup:  # noqa: N801
     """Test the async_setup function."""
 
     @pytest.mark.asyncio

@@ -467,7 +467,7 @@ class PawControlDataManager:
 
     async def _initialize_statistics(self) -> None:
         """Initialize statistics if needed."""
-        stats, hit = await self._cache.get("statistics")
+        stats, _hit = await self._cache.get("statistics")
         if not stats:
             stats = {
                 "created": dt_util.utcnow().isoformat(),

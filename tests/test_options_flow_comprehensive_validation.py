@@ -911,7 +911,7 @@ class TestAdvancedErrorRecoveryScenarios:
         # Create large configuration to simulate memory pressure
         large_dogs = []
         for i in range(100):
-            large_dogs.append(
+            large_dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"memory_dog_{i}",
                     CONF_DOG_NAME: f"Memory Dog {i}",
@@ -960,7 +960,7 @@ class TestPerformanceValidationScenarios:
         # Create configuration with many dogs and complex modules
         many_dogs = []
         for i in range(50):
-            many_dogs.append(
+            many_dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"perf_dog_{i}",
                     CONF_DOG_NAME: f"Performance Dog {i}",
