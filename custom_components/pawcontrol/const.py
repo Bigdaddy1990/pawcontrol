@@ -179,8 +179,8 @@ GPS_ACCURACY_FILTER_SELECTOR: Final = selector.NumberSelector(
     )
 )
 
-# OPTIMIZED: Food types as tuple for immutability
-FOOD_TYPES: Final = ("dry_food", "wet_food", "barf", "home_cooked", "mixed")
+# Food types represented as a list for easier mutation in tests
+FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
 
 # OPTIMIZED: Special diet options as tuple
 SPECIAL_DIET_OPTIONS: Final = (
@@ -201,11 +201,12 @@ SPECIAL_DIET_OPTIONS: Final = (
 )
 
 # OPTIMIZED: Schedule types as tuple
-FEEDING_SCHEDULE_TYPES: Final = ("flexible", "strict", "custom")
-MEAL_TYPES: Final = ("breakfast", "lunch", "dinner", "snack")
+# Feeding schedule and meal types as lists to match test expectations
+FEEDING_SCHEDULE_TYPES: Final = ["flexible", "strict", "custom"]
+MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
 
-# OPTIMIZED: Dog sizes as tuple with enhanced metadata
-DOG_SIZES: Final = ("toy", "small", "medium", "large", "giant")
+# Dog sizes defined as list for consistency with tests
+DOG_SIZES: Final = ["toy", "small", "medium", "large", "giant"]
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
 DOG_SIZE_WEIGHT_RANGES: Final = {
@@ -216,8 +217,8 @@ DOG_SIZE_WEIGHT_RANGES: Final = {
     "giant": (35.0, 90.0),
 }
 
-# OPTIMIZED: GPS sources as tuple
-GPS_SOURCES: Final = (
+# GPS sources represented as a list
+GPS_SOURCES: Final = [
     "manual",
     "device_tracker",
     "person_entity",
@@ -225,21 +226,21 @@ GPS_SOURCES: Final = (
     "tractive",
     "webhook",
     "mqtt",
-)
+]
 
-# OPTIMIZED: Status options as tuples
-HEALTH_STATUS_OPTIONS: Final = (
+# Status and mood options stored as lists
+HEALTH_STATUS_OPTIONS: Final = [
     "excellent",
     "very_good",
     "good",
     "normal",
     "unwell",
     "sick",
-)
+]
 
-MOOD_OPTIONS: Final = ("happy", "neutral", "sad", "angry", "anxious", "tired")
+MOOD_OPTIONS: Final = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
 
-ACTIVITY_LEVELS: Final = ("very_low", "low", "normal", "high", "very_high")
+ACTIVITY_LEVELS: Final = ["very_low", "low", "normal", "high", "very_high"]
 
 # OPTIMIZED: Dashboard configuration
 DASHBOARD_MODES: Final = ("full", "cards", "minimal")

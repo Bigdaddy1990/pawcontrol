@@ -297,7 +297,7 @@ def service_handler(
                 raise
             except TimeoutError:
                 _LOGGER.error("Service %s timed out after %ss", func.__name__, timeout)
-                raise ServiceValidationError(f"Service timed out after {timeout}s")  # noqa: B904
+                raise ServiceValidationError(f"Service timed out after {timeout}s")
             except Exception as err:
                 _LOGGER.error("Unexpected error in %s: %s", func.__name__, err)
                 raise ServiceValidationError(f"Service failed: {err}") from err
