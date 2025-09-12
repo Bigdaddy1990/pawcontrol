@@ -7,12 +7,12 @@ Python: 3.13+
 Handles walk tracking, GPS data processing, and location-based features
 separated from the main coordinator for better maintainability.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.util import dt as dt_util

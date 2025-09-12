@@ -1,29 +1,27 @@
 """Simplified tests for the Paw Control dashboard generator."""
-
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import aiofiles
 import pytest
-from custom_components.pawcontrol.const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.dashboard_generator import (
-    DASHBOARD_STORAGE_VERSION,
-    DEFAULT_DASHBOARD_TITLE,
-    DEFAULT_DASHBOARD_URL,
-    PawControlDashboardGenerator,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.dashboard_generator import DASHBOARD_STORAGE_VERSION
+from custom_components.pawcontrol.dashboard_generator import DEFAULT_DASHBOARD_TITLE
+from custom_components.pawcontrol.dashboard_generator import DEFAULT_DASHBOARD_URL
+from custom_components.pawcontrol.dashboard_generator import PawControlDashboardGenerator
 
 
 @pytest.fixture

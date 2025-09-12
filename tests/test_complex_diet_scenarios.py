@@ -8,7 +8,6 @@ Tests complex real-world scenarios combining multiple special diets,
 health conditions, age factors, and validation conflicts to ensure
 robust portion calculation and safety validation.
 """
-
 from __future__ import annotations
 
 import sys

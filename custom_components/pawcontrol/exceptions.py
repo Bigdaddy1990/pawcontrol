@@ -9,13 +9,13 @@ Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """
-
 from __future__ import annotations
 
 import traceback
 from datetime import datetime
 from enum import Enum
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.exceptions import HomeAssistantError
 

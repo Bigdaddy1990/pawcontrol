@@ -1,10 +1,10 @@
 """Core setup for the Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -13,24 +13,23 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-    PLATFORMS,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
+from .const import PLATFORMS
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .exceptions import PawControlSetupError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
 from .notifications import PawControlNotificationManager
-from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
+from .services import async_setup_daily_reset_scheduler
+from .services import PawControlServiceManager
 from .types import DogConfigData
 from .walk_manager import WalkManager
 

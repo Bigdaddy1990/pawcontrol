@@ -15,7 +15,6 @@ Additional Test Areas:
 - Memory efficiency with large option sets
 - Configuration migration and backward compatibility
 """
-
 # ruff: noqa: F403, F405
 from __future__ import annotations
 

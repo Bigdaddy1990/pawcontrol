@@ -5,7 +5,6 @@ and support purposes. It collects system information, configuration details,
 and operational data while ensuring sensitive information is properly redacted.
 Designed to meet Home Assistant's Platinum quality standards.
 """
-
 from __future__ import annotations
 
 import logging
@@ -17,17 +16,15 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-)
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)

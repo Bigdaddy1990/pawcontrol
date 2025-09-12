@@ -1,5 +1,4 @@
 """DateTime platform for Paw Control integration."""
-
 from __future__ import annotations
 
 import asyncio
@@ -15,17 +14,15 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
