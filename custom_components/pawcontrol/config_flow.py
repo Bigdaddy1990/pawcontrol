@@ -204,13 +204,13 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
      self, user_input: dict[str, Any] | None = None
  ) -> ConfigFlowResult:
      """Configure modules for the specific dog being added.
- 
+
      This step allows individual module configuration per dog,
      ensuring only needed entities are created.
- 
+
      Args:
          user_input: Module selection for the dog
- 
+
      Returns:
          Configuration flow result for next step
      """
@@ -233,7 +233,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
              MODULE_MEDICATION: user_input.get("enable_medication", False),
              MODULE_TRAINING: user_input.get("enable_training", False),
          }
- 
+
          self._current_dog_config[CONF_MODULES] = modules
 
 

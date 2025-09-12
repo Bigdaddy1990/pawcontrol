@@ -162,7 +162,10 @@ async def test_unique_id_conflict(mock_load, hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_abort_no_dogs(hass: HomeAssistant) -> None:
     """Test aborting final setup when no dogs configured."""
-    with patch("homeassistant.config_entries._load_integration", new=AsyncMock(return_value=None)):
+    with patch(
+        "homeassistant.config_entries._load_integration",
+        new=AsyncMock(return_value=None),
+    ):
         with patch.dict(config_entries.HANDLERS, {DOMAIN: PawControlConfigFlow}):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
