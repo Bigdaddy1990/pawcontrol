@@ -39,7 +39,7 @@ repos:
     rev: v3.15.0
     hooks:
     -   id: reorder-python-imports
-        args: [--py313-plus, --add-import, 'from __future__ import annotations', 'from homeassistant.components import system_health']
+        args: [--py313-plus, --add-import, 'from __future__ import annotations']
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
