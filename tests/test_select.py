@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest

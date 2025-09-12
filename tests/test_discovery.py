@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -79,7 +80,7 @@ class TestDiscoveredDevice:
         )
 
         # Should not be able to modify frozen dataclass
-        with pytest.raises(Exception):  # FrozenInstanceError or AttributeError
+        with pytest.raises((FrozenInstanceError, AttributeError)):
             device.name = "Modified Name"
 
     def test_discovered_device_equality(self):

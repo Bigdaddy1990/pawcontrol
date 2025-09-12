@@ -13,7 +13,7 @@ user-guided repair flows, so comprehensive testing is essential.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest

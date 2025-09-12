@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -967,7 +967,7 @@ class TestPawControlDeviceTracker:
 
         mock_coordinator.get_module_data.return_value = new_gps_data
 
-        with patch(
+        with patch(  # noqa: SIM117
             "custom_components.pawcontrol.device_tracker.distance", return_value=0.015
         ):  # 15 meters
             with patch.object(
@@ -995,7 +995,7 @@ class TestPawControlDeviceTracker:
 
         mock_coordinator.get_module_data.return_value = new_gps_data
 
-        with patch(
+        with patch(  # noqa: SIM117
             "custom_components.pawcontrol.device_tracker.distance", return_value=0.005
         ):  # 5 meters
             with patch.object(
@@ -1039,7 +1039,7 @@ class TestPawControlDeviceTracker:
 
         mock_coordinator.get_module_data.return_value = new_gps_data
 
-        with patch.object(device_tracker, "location_name", STATE_NOT_HOME):
+        with patch.object(device_tracker, "location_name", STATE_NOT_HOME):  # noqa: SIM117
             with patch.object(
                 device_tracker, "_handle_zone_change"
             ) as mock_zone_change:

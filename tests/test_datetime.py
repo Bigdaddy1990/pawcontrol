@@ -764,7 +764,7 @@ class TestPawControlLastFeedingDateTime:
         last_feeding_entity.hass = hass
         test_datetime = datetime(2023, 6, 15, 12, 30, 0)
 
-        with patch.object(
+        with patch.object(  # noqa: SIM117
             hass.services, "async_call", new_callable=AsyncMock
         ) as mock_service_call:
             with patch.object(last_feeding_entity, "async_write_ha_state"):
@@ -960,7 +960,7 @@ class TestPawControlHealthDateTimeEntities:
         last_vet_visit_entity.hass = hass
         test_datetime = datetime(2023, 5, 10, 14, 30, 0)
 
-        with patch.object(
+        with patch.object(  # noqa: SIM117
             hass.services, "async_call", new_callable=AsyncMock
         ) as mock_service_call:
             with patch.object(last_vet_visit_entity, "async_write_ha_state"):
@@ -984,7 +984,7 @@ class TestPawControlHealthDateTimeEntities:
         last_grooming_entity.hass = hass
         test_datetime = datetime(2023, 4, 20, 10, 0, 0)
 
-        with patch.object(
+        with patch.object(  # noqa: SIM117
             hass.services, "async_call", new_callable=AsyncMock
         ) as mock_service_call:
             with patch.object(last_grooming_entity, "async_write_ha_state"):
@@ -1009,7 +1009,7 @@ class TestPawControlHealthDateTimeEntities:
         last_medication_entity.hass = hass
         test_datetime = datetime(2023, 6, 1, 8, 0, 0)
 
-        with patch.object(
+        with patch.object(  # noqa: SIM117
             hass.services, "async_call", new_callable=AsyncMock
         ) as mock_service_call:
             with patch.object(last_medication_entity, "async_write_ha_state"):
@@ -1249,7 +1249,7 @@ class TestPawControlSpecialDateTimeEntities:
         vaccination_entity.hass = hass
         test_datetime = datetime(2023, 6, 20, 11, 0, 0)
 
-        with patch.object(
+        with patch.object(  # noqa: SIM117
             hass.services, "async_call", new_callable=AsyncMock
         ) as mock_service_call:
             with patch.object(vaccination_entity, "async_write_ha_state"):
@@ -1370,7 +1370,7 @@ class TestPawControlSpecialDateTimeEntities:
 
         hass.data[DOMAIN] = {"test_entry": {"notifications": mock_notification_manager}}
 
-        with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+        with patch.object(hass.services, "async_call", new_callable=AsyncMock):  # noqa: SIM117
             with patch.object(emergency_entity, "async_write_ha_state"):
                 # Should not raise exception despite notification error
                 await emergency_entity.async_set_value(test_datetime)
@@ -1389,7 +1389,7 @@ class TestPawControlSpecialDateTimeEntities:
         # No hass.data[DOMAIN] structure
         hass.data = {}
 
-        with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+        with patch.object(hass.services, "async_call", new_callable=AsyncMock):  # noqa: SIM117
             with patch.object(emergency_entity, "async_write_ha_state"):
                 # Should not raise exception even with missing data structure
                 await emergency_entity.async_set_value(test_datetime)
@@ -1684,7 +1684,7 @@ class TestDateTimeEntityIntegrationScenarios:
         for scenario in scenarios:
             hass.data = scenario
 
-            with patch.object(hass.services, "async_call", new_callable=AsyncMock):
+            with patch.object(hass.services, "async_call", new_callable=AsyncMock):  # noqa: SIM117
                 with patch.object(emergency_entity, "async_write_ha_state"):
                     # Should not raise exception in any scenario
                     await emergency_entity.async_set_value(test_datetime)
@@ -1711,7 +1711,7 @@ class TestDateTimeEntityIntegrationScenarios:
             entity.hass = hass
 
             # Test successful set_value
-            with patch.object(entity, "async_write_ha_state"):
+            with patch.object(entity, "async_write_ha_state"):  # noqa: SIM117
                 with patch.object(hass.services, "async_call", new_callable=AsyncMock):
                     await entity.async_set_value(test_datetime)
 

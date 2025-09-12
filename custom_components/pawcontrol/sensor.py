@@ -10,7 +10,7 @@ import asyncio
 import logging
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -40,7 +40,7 @@ from .utils import create_device_info
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases
-SensorValue = Union[str, int, float, datetime, None]
+SensorValue = str | int | float | datetime | None
 AttributeDict = dict[str, Any]
 
 # OPTIMIZATION: Performance tuning for profile-based setup
@@ -342,7 +342,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     def native_value(self) -> float | None:
         """Calculate and return the activity score with caching."""
         now = dt_util.utcnow()
-        if self._cached_score is not None and self._score_cache_time is not None:
+        if self._cached_score is not None and self._score_cache_time is not None:  # noqa: SIM102
             if (
                 now - self._score_cache_time
             ).total_seconds() < ACTIVITY_SCORE_CACHE_TTL:

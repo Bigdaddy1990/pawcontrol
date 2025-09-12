@@ -13,7 +13,6 @@ import ast
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 
 class CoverageValidator:
@@ -236,7 +235,7 @@ class CoverageValidator:
         """Extract function names from AST."""
         functions = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
+            if isinstance(node, ast.FunctionDef):  # noqa: SIM102
                 if not node.name.startswith("_"):  # Skip private functions
                     functions.add(node.name)
         return functions
@@ -253,7 +252,7 @@ class CoverageValidator:
         """Extract test method names from AST."""
         test_methods = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
+            if isinstance(node, ast.FunctionDef):  # noqa: SIM102
                 if node.name.startswith("test_"):
                     test_methods.add(node.name)
         return test_methods
@@ -262,7 +261,7 @@ class CoverageValidator:
         """Extract test class names from AST."""
         test_classes = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
+            if isinstance(node, ast.ClassDef):  # noqa: SIM102
                 if node.name.startswith("Test"):
                     test_classes.add(node.name)
         return test_classes
@@ -399,7 +398,7 @@ class CoverageValidator:
         ]
 
         for core_file in core_files:
-            if core_file in self.coverage_report:
+            if core_file in self.coverage_report:  # noqa: SIM102
                 if not self.coverage_report[core_file]["has_test_file"]:
                     return False
 

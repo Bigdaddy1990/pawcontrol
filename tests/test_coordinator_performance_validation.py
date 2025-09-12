@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -687,7 +687,7 @@ class TestPerformanceMonitoringIntegration:
         ):
             start_time = time.time()
 
-            try:
+            try:  # noqa: SIM105
                 await monitored_coordinator.async_refresh()
             except UpdateFailed:
                 # Expected due to slow performance

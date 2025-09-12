@@ -29,7 +29,7 @@ import time
 import weakref
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
@@ -1343,7 +1343,7 @@ class TestExtremeStressScenarios:
 
         # Clean up flows
         for flow in flows:
-            try:
+            try:  # noqa: SIM105
                 await flow._validation_cache.clear()
             except:  # noqa: E722
                 pass

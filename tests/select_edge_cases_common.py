@@ -8,7 +8,7 @@ import json
 import weakref
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -151,11 +151,9 @@ __all__ = [
     "ConfigEntry",
     "ConfigEntryNotReady",
     "DeviceRegistry",
-    "Dict",
     "EntityRegistry",
     "HomeAssistant",
     "HomeAssistantError",
-    "List",
     "MagicMock",
     "Mock",
     "Optional",

@@ -1,4 +1,4 @@
-# custom_components/pawcontrol/system_health.py
+# System health support for the PawControl integration.
 from __future__ import annotations
 
 from typing import Any
@@ -6,7 +6,7 @@ from typing import Any
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
 
-DOMAIN = "pawcontrol"
+from .const import DOMAIN
 
 
 @callback
@@ -17,13 +17,20 @@ def async_register(
 
 
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
-    # Beispiel: erste Config-Entry prüfen
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
-    runtime = getattr(entry, "runtime_data", None)
+    """Provide integration health information."""
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return {"can_reach_backend": False}
+
+    runtime = getattr(entries[0], "runtime_data", None)
     api = getattr(runtime, "api", None)
+    base_url = getattr(api, "base_url", "https://example.invalid")
+    remaining_quota = getattr(runtime, "remaining_quota", "unknown")
+
     return {
-        "can_reach_backend": system_health.async_check_can_reach_url(
-            hass, getattr(api, "base_url", "https://example.invalid")
+        "can_reach_backend": await system_health.async_check_can_reach_url(
+            hass, base_url
         ),
-        "remaining_quota": getattr(runtime, "remaining_quota", "unknown"),
+        "remaining_quota": remaining_quota,
     }

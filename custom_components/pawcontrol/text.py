@@ -201,7 +201,7 @@ class PawControlTextBase(
         await super().async_added_to_hass()
 
         # Restore previous value
-        if (last_state := await self.async_get_last_state()) is not None:
+        if (last_state := await self.async_get_last_state()) is not None:  # noqa: SIM102
             if last_state.state not in ("unknown", "unavailable"):
                 self._current_value = last_state.state
 

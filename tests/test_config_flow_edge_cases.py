@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
@@ -391,7 +391,7 @@ class TestEntityProfileEdgeCases:
             assert validated["entity_profile"] == profile
 
         # Invalid profile should raise error
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             PROFILE_SCHEMA({"entity_profile": "invalid_profile"})
 
         # Default value

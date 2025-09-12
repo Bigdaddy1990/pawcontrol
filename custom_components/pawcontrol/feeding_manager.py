@@ -662,7 +662,7 @@ class FeedingManager:
             ("lunch_time", MealType.LUNCH),
             ("dinner_time", MealType.DINNER),
         ]:
-            if meal_time_str := config_data.get(meal_name):
+            if meal_time_str := config_data.get(meal_name):  # noqa: SIM102
                 if parsed_time := self._parse_time(meal_time_str):
                     meal_schedules.append(
                         MealSchedule(
@@ -796,7 +796,7 @@ class FeedingManager:
 
         for schedule in config.get_todays_schedules():
             reminder_time = schedule.get_reminder_time()
-            if reminder_time and reminder_time > dt_util.now():
+            if reminder_time and reminder_time > dt_util.now():  # noqa: SIM102
                 if next_reminder is None or reminder_time < next_reminder:
                     next_reminder = reminder_time
 
@@ -807,7 +807,7 @@ class FeedingManager:
 
             for schedule in config.get_active_schedules():
                 reminder_time = schedule.get_reminder_time()
-                if reminder_time and reminder_time >= tomorrow_start:
+                if reminder_time and reminder_time >= tomorrow_start:  # noqa: SIM102
                     if next_reminder is None or reminder_time < next_reminder:
                         next_reminder = reminder_time
 
@@ -1546,7 +1546,7 @@ class FeedingManager:
         if health_metrics.life_stage == LifeStage.PUPPY:
             return "puppy_formula"
 
-        if health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
+        if health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:  # noqa: SIM102
             if health_metrics.activity_level == ActivityLevel.VERY_LOW:
                 return "senior_formula"
 
