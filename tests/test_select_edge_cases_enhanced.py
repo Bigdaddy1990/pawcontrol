@@ -919,7 +919,7 @@ class TestConfigurationMigrationBackwardCompatibility:
         add_entities_mock = Mock()
 
         # Should handle legacy format gracefully
-        try:
+        try:  # noqa: SIM105
             await async_setup_entry(hass, legacy_entry, add_entities_mock)
         except (KeyError, AttributeError):
             # Expected behavior with legacy format

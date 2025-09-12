@@ -687,7 +687,7 @@ class TestPerformanceMonitoringIntegration:
         ):
             start_time = time.time()
 
-            try:
+            try:  # noqa: SIM105
                 await monitored_coordinator.async_refresh()
             except UpdateFailed:
                 # Expected due to slow performance

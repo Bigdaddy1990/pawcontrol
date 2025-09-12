@@ -549,7 +549,7 @@ class TestPawControlOnlineBinarySensor:
             "enabled_modules": ["feeding", "walk", "gps"],
         }
 
-        with patch.object(online_sensor, "_get_dog_data", return_value=mock_dog_data):
+        with patch.object(online_sensor, "_get_dog_data", return_value=mock_dog_data):  # noqa: SIM117
             with patch.object(online_sensor, "is_on", True):
                 attrs = online_sensor.extra_state_attributes
 
@@ -562,7 +562,7 @@ class TestPawControlOnlineBinarySensor:
         """Test extra state attributes when system is offline."""
         mock_dog_data = {"last_update": "2023-01-01T12:00:00", "status": "offline"}
 
-        with patch.object(online_sensor, "_get_dog_data", return_value=mock_dog_data):
+        with patch.object(online_sensor, "_get_dog_data", return_value=mock_dog_data):  # noqa: SIM117
             with patch.object(online_sensor, "is_on", False):
                 attrs = online_sensor.extra_state_attributes
 

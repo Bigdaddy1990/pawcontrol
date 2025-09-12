@@ -225,7 +225,7 @@ class PawControlNotificationManager:
                     return False
 
                 # Check quiet hours and rate limiting
-                if not force:
+                if not force:  # noqa: SIM102
                     if await self._should_suppress_notification(
                         dog_id, notification_type, priority
                     ):

@@ -746,7 +746,7 @@ class TestDependenciesMissingEdgeCases:
         add_entities_mock = Mock()
 
         # Should handle missing coordinator gracefully
-        try:
+        try:  # noqa: SIM105
             await async_setup_entry(hass, mock_entry, add_entities_mock)
         except (KeyError, AttributeError):
             # Expected behavior - should fail gracefully
@@ -882,7 +882,7 @@ class TestConfigurationMigrationEdgeCases:
         add_entities_mock = Mock()
 
         # Should handle legacy format gracefully
-        try:
+        try:  # noqa: SIM105
             await async_setup_entry(hass, legacy_entry, add_entities_mock)
         except (KeyError, AttributeError):
             # Expected - should fail gracefully with legacy format
@@ -934,7 +934,7 @@ class TestConfigurationMigrationEdgeCases:
         add_entities_mock = Mock()
 
         # Should handle corruption gracefully
-        try:
+        try:  # noqa: SIM105
             await async_setup_entry(hass, corrupted_entry, add_entities_mock)
         except (TypeError, AttributeError, KeyError):
             # Expected behavior with corrupted data
