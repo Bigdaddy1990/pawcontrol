@@ -177,7 +177,7 @@ async def test_abort_no_dogs(hass: HomeAssistant) -> None:
             result["flow_id"], {CONF_NAME: "Test"}
         )
         # Skip adding dogs and go directly to final setup
-        flow = hass.config_entries.flow._flows[result["flow_id"]]
+        flow = hass.config_entries.flow._progress[result["flow_id"]].flow
         flow._dogs = []  # Ensure no dogs
         result = await flow.async_step_final_setup()
         assert result["type"] == FlowResultType.ABORT
