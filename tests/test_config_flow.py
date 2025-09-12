@@ -37,7 +37,7 @@ async def hass(tmp_path):
 async def test_full_config_flow(mock_load, hass: HomeAssistant) -> None:
     """Test a full successful config flow."""
     mock_load.return_value = None
-    config_entries.HANDLERS[DOMAIN] = PawControlConfigFlow
+    monkeypatch.setitem(config_entries.HANDLERS, DOMAIN, PawControlConfigFlow)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
