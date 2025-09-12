@@ -200,67 +200,25 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
- async def async_step_dog_modules(
-     self, user_input: dict[str, Any] | None = None
- ) -> ConfigFlowResult:
-     """Configure modules for the specific dog being added.
+    async def async_step_dog_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure optional modules for the newly added dog."""
+        if not self._dogs:
+            return await self.async_step_add_dog()
 
-     This step allows individual module configuration per dog,
-     ensuring only needed entities are created.
+        current_dog = self._dogs[-1]
+        if user_input is not None:
+            current_dog["modules"] = user_input
+            return await self.async_step_add_another()
 
-     Args:
-         user_input: Module selection for the dog
-
-     Returns:
-         Configuration flow result for next step
-     """
-    # Ensure we have a dog context to configure
-    if not self._current_dog_config:
-        # Recover gracefully by restarting dog entry
-        return await self.async_step_add_dog()
-
-     if user_input is not None:
-         # Apply module selection to current dog
-         modules = {
-             MODULE_FEEDING: user_input.get("enable_feeding", False),
-             MODULE_WALK: user_input.get("enable_walk", False),
-             MODULE_HEALTH: user_input.get("enable_health", False),
-             MODULE_GPS: user_input.get("enable_gps", False),
-             MODULE_NOTIFICATIONS: user_input.get("enable_notifications", False),
-             MODULE_DASHBOARD: user_input.get("enable_dashboard", False),
-             MODULE_VISITOR: user_input.get("enable_visitor", False),
-             MODULE_GROOMING: user_input.get("enable_grooming", False),
-             MODULE_MEDICATION: user_input.get("enable_medication", False),
-             MODULE_TRAINING: user_input.get("enable_training", False),
-         }
-
-         self._current_dog_config[CONF_MODULES] = modules
-
-
-         # Continue to GPS configuration if enabled
-        if modules[MODULE_GPS]:
-            return await self.async_step_dog_gps()
-        elif modules[MODULE_FEEDING]:
-            return await self.async_step_dog_feeding()
-        elif modules[MODULE_HEALTH] or modules[MODULE_MEDICATION]:
-            return await self.async_step_dog_health()
-        else:
-            self._dogs.append(self._current_dog_config)
-            return await self.async_step_add_another_dog()
-
-    # Suggest modules based on dog characteristics
-    dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
-    dog_age = self._current_dog_config.get(CONF_DOG_AGE, 3)
-
-    return self.async_show_form(
-         step_id="dog_modules",
-         data_schema=schema,
-         description_placeholders={
-             "dog_name": self._current_dog_config.get(CONF_DOG_NAME, "Unknown"),
-             "dog_size": dog_size,
-             "dog_age": dog_age,
-         },
-     )
+        return self.async_show_form(
+            step_id="dog_modules",
+            data_schema=MODULES_SCHEMA,
+            description_placeholders={
+                "dogs_configured": str(len(self._dogs)),
+            },
+        )
 
     async def async_step_add_another(
         self, user_input: dict[str, Any] | None = None
