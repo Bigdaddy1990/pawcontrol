@@ -391,7 +391,7 @@ class TestEntityProfileEdgeCases:
             assert validated["entity_profile"] == profile
 
         # Invalid profile should raise error
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             PROFILE_SCHEMA({"entity_profile": "invalid_profile"})
 
         # Default value

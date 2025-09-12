@@ -180,7 +180,7 @@ class DashboardRenderer:
                 job.status = "timeout"
                 job.error = "Rendering timed out"
                 _LOGGER.error("Dashboard rendering timeout for job %s", job.job_id)
-                raise HomeAssistantError(f"Dashboard rendering timeout: {job.job_id}")
+                raise HomeAssistantError(f"Dashboard rendering timeout: {job.job_id}")  # noqa: B904
 
             except Exception as err:
                 job.status = "error"

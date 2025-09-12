@@ -153,7 +153,7 @@ class DashboardTemplates:
         self._cache = TemplateCache()
         self._weak_refs: dict[str, Any] = weakref.WeakValueDictionary()
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=64)  # noqa: B019
     def _get_base_card_template(self, card_type: str) -> dict[str, Any]:
         """Get base template for card type with LRU caching.
 

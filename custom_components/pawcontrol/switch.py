@@ -362,7 +362,7 @@ class OptimizedSwitchBase(
         await super().async_added_to_hass()
 
         # Restore previous state
-        if last_state := await self.async_get_last_state():
+        if last_state := await self.async_get_last_state():  # noqa: SIM102
             if last_state.state in ("on", "off"):
                 self._is_on = last_state.state == "on"
                 _LOGGER.debug(

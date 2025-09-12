@@ -595,7 +595,7 @@ class TestPawControlDateBase:
         base_date_entity.hass = hass
         test_date = date(2023, 7, 20)
 
-        with patch.object(base_date_entity, "async_write_ha_state") as mock_write_state:
+        with patch.object(base_date_entity, "async_write_ha_state") as mock_write_state:  # noqa: SIM117
             with patch.object(
                 base_date_entity, "_async_handle_date_set", new_callable=AsyncMock
             ) as mock_handle:
@@ -652,7 +652,7 @@ class TestPawControlDateBase:
             # Mock the decorator to return the original function
             mock_decorator.return_value = lambda func: func
 
-            with patch.object(base_date_entity, "async_write_ha_state"):
+            with patch.object(base_date_entity, "async_write_ha_state"):  # noqa: SIM117
                 with patch.object(
                     base_date_entity, "_async_handle_date_set", new_callable=AsyncMock
                 ):

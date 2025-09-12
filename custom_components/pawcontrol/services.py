@@ -297,7 +297,7 @@ def service_handler(
                 raise
             except TimeoutError:
                 _LOGGER.error("Service %s timed out after %ss", func.__name__, timeout)
-                raise ServiceValidationError(f"Service timed out after {timeout}s")
+                raise ServiceValidationError(f"Service timed out after {timeout}s")  # noqa: B904
             except Exception as err:
                 _LOGGER.error("Unexpected error in %s: %s", func.__name__, err)
                 raise ServiceValidationError(f"Service failed: {err}") from err
@@ -501,9 +501,9 @@ class PawControlServiceManager:
         """
         # Find the correct entry for this dog
         for entry_data in self.hass.data.get(DOMAIN, {}).values():
-            if isinstance(entry_data, dict):
+            if isinstance(entry_data, dict):  # noqa: SIM102
                 # Check modern runtime_data first
-                if coordinator := entry_data.get("coordinator"):
+                if coordinator := entry_data.get("coordinator"):  # noqa: SIM102
                     if hasattr(coordinator, "config_entry"):
                         entry = coordinator.config_entry
 
@@ -536,8 +536,8 @@ class PawControlServiceManager:
         dog_ids = []
 
         for entry_data in self.hass.data.get(DOMAIN, {}).values():
-            if isinstance(entry_data, dict):
-                if coordinator := entry_data.get("coordinator"):
+            if isinstance(entry_data, dict):  # noqa: SIM102
+                if coordinator := entry_data.get("coordinator"):  # noqa: SIM102
                     if hasattr(coordinator, "get_dog_ids"):
                         dog_ids.extend(coordinator.get_dog_ids())
 

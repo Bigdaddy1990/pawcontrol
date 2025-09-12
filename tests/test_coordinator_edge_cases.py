@@ -485,7 +485,7 @@ class TestCoordinatorManagerDelegationFailures:
         await coordinator.async_start_background_tasks()
 
         # Should not crash despite all failures
-        try:
+        try:  # noqa: SIM105
             await coordinator.async_request_refresh()
         except UpdateFailed:
             pass  # Expected when all managers fail

@@ -342,7 +342,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     def native_value(self) -> float | None:
         """Calculate and return the activity score with caching."""
         now = dt_util.utcnow()
-        if self._cached_score is not None and self._score_cache_time is not None:
+        if self._cached_score is not None and self._score_cache_time is not None:  # noqa: SIM102
             if (
                 now - self._score_cache_time
             ).total_seconds() < ACTIVITY_SCORE_CACHE_TTL:

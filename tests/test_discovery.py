@@ -79,7 +79,7 @@ class TestDiscoveredDevice:
         )
 
         # Should not be able to modify frozen dataclass
-        with pytest.raises(Exception):  # FrozenInstanceError or AttributeError
+        with pytest.raises(Exception):  # FrozenInstanceError or AttributeError  # noqa: B017
             device.name = "Modified Name"
 
     def test_discovered_device_equality(self):
