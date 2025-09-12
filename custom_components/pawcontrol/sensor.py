@@ -10,7 +10,7 @@ import asyncio
 import logging
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,

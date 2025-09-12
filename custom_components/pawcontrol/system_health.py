@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant, callback
 from .const import DOMAIN
 
 
-
 @callback
 def async_register(
     hass: HomeAssistant, register: system_health.SystemHealthRegistration
