@@ -209,9 +209,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         current_dog = self._dogs[-1]
         if user_input is not None:
-            try:
-                modules = MODULES_SCHEMA(user_input or {})
-            except vol.Invalid:
+            modules = MODULES_SCHEMA(user_input or {})
+            current_dog[CONF_MODULES] = modules
+            return await self.async_step_add_another()
                 return self.async_show_form(
                     step_id="dog_modules",
                     data_schema=MODULES_SCHEMA,
