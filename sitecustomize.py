@@ -245,6 +245,9 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
 
         pass
 
+    # Backwards-compat: keep legacy name at module level
+    UpdateFailed = UpdateFailedError
+
     update_coordinator.UpdateFailedError = UpdateFailedError
     update_coordinator.CoordinatorUpdateFailed = UpdateFailedError
     update_coordinator.UpdateFailed = UpdateFailedError
