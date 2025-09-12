@@ -41,7 +41,7 @@ async def test_full_config_flow(hass):
         init["flow_id"], {CONF_NAME: "Paw Setup"}
     )
     flow_id = result["flow_id"]
-    flow = hass.config_entries.flow._progress[flow_id].handler
+    hass.config_entries.flow._progress[flow_id].handler
     assert result["step_id"] == "add_dog"
 
     flow_id = init["flow_id"]
@@ -50,7 +50,7 @@ async def test_full_config_flow(hass):
         flow_id,
         {
             CONF_NAME: "Paw Setup",
-        }
+        },
     )
     assert result["step_id"] == "add_dog"
 
@@ -59,17 +59,21 @@ async def test_full_config_flow(hass):
         {
             CONF_DOG_ID: "fido",
             CONF_DOG_NAME: "Fido",
-        }
+        },
     )
     assert result["step_id"] == "dog_modules"
 
     result = await hass.config_entries.flow.async_configure(flow_id, {})
     assert result["step_id"] == "add_another"
 
-    result = await hass.config_entries.flow.async_configure(flow_id, {"add_another": False})
+    result = await hass.config_entries.flow.async_configure(
+        flow_id, {"add_another": False}
+    )
     assert result["step_id"] == "entity_profile"
 
-    result = await hass.config_entries.flow.async_configure(flow_id, {"entity_profile": "standard"})
+    result = await hass.config_entries.flow.async_configure(
+        flow_id, {"entity_profile": "standard"}
+    )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"].startswith("Paw Setup (")
     assert result["data"]["name"] == "Paw Setup"
