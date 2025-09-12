@@ -20,8 +20,6 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Any
-from typing import Dict
-from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import call
 from unittest.mock import MagicMock
