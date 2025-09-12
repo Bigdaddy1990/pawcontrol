@@ -240,13 +240,14 @@ except Exception:  # pragma: no cover - fall back to minimal stubs
     helpers.update_coordinator = update_coordinator
     sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
 
-    class UpdateFailed(
-        Exception
-    ):  # pragma: no cover - simple placeholder  # noqa: N818
+    class UpdateFailedError(Exception):  # pragma: no cover - simple placeholder
+        """Exception raised when an update fails."""
+
         pass
 
-    update_coordinator.UpdateFailed = UpdateFailed
-    update_coordinator.CoordinatorUpdateFailed = UpdateFailed
+    update_coordinator.UpdateFailedError = UpdateFailedError
+    update_coordinator.CoordinatorUpdateFailed = UpdateFailedError
+    update_coordinator.UpdateFailed = UpdateFailedError
 
     T = TypeVar("T")
 
