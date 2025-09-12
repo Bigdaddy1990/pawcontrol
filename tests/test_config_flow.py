@@ -40,6 +40,8 @@ async def test_full_config_flow(hass):
     result = await hass.config_entries.flow.async_configure(
         init["flow_id"], {CONF_NAME: "Paw Setup"}
     )
+    flow_id = result["flow_id"]
+    flow = hass.config_entries.flow._progress[flow_id].handler
     assert result["step_id"] == "add_dog"
 
     result = await flow.async_step_add_dog(
