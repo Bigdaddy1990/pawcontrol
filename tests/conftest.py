@@ -16,6 +16,7 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from homeassistant.core import HomeAssistant
+
 # Manually load required pytest plugins for asyncio and coverage support
 pytest_plugins = ["pytest_asyncio.plugin", "pytest_cov"]
 
