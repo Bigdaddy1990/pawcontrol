@@ -62,8 +62,7 @@ show_missing = true
 skip_covered = false
 precision = 2
 ignore_errors = true
-report = "term-missing"
-fail-under = 95
+fail_under = 95
 
 #--cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
 
@@ -72,5 +71,3 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
-junitxml = "junit.xml -o"
-junit_family = "legacy"
