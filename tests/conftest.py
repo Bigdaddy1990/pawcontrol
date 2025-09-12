@@ -16,10 +16,13 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util.utcnow
+from homeassistant.util import dt as dt_util
 
-# Manually load required pytest plugins
-pytest_plugins = ["pytest_cov", "pytest_asyncio"]
+# Manually load required pytest plugins for asyncio and coverage support
+pytest_plugins = ["pytest_asyncio.plugin", "pytest_cov"]
+
+# Manually load required pytest plugins for asyncio support
+pytest_plugins = ["pytest_asyncio.plugin"]
 
 # Ensure custom Home Assistant stubs are loaded
 
@@ -181,7 +184,7 @@ def mock_gps_data():
         "latitude": 52.5200,
         "longitude": 13.4050,
         "accuracy": 10.0,
-        "timestamp": dt_util.utcnow().isoformat(),
+        "timestamp": dt_util.isoformat(),
         "source": "test",
     }
 
