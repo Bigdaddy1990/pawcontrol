@@ -1,12 +1,7 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, patch
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
@@ -15,6 +10,10 @@ from custom_components.pawcontrol.const import (
     CONF_NAME,
     DOMAIN,
 )
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 @pytest_asyncio.fixture
