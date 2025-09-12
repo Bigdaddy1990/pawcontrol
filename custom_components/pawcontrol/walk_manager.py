@@ -11,8 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.util import dt as dt_util

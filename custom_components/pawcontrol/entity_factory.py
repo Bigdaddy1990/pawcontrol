@@ -10,9 +10,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import Any
-from typing import Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity

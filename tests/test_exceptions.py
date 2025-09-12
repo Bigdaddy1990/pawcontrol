@@ -2,35 +2,35 @@
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-from custom_components.pawcontrol.exceptions import ConfigurationError
-from custom_components.pawcontrol.exceptions import create_error_context
-from custom_components.pawcontrol.exceptions import DataExportError
-from custom_components.pawcontrol.exceptions import DataImportError
-from custom_components.pawcontrol.exceptions import DogNotFoundError
-from custom_components.pawcontrol.exceptions import ErrorCategory
-from custom_components.pawcontrol.exceptions import ErrorSeverity
-from custom_components.pawcontrol.exceptions import EXCEPTION_MAP
-from custom_components.pawcontrol.exceptions import get_exception_class
-from custom_components.pawcontrol.exceptions import GPSError
-from custom_components.pawcontrol.exceptions import GPSUnavailableError
-from custom_components.pawcontrol.exceptions import handle_exception_gracefully
-from custom_components.pawcontrol.exceptions import InvalidCoordinatesError
-from custom_components.pawcontrol.exceptions import InvalidMealTypeError
-from custom_components.pawcontrol.exceptions import InvalidWeightError
-from custom_components.pawcontrol.exceptions import NotificationError
-from custom_components.pawcontrol.exceptions import PawControlError
-from custom_components.pawcontrol.exceptions import raise_from_error_code
-from custom_components.pawcontrol.exceptions import RateLimitError
-from custom_components.pawcontrol.exceptions import StorageError
-from custom_components.pawcontrol.exceptions import ValidationError
-from custom_components.pawcontrol.exceptions import WalkAlreadyInProgressError
-from custom_components.pawcontrol.exceptions import WalkError
-from custom_components.pawcontrol.exceptions import WalkNotInProgressError
+from custom_components.pawcontrol.exceptions import (
+    EXCEPTION_MAP,
+    ConfigurationError,
+    DataExportError,
+    DataImportError,
+    DogNotFoundError,
+    ErrorCategory,
+    ErrorSeverity,
+    GPSError,
+    GPSUnavailableError,
+    InvalidCoordinatesError,
+    InvalidMealTypeError,
+    InvalidWeightError,
+    NotificationError,
+    PawControlError,
+    RateLimitError,
+    StorageError,
+    ValidationError,
+    WalkAlreadyInProgressError,
+    WalkError,
+    WalkNotInProgressError,
+    create_error_context,
+    get_exception_class,
+    handle_exception_gracefully,
+    raise_from_error_code,
+)
 
 
 class TestErrorSeverity:

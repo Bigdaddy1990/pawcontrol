@@ -10,10 +10,8 @@ import sys
 from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
-from types import ModuleType
-from types import SimpleNamespace
-from typing import Any
-from typing import TypeVar
+from types import ModuleType, SimpleNamespace
+from typing import Any, TypeVar
 
 # Prevent unexpected plugins from loading during test collection
 os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"

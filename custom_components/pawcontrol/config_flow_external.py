@@ -17,9 +17,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_DOOR_SENSOR
-from .const import CONF_GPS_SOURCE
-from .const import CONF_NOTIFY_FALLBACK
+from .const import CONF_DOOR_SENSOR, CONF_GPS_SOURCE, CONF_NOTIFY_FALLBACK
 
 _LOGGER = logging.getLogger(__name__)
 

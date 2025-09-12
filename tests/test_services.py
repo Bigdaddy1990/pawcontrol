@@ -10,56 +10,53 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import timedelta
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import pytest
 import voluptuous as vol
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_MEAL_TYPE,
+    ATTR_PORTION_SIZE,
+    CONF_DOG_ID,
+    CONF_DOGS,
+    CONF_RESET_TIME,
+    DEFAULT_RESET_TIME,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_HEALTH_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+    SERVICE_DAILY_RESET,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_NOTIFY_TEST,
+    SERVICE_START_GROOMING,
+    SERVICE_START_WALK,
+)
+from custom_components.pawcontrol.exceptions import DogNotFoundError, PawControlError
+from custom_components.pawcontrol.services import (
+    SERVICE_DAILY_RESET_SCHEMA,
+    SERVICE_FEED_DOG_SCHEMA,
+    SERVICE_GROOMING_SCHEMA,
+    SERVICE_HEALTH_SCHEMA,
+    SERVICE_MEDICATION_SCHEMA,
+    SERVICE_NOTIFY_TEST_SCHEMA,
+    SERVICE_WALK_SCHEMA,
+    PawControlServiceManager,
+    _build_dog_service_schema,
+    _get_cached_schema,
+    async_setup_daily_reset_scheduler,
+    async_track_time_change,
+    service_handler,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util.dt import utcnow
-
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_MEAL_TYPE
-from custom_components.pawcontrol.const import ATTR_PORTION_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import CONF_RESET_TIME
-from custom_components.pawcontrol.const import DEFAULT_RESET_TIME
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
-from custom_components.pawcontrol.const import EVENT_HEALTH_LOGGED
-from custom_components.pawcontrol.const import EVENT_WALK_ENDED
-from custom_components.pawcontrol.const import EVENT_WALK_STARTED
-from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
-from custom_components.pawcontrol.const import SERVICE_END_WALK
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
-from custom_components.pawcontrol.const import SERVICE_LOG_MEDICATION
-from custom_components.pawcontrol.const import SERVICE_NOTIFY_TEST
-from custom_components.pawcontrol.const import SERVICE_START_GROOMING
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.exceptions import DogNotFoundError
-from custom_components.pawcontrol.exceptions import PawControlError
-from custom_components.pawcontrol.services import _build_dog_service_schema
-from custom_components.pawcontrol.services import _get_cached_schema
-from custom_components.pawcontrol.services import async_setup_daily_reset_scheduler
-from custom_components.pawcontrol.services import async_track_time_change
-from custom_components.pawcontrol.services import PawControlServiceManager
-from custom_components.pawcontrol.services import SERVICE_DAILY_RESET_SCHEMA
-from custom_components.pawcontrol.services import SERVICE_FEED_DOG_SCHEMA
-from custom_components.pawcontrol.services import SERVICE_GROOMING_SCHEMA
-from custom_components.pawcontrol.services import service_handler
-from custom_components.pawcontrol.services import SERVICE_HEALTH_SCHEMA
-from custom_components.pawcontrol.services import SERVICE_MEDICATION_SCHEMA
-from custom_components.pawcontrol.services import SERVICE_NOTIFY_TEST_SCHEMA
-from custom_components.pawcontrol.services import SERVICE_WALK_SCHEMA
 
 
 class TestSchemaFunctions:

@@ -11,27 +11,25 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import FrozenInstanceError
-from datetime import datetime
-from datetime import timedelta
-from unittest.mock import AsyncMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.discovery import (
+    DEVICE_CATEGORIES,
+    DISCOVERY_SCAN_INTERVAL,
+    DISCOVERY_TIMEOUT,
+    DiscoveredDevice,
+    PawControlDiscovery,
+    async_get_discovered_devices,
+    async_get_discovery_manager,
+    async_shutdown_discovery_manager,
+    async_start_discovery,
+)
+from custom_components.pawcontrol.exceptions import PawControlError
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util.dt import utcnow
-
-from custom_components.pawcontrol.discovery import async_get_discovered_devices
-from custom_components.pawcontrol.discovery import async_get_discovery_manager
-from custom_components.pawcontrol.discovery import async_shutdown_discovery_manager
-from custom_components.pawcontrol.discovery import async_start_discovery
-from custom_components.pawcontrol.discovery import DEVICE_CATEGORIES
-from custom_components.pawcontrol.discovery import DiscoveredDevice
-from custom_components.pawcontrol.discovery import DISCOVERY_SCAN_INTERVAL
-from custom_components.pawcontrol.discovery import DISCOVERY_TIMEOUT
-from custom_components.pawcontrol.discovery import PawControlDiscovery
-from custom_components.pawcontrol.exceptions import PawControlError
 
 
 class TestDiscoveredDevice:

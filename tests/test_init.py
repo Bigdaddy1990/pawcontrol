@@ -2,54 +2,49 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from datetime import time
-from unittest.mock import AsyncMock
-from unittest.mock import call
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import patch
+from datetime import datetime, time
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
+from custom_components.pawcontrol import (
+    PawControlSetupError,
+    async_reload_entry,
+    async_setup,
+    async_setup_entry,
+    async_unload_entry,
+    get_platforms_for_profile_and_modules,
+)
+from custom_components.pawcontrol.const import (
+    ATTR_DOG_ID,
+    ATTR_MEAL_TYPE,
+    ATTR_PORTION_SIZE,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    EVENT_FEEDING_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
+    MODULE_DASHBOARD,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+    PLATFORMS,
+    SERVICE_DAILY_RESET,
+    SERVICE_END_WALK,
+    SERVICE_FEED_DOG,
+    SERVICE_LOG_HEALTH,
+    SERVICE_START_WALK,
+)
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.exceptions import ConfigurationError, DogNotFoundError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.exceptions import ServiceValidationError
-
-from custom_components.pawcontrol import async_reload_entry
-from custom_components.pawcontrol import async_setup
-from custom_components.pawcontrol import async_setup_entry
-from custom_components.pawcontrol import async_unload_entry
-from custom_components.pawcontrol import get_platforms_for_profile_and_modules
-from custom_components.pawcontrol import PawControlSetupError
-from custom_components.pawcontrol.const import ATTR_DOG_ID
-from custom_components.pawcontrol.const import ATTR_MEAL_TYPE
-from custom_components.pawcontrol.const import ATTR_PORTION_SIZE
-from custom_components.pawcontrol.const import CONF_DOG_ID
-from custom_components.pawcontrol.const import CONF_DOG_NAME
-from custom_components.pawcontrol.const import CONF_DOGS
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.const import EVENT_FEEDING_LOGGED
-from custom_components.pawcontrol.const import EVENT_WALK_ENDED
-from custom_components.pawcontrol.const import EVENT_WALK_STARTED
-from custom_components.pawcontrol.const import MODULE_DASHBOARD
-from custom_components.pawcontrol.const import MODULE_FEEDING
-from custom_components.pawcontrol.const import MODULE_GPS
-from custom_components.pawcontrol.const import MODULE_HEALTH
-from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
-from custom_components.pawcontrol.const import MODULE_VISITOR
-from custom_components.pawcontrol.const import MODULE_WALK
-from custom_components.pawcontrol.const import PLATFORMS
-from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
-from custom_components.pawcontrol.const import SERVICE_END_WALK
-from custom_components.pawcontrol.const import SERVICE_FEED_DOG
-from custom_components.pawcontrol.const import SERVICE_LOG_HEALTH
-from custom_components.pawcontrol.const import SERVICE_START_WALK
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
-from custom_components.pawcontrol.exceptions import ConfigurationError
-from custom_components.pawcontrol.exceptions import DogNotFoundError
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 
 
 class TestAsync_Setup:
