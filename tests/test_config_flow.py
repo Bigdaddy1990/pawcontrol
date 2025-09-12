@@ -16,20 +16,10 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
-@pytest_asyncio.fixture
-async def hass(tmp_path):
-    """Provide a minimal Home Assistant instance for tests."""
-    hass = HomeAssistant(str(tmp_path))
-    hass.data["components"] = set()
-    hass.data["integrations"] = {}
-    hass.data["preload_platforms"] = {}
-    hass.data["missing_platforms"] = {}
-    hass.config_entries = config_entries.ConfigEntries(hass, {})
-    await hass.async_start()
-    try:
-        yield hass
-    finally:
-        await hass.async_stop()
+# Remove this fixture and use the built-in one from pytest-homeassistant-custom-component
+# Add this import at the top:
+# from pytest_homeassistant_custom_component.common import async_test_home_assistant
+# Then use async_test_home_assistant fixture directly in test functions
 
 
 @pytest.mark.asyncio
