@@ -21,11 +21,6 @@ from homeassistant.util import dt as dt_util
 # Manually load required pytest plugins for asyncio and coverage support
 pytest_plugins = ["pytest_asyncio.plugin", "pytest_cov"]
 
-# Manually load required pytest plugins for asyncio support
-pytest_plugins = ["pytest_asyncio.plugin"]
-
-# Ensure custom Home Assistant stubs are loaded
-
 
 @pytest.fixture
 def event_loop():
