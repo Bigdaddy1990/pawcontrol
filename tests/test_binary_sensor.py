@@ -45,29 +45,51 @@ from custom_components.pawcontrol.binary_sensor import _create_gps_binary_sensor
 from custom_components.pawcontrol.binary_sensor import _create_health_binary_sensors
 from custom_components.pawcontrol.binary_sensor import _create_walk_binary_sensors
 from custom_components.pawcontrol.binary_sensor import async_setup_entry
-from custom_components.pawcontrol.binary_sensor import PawControlActivityLevelConcernBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlAttentionNeededBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlActivityLevelConcernBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlAttentionNeededBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlBinarySensorBase
-from custom_components.pawcontrol.binary_sensor import PawControlDailyFeedingGoalMetBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlDailyFeedingGoalMetBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlFeedingDueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlFeedingScheduleOnTrackBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGeofenceAlertBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGPSAccuratelyTrackedBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlGPSBatteryLowBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlFeedingScheduleOnTrackBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlGeofenceAlertBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlGPSAccuratelyTrackedBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlGPSBatteryLowBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlGroomingDueBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlHealthAlertBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlInSafeZoneBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlIsHomeBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlIsHungryBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlLongWalkOverdueBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlMedicationDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlLongWalkOverdueBinarySensor,
+)
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlMedicationDueBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlMovingBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlNeedsWalkBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlOnlineBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlVetCheckupDueBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlVetCheckupDueBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlVisitorModeBinarySensor
 from custom_components.pawcontrol.binary_sensor import PawControlWalkGoalMetBinarySensor
-from custom_components.pawcontrol.binary_sensor import PawControlWalkInProgressBinarySensor
+from custom_components.pawcontrol.binary_sensor import (
+    PawControlWalkInProgressBinarySensor,
+)
 from custom_components.pawcontrol.binary_sensor import PawControlWeightAlertBinarySensor
 from custom_components.pawcontrol.const import ATTR_DOG_ID
 from custom_components.pawcontrol.const import ATTR_DOG_NAME

@@ -38,7 +38,9 @@ from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
 from custom_components.pawcontrol.repairs import _check_coordinator_health
 from custom_components.pawcontrol.repairs import _check_dog_configuration_issues
 from custom_components.pawcontrol.repairs import _check_gps_configuration_issues
-from custom_components.pawcontrol.repairs import _check_notification_configuration_issues
+from custom_components.pawcontrol.repairs import (
+    _check_notification_configuration_issues,
+)
 from custom_components.pawcontrol.repairs import _check_outdated_configuration
 from custom_components.pawcontrol.repairs import _check_performance_issues
 from custom_components.pawcontrol.repairs import _check_storage_issues

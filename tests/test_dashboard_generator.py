@@ -21,7 +21,9 @@ from custom_components.pawcontrol.const import MODULE_WALK
 from custom_components.pawcontrol.dashboard_generator import DASHBOARD_STORAGE_VERSION
 from custom_components.pawcontrol.dashboard_generator import DEFAULT_DASHBOARD_TITLE
 from custom_components.pawcontrol.dashboard_generator import DEFAULT_DASHBOARD_URL
-from custom_components.pawcontrol.dashboard_generator import PawControlDashboardGenerator
+from custom_components.pawcontrol.dashboard_generator import (
+    PawControlDashboardGenerator,
+)
 
 
 @pytest.fixture
