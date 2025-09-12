@@ -20,51 +20,51 @@ Test Coverage:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.datetime import (
-    PawControlAdoptionDateDateTime,
-    PawControlBirthdateDateTime,
-    PawControlBreakfastTimeDateTime,
-    PawControlDateTimeBase,
-    PawControlDinnerTimeDateTime,
-    PawControlEmergencyDateTime,
-    PawControlLastFeedingDateTime,
-    PawControlLastGroomingDateTime,
-    PawControlLastMedicationDateTime,
-    PawControlLastVetVisitDateTime,
-    PawControlLastWalkDateTime,
-    PawControlLunchTimeDateTime,
-    PawControlNextFeedingDateTime,
-    PawControlNextGroomingDateTime,
-    PawControlNextMedicationDateTime,
-    PawControlNextVetAppointmentDateTime,
-    PawControlNextWalkReminderDateTime,
-    PawControlTrainingSessionDateTime,
-    PawControlVaccinationDateDateTime,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
 from homeassistant.components.datetime import DOMAIN as DATETIME_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreStateData
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.datetime import _async_add_entities_in_batches
+from custom_components.pawcontrol.datetime import async_setup_entry
+from custom_components.pawcontrol.datetime import PawControlAdoptionDateDateTime
+from custom_components.pawcontrol.datetime import PawControlBirthdateDateTime
+from custom_components.pawcontrol.datetime import PawControlBreakfastTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlDateTimeBase
+from custom_components.pawcontrol.datetime import PawControlDinnerTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlEmergencyDateTime
+from custom_components.pawcontrol.datetime import PawControlLastFeedingDateTime
+from custom_components.pawcontrol.datetime import PawControlLastGroomingDateTime
+from custom_components.pawcontrol.datetime import PawControlLastMedicationDateTime
+from custom_components.pawcontrol.datetime import PawControlLastVetVisitDateTime
+from custom_components.pawcontrol.datetime import PawControlLastWalkDateTime
+from custom_components.pawcontrol.datetime import PawControlLunchTimeDateTime
+from custom_components.pawcontrol.datetime import PawControlNextFeedingDateTime
+from custom_components.pawcontrol.datetime import PawControlNextGroomingDateTime
+from custom_components.pawcontrol.datetime import PawControlNextMedicationDateTime
+from custom_components.pawcontrol.datetime import PawControlNextVetAppointmentDateTime
+from custom_components.pawcontrol.datetime import PawControlNextWalkReminderDateTime
+from custom_components.pawcontrol.datetime import PawControlTrainingSessionDateTime
+from custom_components.pawcontrol.datetime import PawControlVaccinationDateDateTime
 
 
 class TestAsyncAddEntitiesInBatches:

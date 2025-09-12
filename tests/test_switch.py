@@ -4,41 +4,11 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_GROOMING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-    MODULE_NOTIFICATIONS,
-    MODULE_TRAINING,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
-from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.switch import (
-    BATCH_DELAY,
-    BATCH_SIZE,
-    MAX_CONCURRENT_BATCHES,
-    OptimizedSwitchBase,
-    PawControlDoNotDisturbSwitch,
-    PawControlFeatureSwitch,
-    PawControlMainPowerSwitch,
-    PawControlModuleSwitch,
-    PawControlVisitorModeSwitch,
-    ProfileOptimizedSwitchFactory,
-    _async_add_entities_in_batches,
-    async_setup_entry,
-)
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
@@ -47,6 +17,35 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.const import ATTR_DOG_ID
+from custom_components.pawcontrol.const import ATTR_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOGS
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import MODULE_FEEDING
+from custom_components.pawcontrol.const import MODULE_GPS
+from custom_components.pawcontrol.const import MODULE_GROOMING
+from custom_components.pawcontrol.const import MODULE_HEALTH
+from custom_components.pawcontrol.const import MODULE_MEDICATION
+from custom_components.pawcontrol.const import MODULE_NOTIFICATIONS
+from custom_components.pawcontrol.const import MODULE_TRAINING
+from custom_components.pawcontrol.const import MODULE_VISITOR
+from custom_components.pawcontrol.const import MODULE_WALK
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.switch import _async_add_entities_in_batches
+from custom_components.pawcontrol.switch import async_setup_entry
+from custom_components.pawcontrol.switch import BATCH_DELAY
+from custom_components.pawcontrol.switch import BATCH_SIZE
+from custom_components.pawcontrol.switch import MAX_CONCURRENT_BATCHES
+from custom_components.pawcontrol.switch import OptimizedSwitchBase
+from custom_components.pawcontrol.switch import PawControlDoNotDisturbSwitch
+from custom_components.pawcontrol.switch import PawControlFeatureSwitch
+from custom_components.pawcontrol.switch import PawControlMainPowerSwitch
+from custom_components.pawcontrol.switch import PawControlModuleSwitch
+from custom_components.pawcontrol.switch import PawControlVisitorModeSwitch
+from custom_components.pawcontrol.switch import ProfileOptimizedSwitchFactory
 
 
 class TestProfileOptimizedSwitchFactory:

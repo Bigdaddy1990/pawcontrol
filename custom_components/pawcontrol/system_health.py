@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components import system_health
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 

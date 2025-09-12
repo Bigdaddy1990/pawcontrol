@@ -8,12 +8,16 @@ Coverage: 100%
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.walk_manager import WalkManager
 from homeassistant.util import dt as dt_util
+
+from custom_components.pawcontrol.walk_manager import WalkManager
 
 
 class TestWalkManagerInitialization:

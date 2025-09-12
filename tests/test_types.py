@@ -4,30 +4,29 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-from custom_components.pawcontrol.types import (
-    VALID_ACTIVITY_LEVELS,
-    VALID_DOG_SIZES,
-    VALID_FOOD_TYPES,
-    VALID_GEOFENCE_TYPES,
-    VALID_GPS_SOURCES,
-    VALID_HEALTH_STATUS,
-    VALID_MEAL_TYPES,
-    VALID_MOOD_OPTIONS,
-    VALID_NOTIFICATION_PRIORITIES,
-    DailyStats,
-    DogConfigData,
-    DogProfile,
-    FeedingData,
-    GeofenceZone,
-    GPSLocation,
-    HealthData,
-    NotificationData,
-    WalkData,
-    is_dog_config_valid,
-    is_feeding_data_valid,
-    is_gps_location_valid,
-)
 from homeassistant.config_entries import ConfigEntry
+
+from custom_components.pawcontrol.types import DailyStats
+from custom_components.pawcontrol.types import DogConfigData
+from custom_components.pawcontrol.types import DogProfile
+from custom_components.pawcontrol.types import FeedingData
+from custom_components.pawcontrol.types import GeofenceZone
+from custom_components.pawcontrol.types import GPSLocation
+from custom_components.pawcontrol.types import HealthData
+from custom_components.pawcontrol.types import is_dog_config_valid
+from custom_components.pawcontrol.types import is_feeding_data_valid
+from custom_components.pawcontrol.types import is_gps_location_valid
+from custom_components.pawcontrol.types import NotificationData
+from custom_components.pawcontrol.types import VALID_ACTIVITY_LEVELS
+from custom_components.pawcontrol.types import VALID_DOG_SIZES
+from custom_components.pawcontrol.types import VALID_FOOD_TYPES
+from custom_components.pawcontrol.types import VALID_GEOFENCE_TYPES
+from custom_components.pawcontrol.types import VALID_GPS_SOURCES
+from custom_components.pawcontrol.types import VALID_HEALTH_STATUS
+from custom_components.pawcontrol.types import VALID_MEAL_TYPES
+from custom_components.pawcontrol.types import VALID_MOOD_OPTIONS
+from custom_components.pawcontrol.types import VALID_NOTIFICATION_PRIORITIES
+from custom_components.pawcontrol.types import WalkData
 
 
 class TestDataStructures:

@@ -15,10 +15,12 @@ import json
 import logging
 import weakref
 from functools import lru_cache
-from typing import Any, Final
+from typing import Any
+from typing import Final
 
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN

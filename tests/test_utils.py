@@ -2,29 +2,31 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, time, timedelta
-from unittest.mock import AsyncMock, patch
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import patch
 
 import pytest
+
 from custom_components.pawcontrol.const import DOG_SIZES
-from custom_components.pawcontrol.utils import (
-    async_batch_validate,
-    async_calculate_haversine_distance,
-    async_validate_coordinates,
-    calculate_bmr_advanced,
-    calculate_trend_advanced,
-    deep_merge_dicts_optimized,
-    format_distance_adaptive,
-    format_duration_optimized,
-    format_time_ago_smart,
-    is_within_time_range_enhanced,
-    performance_monitor,
-    safe_convert,
-    sanitize_filename_advanced,
-    validate_dog_id,
-    validate_enum_value,
-    validate_weight_enhanced,
-)
+from custom_components.pawcontrol.utils import async_batch_validate
+from custom_components.pawcontrol.utils import async_calculate_haversine_distance
+from custom_components.pawcontrol.utils import async_validate_coordinates
+from custom_components.pawcontrol.utils import calculate_bmr_advanced
+from custom_components.pawcontrol.utils import calculate_trend_advanced
+from custom_components.pawcontrol.utils import deep_merge_dicts_optimized
+from custom_components.pawcontrol.utils import format_distance_adaptive
+from custom_components.pawcontrol.utils import format_duration_optimized
+from custom_components.pawcontrol.utils import format_time_ago_smart
+from custom_components.pawcontrol.utils import is_within_time_range_enhanced
+from custom_components.pawcontrol.utils import performance_monitor
+from custom_components.pawcontrol.utils import safe_convert
+from custom_components.pawcontrol.utils import sanitize_filename_advanced
+from custom_components.pawcontrol.utils import validate_dog_id
+from custom_components.pawcontrol.utils import validate_enum_value
+from custom_components.pawcontrol.utils import validate_weight_enhanced
 
 
 class TestValidationFunctions:

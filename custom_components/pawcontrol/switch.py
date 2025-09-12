@@ -13,7 +13,8 @@ import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -23,23 +24,21 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_GROOMING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-    MODULE_NOTIFICATIONS,
-    MODULE_TRAINING,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_GROOMING
+from .const import MODULE_HEALTH
+from .const import MODULE_MEDICATION
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_TRAINING
+from .const import MODULE_VISITOR
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)

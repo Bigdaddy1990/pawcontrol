@@ -8,17 +8,18 @@ Coverage: 100%
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.system_health import (
-    async_register,
-    system_health_info,
-)
 from homeassistant.components import system_health
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.system_health import async_register
+from custom_components.pawcontrol.system_health import system_health_info
 
 
 class TestSystemHealthRegistration:
