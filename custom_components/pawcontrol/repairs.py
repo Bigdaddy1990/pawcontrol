@@ -106,8 +106,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         hass: Home Assistant instance
         entry: Configuration entry to check
     """
-    _LOGGER.debug("Checking for issues in Paw Control entry: %s",
-                  entry.entry_id)
+    _LOGGER.debug("Checking for issues in Paw Control entry: %s", entry.entry_id)
 
     try:
         # Check dog configuration issues
@@ -134,8 +133,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
 
     except Exception as err:
-        _LOGGER.error("Error during issue check for entry %s: %s",
-                      entry.entry_id, err)
+        _LOGGER.error("Error during issue check for entry %s: %s", entry.entry_id, err)
 
 
 async def _check_dog_configuration_issues(
@@ -163,8 +161,7 @@ async def _check_dog_configuration_issues(
 
     # Check for duplicate dog IDs
     dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs]
-    duplicate_ids = [dog_id for dog_id in set(
-        dog_ids) if dog_ids.count(dog_id) > 1]
+    duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
 
     if duplicate_ids:
         await async_create_issue(
@@ -550,8 +547,7 @@ class PawControlRepairsFlow(RepairsFlow):
                 else:
                     # Get the config entry and update it
                     config_entry_id = self._issue_data["config_entry_id"]
-                    entry = self.hass.config_entries.async_get_entry(
-                        config_entry_id)
+                    entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
                     if entry:
                         # Create new dog configuration
@@ -728,8 +724,7 @@ class PawControlRepairsFlow(RepairsFlow):
             try:
                 # Update GPS configuration
                 config_entry_id = self._issue_data["config_entry_id"]
-                entry = self.hass.config_entries.async_get_entry(
-                    config_entry_id)
+                entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
                 if entry:
                     new_options = entry.options.copy()

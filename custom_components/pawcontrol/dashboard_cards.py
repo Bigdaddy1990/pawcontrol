@@ -322,8 +322,7 @@ class DogCardGenerator(BaseCardGenerator):
             return []
 
         regular = [b for b in action_buttons if b.get("type") != "conditional"]
-        conditional = [b for b in action_buttons if b.get(
-            "type") == "conditional"]
+        conditional = [b for b in action_buttons if b.get("type") == "conditional"]
 
         cards: list[dict[str, Any]] = []
         if regular:
@@ -352,8 +351,7 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         # Use custom image if provided, otherwise default
-        dog_image = dog_config.get(
-            "dog_image", f"/local/paw_control/{dog_id}.jpg")
+        dog_image = dog_config.get("dog_image", f"/local/paw_control/{dog_id}.jpg")
 
         return {
             "type": "picture-entity",

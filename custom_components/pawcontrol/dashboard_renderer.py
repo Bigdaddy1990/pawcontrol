@@ -179,10 +179,8 @@ class DashboardRenderer:
             except TimeoutError:
                 job.status = "timeout"
                 job.error = "Rendering timed out"
-                _LOGGER.error(
-                    "Dashboard rendering timeout for job %s", job.job_id)
-                raise HomeAssistantError(
-                    f"Dashboard rendering timeout: {job.job_id}")
+                _LOGGER.error("Dashboard rendering timeout for job %s", job.job_id)
+                raise HomeAssistantError(f"Dashboard rendering timeout: {job.job_id}")
 
             except Exception as err:
                 job.status = "error"
@@ -193,8 +191,7 @@ class DashboardRenderer:
                     err,
                     exc_info=True,
                 )
-                raise HomeAssistantError(
-                    f"Dashboard rendering failed: {err}") from err
+                raise HomeAssistantError(f"Dashboard rendering failed: {err}") from err
 
             finally:
                 self._active_jobs.pop(job.job_id, None)
@@ -271,8 +268,7 @@ class DashboardRenderer:
         """
         # Process cards in parallel for better performance
         tasks = [
-            self.overview_generator.generate_welcome_card(
-                dogs_config, options),
+            self.overview_generator.generate_welcome_card(dogs_config, options),
             self.overview_generator.generate_dogs_grid(
                 dogs_config, options.get("dashboard_url", "/paw-control")
             ),
@@ -349,7 +345,7 @@ class DashboardRenderer:
         )  # Estimate cards per dog
 
         for i in range(0, len(dogs_config), batch_size):
-            batch = dogs_config[i: i + batch_size]
+            batch = dogs_config[i : i + batch_size]
 
             # Process batch concurrently
             batch_tasks = [
@@ -436,8 +432,7 @@ class DashboardRenderer:
         Returns:
             Dog overview view configuration
         """
-        theme = self._get_dog_theme(
-            0)  # Use first theme for individual dashboards
+        theme = self._get_dog_theme(0)  # Use first theme for individual dashboards
 
         cards = await self.dog_generator.generate_dog_overview_cards(
             dog_config, theme, options
@@ -503,8 +498,7 @@ class DashboardRenderer:
 
             for result in results:
                 if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Module view generation failed: %s", result)
+                    _LOGGER.warning("Module view generation failed: %s", result)
                 elif result is not None:
                     views.append(result)
 
@@ -671,8 +665,7 @@ class DashboardRenderer:
 
             # Write file asynchronously
             async with aiofiles.open(file_path, "w", encoding="utf-8") as file:
-                content = json.dumps(
-                    dashboard_data, indent=2, ensure_ascii=False)
+                content = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await file.write(content)
 
             _LOGGER.debug("Dashboard file written: %s", file_path)
@@ -681,8 +674,7 @@ class DashboardRenderer:
             _LOGGER.error(
                 "Failed to write dashboard file %s: %s", file_path, err, exc_info=True
             )
-            raise HomeAssistantError(
-                f"Dashboard file write failed: {err}") from err
+            raise HomeAssistantError(f"Dashboard file write failed: {err}") from err
 
     def _generate_job_id(self) -> str:
         """Generate unique job ID.

@@ -187,8 +187,7 @@ class AdaptiveCache:
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self._hit_count + self._miss_count
-        hit_rate = (self._hit_count / total_requests *
-                    100) if total_requests > 0 else 0
+        hit_rate = (self._hit_count / total_requests * 100) if total_requests > 0 else 0
 
         return {
             "entries": len(self._data),
@@ -197,8 +196,7 @@ class AdaptiveCache:
             "hits": self._hit_count,
             "misses": self._miss_count,
             "avg_ttl_multiplier": (
-                sum(self._ttl_multipliers.values()) /
-                len(self._ttl_multipliers)
+                sum(self._ttl_multipliers.values()) / len(self._ttl_multipliers)
                 if self._ttl_multipliers
                 else 1.0
             ),
@@ -396,8 +394,7 @@ class PawControlDataManager:
             await self._load_initial_data()
 
             # Start maintenance with adaptive interval
-            self._maintenance_task = asyncio.create_task(
-                self._adaptive_maintenance())
+            self._maintenance_task = asyncio.create_task(self._adaptive_maintenance())
 
             # Initialize statistics
             await self._initialize_statistics()
@@ -602,8 +599,7 @@ class PawControlDataManager:
             + (100 - cache_stats["memory_mb"] / MAX_MEMORY_MB * 100) * 0.3
             + (
                 100
-                - self._metrics["errors"] /
-                max(self._metrics["operations"], 1) * 100
+                - self._metrics["errors"] / max(self._metrics["operations"], 1) * 100
             )
             * 0.2
         )
@@ -722,7 +718,7 @@ class PawControlDataManager:
 
         # Process in batches for better performance
         for i in range(0, len(entries), CLEANUP_BATCH_SIZE):
-            batch = entries[i: i + CLEANUP_BATCH_SIZE]
+            batch = entries[i : i + CLEANUP_BATCH_SIZE]
 
             for entry in batch:
                 try:
@@ -780,16 +776,14 @@ class PawControlDataManager:
                         if cutoff_index > 0:
                             original_count = len(entries)
                             module_data[dog_id] = entries[cutoff_index:]
-                            total_deleted += original_count - \
-                                len(module_data[dog_id])
+                            total_deleted += original_count - len(module_data[dog_id])
                     else:
                         # Small list, filter normally
                         original_count = len(entries)
                         module_data[dog_id] = await self._filter_by_date(
                             entries, cutoff, None
                         )
-                        total_deleted += original_count - \
-                            len(module_data[dog_id])
+                        total_deleted += original_count - len(module_data[dog_id])
 
                 if total_deleted > 0:
                     await self._save_namespace(module, module_data)
@@ -914,8 +908,7 @@ class PawControlDataManager:
         if start_str:
             with suppress(ValueError, TypeError):
                 start_time = datetime.fromisoformat(start_str)
-                duration_minutes = int(
-                    (timestamp - start_time).total_seconds() / 60)
+                duration_minutes = int((timestamp - start_time).total_seconds() / 60)
 
         # Update walk entry
         walk_updates = {

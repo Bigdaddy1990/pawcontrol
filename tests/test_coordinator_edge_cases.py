@@ -208,15 +208,13 @@ class TestCoordinatorMassiveEntityLoadScenarios:
                         config = coordinator.get_dog_config(dog_id)
                         data = config
 
-                    access_results.append(
-                        (accessor_id, dog_id, data is not None))
+                    access_results.append((accessor_id, dog_id, data is not None))
                     await asyncio.sleep(0.001)  # Small delay
             except Exception as e:
                 errors.append((accessor_id, e))
 
         # Start many concurrent accessors
-        accessors = [asyncio.create_task(
-            concurrent_accessor(i)) for i in range(20)]
+        accessors = [asyncio.create_task(concurrent_accessor(i)) for i in range(20)]
         await asyncio.gather(*accessors, return_exceptions=True)
 
         # Should handle concurrent access without errors
@@ -658,8 +656,7 @@ class TestCoordinatorPerformanceStressScenarios:
                 for _i in range(5):
                     # Select different dog subsets
                     start_idx = (refresh_id * 3) % 30
-                    dog_ids = [
-                        f"stress_dog_{(start_idx + j) % 30}" for j in range(5)]
+                    dog_ids = [f"stress_dog_{(start_idx + j) % 30}" for j in range(5)]
                     priority = (refresh_id % 10) + 1
 
                     start_time = time.time()
@@ -946,8 +943,7 @@ class TestCoordinatorUpdateIntervalCalculation:
         coordinator = PawControlCoordinator(hass, entry)
 
         # Should use slow interval for no dogs
-        assert coordinator.update_interval.total_seconds(
-        ) == UPDATE_INTERVALS["slow"]
+        assert coordinator.update_interval.total_seconds() == UPDATE_INTERVALS["slow"]
 
     def test_minimal_complexity_interval_calculation(self, hass):
         """Test interval calculation with minimal complexity."""
@@ -1129,16 +1125,14 @@ class TestCoordinatorDataIntegrityEdgeCases:
                         )
                     else:
                         await coordinator.invalidate_dog_cache("integrity_dog")
-                        modification_results.append(
-                            (modifier_id, "invalidate", True))
+                        modification_results.append((modifier_id, "invalidate", True))
 
                     await asyncio.sleep(0.001)
             except Exception as e:
                 modification_results.append((modifier_id, "error", str(e)))
 
         # Run concurrent modifiers
-        modifiers = [asyncio.create_task(
-            concurrent_modifier(i)) for i in range(5)]
+        modifiers = [asyncio.create_task(concurrent_modifier(i)) for i in range(5)]
         await asyncio.gather(*modifiers, return_exceptions=True)
 
         # Should handle concurrent modifications safely

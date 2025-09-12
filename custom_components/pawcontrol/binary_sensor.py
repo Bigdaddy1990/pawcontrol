@@ -74,7 +74,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -126,12 +126,10 @@ async def async_setup_entry(
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating binary sensors for dog: %s (%s)",
-                      dog_name, dog_id)
+        _LOGGER.debug("Creating binary sensors for dog: %s (%s)", dog_name, dog_id)
 
         # Base binary sensors - always created for every dog
-        entities.extend(_create_base_binary_sensors(
-            coordinator, dog_id, dog_name))
+        entities.extend(_create_base_binary_sensors(coordinator, dog_id, dog_name))
 
         # Module-specific binary sensors
         if modules.get(MODULE_FEEDING, False):
@@ -140,12 +138,10 @@ async def async_setup_entry(
             )
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_binary_sensors(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_binary_sensors(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
-            entities.extend(_create_gps_binary_sensors(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_gps_binary_sensors(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
             entities.extend(
@@ -199,10 +195,8 @@ def _create_feeding_binary_sensors(
     return [
         PawControlIsHungryBinarySensor(coordinator, dog_id, dog_name),
         PawControlFeedingDueBinarySensor(coordinator, dog_id, dog_name),
-        PawControlFeedingScheduleOnTrackBinarySensor(
-            coordinator, dog_id, dog_name),
-        PawControlDailyFeedingGoalMetBinarySensor(
-            coordinator, dog_id, dog_name),
+        PawControlFeedingScheduleOnTrackBinarySensor(coordinator, dog_id, dog_name),
+        PawControlDailyFeedingGoalMetBinarySensor(coordinator, dog_id, dog_name),
     ]
 
 
@@ -243,8 +237,7 @@ def _create_gps_binary_sensors(
     return [
         PawControlIsHomeBinarySensor(coordinator, dog_id, dog_name),
         PawControlInSafeZoneBinarySensor(coordinator, dog_id, dog_name),
-        PawControlGPSAccuratelyTrackedBinarySensor(
-            coordinator, dog_id, dog_name),
+        PawControlGPSAccuratelyTrackedBinarySensor(coordinator, dog_id, dog_name),
         PawControlMovingBinarySensor(coordinator, dog_id, dog_name),
         PawControlGeofenceAlertBinarySensor(coordinator, dog_id, dog_name),
         PawControlGPSBatteryLowBinarySensor(coordinator, dog_id, dog_name),
@@ -270,8 +263,7 @@ def _create_health_binary_sensors(
         PawControlMedicationDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlVetCheckupDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlGroomingDueBinarySensor(coordinator, dog_id, dog_name),
-        PawControlActivityLevelConcernBinarySensor(
-            coordinator, dog_id, dog_name),
+        PawControlActivityLevelConcernBinarySensor(coordinator, dog_id, dog_name),
     ]
 
 

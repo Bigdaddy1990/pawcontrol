@@ -176,8 +176,7 @@ class EntityFactory:
 
         elif profile == "health_focus":
             # Health-related entities prioritized
-            health_types = ["sensor", "number",
-                            "date", "text", "binary_sensor"]
+            health_types = ["sensor", "number", "date", "text", "binary_sensor"]
             health_modules = ["health", "feeding", "medication"]
             return (
                 entity_type in health_types and module in health_modules
@@ -242,8 +241,7 @@ class EntityFactory:
             },
         }
 
-        profile_priorities = priority_map.get(
-            profile, priority_map["standard"])
+        profile_priorities = priority_map.get(profile, priority_map["standard"])
         return profile_priorities.get(platform, 99)
 
     def create_entity_config(

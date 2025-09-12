@@ -364,8 +364,7 @@ class TestDogWeightNumber:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 25.0}}
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
         coordinator.get_module_data.return_value = {
             "weight_trend": "increasing",
             "weight_change_percent": 5.2,
@@ -433,8 +432,7 @@ class TestDogAgeNumber:
         config_entry.runtime_data = {
             "data_manager": MagicMock(spec_set=["async_update_dog_data"])
         }
-        config_entry.runtime_data["data_manager"].async_update_dog_data = AsyncMock(
-        )
+        config_entry.runtime_data["data_manager"].async_update_dog_data = AsyncMock()
         coordinator.config_entry = config_entry
 
         return coordinator
@@ -515,8 +513,7 @@ class TestFeedingNumbers:
         """Create a mock coordinator."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 20.0}}
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 20.0}}
         return coordinator
 
     def test_daily_food_amount_number(self, mock_coordinator):
@@ -550,8 +547,7 @@ class TestFeedingNumbers:
 
     def test_meals_per_day_number(self, mock_coordinator):
         """Test meals per day number entity."""
-        number = PawControlMealsPerDayNumber(
-            mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlMealsPerDayNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "meals_per_day"
         assert number.native_value == 2
@@ -561,8 +557,7 @@ class TestFeedingNumbers:
 
     def test_portion_size_number(self, mock_coordinator):
         """Test portion size number entity."""
-        number = PawControlPortionSizeNumber(
-            mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlPortionSizeNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "portion_size"
         assert number.native_unit_of_measurement == "g"
@@ -571,8 +566,7 @@ class TestFeedingNumbers:
 
     def test_calorie_target_number(self, mock_coordinator):
         """Test calorie target number entity."""
-        number = PawControlCalorieTargetNumber(
-            mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlCalorieTargetNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "calorie_target"
         assert number.native_unit_of_measurement == "kcal"
@@ -638,8 +632,7 @@ class TestWalkNumbers:
 
     def test_max_walk_speed_number(self, mock_coordinator):
         """Test max walk speed number entity."""
-        number = PawControlMaxWalkSpeedNumber(
-            mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlMaxWalkSpeedNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "max_walk_speed"
         assert number.native_unit_of_measurement == UnitOfSpeed.KILOMETERS_PER_HOUR
@@ -728,8 +721,7 @@ class TestHealthNumbers:
 
     def test_target_weight_number(self, mock_coordinator):
         """Test target weight number entity."""
-        number = PawControlTargetWeightNumber(
-            mock_coordinator, "test_dog", "Test Dog")
+        number = PawControlTargetWeightNumber(mock_coordinator, "test_dog", "Test Dog")
 
         assert number._number_type == "target_weight"
         assert number.device_class.value == "weight"
@@ -869,8 +861,7 @@ class TestNumberEntityIntegration:
         """Test multiple number entities for the same dog."""
         coordinator = MagicMock()
         coordinator.available = True
-        coordinator.get_dog_data.return_value = {
-            "dog_info": {"dog_weight": 25.0}}
+        coordinator.get_dog_data.return_value = {"dog_info": {"dog_weight": 25.0}}
 
         # Create multiple numbers for same dog
         weight_number = PawControlDogWeightNumber(
@@ -896,8 +887,7 @@ class TestNumberEntityIntegration:
         coordinator.get_dog_data.return_value = {"dog_info": {}}
 
         # Create number entity
-        number = PawControlActivityGoalNumber(
-            coordinator, "test_dog", "Test Dog")
+        number = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
 
         # Simulate setting a value
         with patch.object(number, "async_write_ha_state"):
@@ -905,8 +895,7 @@ class TestNumberEntityIntegration:
         assert number.native_value == 150
 
         # Simulate restart - create new entity and restore state
-        number2 = PawControlActivityGoalNumber(
-            coordinator, "test_dog", "Test Dog")
+        number2 = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
 
         # Mock restored state
         mock_state = MagicMock()
@@ -925,8 +914,7 @@ class TestNumberEntityIntegration:
         coordinator.available = True
         coordinator.get_dog_data.return_value = {"dog_info": {}}
 
-        number = PawControlActivityGoalNumber(
-            coordinator, "test_dog", "Test Dog")
+        number = PawControlActivityGoalNumber(coordinator, "test_dog", "Test Dog")
 
         # Test minimum boundary
         with patch.object(number, "async_write_ha_state"):

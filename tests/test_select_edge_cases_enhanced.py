@@ -550,8 +550,7 @@ class TestEntityRegistryCollisionResolution:
     def test_device_info_collision_prevention(self, mock_coordinator):
         """Test device info collision prevention."""
         # Create selects for same dog but different types
-        select_types = ["size", "performance",
-                        "food_type", "walk_mode", "gps_source"]
+        select_types = ["size", "performance", "food_type", "walk_mode", "gps_source"]
         selects = []
 
         for select_type in select_types:

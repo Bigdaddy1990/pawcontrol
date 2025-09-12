@@ -174,8 +174,7 @@ class TestStateCacheEdgeCases:
         # Simulate many cache updates
         for i in range(1000):
             cache_key = f"dog_{i}_switch_{i}"
-            switch._state_cache[cache_key] = (
-                True, dt_util.utcnow().timestamp())
+            switch._state_cache[cache_key] = (True, dt_util.utcnow().timestamp())
 
         # Verify cache has entries (implementation detail)
         assert len(switch._state_cache) > 0
@@ -517,8 +516,7 @@ class TestErrorHandlingEdgeCases:
             patch.object(
                 switch, "_async_set_state", side_effect=Exception("Service failed")
             ),
-            pytest.raises(HomeAssistantError,
-                          match="Failed to turn off main_power"),
+            pytest.raises(HomeAssistantError, match="Failed to turn off main_power"),
         ):
             await switch.async_turn_off()
 
@@ -529,8 +527,7 @@ class TestErrorHandlingEdgeCases:
     async def test_turn_on_with_partial_failure(self, switch):
         """Test turn_on with partial failure scenarios."""
         # Mock data manager unavailable
-        switch.hass.data = {
-            DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
+        switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
 
         # Should handle missing data manager gracefully
         await switch.async_turn_on()
@@ -596,14 +593,12 @@ class TestSwitchTypeSpecificEdgeCases:
         )
 
         # Test with visitor mode active in data
-        mock_coordinator.get_dog_data.return_value = {
-            "visitor_mode_active": True}
+        mock_coordinator.get_dog_data.return_value = {"visitor_mode_active": True}
 
         assert switch.is_on is True
 
         # Test with visitor mode inactive
-        mock_coordinator.get_dog_data.return_value = {
-            "visitor_mode_active": False}
+        mock_coordinator.get_dog_data.return_value = {"visitor_mode_active": False}
 
         assert switch.is_on is False
 
@@ -658,8 +653,7 @@ class TestSwitchTypeSpecificEdgeCases:
         )
 
         # Mock missing data manager
-        switch.hass.data = {
-            DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
+        switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
 
         # Should handle missing data manager gracefully
         await switch._async_set_state(True)
@@ -692,8 +686,7 @@ class TestSwitchTypeSpecificEdgeCases:
         )
 
         # Mock missing notification manager
-        switch.hass.data = {
-            DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
+        switch.hass.data = {DOMAIN: {switch.coordinator.config_entry.entry_id: {}}}
 
         # Should handle gracefully
         await switch._async_set_state(True)

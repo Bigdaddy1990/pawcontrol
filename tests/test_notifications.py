@@ -134,8 +134,7 @@ def mock_hass_services(hass: HomeAssistant):
 
     hass.services.async_services = Mock(return_value=services_data)
     hass.services.has_service = Mock(
-        side_effect=lambda domain, service: service in services_data.get(domain, {
-        })
+        side_effect=lambda domain, service: service in services_data.get(domain, {})
     )
     hass.services.async_call = AsyncMock()
 
@@ -232,10 +231,8 @@ class TestCoreNotificationFunctionality:
         data = {"custom_field": "custom_value"}
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
-            patch.object(manager, "_send_mobile_app_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
+            patch.object(manager, "_send_mobile_app_notification", return_value=True),
         ):
             result = await manager.async_send_notification(
                 "test_dog",
@@ -326,8 +323,7 @@ class TestPriorityManagement:
         # Set quiet hours active
         with (
             patch.object(manager, "_is_in_quiet_hours", return_value=True),
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
         ):
             # Normal priority should be suppressed
             result_normal = await manager.async_send_notification(
@@ -382,14 +378,11 @@ class TestPriorityManagement:
     ):
         """Test priority affects delivery method selection."""
         manager = await initialized_manager()
-        manager._config["delivery_methods"] = [
-            DELIVERY_PERSISTENT]  # Base methods
+        manager._config["delivery_methods"] = [DELIVERY_PERSISTENT]  # Base methods
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
-            patch.object(manager, "_send_mobile_app_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
+            patch.object(manager, "_send_mobile_app_notification", return_value=True),
         ):
             # High priority should add mobile app
             await manager.async_send_notification(
@@ -539,8 +532,7 @@ class TestRateLimiting:
         manager = await initialized_manager()
 
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
             patch.object(
                 manager, "_get_dog_name", side_effect=lambda dog_id: f"Dog {dog_id}"
             ),
@@ -681,8 +673,7 @@ class TestDeliveryMethods:
 
         # Mock one method succeeding, one failing
         with (
-            patch.object(manager, "_send_persistent_notification",
-                         return_value=True),
+            patch.object(manager, "_send_persistent_notification", return_value=True),
             patch.object(
                 manager,
                 "_send_mobile_app_notification",
@@ -904,8 +895,7 @@ class TestUtilityMethods:
 
         # Add notification to active list
         notification_id = "test_notification"
-        manager._active_notifications[notification_id] = {
-            "id": notification_id}
+        manager._active_notifications[notification_id] = {"id": notification_id}
 
         result = await manager._dismiss_notification_internal(notification_id)
 
@@ -1106,8 +1096,7 @@ class TestNotificationIntegration:
         manager = await initialized_manager()
 
         # Test service availability check
-        assert manager.hass.services.has_service(
-            "notify", "mobile_app_test_device")
+        assert manager.hass.services.has_service("notify", "mobile_app_test_device")
 
         # Test service calling
         with patch.object(

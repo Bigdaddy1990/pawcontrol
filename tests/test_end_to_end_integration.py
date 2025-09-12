@@ -234,8 +234,7 @@ class TestEndToEndIntegration:
                 [Platform.SENSOR, Platform.BUTTON, Platform.SELECT]
             )
         if enabled_modules.get(MODULE_GPS):
-            expected_platforms.extend(
-                [Platform.DEVICE_TRACKER, Platform.BINARY_SENSOR])
+            expected_platforms.extend([Platform.DEVICE_TRACKER, Platform.BINARY_SENSOR])
         if enabled_modules.get(MODULE_HEALTH):
             expected_platforms.extend(
                 [Platform.SENSOR, Platform.DATE, Platform.DATETIME]
@@ -349,8 +348,7 @@ class TestEndToEndIntegration:
             assert setup_result is True
 
         setup_time = datetime.now() - start_time
-        _LOGGER.info(
-            f"Multi-dog setup completed in {setup_time.total_seconds():.2f}s")
+        _LOGGER.info(f"Multi-dog setup completed in {setup_time.total_seconds():.2f}s")
 
         # Verify all dogs were configured
         entry_data = hass.data[DOMAIN][mock_multi_dog_entry.entry_id]
@@ -510,8 +508,7 @@ class TestEndToEndIntegration:
             ) as mock_dog_data,
         ):
             # Setup consistent mock responses
-            mock_feeding.async_get_feeding_data.return_value = {
-                "meals_today": 1}
+            mock_feeding.async_get_feeding_data.return_value = {"meals_today": 1}
             mock_walk.async_get_walk_data.return_value = {"walks_today": 1}
             mock_dog_data.async_get_dog_data.return_value = {
                 "health": {"status": "good"}
@@ -598,8 +595,7 @@ class TestEndToEndIntegration:
 
             # Scenario 3: Recovery after error
             mock_feeding.async_get_feeding_data.side_effect = None
-            mock_feeding.async_get_feeding_data.return_value = {
-                "meals_today": 1}
+            mock_feeding.async_get_feeding_data.return_value = {"meals_today": 1}
 
             # Should recover successfully
             await coordinator._async_update_data()
@@ -684,8 +680,7 @@ class TestEndToEndIntegration:
         # Version format validation
         version = manifest.get("version", "")
         assert version, "Version must be specified"
-        assert len(version.split(".")
-                   ) >= 2, "Version must follow semantic versioning"
+        assert len(version.split(".")) >= 2, "Version must follow semantic versioning"
 
         # Integration type validation
         valid_integration_types = ["hub", "device", "service"]
@@ -857,8 +852,7 @@ class TestPerformanceEndToEnd:
 
         # Verify factory can estimate entity counts (performance planning)
         estimated_count = entity_factory.estimate_entity_count(
-            "standard", {MODULE_FEEDING: True,
-                         MODULE_GPS: True, MODULE_HEALTH: True}
+            "standard", {MODULE_FEEDING: True, MODULE_GPS: True, MODULE_HEALTH: True}
         )
 
         assert isinstance(estimated_count, int)

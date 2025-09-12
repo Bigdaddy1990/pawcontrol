@@ -38,8 +38,7 @@ class SetupEntryEdgeCaseTests:
         self, hass: HomeAssistant, mock_entry, mock_coordinator
     ) -> None:
         """Test setup_entry with legacy hass.data format."""
-        hass.data[DOMAIN] = {mock_entry.entry_id: {
-            "coordinator": mock_coordinator}}
+        hass.data[DOMAIN] = {mock_entry.entry_id: {"coordinator": mock_coordinator}}
         add_entities_mock = Mock()
         await self.setup_entry(hass, mock_entry, add_entities_mock)
         add_entities_mock.assert_called()

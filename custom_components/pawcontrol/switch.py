@@ -160,8 +160,7 @@ class ProfileOptimizedSwitchFactory:
 
         # Visitor mode switch - only if visitor module enabled OR as fallback
         if MODULE_VISITOR in enabled_modules or not enabled_modules:
-            switches.append(PawControlVisitorModeSwitch(
-                coordinator, dog_id, dog_name))
+            switches.append(PawControlVisitorModeSwitch(coordinator, dog_id, dog_name))
 
         # Module control switches - only for enabled modules
         for module_id, module_name, icon in cls.MODULE_CONFIGS:
@@ -232,7 +231,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -432,8 +431,7 @@ class OptimizedSwitchBase(
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(
-                f"Failed to turn on {self._switch_type}") from err
+            raise HomeAssistantError(f"Failed to turn on {self._switch_type}") from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with enhanced error handling."""
@@ -457,8 +455,7 @@ class OptimizedSwitchBase(
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(
-                f"Failed to turn off {self._switch_type}") from err
+            raise HomeAssistantError(f"Failed to turn off {self._switch_type}") from err
 
     async def _async_set_state(self, state: bool) -> None:
         """Set switch state - override in subclasses."""
@@ -516,8 +513,7 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
             )
 
         except Exception as err:
-            _LOGGER.warning(
-                "Power state update failed for %s: %s", self._dog_name, err)
+            _LOGGER.warning("Power state update failed for %s: %s", self._dog_name, err)
 
 
 class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
@@ -547,8 +543,7 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
                 await notification_manager.async_set_dnd_mode(self._dog_id, state)
 
         except Exception as err:
-            _LOGGER.error("Failed to update DND for %s: %s",
-                          self._dog_name, err)
+            _LOGGER.error("Failed to update DND for %s: %s", self._dog_name, err)
 
 
 class PawControlVisitorModeSwitch(OptimizedSwitchBase):

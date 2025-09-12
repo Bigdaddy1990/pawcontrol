@@ -67,8 +67,7 @@ async def generator(hass: HomeAssistant, mock_config_entry: ConfigEntry):
     gen = PawControlDashboardGenerator(hass, mock_config_entry)
     with patch.object(gen, "_store") as mock_store:
         mock_store.async_load = AsyncMock(
-            return_value={"dashboards": {},
-                          "version": DASHBOARD_STORAGE_VERSION}
+            return_value={"dashboards": {}, "version": DASHBOARD_STORAGE_VERSION}
         )
         mock_store.async_save = AsyncMock()
         await gen.async_initialize()
@@ -101,8 +100,7 @@ class TestDashboardGenerator:
             patch.object(generator, "_save_dashboard_metadata", AsyncMock()),
         ):
             url = await generator.async_create_dashboard(
-                sample_dogs_config, {
-                    "title": "My Dogs Dashboard", "url": "my-dogs"}
+                sample_dogs_config, {"title": "My Dogs Dashboard", "url": "my-dogs"}
             )
             assert url.startswith("/my_dogs")
             assert DEFAULT_DASHBOARD_TITLE not in url

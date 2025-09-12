@@ -88,7 +88,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -140,28 +140,23 @@ async def async_setup_entry(
         dog_name: str = dog[CONF_DOG_NAME]
         modules: dict[str, bool] = dog.get("modules", {})
 
-        _LOGGER.debug("Creating number entities for dog: %s (%s)",
-                      dog_name, dog_id)
+        _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
 
         # Base numbers - always created for every dog
-        entities.extend(_create_base_numbers(
-            coordinator, dog_id, dog_name, dog))
+        entities.extend(_create_base_numbers(coordinator, dog_id, dog_name, dog))
 
         # Module-specific numbers
         if modules.get(MODULE_FEEDING, False):
-            entities.extend(_create_feeding_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_feeding_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_WALK, False):
-            entities.extend(_create_walk_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_walk_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_GPS, False):
             entities.extend(_create_gps_numbers(coordinator, dog_id, dog_name))
 
         if modules.get(MODULE_HEALTH, False):
-            entities.extend(_create_health_numbers(
-                coordinator, dog_id, dog_name))
+            entities.extend(_create_health_numbers(coordinator, dog_id, dog_name))
 
     # Add entities in smaller batches to prevent Entity Registry overload
     # With 46+ number entities (2 dogs), batching prevents Registry flooding
@@ -463,8 +458,7 @@ class PawControlNumberBase(
             _LOGGER.error(
                 "Failed to set %s for %s: %s", self._number_type, self._dog_name, err
             )
-            raise HomeAssistantError(
-                f"Failed to set {self._number_type}") from err
+            raise HomeAssistantError(f"Failed to set {self._number_type}") from err
 
     async def _async_set_number_value(self, value: float) -> None:
         """Set the number value implementation.
@@ -608,8 +602,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
 
         # Persist the change if the data manager is available
-        runtime_data = getattr(
-            self.coordinator.config_entry, "runtime_data", None)
+        runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
         if runtime_data and (data_manager := runtime_data.get("data_manager")):
             try:
                 await data_manager.async_update_dog_data(

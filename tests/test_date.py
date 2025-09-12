@@ -77,8 +77,7 @@ class TestAsyncAddEntitiesInBatches:
         await _async_add_entities_in_batches(mock_add_entities, entities, batch_size=15)
 
         # Should be called once with all entities
-        mock_add_entities.assert_called_once_with(
-            entities, update_before_add=False)
+        mock_add_entities.assert_called_once_with(entities, update_before_add=False)
 
     @pytest.mark.asyncio
     async def test_async_add_entities_in_batches_multiple_batches(self):
@@ -506,8 +505,7 @@ class TestPawControlDateBase:
 
     def test_extra_state_attributes_birthdate_age_calculation(self, mock_coordinator):
         """Test age calculation for birthdate entity."""
-        birthdate_entity = PawControlBirthdateDate(
-            mock_coordinator, "dog1", "Buddy")
+        birthdate_entity = PawControlBirthdateDate(mock_coordinator, "dog1", "Buddy")
 
         today = dt_util.now().date()
         # ~2 years and 1 month old
@@ -710,8 +708,7 @@ class TestPawControlDateBase:
         self, base_date_entity, mock_coordinator
     ):
         """Test coordinator update when extraction raises exception."""
-        mock_coordinator.get_dog_data.side_effect = Exception(
-            "Coordinator error")
+        mock_coordinator.get_dog_data.side_effect = Exception("Coordinator error")
 
         # Should not raise exception
         base_date_entity._handle_coordinator_update()
@@ -1220,10 +1217,8 @@ class TestDateEntityIntegrationScenarios:
 
         entities = []
         for dog_id, dog_name in dogs:
-            entities.append(PawControlBirthdateDate(
-                mock_coordinator, dog_id, dog_name))
-            entities.append(PawControlAdoptionDate(
-                mock_coordinator, dog_id, dog_name))
+            entities.append(PawControlBirthdateDate(mock_coordinator, dog_id, dog_name))
+            entities.append(PawControlAdoptionDate(mock_coordinator, dog_id, dog_name))
 
         unique_ids = [entity._attr_unique_id for entity in entities]
 
@@ -1294,33 +1289,22 @@ class TestDateEntityIntegrationScenarios:
             # Create all date entity types for this dog (14 entities per dog)
             entities.extend(
                 [
-                    PawControlBirthdateDate(
-                        mock_coordinator, dog_id, dog_name),
+                    PawControlBirthdateDate(mock_coordinator, dog_id, dog_name),
                     PawControlAdoptionDate(mock_coordinator, dog_id, dog_name),
-                    PawControlLastVetVisitDate(
-                        mock_coordinator, dog_id, dog_name),
+                    PawControlLastVetVisitDate(mock_coordinator, dog_id, dog_name),
                     PawControlNextVetAppointmentDate(
                         mock_coordinator, dog_id, dog_name
                     ),
-                    PawControlLastGroomingDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlNextGroomingDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlVaccinationDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlNextVaccinationDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlDewormingDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlNextDewormingDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlDietStartDate(
-                        mock_coordinator, dog_id, dog_name),
+                    PawControlLastGroomingDate(mock_coordinator, dog_id, dog_name),
+                    PawControlNextGroomingDate(mock_coordinator, dog_id, dog_name),
+                    PawControlVaccinationDate(mock_coordinator, dog_id, dog_name),
+                    PawControlNextVaccinationDate(mock_coordinator, dog_id, dog_name),
+                    PawControlDewormingDate(mock_coordinator, dog_id, dog_name),
+                    PawControlNextDewormingDate(mock_coordinator, dog_id, dog_name),
+                    PawControlDietStartDate(mock_coordinator, dog_id, dog_name),
                     PawControlDietEndDate(mock_coordinator, dog_id, dog_name),
-                    PawControlTrainingStartDate(
-                        mock_coordinator, dog_id, dog_name),
-                    PawControlNextTrainingDate(
-                        mock_coordinator, dog_id, dog_name),
+                    PawControlTrainingStartDate(mock_coordinator, dog_id, dog_name),
+                    PawControlNextTrainingDate(mock_coordinator, dog_id, dog_name),
                 ]
             )
 
@@ -1346,8 +1330,7 @@ class TestDateEntityIntegrationScenarios:
 
         # Should not raise exception and return None for invalid data
         try:
-            result = entity._extract_date_from_dog_data(
-                mock_coordinator.get_dog_data())
+            result = entity._extract_date_from_dog_data(mock_coordinator.get_dog_data())
             assert result is None
         except Exception as e:
             pytest.fail(

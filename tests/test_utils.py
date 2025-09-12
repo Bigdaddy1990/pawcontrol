@@ -342,8 +342,7 @@ class TestUtilityFunctions:
         deep_dict1 = {"a": {"b": {"c": {"d": 1}}}}
         deep_dict2 = {"a": {"b": {"c": {"e": 2}}}}
 
-        result = deep_merge_dicts_optimized(
-            deep_dict1, deep_dict2, max_depth=2)
+        result = deep_merge_dicts_optimized(deep_dict1, deep_dict2, max_depth=2)
         assert "a" in result
         assert "b" in result["a"]
 
@@ -352,20 +351,17 @@ class TestUtilityFunctions:
         current_time = time(10, 30)  # 10:30 AM
 
         # Test same day range
-        is_within, error = is_within_time_range_enhanced(
-            current_time, "09:00", "12:00")
+        is_within, error = is_within_time_range_enhanced(current_time, "09:00", "12:00")
         assert is_within
         assert error is None
 
         # Test outside range
-        is_within, error = is_within_time_range_enhanced(
-            current_time, "13:00", "15:00")
+        is_within, error = is_within_time_range_enhanced(current_time, "13:00", "15:00")
         assert not is_within
         assert error is None
 
         # Test overnight range
-        is_within, error = is_within_time_range_enhanced(
-            time(23, 30), "22:00", "02:00")
+        is_within, error = is_within_time_range_enhanced(time(23, 30), "22:00", "02:00")
         assert is_within
         assert error is None
 

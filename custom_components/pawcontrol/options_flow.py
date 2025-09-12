@@ -201,8 +201,7 @@ class PawControlOptionsFlow(OptionsFlow):
     def _get_profile_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for profile selection."""
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        current_profile = self._config_entry.options.get(
-            "entity_profile", "standard")
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
 
         # Calculate current entity count estimate
         total_estimate = 0
@@ -213,8 +212,7 @@ class PawControlOptionsFlow(OptionsFlow):
             )
             total_estimate += estimate
 
-        profile_info = ENTITY_PROFILES.get(
-            current_profile, ENTITY_PROFILES["standard"])
+        profile_info = ENTITY_PROFILES.get(current_profile, ENTITY_PROFILES["standard"])
 
         return {
             "current_profile": current_profile,
@@ -257,8 +255,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 return await self.async_step_entity_profiles()
 
         # Calculate detailed entity breakdown
-        profile = user_input.get(
-            "profile", "standard") if user_input else "standard"
+        profile = user_input.get("profile", "standard") if user_input else "standard"
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
 
         entity_breakdown = []
@@ -268,8 +265,7 @@ class PawControlOptionsFlow(OptionsFlow):
             dog_name = dog.get(CONF_DOG_NAME, "Unknown")
             modules = dog.get("modules", {})
 
-            estimate = self._entity_factory.estimate_entity_count(
-                profile, modules)
+            estimate = self._entity_factory.estimate_entity_count(profile, modules)
             total_entities += estimate
 
             enabled_modules = [m for m, enabled in modules.items() if enabled]
@@ -279,8 +275,7 @@ class PawControlOptionsFlow(OptionsFlow):
             )
 
         # Calculate comparison with current profile
-        current_profile = self._config_entry.options.get(
-            "entity_profile", "standard")
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
         current_total = 0
         for dog in current_dogs:
             modules = dog.get("modules", {})
@@ -346,8 +341,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 _LOGGER.error("Error updating performance settings: %s", err)
                 return self.async_show_form(
                     step_id="performance_settings",
-                    data_schema=self._get_performance_settings_schema(
-                        user_input),
+                    data_schema=self._get_performance_settings_schema(user_input),
                     errors={"base": "performance_update_failed"},
                 )
 
@@ -673,8 +667,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if not self._current_dog:
             return {}
 
-        current_profile = self._config_entry.options.get(
-            "entity_profile", "standard")
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
         current_modules = self._current_dog.get("modules", {})
 
         # Calculate current entity count
@@ -919,16 +912,13 @@ class PawControlOptionsFlow(OptionsFlow):
         return vol.Schema(
             {
                 vol.Optional(
-                    CONF_DOG_NAME, default=self._current_dog.get(
-                        CONF_DOG_NAME, "")
+                    CONF_DOG_NAME, default=self._current_dog.get(CONF_DOG_NAME, "")
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_BREED, default=self._current_dog.get(
-                        CONF_DOG_BREED, "")
+                    CONF_DOG_BREED, default=self._current_dog.get(CONF_DOG_BREED, "")
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_AGE, default=self._current_dog.get(
-                        CONF_DOG_AGE, 3)
+                    CONF_DOG_AGE, default=self._current_dog.get(CONF_DOG_AGE, 3)
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX
@@ -1166,16 +1156,14 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "quiet_hours",
                     default=current_values.get(
-                        "quiet_hours", current_notifications.get(
-                            CONF_QUIET_HOURS, True)
+                        "quiet_hours", current_notifications.get(CONF_QUIET_HOURS, True)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "quiet_start",
                     default=current_values.get(
                         "quiet_start",
-                        current_notifications.get(
-                            CONF_QUIET_START, "22:00:00"),
+                        current_notifications.get(CONF_QUIET_START, "22:00:00"),
                     ),
                 ): selector.TimeSelector(),
                 vol.Optional(
@@ -1206,16 +1194,14 @@ class PawControlOptionsFlow(OptionsFlow):
                     "priority_notifications",
                     default=current_values.get(
                         "priority_notifications",
-                        current_notifications.get(
-                            "priority_notifications", True),
+                        current_notifications.get("priority_notifications", True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "mobile_notifications",
                     default=current_values.get(
                         "mobile_notifications",
-                        current_notifications.get(
-                            "mobile_notifications", True),
+                        current_notifications.get("mobile_notifications", True),
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -1270,8 +1256,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "meals_per_day",
                     default=current_values.get(
-                        "meals_per_day", current_feeding.get(
-                            "default_meals_per_day", 2)
+                        "meals_per_day", current_feeding.get("default_meals_per_day", 2)
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -1302,8 +1287,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "auto_schedule",
                     default=current_values.get(
-                        "auto_schedule", current_feeding.get(
-                            "auto_schedule", False)
+                        "auto_schedule", current_feeding.get("auto_schedule", False)
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -1356,8 +1340,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "weight_tracking",
                     default=current_values.get(
-                        "weight_tracking", current_health.get(
-                            "weight_tracking", True)
+                        "weight_tracking", current_health.get("weight_tracking", True)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -1370,8 +1353,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "vet_reminders",
                     default=current_values.get(
-                        "vet_reminders", current_health.get(
-                            "vet_reminders", True)
+                        "vet_reminders", current_health.get("vet_reminders", True)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -1384,8 +1366,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "health_alerts",
                     default=current_values.get(
-                        "health_alerts", current_health.get(
-                            "health_alerts", True)
+                        "health_alerts", current_health.get("health_alerts", True)
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -1440,8 +1421,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "reset_time",
                     default=current_values.get(
                         "reset_time",
-                        current_options.get(
-                            CONF_RESET_TIME, DEFAULT_RESET_TIME),
+                        current_options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
                     ),
                 ): selector.TimeSelector(),
                 vol.Optional(
@@ -1515,8 +1495,7 @@ class PawControlOptionsFlow(OptionsFlow):
             except Exception:
                 return self.async_show_form(
                     step_id="dashboard_settings",
-                    data_schema=self._get_dashboard_settings_schema(
-                        user_input),
+                    data_schema=self._get_dashboard_settings_schema(user_input),
                     errors={"base": "update_failed"},
                 )
 
@@ -1652,8 +1631,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "debug_logging",
                     default=current_values.get(
-                        "debug_logging", current_options.get(
-                            "debug_logging", False)
+                        "debug_logging", current_options.get("debug_logging", False)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -1674,8 +1652,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "auto_backup",
                     default=current_values.get(
-                        "auto_backup", current_options.get(
-                            "auto_backup", False)
+                        "auto_backup", current_options.get("auto_backup", False)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -1713,8 +1690,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         try:
             # Merge unsaved changes with existing options
-            new_options = {**self._config_entry.options,
-                           **self._unsaved_changes}
+            new_options = {**self._config_entry.options, **self._unsaved_changes}
 
             # Clear unsaved changes
             self._unsaved_changes.clear()

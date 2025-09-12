@@ -521,8 +521,7 @@ class ValidationError(PawControlError):
         if max_value is not None:
             suggestions.append(f"Value must be at most {max_value}")
         if valid_values:
-            suggestions.append(
-                f"Valid values: {', '.join(map(str, valid_values))}")
+            suggestions.append(f"Valid values: {', '.join(map(str, valid_values))}")
 
         super().__init__(
             message,
@@ -927,8 +926,7 @@ def handle_exception_gracefully(
                 import logging
 
                 logger = logging.getLogger(__name__)
-                logger.error("PawControl error in %s: %s",
-                             func.__name__, e.to_dict())
+                logger.error("PawControl error in %s: %s", func.__name__, e.to_dict())
 
             if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
                 raise

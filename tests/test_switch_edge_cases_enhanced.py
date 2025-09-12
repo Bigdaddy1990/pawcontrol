@@ -421,8 +421,7 @@ class TestEntityRegistryCorruptionRecovery:
         # Mock corrupted registry state
         corrupted_state = Mock()
         corrupted_state.state = object()  # Invalid state object
-        corrupted_state.attributes = {
-            "invalid": object()}  # Invalid attributes
+        corrupted_state.attributes = {"invalid": object()}  # Invalid attributes
 
         with patch.object(switch, "async_get_last_state", return_value=corrupted_state):
             # Should handle corruption gracefully
@@ -604,8 +603,7 @@ class TestIntegrationReloadEdgeCases:
         # Create replacement coordinator
         new_coordinator = MagicMock(spec=PawControlCoordinator)
         new_coordinator.available = True
-        new_coordinator.get_dog_data.return_value = {
-            "modules": {MODULE_FEEDING: True}}
+        new_coordinator.get_dog_data.return_value = {"modules": {MODULE_FEEDING: True}}
 
         # Replace coordinator during operation
         old_coordinator = switch.coordinator

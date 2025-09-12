@@ -78,8 +78,7 @@ class TestSelectBaseEdgeCases:
                 "_async_set_select_option",
                 side_effect=Exception("Service failed"),
             ),
-            pytest.raises(HomeAssistantError,
-                          match="Failed to set test_select"),
+            pytest.raises(HomeAssistantError, match="Failed to set test_select"),
         ):
             await base_select.async_select_option("option2")
 
@@ -538,8 +537,7 @@ class TestSpecificSelectEdgeCases:
             dog_name="Test Dog",
         )
 
-        valid_types = ["bath", "brush", "nails",
-                       "teeth", "trim", "full_grooming"]
+        valid_types = ["bath", "brush", "nails", "teeth", "trim", "full_grooming"]
         for grooming_type in valid_types:
             grooming_info = select._get_grooming_type_info(grooming_type)
             assert "frequency" in grooming_info
@@ -559,8 +557,7 @@ class TestHealthSelectDataIntegration:
         )
 
         # Mock health data
-        mock_coordinator.get_module_data.return_value = {
-            "health_status": "excellent"}
+        mock_coordinator.get_module_data.return_value = {"health_status": "excellent"}
 
         assert select.current_option == "excellent"
 
@@ -599,8 +596,7 @@ class TestHealthSelectDataIntegration:
         )
 
         # Mock health data
-        mock_coordinator.get_module_data.return_value = {
-            "activity_level": "high"}
+        mock_coordinator.get_module_data.return_value = {"activity_level": "high"}
 
         assert select.current_option == "high"
 
@@ -711,14 +707,12 @@ class TestSelectFactoryFunctionsEdgeCases:
         assert len(selects) == 3  # Size, performance, notification selects
 
         # Size select should handle missing config
-        size_select = next(s for s in selects if isinstance(
-            s, PawControlDogSizeSelect))
+        size_select = next(s for s in selects if isinstance(s, PawControlDogSizeSelect))
         assert size_select.current_option == "medium"  # Default value
 
     def test_create_feeding_selects_consistency(self, mock_coordinator):
         """Test feeding selects creation consistency."""
-        selects = _create_feeding_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_feeding_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create all feeding-related selects
         assert len(selects) == 4  # Food type, schedule, meal type, mode
@@ -732,8 +726,7 @@ class TestSelectFactoryFunctionsEdgeCases:
 
     def test_create_walk_selects_consistency(self, mock_coordinator):
         """Test walk selects creation consistency."""
-        selects = _create_walk_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_walk_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create all walk-related selects
         assert len(selects) == 3  # Mode, weather, intensity
@@ -759,8 +752,7 @@ class TestSelectFactoryFunctionsEdgeCases:
 
     def test_create_health_selects_consistency(self, mock_coordinator):
         """Test health selects creation consistency."""
-        selects = _create_health_selects(
-            mock_coordinator, "test_dog", "Test Dog")
+        selects = _create_health_selects(mock_coordinator, "test_dog", "Test Dog")
 
         # Should create all health-related selects
         assert len(selects) == 4  # Status, activity, mood, grooming
@@ -864,8 +856,7 @@ class TestPerformanceAndStressScenarios:
             walk_selects = _create_walk_selects(
                 mock_coordinator, f"dog_{i}", f"Dog {i}"
             )
-            gps_selects = _create_gps_selects(
-                mock_coordinator, f"dog_{i}", f"Dog {i}")
+            gps_selects = _create_gps_selects(mock_coordinator, f"dog_{i}", f"Dog {i}")
             health_selects = _create_health_selects(
                 mock_coordinator, f"dog_{i}", f"Dog {i}"
             )
@@ -896,17 +887,12 @@ class TestPerformanceAndStressScenarios:
         # Create all types of selects
         all_selects = []
         all_selects.extend(
-            _create_base_selects(mock_coordinator, dog_id,
-                                 dog_name, dog_config)
+            _create_base_selects(mock_coordinator, dog_id, dog_name, dog_config)
         )
-        all_selects.extend(_create_feeding_selects(
-            mock_coordinator, dog_id, dog_name))
-        all_selects.extend(_create_walk_selects(
-            mock_coordinator, dog_id, dog_name))
-        all_selects.extend(_create_gps_selects(
-            mock_coordinator, dog_id, dog_name))
-        all_selects.extend(_create_health_selects(
-            mock_coordinator, dog_id, dog_name))
+        all_selects.extend(_create_feeding_selects(mock_coordinator, dog_id, dog_name))
+        all_selects.extend(_create_walk_selects(mock_coordinator, dog_id, dog_name))
+        all_selects.extend(_create_gps_selects(mock_coordinator, dog_id, dog_name))
+        all_selects.extend(_create_health_selects(mock_coordinator, dog_id, dog_name))
 
         # Collect all unique IDs
         unique_ids = [select.unique_id for select in all_selects]

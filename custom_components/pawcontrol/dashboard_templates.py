@@ -917,7 +917,7 @@ class DashboardTemplates:
             # Grid arrangement
             grouped_buttons = []
             for i in range(0, len(buttons), 2):
-                button_pair = buttons[i: i + 2]
+                button_pair = buttons[i : i + 2]
                 grouped_buttons.append(
                     {
                         "type": "horizontal-stack",

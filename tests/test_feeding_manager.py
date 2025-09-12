@@ -260,8 +260,7 @@ class TestDietValidationIntegration:
         assert health_summary["diet_validation_applied"] is True
 
         # Test without validation
-        config_no_validation = FeedingConfig(
-            dog_id="test", diet_validation=None)
+        config_no_validation = FeedingConfig(dog_id="test", diet_validation=None)
         health_summary_no_val = config_no_validation.get_health_summary()
         assert health_summary_no_val["diet_validation_applied"] is False
 
@@ -445,8 +444,7 @@ class TestFeedingManagerDietValidation:
 
         # Should log validation information
         log_messages = [record.message for record in caplog.records]
-        validation_logs = [
-            msg for msg in log_messages if "validation" in msg.lower()]
+        validation_logs = [msg for msg in log_messages if "validation" in msg.lower()]
 
         # At least one validation-related log should exist
         assert len(validation_logs) > 0
@@ -510,8 +508,7 @@ class TestComplexDietScenarios:
         assert calculated_portion > 50  # But not too small
 
         # Should recommend vet consultation
-        recommendations = " ".join(
-            result["safety_validation"]["recommendations"])
+        recommendations = " ".join(result["safety_validation"]["recommendations"])
         assert "veterinary" in recommendations.lower()
 
     async def test_puppy_with_conflicting_diets(self) -> None:

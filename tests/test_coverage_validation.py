@@ -80,8 +80,7 @@ class CoverageValidator:
                     "file_path": str(py_file),
                 }
 
-                print(
-                    f"    Functions: {len(functions)}, Classes: {len(classes)}")
+                print(f"    Functions: {len(functions)}, Classes: {len(classes)}")
 
             except SyntaxError as e:
                 print(f"    ❌ Syntax error: {e}")
@@ -93,8 +92,7 @@ class CoverageValidator:
                 }
 
         total_files = len(self.integration_files)
-        total_items = sum(f["total_items"]
-                          for f in self.integration_files.values())
+        total_items = sum(f["total_items"] for f in self.integration_files.values())
         print(
             f"  ✅ Integration Analysis Complete: {total_files} files, {total_items} items"
         )
@@ -185,8 +183,7 @@ class CoverageValidator:
                     coverage_data["covered_functions"]
                     | coverage_data["covered_classes"]
                 )
-                coverage_data["missing_coverage"] = all_items - \
-                    covered_items_set
+                coverage_data["missing_coverage"] = all_items - covered_items_set
 
             self.coverage_report[integration_file] = coverage_data
 
@@ -275,10 +272,8 @@ class CoverageValidator:
         print("=" * 60)
 
         total_files = len(self.coverage_report)
-        total_items = sum(r["integration_items"]
-                          for r in self.coverage_report.values())
-        total_covered = sum(r["test_coverage"]
-                            for r in self.coverage_report.values())
+        total_items = sum(r["integration_items"] for r in self.coverage_report.values())
+        total_covered = sum(r["test_coverage"] for r in self.coverage_report.values())
         overall_coverage = (total_covered / max(1, total_items)) * 100
 
         print(
@@ -356,10 +351,8 @@ class CoverageValidator:
         print("\n🏆 GOLD STANDARD VALIDATION")
         print("=" * 60)
 
-        total_items = sum(r["integration_items"]
-                          for r in self.coverage_report.values())
-        total_covered = sum(r["test_coverage"]
-                            for r in self.coverage_report.values())
+        total_items = sum(r["integration_items"] for r in self.coverage_report.values())
+        total_covered = sum(r["test_coverage"] for r in self.coverage_report.values())
         overall_coverage = (total_covered / max(1, total_items)) * 100
 
         # Gold Standard requirements
@@ -421,8 +414,7 @@ class CoverageValidator:
             "test_select_edge_cases_enhanced.py",
         ]
 
-        found_edge_tests = sum(
-            1 for test in edge_case_tests if test in self.test_files)
+        found_edge_tests = sum(1 for test in edge_case_tests if test in self.test_files)
         return found_edge_tests >= 3  # At least 3 edge case test files
 
     def _check_performance_tests(self) -> bool:

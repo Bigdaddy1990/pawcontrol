@@ -275,8 +275,7 @@ def mock_hass_with_states(hass: HomeAssistant):
             state="30.5",
             last_changed=dt_util.utcnow(),
             last_updated=dt_util.utcnow(),
-            attributes={"unit_of_measurement": "kg",
-                        "friendly_name": "Buddy Weight"},
+            attributes={"unit_of_measurement": "kg", "friendly_name": "Buddy Weight"},
         ),
         "binary_sensor.luna_walk_active": Mock(
             state="on",
@@ -884,8 +883,7 @@ class TestDogsSummary:
         assert len(diagnostics["dogs"]) == 2
 
         # Check dog information
-        buddy_dog = next(
-            dog for dog in diagnostics["dogs"] if dog["dog_id"] == "buddy")
+        buddy_dog = next(dog for dog in diagnostics["dogs"] if dog["dog_id"] == "buddy")
 
         expected_dog_keys = [
             "dog_id",
@@ -1235,14 +1233,12 @@ class TestSensitiveDataRedaction:
         """Test detection of sensitive string patterns."""
         # UUID
         assert (
-            _looks_like_sensitive_string(
-                "123e4567-e89b-12d3-a456-426614174000") is True
+            _looks_like_sensitive_string("123e4567-e89b-12d3-a456-426614174000") is True
         )
 
         # Long alphanumeric (token-like)
         assert (
-            _looks_like_sensitive_string(
-                "abcdef123456789012345678901234567890") is True
+            _looks_like_sensitive_string("abcdef123456789012345678901234567890") is True
         )
 
         # IP address

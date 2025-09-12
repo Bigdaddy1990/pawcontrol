@@ -614,8 +614,7 @@ class TestComplexMultiDietScenarios:
             # Calculate adjustment factor
             calculated_adjustment = (
                 HealthCalculator.calculate_diet_validation_adjustment(
-                    scenario["diet_validation"] or {
-                    }, health_metrics.special_diet
+                    scenario["diet_validation"] or {}, health_metrics.special_diet
                 )
             )
 
@@ -627,8 +626,7 @@ class TestComplexMultiDietScenarios:
             if scenario["expected_adjustment"] != 1.0:
                 # Allow some variance for complex calculations
                 assert (
-                    abs(calculated_adjustment -
-                        scenario["expected_adjustment"]) < 0.1
+                    abs(calculated_adjustment - scenario["expected_adjustment"]) < 0.1
                 ), (
                     f"Adjustment factor mismatch for {scenario['name']}: expected {scenario['expected_adjustment']}, got {calculated_adjustment}"
                 )
@@ -704,8 +702,7 @@ class TestComplexMultiDietScenarios:
             # Check that portion per kg is calculated
             expected_portion_per_kg = scenario["portion"] / scenario["weight"]
             assert (
-                abs(safety_result["portion_per_kg"] -
-                    expected_portion_per_kg) < 0.1
+                abs(safety_result["portion_per_kg"] - expected_portion_per_kg) < 0.1
             ), f"Portion per kg calculation incorrect for {scenario['name']}"
 
             # Prescription diets should have vet recommendations
@@ -855,8 +852,7 @@ class TestComplexMultiDietScenarios:
                     f"Should have conflicts for diets: {test_case['diets']}"
                 )
                 if "conflict_type" in test_case:
-                    conflict_types = [c["type"]
-                                      for c in validation_result["conflicts"]]
+                    conflict_types = [c["type"] for c in validation_result["conflicts"]]
                     assert test_case["conflict_type"] in conflict_types, (
                         f"Should have {test_case['conflict_type']} for diets: {test_case['diets']}"
                     )
@@ -871,8 +867,7 @@ class TestComplexMultiDietScenarios:
                     f"Should have warnings for diets: {test_case['diets']}"
                 )
                 if "warning_type" in test_case:
-                    warning_types = [w["type"]
-                                     for w in validation_result["warnings"]]
+                    warning_types = [w["type"] for w in validation_result["warnings"]]
                     assert test_case["warning_type"] in warning_types, (
                         f"Should have {test_case['warning_type']} for diets: {test_case['diets']}"
                     )

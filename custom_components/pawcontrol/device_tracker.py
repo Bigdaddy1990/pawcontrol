@@ -84,7 +84,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -138,10 +138,8 @@ async def async_setup_entry(
 
         # Only create device tracker if GPS module is enabled
         if modules.get(MODULE_GPS, False):
-            _LOGGER.debug(
-                "Creating device tracker for dog: %s (%s)", dog_name, dog_id)
-            entities.append(PawControlDeviceTracker(
-                coordinator, dog_id, dog_name))
+            _LOGGER.debug("Creating device tracker for dog: %s (%s)", dog_name, dog_id)
+            entities.append(PawControlDeviceTracker(coordinator, dog_id, dog_name))
 
     if entities:
         # Add entities in smaller batches to prevent Entity Registry overload
@@ -234,8 +232,7 @@ class PawControlDeviceTracker(
             if lat is not None and lon is not None:
                 self._last_known_location = (float(lat), float(lon))
 
-            _LOGGER.debug(
-                "Restored previous state for %s GPS tracker", self._dog_name)
+            _LOGGER.debug("Restored previous state for %s GPS tracker", self._dog_name)
 
     @property
     def source_type(self) -> SourceType:
@@ -339,8 +336,7 @@ class PawControlDeviceTracker(
             return STATE_HOME
 
         # Check other configured zones
-        zone_name = self._determine_zone_from_coordinates(
-            current_lat, current_lon)
+        zone_name = self._determine_zone_from_coordinates(current_lat, current_lon)
         if zone_name:
             return zone_name
 
@@ -499,8 +495,7 @@ class PawControlDeviceTracker(
             and self._last_known_location is not None
         ):
             last_lat, last_lon = self._last_known_location
-            location_change = distance(
-                current_lat, current_lon, last_lat, last_lon)
+            location_change = distance(current_lat, current_lon, last_lat, last_lon)
 
             # Consider moving if location changed by more than threshold
             return location_change > LOCATION_UPDATE_THRESHOLD

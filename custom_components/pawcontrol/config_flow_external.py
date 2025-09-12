@@ -119,8 +119,7 @@ class ExternalEntityConfigurationMixin:
             }
 
         selector_config = selector.SelectSelectorConfig(
-            options=[
-                {"value": "manual", "label": "📝 Manual GPS (configure later)"}],
+            options=[{"value": "manual", "label": "📝 Manual GPS (configure later)"}],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
         return {
@@ -187,10 +186,8 @@ class ExternalEntityConfigurationMixin:
         """
         validated = {}
 
-        validated.update(self._validate_gps_source(
-            user_input.get(CONF_GPS_SOURCE)))
-        validated.update(self._validate_door_sensor(
-            user_input.get(CONF_DOOR_SENSOR)))
+        validated.update(self._validate_gps_source(user_input.get(CONF_GPS_SOURCE)))
+        validated.update(self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR)))
         validated.update(
             self._validate_notify_service(user_input.get(CONF_NOTIFY_FALLBACK))
         )
@@ -230,7 +227,6 @@ class ExternalEntityConfigurationMixin:
 
         services = self.hass.services.async_services().get("notify", {})
         if service_parts[1] not in services:
-            raise ValueError(
-                f"Notification service {service_parts[1]} not found")
+            raise ValueError(f"Notification service {service_parts[1]} not found")
 
         return {CONF_NOTIFY_FALLBACK: notify_service}

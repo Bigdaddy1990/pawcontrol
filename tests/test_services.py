@@ -221,8 +221,7 @@ class TestServiceHandlerDecorator:
         """Create mock service manager."""
         manager = Mock()
         manager._get_runtime_data_cached = Mock()
-        manager._get_available_dog_ids = Mock(
-            return_value=["test_dog", "other_dog"])
+        manager._get_available_dog_ids = Mock(return_value=["test_dog", "other_dog"])
         return manager
 
     def test_service_handler_decorator_basic(self, mock_service_manager):
@@ -546,18 +545,15 @@ class TestPawControlServiceManager:
     def test_estimate_calories(self):
         """Test calorie estimation."""
         # Test dry food
-        calories = PawControlServiceManager._estimate_calories(
-            100.0, "dry_food")
+        calories = PawControlServiceManager._estimate_calories(100.0, "dry_food")
         assert calories == 350.0
 
         # Test wet food
-        calories = PawControlServiceManager._estimate_calories(
-            200.0, "wet_food")
+        calories = PawControlServiceManager._estimate_calories(200.0, "wet_food")
         assert calories == 170.0
 
         # Test unknown food type
-        calories = PawControlServiceManager._estimate_calories(
-            100.0, "unknown")
+        calories = PawControlServiceManager._estimate_calories(100.0, "unknown")
         assert calories == 200.0
 
     def test_get_cache_stats(self, service_manager):
@@ -601,8 +597,7 @@ class TestServiceHandlers:
         data_manager.async_get_current_walk = AsyncMock()
         data_manager.async_end_walk = AsyncMock()
         data_manager.async_log_health = AsyncMock()
-        data_manager.async_start_grooming = AsyncMock(
-            return_value="grooming_123")
+        data_manager.async_start_grooming = AsyncMock(return_value="grooming_123")
         data_manager.async_reset_dog_daily_stats = AsyncMock()
 
         coordinator = Mock()
@@ -1252,8 +1247,7 @@ class TestServiceIntegration:
         }
         mock_runtime_data["data_manager"].async_feed_dog = AsyncMock()
         mock_runtime_data["data_manager"].async_log_feeding = AsyncMock()
-        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock(
-        )
+        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock()
 
         with patch.object(service_manager, "_get_runtime_data_cached") as mock_get_data:
             mock_get_data.return_value = mock_runtime_data
@@ -1406,13 +1400,11 @@ class TestServiceErrorHandling:
         assert calories == 0.0
 
         # Very large portion
-        calories = PawControlServiceManager._estimate_calories(
-            10000.0, "dry_food")
+        calories = PawControlServiceManager._estimate_calories(10000.0, "dry_food")
         assert calories == 35000.0
 
         # Unknown food type defaults
-        calories = PawControlServiceManager._estimate_calories(
-            100.0, "exotic_food")
+        calories = PawControlServiceManager._estimate_calories(100.0, "exotic_food")
         assert calories == 200.0
 
     @pytest.mark.asyncio
@@ -1427,8 +1419,7 @@ class TestServiceErrorHandling:
         }
         mock_runtime_data["data_manager"].async_feed_dog = AsyncMock()
         mock_runtime_data["data_manager"].async_log_feeding = AsyncMock()
-        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock(
-        )
+        mock_runtime_data["coordinator"].async_request_selective_refresh = AsyncMock()
 
         # Simulate concurrent calls
         tasks = []

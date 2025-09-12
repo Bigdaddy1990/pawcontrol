@@ -126,10 +126,8 @@ def complex_config_entry():
                 "gps_config": {
                     "device_id": "gps_tracker_001",
                     "geofences": [
-                        {"name": "Home", "lat": 51.5074,
-                            "lon": -0.1278, "radius": 100},
-                        {"name": "Park", "lat": 51.5080,
-                            "lon": -0.1290, "radius": 50},
+                        {"name": "Home", "lat": 51.5074, "lon": -0.1278, "radius": 100},
+                        {"name": "Park", "lat": 51.5080, "lon": -0.1290, "radius": 50},
                     ],
                 },
             },
@@ -491,8 +489,7 @@ class TestConfigurationMigrationScenarios:
     async def test_dog_module_configuration_evolution(self, advanced_options_flow):
         """Test evolution of dog module configuration."""
         # Add new modules to existing dog
-        existing_dog = advanced_options_flow._config_entry.data[CONF_DOGS][0].copy(
-        )
+        existing_dog = advanced_options_flow._config_entry.data[CONF_DOGS][0].copy()
         existing_modules = existing_dog.get("modules", {})
 
         # Add new modules
@@ -539,8 +536,7 @@ class TestSecurityValidationScenarios:
             )
 
             # Should either succeed with sanitized ID or show form again
-            assert result["type"] in [
-                FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+            assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
     @pytest.mark.asyncio
     async def test_dog_name_injection_prevention(self, advanced_options_flow):
@@ -870,8 +866,7 @@ class TestAdvancedErrorRecoveryScenarios:
     async def test_concurrent_modification_handling(self, advanced_options_flow):
         """Test handling of concurrent configuration modifications."""
         # Simulate config being modified externally during options flow
-        original_config = copy.deepcopy(
-            advanced_options_flow._config_entry.data)
+        original_config = copy.deepcopy(advanced_options_flow._config_entry.data)
 
         # Start editing a dog
         advanced_options_flow._current_dog = original_config[CONF_DOGS][0]
@@ -1012,8 +1007,7 @@ class TestPerformanceValidationScenarios:
 
         # Apply all changes rapidly
         for step_name, config in config_changes:
-            step_method = getattr(advanced_options_flow,
-                                  f"async_step_{step_name}")
+            step_method = getattr(advanced_options_flow, f"async_step_{step_name}")
             await step_method(config)
 
         end_time = time.time()

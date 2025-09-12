@@ -165,8 +165,7 @@ class TestPawControlDiscovery:
                 new_callable=AsyncMock,
                 side_effect=Exception("Test error"),
             ),
-            pytest.raises(HomeAssistantError,
-                          match="Discovery initialization failed"),
+            pytest.raises(HomeAssistantError, match="Discovery initialization failed"),
         ):
             await discovery.async_initialize()
 
@@ -174,11 +173,9 @@ class TestPawControlDiscovery:
     async def test_async_discover_devices_all_categories(self, discovery):
         """Test device discovery for all categories."""
         # Mock all discovery methods
-        mock_usb = Mock(
-            return_value=[self._create_test_device("usb", "gps_tracker")])
+        mock_usb = Mock(return_value=[self._create_test_device("usb", "gps_tracker")])
         mock_bluetooth = Mock(
-            return_value=[self._create_test_device(
-                "bluetooth", "activity_monitor")]
+            return_value=[self._create_test_device("bluetooth", "activity_monitor")]
         )
         mock_zeroconf = Mock(
             return_value=[self._create_test_device("network", "smart_feeder")]
@@ -215,8 +212,7 @@ class TestPawControlDiscovery:
         """Test device discovery for specific categories."""
         target_categories = ["gps_tracker", "smart_feeder"]
 
-        mock_usb = Mock(
-            return_value=[self._create_test_device("usb", "gps_tracker")])
+        mock_usb = Mock(return_value=[self._create_test_device("usb", "gps_tracker")])
 
         with patch.object(discovery, "_discover_usb_devices", mock_usb):
             await discovery.async_discover_devices(categories=target_categories)
@@ -248,8 +244,7 @@ class TestPawControlDiscovery:
             return []
 
         with (
-            patch.object(discovery, "_discover_usb_devices",
-                         hanging_discovery),
+            patch.object(discovery, "_discover_usb_devices", hanging_discovery),
             patch.multiple(
                 discovery,
                 _discover_bluetooth_devices=Mock(return_value=[]),
@@ -268,8 +263,7 @@ class TestPawControlDiscovery:
         # One method fails, others succeed
         mock_usb = Mock(side_effect=Exception("USB error"))
         mock_bluetooth = Mock(
-            return_value=[self._create_test_device(
-                "bluetooth", "activity_monitor")]
+            return_value=[self._create_test_device("bluetooth", "activity_monitor")]
         )
 
         with patch.multiple(
@@ -301,8 +295,7 @@ class TestPawControlDiscovery:
     async def test_async_discover_devices_deduplication(self, discovery):
         """Test device deduplication."""
         # Create duplicate devices
-        device1 = self._create_test_device(
-            "usb", "gps_tracker", device_id="device1")
+        device1 = self._create_test_device("usb", "gps_tracker", device_id="device1")
         device2 = self._create_test_device(
             "bluetooth", "gps_tracker", device_id="device2"
         )
@@ -819,8 +812,7 @@ class TestDiscoveryAccessors:
     def test_get_discovered_devices_by_category(self, discovery):
         """Test getting devices filtered by category."""
         gps_devices = discovery.get_discovered_devices(category="gps_tracker")
-        feeder_devices = discovery.get_discovered_devices(
-            category="smart_feeder")
+        feeder_devices = discovery.get_discovered_devices(category="smart_feeder")
 
         assert len(gps_devices) == 1
         assert gps_devices[0].category == "gps_tracker"
@@ -1036,10 +1028,8 @@ class TestDiscoveryErrorHandling:
         with patch.multiple(
             discovery,
             _discover_usb_devices=Mock(side_effect=Exception("USB failed")),
-            _discover_bluetooth_devices=Mock(
-                side_effect=Exception("Bluetooth failed")),
-            _discover_zeroconf_devices=Mock(
-                side_effect=Exception("Zeroconf failed")),
+            _discover_bluetooth_devices=Mock(side_effect=Exception("Bluetooth failed")),
+            _discover_zeroconf_devices=Mock(side_effect=Exception("Zeroconf failed")),
             _discover_dhcp_devices=Mock(side_effect=Exception("DHCP failed")),
             _discover_upnp_devices=Mock(side_effect=Exception("UPnP failed")),
         ):
@@ -1068,8 +1058,7 @@ class TestDiscoveryErrorHandling:
         with patch.multiple(
             discovery,
             _discover_usb_devices=Mock(return_value=[working_device]),
-            _discover_bluetooth_devices=Mock(
-                side_effect=Exception("Bluetooth failed")),
+            _discover_bluetooth_devices=Mock(side_effect=Exception("Bluetooth failed")),
             _discover_zeroconf_devices=Mock(return_value=[]),
             _discover_dhcp_devices=Mock(side_effect=Exception("DHCP failed")),
             _discover_upnp_devices=Mock(return_value=[]),

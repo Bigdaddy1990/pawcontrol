@@ -256,8 +256,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_start_background_tasks(self) -> None:
         """Start background maintenance task."""
-        self._maintenance_task = self.hass.loop.create_task(
-            self._maintenance_loop())
+        self._maintenance_task = self.hass.loop.create_task(self._maintenance_loop())
 
     async def _maintenance_loop(self) -> None:
         try:

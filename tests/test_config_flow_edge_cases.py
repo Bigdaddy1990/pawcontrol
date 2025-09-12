@@ -732,8 +732,7 @@ class TestDogConfigurationEdgeCases:
         result = await config_flow.async_step_add_another_dog({"add_another": True})
 
         # Should either prevent adding or handle gracefully
-        assert result["type"] in [
-            FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+        assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
 
 class TestDietValidationEdgeCases:
@@ -772,8 +771,7 @@ class TestDietValidationEdgeCases:
         ]
 
         for diet_combination, should_have_conflicts in conflict_cases:
-            validation = config_flow._validate_diet_combinations(
-                diet_combination)
+            validation = config_flow._validate_diet_combinations(diet_combination)
 
             if should_have_conflicts:
                 assert len(validation["conflicts"]) > 0
@@ -792,8 +790,7 @@ class TestDietValidationEdgeCases:
         ]
 
         for diet_combination in warning_cases:
-            validation = config_flow._validate_diet_combinations(
-                diet_combination)
+            validation = config_flow._validate_diet_combinations(diet_combination)
 
             # Should generate warnings for complex combinations
             # Note: Some may not generate warnings depending on rules
@@ -910,8 +907,7 @@ class TestDietValidationEdgeCases:
         for age, size, _expected_level in test_cases:
             suggestion = config_flow._suggest_activity_level(age, size)
 
-            assert suggestion in ["very_low", "low",
-                                  "moderate", "high", "very_high"]
+            assert suggestion in ["very_low", "low", "moderate", "high", "very_high"]
             # Note: Exact matches may vary based on implementation
 
 

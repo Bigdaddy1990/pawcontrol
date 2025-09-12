@@ -276,29 +276,21 @@ class TestWalkManagerGPSOperations:
 
     def test_validate_coordinates_valid(self, initialized_walk_manager):
         """Test coordinate validation with valid coordinates."""
-        assert initialized_walk_manager._validate_coordinates(
-            52.5200, 13.4050) is True
+        assert initialized_walk_manager._validate_coordinates(52.5200, 13.4050) is True
         assert initialized_walk_manager._validate_coordinates(0.0, 0.0) is True
-        assert initialized_walk_manager._validate_coordinates(
-            -90.0, -180.0) is True
-        assert initialized_walk_manager._validate_coordinates(
-            90.0, 180.0) is True
+        assert initialized_walk_manager._validate_coordinates(-90.0, -180.0) is True
+        assert initialized_walk_manager._validate_coordinates(90.0, 180.0) is True
 
     def test_validate_coordinates_invalid(self, initialized_walk_manager):
         """Test coordinate validation with invalid coordinates."""
-        assert initialized_walk_manager._validate_coordinates(
-            95.0, 13.4050) is False
-        assert initialized_walk_manager._validate_coordinates(
-            52.5200, 190.0) is False
-        assert initialized_walk_manager._validate_coordinates(
-            -95.0, -190.0) is False
+        assert initialized_walk_manager._validate_coordinates(95.0, 13.4050) is False
+        assert initialized_walk_manager._validate_coordinates(52.5200, 190.0) is False
+        assert initialized_walk_manager._validate_coordinates(-95.0, -190.0) is False
         assert (
-            initialized_walk_manager._validate_coordinates(
-                "invalid", 13.4050) is False
+            initialized_walk_manager._validate_coordinates("invalid", 13.4050) is False
         )
         assert (
-            initialized_walk_manager._validate_coordinates(
-                52.5200, "invalid") is False
+            initialized_walk_manager._validate_coordinates(52.5200, "invalid") is False
         )
 
 
@@ -523,8 +515,7 @@ class TestWalkManagerWalkData:
 
         assert len(history) == 3
         # Should be in reverse chronological order
-        timestamps = [dt_util.parse_datetime(
-            walk["start_time"]) for walk in history]
+        timestamps = [dt_util.parse_datetime(walk["start_time"]) for walk in history]
         assert timestamps == sorted(timestamps, reverse=True)
 
     async def test_walk_history_days_filter(self, initialized_walk_manager):
@@ -1237,8 +1228,7 @@ class TestWalkManagerIntegration:
         assert stats["active_walks"] == 3
 
         # Add GPS tracking for each dog
-        base_coords = [(52.5200, 13.4050), (52.5300, 13.4150),
-                       (52.5400, 13.4250)]
+        base_coords = [(52.5200, 13.4050), (52.5300, 13.4150), (52.5400, 13.4250)]
 
         for i, dog_id in enumerate(dogs):
             lat, lon = base_coords[i]

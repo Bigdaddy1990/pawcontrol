@@ -644,8 +644,7 @@ class TestConfigurationMigrationCorruption:
         for _i, corrupted_config in enumerate(corrupted_legacy_configs):
             try:
                 # Simulate legacy config migration
-                migrated_config = config_flow._migrate_legacy_config(
-                    corrupted_config)
+                migrated_config = config_flow._migrate_legacy_config(corrupted_config)
 
                 # Should either succeed with clean data or return empty/default config
                 if migrated_config:
@@ -692,14 +691,12 @@ class TestConfigurationMigrationCorruption:
         for scenario in corruption_scenarios:
             # Should sanitize or reject corrupted input
             try:
-                validation_result = config_flow._validate_input_security(
-                    scenario)
+                validation_result = config_flow._validate_input_security(scenario)
 
                 # Should either pass security validation or be rejected
                 if validation_result.get("valid", False):
                     # If accepted, should be sanitized
-                    sanitized_data = validation_result.get(
-                        "sanitized_data", {})
+                    sanitized_data = validation_result.get("sanitized_data", {})
                     for value in sanitized_data.values():
                         if isinstance(value, str):
                             assert len(value) < 1000  # Should limit length
@@ -805,8 +802,7 @@ class TestSecurityValidationBypassAttempts:
                 assert is_valid  # Baseline should pass
             else:
                 # Injection attempts should be rejected by pattern validation
-                assert not is_valid or len(
-                    injection_attempt) > 30  # Rejected by length
+                assert not is_valid or len(injection_attempt) > 30  # Rejected by length
 
     @pytest.mark.asyncio
     async def test_configuration_data_sanitization(self, config_flow):
@@ -939,8 +935,7 @@ class TestNetworkPartitionRecoveryOfflineMode:
         result = await flow.async_step_user({CONF_NAME: "Offline Integration"})
 
         # Should proceed despite network unavailability
-        assert result["type"] in [
-            FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
+        assert result["type"] in [FlowResultType.FORM, FlowResultType.CREATE_ENTRY]
 
     @pytest.mark.asyncio
     async def test_external_entity_discovery_network_failure(
@@ -1079,8 +1074,7 @@ class TestDataCorruptionDetectionRepair:
         test_configs[4] = circular_config
 
         for i, test_config in enumerate(test_configs):
-            integrity_result = config_flow._verify_config_integrity(
-                test_config)
+            integrity_result = config_flow._verify_config_integrity(test_config)
 
             # Should always return a result
             assert isinstance(integrity_result, dict)
@@ -1433,8 +1427,7 @@ class TestExtremeStressScenarios:
                         for j in range(20)
                     ],
                     "tracking_history": [
-                        {"timestamp": time.time() - j * 3600,
-                         "lat": 40.7, "lon": -74.0}
+                        {"timestamp": time.time() - j * 3600, "lat": 40.7, "lon": -74.0}
                         for j in range(1000)
                     ],
                 },

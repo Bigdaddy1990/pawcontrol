@@ -247,8 +247,7 @@ class TestOverviewCardGenerator:
         """Test quick actions card generation."""
         dogs_config = [
             {"dog_id": "max", "modules": {MODULE_FEEDING: True, MODULE_WALK: True}},
-            {"dog_id": "bella", "modules": {
-                MODULE_FEEDING: True, MODULE_WALK: False}},
+            {"dog_id": "bella", "modules": {MODULE_FEEDING: True, MODULE_WALK: False}},
         ]
 
         quick_actions = await overview_generator.generate_quick_actions(dogs_config)
@@ -300,8 +299,7 @@ class TestDogCardGenerator:
         assert len(cards) >= 3  # Header + status + actions + additional cards
 
         # Should include dog status card
-        status_card = next(
-            card for card in cards if card.get("type") == "entities")
+        status_card = next(card for card in cards if card.get("type") == "entities")
         assert status_card is not None
 
     async def test_dog_header_card_generation(
@@ -485,8 +483,7 @@ class TestModuleCardGenerator:
         assert len(cards) >= 3  # Status + conditional buttons + history
 
         # Should include walk status
-        status_card = next(card for card in cards if card.get(
-            "title") == "Walk Status")
+        status_card = next(card for card in cards if card.get("title") == "Walk Status")
         assert status_card["type"] == "entities"
 
         # Should include conditional start/stop buttons
@@ -551,8 +548,7 @@ class TestStatisticsCardGenerator:
         """Test complete statistics cards generation."""
         dogs_config = [
             {"dog_id": "max", "modules": {MODULE_FEEDING: True, MODULE_WALK: True}},
-            {"dog_id": "bella", "modules": {
-                MODULE_FEEDING: True, MODULE_HEALTH: True}},
+            {"dog_id": "bella", "modules": {MODULE_FEEDING: True, MODULE_HEALTH: True}},
         ]
 
         cards = await stats_generator.generate_statistics_cards(dogs_config, {})
@@ -560,8 +556,7 @@ class TestStatisticsCardGenerator:
         assert len(cards) >= 1  # At least summary card
 
         # Should include summary card
-        summary_card = next(
-            card for card in cards if card.get("type") == "markdown")
+        summary_card = next(card for card in cards if card.get("type") == "markdown")
         assert "2" in summary_card["content"]  # 2 dogs managed
 
     async def test_activity_statistics_card(

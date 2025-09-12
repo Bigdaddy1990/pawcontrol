@@ -67,13 +67,11 @@ async def async_get_config_entry_diagnostics(
     Returns:
         Dictionary containing diagnostic information
     """
-    _LOGGER.debug(
-        "Generating diagnostics for Paw Control entry: %s", entry.entry_id)
+    _LOGGER.debug("Generating diagnostics for Paw Control entry: %s", entry.entry_id)
 
     # Get integration data
     integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coordinator: PawControlCoordinator | None = integration_data.get(
-        "coordinator")
+    coordinator: PawControlCoordinator | None = integration_data.get("coordinator")
 
     # Base diagnostics structure
     diagnostics = {
@@ -97,8 +95,7 @@ async def async_get_config_entry_diagnostics(
     # --- Patch: hier sicherstellen, dass Redaction auf alles angewandt wird ---
     return _redact_sensitive_data(diagnostics)
 
-    _LOGGER.info(
-        "Diagnostics generated successfully for entry %s", entry.entry_id)
+    _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
 
@@ -234,8 +231,7 @@ async def _get_entities_diagnostics(
     entity_registry = er.async_get(hass)
 
     # Get all entities for this integration
-    entities = er.async_entries_for_config_entry(
-        entity_registry, entry.entry_id)
+    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
 
     # Group entities by platform
     entities_by_platform: dict[str, list[dict[str, Any]]] = {}
@@ -303,8 +299,7 @@ async def _get_devices_diagnostics(
     device_registry = dr.async_get(hass)
 
     # Get all devices for this integration
-    devices = dr.async_entries_for_config_entry(
-        device_registry, entry.entry_id)
+    devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
 
     devices_info = []
     for device in devices:
@@ -609,8 +604,7 @@ def _redact_sensitive_data(data: Any) -> Any:
         for key, value in data.items():
             # Check if key contains sensitive information
             key_lower = key.lower()
-            is_sensitive = any(
-                sensitive in key_lower for sensitive in REDACTED_KEYS)
+            is_sensitive = any(sensitive in key_lower for sensitive in REDACTED_KEYS)
 
             if is_sensitive:
                 redacted[key] = "**REDACTED**"

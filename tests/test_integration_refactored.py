@@ -425,8 +425,7 @@ class TestRefactoredCoordinatorIntegration:
         await coordinator._async_update_data()
 
         # Sensor should handle missing feeding data
-        PawControlLastFeedingSensor(
-            coordinator, "integration_test_dog", "Test Dog")
+        PawControlLastFeedingSensor(coordinator, "integration_test_dog", "Test Dog")
 
         # Should not crash, might return None
         # Value might be None due to error, but should not raise exception

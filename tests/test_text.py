@@ -486,8 +486,7 @@ class TestWalkNotesText:
     def mock_coordinator(self):
         """Create a mock coordinator."""
         coordinator = Mock(spec=PawControlCoordinator)
-        coordinator.get_dog_data.return_value = {
-            "walk": {"walk_in_progress": True}}
+        coordinator.get_dog_data.return_value = {"walk": {"walk_in_progress": True}}
         return coordinator
 
     @pytest.fixture
@@ -1068,8 +1067,7 @@ class TestLocationDescriptionText:
     ):
         """Test availability when GPS module is disabled."""
         mock_coordinator.get_dog_data.return_value = {"test": "data"}
-        mock_coordinator.get_dog_info.return_value = {
-            "modules": {"gps": False}}
+        mock_coordinator.get_dog_info.return_value = {"modules": {"gps": False}}
 
         assert location_description_text.available is False
 
@@ -1168,8 +1166,7 @@ class TestTextIntegration:
         coordinator = Mock(spec=PawControlCoordinator)
         coordinator.available = True
 
-        dog_notes_text = PawControlDogNotesText(
-            coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(coordinator, "test_dog", "Test Dog")
 
         # Set a value
         with patch.object(dog_notes_text, "async_write_ha_state"):
@@ -1285,8 +1282,7 @@ class TestTextConstants:
         assert dog_notes._attr_mode == TextMode.TEXT
 
         # Microchip should use PASSWORD mode for privacy
-        microchip = PawControlMicrochipText(
-            coordinator, "test_dog", "Test Dog")
+        microchip = PawControlMicrochipText(coordinator, "test_dog", "Test Dog")
         assert microchip._attr_mode == TextMode.PASSWORD
 
     def test_text_max_lengths_reasonable(self):
@@ -1294,13 +1290,11 @@ class TestTextConstants:
         coordinator = Mock(spec=PawControlCoordinator)
 
         # Short texts
-        custom_label = PawControlCustomLabelText(
-            coordinator, "test_dog", "Test Dog")
+        custom_label = PawControlCustomLabelText(coordinator, "test_dog", "Test Dog")
         assert custom_label._attr_native_max == 50
 
         # Medium texts
-        walk_notes = PawControlWalkNotesText(
-            coordinator, "test_dog", "Test Dog")
+        walk_notes = PawControlWalkNotesText(coordinator, "test_dog", "Test Dog")
         assert walk_notes._attr_native_max == 500
 
         # Long texts
@@ -1308,8 +1302,7 @@ class TestTextConstants:
         assert dog_notes._attr_native_max == 1000
 
         # Very short texts
-        microchip = PawControlMicrochipText(
-            coordinator, "test_dog", "Test Dog")
+        microchip = PawControlMicrochipText(coordinator, "test_dog", "Test Dog")
         assert microchip._attr_native_max == 20
 
     def test_text_icons_appropriate(self):
@@ -1385,8 +1378,7 @@ class TestTextPerformance:
         """Test that texts don't store unnecessary data."""
         coordinator = Mock(spec=PawControlCoordinator)
 
-        dog_notes_text = PawControlDogNotesText(
-            coordinator, "test_dog", "Test Dog")
+        dog_notes_text = PawControlDogNotesText(coordinator, "test_dog", "Test Dog")
 
         # Check that only essential attributes are stored
         essential_attrs = {

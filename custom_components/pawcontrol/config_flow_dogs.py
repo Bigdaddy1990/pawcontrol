@@ -327,8 +327,7 @@ class DogManagementMixin:
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
-        gps_options = [
-            {"value": "manual", "label": "📝 Manual GPS (configure later)"}]
+        gps_options = [{"value": "manual", "label": "📝 Manual GPS (configure later)"}]
 
         if device_trackers:
             gps_options.extend(
@@ -446,8 +445,7 @@ class DogManagementMixin:
                 )
 
             if user_input.get("snacks_enabled", False):
-                feeding_config[CONF_SNACK_TIMES] = [
-                    "10:00:00", "15:00:00", "20:00:00"]
+                feeding_config[CONF_SNACK_TIMES] = ["10:00:00", "15:00:00", "20:00:00"]
 
             self._current_dog_config["feeding_config"] = feeding_config
 
@@ -465,8 +463,7 @@ class DogManagementMixin:
         # Calculate suggested daily food amount based on weight and size
         dog_weight = self._current_dog_config.get(CONF_DOG_WEIGHT, 20)
         dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
-        suggested_amount = self._calculate_suggested_food_amount(
-            dog_weight, dog_size)
+        suggested_amount = self._calculate_suggested_food_amount(dog_weight, dog_size)
 
         schema = vol.Schema(
             {
@@ -589,8 +586,7 @@ class DogManagementMixin:
                 "weight_tracking": user_input.get("weight_tracking", True),
                 # Health-aware feeding integration
                 "ideal_weight": user_input.get(
-                    "ideal_weight", self._current_dog_config.get(
-                        CONF_DOG_WEIGHT)
+                    "ideal_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)
                 ),
                 "body_condition_score": user_input.get("body_condition_score", 5),
                 "activity_level": user_input.get("activity_level", "moderate"),
@@ -856,8 +852,7 @@ class DogManagementMixin:
                 )
 
         # Lifestyle/Care diet requirements
-        lifestyle_diets = ["organic", "raw_diet",
-                           "dental_care", "joint_support"]
+        lifestyle_diets = ["organic", "raw_diet", "dental_care", "joint_support"]
         for diet in lifestyle_diets:
             if diet in SPECIAL_DIET_OPTIONS:
                 # Smart defaults based on dog characteristics
@@ -1064,8 +1059,7 @@ class DogManagementMixin:
         if len(dog_name) > MAX_DOG_NAME_LENGTH:
             return "dog_name_too_long"
         if len(self._lower_dog_names) != len(self._dogs):
-            self._lower_dog_names = {
-                dog[CONF_DOG_NAME].lower() for dog in self._dogs}
+            self._lower_dog_names = {dog[CONF_DOG_NAME].lower() for dog in self._dogs}
         if dog_name.lower() in self._lower_dog_names:
             return "dog_name_already_exists"
         return None
@@ -1216,8 +1210,7 @@ class DogManagementMixin:
         return vol.Schema(
             {
                 vol.Required(
-                    CONF_DOG_ID, default=current_values.get(
-                        CONF_DOG_ID, suggested_id)
+                    CONF_DOG_ID, default=current_values.get(CONF_DOG_ID, suggested_id)
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1225,8 +1218,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Required(
-                    CONF_DOG_NAME, default=current_values.get(
-                        CONF_DOG_NAME, "")
+                    CONF_DOG_NAME, default=current_values.get(CONF_DOG_NAME, "")
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1235,8 +1227,7 @@ class DogManagementMixin:
                 ),
                 vol.Optional(
                     CONF_DOG_BREED,
-                    default=current_values.get(
-                        CONF_DOG_BREED, suggested_breed),
+                    default=current_values.get(CONF_DOG_BREED, suggested_breed),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1255,8 +1246,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Optional(
-                    CONF_DOG_WEIGHT, default=current_values.get(
-                        CONF_DOG_WEIGHT, 20.0)
+                    CONF_DOG_WEIGHT, default=current_values.get(CONF_DOG_WEIGHT, 20.0)
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=MIN_DOG_WEIGHT,
@@ -1267,8 +1257,7 @@ class DogManagementMixin:
                     )
                 ),
                 vol.Optional(
-                    CONF_DOG_SIZE, default=current_values.get(
-                        CONF_DOG_SIZE, "medium")
+                    CONF_DOG_SIZE, default=current_values.get(CONF_DOG_SIZE, "medium")
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -1374,8 +1363,7 @@ class DogManagementMixin:
                 conditions.append(condition)
 
         # Add other conditions from text field
-        other_conditions = user_input.get(
-            "other_health_conditions", "").strip()
+        other_conditions = user_input.get("other_health_conditions", "").strip()
         if other_conditions:
             # Split by comma and clean up
             additional = [

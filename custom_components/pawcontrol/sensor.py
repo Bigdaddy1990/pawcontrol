@@ -77,8 +77,7 @@ async def async_setup_entry(
     # Get profile from options (default to 'standard')
     profile = entry.options.get("entity_profile", "standard")
 
-    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs",
-                 profile, len(dogs))
+    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs", profile, len(dogs))
 
     # PERFORMANCE OPTIMIZATION: Profile-based entity creation
     all_entities = []
@@ -125,7 +124,7 @@ async def async_setup_entry(
         # Create tasks for parallel entity addition
         tasks = []
         for i in range(0, len(all_entities), MAX_ENTITIES_PER_BATCH):
-            batch = all_entities[i: i + MAX_ENTITIES_PER_BATCH]
+            batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
             tasks.append(add_entity_batch(batch))
 
             # Add small delay between batches
@@ -278,8 +277,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
             if timestamp_str := module_data.get(timestamp_key):
                 if isinstance(timestamp_str, str):
                     with suppress(ValueError, TypeError):
-                        timestamps.append(
-                            datetime.fromisoformat(timestamp_str))
+                        timestamps.append(datetime.fromisoformat(timestamp_str))
                 elif isinstance(timestamp_str, datetime):
                     timestamps.append(timestamp_str)
 
@@ -953,8 +951,7 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
         return (
-            health_data.get("health_status",
-                            "good") if health_data else STATE_UNKNOWN
+            health_data.get("health_status", "good") if health_data else STATE_UNKNOWN
         )
 
 
@@ -1020,8 +1017,7 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     def native_value(self) -> str:
         health_data = self._get_module_data("health")
         return (
-            health_data.get(
-                "weight_trend", "stable") if health_data else STATE_UNKNOWN
+            health_data.get("weight_trend", "stable") if health_data else STATE_UNKNOWN
         )
 
 

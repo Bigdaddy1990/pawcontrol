@@ -192,8 +192,7 @@ class ModuleConfigurationMixin:
                 "dashboard_theme": user_input.get("dashboard_theme", "modern"),
                 "dashboard_template": user_input.get("dashboard_template", "cards"),
                 "dashboard_mode": user_input.get(
-                    "dashboard_mode", "full" if len(
-                        dashboard_dogs) > 1 else "cards"
+                    "dashboard_mode", "full" if len(dashboard_dogs) > 1 else "cards"
                 ),
                 "show_statistics": user_input.get("show_statistics", True),
                 "show_maps": user_input.get("show_maps", self._has_gps_dogs()),
@@ -350,8 +349,7 @@ class ModuleConfigurationMixin:
             modules = dog.get(CONF_MODULES, {})
             for module_name, enabled in modules.items():
                 if enabled:
-                    module_counts[module_name] = module_counts.get(
-                        module_name, 0) + 1
+                    module_counts[module_name] = module_counts.get(module_name, 0) + 1
                     total_modules += 1
 
         gps_dogs = module_counts.get(MODULE_GPS, 0)
@@ -362,11 +360,9 @@ class ModuleConfigurationMixin:
         if gps_dogs > 0:
             description_parts.append(f"{gps_dogs} dogs with GPS")
         if health_dogs > 0:
-            description_parts.append(
-                f"{health_dogs} dogs with health monitoring")
+            description_parts.append(f"{health_dogs} dogs with health monitoring")
         if feeding_dogs > 0:
-            description_parts.append(
-                f"{feeding_dogs} dogs with feeding tracking")
+            description_parts.append(f"{feeding_dogs} dogs with feeding tracking")
 
         return {
             "total": total_modules,
@@ -529,8 +525,7 @@ class ModuleConfigurationMixin:
                 vol.Optional("food_type", default="dry_food"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": ft, "label": ft.replace(
-                                "_", " ").title()}
+                            {"value": ft, "label": ft.replace("_", " ").title()}
                             for ft in FOOD_TYPES
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -539,8 +534,7 @@ class ModuleConfigurationMixin:
                 vol.Optional("special_diet", default=[]): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": sd, "label": sd.replace(
-                                "_", " ").title()}
+                            {"value": sd, "label": sd.replace("_", " ").title()}
                             for sd in SPECIAL_DIET_OPTIONS
                         ],
                         multiple=True,
@@ -604,8 +598,7 @@ class ModuleConfigurationMixin:
             dog_name = feeding_dogs[0].get("dog_name", "Unknown")
             return f"Feeding configuration for {dog_name}"
 
-        dog_names = [dog.get("dog_name", "Unknown")
-                     for dog in feeding_dogs[:3]]
+        dog_names = [dog.get("dog_name", "Unknown") for dog in feeding_dogs[:3]]
         if len(feeding_dogs) > 3:
             dog_names.append(f"...and {len(feeding_dogs) - 3} more")
 

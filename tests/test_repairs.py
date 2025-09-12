@@ -408,8 +408,7 @@ class TestDogConfigurationIssues:
             if call[1]["translation_key"] == ISSUE_INVALID_DOG_DATA
         )
 
-        assert len(
-            invalid_call[1]["translation_placeholders"]["invalid_dogs"]) >= 1
+        assert len(invalid_call[1]["translation_placeholders"]["invalid_dogs"]) >= 1
 
     async def test_check_dog_configuration_valid(
         self, hass: HomeAssistant, mock_config_entry, mock_issue_registry
@@ -680,8 +679,7 @@ class TestCoordinatorHealth:
         coordinator.last_update_success = False
         coordinator.last_update_time = dt_util.utcnow()
 
-        hass.data[DOMAIN] = {mock_config_entry.entry_id: {
-            "coordinator": coordinator}}
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
@@ -700,8 +698,7 @@ class TestCoordinatorHealth:
         coordinator = Mock()
         coordinator.last_update_success = True
 
-        hass.data[DOMAIN] = {mock_config_entry.entry_id: {
-            "coordinator": coordinator}}
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: {"coordinator": coordinator}}
 
         await _check_coordinator_health(hass, mock_config_entry)
 
@@ -814,8 +811,7 @@ class TestPawControlRepairsFlow:
         mock_flow._issue_data = mock_issue_data
 
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(
-            return_value=mock_config_entry)
+        hass.config_entries.async_get_entry = Mock(return_value=mock_config_entry)
         hass.config_entries.async_update_entry = Mock()
 
         user_input = {
@@ -885,8 +881,7 @@ class TestPawControlRepairsFlow:
         }
 
         # Mock config entry
-        hass.config_entries.async_get_entry = Mock(
-            return_value=config_entry_gps_issues)
+        hass.config_entries.async_get_entry = Mock(return_value=config_entry_gps_issues)
         hass.config_entries.async_update_entry = Mock()
 
         # Configure GPS
@@ -962,8 +957,7 @@ class TestRepairFlowFactory:
 
     def test_async_create_repair_flow(self, hass: HomeAssistant):
         """Test repair flow creation."""
-        flow = async_create_repair_flow(
-            hass, "test_issue_id", {"test": "data"})
+        flow = async_create_repair_flow(hass, "test_issue_id", {"test": "data"})
 
         assert isinstance(flow, PawControlRepairsFlow)
 
@@ -990,8 +984,7 @@ class TestRepairsIntegration:
 
         # Step 2: Create repair flow
         flow = async_create_repair_flow(
-            hass, "test_issue", {
-                "config_entry_id": minimal_config_entry.entry_id}
+            hass, "test_issue", {"config_entry_id": minimal_config_entry.entry_id}
         )
 
         # Step 3: Complete repair

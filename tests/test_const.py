@@ -75,8 +75,7 @@ class TestConstants:
 
     def test_food_types(self):
         """Test food types constant."""
-        expected_foods = ["dry_food", "wet_food",
-                          "barf", "home_cooked", "mixed"]
+        expected_foods = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
         assert expected_foods == FOOD_TYPES
         assert isinstance(FOOD_TYPES, list)
         assert all(isinstance(food, str) for food in FOOD_TYPES)
@@ -119,8 +118,7 @@ class TestConstants:
 
     def test_mood_options(self):
         """Test mood options."""
-        expected_moods = ["happy", "neutral",
-                          "sad", "angry", "anxious", "tired"]
+        expected_moods = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
         assert expected_moods == MOOD_OPTIONS
         assert isinstance(MOOD_OPTIONS, list)
         assert all(isinstance(mood, str) for mood in MOOD_OPTIONS)

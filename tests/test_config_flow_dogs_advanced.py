@@ -602,8 +602,7 @@ class TestMultiDogSetupWorkflows:
                     assert result3["step_id"] == "add_another_dog"
             elif modules_config["enable_feeding"]:
                 assert result2["step_id"] == "dog_feeding"
-                feeding_config = {CONF_MEALS_PER_DAY: 2,
-                                  CONF_DAILY_FOOD_AMOUNT: 400}
+                feeding_config = {CONF_MEALS_PER_DAY: 2, CONF_DAILY_FOOD_AMOUNT: 400}
                 result3 = await mock_config_flow.async_step_dog_feeding(feeding_config)
                 if modules_config["enable_health"]:
                     assert result3["step_id"] == "dog_health"
@@ -796,8 +795,7 @@ class TestAdvancedDietValidationScenarios:
         # Should have validation warnings/conflicts for this many diets
         if "feeding_config" in dog:
             diet_validation = dog["feeding_config"].get("diet_validation", {})
-            assert diet_validation.get(
-                "total_diets") == len(SPECIAL_DIET_OPTIONS)
+            assert diet_validation.get("total_diets") == len(SPECIAL_DIET_OPTIONS)
 
     def test_diet_compatibility_rules_validation(self, mock_config_flow):
         """Test the diet compatibility rules validation logic."""
@@ -875,8 +873,7 @@ class TestPerformanceAndStressScenarios:
 
         # All should complete successfully
         for i, result in enumerate(results):
-            assert not isinstance(
-                result, Exception), f"Task {i} failed: {result}"
+            assert not isinstance(result, Exception), f"Task {i} failed: {result}"
             assert result["valid"] is True
 
         # Should take some time due to rate limiting
@@ -1084,8 +1081,7 @@ class TestPerformanceAndStressScenarios:
         results = await asyncio.gather(*add_tasks, return_exceptions=True)
 
         # At least some should succeed (the first one definitely should)
-        successful_results = [
-            r for r in results if not isinstance(r, Exception)]
+        successful_results = [r for r in results if not isinstance(r, Exception)]
         assert len(successful_results) >= 1
 
         # The validation cache should handle concurrent access
@@ -1288,8 +1284,7 @@ class TestErrorRecoveryAndEdgeCases:
     async def test_gps_configuration_edge_cases(self, mock_config_flow):
         """Test edge cases in GPS configuration."""
         # Setup dog first
-        dog_config = {CONF_DOG_ID: "gps_test_dog",
-                      CONF_DOG_NAME: "GPS Test Dog"}
+        dog_config = {CONF_DOG_ID: "gps_test_dog", CONF_DOG_NAME: "GPS Test Dog"}
         await mock_config_flow.async_step_add_dog(dog_config)
         await mock_config_flow.async_step_dog_modules({"enable_gps": True})
 
@@ -1336,8 +1331,7 @@ class TestErrorRecoveryAndEdgeCases:
 
             # Verify GPS config was stored
             if mock_config_flow._current_dog_config:
-                gps_config = mock_config_flow._current_dog_config.get(
-                    "gps_config", {})
+                gps_config = mock_config_flow._current_dog_config.get("gps_config", {})
                 assert CONF_GPS_SOURCE in gps_config
                 assert gps_config[CONF_GPS_SOURCE] == case["config"][CONF_GPS_SOURCE]
 

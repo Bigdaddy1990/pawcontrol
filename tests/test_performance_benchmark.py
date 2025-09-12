@@ -374,8 +374,7 @@ class TestCoordinatorPerformanceBenchmark:
             "Performance monitoring causing excessive overhead"
         )
 
-        print(
-            f"Monitoring overhead test: {results['mean']:.3f}s with full monitoring")
+        print(f"Monitoring overhead test: {results['mean']:.3f}s with full monitoring")
 
     @pytest.mark.asyncio
     async def test_batch_manager_performance_impact(

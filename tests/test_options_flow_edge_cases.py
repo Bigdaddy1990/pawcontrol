@@ -200,8 +200,7 @@ class TestEntityProfileManagement:
     def test_performance_impact_description_all_profiles(self, options_flow):
         """Test performance impact descriptions for all profiles."""
         for profile in ENTITY_PROFILES:
-            description = options_flow._get_performance_impact_description(
-                profile)
+            description = options_flow._get_performance_impact_description(profile)
             assert isinstance(description, str)
             assert len(description) > 0
 
@@ -361,16 +360,14 @@ class TestDogManagementOperations:
     async def test_manage_dogs_navigation(self, options_flow):
         """Test dog management navigation menu."""
         # Test each action option
-        actions = ["add_dog", "edit_dog",
-                   "configure_modules", "remove_dog", "back"]
+        actions = ["add_dog", "edit_dog", "configure_modules", "remove_dog", "back"]
 
         for action in actions:
             result = await options_flow.async_step_manage_dogs({"action": action})
 
             if action == "back":
                 # Should show menu (implementation may vary)
-                assert result["type"] in [
-                    FlowResultType.FORM, FlowResultType.MENU]
+                assert result["type"] in [FlowResultType.FORM, FlowResultType.MENU]
             else:
                 # Should redirect to appropriate step
                 assert result["type"] == FlowResultType.FORM

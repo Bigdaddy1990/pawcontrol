@@ -430,8 +430,7 @@ class TestProfileBasedPlatformSelection:
         platforms = get_platforms_for_profile_and_modules(dogs, "basic")
 
         # Basic profile should have minimal platforms
-        expected_platforms = {Platform.SENSOR,
-                              Platform.BUTTON, Platform.BINARY_SENSOR}
+        expected_platforms = {Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR}
         assert set(platforms).issubset(expected_platforms)
         assert Platform.SENSOR in platforms  # Always required
         assert Platform.BUTTON in platforms  # Always required
@@ -559,8 +558,7 @@ class TestProfileBasedPlatformSelection:
         ]
 
         basic_platforms = get_platforms_for_profile_and_modules(dogs, "basic")
-        advanced_platforms = get_platforms_for_profile_and_modules(
-            dogs, "advanced")
+        advanced_platforms = get_platforms_for_profile_and_modules(dogs, "advanced")
 
         # Advanced should have more platforms than basic
         assert len(advanced_platforms) > len(basic_platforms)
@@ -577,8 +575,7 @@ class TestProfileBasedSetupOptimization:
     def mock_entity_factory(self):
         """Mock entity factory with realistic estimate_entity_count."""
         factory = Mock()
-        factory.estimate_entity_count = Mock(
-            side_effect=self._estimate_entities)
+        factory.estimate_entity_count = Mock(side_effect=self._estimate_entities)
         return factory
 
     def _estimate_entities(self, profile, modules):
@@ -932,8 +929,7 @@ class TestEntityFactoryIntegration:
         """Mock entity factory with all required methods."""
         factory = Mock()
         factory.estimate_entity_count = Mock(return_value=12)
-        factory.create_entities_for_dog = Mock(
-            return_value=[Mock(), Mock(), Mock()])
+        factory.create_entities_for_dog = Mock(return_value=[Mock(), Mock(), Mock()])
         factory.get_profile_info = Mock(
             return_value={"description": "Test profile", "max_entities": 12}
         )
@@ -1044,8 +1040,7 @@ class TestPerformanceMetrics:
         )
 
         total_platforms = len(PLATFORMS)
-        basic_reduction = (total_platforms -
-                           len(basic_platforms)) / total_platforms
+        basic_reduction = (total_platforms - len(basic_platforms)) / total_platforms
         advanced_reduction = (
             total_platforms - len(advanced_platforms)
         ) / total_platforms
@@ -1157,8 +1152,7 @@ class TestServiceHandlers:
                 await service_handler(call)
 
             # Verify data manager was called
-            mock_runtime_data["data_manager"].async_log_feeding.assert_called_once(
-            )
+            mock_runtime_data["data_manager"].async_log_feeding.assert_called_once()
 
             # Verify event was fired
             assert len(bus_events) == 1
@@ -1173,8 +1167,7 @@ class TestHelperFunctions:
         self, hass: HomeAssistant, mock_config_entry
     ):
         """Test finding runtime data for existing dog."""
-        runtime_data = {
-            "dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"}]}
+        runtime_data = {"dogs": [{"dog_id": "test_dog", "dog_name": "Test Dog"}]}
         mock_config_entry.runtime_data = runtime_data
 
         with patch.object(

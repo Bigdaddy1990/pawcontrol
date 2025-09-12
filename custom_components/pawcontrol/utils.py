@@ -97,8 +97,7 @@ def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
             try:
                 return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
             except TimeoutError:
-                _LOGGER.error("Function %s timed out after %ss",
-                              func.__name__, timeout)
+                _LOGGER.error("Function %s timed out after %ss", func.__name__, timeout)
                 raise
 
         @wraps(func)
@@ -407,8 +406,7 @@ async def async_calculate_haversine_distance(
     # OPTIMIZED: Haversine formula
     a = (
         math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) *
-        math.sin(delta_lon / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
     )
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
@@ -471,8 +469,7 @@ def calculate_bmr_advanced(
 
 # OPTIMIZED: Utility functions with better performance
 @overload
-def safe_convert(
-    value: Any, target_type: type[int], default: int = 0) -> int: ...
+def safe_convert(value: Any, target_type: type[int], default: int = 0) -> int: ...
 
 
 @overload
@@ -482,8 +479,7 @@ def safe_convert(
 
 
 @overload
-def safe_convert(
-    value: Any, target_type: type[str], default: str = "") -> str: ...
+def safe_convert(value: Any, target_type: type[str], default: str = "") -> str: ...
 
 
 def safe_convert(value: Any, target_type: type[T], default: T | None = None) -> T:
@@ -537,8 +533,7 @@ def deep_merge_dicts_optimized(
 
     for key, value in dict2.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge_dicts_optimized(
-                result[key], value, max_depth - 1)
+            result[key] = deep_merge_dicts_optimized(result[key], value, max_depth - 1)
         else:
             result[key] = value
 

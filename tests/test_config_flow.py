@@ -67,8 +67,7 @@ class TestPawControlConfigFlow:
         user_input = {"name": "My Paw Control"}
 
         with (
-            patch.object(flow, "_generate_unique_id",
-                         return_value="my_paw_control"),
+            patch.object(flow, "_generate_unique_id", return_value="my_paw_control"),
             patch.object(flow, "async_set_unique_id"),
             patch.object(flow, "_abort_if_unique_id_configured"),
             patch.object(flow, "async_step_add_dog") as mock_add_dog,
@@ -359,12 +358,10 @@ class TestPawControlConfigFlow:
         invalid_ids = ["my-dog", "test dog", "", "!invalid"]
 
         for dog_id in valid_ids:
-            assert DOG_ID_PATTERN.match(
-                dog_id), f"Expected {dog_id} to be valid"
+            assert DOG_ID_PATTERN.match(dog_id), f"Expected {dog_id} to be valid"
 
         for dog_id in invalid_ids:
-            assert not DOG_ID_PATTERN.match(
-                dog_id), f"Expected {dog_id} to be invalid"
+            assert not DOG_ID_PATTERN.match(dog_id), f"Expected {dog_id} to be invalid"
 
     @pytest.mark.asyncio
     async def test_validate_dog_config_caching(self, hass: HomeAssistant):
