@@ -616,7 +616,7 @@ class PawControlNotificationManager:
             PRIORITY_URGENT: "🚨 URGENT",
             PRIORITY_HIGH: "⚠️ Important",
             PRIORITY_NORMAL: "🐕",
-            PRIORITY_LOW: "ℹ️",
+            PRIORITY_LOW: "ℹ️",  # noqa: RUF001
         }
 
         type_names = {

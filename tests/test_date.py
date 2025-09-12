@@ -209,7 +209,7 @@ class TestAsyncSetupEntry:
         mock_batch_add.assert_called_once()
 
         # Get the entities that were passed to batching
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]  # Second argument is the entities list
 
         # Dog1 has all modules: 2 core + 8 health + 2 feeding + 2 walk = 14 entities
@@ -312,7 +312,7 @@ class TestAsyncSetupEntry:
 
         # Should still call batching function but with empty entity list
         mock_batch_add.assert_called_once()
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]
         assert len(entities) == 0
 
@@ -397,7 +397,7 @@ class TestAsyncSetupEntry:
 
         # Should still call batching function
         mock_batch_add.assert_called_once()
-        args, kwargs = mock_batch_add.call_args
+        args, _kwargs = mock_batch_add.call_args
         entities = args[1]
 
         # Dog1: 2 core + 2 feeding = 4 entities
@@ -1396,7 +1396,7 @@ class TestDateEntityIntegrationScenarios:
 
             # Each entity should call its expected service
             mock_service_call.assert_called_once()
-            args, kwargs = mock_service_call.call_args
+            args, _kwargs = mock_service_call.call_args
             assert args[0] == DOMAIN
             assert args[1] == expected_service
 

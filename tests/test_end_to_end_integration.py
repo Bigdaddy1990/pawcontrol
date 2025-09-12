@@ -89,7 +89,7 @@ class TestEndToEndIntegration:
         """Multi-dog configuration for stress testing."""
         dogs = []
         for i in range(1, 11):  # 10 dogs for stress testing
-            dogs.append(
+            dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"stress_dog_{i}",
                     CONF_DOG_NAME: f"Stress Dog {i}",

@@ -679,7 +679,7 @@ class FeedingManager:
         # Parse snack times
         for snack_time_str in config_data.get("snack_times", []):
             if parsed_time := self._parse_time(snack_time_str):
-                meal_schedules.append(
+                meal_schedules.append(  # noqa: PERF401
                     MealSchedule(
                         meal_type=MealType.SNACK,
                         scheduled_time=parsed_time,

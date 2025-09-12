@@ -180,7 +180,7 @@ async def _check_dog_configuration_issues(
     invalid_dogs = []
     for dog in dogs:
         if not dog.get(CONF_DOG_ID) or not dog.get(CONF_DOG_NAME):
-            invalid_dogs.append(dog.get(CONF_DOG_ID, "unknown"))
+            invalid_dogs.append(dog.get(CONF_DOG_ID, "unknown"))  # noqa: PERF401
 
     if invalid_dogs:
         await async_create_issue(

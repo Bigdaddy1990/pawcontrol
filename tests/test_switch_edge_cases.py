@@ -705,7 +705,7 @@ class TestAsyncSetupEntryEdgeCases(SetupEntryEdgeCaseTests):
         # Create many dogs to test performance
         many_dogs = []
         for i in range(50):  # 50 dogs
-            many_dogs.append(
+            many_dogs.append(  # noqa: PERF401
                 {
                     CONF_DOG_ID: f"dog_{i}",
                     CONF_DOG_NAME: f"Dog {i}",

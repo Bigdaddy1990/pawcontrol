@@ -139,7 +139,7 @@ class TestHighEntityLoadPerformance:
     async def test_high_entity_load_update_performance(
         self, large_scale_coordinator: PawControlCoordinator
     ):
-        """Test update performance with 500+ entities (50 dogs × 10+ entities each)."""
+        """Test update performance with 500+ entities (50 dogs × 10+ entities each)."""  # noqa: RUF002
         start_time = time.time()
 
         # Perform initial update

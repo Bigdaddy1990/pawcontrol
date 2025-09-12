@@ -1393,7 +1393,7 @@ class DogManagementMixin:
         # Direct 1:1 mapping from form fields to diet requirement names
         for diet_option in SPECIAL_DIET_OPTIONS:
             if user_input.get(diet_option, False):
-                diet_requirements.append(diet_option)
+                diet_requirements.append(diet_option)  # noqa: PERF401
 
         # Validate diet combinations for conflicts
         validation_result = self._validate_diet_combinations(diet_requirements)

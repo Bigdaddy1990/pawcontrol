@@ -747,7 +747,7 @@ class TestAdvancedDietValidationScenarios:
             # Test with defaults that should be applied based on age
             health_config = {}
             for diet, expected in case["expected_defaults"].items():
-                health_config[diet] = expected
+                health_config[diet] = expected  # noqa: PERF403
 
             result4 = await mock_config_flow.async_step_dog_health(health_config)
             assert result4["type"] == FlowResultType.FORM

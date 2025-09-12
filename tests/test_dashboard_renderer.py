@@ -216,7 +216,7 @@ class TestDashboardRendererPerformance:
         # Create 50-dog configuration
         large_config = []
         for i in range(50):
-            large_config.append(
+            large_config.append(  # noqa: PERF401
                 {
                     "dog_id": f"dog_{i:03d}",
                     "dog_name": f"Dog {i + 1}",
