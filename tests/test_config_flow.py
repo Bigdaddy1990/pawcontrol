@@ -15,13 +15,17 @@ from homeassistant.loader import DATA_COMPONENTS, DATA_INTEGRATIONS
 
 
 @pytest_asyncio.fixture
-async def hass():
+async def hass(tmp_path):
     """Provide a minimal Home Assistant instance for tests."""
-    hass = HomeAssistant("/tmp")
+    hass = HomeAssistant(str(tmp_path))
     hass.data[DATA_COMPONENTS] = set()
     hass.data[DATA_INTEGRATIONS] = {}
     hass.config_entries = config_entries.ConfigEntries(hass, {})
-    yield hass
+    await hass.async_start()
+    try:
+        yield hass
+    finally:
+        await hass.async_stop()
 
 
 @pytest.mark.asyncio
