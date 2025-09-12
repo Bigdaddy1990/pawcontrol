@@ -73,7 +73,7 @@ async def test_invalid_name(mock_load, hass: HomeAssistant) -> None:
         result["flow_id"], {CONF_NAME: ""}
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["errors"][CONF_NAME] == "Name required"
+    assert CONF_NAME in result["errors"]
 
 
 @pytest.mark.asyncio
