@@ -19,8 +19,6 @@ import asyncio
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
-from typing import Dict
-from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import Mock

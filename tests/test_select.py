@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from typing import Dict
-from typing import List
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
