@@ -31,15 +31,15 @@ async def hass(tmp_path):
 @pytest.mark.asyncio
 async def test_full_config_flow(hass):
     """Test a full successful config flow."""
-    flow = PawControlConfigFlow()
-    flow.hass = hass
-    flow.context = {}
+    init = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert init["type"] == FlowResultType.FORM
+    assert init["step_id"] == "user"
 
-    result = await flow.async_step_user()
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "user"
-
-    result = await flow.async_step_user({CONF_NAME: "Paw Setup"})
+    result = await hass.config_entries.flow.async_configure(
+        init["flow_id"], {CONF_NAME: "Paw Setup"}
+    )
     assert result["step_id"] == "add_dog"
 
     result = await flow.async_step_add_dog(
