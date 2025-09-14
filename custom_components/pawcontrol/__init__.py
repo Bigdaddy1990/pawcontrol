@@ -208,7 +208,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     """
     runtime_data = entry.runtime_data
     dogs = runtime_data.dogs if runtime_data else entry.data.get(CONF_DOGS, [])
-    profile = runtime_data.entity_profile if runtime_data else entry.options.get("entity_profile", "standard")
+    profile = (
+        runtime_data.entity_profile
+        if runtime_data
+        else entry.options.get("entity_profile", "standard")
+    )
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     try:

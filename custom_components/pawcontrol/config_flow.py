@@ -323,9 +323,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             profiles_info.append(f"• {name}: {config['description']}")
         return "\n".join(profiles_info)
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauthentication flow for Platinum compliance.
 
         Args:
@@ -371,12 +369,16 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Show confirmation form
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({
-                vol.Required("confirm", default=True): cv.boolean,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=True): cv.boolean,
+                }
+            ),
             errors=errors,
             description_placeholders={
-                "integration_name": self.reauth_entry.title if hasattr(self, "reauth_entry") else "Paw Control",
+                "integration_name": self.reauth_entry.title
+                if hasattr(self, "reauth_entry")
+                else "Paw Control",
             },
         )
 
@@ -414,11 +416,13 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         current_profile = entry.options.get("entity_profile", "standard")
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema({
-                vol.Required("entity_profile", default=current_profile): vol.In(
-                    list(ENTITY_PROFILES.keys())
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("entity_profile", default=current_profile): vol.In(
+                        list(ENTITY_PROFILES.keys())
+                    ),
+                }
+            ),
             description_placeholders={
                 "current_profile": current_profile,
                 "profiles_info": self._get_profiles_info(),

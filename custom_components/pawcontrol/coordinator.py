@@ -55,7 +55,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        session: ClientSession | None = None
+        session: ClientSession | None = None,
     ) -> None:
         """Initialize coordinator.
 
