@@ -209,7 +209,9 @@ def mock_coordinator():
     )
 
     coordinator.get_module_data = MagicMock(
-        side_effect=lambda dog_id, module: coordinator.get_dog_data(dog_id).get(module, {})
+        side_effect=lambda dog_id, module: coordinator.get_dog_data(dog_id).get(
+            module, {}
+        )
     )
 
     coordinator.get_dog_ids = MagicMock(return_value=[TEST_DOG_ID])
@@ -259,9 +261,7 @@ def mock_feeding_manager():
     manager = MagicMock()
     manager.async_initialize = AsyncMock()
     manager.async_shutdown = AsyncMock()
-    manager.async_add_feeding = AsyncMock(
-        return_value=MagicMock(time=datetime.now())
-    )
+    manager.async_add_feeding = AsyncMock(return_value=MagicMock(time=datetime.now()))
     manager._configs = {
         TEST_DOG_ID: MagicMock(
             calculate_portion_size=MagicMock(return_value=250.0),
@@ -360,7 +360,9 @@ def mock_health_calculator():
     """Return a mock health calculator."""
     calculator = MagicMock()
     calculator.calculate_health_score = MagicMock(return_value=85)
-    calculator.get_recommendations = MagicMock(return_value=["More exercise", "Check weight"])
+    calculator.get_recommendations = MagicMock(
+        return_value=["More exercise", "Check weight"]
+    )
 
     return calculator
 

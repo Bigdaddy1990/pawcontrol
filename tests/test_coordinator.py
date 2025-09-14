@@ -52,7 +52,9 @@ async def test_coordinator_update_interval_calculation(
     coordinator = PawControlCoordinator(hass, config_with_gps, mock_websession)
 
     # Should use frequent interval for GPS
-    assert coordinator.update_interval == timedelta(seconds=UPDATE_INTERVALS["frequent"])
+    assert coordinator.update_interval == timedelta(
+        seconds=UPDATE_INTERVALS["frequent"]
+    )
 
 
 async def test_coordinator_update_interval_with_options(
@@ -87,7 +89,9 @@ async def test_coordinator_update_data_partial_failure(
     hass: HomeAssistant, mock_config_entry_multi_dog, mock_websession
 ) -> None:
     """Test partial failure during data update."""
-    coordinator = PawControlCoordinator(hass, mock_config_entry_multi_dog, mock_websession)
+    coordinator = PawControlCoordinator(
+        hass, mock_config_entry_multi_dog, mock_websession
+    )
 
     # Mock fetch to fail for one dog
     async def mock_fetch(dog_id):
@@ -114,9 +118,10 @@ async def test_coordinator_update_data_all_failure(
     coordinator = PawControlCoordinator(hass, mock_config_entry, mock_websession)
 
     # Mock all fetches to fail
-    with patch.object(
-        coordinator, "_fetch_dog_data", side_effect=ValueError("Failed")
-    ), pytest.raises(UpdateFailed, match="All dogs failed to update"):
+    with (
+        patch.object(coordinator, "_fetch_dog_data", side_effect=ValueError("Failed")),
+        pytest.raises(UpdateFailed, match="All dogs failed to update"),
+    ):
         await coordinator._async_update_data()
 
 
@@ -127,11 +132,14 @@ async def test_coordinator_fetch_dog_data(
     coordinator = PawControlCoordinator(hass, mock_config_entry, mock_websession)
 
     # Mock module data methods
-    with patch.object(coordinator, "_get_feeding_data", return_value={"feeding": "data"}), \
-         patch.object(coordinator, "_get_walk_data", return_value={"walk": "data"}), \
-         patch.object(coordinator, "_get_gps_data", return_value={"gps": "data"}), \
-         patch.object(coordinator, "_get_health_data", return_value={"health": "data"}):
-
+    with (
+        patch.object(
+            coordinator, "_get_feeding_data", return_value={"feeding": "data"}
+        ),
+        patch.object(coordinator, "_get_walk_data", return_value={"walk": "data"}),
+        patch.object(coordinator, "_get_gps_data", return_value={"gps": "data"}),
+        patch.object(coordinator, "_get_health_data", return_value={"health": "data"}),
+    ):
         result = await coordinator._fetch_dog_data("buddy")
 
     assert "dog_info" in result
@@ -347,7 +355,9 @@ async def test_coordinator_maintenance_loop(
     coordinator = PawControlCoordinator(hass, mock_config_entry, mock_websession)
 
     # Mock perform_maintenance
-    with patch.object(coordinator, "_perform_maintenance", new_callable=AsyncMock) as mock_maint:
+    with patch.object(
+        coordinator, "_perform_maintenance", new_callable=AsyncMock
+    ) as mock_maint:
         # Run maintenance loop for one iteration
         with patch("asyncio.sleep", side_effect=[None, asyncio.CancelledError]):  # noqa: SIM117
             with contextlib.suppress(asyncio.CancelledError):
@@ -381,9 +391,7 @@ async def test_coordinator_module_complexity_calculation(
     assert coordinator.update_interval == timedelta(seconds=UPDATE_INTERVALS["normal"])
 
 
-async def test_coordinator_no_dogs(
-    hass: HomeAssistant, mock_websession
-) -> None:
+async def test_coordinator_no_dogs(hass: HomeAssistant, mock_websession) -> None:
     """Test coordinator with no dogs configured."""
     config_entry = MagicMock()
     config_entry.data = {CONF_DOGS: []}

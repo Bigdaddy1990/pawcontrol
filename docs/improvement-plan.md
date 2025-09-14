@@ -114,7 +114,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
     """Set up with WebSession support."""
     session = async_get_clientsession(hass)
-    
+
     # Wenn externe APIs verwendet werden:
     coordinator = PawControlCoordinator(hass, entry, session)
 ```
@@ -141,11 +141,11 @@ async def async_step_reauth_confirm(
             step_id="reauth_confirm",
             data_schema=REAUTH_SCHEMA,
         )
-    
+
     # Validate credentials
     await self.async_set_unique_id(self.reauth_entry.unique_id)
     self._abort_if_unique_id_mismatch(reason="wrong_account")
-    
+
     return self.async_update_reload_and_abort(
         self.reauth_entry,
         data_updates=user_input,
@@ -192,18 +192,18 @@ async def async_step_reauth_confirm(
 ```python
 # Für ALLE Funktionen/Methoden:
 async def async_setup_entry(
-    hass: HomeAssistant, 
+    hass: HomeAssistant,
     entry: PawControlConfigEntry
 ) -> bool:
     """Set up PawControl from a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to set up
-        
+
     Returns:
         True if setup successful
-        
+
     Raises:
         ConfigEntryNotReady: If setup prerequisites not met
         ConfigEntryAuthFailed: If authentication fails
@@ -267,7 +267,7 @@ python -m script.hassfest
 ## 🎁 Quick Wins Checkliste
 
 - [ ] **5 Min:** py.typed File erstellen
-- [ ] **10 Min:** ConfigEntry an Coordinator übergeben  
+- [ ] **10 Min:** ConfigEntry an Coordinator übergeben
 - [ ] **15 Min:** Lazy Logging überall implementieren
 - [ ] **20 Min:** Runtime data cleanup
 - [ ] **30 Min:** Basic docstrings hinzufügen
@@ -322,6 +322,6 @@ Eine Aufgabe gilt als abgeschlossen wenn:
 
 ---
 
-**Start:** Sofort mit Quick Wins beginnen!  
-**Ziel:** Platinum Compliance in 2 Wochen  
+**Start:** Sofort mit Quick Wins beginnen!
+**Ziel:** Platinum Compliance in 2 Wochen
 **Support:** GitHub Issues für Fragen nutzen

@@ -414,7 +414,7 @@ async def test_binary_sensor_profile_based(
         return_value=[
             PawControlFeedingDueSensor(mock_runtime_data.coordinator, "buddy", "Buddy"),
             PawControlWalkDueSensor(mock_runtime_data.coordinator, "buddy", "Buddy"),
-        ]
+        ],
     ):
         await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 

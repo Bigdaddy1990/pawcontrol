@@ -58,7 +58,9 @@ async def test_data_manager_initialization(
     mock_storage,
 ) -> None:
     """Test data manager initialization."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
     # Verify storage was loaded
@@ -90,7 +92,9 @@ async def test_data_manager_load_existing_data(
 
     mock_storage.async_load.return_value = existing_data
 
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
     # Verify data was loaded
@@ -110,7 +114,9 @@ async def test_data_manager_migrate_old_version(
 
     mock_storage.async_load.return_value = old_data
 
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
     # Verify version was updated
@@ -126,7 +132,9 @@ async def test_feed_dog(
     mock_storage,
 ) -> None:
     """Test feeding a dog."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Feed the dog
@@ -145,7 +153,9 @@ async def test_feed_dog_multiple_times(
     mock_storage,
 ) -> None:
     """Test feeding a dog multiple times."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Feed multiple times
@@ -165,7 +175,9 @@ async def test_feed_invalid_dog(
     mock_storage,
 ) -> None:
     """Test feeding an invalid dog ID."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         with pytest.raises(ValueError, match="Dog invalid_dog not found"):
@@ -178,7 +190,9 @@ async def test_log_feeding(
     mock_storage,
 ) -> None:
     """Test logging feeding details."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Log feeding
@@ -207,7 +221,9 @@ async def test_start_walk(
     mock_storage,
 ) -> None:
     """Test starting a walk."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Start walk
@@ -235,7 +251,9 @@ async def test_start_walk_already_active(
     mock_storage,
 ) -> None:
     """Test starting a walk when one is already active."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Start first walk
@@ -252,7 +270,9 @@ async def test_end_walk(
     mock_storage,
 ) -> None:
     """Test ending a walk."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Start walk
@@ -287,7 +307,9 @@ async def test_end_walk_no_active(
     mock_storage,
 ) -> None:
     """Test ending a walk when none is active."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         with pytest.raises(ValueError, match="No active walk"):
@@ -300,7 +322,9 @@ async def test_end_walk_wrong_id(
     mock_storage,
 ) -> None:
     """Test ending a walk with wrong ID."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Start walk
@@ -317,7 +341,9 @@ async def test_get_current_walk(
     mock_storage,
 ) -> None:
     """Test getting current walk."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # No active walk
@@ -340,7 +366,9 @@ async def test_log_health(
     mock_storage,
 ) -> None:
     """Test logging health data."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Log health data
@@ -372,7 +400,9 @@ async def test_log_medication(
     mock_storage,
 ) -> None:
     """Test logging medication."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Log medication
@@ -397,13 +427,14 @@ async def test_start_grooming(
     mock_storage,
 ) -> None:
     """Test starting grooming."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Start grooming
         grooming_id = await data_manager.async_start_grooming(
-            "buddy",
-            {"type": "full_grooming", "notes": "Monthly grooming"}
+            "buddy", {"type": "full_grooming", "notes": "Monthly grooming"}
         )
 
     assert grooming_id is not None
@@ -421,7 +452,9 @@ async def test_reset_dog_daily_stats(
     mock_storage,
 ) -> None:
     """Test resetting daily statistics."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add some daily data
@@ -454,7 +487,9 @@ async def test_get_dog_data(
     mock_storage,
 ) -> None:
     """Test getting dog data."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add some data
@@ -478,7 +513,9 @@ async def test_get_module_data(
     mock_storage,
 ) -> None:
     """Test getting module-specific data."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add feeding data
@@ -501,7 +538,9 @@ async def test_save_data(
     mock_storage,
 ) -> None:
     """Test saving data to storage."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Modify data
@@ -527,7 +566,9 @@ async def test_save_data_error(
     """Test handling save errors."""
     mock_storage.async_save.side_effect = Exception("Save failed")
 
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Operation should still work even if save fails
@@ -544,14 +585,15 @@ async def test_history_management(
     mock_storage,
 ) -> None:
     """Test history management and cleanup."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add many history entries
         for i in range(150):  # More than max history
             await data_manager.async_log_feeding(
-                "buddy",
-                {"meal_type": f"meal_{i}", "portion_size": 250}
+                "buddy", {"meal_type": f"meal_{i}", "portion_size": 250}
             )
 
     # Verify history is limited
@@ -568,7 +610,9 @@ async def test_concurrent_operations(
     mock_storage,
 ) -> None:
     """Test concurrent operations on data manager."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Simulate concurrent operations
@@ -602,7 +646,9 @@ async def test_shutdown(
     mock_storage,
 ) -> None:
     """Test data manager shutdown."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add data
@@ -624,7 +670,9 @@ async def test_validation_errors(
     mock_storage,
 ) -> None:
     """Test data validation errors."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Test negative portion size
@@ -647,7 +695,9 @@ async def test_statistics_calculation(
     mock_storage,
 ) -> None:
     """Test statistics calculation."""
-    with patch("custom_components.pawcontrol.data_manager.Store", return_value=mock_storage):
+    with patch(
+        "custom_components.pawcontrol.data_manager.Store", return_value=mock_storage
+    ):
         await data_manager.async_initialize()
 
         # Add data for statistics

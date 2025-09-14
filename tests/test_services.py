@@ -73,7 +73,9 @@ async def test_service_registration(
 
     # Verify all services were registered
     assert mock_register.call_count == len(service_manager._service_registry)
-    assert len(service_manager._registered_services) == len(service_manager._service_registry)
+    assert len(service_manager._registered_services) == len(
+        service_manager._service_registry
+    )
 
     # Verify service names
     registered_names = {call[0][1] for call in mock_register.call_args_list}
@@ -98,9 +100,14 @@ async def test_service_registration_failure(
     hass: HomeAssistant, service_manager: PawControlServiceManager
 ) -> None:
     """Test service registration failure handling."""
-    with patch.object(
-        hass.services, "async_register", side_effect=Exception("Registration failed")
-    ), pytest.raises(Exception):  # noqa: B017
+    with (
+        patch.object(
+            hass.services,
+            "async_register",
+            side_effect=Exception("Registration failed"),
+        ),
+        pytest.raises(Exception),
+    ):  # noqa: B017
         await service_manager.async_register_services()
 
     # Services should be unregistered on failure
@@ -237,7 +244,9 @@ async def test_start_walk_service(
         await service_manager._handle_start_walk_service(mock_service_call)
 
     # Verify walk was started
-    mock_runtime_data.data_manager.async_get_current_walk.assert_called_once_with("buddy")
+    mock_runtime_data.data_manager.async_get_current_walk.assert_called_once_with(
+        "buddy"
+    )
     mock_runtime_data.data_manager.async_start_walk.assert_called_once()
 
 
@@ -255,9 +264,12 @@ async def test_start_walk_service_already_active(
         "walk_id": "walk_123"
     }
 
-    with patch.object(
-        service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
-    ), pytest.raises(ServiceValidationError, match="Walk already in progress"):
+    with (
+        patch.object(
+            service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+        ),
+        pytest.raises(ServiceValidationError, match="Walk already in progress"),
+    ):
         await service_manager._handle_start_walk_service(mock_service_call)
 
 
@@ -301,9 +313,12 @@ async def test_end_walk_service_no_active_walk(
     # No active walk
     mock_runtime_data.data_manager.async_get_current_walk.return_value = None
 
-    with patch.object(
-        service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
-    ), pytest.raises(ServiceValidationError, match="No active walk"):
+    with (
+        patch.object(
+            service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+        ),
+        pytest.raises(ServiceValidationError, match="No active walk"),
+    ):
         await service_manager._handle_end_walk_service(mock_service_call)
 
 
@@ -417,10 +432,13 @@ async def test_daily_reset_service_all_dogs(
     """Test daily_reset service for all dogs."""
     mock_service_call.data = {}  # No specific dogs
 
-    with patch.object(
-        service_manager, "_get_available_dog_ids", return_value=["buddy", "max"]
-    ), patch.object(
-        service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+    with (
+        patch.object(
+            service_manager, "_get_available_dog_ids", return_value=["buddy", "max"]
+        ),
+        patch.object(
+            service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+        ),
     ):
         await service_manager._handle_daily_reset_service(mock_service_call)
 
@@ -553,9 +571,12 @@ async def test_update_health_data_service_no_data(
     """Test update_health_data service with no data."""
     mock_service_call.data = {ATTR_DOG_ID: "buddy"}
 
-    with patch.object(
-        service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
-    ), pytest.raises(ServiceValidationError, match="No health data provided"):
+    with (
+        patch.object(
+            service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+        ),
+        pytest.raises(ServiceValidationError, match="No health data provided"),
+    ):
         await service_manager._handle_update_health_data(mock_service_call)
 
 
@@ -610,9 +631,7 @@ async def test_get_available_dog_ids(
     """Test getting available dog IDs."""
     mock_coordinator.get_dog_ids.return_value = ["buddy", "max"]
 
-    hass.data[DOMAIN] = {
-        "entry1": {"coordinator": mock_coordinator}
-    }
+    hass.data[DOMAIN] = {"entry1": {"coordinator": mock_coordinator}}
 
     dog_ids = service_manager._get_available_dog_ids()
     assert "buddy" in dog_ids
@@ -650,9 +669,12 @@ async def test_service_timeout(
     """Test service timeout handling."""
     mock_service_call.data = {ATTR_DOG_ID: "buddy"}
 
-    with patch.object(
-        service_manager, "_get_runtime_data_cached", side_effect=TimeoutError()
-    ), pytest.raises(ServiceValidationError, match="Service timed out"):
+    with (
+        patch.object(
+            service_manager, "_get_runtime_data_cached", side_effect=TimeoutError()
+        ),
+        pytest.raises(ServiceValidationError, match="Service timed out"),
+    ):
         await service_manager._handle_feed_dog_service(mock_service_call)
 
 
@@ -667,9 +689,12 @@ async def test_service_unexpected_error(
 
     mock_runtime_data.data_manager.async_feed_dog.side_effect = Exception("Unexpected")
 
-    with patch.object(
-        service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
-    ), pytest.raises(ServiceValidationError, match="Service failed"):
+    with (
+        patch.object(
+            service_manager, "_get_runtime_data_cached", return_value=mock_runtime_data
+        ),
+        pytest.raises(ServiceValidationError, match="Service failed"),
+    ):
         await service_manager._handle_feed_dog_service(mock_service_call)
 
 

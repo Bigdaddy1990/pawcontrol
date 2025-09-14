@@ -60,32 +60,42 @@ async def test_async_setup_entry_success(
     """Test successful setup of a config entry."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-        return_value=mock_data_manager,
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-        return_value=mock_notification_manager,
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-        return_value=mock_feeding_manager,
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-        return_value=mock_walk_manager,
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-        return_value=mock_entity_factory,
-    ), patch(
-        "custom_components.pawcontrol.PawControlServiceManager",
-    ), patch(
-        "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
-        return_value=None,
-    ), patch(
-        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+            return_value=mock_data_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+            return_value=mock_notification_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+            return_value=mock_feeding_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+            return_value=mock_walk_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+            return_value=mock_entity_factory,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlServiceManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
+            return_value=None,
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+            return_value=True,
+        ),
     ):
         result = await async_setup_entry(hass, mock_config_entry)
 
@@ -139,20 +149,28 @@ async def test_async_setup_entry_timeout_error(
 
     mock_coordinator.async_config_entry_first_refresh.side_effect = TimeoutError()
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ), pytest.raises(ConfigEntryNotReady, match="Timeout during initialization"):
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+        ),
+        pytest.raises(ConfigEntryNotReady, match="Timeout during initialization"),
+    ):
         await async_setup_entry(hass, mock_config_entry)
 
 
@@ -167,21 +185,29 @@ async def test_async_setup_entry_value_error(
 
     mock_data_manager.async_initialize.side_effect = ValueError("Invalid value")
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-        return_value=mock_data_manager,
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ), pytest.raises(ConfigEntryNotReady, match="Invalid configuration"):
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+            return_value=mock_data_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+        ),
+        pytest.raises(ConfigEntryNotReady, match="Invalid configuration"),
+    ):
         await async_setup_entry(hass, mock_config_entry)
 
 
@@ -193,24 +219,32 @@ async def test_async_setup_entry_setup_error(
     """Test setup handles PawControlSetupError."""
     mock_config_entry.add_to_hass(hass)
 
-    mock_coordinator.async_config_entry_first_refresh.side_effect = PawControlSetupError(
-        "Setup failed"
+    mock_coordinator.async_config_entry_first_refresh.side_effect = (
+        PawControlSetupError("Setup failed")
     )
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ), pytest.raises(ConfigEntryNotReady, match="Setup error"):
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+        ),
+        pytest.raises(ConfigEntryNotReady, match="Setup error"),
+    ):
         await async_setup_entry(hass, mock_config_entry)
 
 
@@ -227,33 +261,44 @@ async def test_async_setup_entry_platform_import_error(
     """Test setup handles platform import errors."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-        return_value=mock_data_manager,
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-        return_value=mock_notification_manager,
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-        return_value=mock_feeding_manager,
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-        return_value=mock_walk_manager,
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-        return_value=mock_entity_factory,
-    ), patch(
-        "custom_components.pawcontrol.PawControlServiceManager",
-    ), patch(
-        "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
-        return_value=None,
-    ), patch(
-        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-        side_effect=ImportError("Platform not found"),
-    ), pytest.raises(ConfigEntryNotReady, match="Platform import failed"):
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+            return_value=mock_data_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+            return_value=mock_notification_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+            return_value=mock_feeding_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+            return_value=mock_walk_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+            return_value=mock_entity_factory,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlServiceManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
+            return_value=None,
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+            side_effect=ImportError("Platform not found"),
+        ),
+        pytest.raises(ConfigEntryNotReady, match="Platform import failed"),
+    ):
         await async_setup_entry(hass, mock_config_entry)
 
 
@@ -271,32 +316,42 @@ async def test_async_setup_entry_unknown_profile(
     mock_config_entry.options = {"entity_profile": "unknown_profile"}
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ), patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-        return_value=mock_data_manager,
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-        return_value=mock_notification_manager,
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-        return_value=mock_feeding_manager,
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-        return_value=mock_walk_manager,
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-        return_value=mock_entity_factory,
-    ), patch(
-        "custom_components.pawcontrol.PawControlServiceManager",
-    ), patch(
-        "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
-        return_value=None,
-    ), patch(
-        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+            return_value=mock_data_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+            return_value=mock_notification_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+            return_value=mock_feeding_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+            return_value=mock_walk_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+            return_value=mock_entity_factory,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlServiceManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
+            return_value=None,
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+            return_value=True,
+        ),
     ):
         result = await async_setup_entry(hass, mock_config_entry)
 
@@ -398,13 +453,16 @@ async def test_async_reload_entry(
     mock_config_entry.runtime_data = mock_runtime_data
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.async_unload_entry",
-        return_value=True,
-    ) as mock_unload, patch(
-        "custom_components.pawcontrol.async_setup_entry",
-        return_value=True,
-    ) as mock_setup:
+    with (
+        patch(
+            "custom_components.pawcontrol.async_unload_entry",
+            return_value=True,
+        ) as mock_unload,
+        patch(
+            "custom_components.pawcontrol.async_setup_entry",
+            return_value=True,
+        ) as mock_setup,
+    ):
         await async_reload_entry(hass, mock_config_entry)
 
     mock_unload.assert_called_once_with(hass, mock_config_entry)
@@ -531,11 +589,7 @@ def test_get_platforms_for_profile_and_modules_health_focus() -> None:
 
 def test_get_platforms_for_profile_and_modules_no_modules() -> None:
     """Test platform selection with no modules enabled."""
-    dogs_config = [
-        {
-            "modules": {}
-        }
-    ]
+    dogs_config = [{"modules": {}}]
 
     platforms = get_platforms_for_profile_and_modules(dogs_config, "standard")
 
@@ -557,34 +611,45 @@ async def test_websession_injection(
     """Test WebSession injection for Platinum compliance."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.pawcontrol.async_get_clientsession",
-    ) as mock_get_session, patch(
-        "custom_components.pawcontrol.PawControlCoordinator",
-        return_value=mock_coordinator,
-    ) as mock_coord_class, patch(
-        "custom_components.pawcontrol.PawControlDataManager",
-        return_value=mock_data_manager,
-    ), patch(
-        "custom_components.pawcontrol.PawControlNotificationManager",
-        return_value=mock_notification_manager,
-    ), patch(
-        "custom_components.pawcontrol.FeedingManager",
-        return_value=mock_feeding_manager,
-    ), patch(
-        "custom_components.pawcontrol.WalkManager",
-        return_value=mock_walk_manager,
-    ), patch(
-        "custom_components.pawcontrol.entity_factory.EntityFactory",
-        return_value=mock_entity_factory,
-    ), patch(
-        "custom_components.pawcontrol.PawControlServiceManager",
-    ), patch(
-        "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
-        return_value=None,
-    ), patch(
-        "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.pawcontrol.async_get_clientsession",
+        ) as mock_get_session,
+        patch(
+            "custom_components.pawcontrol.PawControlCoordinator",
+            return_value=mock_coordinator,
+        ) as mock_coord_class,
+        patch(
+            "custom_components.pawcontrol.PawControlDataManager",
+            return_value=mock_data_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlNotificationManager",
+            return_value=mock_notification_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.FeedingManager",
+            return_value=mock_feeding_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.WalkManager",
+            return_value=mock_walk_manager,
+        ),
+        patch(
+            "custom_components.pawcontrol.entity_factory.EntityFactory",
+            return_value=mock_entity_factory,
+        ),
+        patch(
+            "custom_components.pawcontrol.PawControlServiceManager",
+        ),
+        patch(
+            "custom_components.pawcontrol.async_setup_daily_reset_scheduler",
+            return_value=None,
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+            return_value=True,
+        ),
     ):
         result = await async_setup_entry(hass, mock_config_entry)
 
