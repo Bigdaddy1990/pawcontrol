@@ -91,7 +91,14 @@ async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
         user_input={CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido"},
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={}
+        result["flow_id"],
+        user_input={
+            "feeding": True,
+            "walk": True,
+            "health": True,
+            "gps": False,
+            "notifications": True,
+        },
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"add_another": True}
