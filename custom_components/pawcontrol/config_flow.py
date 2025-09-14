@@ -31,6 +31,7 @@ from .const import (
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
     CONF_DOGS,
+    CONF_MODULES,
     DOG_SIZES,
     DOMAIN,
     MAX_DOG_AGE,
@@ -209,16 +210,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         current_dog = self._dogs[-1]
         if user_input is not None:
-            modules = MODULES_SCHEMA(user_input or {})
-            current_dog[CONF_MODULES] = modules
-            return await self.async_step_add_another()
+            try:
+                modules = MODULES_SCHEMA(user_input or {})
+            except vol.Invalid:
                 return self.async_show_form(
                     step_id="dog_modules",
                     data_schema=MODULES_SCHEMA,
                     errors={"base": "invalid_selection"},
-                    description_placeholders={"dogs_configured": str(len(self._dogs))},
+                    description_placeholders={
+                        "dogs_configured": str(len(self._dogs))
+                    },
                 )
-            current_dog["modules"] = modules
+            current_dog[CONF_MODULES] = modules
             return await self.async_step_add_another()
 
         return self.async_show_form(
