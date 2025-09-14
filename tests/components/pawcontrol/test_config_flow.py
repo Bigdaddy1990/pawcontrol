@@ -138,3 +138,92 @@ async def test_reauth_confirm(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_flow(hass: HomeAssistant) -> None:
+    """Test the reconfigure flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"name": "My Pack", "dogs": [], "entity_profile": "standard"},
+        options={"entity_profile": "standard"},
+        unique_id="my_pack",
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"entity_profile": "minimal"}
+    )
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.options["entity_profile"] == "minimal"
+
+
+@pytest.mark.asyncio
+async def test_user_flow_duplicate_name(hass: HomeAssistant) -> None:
+    """Test user flow when integration name already exists."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="my_pack")
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={CONF_NAME: "My Pack"}
+    )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+@pytest.mark.asyncio
+async def test_invalid_dog_id(hass: HomeAssistant) -> None:
+    """Test that invalid dog IDs are rejected."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={CONF_NAME: "My Pack"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={CONF_DOG_ID: "Invalid ID", CONF_DOG_NAME: "Fido"},
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {CONF_DOG_ID: "Invalid ID format"}
+
+
+@pytest.mark.asyncio
+async def test_reauth_confirm_fail(hass: HomeAssistant) -> None:
+    """Test reauthentication confirmation failure."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"name": "My Pack", "dogs": [], "entity_profile": "standard"},
+        unique_id="my_pack",
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"confirm": False}
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "reauth_unsuccessful"}
