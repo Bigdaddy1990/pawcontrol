@@ -270,7 +270,7 @@ if TYPE_CHECKING:
 @dataclass
 class PawControlRuntimeData:
     """Runtime data for PawControl integration.
-    
+
     This dataclass contains all runtime components needed by the integration.
     Used for Platinum-level type safety with ConfigEntry[PawControlRuntimeData].
     """

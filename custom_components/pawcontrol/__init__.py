@@ -112,14 +112,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
     """Set up Paw Control from a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: PawControl config entry with typed runtime data
-        
+
     Returns:
         True if setup successful
-        
+
     Raises:
         ConfigEntryNotReady: If setup prerequisites not met
         ConfigEntryAuthFailed: If authentication fails (future use)
@@ -161,7 +161,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager.async_initialize(dogs_config),
             walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-    except (asyncio.TimeoutError, TimeoutError) as err:
+    except TimeoutError as err:
         raise ConfigEntryNotReady(f"Timeout during initialization: {err}") from err
     except (ValueError, KeyError) as err:
         raise ConfigEntryNotReady(f"Invalid configuration: {err}") from err
@@ -198,17 +198,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
 async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
     """Unload a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to unload
-        
+
     Returns:
         True if unload successful
     """
     runtime_data = entry.runtime_data
     dogs = runtime_data.dogs if runtime_data else entry.data.get(CONF_DOGS, [])
-    profile = runtime_data.entity_profile if runtime_data else entry.options.get("entity_profile", "standard")
+    profile = (
+        runtime_data.entity_profile
+        if runtime_data
+        else entry.options.get("entity_profile", "standard")
+    )
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     try:
@@ -235,7 +239,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
 async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> None:
     """Reload a config entry.
-    
+
     Args:
         hass: Home Assistant instance
         entry: Config entry to reload

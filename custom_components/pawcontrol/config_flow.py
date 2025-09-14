@@ -323,14 +323,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             profiles_info.append(f"• {name}: {config['description']}")
         return "\n".join(profiles_info)
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauthentication flow for Platinum compliance.
-        
+
         Args:
             entry_data: Existing config entry data
-            
+
         Returns:
             Config flow result
         """
@@ -343,15 +341,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm reauthentication.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
         errors = {}
-        
+
         if user_input is not None:
             # For PawControl, we don't have traditional auth
             # This is a placeholder for future auth requirements
@@ -360,23 +358,27 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Update the config entry
                 await self.async_set_unique_id(self.reauth_entry.unique_id)
                 self._abort_if_unique_id_mismatch(reason="wrong_account")
-                
+
                 return self.async_update_reload_and_abort(
                     self.reauth_entry,
                     data_updates={},  # No data updates needed for now
                 )
             else:
                 errors["base"] = "reauth_unsuccessful"
-        
+
         # Show confirmation form
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({
-                vol.Required("confirm", default=True): cv.boolean,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=True): cv.boolean,
+                }
+            ),
             errors=errors,
             description_placeholders={
-                "integration_name": self.reauth_entry.title if hasattr(self, "reauth_entry") else "Paw Control",
+                "integration_name": self.reauth_entry.title
+                if hasattr(self, "reauth_entry")
+                else "Paw Control",
             },
         )
 
@@ -384,41 +386,43 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration flow for Platinum compliance.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         if not entry:
             return self.async_abort(reason="reconfigure_failed")
-        
+
         if user_input is not None:
             # Allow reconfiguration of entity profile
             new_profile = user_input.get("entity_profile", "standard")
-            
+
             # Prevent changing underlying account
             await self.async_set_unique_id(entry.unique_id)
             self._abort_if_unique_id_mismatch(reason="wrong_account")
-            
+
             # Update the config entry
             return self.async_update_reload_and_abort(
                 entry,
                 data_updates={},
                 options_updates={"entity_profile": new_profile},
             )
-        
+
         # Show reconfigure form
         current_profile = entry.options.get("entity_profile", "standard")
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema({
-                vol.Required("entity_profile", default=current_profile): vol.In(
-                    list(ENTITY_PROFILES.keys())
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("entity_profile", default=current_profile): vol.In(
+                        list(ENTITY_PROFILES.keys())
+                    ),
+                }
+            ),
             description_placeholders={
                 "current_profile": current_profile,
                 "profiles_info": self._get_profiles_info(),
