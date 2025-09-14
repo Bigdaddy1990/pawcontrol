@@ -153,7 +153,9 @@ async def test_add_second_dog(mock_load, hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 @patch("homeassistant.loader.async_get_integration", new_callable=AsyncMock)
 @patch("homeassistant.config_entries._load_integration", new_callable=AsyncMock)
-async def test_unique_id_conflict(mock_load, mock_get_integration, hass: HomeAssistant) -> None:
+async def test_unique_id_conflict(
+    mock_load, mock_get_integration, hass: HomeAssistant
+) -> None:
     """Test abort when the integration is already configured."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id="paw_setup")
     entry.add_to_hass(hass)

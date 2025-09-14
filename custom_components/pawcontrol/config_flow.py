@@ -217,9 +217,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     step_id="dog_modules",
                     data_schema=MODULES_SCHEMA,
                     errors={"base": "invalid_selection"},
-                    description_placeholders={
-                        "dogs_configured": str(len(self._dogs))
-                    },
+                    description_placeholders={"dogs_configured": str(len(self._dogs))},
                 )
             current_dog[CONF_MODULES] = modules
             return await self.async_step_add_another()
