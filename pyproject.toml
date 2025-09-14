@@ -1,10 +1,10 @@
 # pyproject.toml — nur Tooling für eine Home-Assistant Custom-Integration
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=81", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "-p pytest_cov -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=3"
+addopts = "-p pytest_cov -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=10"
 markers = [
   "asyncio: mark a test as using asyncio",
 ]
@@ -63,8 +63,6 @@ skip_covered = false
 precision = 2
 ignore_errors = true
 fail_under = 95
-
-#--cov=custom_components/pawcontrol --cov-report=term-missing --cov-fail-under=95 --cov-branch --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
 
 [tool.coverage.html]
 directory = "htmlcov"
