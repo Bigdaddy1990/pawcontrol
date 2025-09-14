@@ -11,11 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import voluptuous as vol
-from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-
 from custom_components.pawcontrol.config_flow import PawControlConfigFlow
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
@@ -28,6 +23,10 @@ from custom_components.pawcontrol.const import (
     CONF_MODULES,
     DOMAIN,
 )
+from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 # Test data
 VALID_DOG_DATA = {

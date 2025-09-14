@@ -11,12 +11,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
 from custom_components.pawcontrol import (
     async_reload_entry,
     async_setup,
@@ -35,14 +29,19 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
 )
 from custom_components.pawcontrol.exceptions import PawControlSetupError
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 
 async def test_async_setup(hass: HomeAssistant) -> None:
     """Test the async_setup function."""
     config = {}
-    
+
     result = await async_setup(hass, config)
-    
+
     assert result is True
     assert DOMAIN in hass.data
     assert hass.data[DOMAIN] == {}
@@ -60,7 +59,7 @@ async def test_async_setup_entry_success(
 ) -> None:
     """Test successful setup of a config entry."""
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -89,11 +88,11 @@ async def test_async_setup_entry_success(
         return_value=True,
     ):
         result = await async_setup_entry(hass, mock_config_entry)
-    
+
     assert result is True
     assert hasattr(mock_config_entry, "runtime_data")
     assert mock_config_entry.runtime_data is not None
-    
+
     # Verify all managers were initialized
     mock_coordinator.async_config_entry_first_refresh.assert_called_once()
     mock_data_manager.async_initialize.assert_called_once()
@@ -109,7 +108,7 @@ async def test_async_setup_entry_no_dogs(
     """Test setup fails when no dogs are configured."""
     mock_config_entry.data = {CONF_DOGS: []}
     mock_config_entry.add_to_hass(hass)
-    
+
     with pytest.raises(ConfigEntryNotReady, match="No dogs configured"):
         await async_setup_entry(hass, mock_config_entry)
 
@@ -125,7 +124,7 @@ async def test_async_setup_entry_invalid_dog(
         ]
     }
     mock_config_entry.add_to_hass(hass)
-    
+
     with pytest.raises(ConfigEntryNotReady, match="Invalid dog configuration"):
         await async_setup_entry(hass, mock_config_entry)
 
@@ -137,9 +136,9 @@ async def test_async_setup_entry_timeout_error(
 ) -> None:
     """Test setup handles timeout errors."""
     mock_config_entry.add_to_hass(hass)
-    
-    mock_coordinator.async_config_entry_first_refresh.side_effect = asyncio.TimeoutError()
-    
+
+    mock_coordinator.async_config_entry_first_refresh.side_effect = TimeoutError()
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -153,9 +152,8 @@ async def test_async_setup_entry_timeout_error(
         "custom_components.pawcontrol.WalkManager",
     ), patch(
         "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ):
-        with pytest.raises(ConfigEntryNotReady, match="Timeout during initialization"):
-            await async_setup_entry(hass, mock_config_entry)
+    ), pytest.raises(ConfigEntryNotReady, match="Timeout during initialization"):
+        await async_setup_entry(hass, mock_config_entry)
 
 
 async def test_async_setup_entry_value_error(
@@ -166,9 +164,9 @@ async def test_async_setup_entry_value_error(
 ) -> None:
     """Test setup handles value errors."""
     mock_config_entry.add_to_hass(hass)
-    
+
     mock_data_manager.async_initialize.side_effect = ValueError("Invalid value")
-    
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -183,9 +181,8 @@ async def test_async_setup_entry_value_error(
         "custom_components.pawcontrol.WalkManager",
     ), patch(
         "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ):
-        with pytest.raises(ConfigEntryNotReady, match="Invalid configuration"):
-            await async_setup_entry(hass, mock_config_entry)
+    ), pytest.raises(ConfigEntryNotReady, match="Invalid configuration"):
+        await async_setup_entry(hass, mock_config_entry)
 
 
 async def test_async_setup_entry_setup_error(
@@ -195,11 +192,11 @@ async def test_async_setup_entry_setup_error(
 ) -> None:
     """Test setup handles PawControlSetupError."""
     mock_config_entry.add_to_hass(hass)
-    
+
     mock_coordinator.async_config_entry_first_refresh.side_effect = PawControlSetupError(
         "Setup failed"
     )
-    
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -213,9 +210,8 @@ async def test_async_setup_entry_setup_error(
         "custom_components.pawcontrol.WalkManager",
     ), patch(
         "custom_components.pawcontrol.entity_factory.EntityFactory",
-    ):
-        with pytest.raises(ConfigEntryNotReady, match="Setup error"):
-            await async_setup_entry(hass, mock_config_entry)
+    ), pytest.raises(ConfigEntryNotReady, match="Setup error"):
+        await async_setup_entry(hass, mock_config_entry)
 
 
 async def test_async_setup_entry_platform_import_error(
@@ -230,7 +226,7 @@ async def test_async_setup_entry_platform_import_error(
 ) -> None:
     """Test setup handles platform import errors."""
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -257,9 +253,8 @@ async def test_async_setup_entry_platform_import_error(
     ), patch(
         "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
         side_effect=ImportError("Platform not found"),
-    ):
-        with pytest.raises(ConfigEntryNotReady, match="Platform import failed"):
-            await async_setup_entry(hass, mock_config_entry)
+    ), pytest.raises(ConfigEntryNotReady, match="Platform import failed"):
+        await async_setup_entry(hass, mock_config_entry)
 
 
 async def test_async_setup_entry_unknown_profile(
@@ -275,7 +270,7 @@ async def test_async_setup_entry_unknown_profile(
     """Test setup with unknown entity profile."""
     mock_config_entry.options = {"entity_profile": "unknown_profile"}
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "custom_components.pawcontrol.PawControlCoordinator",
         return_value=mock_coordinator,
@@ -304,7 +299,7 @@ async def test_async_setup_entry_unknown_profile(
         return_value=True,
     ):
         result = await async_setup_entry(hass, mock_config_entry)
-    
+
     assert result is True
     # Should default to "standard" profile
     assert mock_config_entry.runtime_data.entity_profile == "standard"
@@ -318,15 +313,15 @@ async def test_async_unload_entry_success(
     """Test successful unload of a config entry."""
     mock_config_entry.runtime_data = mock_runtime_data
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
         return_value=True,
     ):
         result = await async_unload_entry(hass, mock_config_entry)
-    
+
     assert result is True
-    
+
     # Verify all managers were shut down
     mock_runtime_data.coordinator.async_shutdown.assert_called_once()
     mock_runtime_data.data_manager.async_shutdown.assert_called_once()
@@ -343,13 +338,13 @@ async def test_async_unload_entry_platform_error(
     """Test unload handles platform unload errors."""
     mock_config_entry.runtime_data = mock_runtime_data
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
         side_effect=ValueError("Unload failed"),
     ):
         result = await async_unload_entry(hass, mock_config_entry)
-    
+
     assert result is False
 
 
@@ -359,13 +354,13 @@ async def test_async_unload_entry_no_runtime_data(
 ) -> None:
     """Test unload when runtime_data is not set."""
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
         return_value=True,
     ):
         result = await async_unload_entry(hass, mock_config_entry)
-    
+
     assert result is True
 
 
@@ -377,18 +372,18 @@ async def test_async_unload_entry_partial_managers(
     """Test unload with some managers missing shutdown method."""
     # Remove async_shutdown from some managers
     delattr(mock_runtime_data.feeding_manager, "async_shutdown")
-    
+
     mock_config_entry.runtime_data = mock_runtime_data
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
         return_value=True,
     ):
         result = await async_unload_entry(hass, mock_config_entry)
-    
+
     assert result is True
-    
+
     # Only managers with async_shutdown should be called
     mock_runtime_data.coordinator.async_shutdown.assert_called_once()
     mock_runtime_data.data_manager.async_shutdown.assert_called_once()
@@ -402,7 +397,7 @@ async def test_async_reload_entry(
     """Test reload of a config entry."""
     mock_config_entry.runtime_data = mock_runtime_data
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "custom_components.pawcontrol.async_unload_entry",
         return_value=True,
@@ -411,7 +406,7 @@ async def test_async_reload_entry(
         return_value=True,
     ) as mock_setup:
         await async_reload_entry(hass, mock_config_entry)
-    
+
     mock_unload.assert_called_once_with(hass, mock_config_entry)
     mock_setup.assert_called_once_with(hass, mock_config_entry)
 
@@ -429,9 +424,9 @@ def test_get_platforms_for_profile_and_modules_basic() -> None:
             }
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "basic")
-    
+
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
     assert Platform.BINARY_SENSOR in platforms
@@ -454,9 +449,9 @@ def test_get_platforms_for_profile_and_modules_standard() -> None:
             }
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "standard")
-    
+
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
     assert Platform.BINARY_SENSOR in platforms
@@ -481,9 +476,9 @@ def test_get_platforms_for_profile_and_modules_advanced() -> None:
             }
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "advanced")
-    
+
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
     assert Platform.BINARY_SENSOR in platforms
@@ -505,9 +500,9 @@ def test_get_platforms_for_profile_and_modules_gps_focus() -> None:
             }
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "gps_focus")
-    
+
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
     assert Platform.BINARY_SENSOR in platforms
@@ -524,9 +519,9 @@ def test_get_platforms_for_profile_and_modules_health_focus() -> None:
             }
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "health_focus")
-    
+
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
     assert Platform.DATE in platforms
@@ -541,9 +536,9 @@ def test_get_platforms_for_profile_and_modules_no_modules() -> None:
             "modules": {}
         }
     ]
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs_config, "standard")
-    
+
     # Should have at least sensor and button
     assert Platform.SENSOR in platforms
     assert Platform.BUTTON in platforms
@@ -561,7 +556,7 @@ async def test_websession_injection(
 ) -> None:
     """Test WebSession injection for Platinum compliance."""
     mock_config_entry.add_to_hass(hass)
-    
+
     with patch(
         "custom_components.pawcontrol.async_get_clientsession",
     ) as mock_get_session, patch(
@@ -592,12 +587,12 @@ async def test_websession_injection(
         return_value=True,
     ):
         result = await async_setup_entry(hass, mock_config_entry)
-    
+
     assert result is True
-    
+
     # Verify WebSession was obtained
     mock_get_session.assert_called_once_with(hass)
-    
+
     # Verify coordinator was created with session
     mock_coord_class.assert_called_once()
     call_args = mock_coord_class.call_args

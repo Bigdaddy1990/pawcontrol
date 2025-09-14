@@ -12,12 +12,6 @@ from typing import Any, Final
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
-from homeassistant.util import dt as dt_util
-
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -39,6 +33,11 @@ from custom_components.pawcontrol.types import (
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
@@ -156,7 +155,7 @@ def mock_coordinator():
     coordinator.last_update_success = True
     coordinator.config_entry = MagicMock()
     coordinator.session = MagicMock()
-    
+
     # Mock data methods
     coordinator.get_dog_data = MagicMock(
         return_value={
@@ -190,7 +189,7 @@ def mock_coordinator():
             },
         }
     )
-    
+
     coordinator.get_dog_config = MagicMock(
         return_value={
             CONF_DOG_ID: TEST_DOG_ID,
@@ -208,11 +207,11 @@ def mock_coordinator():
             },
         }
     )
-    
+
     coordinator.get_module_data = MagicMock(
         side_effect=lambda dog_id, module: coordinator.get_dog_data(dog_id).get(module, {})
     )
-    
+
     coordinator.get_dog_ids = MagicMock(return_value=[TEST_DOG_ID])
     coordinator.get_enabled_modules = MagicMock(
         return_value={MODULE_FEEDING, MODULE_WALK, MODULE_GPS, MODULE_HEALTH}
@@ -221,7 +220,7 @@ def mock_coordinator():
     coordinator.async_request_selective_refresh = AsyncMock()
     coordinator.async_config_entry_first_refresh = AsyncMock()
     coordinator.async_shutdown = AsyncMock()
-    
+
     return coordinator
 
 
@@ -239,7 +238,7 @@ def mock_data_manager():
     manager.async_log_health = AsyncMock()
     manager.async_start_grooming = AsyncMock(return_value="grooming_456")
     manager.async_reset_dog_daily_stats = AsyncMock()
-    
+
     return manager
 
 
@@ -250,7 +249,7 @@ def mock_notification_manager():
     manager.async_initialize = AsyncMock()
     manager.async_shutdown = AsyncMock()
     manager.async_send_notification = AsyncMock()
-    
+
     return manager
 
 
@@ -270,7 +269,7 @@ def mock_feeding_manager():
         )
     }
     manager._invalidate_cache = MagicMock()
-    
+
     return manager
 
 
@@ -280,7 +279,7 @@ def mock_walk_manager():
     manager = MagicMock()
     manager.async_initialize = AsyncMock()
     manager.async_shutdown = AsyncMock()
-    
+
     return manager
 
 
@@ -289,7 +288,7 @@ def mock_entity_factory():
     """Return a mock entity factory."""
     factory = MagicMock()
     factory.estimate_entity_count = MagicMock()
-    
+
     return factory
 
 
@@ -341,10 +340,10 @@ async def init_integration(
 ):
     """Set up the PawControl integration for testing."""
     mock_config_entry.add_to_hass(hass)
-    
+
     # Set runtime data
     mock_config_entry.runtime_data = mock_runtime_data
-    
+
     # Mock the setup
     with patch(
         "custom_components.pawcontrol.async_setup_entry",
@@ -352,7 +351,7 @@ async def init_integration(
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
-    
+
     return mock_config_entry
 
 
@@ -362,7 +361,7 @@ def mock_health_calculator():
     calculator = MagicMock()
     calculator.calculate_health_score = MagicMock(return_value=85)
     calculator.get_recommendations = MagicMock(return_value=["More exercise", "Check weight"])
-    
+
     return calculator
 
 
