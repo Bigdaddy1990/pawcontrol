@@ -30,29 +30,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U pytest
           pip install -U pytest-homeassistant-custom-component
-          pip install -U homeassistant>=2025.9.1
+          pip install -U homeassistant>=2025.9.3
           pip install -r requirements.txt || true
           pip install -r requirements_test.txt || true
-        #pip install codecov-cli
 
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
           python -m pytest
-
-      - name: Codecov
-        uses: codecov/codecov-action@v5.5.1
-        with:
-          fail_ci_if_error: false # optional (default = false)
-          files: ./coverage1.xml,./coverage2.xml # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true # optional (default = false)
-      - name: Upload test results to Codecov
-        if: always()
-        uses: codecov/test-results-action@v1
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
