@@ -52,13 +52,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """
 
     def __init__(
-        self, 
-        hass: HomeAssistant, 
+        self,
+        hass: HomeAssistant,
         entry: ConfigEntry,
         session: ClientSession | None = None
     ) -> None:
         """Initialize coordinator.
-        
+
         Args:
             hass: Home Assistant instance
             entry: Config entry for this integration
