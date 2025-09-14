@@ -16,6 +16,7 @@ from contextlib import suppress
 from datetime import timedelta
 from typing import Any
 
+from aiohttp import ClientSession
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -50,9 +51,21 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     - Handle errors and recovery
     """
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize coordinator."""
+    def __init__(
+        self, 
+        hass: HomeAssistant, 
+        entry: ConfigEntry,
+        session: ClientSession | None = None
+    ) -> None:
+        """Initialize coordinator.
+        
+        Args:
+            hass: Home Assistant instance
+            entry: Config entry for this integration
+            session: Optional aiohttp session for external API calls
+        """
         self.config_entry = entry
+        self.session = session  # Store for potential external API usage
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
@@ -65,6 +78,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name="PawControl Data",
             update_interval=timedelta(seconds=update_interval),
             always_update=False,
+            config_entry=entry,  # ✅ Pass config_entry for Platinum compliance
         )
 
         # Simple data storage

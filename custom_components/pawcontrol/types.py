@@ -261,17 +261,32 @@ class DogProfile:
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
     from .data_manager import PawControlDataManager
+    from .entity_factory import EntityFactory
+    from .feeding_manager import FeedingManager
     from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
 
 
-class PawControlRuntimeData(TypedDict):
-    """Runtime data structure for the integration."""
+@dataclass
+class PawControlRuntimeData:
+    """Runtime data for PawControl integration.
+    
+    This dataclass contains all runtime components needed by the integration.
+    Used for Platinum-level type safety with ConfigEntry[PawControlRuntimeData].
+    """
 
     coordinator: PawControlCoordinator
     data_manager: PawControlDataManager
     notification_manager: PawControlNotificationManager
-    config_entry: ConfigEntry
+    feeding_manager: FeedingManager
+    walk_manager: WalkManager
+    entity_factory: EntityFactory
+    entity_profile: str
     dogs: list[DogConfigData]
+
+
+# Custom ConfigEntry type for Platinum compliance
+type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 
 
 class EntityStateData(TypedDict, total=False):

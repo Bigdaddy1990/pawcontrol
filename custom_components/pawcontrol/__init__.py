@@ -1,4 +1,8 @@
-"""Core setup for the Paw Control integration."""
+"""Core setup for the Paw Control integration.
+
+Provides entry point for PawControl integration with Platinum-level compliance.
+Supports multiple dogs with modular features (GPS, feeding, health, walks).
+"""
 
 from __future__ import annotations
 
@@ -9,8 +13,9 @@ from typing import Any, Final
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -31,7 +36,7 @@ from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
-from .types import DogConfigData
+from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 from .walk_manager import WalkManager
 
 # Expose commonly patched classes/functions for tests
@@ -105,9 +110,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Paw Control from a config entry."""
-    _LOGGER.info("Setting up Paw Control integration entry: %s", entry.entry_id)
+async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
+    """Set up Paw Control from a config entry.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: PawControl config entry with typed runtime data
+        
+    Returns:
+        True if setup successful
+        
+    Raises:
+        ConfigEntryNotReady: If setup prerequisites not met
+        ConfigEntryAuthFailed: If authentication fails (future use)
+    """
+    _LOGGER.debug("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
     if not dogs_config:
@@ -123,7 +140,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
         profile = "standard"
 
-    coordinator = PawControlCoordinator(hass, entry)
+    # WebSession injection for Platinum compliance
+    session = async_get_clientsession(hass)
+    coordinator = PawControlCoordinator(hass, entry, session)
     data_manager = PawControlDataManager(hass, entry.entry_id)
     notification_manager = PawControlNotificationManager(hass, entry.entry_id)
     feeding_manager = FeedingManager()
@@ -142,69 +161,84 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             feeding_manager.async_initialize(dogs_config),
             walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-    except Exception as err:
-        raise ConfigEntryNotReady(f"Initialization failed: {err}") from err
+    except (asyncio.TimeoutError, TimeoutError) as err:
+        raise ConfigEntryNotReady(f"Timeout during initialization: {err}") from err
+    except (ValueError, KeyError) as err:
+        raise ConfigEntryNotReady(f"Invalid configuration: {err}") from err
+    except PawControlSetupError as err:
+        raise ConfigEntryNotReady(f"Setup error: {err}") from err
 
     platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
     try:
         await hass.config_entries.async_forward_entry_setups(entry, platforms)
-    except Exception as err:
-        raise ConfigEntryNotReady(str(err)) from err
+    except ImportError as err:
+        raise ConfigEntryNotReady(f"Platform import failed: {err}") from err
+    except (ValueError, TypeError) as err:
+        raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
 
     # Optional service setup
     PawControlServiceManager(hass)
     await async_setup_daily_reset_scheduler(hass, entry)
 
-    runtime_data = {
-        "coordinator": coordinator,
-        "data_manager": data_manager,
-        "notification_manager": notification_manager,
-        "feeding_manager": feeding_manager,
-        "walk_manager": walk_manager,
-        "entity_factory": entity_factory,
-        "entity_profile": profile,
-        "dogs": dogs_config,
-    }
+    # Store runtime data in typed ConfigEntry - Platinum compliance
+    runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=data_manager,
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+        walk_manager=walk_manager,
+        entity_factory=entity_factory,
+        entity_profile=profile,
+        dogs=dogs_config,
+    )
     entry.runtime_data = runtime_data
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime_data
+    # NO hass.data storage - only use entry.runtime_data for Platinum
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    runtime_data = getattr(entry, "runtime_data", None)
-    dogs = (
-        runtime_data.get("dogs", []) if runtime_data else entry.data.get(CONF_DOGS, [])
-    )
-    profile = (
-        runtime_data.get("entity_profile")
-        if runtime_data
-        else entry.options.get("entity_profile", "standard")
-    )
+async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
+    """Unload a config entry.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry to unload
+        
+    Returns:
+        True if unload successful
+    """
+    runtime_data = entry.runtime_data
+    dogs = runtime_data.dogs if runtime_data else entry.data.get(CONF_DOGS, [])
+    profile = runtime_data.entity_profile if runtime_data else entry.options.get("entity_profile", "standard")
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     try:
         unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
-    except Exception:
+    except (ImportError, ValueError, TypeError) as err:
+        _LOGGER.error("Failed to unload platforms: %s", err)
         return False
 
     if unload_ok and runtime_data:
-        for key in (
-            "coordinator",
-            "data_manager",
-            "notification_manager",
-            "feeding_manager",
-            "walk_manager",
+        # Clean shutdown of all managers
+        for manager in (
+            runtime_data.coordinator,
+            runtime_data.data_manager,
+            runtime_data.notification_manager,
+            runtime_data.feeding_manager,
+            runtime_data.walk_manager,
         ):
-            manager = runtime_data.get(key)
-            if manager and hasattr(manager, "async_shutdown"):
+            if hasattr(manager, "async_shutdown"):
                 await manager.async_shutdown()
-        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+        # No hass.data cleanup needed - only using entry.runtime_data
 
     return unload_ok
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload a config entry."""
+async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> None:
+    """Reload a config entry.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry to reload
+    """
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)

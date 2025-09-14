@@ -115,6 +115,61 @@
           "portion_tolerance": "Portion Size Tolerance (%)"
         }
       },
+      "reauth_confirm": {
+        "title": "Reauthenticate Paw Control",
+        "description": "The Paw Control integration needs to be reauthenticated. This typically happens after configuration changes or updates.\n\nIntegration: {integration_name}\n\nClick confirm to proceed with reauthentication.",
+        "data": {
+          "confirm": "Confirm reauthentication"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Paw Control",
+        "description": "Reconfigure your Paw Control integration settings.\n\nCurrent profile: {current_profile}\n\nAvailable profiles:\n{profiles_info}",
+        "data": {
+          "entity_profile": "Entity Profile"
+        }
+      },
+      "add_dog": {
+        "title": "Add Dog",
+        "description": "Add a new dog to monitor. Currently configured: {dogs_configured} dog(s).",
+        "data": {
+          "dog_name": "Dog Name",
+          "dog_id": "Dog ID (unique identifier)",
+          "dog_breed": "Breed (optional)",
+          "dog_age": "Age (years)",
+          "dog_weight": "Weight (kg)",
+          "dog_size": "Size Category"
+        }
+      },
+      "dog_modules": {
+        "title": "Configure Modules",
+        "description": "Select which modules to enable for your dog. Currently configured: {dogs_configured} dog(s).",
+        "data": {
+          "feeding": "Feeding Tracking",
+          "walk": "Walk Monitoring",
+          "health": "Health Monitoring",
+          "gps": "GPS Location Tracking",
+          "notifications": "Smart Notifications"
+        }
+      },
+      "add_another": {
+        "title": "Add Another Dog?",
+        "description": "You have configured {dogs_configured} dog(s):\n\n{dogs_list}\n\nWould you like to add another dog?",
+        "data": {
+          "add_another": "Add another dog"
+        }
+      },
+      "entity_profile": {
+        "title": "Select Entity Profile",
+        "description": "Choose an entity profile for {dogs_count} dog(s). This determines which entities are created.\n\n{profiles_info}",
+        "data": {
+          "entity_profile": "Entity Profile"
+        }
+      },
+      "final_setup": {
+        "title": "Complete Setup",
+        "description": "Setup is complete! Your Paw Control integration is ready to use."
+      },
       "advanced": {
         "title": "Advanced Settings",
         "description": "Advanced configuration options for power users. These settings fine-tune the integration behavior.",
@@ -143,11 +198,17 @@
       "door_sensor_not_found": "The selected door sensor entity was not found",
       "notification_service_not_found": "The selected notification service was not found",
       "invalid_notification_service": "The notification service format is invalid",
-      "external_entity_validation_failed": "External entity validation failed"
+      "external_entity_validation_failed": "External entity validation failed",
+      "reauth_unsuccessful": "Reauthentication was not successful",
+      "wrong_account": "Wrong account - unique ID mismatch",
+      "reconfigure_failed": "Reconfiguration failed"
     },
     "abort": {
       "already_configured": "This integration is already configured",
-      "single_instance_allowed": "Only one instance of Paw Control is allowed"
+      "single_instance_allowed": "Only one instance of Paw Control is allowed",
+      "reauth_successful": "Reauthentication successful",
+      "wrong_account": "Wrong account for reauthentication",
+      "reconfigure_successful": "Reconfiguration successful"
     }
   },
   "options": {
