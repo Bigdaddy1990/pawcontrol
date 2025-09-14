@@ -218,7 +218,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     errors={"base": "invalid_selection"},
                     description_placeholders={"dogs_configured": str(len(self._dogs))},
                 )
-            current_dog["modules"] = modules
+            current_dog[CONF_MODULES] = modules
             return await self.async_step_add_another()
 
         return self.async_show_form(
