@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  HA_VERSION: "2025.9.1"
+  HA_VERSION: "2025.9.3"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
