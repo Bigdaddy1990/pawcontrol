@@ -19,6 +19,7 @@ python_files = [
 filterwarnings = [
     "error",
     "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
+    "ignore:'hass' fixture.*:pytest.PytestRemovedIn9Warning",
 ]
 
 [tool.ruff]
