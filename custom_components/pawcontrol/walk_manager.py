@@ -1,12 +1,4 @@
-"""Specialized walk and GPS management for PawControl integration.
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.0+
-Python: 3.13+
-
-Handles walk tracking, GPS data processing, and location-based features
-separated from the main coordinator for better maintainability.
-"""
+"""Walk and GPS management for PawControl."""
 
 from __future__ import annotations
 
