@@ -35,10 +35,9 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
             "remaining_quota": "unknown",
         }
 
-    base_url = getattr(api, "base_url", None)
-    if not isinstance(base_url, str) or not base_url.startswith(
-        ("http://", "https://")
-    ):
+    raw_base_url = getattr(api, "base_url", None)
+    base_url = raw_base_url.strip().rstrip("/") if isinstance(raw_base_url, str) else None
+    if not isinstance(base_url, str) or not base_url.startswith(("http://", "https://")):
         can_reach = {"type": "failed", "error": "invalid_base_url"}
     else:
         can_reach = system_health.async_check_can_reach_url(hass, base_url)
