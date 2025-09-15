@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-import time
 from typing import Any
 
 import voluptuous as vol
@@ -46,24 +45,43 @@ class ValidationCache:
     """Simple in-memory TTL cache for validation results."""
 
     def __init__(self, ttl: int = VALIDATION_CACHE_TTL) -> None:
+        """Initialize the cache.
+
+        Args:
+            ttl: Time-to-live for cached items in seconds.
+        """
         self._ttl = ttl
         self._data: dict[str, tuple[float, Any]] = {}
         self._lock = asyncio.Lock()
 
     async def get(self, key: str) -> Any | None:
+        """Return cached value if present and not expired.
+
+        Args:
+            key: Cache key to lookup.
+
+        Returns:
+            Cached value or ``None`` if missing/expired.
+        """
         async with self._lock:
             item = self._data.get(key)
             if not item:
                 return None
             timestamp, value = item
-            if time.time() - timestamp > self._ttl:
+            if asyncio.get_running_loop().time() - timestamp > self._ttl:
                 del self._data[key]
                 return None
             return value
 
     async def set(self, key: str, value: Any) -> None:
+        """Store value in cache.
+
+        Args:
+            key: Cache key to store under.
+            value: Value to cache.
+        """
         async with self._lock:
-            self._data[key] = (time.time(), value)
+            self._data[key] = (asyncio.get_running_loop().time(), value)
 
 
 DOG_SCHEMA = vol.Schema(
