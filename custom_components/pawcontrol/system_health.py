@@ -26,7 +26,9 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     if not entries:
         return {"info": "No PawControl config entries found"}
 
-    entry = entries[0]
+    # Prefer an entry that has initialized runtime data
+    entry = next((e for e in entries if getattr(e, "runtime_data", None)), entries[0])
+
     runtime = getattr(entry, "runtime_data", None)
     api = getattr(runtime, "api", None)
     if runtime is None or api is None:
