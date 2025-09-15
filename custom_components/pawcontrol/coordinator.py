@@ -10,15 +10,14 @@ Python: 3.13+
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from contextlib import suppress
 from datetime import timedelta
 from typing import Any
 
 from aiohttp import ClientSession
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -35,7 +34,7 @@ from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
-MAINTENANCE_INTERVAL = 3600
+MAINTENANCE_INTERVAL = timedelta(hours=1)
 
 # Simple state constant exposed for tests
 STATE_ONLINE = "online"
@@ -270,24 +269,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_start_background_tasks(self) -> None:
         """Start background maintenance task."""
-        self._maintenance_task = self.hass.loop.create_task(self._maintenance_loop())
+        self._unsub_maintenance = async_track_time_interval(
+            self.hass, self._perform_maintenance, MAINTENANCE_INTERVAL
+        )
 
-    async def _maintenance_loop(self) -> None:
-        try:
-            while True:
-                await asyncio.sleep(MAINTENANCE_INTERVAL)
-                await self._perform_maintenance()
-        except asyncio.CancelledError:
-            pass
-
-    async def _perform_maintenance(self) -> None:
+    async def _perform_maintenance(self, *_: Any) -> None:
         """Perform periodic maintenance."""
         _LOGGER.debug("Performing maintenance")
 
     async def async_shutdown(self) -> None:
         """Stop background tasks."""
-        task = getattr(self, "_maintenance_task", None)
-        if task:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+        if (unsub := getattr(self, "_unsub_maintenance", None)) is not None:
+            unsub()
