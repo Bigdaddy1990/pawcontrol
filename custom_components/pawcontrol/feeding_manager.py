@@ -37,8 +37,6 @@ MINIMUM_NUTRITION_PORTION_G = 50.1
 # Defines min/max allowable portion size as fraction of daily ration
 MIN_PORTION_SAFETY_FACTOR = 0.1  # Minimum 10% of daily ration per portion
 MAX_PORTION_SAFETY_FACTOR = 0.6  # Maximum 60% of daily ration per portion
-MIN_PORTION_SAFETY_FACTOR = 0.1
-MAX_PORTION_SAFETY_FACTOR = 0.6
 
 
 class MealType(Enum):
