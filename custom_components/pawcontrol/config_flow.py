@@ -19,7 +19,6 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 
@@ -76,13 +75,6 @@ class ValidationCache:
             self._data[key] = (time.time(), value)
 
 
-# Simple schemas
-INTEGRATION_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME, default="Paw Control"): cv.string,
-    }
-)
-
 DOG_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
@@ -132,32 +124,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle initial setup step."""
-        errors = {}
-
-        if user_input is not None:
-            integration_name = user_input[CONF_NAME].strip()
-
-            # Simple validation
-            if len(integration_name) < 1:
-                errors[CONF_NAME] = "Name required"
-            elif len(integration_name) > 50:
-                errors[CONF_NAME] = "Name too long"
-            else:
-                # Set unique ID
-                unique_id = integration_name.lower().replace(" ", "_")
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
-
-                self._integration_name = integration_name
-                return await self.async_step_add_dog()
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=INTEGRATION_SCHEMA,
-            errors=errors,
-            description_placeholders={"integration_name": "Paw Control"},
-        )
+        """Handle initial step by ensuring single instance and starting dog setup."""
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
+        return await self.async_step_add_dog()
 
     async def async_step_add_dog(
         self, user_input: dict[str, Any] | None = None
