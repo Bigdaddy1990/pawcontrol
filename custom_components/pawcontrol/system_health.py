@@ -27,7 +27,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     if not entries:
         return {
             "info": "No PawControl config entries found",
-            "can_reach_backend": system_health.async_check_can_reach_url(hass, "http://invalid.invalid"),
+            "can_reach_backend": {"type": "failed", "error": "no_config_entries"},
             "remaining_quota": "unknown",
         }
 
