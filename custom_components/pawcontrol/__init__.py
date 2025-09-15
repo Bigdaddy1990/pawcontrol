@@ -1,8 +1,4 @@
-"""Core setup for the Paw Control integration.
-
-Provides entry point for PawControl integration with Platinum-level compliance.
-Supports multiple dogs with modular features (GPS, feeding, health, walks).
-"""
+"""Core setup for the PawControl integration."""
 
 from __future__ import annotations
 
@@ -44,10 +40,14 @@ from .walk_manager import WalkManager
 
 # Minimal DogDataManager stub for patching in tests
 class DogDataManager:  # pragma: no cover - simple stub
+    """Trivial dog data manager used for test patching."""
+
     async def async_initialize(self, dogs: list[Any] | None = None) -> None:
+        """Initialize the stub manager."""
         return None
 
     async def async_shutdown(self) -> None:
+        """Shut down the stub manager."""
         return None
 
 
