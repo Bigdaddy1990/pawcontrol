@@ -22,9 +22,7 @@ def async_register(
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     """Return integration health information."""
 
-    entries = hass.config_entries.async_entries(DOMAIN) or []
-    if not isinstance(entries, (list, tuple)):
-        entries = list(entries)
+    entries = hass.config_entries.async_entries(DOMAIN)
 
     if not entries:
         return {
