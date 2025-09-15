@@ -23,9 +23,29 @@ def async_register(
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     """Return integration health information."""
 
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return {"info": "No PawControl config entries found"}
+
+    entry = entries[0]
     runtime = getattr(entry, "runtime_data", None)
     api = getattr(runtime, "api", None)
+    if runtime is None or api is None:
+        return {
+            "can_reach_backend": {"type": "failed", "error": "api_unavailable"},
+            "remaining_quota": "unknown",
+        }
+
+    base_url = getattr(api, "base_url", None)
+    if not isinstance(base_url, str) or not base_url.startswith(("http://", "https://")):
+        can_reach = {"type": "failed", "error": "invalid_base_url"}
+    else:
+        can_reach = system_health.async_check_can_reach_url(hass, base_url)
+
+    return {
+        "can_reach_backend": can_reach,
+        "remaining_quota": getattr(runtime, "remaining_quota", "unknown"),
+    }
     return {
         "can_reach_backend": system_health.async_check_can_reach_url(
             hass, getattr(api, "base_url", "https://example.invalid")
