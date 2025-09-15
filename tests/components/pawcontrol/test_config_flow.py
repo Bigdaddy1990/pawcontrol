@@ -18,7 +18,6 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import (
@@ -45,12 +44,6 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
     """Test a full successful user initiated config flow."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "user"
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={CONF_NAME: "My Pack"}
     )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "add_dog"
@@ -92,8 +85,8 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
         result["flow_id"], user_input={"entity_profile": "standard"}
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == f"My Pack ({ENTITY_PROFILES['standard']['name']})"
-    assert result["data"]["name"] == "My Pack"
+    assert result["title"] == f"Paw Control ({ENTITY_PROFILES['standard']['name']})"
+    assert result["data"]["name"] == "Paw Control"
     assert len(result["data"]["dogs"]) == 1
     dog_result = result["data"]["dogs"][0]
     assert dog_result[CONF_DOG_ID] == "fido"
@@ -108,9 +101,6 @@ async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
     """Test that duplicate dog IDs are rejected."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={CONF_NAME: "My Pack"}
     )
     # First dog
     dog_data = {
@@ -157,8 +147,8 @@ async def test_reauth_confirm(hass: HomeAssistant) -> None:
     """Test reauthentication confirmation flow."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"name": "My Pack", "dogs": [], "entity_profile": "standard"},
-        unique_id="my_pack",
+        data={"name": "Paw Control", "dogs": [], "entity_profile": "standard"},
+        unique_id=DOMAIN,
     )
     entry.add_to_hass(hass)
 
@@ -184,9 +174,9 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     """Test the reconfigure flow."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"name": "My Pack", "dogs": [], "entity_profile": "standard"},
+        data={"name": "Paw Control", "dogs": [], "entity_profile": "standard"},
         options={"entity_profile": "standard"},
-        unique_id="my_pack",
+        unique_id=DOMAIN,
     )
     entry.add_to_hass(hass)
 
@@ -212,16 +202,13 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     mock_update.assert_called_once()
 
 
-async def test_user_flow_duplicate_name(hass: HomeAssistant) -> None:
-    """Test user flow when integration name already exists."""
-    entry = MockConfigEntry(domain=DOMAIN, unique_id="my_pack")
+async def test_single_instance(hass: HomeAssistant) -> None:
+    """Test that only a single instance can be configured."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN)
     entry.add_to_hass(hass)
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={CONF_NAME: "My Pack"}
     )
 
     assert result["type"] == FlowResultType.ABORT
@@ -232,9 +219,6 @@ async def test_invalid_dog_id(hass: HomeAssistant) -> None:
     """Test that invalid dog IDs are rejected."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={CONF_NAME: "My Pack"}
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -248,8 +232,8 @@ async def test_reauth_confirm_fail(hass: HomeAssistant) -> None:
     """Test reauthentication confirmation failure."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"name": "My Pack", "dogs": [], "entity_profile": "standard"},
-        unique_id="my_pack",
+        data={"name": "Paw Control", "dogs": [], "entity_profile": "standard"},
+        unique_id=DOMAIN,
     )
     entry.add_to_hass(hass)
 
