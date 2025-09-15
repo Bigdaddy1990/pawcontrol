@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
 
-DOMAIN = "pawcontrol"
+from .const import DOMAIN
 
 
 @callback
