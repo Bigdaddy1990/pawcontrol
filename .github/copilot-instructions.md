@@ -1,6 +1,6 @@
 # GitHub Copilot & Claude Code Instructions
 
-This repository contains the core of Home Assistant, a Python 3 based home automation application.
+This repository hosts the PawControl integration, a Home Assistant extension for smart dog management.
 
 ## Integration Quality Scale
 
@@ -92,11 +92,11 @@ rules:
 ### Core Locations
 - Shared constants: `homeassistant/const.py` (use these instead of hardcoding)
 - Integration structure:
-  - `homeassistant/components/{domain}/const.py` - Constants
-  - `homeassistant/components/{domain}/models.py` - Data models
-  - `homeassistant/components/{domain}/coordinator.py` - Update coordinator
-  - `homeassistant/components/{domain}/config_flow.py` - Configuration flow
-  - `homeassistant/components/{domain}/{platform}.py` - Platform implementations
+  - `custom_components/{domain}/const.py` - Constants
+  - `custom_components/{domain}/models.py` - Data models
+  - `custom_components/{domain}/coordinator.py` - Update coordinator
+  - `custom_components/{domain}/config_flow.py` - Configuration flow
+  - `custom_components/{domain}/{platform}.py` - Platform implementations
 
 ### Common Modules
 - **coordinator.py**: Centralize data fetching logic
@@ -148,8 +148,8 @@ rules:
 - **manifest.json**: Add GitHub usernames to `codeowners`:
   ```json
   {
-    "domain": "my_integration",
-    "name": "My Integration",
+    "domain": "pawcontrol",
+    "name": "PawControl",
     "codeowners": ["@me"]
   }
   ```
@@ -845,16 +845,16 @@ rules:
 ### Code Quality & Linting
 - **Run all linters on all files**: `pre-commit run --all-files`
 - **Run linters on staged files only**: `pre-commit run`
-- **PyLint on everything** (slow): `pylint homeassistant`
-- **PyLint on specific folder**: `pylint homeassistant/components/my_integration`
-- **MyPy type checking (whole project)**: `mypy homeassistant/`
-- **MyPy on specific integration**: `mypy homeassistant/components/my_integration`
+- **PyLint on everything** (slow): `pylint custom_components`
+- **PyLint on specific folder**: `pylint custom_components/pawcontrol`
+- **MyPy type checking (whole project)**: `mypy .`
+- **MyPy on specific integration**: `mypy custom_components/pawcontrol`
 
 ### Testing
 - **Integration-specific tests** (recommended):
   ```bash
   pytest ./tests/components/<integration_domain> \
-    --cov=homeassistant.components.<integration_domain> \
+    --cov=custom_components.<integration_domain> \
     --cov-report term-missing \
     --durations-min=1 \
     --durations=0 \
@@ -890,18 +890,18 @@ rules:
   ```
 
 ### File Locations
-- **Integration code**: `./homeassistant/components/<integration_domain>/`
+- **Integration code**: `./custom_components/<integration_domain>/`
 - **Integration tests**: `./tests/components/<integration_domain>/`
 
 ## Integration Templates
 
 ### Standard Integration Structure
 ```
-homeassistant/components/my_integration/
+custom_components/pawcontrol/
 ├── __init__.py          # Entry point with async_setup_entry
 ├── manifest.json        # Integration metadata and dependencies
-├── const.py            # Domain and constants
-├── config_flow.py      # UI configuration flow
+├── const.py             # Domain and constants
+├── config_flow.py       # UI configuration flow
 ├── coordinator.py      # Data update coordinator (if needed)
 ├── entity.py          # Base entity class (if shared patterns)
 ├── sensor.py          # Sensor platform
@@ -1104,7 +1104,7 @@ async def test_entities(
 def mock_config_entry() -> MockConfigEntry:
     """Return the default mocked config entry."""
     return MockConfigEntry(
-        title="My Integration",
+        title="PawControl",
         domain=DOMAIN,
         data={CONF_HOST: "127.0.0.1", CONF_API_KEY: "test_key"},
         unique_id="device_unique_id",
@@ -1113,7 +1113,7 @@ def mock_config_entry() -> MockConfigEntry:
 @pytest.fixture
 def mock_device_api() -> Generator[MagicMock]:
     """Return a mocked device API."""
-    with patch("homeassistant.components.my_integration.MyDeviceAPI", autospec=True) as api_mock:
+    with patch("custom_components.pawcontrol.MyDeviceAPI", autospec=True) as api_mock:
         api = api_mock.return_value
         api.get_data.return_value = MyDeviceData.from_json(
             load_fixture("device_data.json", DOMAIN)
@@ -1145,7 +1145,7 @@ async def init_integration(
 ### Debug Logging Setup
 ```python
 # Enable debug logging in tests
-caplog.set_level(logging.DEBUG, logger="my_integration")
+caplog.set_level(logging.DEBUG, logger="pawcontrol")
 
 # In integration code - use proper logging
 _LOGGER = logging.getLogger(__name__)
@@ -1155,13 +1155,13 @@ _LOGGER.debug("Processing data: %s", data)  # Use lazy logging
 ### Validation Commands
 ```bash
 # Check specific integration
-python -m script.hassfest --integration-path homeassistant/components/my_integration
+python -m script.hassfest --integration-path custom_components/pawcontrol
 
 # Validate quality scale
 # Check quality_scale.yaml against current rules
 
 # Run integration tests with coverage
-pytest ./tests/components/my_integration \
-  --cov=homeassistant.components.my_integration \
+pytest ./tests/components/pawcontrol \
+  --cov=custom_components.pawcontrol \
   --cov-report term-missing
 ```
