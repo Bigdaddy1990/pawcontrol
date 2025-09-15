@@ -1,4 +1,6 @@
 # custom_components/pawcontrol/system_health.py
+"""System health checks for the PawControl integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,11 +15,14 @@ DOMAIN = "pawcontrol"
 def async_register(
     hass: HomeAssistant, register: system_health.SystemHealthRegistration
 ) -> None:
+    """Register system health callbacks."""
+
     register.async_register_info(system_health_info)
 
 
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
-    # Beispiel: erste Config-Entry prüfen
+    """Return integration health information."""
+
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     runtime = getattr(entry, "runtime_data", None)
     api = getattr(runtime, "api", None)
