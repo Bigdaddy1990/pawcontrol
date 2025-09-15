@@ -1,4 +1,4 @@
-"""Core setup for the PawControl integration."""
+"""Core setup and platform initialization for the PawControl integration."""
 
 from __future__ import annotations
 
