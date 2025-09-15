@@ -1,16 +1,4 @@
-"""Optimized feeding management with health-integrated portion calculation.
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.0+
-Python: 3.13+
-
-Features:
-- Health-aware portion calculation
-- Advanced calorie management
-- Body condition score integration
-- Medical condition adjustments
-- Event-based reminders with caching
-"""
+"""Feeding management with health-aware portions for PawControl."""
 
 from __future__ import annotations
 
