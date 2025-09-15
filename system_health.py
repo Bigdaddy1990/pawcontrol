@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from custom_components.pawcontrol.const import DOMAIN
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
-
-DOMAIN = "pawcontrol"
 
 
 @callback
