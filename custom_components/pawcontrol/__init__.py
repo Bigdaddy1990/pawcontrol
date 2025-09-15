@@ -222,15 +222,25 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
     if unload_ok and runtime_data:
         # Clean shutdown of all managers
-        for manager in (
+        managers = [
             runtime_data.coordinator,
             runtime_data.data_manager,
             runtime_data.notification_manager,
             runtime_data.feeding_manager,
             runtime_data.walk_manager,
-        ):
-            if hasattr(manager, "async_shutdown"):
-                await manager.async_shutdown()
+        ]
+        shutdown_managers = [mgr for mgr in managers if hasattr(mgr, "async_shutdown")]
+        results = await asyncio.gather(
+            *(manager.async_shutdown() for manager in shutdown_managers),
+            return_exceptions=True,
+        )
+        for manager, result in zip(shutdown_managers, results, strict=True):
+            if isinstance(result, Exception):
+                _LOGGER.error(
+                    "Error shutting down %s: %s",
+                    manager.__class__.__name__,
+                    result,
+                )
         # No hass.data cleanup needed - only using entry.runtime_data
 
     return unload_ok
