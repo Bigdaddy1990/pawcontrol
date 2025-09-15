@@ -7,6 +7,7 @@ import inspect
 import logging
 import math
 import re
+import time as time_module
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime, time
 from functools import lru_cache, wraps
@@ -70,27 +71,42 @@ _TIME_AGO_THRESHOLDS: list[tuple[float, Callable[[float], str]]] = [
 
 
 def performance_monitor(timeout: float = CALCULATION_TIMEOUT) -> Callable:
-    """OPTIMIZED: Performance monitoring decorator with reduced overhead.
+    """Monitor execution time and enforce a timeout on async callables.
 
     Args:
-        timeout: Maximum execution time in seconds
+        timeout: Maximum execution time in seconds.
 
     Returns:
-        Decorated function with performance monitoring
+        Decorated function with performance logging and timeout handling.
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
         async def async_wrapper(*args, **kwargs) -> T:
+            start = time_module.perf_counter()
             try:
                 return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
             except TimeoutError:
                 _LOGGER.error("Function %s timed out after %ss", func.__name__, timeout)
                 raise
+            finally:
+                _LOGGER.debug(
+                    "%s executed in %.3fs",
+                    func.__name__,
+                    time_module.perf_counter() - start,
+                )
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs) -> T:
-            return func(*args, **kwargs)
+            start = time_module.perf_counter()
+            try:
+                return func(*args, **kwargs)
+            finally:
+                _LOGGER.debug(
+                    "%s executed in %.3fs",
+                    func.__name__,
+                    time_module.perf_counter() - start,
+                )
 
         return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
 
