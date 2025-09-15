@@ -1,8 +1,4 @@
-"""Sensor platform for the Paw Control integration with profile-based entity creation.
-
-Performance-optimized for Home Assistant 2025.9.0+ with Python 3.13.
-Reduces entity count from 54+ to 8-18 per dog using profile-based factory.
-"""
+"""Sensor platform for Paw Control integration."""
 
 from __future__ import annotations
 
@@ -56,7 +52,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the Paw Control sensor platform with profile-based entity creation."""
+    """Set up Paw Control sensor platform."""
 
     runtime_data = getattr(entry, "runtime_data", None)
 
@@ -219,10 +215,12 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
 
     @property
     def available(self) -> bool:
+        """Return True if the coordinator provides dog data."""
         return self.coordinator.available and self._get_dog_data() is not None
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for the sensor."""
         attrs: AttributeDict = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
@@ -668,6 +666,7 @@ class PawControlLastWalkSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> datetime | None:
+        """Return timestamp of the last walk."""
         walk_data = self._get_module_data("walk")
         if not walk_data:
             return None
@@ -697,6 +696,7 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return number of walks recorded today."""
         walk_data = self._get_module_data("walk")
         return walk_data.get("walks_today", 0) if walk_data else 0
 
@@ -717,6 +717,7 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return duration of the last walk in minutes."""
         walk_data = self._get_module_data("walk")
         return walk_data.get("last_walk_duration") if walk_data else None
 
@@ -772,6 +773,7 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return total walking time today in minutes."""
         walk_data = self._get_module_data("walk")
         return walk_data.get("total_duration_today", 0) if walk_data else 0
 
@@ -791,6 +793,7 @@ class PawControlWeeklyWalkCountSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return number of walks recorded this week."""
         walk_data = self._get_module_data("walk")
         return walk_data.get("weekly_walks", 0) if walk_data else 0
 
@@ -812,6 +815,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return average walk duration in minutes."""
         walk_data = self._get_module_data("walk")
         return walk_data.get("average_duration") if walk_data else None
 
@@ -827,6 +831,7 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> str:
+        """Return current GPS zone for the dog."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("zone", STATE_UNKNOWN) if gps_data else STATE_UNKNOWN
 
@@ -847,6 +852,7 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return distance from home in meters."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("distance_from_home") if gps_data else None
 
@@ -867,6 +873,7 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return current speed in km/h."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("current_speed") if gps_data else None
 
@@ -887,6 +894,7 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return GPS accuracy in meters."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("accuracy") if gps_data else None
 
@@ -907,6 +915,7 @@ class PawControlTotalDistanceTodaySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float:
+        """Return total distance travelled today in meters."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("total_distance_today", 0.0) if gps_data else 0.0
 
@@ -928,6 +937,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return GPS tracker battery level in percent."""
         gps_data = self._get_module_data("gps")
         return gps_data.get("battery") if gps_data else None
 
@@ -949,6 +959,7 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> str:
+        """Return overall health status."""
         health_data = self._get_module_data("health")
         return (
             health_data.get("health_status", "good") if health_data else STATE_UNKNOWN
@@ -972,6 +983,7 @@ class PawControlWeightSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return current weight in kilograms."""
         health_data = self._get_module_data("health")
         return health_data.get("weight") if health_data else None
 
@@ -1015,6 +1027,7 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> str:
+        """Return current weight trend."""
         health_data = self._get_module_data("health")
         return (
             health_data.get("weight_trend", "stable") if health_data else STATE_UNKNOWN
@@ -1036,6 +1049,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> datetime | None:
+        """Return timestamp of the last veterinary visit."""
         health_data = self._get_module_data("health")
         if not health_data:
             return None
@@ -1167,6 +1181,7 @@ class PawControlDaysSinceGroomingSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return days since last grooming."""
         grooming_data = self._get_module_data("grooming")
         if not grooming_data:
             return None
