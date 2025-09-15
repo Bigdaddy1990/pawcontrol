@@ -25,7 +25,13 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return {"info": "No PawControl config entries found"}
+if runtime is None or api is None:
+    return {
+        "can_reach_backend": {"type": "failed", "error": "api_unavailable"},
+        "remaining_quota": "unknown",
+    }
 
+return {
     entry = entries[0]
     runtime = getattr(entry, "runtime_data", None)
     api = getattr(runtime, "api", None)
