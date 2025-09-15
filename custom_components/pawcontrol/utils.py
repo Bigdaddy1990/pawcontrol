@@ -1,16 +1,4 @@
-"""Optimized utility functions for Paw Control integration.
-
-OPTIMIZED for HA 2025.9.1+ with enhanced performance patterns:
-- Reduced memory allocation
-- Faster async operations
-- Streamlined imports
-- Better type safety
-- Enhanced error handling
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.1+
-Python: 3.13+
-"""
+"""Utility helpers for the PawControl integration."""
 
 from __future__ import annotations
 
