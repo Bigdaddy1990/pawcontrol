@@ -22,9 +22,16 @@ def async_register(
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     """Return integration health information."""
 
-    entries = hass.config_entries.async_entries(DOMAIN)
+    entries = hass.config_entries.async_entries(DOMAIN) or []
+    if not isinstance(entries, (list, tuple)):
+        entries = list(entries)
+
     if not entries:
-        return {"info": "No PawControl config entries found"}
+        return {
+            "info": "No PawControl config entries found",
+            "can_reach_backend": {"type": "failed", "error": "no_entries"},
+            "remaining_quota": "unknown",
+        }
 
     # Prefer an entry that has initialized runtime data
     entry = next((e for e in entries if getattr(e, "runtime_data", None)), entries[0])
@@ -33,6 +40,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     api = getattr(runtime, "api", None)
     if runtime is None or api is None:
         return {
+            "info": "PawControl runtime data not initialized",
             "can_reach_backend": {"type": "failed", "error": "api_unavailable"},
             "remaining_quota": "unknown",
         }
