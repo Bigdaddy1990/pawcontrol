@@ -12,6 +12,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_WEIGHT,
     DOMAIN,
 )
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -71,7 +72,7 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
         result["flow_id"], user_input={"entity_profile": "standard"}
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "My Pack (Standard)"
+    assert result["title"] == f"My Pack ({ENTITY_PROFILES['standard']['name']})"
     assert result["data"]["name"] == "My Pack"
     assert result["data"]["dogs"][0][CONF_DOG_ID] == "fido"
 
@@ -138,6 +139,7 @@ async def test_reauth_confirm(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
+    assert entry.reauth_successful is True
 
 
 @pytest.mark.asyncio
