@@ -1,13 +1,4 @@
-"""Simplified configuration flow for Paw Control integration.
-
-SIMPLIFIED: Collapsed 5 mixin inheritance chain into single class.
-Removed ValidationCache, complex async patterns, enterprise features.
-Maintains core functionality: per-dog config, entity profiles, module selection.
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.1+
-Python: 3.13+
-"""
+"""Config flow for PawControl integration."""
 
 from __future__ import annotations
 

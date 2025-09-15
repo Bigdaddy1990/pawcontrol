@@ -1,12 +1,4 @@
-"""Simplified coordinator for PawControl integration.
-
-SIMPLIFIED: Removed enterprise patterns (7+ managers, batch processing, performance monitoring).
-Maintains core DataUpdateCoordinator functionality with basic dog data management.
-
-Quality Scale: Platinum
-Home Assistant: 2025.9.1+
-Python: 3.13+
-"""
+"""Coordinator for PawControl integration."""
 
 from __future__ import annotations
 
@@ -41,7 +33,7 @@ STATE_ONLINE = "online"
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Simplified coordinator for PawControl integration.
+    """Coordinator for PawControl integration.
 
     Responsibilities:
     - Fetch and coordinate dog data updates
