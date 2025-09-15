@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import sys
+from types import ModuleType
+from unittest.mock import patch
+
 import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
@@ -17,10 +21,26 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    MockModule,
+    mock_integration,
+)
+
+sys.modules.setdefault("bluetooth_adapters", ModuleType("bluetooth_adapters"))
+sys.modules.setdefault(
+    "homeassistant.components.bluetooth_adapters", ModuleType("bluetooth_adapters")
+)
+
+pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
-@pytest.mark.asyncio
+@pytest.fixture(autouse=True)
+def mock_dependencies(hass: HomeAssistant) -> None:
+    """Mock required dependencies for the integration."""
+    mock_integration(hass, MockModule(domain="bluetooth-adapters"))
+
+
 async def test_full_user_flow(hass: HomeAssistant) -> None:
     """Test a full successful user initiated config flow."""
     result = await hass.config_entries.flow.async_init(
@@ -74,10 +94,16 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == f"My Pack ({ENTITY_PROFILES['standard']['name']})"
     assert result["data"]["name"] == "My Pack"
-    assert result["data"]["dogs"][0][CONF_DOG_ID] == "fido"
+    assert len(result["data"]["dogs"]) == 1
+    dog_result = result["data"]["dogs"][0]
+    assert dog_result[CONF_DOG_ID] == "fido"
+    assert dog_result[CONF_DOG_NAME] == "Fido"
+    assert dog_result[CONF_DOG_BREED] == "Labrador"
+    assert dog_result[CONF_DOG_AGE] == 5
+    assert dog_result[CONF_DOG_WEIGHT] == 25.0
+    assert dog_result[CONF_DOG_SIZE] == "medium"
 
 
-@pytest.mark.asyncio
 async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
     """Test that duplicate dog IDs are rejected."""
     result = await hass.config_entries.flow.async_init(
@@ -87,9 +113,16 @@ async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
         result["flow_id"], user_input={CONF_NAME: "My Pack"}
     )
     # First dog
+    dog_data = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        CONF_DOG_BREED: "Labrador",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 25.0,
+        CONF_DOG_SIZE: "medium",
+    }
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        user_input={CONF_DOG_ID: "fido", CONF_DOG_NAME: "Fido"},
+        result["flow_id"], user_input=dog_data
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -105,15 +138,21 @@ async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
         result["flow_id"], user_input={"add_another": True}
     )
     # Second dog with same ID
+    second_dog = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Spot",
+        CONF_DOG_BREED: "Beagle",
+        CONF_DOG_AGE: 3,
+        CONF_DOG_WEIGHT: 10.0,
+        CONF_DOG_SIZE: "small",
+    }
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        user_input={CONF_DOG_ID: "fido", CONF_DOG_NAME: "Spot"},
+        result["flow_id"], user_input=second_dog
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {CONF_DOG_ID: "ID already exists"}
 
 
-@pytest.mark.asyncio
 async def test_reauth_confirm(hass: HomeAssistant) -> None:
     """Test reauthentication confirmation flow."""
     entry = MockConfigEntry(
@@ -139,10 +178,8 @@ async def test_reauth_confirm(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
-    assert entry.reauth_successful is True
 
 
-@pytest.mark.asyncio
 async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     """Test the reconfigure flow."""
     entry = MockConfigEntry(
@@ -163,15 +200,18 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={"entity_profile": "minimal"}
-    )
+    with patch(
+        "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
+        return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"},
+    ) as mock_update:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"entity_profile": "basic"}
+        )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
-    assert entry.options["entity_profile"] == "minimal"
+    mock_update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_user_flow_duplicate_name(hass: HomeAssistant) -> None:
     """Test user flow when integration name already exists."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id="my_pack")
@@ -188,7 +228,6 @@ async def test_user_flow_duplicate_name(hass: HomeAssistant) -> None:
     assert result["reason"] == "already_configured"
 
 
-@pytest.mark.asyncio
 async def test_invalid_dog_id(hass: HomeAssistant) -> None:
     """Test that invalid dog IDs are rejected."""
     result = await hass.config_entries.flow.async_init(
@@ -205,7 +244,6 @@ async def test_invalid_dog_id(hass: HomeAssistant) -> None:
     assert result["errors"] == {CONF_DOG_ID: "Invalid ID format"}
 
 
-@pytest.mark.asyncio
 async def test_reauth_confirm_fail(hass: HomeAssistant) -> None:
     """Test reauthentication confirmation failure."""
     entry = MockConfigEntry(

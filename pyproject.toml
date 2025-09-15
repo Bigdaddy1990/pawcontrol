@@ -20,7 +20,7 @@ asyncio_mode = "auto"
 filterwarnings = [
     "error",
     "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
-    "ignore:.*async fixture 'hass'.*:pytest.PytestRemovedIn9Warning",
+    "ignore:.*async fixture 'hass'.*:pytest.PytestRemovedIn9Warning",  # TODO: replace deprecated fixture before pytest 9
     "ignore:asyncio test '.*' requested async @pytest.fixture 'hass' in strict mode.*:pytest.PytestDeprecationWarning",
 ]
 
