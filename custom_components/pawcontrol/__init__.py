@@ -9,7 +9,7 @@ from typing import Any, Final
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
@@ -122,7 +122,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     Raises:
         ConfigEntryNotReady: If setup prerequisites not met
-        ConfigEntryAuthFailed: If authentication fails (future use)
     """
     _LOGGER.debug("Setting up Paw Control integration entry: %s", entry.entry_id)
 
