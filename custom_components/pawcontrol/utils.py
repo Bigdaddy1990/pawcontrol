@@ -138,18 +138,11 @@ def validate_dog_id(dog_id: str) -> ValidationResult:
     return True, None
 
 
-async def async_validate_coordinates(
+def validate_coordinates(
     latitude: NumericType, longitude: NumericType
 ) -> ValidationResult:
-    """OPTIMIZED: Fast coordinate validation with range checks.
+    """Validate coordinate values with range checks."""
 
-    Args:
-        latitude: Latitude coordinate
-        longitude: Longitude coordinate
-
-    Returns:
-        Tuple of (is_valid, error_message)
-    """
     try:
         lat, lon = float(latitude), float(longitude)
 
@@ -749,7 +742,6 @@ __all__ = (
     "async_batch_validate",
     # Calculations
     "async_calculate_haversine_distance",
-    "async_validate_coordinates",
     "calculate_bmr_advanced",
     "calculate_trend_advanced",
     # Utilities
@@ -770,6 +762,7 @@ __all__ = (
     "safe_int",
     "safe_str",
     "sanitize_filename_advanced",
+    "validate_coordinates",
     # Core validation
     "validate_dog_id",
     "validate_enum_value",
