@@ -22,7 +22,11 @@ def async_register(
 async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     """Return integration health information."""
 
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        return {"info": "No PawControl config entries found"}
+
+    entry = entries[0]
     runtime = getattr(entry, "runtime_data", None)
     api = getattr(runtime, "api", None)
     return {
