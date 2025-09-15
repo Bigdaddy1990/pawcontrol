@@ -1,22 +1,13 @@
-"""Enhanced health calculator for advanced portion calculation and health metrics.
+"""Health metrics utilities for PawControl.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.0+
-Python: 3.13+
-
-Provides comprehensive health metrics for dogs including:
-- Body condition scoring
-- Calorie requirement calculations
-- Age and activity-based adjustments
-- Health condition considerations
-- Weight management recommendations
-- Diet validation integration
+Provides body condition scoring, calorie calculations and weight management
+recommendations for dogs.
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
@@ -76,23 +67,14 @@ class HealthMetrics:
     life_stage: LifeStage | None = None
 
     # Health conditions
-    health_conditions: list[str] = None
-    medications: list[str] = None
-    special_diet: list[str] = None
+    health_conditions: list[str] = field(default_factory=list)
+    medications: list[str] = field(default_factory=list)
+    special_diet: list[str] = field(default_factory=list)
 
     # Calculated values
     daily_calorie_requirement: float | None = None
     portion_adjustment_factor: float = 1.0
     weight_goal: str | None = None  # "maintain", "lose", "gain"
-
-    def __post_init__(self) -> None:
-        """Initialize default values."""
-        if self.health_conditions is None:
-            self.health_conditions = []
-        if self.medications is None:
-            self.medications = []
-        if self.special_diet is None:
-            self.special_diet = []
 
 
 class HealthCalculator:
