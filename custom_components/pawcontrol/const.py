@@ -19,14 +19,14 @@ from homeassistant.const import Platform
 from homeassistant.helpers import selector
 
 # OPTIMIZED: Storage versions for data persistence
-STORAGE_VERSION: Final = 1
-DASHBOARD_STORAGE_VERSION: Final = 1
+STORAGE_VERSION: Final[int] = 1
+DASHBOARD_STORAGE_VERSION: Final[int] = 1
 
 # OPTIMIZED: Core integration identifiers
-DOMAIN: Final = "pawcontrol"
+DOMAIN: Final[str] = "pawcontrol"
 
 # OPTIMIZED: Platforms as tuple for immutability and better performance
-PLATFORMS: Final = (
+PLATFORMS: Final[tuple[Platform, ...]] = (
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
@@ -40,7 +40,7 @@ PLATFORMS: Final = (
 )
 
 # OPTIMIZED: Supported device categories as tuple for immutability
-DEVICE_CATEGORIES: Final = (
+DEVICE_CATEGORIES: Final[tuple[str, ...]] = (
     "gps_tracker",
     "smart_feeder",
     "activity_monitor",
@@ -53,113 +53,111 @@ DEVICE_CATEGORIES: Final = (
 )
 
 # OPTIMIZED: Core configuration constants - grouped for better locality
-CONF_NAME: Final = "name"
-CONF_DOGS: Final = "dogs"
-CONF_DOG_ID: Final = "dog_id"
-CONF_DOG_NAME: Final = "dog_name"
-CONF_DOG_BREED: Final = "dog_breed"
-CONF_DOG_AGE: Final = "dog_age"
-CONF_DOG_WEIGHT: Final = "dog_weight"
-CONF_DOG_SIZE: Final = "dog_size"
-CONF_DOG_COLOR: Final = "dog_color"
+CONF_NAME: Final[str] = "name"
+CONF_DOGS: Final[str] = "dogs"
+CONF_DOG_ID: Final[str] = "dog_id"
+CONF_DOG_NAME: Final[str] = "dog_name"
+CONF_DOG_BREED: Final[str] = "dog_breed"
+CONF_DOG_AGE: Final[str] = "dog_age"
+CONF_DOG_WEIGHT: Final[str] = "dog_weight"
+CONF_DOG_SIZE: Final[str] = "dog_size"
+CONF_DOG_COLOR: Final[str] = "dog_color"
 
 # OPTIMIZED: Module configuration as frozenset for fast lookups
-CONF_MODULES: Final = "modules"
-MODULE_GPS: Final = "gps"
-MODULE_FEEDING: Final = "feeding"
-MODULE_HEALTH: Final = "health"
-MODULE_WALK: Final = "walk"
-MODULE_NOTIFICATIONS: Final = "notifications"
-MODULE_DASHBOARD: Final = "dashboard"
-MODULE_VISITOR: Final = "visitor"
-MODULE_GROOMING: Final = "grooming"
-MODULE_MEDICATION: Final = "medication"
-MODULE_TRAINING: Final = "training"
+CONF_MODULES: Final[str] = "modules"
+MODULE_GPS: Final[str] = "gps"
+MODULE_FEEDING: Final[str] = "feeding"
+MODULE_HEALTH: Final[str] = "health"
+MODULE_WALK: Final[str] = "walk"
+MODULE_NOTIFICATIONS: Final[str] = "notifications"
+MODULE_DASHBOARD: Final[str] = "dashboard"
+MODULE_VISITOR: Final[str] = "visitor"
+MODULE_GROOMING: Final[str] = "grooming"
+MODULE_MEDICATION: Final[str] = "medication"
+MODULE_TRAINING: Final[str] = "training"
 
 # OPTIMIZED: All modules as frozenset for O(1) membership testing
-ALL_MODULES: Final = frozenset(
-    [
-        MODULE_GPS,
-        MODULE_FEEDING,
-        MODULE_HEALTH,
-        MODULE_WALK,
-        MODULE_NOTIFICATIONS,
-        MODULE_DASHBOARD,
-        MODULE_VISITOR,
-        MODULE_GROOMING,
-        MODULE_MEDICATION,
-        MODULE_TRAINING,
-    ]
-)
+ALL_MODULES: Final[frozenset[str]] = frozenset([
+    MODULE_GPS,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MODULE_NOTIFICATIONS,
+    MODULE_DASHBOARD,
+    MODULE_VISITOR,
+    MODULE_GROOMING,
+    MODULE_MEDICATION,
+    MODULE_TRAINING,
+])
 
 # OPTIMIZED: Source entities configuration
-CONF_SOURCES: Final = "sources"
-CONF_DOOR_SENSOR: Final = "door_sensor"
-CONF_PERSON_ENTITIES: Final = "person_entities"
-CONF_DEVICE_TRACKERS: Final = "device_trackers"
-CONF_NOTIFY_FALLBACK: Final = "notify_fallback"
-CONF_CALENDAR: Final = "calendar"
-CONF_WEATHER: Final = "weather"
+CONF_SOURCES: Final[str] = "sources"
+CONF_DOOR_SENSOR: Final[str] = "door_sensor"
+CONF_PERSON_ENTITIES: Final[str] = "person_entities"
+CONF_DEVICE_TRACKERS: Final[str] = "device_trackers"
+CONF_NOTIFY_FALLBACK: Final[str] = "notify_fallback"
+CONF_CALENDAR: Final[str] = "calendar"
+CONF_WEATHER: Final[str] = "weather"
 
 # OPTIMIZED: GPS configuration constants
-CONF_GPS_SOURCE: Final = "gps_source"
-CONF_GPS_UPDATE_INTERVAL: Final = "gps_update_interval"
-CONF_GPS_ACCURACY_FILTER: Final = "gps_accuracy_filter"
-CONF_GPS_DISTANCE_FILTER: Final = "gps_distance_filter"
-CONF_HOME_ZONE_RADIUS: Final = "home_zone_radius"
-CONF_AUTO_WALK_DETECTION: Final = "auto_walk_detection"
-CONF_GEOFENCING: Final = "geofencing"
-CONF_GEOFENCE_ZONES: Final = "geofence_zones"
+CONF_GPS_SOURCE: Final[str] = "gps_source"
+CONF_GPS_UPDATE_INTERVAL: Final[str] = "gps_update_interval"
+CONF_GPS_ACCURACY_FILTER: Final[str] = "gps_accuracy_filter"
+CONF_GPS_DISTANCE_FILTER: Final[str] = "gps_distance_filter"
+CONF_HOME_ZONE_RADIUS: Final[str] = "home_zone_radius"
+CONF_AUTO_WALK_DETECTION: Final[str] = "auto_walk_detection"
+CONF_GEOFENCING: Final[str] = "geofencing"
+CONF_GEOFENCE_ZONES: Final[str] = "geofence_zones"
 
 # OPTIMIZED: Notification configuration
-CONF_NOTIFICATIONS: Final = "notifications"
-CONF_QUIET_HOURS: Final = "quiet_hours"
-CONF_QUIET_START: Final = "quiet_start"
-CONF_QUIET_END: Final = "quiet_end"
-CONF_REMINDER_REPEAT_MIN: Final = "reminder_repeat_min"
-CONF_SNOOZE_MIN: Final = "snooze_min"
-CONF_PRIORITY_NOTIFICATIONS: Final = "priority_notifications"
+CONF_NOTIFICATIONS: Final[str] = "notifications"
+CONF_QUIET_HOURS: Final[str] = "quiet_hours"
+CONF_QUIET_START: Final[str] = "quiet_start"
+CONF_QUIET_END: Final[str] = "quiet_end"
+CONF_REMINDER_REPEAT_MIN: Final[str] = "reminder_repeat_min"
+CONF_SNOOZE_MIN: Final[str] = "snooze_min"
+CONF_PRIORITY_NOTIFICATIONS: Final[str] = "priority_notifications"
 
 # OPTIMIZED: Feeding configuration
-CONF_FEEDING_TIMES: Final = "feeding_times"
-CONF_BREAKFAST_TIME: Final = "breakfast_time"
-CONF_LUNCH_TIME: Final = "lunch_time"
-CONF_DINNER_TIME: Final = "dinner_time"
-CONF_SNACK_TIMES: Final = "snack_times"
-CONF_DAILY_FOOD_AMOUNT: Final = "daily_food_amount"
-CONF_MEALS_PER_DAY: Final = "meals_per_day"
-CONF_FOOD_TYPE: Final = "food_type"
-CONF_SPECIAL_DIET: Final = "special_diet"
-CONF_FEEDING_SCHEDULE_TYPE: Final = "feeding_schedule_type"
-CONF_PORTION_CALCULATION: Final = "portion_calculation"
-CONF_MEDICATION_WITH_MEALS: Final = "medication_with_meals"
+CONF_FEEDING_TIMES: Final[str] = "feeding_times"
+CONF_BREAKFAST_TIME: Final[str] = "breakfast_time"
+CONF_LUNCH_TIME: Final[str] = "lunch_time"
+CONF_DINNER_TIME: Final[str] = "dinner_time"
+CONF_SNACK_TIMES: Final[str] = "snack_times"
+CONF_DAILY_FOOD_AMOUNT: Final[str] = "daily_food_amount"
+CONF_MEALS_PER_DAY: Final[str] = "meals_per_day"
+CONF_FOOD_TYPE: Final[str] = "food_type"
+CONF_SPECIAL_DIET: Final[str] = "special_diet"
+CONF_FEEDING_SCHEDULE_TYPE: Final[str] = "feeding_schedule_type"
+CONF_PORTION_CALCULATION: Final[str] = "portion_calculation"
+CONF_MEDICATION_WITH_MEALS: Final[str] = "medication_with_meals"
 
 # OPTIMIZED: Health configuration
-CONF_HEALTH_TRACKING: Final = "health_tracking"
-CONF_WEIGHT_TRACKING: Final = "weight_tracking"
-CONF_MEDICATION_REMINDERS: Final = "medication_reminders"
-CONF_VET_REMINDERS: Final = "vet_reminders"
-CONF_GROOMING_INTERVAL: Final = "grooming_interval"
+CONF_HEALTH_TRACKING: Final[str] = "health_tracking"
+CONF_WEIGHT_TRACKING: Final[str] = "weight_tracking"
+CONF_MEDICATION_REMINDERS: Final[str] = "medication_reminders"
+CONF_VET_REMINDERS: Final[str] = "vet_reminders"
+CONF_GROOMING_INTERVAL: Final[str] = "grooming_interval"
 
 # OPTIMIZED: System configuration
-CONF_RESET_TIME: Final = "reset_time"
-CONF_DASHBOARD_MODE: Final = "dashboard_mode"
-CONF_DATA_RETENTION_DAYS: Final = "data_retention_days"
-CONF_AUTO_BACKUP: Final = "auto_backup"
+CONF_RESET_TIME: Final[str] = "reset_time"
+CONF_DASHBOARD_MODE: Final[str] = "dashboard_mode"
+CONF_DATA_RETENTION_DAYS: Final[str] = "data_retention_days"
+CONF_AUTO_BACKUP: Final[str] = "auto_backup"
 
 # OPTIMIZED: Default values as immutable constants
-DEFAULT_RESET_TIME: Final = "23:59:00"
-DEFAULT_GPS_UPDATE_INTERVAL: Final = 60
-DEFAULT_GPS_ACCURACY_FILTER: Final = 100
-DEFAULT_GPS_DISTANCE_FILTER: Final = 10
-DEFAULT_HOME_ZONE_RADIUS: Final = 50
-DEFAULT_REMINDER_REPEAT_MIN: Final = 30
-DEFAULT_SNOOZE_MIN: Final = 15
-DEFAULT_DATA_RETENTION_DAYS: Final = 90
-DEFAULT_GROOMING_INTERVAL: Final = 28
+DEFAULT_RESET_TIME: Final[str] = "23:59:00"
+DEFAULT_GPS_UPDATE_INTERVAL: Final[int] = 60
+DEFAULT_GPS_ACCURACY_FILTER: Final[int] = 100
+DEFAULT_GPS_DISTANCE_FILTER: Final[int] = 10
+DEFAULT_HOME_ZONE_RADIUS: Final[int] = 50
+DEFAULT_REMINDER_REPEAT_MIN: Final[int] = 30
+DEFAULT_SNOOZE_MIN: Final[int] = 15
+DEFAULT_DATA_RETENTION_DAYS: Final[int] = 90
+DEFAULT_GROOMING_INTERVAL: Final[int] = 28
 
 # OPTIMIZED: Reusable selector configurations
-GPS_UPDATE_INTERVAL_SELECTOR: Final = selector.NumberSelector(
+GPS_UPDATE_INTERVAL_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
     selector.NumberSelectorConfig(
         min=30,
         max=600,
@@ -169,7 +167,7 @@ GPS_UPDATE_INTERVAL_SELECTOR: Final = selector.NumberSelector(
     )
 )
 
-GPS_ACCURACY_FILTER_SELECTOR: Final = selector.NumberSelector(
+GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
     selector.NumberSelectorConfig(
         min=5,
         max=500,
@@ -179,11 +177,17 @@ GPS_ACCURACY_FILTER_SELECTOR: Final = selector.NumberSelector(
     )
 )
 
-# Food types represented as a list for easier mutation in tests
-FOOD_TYPES: Final = ["dry_food", "wet_food", "barf", "home_cooked", "mixed"]
+# OPTIMIZED: Food types as tuple for immutability (better performance than list)
+FOOD_TYPES: Final[tuple[str, ...]] = (
+    "dry_food", 
+    "wet_food", 
+    "barf", 
+    "home_cooked", 
+    "mixed"
+)
 
 # OPTIMIZED: Special diet options as tuple
-SPECIAL_DIET_OPTIONS: Final = (
+SPECIAL_DIET_OPTIONS: Final[tuple[str, ...]] = (
     "grain_free",
     "hypoallergenic",
     "low_fat",
@@ -200,16 +204,32 @@ SPECIAL_DIET_OPTIONS: Final = (
     "joint_support",
 )
 
-# OPTIMIZED: Schedule types as tuple
-# Feeding schedule and meal types as lists to match test expectations
-FEEDING_SCHEDULE_TYPES: Final = ["flexible", "strict", "custom"]
-MEAL_TYPES: Final = ["breakfast", "lunch", "dinner", "snack"]
+# OPTIMIZED: Schedule types as tuple for better performance
+FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = (
+    "flexible", 
+    "strict", 
+    "custom"
+)
 
-# Dog sizes defined as list for consistency with tests
-DOG_SIZES: Final = ["toy", "small", "medium", "large", "giant"]
+# OPTIMIZED: Meal types as tuple
+MEAL_TYPES: Final[tuple[str, ...]] = (
+    "breakfast", 
+    "lunch", 
+    "dinner", 
+    "snack"
+)
+
+# OPTIMIZED: Dog sizes as tuple for consistency and performance
+DOG_SIZES: Final[tuple[str, ...]] = (
+    "toy", 
+    "small", 
+    "medium", 
+    "large", 
+    "giant"
+)
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
-DOG_SIZE_WEIGHT_RANGES: Final = {
+DOG_SIZE_WEIGHT_RANGES: Final[dict[str, tuple[float, float]]] = {
     "toy": (1.0, 6.0),
     "small": (4.0, 15.0),
     "medium": (8.0, 30.0),
@@ -217,8 +237,8 @@ DOG_SIZE_WEIGHT_RANGES: Final = {
     "giant": (35.0, 90.0),
 }
 
-# GPS sources represented as a list
-GPS_SOURCES: Final = [
+# OPTIMIZED: GPS sources as tuple
+GPS_SOURCES: Final[tuple[str, ...]] = (
     "manual",
     "device_tracker",
     "person_entity",
@@ -226,25 +246,39 @@ GPS_SOURCES: Final = [
     "tractive",
     "webhook",
     "mqtt",
-]
+)
 
-# Status and mood options stored as lists
-HEALTH_STATUS_OPTIONS: Final = [
+# OPTIMIZED: Status and mood options as tuples
+HEALTH_STATUS_OPTIONS: Final[tuple[str, ...]] = (
     "excellent",
     "very_good",
     "good",
     "normal",
     "unwell",
     "sick",
-]
+)
 
-MOOD_OPTIONS: Final = ["happy", "neutral", "sad", "angry", "anxious", "tired"]
+MOOD_OPTIONS: Final[tuple[str, ...]] = (
+    "happy", 
+    "neutral", 
+    "sad", 
+    "angry", 
+    "anxious", 
+    "tired"
+)
 
-ACTIVITY_LEVELS: Final = ["very_low", "low", "normal", "high", "very_high"]
+ACTIVITY_LEVELS: Final[tuple[str, ...]] = (
+    "very_low", 
+    "low", 
+    "normal", 
+    "high", 
+    "very_high"
+)
 
 # OPTIMIZED: Dashboard configuration
-DASHBOARD_MODES: Final = ("full", "cards", "minimal")
-DASHBOARD_MODE_SELECTOR_OPTIONS: Final = [
+DASHBOARD_MODES: Final[tuple[str, ...]] = ("full", "cards", "minimal")
+
+DASHBOARD_MODE_SELECTOR_OPTIONS: Final[tuple[dict[str, str], ...]] = (
     {
         "value": "full",
         "label": "Full - Complete dashboard with all features",
@@ -257,131 +291,129 @@ DASHBOARD_MODE_SELECTOR_OPTIONS: Final = [
         "value": "minimal",
         "label": "Minimal - Essential information only",
     },
-]
-
-CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
-CONF_DASHBOARD_AUTO_CREATE: Final = "dashboard_auto_create"
-CONF_DASHBOARD_THEME: Final = "dashboard_theme"
-CONF_DASHBOARD_CARDS: Final = "dashboard_cards"
-CONF_DASHBOARD_VIEWS: Final = "dashboard_views"
-CONF_DASHBOARD_PER_DOG: Final = "dashboard_per_dog"
-
-# OPTIMIZED: Dashboard defaults
-DEFAULT_DASHBOARD_ENABLED: Final = True
-DEFAULT_DASHBOARD_AUTO_CREATE: Final = True
-DEFAULT_DASHBOARD_THEME: Final = "default"
-DEFAULT_DASHBOARD_MODE: Final = "full"
-
-# OPTIMIZED: Performance modes as tuple
-PERFORMANCE_MODES: Final = ("minimal", "balanced", "full")
-
-# OPTIMIZED: Service names - grouped by functionality
-SERVICE_FEED_DOG: Final = "feed_dog"
-SERVICE_START_WALK: Final = "start_walk"
-SERVICE_END_WALK: Final = "end_walk"
-SERVICE_LOG_POOP: Final = "log_poop"
-SERVICE_LOG_HEALTH: Final = "log_health_data"
-SERVICE_LOG_MEDICATION: Final = "log_medication"
-SERVICE_START_GROOMING: Final = "start_grooming"
-SERVICE_TOGGLE_VISITOR_MODE: Final = "toggle_visitor_mode"
-SERVICE_NOTIFY_TEST: Final = "notify_test"
-SERVICE_DAILY_RESET: Final = "daily_reset"
-SERVICE_GENERATE_REPORT: Final = "generate_report"
-SERVICE_GPS_START_WALK: Final = "gps_start_walk"
-SERVICE_GPS_END_WALK: Final = "gps_end_walk"
-SERVICE_GPS_POST_LOCATION: Final = "gps_post_location"
-SERVICE_GPS_EXPORT_ROUTE: Final = "gps_export_last_route"
-
-# OPTIMIZED: Core services as frozenset for fast lookup
-CORE_SERVICES: Final = frozenset(
-    [
-        SERVICE_FEED_DOG,
-        SERVICE_START_WALK,
-        SERVICE_END_WALK,
-        SERVICE_LOG_HEALTH,
-        SERVICE_NOTIFY_TEST,
-    ]
 )
 
+CONF_DASHBOARD_ENABLED: Final[str] = "dashboard_enabled"
+CONF_DASHBOARD_AUTO_CREATE: Final[str] = "dashboard_auto_create"
+CONF_DASHBOARD_THEME: Final[str] = "dashboard_theme"
+CONF_DASHBOARD_CARDS: Final[str] = "dashboard_cards"
+CONF_DASHBOARD_VIEWS: Final[str] = "dashboard_views"
+CONF_DASHBOARD_PER_DOG: Final[str] = "dashboard_per_dog"
+
+# OPTIMIZED: Dashboard defaults
+DEFAULT_DASHBOARD_ENABLED: Final[bool] = True
+DEFAULT_DASHBOARD_AUTO_CREATE: Final[bool] = True
+DEFAULT_DASHBOARD_THEME: Final[str] = "default"
+DEFAULT_DASHBOARD_MODE: Final[str] = "full"
+
+# OPTIMIZED: Performance modes as tuple
+PERFORMANCE_MODES: Final[tuple[str, ...]] = ("minimal", "balanced", "full")
+
+# OPTIMIZED: Service names - grouped by functionality
+SERVICE_FEED_DOG: Final[str] = "feed_dog"
+SERVICE_START_WALK: Final[str] = "start_walk"
+SERVICE_END_WALK: Final[str] = "end_walk"
+SERVICE_LOG_POOP: Final[str] = "log_poop"
+SERVICE_LOG_HEALTH: Final[str] = "log_health_data"
+SERVICE_LOG_MEDICATION: Final[str] = "log_medication"
+SERVICE_START_GROOMING: Final[str] = "start_grooming"
+SERVICE_TOGGLE_VISITOR_MODE: Final[str] = "toggle_visitor_mode"
+SERVICE_NOTIFY_TEST: Final[str] = "notify_test"
+SERVICE_DAILY_RESET: Final[str] = "daily_reset"
+SERVICE_GENERATE_REPORT: Final[str] = "generate_report"
+SERVICE_GPS_START_WALK: Final[str] = "gps_start_walk"
+SERVICE_GPS_END_WALK: Final[str] = "gps_end_walk"
+SERVICE_GPS_POST_LOCATION: Final[str] = "gps_post_location"
+SERVICE_GPS_EXPORT_ROUTE: Final[str] = "gps_export_last_route"
+
+# OPTIMIZED: Core services as frozenset for fast lookup
+CORE_SERVICES: Final[frozenset[str]] = frozenset([
+    SERVICE_FEED_DOG,
+    SERVICE_START_WALK,
+    SERVICE_END_WALK,
+    SERVICE_LOG_HEALTH,
+    SERVICE_NOTIFY_TEST,
+])
+
 # OPTIMIZED: Entity and event identifiers
-ENTITY_ID_FORMAT: Final = "pawcontrol_{dog_id}_{entity_type}_{purpose}"
+ENTITY_ID_FORMAT: Final[str] = "pawcontrol_{dog_id}_{entity_type}_{purpose}"
 
 # OPTIMIZED: Event types as constants
-EVENT_WALK_STARTED: Final = "pawcontrol_walk_started"
-EVENT_WALK_ENDED: Final = "pawcontrol_walk_ended"
-EVENT_FEEDING_LOGGED: Final = "pawcontrol_feeding_logged"
-EVENT_HEALTH_LOGGED: Final = "pawcontrol_health_logged"
-EVENT_GEOFENCE_ENTERED: Final = "pawcontrol_geofence_entered"
-EVENT_GEOFENCE_LEFT: Final = "pawcontrol_geofence_left"
+EVENT_WALK_STARTED: Final[str] = "pawcontrol_walk_started"
+EVENT_WALK_ENDED: Final[str] = "pawcontrol_walk_ended"
+EVENT_FEEDING_LOGGED: Final[str] = "pawcontrol_feeding_logged"
+EVENT_HEALTH_LOGGED: Final[str] = "pawcontrol_health_logged"
+EVENT_GEOFENCE_ENTERED: Final[str] = "pawcontrol_geofence_entered"
+EVENT_GEOFENCE_LEFT: Final[str] = "pawcontrol_geofence_left"
 
 # OPTIMIZED: State attributes - grouped by category
-ATTR_DOG_ID: Final = "dog_id"
-ATTR_DOG_NAME: Final = "dog_name"
-ATTR_TIMESTAMP: Final = "timestamp"
+ATTR_DOG_ID: Final[str] = "dog_id"
+ATTR_DOG_NAME: Final[str] = "dog_name"
+ATTR_TIMESTAMP: Final[str] = "timestamp"
 
 # Feeding attributes
-ATTR_MEAL_TYPE: Final = "meal_type"
-ATTR_PORTION_SIZE: Final = "portion_size"
+ATTR_MEAL_TYPE: Final[str] = "meal_type"
+ATTR_PORTION_SIZE: Final[str] = "portion_size"
 
 # Walk/GPS attributes
-ATTR_WALK_DURATION: Final = "walk_duration"
-ATTR_WALK_DISTANCE: Final = "walk_distance"
-ATTR_GPS_ACCURACY: Final = "gps_accuracy"
-ATTR_ZONE_NAME: Final = "zone_name"
+ATTR_WALK_DURATION: Final[str] = "walk_duration"
+ATTR_WALK_DISTANCE: Final[str] = "walk_distance"
+ATTR_GPS_ACCURACY: Final[str] = "gps_accuracy"
+ATTR_ZONE_NAME: Final[str] = "zone_name"
 
 # Health attributes
-ATTR_HEALTH_STATUS: Final = "health_status"
-ATTR_WEIGHT: Final = "weight"
-ATTR_MEDICATION_NAME: Final = "medication_name"
-ATTR_DOSE: Final = "dose"
+ATTR_HEALTH_STATUS: Final[str] = "health_status"
+ATTR_WEIGHT: Final[str] = "weight"
+ATTR_MEDICATION_NAME: Final[str] = "medication_name"
+ATTR_DOSE: Final[str] = "dose"
 
 # OPTIMIZED: Time constants as immutable values
-SECONDS_IN_HOUR: Final = 3600
-SECONDS_IN_DAY: Final = 86400
-MINUTES_IN_HOUR: Final = 60
+SECONDS_IN_HOUR: Final[int] = 3600
+SECONDS_IN_DAY: Final[int] = 86400
+MINUTES_IN_HOUR: Final[int] = 60
 
 # OPTIMIZED: Type definitions as tuples
-GEOFENCE_TYPES: Final = ("safe_zone", "restricted_area", "point_of_interest")
-NOTIFICATION_CHANNELS: Final = ("mobile", "persistent", "email", "slack")
+GEOFENCE_TYPES: Final[tuple[str, ...]] = ("safe_zone", "restricted_area", "point_of_interest")
+NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = ("mobile", "persistent", "email", "slack")
 
-# OPTIMIZED: Update intervals with better performance tiers
-UPDATE_INTERVALS: Final = {
-    "minimal": 300,  # 5 minutes - power saving
-    "balanced": 120,  # 2 minutes - balanced
-    "frequent": 60,  # 1 minute - responsive
-    "real_time": 30,  # 30 seconds - high performance
+# FIX: Update intervals with consistent key naming throughout codebase
+UPDATE_INTERVALS: Final[dict[str, int]] = {
+    "minimal": 300,    # 5 minutes - power saving
+    "balanced": 120,   # 2 minutes - balanced (FIX: consistent key)
+    "frequent": 60,    # 1 minute - responsive
+    "real_time": 30,   # 30 seconds - high performance
 }
 
 # OPTIMIZED: Data file names as constants
-DATA_FILE_WALKS: Final = "walks.json"
-DATA_FILE_FEEDINGS: Final = "feedings.json"
-DATA_FILE_HEALTH: Final = "health.json"
-DATA_FILE_ROUTES: Final = "routes.json"
-DATA_FILE_STATS: Final = "statistics.json"
+DATA_FILE_WALKS: Final[str] = "walks.json"
+DATA_FILE_FEEDINGS: Final[str] = "feedings.json"
+DATA_FILE_HEALTH: Final[str] = "health.json"
+DATA_FILE_ROUTES: Final[str] = "routes.json"
+DATA_FILE_STATS: Final[str] = "statistics.json"
 
 # OPTIMIZED: Validation limits as immutable constants
-MIN_DOG_NAME_LENGTH: Final = 2
-MAX_DOG_NAME_LENGTH: Final = 30
-MIN_DOG_WEIGHT: Final = 0.5
-MAX_DOG_WEIGHT: Final = 200.0
-MIN_DOG_AGE: Final = 0
-MAX_DOG_AGE: Final = 30
-MIN_GEOFENCE_RADIUS: Final = 10
-MAX_GEOFENCE_RADIUS: Final = 10000
+MIN_DOG_NAME_LENGTH: Final[int] = 2
+MAX_DOG_NAME_LENGTH: Final[int] = 30
+MIN_DOG_WEIGHT: Final[float] = 0.5
+MAX_DOG_WEIGHT: Final[float] = 200.0
+MIN_DOG_AGE: Final[int] = 0
+MAX_DOG_AGE: Final[int] = 30
+MIN_GEOFENCE_RADIUS: Final[int] = 10
+MAX_GEOFENCE_RADIUS: Final[int] = 10000
 
 # OPTIMIZED: Error codes as constants
-ERROR_DOG_NOT_FOUND: Final = "dog_not_found"
-ERROR_INVALID_CONFIG: Final = "invalid_config"
-ERROR_GPS_UNAVAILABLE: Final = "gps_unavailable"
-ERROR_NOTIFICATION_FAILED: Final = "notification_failed"
-ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
+ERROR_DOG_NOT_FOUND: Final[str] = "dog_not_found"
+ERROR_INVALID_CONFIG: Final[str] = "invalid_config"
+ERROR_GPS_UNAVAILABLE: Final[str] = "gps_unavailable"
+ERROR_NOTIFICATION_FAILED: Final[str] = "notification_failed"
+ERROR_SERVICE_UNAVAILABLE: Final[str] = "service_unavailable"
 
 # OPTIMIZED: Performance thresholds for monitoring
-PERFORMANCE_THRESHOLDS: Final = {
-    "update_timeout": 30.0,  # seconds
-    "cache_hit_rate_min": 70.0,  # percentage
-    "memory_usage_max": 100.0,  # MB
-    "response_time_max": 2.0,  # seconds
+PERFORMANCE_THRESHOLDS: Final[dict[str, float]] = {
+    "update_timeout": 30.0,        # seconds
+    "cache_hit_rate_min": 70.0,    # percentage
+    "memory_usage_max": 100.0,     # MB
+    "response_time_max": 2.0,      # seconds
 }
 
 # OPTIMIZED: Streamlined exports - only frequently used constants

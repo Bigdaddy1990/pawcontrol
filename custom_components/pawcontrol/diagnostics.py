@@ -29,6 +29,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .types import PawControlConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ REDACTED_KEYS = {
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: PawControlConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
@@ -69,32 +70,30 @@ async def async_get_config_entry_diagnostics(
     """
     _LOGGER.debug("Generating diagnostics for Paw Control entry: %s", entry.entry_id)
 
-    # Get integration data
-    integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coordinator: PawControlCoordinator | None = integration_data.get("coordinator")
+    # Get runtime data using Platinum-compliant approach
+    runtime_data = getattr(entry, "runtime_data", None)
+    coordinator = runtime_data.coordinator if runtime_data else None
 
     # Base diagnostics structure
     diagnostics = {
         "config_entry": await _get_config_entry_diagnostics(entry),
         "system_info": await _get_system_diagnostics(hass),
         "integration_status": await _get_integration_status(
-            hass, entry, integration_data
+            hass, entry, runtime_data
         ),
         "coordinator_info": await _get_coordinator_diagnostics(coordinator),
         "entities": await _get_entities_diagnostics(hass, entry),
         "devices": await _get_devices_diagnostics(hass, entry),
         "dogs_summary": await _get_dogs_summary(entry, coordinator),
         "performance_metrics": await _get_performance_metrics(coordinator),
-        "data_statistics": await _get_data_statistics(integration_data),
+        "data_statistics": await _get_data_statistics(runtime_data),
         "error_logs": await _get_recent_errors(entry.entry_id),
         "debug_info": await _get_debug_information(hass, entry),
     }
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
-    # --- Patch: hier sicherstellen, dass Redaction auf alles angewandt wird ---
-    return _redact_sensitive_data(diagnostics)
-
+    
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
@@ -151,24 +150,31 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def _get_integration_status(
-    hass: HomeAssistant, entry: ConfigEntry, integration_data: dict[str, Any]
+    hass: HomeAssistant, 
+    entry: ConfigEntry, 
+    runtime_data: dict[str, Any] | None
 ) -> dict[str, Any]:
     """Get integration status diagnostics.
 
     Args:
         hass: Home Assistant instance
         entry: Configuration entry
-        integration_data: Integration data from hass.data
+        runtime_data: Runtime data from entry
 
     Returns:
         Integration status diagnostics
     """
-    coordinator = integration_data.get("coordinator")
-    data_manager = integration_data.get("data")
-    notification_manager = integration_data.get("notifications")
+    if runtime_data:
+        coordinator = runtime_data.coordinator
+        data_manager = runtime_data.data_manager
+        notification_manager = runtime_data.notification_manager
+    else:
+        coordinator = None
+        data_manager = None
+        notification_manager = None
 
     return {
-        "entry_loaded": entry.entry_id in hass.data.get(DOMAIN, {}),
+        "entry_loaded": hasattr(entry, "runtime_data"),
         "coordinator_available": coordinator is not None,
         "coordinator_success": coordinator.last_update_success
         if coordinator
@@ -198,7 +204,11 @@ async def _get_coordinator_diagnostics(
     if not coordinator:
         return {"available": False, "reason": "Coordinator not initialized"}
 
-    stats = coordinator.get_update_statistics()
+    try:
+        stats = coordinator.get_update_statistics()
+    except Exception as err:
+        _LOGGER.debug("Could not get coordinator statistics: %s", err)
+        stats = {}
 
     return {
         "available": coordinator.available,
@@ -207,12 +217,12 @@ async def _get_coordinator_diagnostics(
         if coordinator.last_update_time
         else None,
         "update_interval_seconds": coordinator.update_interval.total_seconds(),
-        "update_method": str(coordinator.update_method),
+        "update_method": str(coordinator.update_method) if hasattr(coordinator, "update_method") else "unknown",
         "logger_name": coordinator.logger.name,
         "name": coordinator.name,
         "statistics": stats,
         "config_entry_id": coordinator.config_entry.entry_id,
-        "dogs_managed": len(coordinator.dogs),
+        "dogs_managed": len(getattr(coordinator, "dogs", [])),
     }
 
 
@@ -359,16 +369,20 @@ async def _get_dogs_summary(
 
         # Add coordinator data if available
         if coordinator:
-            dog_data = coordinator.get_dog_data(dog_id)
-            if dog_data:
-                dog_summary.update(
-                    {
-                        "coordinator_data_available": True,
-                        "last_activity": dog_data.get("last_update"),
-                        "status": dog_data.get("status"),
-                    }
-                )
-            else:
+            try:
+                dog_data = coordinator.get_dog_data(dog_id)
+                if dog_data:
+                    dog_summary.update(
+                        {
+                            "coordinator_data_available": True,
+                            "last_activity": dog_data.get("last_update"),
+                            "status": dog_data.get("status"),
+                        }
+                    )
+                else:
+                    dog_summary["coordinator_data_available"] = False
+            except Exception as err:
+                _LOGGER.debug("Could not get coordinator data for dog %s: %s", dog_id, err)
                 dog_summary["coordinator_data_available"] = False
 
         dogs_summary.append(dog_summary)
@@ -394,29 +408,36 @@ async def _get_performance_metrics(
     if not coordinator:
         return {"available": False}
 
-    stats = coordinator.get_update_statistics()
+    try:
+        stats = coordinator.get_update_statistics()
+        return {
+            "update_frequency": stats.get("update_interval_seconds"),
+            "data_freshness": "fresh" if coordinator.last_update_success else "stale",
+            "memory_efficient": True,  # Placeholder - could add actual memory usage
+            "cpu_efficient": True,  # Placeholder - could add actual CPU usage
+            "network_efficient": True,  # Placeholder - could add network usage stats
+            "error_rate": "low",  # Placeholder - could track actual error rates
+            "response_time": "fast",  # Placeholder - could track actual response times
+            "statistics": stats,
+        }
+    except Exception as err:
+        _LOGGER.debug("Could not get performance metrics: %s", err)
+        return {"available": False, "error": str(err)}
 
-    return {
-        "update_frequency": stats.get("update_interval_seconds"),
-        "data_freshness": "fresh" if coordinator.last_update_success else "stale",
-        "memory_efficient": True,  # Placeholder - could add actual memory usage
-        "cpu_efficient": True,  # Placeholder - could add actual CPU usage
-        "network_efficient": True,  # Placeholder - could add network usage stats
-        "error_rate": "low",  # Placeholder - could track actual error rates
-        "response_time": "fast",  # Placeholder - could track actual response times
-    }
 
-
-async def _get_data_statistics(integration_data: dict[str, Any]) -> dict[str, Any]:
+async def _get_data_statistics(runtime_data: dict[str, Any] | None) -> dict[str, Any]:
     """Get data storage statistics.
 
     Args:
-        integration_data: Integration data
+        runtime_data: Runtime data
 
     Returns:
         Data statistics
     """
-    data_manager = integration_data.get("data")
+    if not runtime_data:
+        return {"available": False}
+
+    data_manager = runtime_data.data_manager if runtime_data else None
 
     if not data_manager:
         return {"available": False}
@@ -447,6 +468,7 @@ async def _get_recent_errors(entry_id: str) -> list[dict[str, Any]]:
         {
             "note": "Error collection not implemented in this version",
             "suggestion": "Check Home Assistant logs for detailed error information",
+            "entry_id": entry_id,
         }
     ]
 
@@ -484,6 +506,8 @@ async def _get_debug_information(
         ],
         "documentation_url": "https://github.com/BigDaddy1990/pawcontrol",
         "issue_tracker": "https://github.com/BigDaddy1990/pawcontrol/issues",
+        "entry_id": entry.entry_id,
+        "ha_version": hass.config.version,
     }
 
 
@@ -497,25 +521,13 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     Returns:
         List of loaded platform names
     """
-    # Check which platforms have been loaded
-    loaded_platforms = []
-
-    platforms = [
-        "sensor",
-        "binary_sensor",
-        "button",
-        "switch",
-        "number",
-        "select",
-        "text",
-        "device_tracker",
-    ]
-
-    for platform in platforms:
-        # In a real implementation, this would check if the platform is actually loaded
-        # For now, we'll assume all platforms are loaded
-        loaded_platforms.append(platform)  # noqa: PERF402
-
+    # Check which platforms have been loaded by checking entity registry
+    entity_registry = er.async_get(hass)
+    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    
+    # Get unique platforms
+    loaded_platforms = list(set(entity.platform for entity in entities))
+    
     return loaded_platforms
 
 
@@ -529,22 +541,9 @@ async def _get_registered_services(hass: HomeAssistant) -> list[str]:
         List of registered service names
     """
     services = []
-
-    if hass.services.has_service(DOMAIN, "feed_dog"):
-        services.extend(
-            [
-                "feed_dog",
-                "start_walk",
-                "end_walk",
-                "log_health",
-                "log_medication",
-                "start_grooming",
-                "notify_test",
-                "daily_reset",
-            ]
-        )
-
-    return services
+    domain_services = hass.services.async_services().get(DOMAIN, {})
+    
+    return list(domain_services.keys())
 
 
 def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
