@@ -8,6 +8,8 @@ from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
 
 DOMAIN = "pawcontrol"
+INVALID_URL = "https://example.invalid"
+# URL used when a valid endpoint is unavailable.
 
 
 @callback
@@ -27,7 +29,9 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     if not entries:
         return {
             "info": "No PawControl config entries found",
-            "can_reach_backend": system_health.async_check_can_reach_url(hass, "http://invalid.invalid"),
+            "can_reach_backend": await system_health.async_check_can_reach_url(
+                hass, INVALID_URL
+            ),
             "remaining_quota": "unknown",
         }
 
@@ -44,11 +48,15 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         }
 
     raw_base_url = getattr(api, "base_url", None)
-    base_url = raw_base_url.strip().rstrip("/") if isinstance(raw_base_url, str) else None
-    if not base_url or not base_url.startswith(("http://", "https://")):
-        can_reach = {"type": "failed", "error": "invalid_base_url"}
-    else:
-        can_reach = system_health.async_check_can_reach_url(hass, base_url)
+    base_url = (
+        raw_base_url.strip().rstrip("/") if isinstance(raw_base_url, str) else None
+    )
+    test_url = (
+        base_url
+        if base_url and base_url.startswith(("http://", "https://"))
+        else INVALID_URL
+    )
+    can_reach = await system_health.async_check_can_reach_url(hass, test_url)
 
     return {
         "can_reach_backend": can_reach,
