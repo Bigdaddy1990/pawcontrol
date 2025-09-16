@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
-from typing import TYPE_CHECKING, Any, Final, Mapping
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
@@ -222,9 +223,7 @@ class EntityFactory:
         self._estimate_cache: OrderedDict[
             tuple[str, tuple[tuple[str, bool], ...]], EntityEstimate
         ] = OrderedDict()
-        self._last_estimate_key: (
-            tuple[str, tuple[tuple[str, bool], ...]] | None
-        ) = None
+        self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
         self._last_module_weights: dict[str, int] = {}
         self._last_synergy_score: int = 0
         self._last_triad_score: int = 0
@@ -265,12 +264,8 @@ class EntityFactory:
     ) -> EntityEstimate:
         """Return cached entity estimate for a profile and module set."""
 
-        normalized_profile = self._normalize_profile(
-            profile, log=log_invalid_inputs
-        )
-        normalized_modules = self._normalize_modules(
-            modules, log=log_invalid_inputs
-        )
+        normalized_profile = self._normalize_profile(profile, log=log_invalid_inputs)
+        normalized_modules = self._normalize_modules(modules, log=log_invalid_inputs)
 
         module_signature = tuple(sorted(normalized_modules.items()))
         cache_key = (
@@ -310,17 +305,13 @@ class EntityFactory:
 
         if modules is None or not isinstance(modules, Mapping):
             if log:
-                _LOGGER.warning(
-                    "Invalid modules configuration, using defaults"
-                )
+                _LOGGER.warning("Invalid modules configuration, using defaults")
             return self._get_default_modules()
 
         module_dict = dict(modules)
         if not self._validate_modules(module_dict):
             if log:
-                _LOGGER.warning(
-                    "Invalid modules configuration, using defaults"
-                )
+                _LOGGER.warning("Invalid modules configuration, using defaults")
             return self._get_default_modules()
 
         return module_dict
@@ -375,9 +366,7 @@ class EntityFactory:
             Estimated entity count
         """
 
-        estimate = self._get_entity_estimate(
-            profile, modules, log_invalid_inputs=True
-        )
+        estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=True)
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
                 "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
@@ -746,28 +735,21 @@ class EntityFactory:
         Returns:
             Performance metrics dictionary
         """
-        estimate = self._get_entity_estimate(
-            profile, modules, log_invalid_inputs=False
-        )
+        estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=False)
         profile_config = ENTITY_PROFILES[estimate.profile]
 
         capacity = estimate.capacity
         utilization = 0.0 if capacity <= 0 else (estimate.final_count / capacity) * 100
 
         cache_key = (estimate.profile, estimate.module_signature)
-        if (
-            self._last_estimate_key == cache_key
-            and self._last_module_weights
-        ):
+        if self._last_estimate_key == cache_key and self._last_module_weights:
             module_weights = dict(self._last_module_weights)
             synergy_score = self._last_synergy_score
             triad_score = self._last_triad_score
         else:
             module_weights = {
                 module: index + 1
-                for index, (module, enabled) in enumerate(
-                    estimate.module_signature
-                )
+                for index, (module, enabled) in enumerate(estimate.module_signature)
                 if enabled
             }
             synergy_score = sum(
@@ -775,9 +757,7 @@ class EntityFactory:
                 for a, b in combinations(module_weights, 2)
             )
             triad_score = sum(
-                module_weights[a]
-                + module_weights[b]
-                + module_weights[c]
+                module_weights[a] + module_weights[b] + module_weights[c]
                 for a, b, c in combinations(module_weights, 3)
             )
 
