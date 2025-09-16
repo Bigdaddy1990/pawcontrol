@@ -128,7 +128,11 @@ async def timed_operation(operation_name: str):
     try:
         yield
     finally:
-        duration = time.time() - start_time
+    start_time = time.monotonic()
+    try:
+        yield
+    finally:
+        duration = time.monotonic() - start_time
         config_flow_monitor.record_operation(operation_name, duration)
         if duration > 2.0:
             _LOGGER.warning(
@@ -136,10 +140,6 @@ async def timed_operation(operation_name: str):
                 operation_name,
                 duration,
             )
-
-
-# Modules schema using constants with better validation
-MODULES_SCHEMA = vol.Schema(
     {
         vol.Optional(MODULE_FEEDING, default=True): cv.boolean,
         vol.Optional(MODULE_WALK, default=True): cv.boolean,
