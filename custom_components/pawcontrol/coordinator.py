@@ -15,6 +15,7 @@ from typing import Any
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -61,18 +62,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         entry: ConfigEntry,
         session: ClientSession | None = None,
     ) -> None:
-        """Initialize coordinator with session management.
+        """Initialize coordinator with Home Assistant managed session support.
 
         Args:
             hass: Home Assistant instance
             entry: Config entry for this integration
-            session: aiohttp session for external API calls
+            session: Optional aiohttp session for external API calls
         """
         self.config_entry = entry
-        self.session = session or ClientSession(
-            timeout=ClientTimeout(total=API_TIMEOUT)
-        )
-        self._session_owned = session is None  # Track if we own the session
+        if session is None:
+            session = async_get_clientsession(hass)
+        self.session = session
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
@@ -132,7 +132,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("No dogs configured, returning empty data")
             return {}
 
-        start_time = asyncio.get_event_loop().time()
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
         all_data: dict[str, dict[str, Any]] = {}
         errors = 0
         error_details: list[str] = []
@@ -188,7 +189,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
 
         # OPTIMIZE: Update performance metrics with memory tracking
-        end_time = asyncio.get_event_loop().time()
+        end_time = loop.time()
         update_time = end_time - start_time
         self._performance_metrics["update_count"] += 1
         self._performance_metrics["avg_update_time"] = (
@@ -302,7 +303,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: dict[str, Any] = {
             "dog_info": dog_config,
             "status": "online",
-            "last_update": asyncio.get_event_loop().time(),
+            "last_update": asyncio.get_running_loop().time(),
         }
         modules = dog_config.get("modules", {})
 
@@ -872,36 +873,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
     async def async_shutdown(self) -> None:
-        """Stop background tasks and cleanup resources with session management.
-
-        Enhanced shutdown with proper session cleanup and timeout protection.
-        """
+        """Stop background tasks and reset cached coordinator state."""
         # Stop maintenance tasks
         if self._unsub_maintenance is not None:
             self._unsub_maintenance()
             self._unsub_maintenance = None
             _LOGGER.debug("Background maintenance task stopped")
-
-        # OPTIMIZE: Enhanced session cleanup with validation and timeout
-        if self._session_owned and self.session and not self.session.closed:
-            try:
-                await asyncio.wait_for(self.session.close(), timeout=5.0)
-                _LOGGER.debug("aiohttp session closed successfully")
-            except TimeoutError:
-                _LOGGER.warning("Session close timeout - forcing cleanup")
-                # Force close without waiting
-                try:
-                    self.session._connector.close()  # Force connector cleanup
-                except Exception as err:
-                    _LOGGER.debug("Error forcing session cleanup: %s", err)
-            except Exception as err:
-                _LOGGER.error("Error closing session: %s", err)
-        else:
-            _LOGGER.debug(
-                "Session cleanup skipped: owned=%s, closed=%s",
-                self._session_owned,
-                self.session.closed if self.session else "no_session",
-            )
 
         # OPTIMIZE: Clear data to help with memory cleanup
         self._data.clear()

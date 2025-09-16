@@ -898,7 +898,7 @@ class PawControlOptionsFlow(OptionsFlow):
                         "medication": False,
                         "training": False,
                     },
-                    "created_at": asyncio.get_event_loop().time(),
+                    "created_at": asyncio.get_running_loop().time(),
                 }
 
                 # Add to existing dogs
