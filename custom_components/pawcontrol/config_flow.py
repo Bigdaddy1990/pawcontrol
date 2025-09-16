@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import re
+import time
+from contextlib import asynccontextmanager
 from typing import Any
 
 import voluptuous as vol
@@ -22,6 +24,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_AGE,
@@ -46,7 +49,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .entity_factory import ENTITY_PROFILES
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .options_flow import PawControlOptionsFlow
 from .types import DogConfigData, is_dog_config_valid
 
@@ -95,6 +98,64 @@ PROFILE_SCHEMA = vol.Schema(
 )
 
 
+class ConfigFlowPerformanceMonitor:
+    """Monitor performance of config flow operations."""
+
+    def __init__(self) -> None:
+        self.operation_times: dict[str, list[float]] = {}
+        self.validation_counts: dict[str, int] = {}
+
+    def record_operation(self, operation: str, duration: float) -> None:
+        """Record operation timing."""
+        if operation not in self.operation_times:
+            self.operation_times[operation] = []
+        self.operation_times[operation].append(duration)
+
+        # Keep only recent measurements
+        if len(self.operation_times[operation]) > 100:
+            self.operation_times[operation] = self.operation_times[operation][-50:]
+
+    def record_validation(self, validation_type: str) -> None:
+        """Record validation occurrence."""
+        self.validation_counts[validation_type] = (
+            self.validation_counts.get(validation_type, 0) + 1
+        )
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get performance statistics."""
+        stats: dict[str, Any] = {}
+        for operation, times in self.operation_times.items():
+            if times:
+                stats[operation] = {
+                    "avg_time": sum(times) / len(times),
+                    "max_time": max(times),
+                    "count": len(times),
+                }
+
+        stats["validations"] = self.validation_counts.copy()
+        return stats
+
+
+# Global monitor instance
+config_flow_monitor = ConfigFlowPerformanceMonitor()
+
+
+@asynccontextmanager
+async def timed_operation(operation_name: str):
+    """Context manager to time config flow operations."""
+
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        duration = time.time() - start_time
+        config_flow_monitor.record_operation(operation_name, duration)
+        if duration > 2.0:  # Log slow operations
+            _LOGGER.warning(
+                "Slow config flow operation: %s took %.2fs", operation_name, duration
+            )
+
+
 class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     """Enhanced configuration flow for Paw Control integration.
     
@@ -117,26 +178,32 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self.reauth_entry: ConfigEntry | None = None
         self._discovery_info: dict[str, Any] = {}
         self._existing_dog_ids: set[str] = set()  # Performance: O(1) lookups
+        self._entity_factory = EntityFactory(None)
+
+        # Validation and estimation caches
+        self._validation_cache: dict[str, tuple[dict[str, Any] | None, Any]] = {}
+        self._profile_estimates_cache: dict[str, int] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle initial step with enhanced uniqueness validation.
-        
+
         Args:
             user_input: User provided data
             
         Returns:
             Config flow result
         """
-        # Ensure single instance with improved messaging
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured(
-            updates={},
-            reload_on_update=False,
-        )
-        
-        return await self.async_step_add_dog()
+        async with timed_operation("user_step"):
+            # Ensure single instance with improved messaging
+            await self.async_set_unique_id(DOMAIN)
+            self._abort_if_unique_id_configured(
+                updates={},
+                reload_on_update=False,
+            )
+
+            return await self.async_step_add_dog()
 
     async def async_step_zeroconf(
         self, discovery_info: dict[str, Any]
@@ -265,9 +332,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         
         try:
-            # Validate and convert import configuration
-            validated_config = await self._validate_import_config(import_config)
-            
+            async with timed_operation("import_step"):
+                # Validate and convert import configuration
+                validated_config = await self._validate_import_config_enhanced(
+                    import_config
+                )
+
             # Create config entry directly from import
             return self.async_create_entry(
                 title=f"PawControl (Imported)",
@@ -282,53 +352,115 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _validate_import_config(
         self, import_config: dict[str, Any]
     ) -> dict[str, Any]:
-        """Validate imported configuration.
+        """Backward-compatible wrapper for enhanced import validation."""
 
-        Args:
-            import_config: Raw import configuration
+        return await self._validate_import_config_enhanced(import_config)
 
-        Returns:
-            Validated configuration data
+    async def _validate_import_config_enhanced(
+        self, import_config: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Enhanced validation for imported configuration with better error reporting."""
 
-        Raises:
-            vol.Invalid: If configuration is invalid
-        """
-        # Extract dogs configuration
-        dogs_config = import_config.get(CONF_DOGS, [])
-        if not isinstance(dogs_config, list):
-            raise vol.Invalid("Dogs configuration must be a list")
+        validation_errors: list[str] = []
 
-        validated_dogs = []
-        for dog_config in dogs_config:
-            try:
-                validated_dog = DOG_SCHEMA(dog_config)
-                if is_dog_config_valid(validated_dog):
+        try:
+            dogs_config = import_config.get(CONF_DOGS, [])
+            if not isinstance(dogs_config, list):
+                raise vol.Invalid("Dogs configuration must be a list")
+
+            validated_dogs = []
+            seen_ids: set[str] = set()
+            seen_names: set[str] = set()
+
+            for i, dog_config in enumerate(dogs_config):
+                try:
+                    validated_dog = DOG_SCHEMA(dog_config)
+
+                    dog_id = validated_dog.get(CONF_DOG_ID)
+                    dog_name = validated_dog.get(CONF_DOG_NAME)
+
+                    if dog_id in seen_ids:
+                        validation_errors.append(
+                            f"Duplicate dog ID '{dog_id}' at position {i + 1}"
+                        )
+                        continue
+
+                    if dog_name in seen_names:
+                        validation_errors.append(
+                            f"Duplicate dog name '{dog_name}' at position {i + 1}"
+                        )
+                        continue
+
+                    if not is_dog_config_valid(validated_dog):
+                        validation_errors.append(
+                            f"Invalid dog configuration at position {i + 1}: {dog_config}"
+                        )
+                        continue
+
+                    seen_ids.add(dog_id)
+                    seen_names.add(dog_name)
                     validated_dogs.append(validated_dog)
-                else:
-                    raise vol.Invalid(f"Invalid dog configuration: {dog_config}")
-            except vol.Invalid as err:
-                raise vol.Invalid(f"Dog validation failed: {err}") from err
+                except vol.Invalid as err:
+                    validation_errors.append(
+                        f"Dog validation failed at position {i + 1}: {err}"
+                    )
 
-        if not validated_dogs:
-            raise vol.Invalid("No valid dogs found in import configuration")
+            if not validated_dogs:
+                if validation_errors:
+                    config_flow_monitor.record_validation("import_config_error")
+                    raise vol.Invalid(
+                        "No valid dogs found. Errors: "
+                        + "; ".join(validation_errors)
+                    )
+                raise vol.Invalid("No valid dogs found in import configuration")
 
-        # Validate profile
-        profile = import_config.get("entity_profile", "standard")
-        if profile not in VALID_PROFILES:
-            profile = "standard"
+            profile = import_config.get("entity_profile", "standard")
+            if profile not in VALID_PROFILES:
+                validation_errors.append(
+                    f"Invalid profile '{profile}', using 'standard'"
+                )
+                profile = "standard"
 
-        return {
-            "data": {
-                "name": import_config.get("name", "PawControl (Imported)"),
-                CONF_DOGS: validated_dogs,
-                "entity_profile": profile,
-            },
-            "options": {
-                "entity_profile": profile,
-                "dashboard_enabled": import_config.get("dashboard_enabled", True),
-                "dashboard_auto_create": import_config.get("dashboard_auto_create", True),
-            },
-        }
+            for dog in validated_dogs:
+                modules = dog.get("modules", {})
+                if not self._entity_factory.validate_profile_for_modules(
+                    profile, modules
+                ):
+                    validation_errors.append(
+                        f"Profile '{profile}' may not be optimal for dog '{dog.get(CONF_DOG_NAME)}'"
+                    )
+
+            if validation_errors:
+                _LOGGER.warning(
+                    "Import validation warnings: %s", "; ".join(validation_errors)
+                )
+
+            config_flow_monitor.record_validation("import_config_validated")
+            return {
+                "data": {
+                    "name": import_config.get("name", "PawControl (Imported)"),
+                    CONF_DOGS: validated_dogs,
+                    "entity_profile": profile,
+                    "import_warnings": validation_errors,
+                    "import_timestamp": dt_util.utcnow().isoformat(),
+                },
+                "options": {
+                    "entity_profile": profile,
+                    "dashboard_enabled": import_config.get(
+                        "dashboard_enabled", True
+                    ),
+                    "dashboard_auto_create": import_config.get(
+                        "dashboard_auto_create", True
+                    ),
+                    "import_source": "configuration_yaml",
+                },
+            }
+
+        except Exception as err:
+            config_flow_monitor.record_validation("import_config_exception")
+            raise vol.Invalid(
+                f"Import configuration validation failed: {err}"
+            ) from err
 
     def _is_supported_device(
         self, hostname: str, properties: dict[str, Any]
@@ -392,36 +524,38 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Config flow result
         """
-        errors: dict[str, str] = {}
+        async with timed_operation("add_dog_step"):
+            errors: dict[str, str] = {}
 
-        if user_input is not None:
-            # Pre-validate for early exit
-            try:
-                validated_input = await self._validate_dog_input_optimized(user_input)
-                if validated_input:
-                    dog_config = self._create_dog_config(validated_input)
-                    self._dogs.append(dog_config)
-                    # Update existing IDs set for O(1) lookups
-                    self._existing_dog_ids.add(dog_config[CONF_DOG_ID])
-                    return await self.async_step_dog_modules()
-                    
-            except ValueError as err:
-                _LOGGER.warning("Dog validation failed: %s", err)
-                errors["base"] = "invalid_dog_data"
-            except Exception as err:
-                _LOGGER.error("Unexpected error during dog validation: %s", err)
-                errors["base"] = "unknown_error"
+            if user_input is not None:
+                # Pre-validate for early exit
+                try:
+                    validated_input = await self._validate_dog_input_cached(user_input)
+                    if validated_input:
+                        dog_config = self._create_dog_config(validated_input)
+                        self._dogs.append(dog_config)
+                        # Update existing IDs set for O(1) lookups
+                        self._existing_dog_ids.add(dog_config[CONF_DOG_ID])
+                        self._profile_estimates_cache.clear()
+                        return await self.async_step_dog_modules()
 
-        return self.async_show_form(
-            step_id="add_dog",
-            data_schema=DOG_SCHEMA,
-            errors=errors,
-            description_placeholders={
-                "dogs_configured": str(len(self._dogs)),
-                "max_dogs": str(MAX_DOGS_PER_INTEGRATION),
-                "discovery_hint": self._get_discovery_hint(),
-            },
-        )
+                except ValueError as err:
+                    _LOGGER.warning("Dog validation failed: %s", err)
+                    errors["base"] = "invalid_dog_data"
+                except Exception as err:
+                    _LOGGER.error("Unexpected error during dog validation: %s", err)
+                    errors["base"] = "unknown_error"
+
+            return self.async_show_form(
+                step_id="add_dog",
+                data_schema=DOG_SCHEMA,
+                errors=errors,
+                description_placeholders={
+                    "dogs_configured": str(len(self._dogs)),
+                    "max_dogs": str(MAX_DOGS_PER_INTEGRATION),
+                    "discovery_hint": self._get_discovery_hint(),
+                },
+            )
 
     def _get_discovery_hint(self) -> str:
         """Get hint text based on discovery info.
@@ -432,6 +566,33 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._discovery_info:
             return f"Discovered device: {self._discovery_info.get('hostname', 'Unknown')}"
         return ""
+
+    async def _validate_dog_input_cached(
+        self, user_input: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Validate dog input with caching for repeated validations."""
+
+        cache_key = (
+            f"{user_input.get(CONF_DOG_ID, '')}_"
+            f"{user_input.get(CONF_DOG_NAME, '')}_"
+            f"{user_input.get(CONF_DOG_WEIGHT, 0)}"
+        )
+
+        cached = self._validation_cache.get(cache_key)
+        if cached:
+            cached_result, cache_time = cached
+            if (dt_util.utcnow() - cache_time).total_seconds() < 60:
+                config_flow_monitor.record_validation("dog_input_cache_hit")
+                return cached_result
+
+        try:
+            result = await self._validate_dog_input_optimized(user_input)
+            self._validation_cache[cache_key] = (result, dt_util.utcnow())
+            config_flow_monitor.record_validation("dog_input_validated")
+            return result
+        except ValueError as err:
+            config_flow_monitor.record_validation("dog_input_error")
+            raise err
 
     async def _validate_dog_input_optimized(self, user_input: dict[str, Any]) -> dict[str, Any] | None:
         """Validate dog input data with optimized performance.
@@ -538,8 +699,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Validate modules configuration
                 modules = MODULES_SCHEMA(user_input or {})
                 current_dog[CONF_MODULES] = modules
+                self._profile_estimates_cache.clear()
                 return await self.async_step_add_another()
-                
+
             except vol.Invalid as err:
                 _LOGGER.warning("Module validation failed: %s", err)
                 return self.async_show_form(
@@ -751,35 +913,38 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Config flow result
         """
-        if not self._dogs:
-            return self.async_abort(reason="no_dogs_configured")
+        async with timed_operation("final_setup"):
+            if not self._dogs:
+                return self.async_abort(reason="no_dogs_configured")
 
-        # Enhanced validation of all configurations
-        validation_results = await self._perform_comprehensive_validation()
-        if not validation_results["valid"]:
-            _LOGGER.error("Final validation failed: %s", validation_results["errors"])
-            return self.async_abort(reason="setup_validation_failed")
+            # Enhanced validation of all configurations
+            validation_results = await self._perform_comprehensive_validation()
+            if not validation_results["valid"]:
+                _LOGGER.error(
+                    "Final validation failed: %s", validation_results["errors"]
+                )
+                return self.async_abort(reason="setup_validation_failed")
 
-        # Validate profile compatibility
-        if not self._validate_profile_compatibility():
-            _LOGGER.warning("Profile compatibility issues detected")
+            # Validate profile compatibility
+            if not self._validate_profile_compatibility():
+                _LOGGER.warning("Profile compatibility issues detected")
 
-        try:
-            # Create optimized config entry data
-            config_data, options_data = self._build_config_entry_data()
-            
-            profile_info = ENTITY_PROFILES[self._entity_profile]
-            title = self._generate_entry_title(profile_info)
+            try:
+                # Create optimized config entry data
+                config_data, options_data = self._build_config_entry_data()
 
-            return self.async_create_entry(
-                title=title,
-                data=config_data,
-                options=options_data,
-            )
-            
-        except Exception as err:
-            _LOGGER.error("Final setup failed: %s", err)
-            return self.async_abort(reason="setup_failed")
+                profile_info = ENTITY_PROFILES[self._entity_profile]
+                title = self._generate_entry_title(profile_info)
+
+                return self.async_create_entry(
+                    title=title,
+                    data=config_data,
+                    options=options_data,
+                )
+
+            except Exception as err:
+                _LOGGER.error("Final setup failed: %s", err)
+                return self.async_abort(reason="setup_failed")
 
     async def _perform_comprehensive_validation(self) -> dict[str, Any]:
         """Perform comprehensive final validation.
@@ -815,10 +980,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             True if profile is compatible
         """
-        from .entity_factory import EntityFactory
-        
-        # Use entity factory to validate profile compatibility
-        factory = EntityFactory(None)  # Coordinator not needed for validation
+        # Use shared entity factory to validate profile compatibility
+        factory = self._entity_factory
         
         for dog in self._dogs:
             modules = dog.get("modules", {})
@@ -869,27 +1032,39 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         else:
             return f"PawControl - {dog_count} dogs ({profile_info['name']})"
 
-    def _estimate_total_entities(self) -> int:
-        """Estimate total entities with caching.
-        
-        Returns:
-            Estimated total entity count
-        """
-        if hasattr(self, '_cached_entity_estimate'):
-            return self._cached_entity_estimate
-            
-        from .entity_factory import EntityFactory
-        
-        # Create temporary factory for estimation
-        factory = EntityFactory(None)
-        
+    def _estimate_total_entities_cached(self) -> int:
+        """Estimate total entities with improved caching."""
+
+        dogs_signature = hash(
+            str(
+                [
+                    (
+                        dog.get("dog_id"),
+                        tuple(sorted(dog.get("modules", {}).items())),
+                    )
+                    for dog in self._dogs
+                ]
+            )
+        )
+        cache_key = f"{self._entity_profile}_{len(self._dogs)}_{dogs_signature}"
+
+        if cache_key in self._profile_estimates_cache:
+            return self._profile_estimates_cache[cache_key]
+
         total = 0
         for dog in self._dogs:
             modules = dog.get("modules", {})
-            total += factory.estimate_entity_count(self._entity_profile, modules)
-            
-        self._cached_entity_estimate = total
+            total += self._entity_factory.estimate_entity_count(
+                self._entity_profile, modules
+            )
+
+        self._profile_estimates_cache[cache_key] = total
         return total
+
+    def _estimate_total_entities(self) -> int:
+        """Estimate total entities with backwards compatibility wrapper."""
+
+        return self._estimate_total_entities_cached()
 
     def _format_dogs_list_enhanced(self) -> str:
         """Format enhanced list of configured dogs.
@@ -1121,9 +1296,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Compatibility check results
         """
-        from .entity_factory import EntityFactory
-        
-        factory = EntityFactory(None)
+        factory = self._entity_factory
         warnings = []
         
         for dog in dogs:

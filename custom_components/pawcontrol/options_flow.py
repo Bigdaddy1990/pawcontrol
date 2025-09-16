@@ -85,9 +85,11 @@ class PawControlOptionsFlow(OptionsFlow):
         self._unsaved_changes: dict[str, Any] = {}
 
         # Initialize entity factory for profile calculations
-        self._entity_factory = EntityFactory(
-            None
-        )  # Will set coordinator later if needed
+        self._entity_factory = EntityFactory(None)
+
+        # Optimization caches for profile calculations
+        self._profile_cache: dict[str, dict[str, Any]] = {}
+        self._entity_estimates_cache: dict[str, int] = {}
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -200,21 +202,49 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _get_profile_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for profile selection."""
+
+        return self._get_profile_description_placeholders_cached()
+
+    def _get_profile_description_placeholders_cached(self) -> dict[str, str]:
+        """Get description placeholders with caching for better performance."""
+
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
         current_profile = self._config_entry.options.get("entity_profile", "standard")
 
-        # Calculate current entity count estimate
-        total_estimate = 0
-        for dog in current_dogs:
-            modules = dog.get("modules", {})
-            estimate = self._entity_factory.estimate_entity_count(
-                current_profile, modules
-            )
-            total_estimate += estimate
+        cache_key = f"{current_profile}_{len(current_dogs)}_{hash(str(current_dogs))}"
+        if cache_key in self._profile_cache:
+            return self._profile_cache[cache_key]
+
+        total_estimate = self._entity_estimates_cache.get(cache_key)
+        if total_estimate is None:
+            total_estimate = 0
+            for dog in current_dogs:
+                modules = dog.get("modules", {})
+                total_estimate += self._entity_factory.estimate_entity_count(
+                    current_profile, modules
+                )
+            self._entity_estimates_cache[cache_key] = total_estimate
 
         profile_info = ENTITY_PROFILES.get(current_profile, ENTITY_PROFILES["standard"])
 
-        return {
+        profile_compatibility_issues: list[str] = []
+        for dog in current_dogs:
+            modules = dog.get("modules", {})
+            if not self._entity_factory.validate_profile_for_modules(
+                current_profile, modules
+            ):
+                dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+                profile_compatibility_issues.append(
+                    f"{dog_name} modules may not be optimal for {current_profile}"
+                )
+
+        utilization_percentage = "0"
+        if current_dogs and profile_info["max_entities"] > 0:
+            utilization_percentage = (
+                f"{(total_estimate / (profile_info['max_entities'] * len(current_dogs)) * 100):.1f}"
+            )
+
+        placeholders = {
             "current_profile": current_profile,
             "current_description": profile_info["description"],
             "dogs_count": str(len(current_dogs)),
@@ -223,7 +253,14 @@ class PawControlOptionsFlow(OptionsFlow):
             "performance_impact": self._get_performance_impact_description(
                 current_profile
             ),
+            "compatibility_warnings": "; ".join(profile_compatibility_issues)
+            if profile_compatibility_issues
+            else "No compatibility issues",
+            "utilization_percentage": utilization_percentage,
         }
+
+        self._profile_cache[cache_key] = placeholders
+        return placeholders
 
     def _get_performance_impact_description(self, profile: str) -> str:
         """Get performance impact description for profile."""
@@ -256,38 +293,34 @@ class PawControlOptionsFlow(OptionsFlow):
 
         # Calculate detailed entity breakdown
         profile = user_input.get("profile", "standard") if user_input else "standard"
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        preview = await self._calculate_profile_preview_optimized(profile)
 
-        entity_breakdown = []
-        total_entities = 0
-
-        for dog in current_dogs:
-            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
-            modules = dog.get("modules", {})
-
-            estimate = self._entity_factory.estimate_entity_count(profile, modules)
-            total_entities += estimate
-
-            enabled_modules = [m for m, enabled in modules.items() if enabled]
-
-            entity_breakdown.append(
-                f"• {dog_name}: {estimate} entities (modules: {', '.join(enabled_modules)})"
+        entity_breakdown_lines = []
+        for breakdown in preview["entity_breakdown"]:
+            modules = breakdown["modules"]
+            modules_summary = ", ".join(modules) if modules else "none"
+            entity_breakdown_lines.append(
+                "• {dog_name} ({dog_id}): {entities} entities (modules: {modules}; "
+                "utilization: {utilization:.1f}%)".format(
+                    dog_name=breakdown["dog_name"],
+                    dog_id=breakdown["dog_id"],
+                    entities=breakdown["entities"],
+                    modules=modules_summary,
+                    utilization=breakdown["utilization"],
+                )
             )
 
-        # Calculate comparison with current profile
-        current_profile = self._config_entry.options.get("entity_profile", "standard")
-        current_total = 0
-        for dog in current_dogs:
-            modules = dog.get("modules", {})
-            current_total += self._entity_factory.estimate_entity_count(
-                current_profile, modules
-            )
-
-        entity_difference = total_entities - current_total
+        entity_difference = preview["entity_difference"]
         performance_change = (
             "same"
             if entity_difference == 0
             else ("better" if entity_difference < 0 else "higher resource usage")
+        )
+
+        warnings_text = (
+            "\n".join(preview["warnings"])
+            if preview["warnings"]
+            else "No warnings"
         )
 
         return self.async_show_form(
@@ -301,17 +334,135 @@ class PawControlOptionsFlow(OptionsFlow):
                 }
             ),
             description_placeholders={
-                "profile_name": profile,
-                "total_entities": str(total_entities),
-                "entity_breakdown": "\n".join(entity_breakdown),
-                "current_total": str(current_total),
+                "profile_name": preview["profile"],
+                "total_entities": str(preview["total_entities"]),
+                "entity_breakdown": "\n".join(entity_breakdown_lines),
+                "current_total": str(preview["current_total"]),
                 "entity_difference": f"{entity_difference:+d}"
                 if entity_difference != 0
                 else "0",
                 "performance_change": performance_change,
-                "profile_description": ENTITY_PROFILES[profile]["description"],
+                "profile_description": ENTITY_PROFILES[preview["profile"]][
+                    "description"
+                ],
+                "performance_score": f"{preview['performance_score']:.1f}",
+                "recommendation": preview["recommendation"],
+                "warnings": warnings_text,
             },
         )
+
+    async def _calculate_profile_preview_optimized(
+        self, profile: str
+    ) -> dict[str, Any]:
+        """Calculate profile preview with optimized performance."""
+
+        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        profile_key = profile if profile in ENTITY_PROFILES else "standard"
+
+        cache_key = f"{profile_key}_{len(current_dogs)}_{hash(str(current_dogs))}"
+
+        entity_breakdown: list[dict[str, Any]] = []
+        total_entities = 0
+        performance_score = 100.0
+
+        profile_info = ENTITY_PROFILES[profile_key]
+
+        for dog in current_dogs:
+            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+            dog_id = dog.get(CONF_DOG_ID, "unknown")
+            modules = dog.get("modules", {})
+
+            estimate = self._entity_factory.estimate_entity_count(profile_key, modules)
+            total_entities += estimate
+
+            enabled_modules = [module for module, enabled in modules.items() if enabled]
+
+            utilization = (
+                (estimate / profile_info["max_entities"]) * 100
+                if profile_info["max_entities"] > 0
+                else 0
+            )
+
+            entity_breakdown.append(
+                {
+                    "dog_name": dog_name,
+                    "dog_id": dog_id,
+                    "entities": estimate,
+                    "modules": enabled_modules,
+                    "utilization": utilization,
+                }
+            )
+
+            if utilization > 80:
+                performance_score -= 10
+            elif utilization > 60:
+                performance_score -= 5
+
+        self._entity_estimates_cache[cache_key] = total_entities
+
+        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_total = 0
+        for dog in current_dogs:
+            modules = dog.get("modules", {})
+            current_total += self._entity_factory.estimate_entity_count(
+                current_profile, modules
+            )
+
+        entity_difference = total_entities - current_total
+
+        return {
+            "profile": profile_key,
+            "total_entities": total_entities,
+            "entity_breakdown": entity_breakdown,
+            "current_total": current_total,
+            "entity_difference": entity_difference,
+            "performance_score": max(performance_score, 0.0),
+            "recommendation": self._get_profile_recommendation_enhanced(
+                total_entities, len(current_dogs), performance_score
+            ),
+            "warnings": self._get_profile_warnings(profile_key, current_dogs),
+        }
+
+    def _get_profile_recommendation_enhanced(
+        self, total_entities: int, dog_count: int, performance_score: float
+    ) -> str:
+        """Get enhanced profile recommendation with performance considerations."""
+
+        if performance_score < 70:
+            return "⚠️ Consider 'basic' or 'standard' profile for better performance"
+        if performance_score < 85:
+            return "💡 'Standard' profile recommended for balanced performance"
+        if dog_count == 1 and total_entities < 15:
+            return "✨ 'Advanced' profile available for full features"
+        return "✅ Current profile is well-suited for your configuration"
+
+    def _get_profile_warnings(
+        self, profile: str, dogs: list[dict[str, Any]]
+    ) -> list[str]:
+        """Get profile-specific warnings and recommendations."""
+
+        warnings: list[str] = []
+
+        for dog in dogs:
+            modules = dog.get("modules", {})
+            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+
+            if profile == "gps_focus" and not modules.get(MODULE_GPS, False):
+                warnings.append(
+                    f"🛰️ {dog_name}: GPS focus profile but GPS module disabled"
+                )
+
+            if profile == "health_focus" and not modules.get(MODULE_HEALTH, False):
+                warnings.append(
+                    f"🏥 {dog_name}: Health focus profile but health module disabled"
+                )
+
+            if profile == "basic" and sum(1 for enabled in modules.values() if enabled) > 3:
+                warnings.append(
+                    f"⚡ {dog_name}: Many modules enabled for basic profile"
+                )
+
+        return warnings
 
     async def async_step_performance_settings(
         self, user_input: dict[str, Any] | None = None
