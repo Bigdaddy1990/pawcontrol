@@ -9,6 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
+from collections.abc import Deque
+from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -280,9 +282,13 @@ class PawControlDataStorage:
 
         self._save_task = asyncio.create_task(self._batch_save())
 
-    async def _batch_save(self) -> None:
-        """Perform batch save with delay."""
-        await asyncio.sleep(BATCH_SAVE_DELAY)
+    async def _batch_save(self, *, delay: float | None = BATCH_SAVE_DELAY) -> None:
+        """Perform batch save with optional delay."""
+        try:
+            if delay and delay > 0:
+                await asyncio.sleep(delay)
+        except asyncio.CancelledError:
+            return
 
         async with self._save_lock:
             if not self._dirty_stores:
@@ -462,12 +468,21 @@ class PawControlDataStorage:
     async def async_shutdown(self) -> None:
         """Shutdown with final save."""
         # Cancel cleanup task
-        if hasattr(self, "_cleanup_task"):
+        if hasattr(self, "_cleanup_task") and self._cleanup_task:
             self._cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._cleanup_task
+            self._cleanup_task = None
+
+        if self._save_task and not self._save_task.done():
+            self._save_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._save_task
+            self._save_task = None
 
         # Final batch save
         if self._dirty_stores:
-            await self._batch_save()
+            await self._batch_save(delay=0)
 
 
 class PawControlData:
@@ -482,8 +497,9 @@ class PawControlData:
         self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
 
         # OPTIMIZATION: Event queue for batch processing
-        self._event_queue: deque = deque(maxlen=1000)
+        self._event_queue: Deque[dict[str, Any]] = deque(maxlen=1000)
         self._event_task: asyncio.Task | None = None
+        self._valid_dog_ids: set[str] | None = None
 
     async def async_load_data(self) -> None:
         """Load data with performance monitoring."""
@@ -675,7 +691,7 @@ class PawControlData:
     def _is_valid_dog_id(self, dog_id: str) -> bool:
         """Validate dog ID with caching."""
         # Cache valid dog IDs for performance
-        if not hasattr(self, "_valid_dog_ids"):
+        if self._valid_dog_ids is None:
             self._valid_dog_ids = {dog[CONF_DOG_ID] for dog in self._dogs}
 
         return dog_id in self._valid_dog_ids
@@ -685,6 +701,9 @@ class PawControlData:
         # Cancel event processing
         if self._event_task:
             self._event_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._event_task
+            self._event_task = None
 
         # Process remaining events
         if self._event_queue:
@@ -705,12 +724,17 @@ class PawControlNotificationManager:
         self.config_entry = config_entry
 
         # OPTIMIZATION: Use deque for efficient queue operations
-        self._notification_queue: deque = deque(maxlen=MAX_NOTIFICATION_QUEUE)
-        self._high_priority_queue: deque = deque(maxlen=50)  # Separate urgent queue
+        self._notification_queue: Deque[dict[str, Any]] = deque(
+            maxlen=MAX_NOTIFICATION_QUEUE
+        )
+        self._high_priority_queue: Deque[dict[str, Any]] = deque(
+            maxlen=50
+        )  # Separate urgent queue
 
         # Async processing
         self._processor_task: asyncio.Task | None = None
         self._processing_lock = asyncio.Lock()
+        self._quiet_hours_cache: dict[str, tuple[bool, datetime]] = {}
 
         self._setup_async_processor()
 
@@ -828,18 +852,15 @@ class PawControlNotificationManager:
         # Cache quiet hours calculation for performance
         cache_key = f"quiet_hours_{priority}"
 
-        if hasattr(self, "_quiet_hours_cache"):
-            cached_result, cache_time = self._quiet_hours_cache.get(
-                cache_key, (None, None)
-            )
-            if cache_time and (dt_util.utcnow() - cache_time).total_seconds() < 60:
+        cached = self._quiet_hours_cache.get(cache_key)
+        if cached:
+            cached_result, cache_time = cached
+            if (dt_util.utcnow() - cache_time).total_seconds() < 60:
                 return cached_result
 
         result = self._calculate_notification_allowed(priority)
 
         # Cache result for 1 minute
-        if not hasattr(self, "_quiet_hours_cache"):
-            self._quiet_hours_cache = {}
         self._quiet_hours_cache[cache_key] = (result, dt_util.utcnow())
 
         return result
@@ -889,6 +910,9 @@ class PawControlNotificationManager:
         """Shutdown notification manager."""
         if self._processor_task:
             self._processor_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._processor_task
+            self._processor_task = None
 
         # Send any high priority notifications immediately
         while self._high_priority_queue:
@@ -927,7 +951,7 @@ class PerformanceMonitor:
             "avg_operation_time": 0.0,
             "last_cleanup": None,
         }
-        self._operation_times = deque(maxlen=100)  # Keep last 100 operation times
+        self._operation_times: Deque[float] = deque(maxlen=100)
 
     def record_operation(self, operation_time: float, success: bool = True) -> None:
         """Record an operation."""
