@@ -45,6 +45,11 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
+from .config_flow_profile import (
+    PROFILE_SCHEMA,
+    build_profile_summary_text,
+    validate_profile_selection,
+)
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .options_flow import PawControlOptionsFlow
 from .types import DogConfigData, is_dog_config_valid
@@ -147,14 +152,6 @@ MODULES_SCHEMA = vol.Schema(
         vol.Optional(MODULE_NOTIFICATIONS, default=True): cv.boolean,
     }
 )
-
-# Profile schema with optimized validation
-PROFILE_SCHEMA = vol.Schema(
-    {
-        vol.Required("entity_profile", default="standard"): vol.In(VALID_PROFILES),
-    }
-)
-
 
 class DogValidationError(Exception):
     """Raised when validating a dog configuration fails."""
@@ -970,8 +967,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         if user_input is not None:
             try:
-                profile_data = PROFILE_SCHEMA(user_input)
-                self._entity_profile = profile_data["entity_profile"]
+                self._entity_profile = validate_profile_selection(user_input)
                 return await self.async_step_final_setup()
 
             except vol.Invalid as err:
@@ -983,6 +979,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     description_placeholders={
                         "dogs_count": str(len(self._dogs)),
                         "profiles_info": self._get_profiles_info_enhanced(),
+                        "profiles_summary": build_profile_summary_text(),
                         "recommendation": self._get_profile_recommendation(),
                     },
                 )
@@ -994,6 +991,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 "dogs_count": str(len(self._dogs)),
                 "profiles_info": self._get_profiles_info_enhanced(),
                 "estimated_entities": str(self._estimate_total_entities()),
+                "profiles_summary": build_profile_summary_text(),
                 "recommendation": self._get_profile_recommendation(),
             },
         )

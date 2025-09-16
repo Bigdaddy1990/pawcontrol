@@ -54,6 +54,11 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from .config_flow_profile import (
+    DEFAULT_PROFILE,
+    get_profile_selector_options,
+    validate_profile_selection,
+)
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData
 
@@ -137,7 +142,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         if user_input is not None:
             try:
-                current_profile = user_input.get("entity_profile", "standard")
+                current_profile = validate_profile_selection(user_input)
                 preview_estimate = user_input.get("preview_estimate", False)
 
                 if preview_estimate:
@@ -154,6 +159,13 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 return self.async_create_entry(title="", data=new_options)
 
+            except vol.Invalid as err:
+                _LOGGER.warning("Invalid profile selection in options flow: %s", err)
+                return self.async_show_form(
+                    step_id="entity_profiles",
+                    data_schema=self._get_entity_profiles_schema(user_input),
+                    errors={"base": "invalid_profile"},
+                )
             except Exception as err:
                 _LOGGER.error("Error updating entity profile: %s", err)
                 return self.async_show_form(
@@ -175,21 +187,14 @@ class PawControlOptionsFlow(OptionsFlow):
         current_options = self._config_entry.options
         current_values = user_input or {}
         current_profile = current_values.get(
-            "entity_profile", current_options.get("entity_profile", "standard")
+            "entity_profile",
+            current_options.get("entity_profile", DEFAULT_PROFILE),
         )
 
-        # Create profile options with descriptions
-        profile_options = []
-        for profile_name, profile_config in ENTITY_PROFILES.items():
-            max_entities = profile_config["max_entities"]
-            description = profile_config["description"]
+        if current_profile not in ENTITY_PROFILES:
+            current_profile = DEFAULT_PROFILE
 
-            profile_options.append(
-                {
-                    "value": profile_name,
-                    "label": f"{profile_name.title()} ({max_entities} entities/dog) - {description}",
-                }
-            )
+        profile_options = get_profile_selector_options()
 
         return vol.Schema(
             {
@@ -211,7 +216,9 @@ class PawControlOptionsFlow(OptionsFlow):
         """Get description placeholders with caching for better performance."""
 
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_profile = self._config_entry.options.get(
+            "entity_profile", DEFAULT_PROFILE
+        )
         cache_key = (
             f"{current_profile}_{len(current_dogs)}_"
             f"{hash(json.dumps(current_dogs, sort_keys=True))}"
@@ -224,7 +231,9 @@ class PawControlOptionsFlow(OptionsFlow):
         total_estimate = 0
         profile_compatibility_issues: list[str] = []
 
-        profile_info = ENTITY_PROFILES.get(current_profile, ENTITY_PROFILES["standard"])
+        profile_info = ENTITY_PROFILES.get(
+            current_profile, ENTITY_PROFILES[DEFAULT_PROFILE]
+        )
         max_entities = profile_info["max_entities"]
 
         for dog in current_dogs:
