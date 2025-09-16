@@ -10,6 +10,8 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
 from homeassistant.const import Platform
@@ -411,6 +413,24 @@ class TestEntityProfiles:
         assert basic_metrics["performance_impact"] == "minimal"
         assert standard_metrics["performance_impact"] == "low"
         assert advanced_metrics["performance_impact"] == "medium"
+
+    def test_entity_estimate_uses_cache(
+        self, entity_factory: EntityFactory
+    ) -> None:
+        """Test that cached entity estimates are reused for identical inputs."""
+
+        modules = {"feeding": True, "walk": True, "health": False}
+        first_estimate = entity_factory.estimate_entity_count("standard", modules)
+        assert first_estimate > 0
+
+        with patch.object(
+            entity_factory,
+            "_compute_entity_estimate",
+            side_effect=AssertionError("cache miss"),
+        ):
+            second_estimate = entity_factory.estimate_entity_count("standard", modules)
+
+        assert second_estimate == first_estimate
 
 
 class TestEntityProfilesEdgeCases:
