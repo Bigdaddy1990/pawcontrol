@@ -5,7 +5,6 @@ from __future__ import annotations
 import threading
 
 import pytest
-
 from custom_components.pawcontrol.utils import retry_on_exception
 
 
