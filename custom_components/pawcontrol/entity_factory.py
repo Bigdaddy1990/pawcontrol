@@ -653,9 +653,7 @@ class EntityFactory:
 
         capacity_multiplier = profile_config.get("utilization_headroom", 1.0)
         capacity = profile_config["max_entities"] * capacity_multiplier
-        utilization = (
-            0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
-        )
+        utilization = 0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
         utilization = max(0.0, min(utilization, 100.0))
 
         return {
