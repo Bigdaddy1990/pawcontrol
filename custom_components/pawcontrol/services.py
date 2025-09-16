@@ -10,14 +10,25 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import timedelta
+from collections.abc import Callable
+from contextlib import suppress
+from datetime import datetime, timedelta
 
 import voluptuous as vol
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import (
+    CONF_RESET_TIME,
+    DEFAULT_RESET_TIME,
+    DOMAIN,
+    SERVICE_DAILY_RESET,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -185,6 +196,8 @@ SERVICE_GENERATE_REPORT_SCHEMA = vol.Schema(
         vol.Optional("days", default=30): vol.Coerce(int),
     }
 )
+
+SERVICE_DAILY_RESET_SCHEMA = vol.Schema({vol.Optional("entry_id"): cv.string})
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -402,6 +415,26 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to send notification: %s", e)
             raise
 
+    async def daily_reset_service(call: ServiceCall) -> None:
+        """Trigger a manual daily reset."""
+
+        entry_id = call.data.get("entry_id")
+        target_entry: ConfigEntry | None = None
+        if entry_id:
+            target_entry = hass.config_entries.async_get_entry(entry_id)
+
+        if target_entry is None:
+            entries = hass.config_entries.async_entries(DOMAIN)
+            target_entry = entries[0] if entries else None
+
+        if target_entry is None:
+            _LOGGER.warning(
+                "Daily reset requested but no PawControl entries are loaded"
+            )
+            return
+
+        await _perform_daily_reset(hass, target_entry)
+
     # Register all services
     hass.services.async_register(
         DOMAIN,
@@ -445,6 +478,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_SEND_NOTIFICATION_SCHEMA,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DAILY_RESET,
+        daily_reset_service,
+        schema=SERVICE_DAILY_RESET_SCHEMA,
+    )
+
     _LOGGER.info("Registered PawControl services")
 
 
@@ -466,9 +506,129 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_EXPORT_DATA,
         SERVICE_ANALYZE_PATTERNS,
         SERVICE_GENERATE_REPORT,
+        SERVICE_DAILY_RESET,
     ]
 
     for service in services_to_remove:
         hass.services.async_remove(DOMAIN, service)
 
     _LOGGER.info("Unloaded PawControl services")
+
+
+class PawControlServiceManager:
+    """Manage registration of PawControl services."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the service manager and register services when needed."""
+
+        self._hass = hass
+        self._services_task: asyncio.Task | None = None
+
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        existing: PawControlServiceManager | None = domain_data.get("service_manager")
+        if existing is not None:
+            self._services_task = existing._services_task
+            return
+
+        domain_data["service_manager"] = self
+
+        if not hass.services.has_service(DOMAIN, SERVICE_ADD_FEEDING):
+            self._services_task = hass.async_create_task(async_setup_services(hass))
+
+    async def async_shutdown(self) -> None:
+        """Unload registered services when the integration is removed."""
+
+        if self._services_task and not self._services_task.done():
+            with suppress(asyncio.CancelledError):
+                await self._services_task
+
+        await async_unload_services(self._hass)
+
+        domain_data = self._hass.data.get(DOMAIN)
+        if domain_data and domain_data.get("service_manager") is self:
+            domain_data.pop("service_manager")
+
+
+async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Perform maintenance tasks for the daily reset."""
+
+    runtime_data = getattr(entry, "runtime_data", None)
+    if runtime_data is None:
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if isinstance(entry_store, dict):
+            runtime_data = entry_store.get("runtime_data")
+
+    if runtime_data is None:
+        _LOGGER.debug(
+            "Skipping daily reset for entry %s: runtime data unavailable",
+            entry.entry_id,
+        )
+        return
+
+    coordinator = runtime_data["coordinator"]
+    walk_manager = runtime_data.get("walk_manager")
+    notification_manager = runtime_data.get("notification_manager")
+
+    try:
+        if walk_manager and hasattr(walk_manager, "async_cleanup"):
+            await walk_manager.async_cleanup()
+
+        if notification_manager and hasattr(
+            notification_manager, "async_cleanup_expired_notifications"
+        ):
+            await notification_manager.async_cleanup_expired_notifications()
+
+        await coordinator.async_request_refresh()
+
+        runtime_data.performance_stats.setdefault("daily_resets", 0)
+        runtime_data.performance_stats["daily_resets"] = (
+            runtime_data.performance_stats.get("daily_resets", 0) + 1
+        )
+        _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
+    except Exception as err:  # pragma: no cover - defensive logging
+        _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
+
+
+async def async_setup_daily_reset_scheduler(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> Callable[[], None] | None:
+    """Schedule the daily reset based on the configured reset time."""
+
+    reset_time_str = entry.options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
+    reset_time = dt_util.parse_time(reset_time_str)
+    if reset_time is None:
+        _LOGGER.warning(
+            "Invalid reset time '%s', falling back to default '%s'",
+            reset_time_str,
+            DEFAULT_RESET_TIME,
+        )
+        reset_time = dt_util.parse_time(DEFAULT_RESET_TIME)
+
+    if reset_time is None:
+        return None
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    existing = domain_data.get(entry.entry_id, {})
+    if isinstance(existing, dict) and (unsub := existing.get("daily_reset_unsub")):
+        try:
+            unsub()
+        except Exception as err:  # pragma: no cover - best effort cleanup
+            _LOGGER.debug("Failed to cancel previous daily reset listener: %s", err)
+
+    async def _async_run_reset() -> None:
+        await _perform_daily_reset(hass, entry)
+
+    @callback
+    def _scheduled_reset(_: datetime | None = None) -> None:
+        hass.async_create_task(_async_run_reset())
+
+    unsubscribe = async_track_time_change(
+        hass,
+        _scheduled_reset,
+        hour=reset_time.hour,
+        minute=reset_time.minute,
+        second=reset_time.second,
+    )
+
+    entry.async_on_unload(unsubscribe)
+    return unsubscribe

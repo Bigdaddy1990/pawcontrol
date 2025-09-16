@@ -481,6 +481,34 @@ class PawControlRuntimeData:
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
 
+    def as_dict(self) -> dict[str, Any]:
+        """Return a dictionary-like representation of the runtime data."""
+
+        return {
+            "coordinator": self.coordinator,
+            "data_manager": self.data_manager,
+            "notification_manager": self.notification_manager,
+            "feeding_manager": self.feeding_manager,
+            "walk_manager": self.walk_manager,
+            "entity_factory": self.entity_factory,
+            "entity_profile": self.entity_profile,
+            "dogs": self.dogs,
+            "performance_stats": self.performance_stats,
+            "error_history": self.error_history,
+        }
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow dictionary-style access for backward compatibility."""
+
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key) from None
+
+    def get(self, key: str, default: Any | None = None) -> Any | None:
+        """Return an attribute using dictionary-style access."""
+
+        return getattr(self, key, default)
+
 
 # OPTIMIZE: Custom ConfigEntry type for Platinum compliance
 type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
