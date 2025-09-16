@@ -35,6 +35,7 @@ class WeatherCondition(StrEnum):
     HOT = "hot"
     COLD = "cold"
 
+
 # OPTIMIZE: Performance constants
 GPS_CACHE_SIZE_LIMIT = 1000
 PATH_POINT_LIMIT = 500  # Limit path points to prevent memory leaks
@@ -439,7 +440,9 @@ class WalkManager:
                     weather_condition = WeatherCondition(weather)
                 except ValueError:
                     _LOGGER.warning(
-                        "Ignoring unknown weather condition '%s' for %s", weather, dog_id
+                        "Ignoring unknown weather condition '%s' for %s",
+                        weather,
+                        dog_id,
                     )
 
             leash_flag = True if leash_used is None else bool(leash_used)

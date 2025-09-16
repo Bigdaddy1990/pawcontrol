@@ -129,6 +129,6 @@ async def test_end_walk_service_updates_stats(
     assert await_args.kwargs["dog_weight_kg"] == 18.5
     coordinator_mock.async_request_refresh.assert_awaited_once()
 
-    assert any(
-        "Ended walk for doggo" in message for message in caplog.messages
-    ), "Expected summary log message was not emitted"
+    assert any("Ended walk for doggo" in message for message in caplog.messages), (
+        "Expected summary log message was not emitted"
+    )

@@ -268,7 +268,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     weather_enum = WeatherCondition(weather)
                 except ValueError:
                     _LOGGER.warning(
-                        "Ignoring unknown weather condition '%s' for %s", weather, dog_id
+                        "Ignoring unknown weather condition '%s' for %s",
+                        weather,
+                        dog_id,
                     )
 
             session_id = await coordinator.walk_manager.async_start_walk(
