@@ -368,10 +368,15 @@ GEOFENCE_TYPES: Final[tuple[str, ...]] = (
     "point_of_interest",
 )
 NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
-    "mobile",
     "persistent",
+    "mobile",
     "email",
+    "sms",
+    "webhook",
+    "tts",
+    "media_player",
     "slack",
+    "discord",
 )
 
 # FIX: Update intervals with consistent key naming throughout codebase

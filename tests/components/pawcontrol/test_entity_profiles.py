@@ -438,6 +438,22 @@ class TestEntityProfiles:
         assert standard_metrics["performance_impact"] == "low"
         assert advanced_metrics["performance_impact"] == "medium"
 
+    def test_entity_estimate_uses_cache(self, entity_factory: EntityFactory) -> None:
+        """Test that cached entity estimates are reused for identical inputs."""
+
+        modules = {"feeding": True, "walk": True, "health": False}
+        first_estimate = entity_factory.estimate_entity_count("standard", modules)
+        assert first_estimate > 0
+
+        with patch.object(
+            entity_factory,
+            "_compute_entity_estimate",
+            side_effect=AssertionError("cache miss"),
+        ):
+            second_estimate = entity_factory.estimate_entity_count("standard", modules)
+
+        assert second_estimate == first_estimate
+
 
 class TestEntityProfilesEdgeCases:
     """Test edge cases and stress scenarios for Entity Profile System."""
