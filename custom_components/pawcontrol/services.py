@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Callable
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -197,9 +197,7 @@ SERVICE_GENERATE_REPORT_SCHEMA = vol.Schema(
     }
 )
 
-SERVICE_DAILY_RESET_SCHEMA = vol.Schema(
-    {vol.Optional("entry_id"): cv.string}
-)
+SERVICE_DAILY_RESET_SCHEMA = vol.Schema({vol.Optional("entry_id"): cv.string})
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -430,7 +428,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             target_entry = entries[0] if entries else None
 
         if target_entry is None:
-            _LOGGER.warning("Daily reset requested but no PawControl entries are loaded")
+            _LOGGER.warning(
+                "Daily reset requested but no PawControl entries are loaded"
+            )
             return
 
         await _perform_daily_reset(hass, target_entry)
