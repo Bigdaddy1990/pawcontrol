@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Required, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.util import dt as dt_util
 
 # OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
@@ -297,7 +298,7 @@ class GPSLocation:
     longitude: float
     accuracy: float | None = None
     altitude: float | None = None
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=dt_util.utcnow)
     source: str = ""
     battery_level: int | None = None  # OPTIMIZE: Added battery level for GPS devices
     signal_strength: int | None = None  # OPTIMIZE: Added signal strength
@@ -351,7 +352,7 @@ class NotificationData:
     message: str
     priority: str = "normal"
     channel: str = "mobile"
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=dt_util.utcnow)
     persistent: bool = False
     actions: list[dict[str, str]] = field(default_factory=list)
     dog_id: str = ""  # OPTIMIZE: Added dog association
@@ -783,7 +784,7 @@ class PawControlError:
 
     code: str
     message: str
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=dt_util.utcnow)
     context: dict[str, Any] = field(default_factory=dict)
     severity: str = "error"  # OPTIMIZE: Added severity levels
 

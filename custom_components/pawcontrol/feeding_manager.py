@@ -108,7 +108,7 @@ class MealSchedule:
         if self.days_of_week is None:
             return True
 
-        today = datetime.now().weekday()
+        today = dt_util.now().weekday()
         return today in self.days_of_week
 
     def get_next_feeding_time(self) -> datetime:

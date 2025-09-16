@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Any, Final
 
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
 
 from .types import GPSLocation
 
@@ -88,7 +89,7 @@ class PawControlError(HomeAssistantError):
         self.recovery_suggestions = recovery_suggestions or []
         self.user_message = user_message or message
         self.technical_details = technical_details
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or dt_util.utcnow()
         self.stack_trace = traceback.format_stack()
 
     def to_dict(self) -> dict[str, Any]:
@@ -963,7 +964,7 @@ def create_error_context(
         Structured error context dictionary
     """
     context = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": dt_util.utcnow().isoformat(),
         "dog_id": dog_id,
         "operation": operation,
     }
