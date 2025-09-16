@@ -335,7 +335,7 @@ class OptimizedStorage:
                                     ).isoformat(),
                                 }
                             daily_summary[day_key]["count"] += 1
-                    except (ValueError, TypeError, AttributeError) as err:
+                    except (ValueError, TypeError, AttributeError, KeyError) as err:
                         _LOGGER.debug(
                             "Failed to compress %s entry for %s: %s",
                             namespace,

@@ -11,7 +11,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-import math
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
@@ -46,8 +45,6 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "recommended_for": "Single dog, basic monitoring",
         "platforms": [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR],
         "priority_threshold": 7,  # Only high-priority entities
-        "max_entity_headroom": 1.15,
-        "utilization_headroom": 1.4,
     },
     "standard": {
         "name": "Standard (12 entities)",
@@ -63,8 +60,6 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.SWITCH,
         ],
         "priority_threshold": 4,  # Medium-priority entities and above
-        "max_entity_headroom": 1.2,
-        "utilization_headroom": 1.6,
     },
     "advanced": {
         "name": "Advanced (18 entities)",
@@ -74,8 +69,6 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "recommended_for": "Power users, detailed analytics",
         "platforms": ALL_AVAILABLE_PLATFORMS,  # All platforms available
         "priority_threshold": 3,  # Most entities included
-        "max_entity_headroom": 1.3,
-        "utilization_headroom": 1.6,
     },
     "gps_focus": {
         "name": "GPS Focus (10 entities)",
@@ -92,8 +85,6 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         ],
         "priority_threshold": 5,  # GPS-focused entities
         "preferred_modules": ["gps", "walk", "visitor"],
-        "max_entity_headroom": 1.2,
-        "utilization_headroom": 1.5,
     },
     "health_focus": {
         "name": "Health Focus (10 entities)",
@@ -111,8 +102,6 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         ],
         "priority_threshold": 5,  # Health-focused entities
         "preferred_modules": ["health", "feeding", "medication"],
-        "max_entity_headroom": 1.2,
-        "utilization_headroom": 1.55,
     },
 }
 
@@ -208,28 +197,6 @@ class EntityFactory:
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
         self._profile_cache: dict[str, dict[str, Any]] = {}
-        self._platform_cache: dict[str, Platform] = {}
-        self._prime_caches()
-
-    def _prime_caches(self) -> None:
-        """Prime internal caches to stabilize performance measurements."""
-        sample_modules = {"feeding": True, "walk": False, "health": False}
-        performance_modules = {
-            "feeding": True,
-            "walk": True,
-            "health": True,
-            "gps": True,
-            "notifications": True,
-            "dashboard": True,
-        }
-        try:
-            for modules in (sample_modules, performance_modules):
-                self.estimate_entity_count("standard", modules)
-                self.get_performance_metrics("standard", modules)
-            for priority in (3, 5, 7, 9):
-                self.should_create_entity("standard", "sensor", "feeding", priority)
-        except Exception as err:  # pragma: no cover - defensive fallback
-            _LOGGER.debug("Cache priming skipped: %s", err)
 
     def estimate_entity_count(self, profile: str, modules: dict[str, bool]) -> int:
         """Estimate entity count for a profile and module configuration.
@@ -260,47 +227,20 @@ class EntityFactory:
         for module, enabled in modules.items():
             if enabled and module in MODULE_ENTITY_ESTIMATES:
                 profile_estimates = MODULE_ENTITY_ESTIMATES[module]
-                module_count = profile_estimates.get(
-                    profile, profile_estimates.get("standard", 2)
-                )
+                module_count = profile_estimates.get(profile, 2)
                 total_entities += module_count
 
-        # Apply profile-specific limits with configurable headroom
         max_entities = profile_config["max_entities"]
-        headroom_multiplier = profile_config.get("max_entity_headroom", 1.0)
-        capacity_limit = max_entities
-        if headroom_multiplier > 1.0:
-            capacity_limit = max(
-                capacity_limit, math.ceil(max_entities * headroom_multiplier)
-            )
-
-        if total_entities > capacity_limit:
-            previous_total = total_entities
-            total_entities = capacity_limit
-            _LOGGER.debug(
-                "Entity count capped from %d to %d for profile %s (cap %d)",
-                previous_total,
-                total_entities,
-                profile,
-                capacity_limit,
-            )
-
         if total_entities > max_entities:
-            overage = total_entities - max_entities
-            over_range = max(capacity_limit - max_entities, 1)
-            normalized = overage / over_range
-            scaled_total = max_entities - 1 + round(normalized)
-            previous_total = total_entities
-            total_entities = min(max_entities, max(base_entities, scaled_total))
             _LOGGER.debug(
-                "Entity count scaled from %d to %d for profile %s (max %d)",
-                previous_total,
+                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
                 total_entities,
-                profile,
                 max_entities,
+                profile,
             )
+            total_entities = max_entities
 
-        return max(base_entities, min(total_entities, max_entities))
+        return max(base_entities, total_entities)
 
     def should_create_entity(
         self,
@@ -365,14 +305,11 @@ class EntityFactory:
 
         # Check if platform is supported by profile
         platform_str = entity_type.lower()
-        platform = self._platform_cache.get(platform_str)
-        if platform is None:
-            try:
-                platform = Platform(platform_str)
-            except ValueError:
-                _LOGGER.warning("Invalid entity type: %s", entity_type)
-                return False
-            self._platform_cache[platform_str] = platform
+        try:
+            platform = Platform(platform_str)
+        except ValueError:
+            _LOGGER.warning("Invalid entity type: %s", entity_type)
+            return False
 
         if platform not in profile_config["platforms"]:
             return False
@@ -651,8 +588,7 @@ class EntityFactory:
         estimated_entities = self.estimate_entity_count(profile, modules)
         profile_config = ENTITY_PROFILES[profile]
 
-        capacity_multiplier = profile_config.get("utilization_headroom", 1.0)
-        capacity = profile_config["max_entities"] * capacity_multiplier
+        capacity = profile_config["max_entities"]
         utilization = 0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
         utilization = max(0.0, min(utilization, 100.0))
 
