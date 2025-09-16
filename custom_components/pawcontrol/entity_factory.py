@@ -108,7 +108,7 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
 
 class EntityFactory:
     """Factory for creating entities based on profile and configuration.
-    
+
     Provides centralized entity creation with performance optimization
     based on selected profile and module configuration.
     """
@@ -132,14 +132,14 @@ class EntityFactory:
 
         Returns:
             Estimated entity count
-            
+
         Raises:
             ValueError: If profile is invalid
         """
         if not self._validate_profile(profile):
             _LOGGER.warning("Invalid profile %s, using standard", profile)
             profile = "standard"
-            
+
         if not self._validate_modules(modules):
             _LOGGER.warning("Invalid modules configuration, using defaults")
             modules = self._get_default_modules()
@@ -150,74 +150,74 @@ class EntityFactory:
         # Module-based estimates with profile-specific variations
         module_estimates = {
             "feeding": {
-                "basic": 3,      # feeding_status, last_feeding, next_feeding
-                "standard": 6,   # + portion_today, schedule_active, food_level
+                "basic": 3,  # feeding_status, last_feeding, next_feeding
+                "standard": 6,  # + portion_today, schedule_active, food_level
                 "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
                 "health_focus": 6,  # Health-optimized feeding entities
-                "gps_focus": 3,     # Minimal feeding for GPS focus
+                "gps_focus": 3,  # Minimal feeding for GPS focus
             },
             "walk": {
-                "basic": 2,         # walk_status, daily_walks
-                "standard": 4,      # + current_walk_duration, last_walk_distance
-                "advanced": 6,      # + walk_history, activity_score, route_map
-                "gps_focus": 5,     # GPS-optimized walk tracking
+                "basic": 2,  # walk_status, daily_walks
+                "standard": 4,  # + current_walk_duration, last_walk_distance
+                "advanced": 6,  # + walk_history, activity_score, route_map
+                "gps_focus": 5,  # GPS-optimized walk tracking
                 "health_focus": 4,  # Health metrics from walks
             },
             "gps": {
-                "basic": 2,         # location, battery
-                "standard": 4,      # + accuracy, zone_status
-                "advanced": 5,      # + altitude, speed, heading
-                "gps_focus": 6,     # All GPS features optimized
+                "basic": 2,  # location, battery
+                "standard": 4,  # + accuracy, zone_status
+                "advanced": 5,  # + altitude, speed, heading
+                "gps_focus": 6,  # All GPS features optimized
                 "health_focus": 3,  # Basic GPS for health context
             },
             "health": {
-                "basic": 2,         # health_status, weight
-                "standard": 4,      # + mood, activity_level
-                "advanced": 6,      # + detailed_metrics, trends, alerts
+                "basic": 2,  # health_status, weight
+                "standard": 4,  # + mood, activity_level
+                "advanced": 6,  # + detailed_metrics, trends, alerts
                 "health_focus": 8,  # Comprehensive health monitoring
-                "gps_focus": 3,     # Basic health for GPS context
+                "gps_focus": 3,  # Basic health for GPS context
             },
             "notifications": {
-                "basic": 1,         # notification_status
-                "standard": 2,      # + pending_notifications
-                "advanced": 3,      # + notification_history
-                "gps_focus": 2,     # GPS-related notifications
+                "basic": 1,  # notification_status
+                "standard": 2,  # + pending_notifications
+                "advanced": 3,  # + notification_history
+                "gps_focus": 2,  # GPS-related notifications
                 "health_focus": 2,  # Health-related notifications
             },
             "dashboard": {
-                "basic": 0,         # No dashboard entities
-                "standard": 1,      # dashboard_status
-                "advanced": 2,      # + dashboard_config
-                "gps_focus": 1,     # GPS dashboard
+                "basic": 0,  # No dashboard entities
+                "standard": 1,  # dashboard_status
+                "advanced": 2,  # + dashboard_config
+                "gps_focus": 1,  # GPS dashboard
                 "health_focus": 1,  # Health dashboard
             },
             "visitor": {
-                "basic": 1,         # visitor_mode
-                "standard": 2,      # + visitor_schedule
-                "advanced": 3,      # + visitor_history
-                "gps_focus": 2,     # GPS-enhanced visitor mode
+                "basic": 1,  # visitor_mode
+                "standard": 2,  # + visitor_schedule
+                "advanced": 3,  # + visitor_history
+                "gps_focus": 2,  # GPS-enhanced visitor mode
                 "health_focus": 1,  # Basic visitor mode
             },
             "medication": {
-                "basic": 2,         # medication_due, last_dose
-                "standard": 3,      # + medication_schedule
-                "advanced": 5,      # + medication_history, side_effects
+                "basic": 2,  # medication_due, last_dose
+                "standard": 3,  # + medication_schedule
+                "advanced": 5,  # + medication_history, side_effects
                 "health_focus": 6,  # Comprehensive medication tracking
-                "gps_focus": 2,     # Basic medication for GPS users
+                "gps_focus": 2,  # Basic medication for GPS users
             },
             "training": {
-                "basic": 1,         # training_status
-                "standard": 3,      # + training_progress, sessions_today
-                "advanced": 5,      # + training_history, skill_levels
-                "gps_focus": 2,     # Location-based training
+                "basic": 1,  # training_status
+                "standard": 3,  # + training_progress, sessions_today
+                "advanced": 5,  # + training_history, skill_levels
+                "gps_focus": 2,  # Location-based training
                 "health_focus": 3,  # Health-integrated training
             },
             "grooming": {
-                "basic": 1,         # grooming_due
-                "standard": 2,      # + last_grooming
-                "advanced": 3,      # + grooming_schedule
+                "basic": 1,  # grooming_due
+                "standard": 2,  # + last_grooming
+                "advanced": 3,  # + grooming_schedule
                 "health_focus": 3,  # Health-integrated grooming
-                "gps_focus": 1,     # Basic grooming status
+                "gps_focus": 1,  # Basic grooming status
             },
         }
 
@@ -292,14 +292,14 @@ class EntityFactory:
         **kwargs: Any,
     ) -> bool:
         """Apply profile-specific rules for entity creation.
-        
+
         Args:
             profile: Entity profile name
             entity_type: Type of entity
             module: Module name
             priority: Entity priority
             **kwargs: Additional parameters
-            
+
         Returns:
             True if entity should be created
         """
@@ -320,8 +320,8 @@ class EntityFactory:
             essential_types = {"sensor", "button", "binary_sensor"}
             essential_modules = {"feeding", "health", "walk"}
             return (
-                entity_type in essential_types 
-                and module in essential_modules 
+                entity_type in essential_types
+                and module in essential_modules
                 and priority >= 7
             )
 
@@ -329,20 +329,16 @@ class EntityFactory:
             # GPS-related entities prioritized
             preferred_modules = profile_config.get("preferred_modules", [])
             gps_types = {"device_tracker", "sensor", "binary_sensor", "number"}
-            return (
-                entity_type in gps_types and (
-                    module in preferred_modules or priority >= 7
-                )
+            return entity_type in gps_types and (
+                module in preferred_modules or priority >= 7
             )
 
         elif profile == "health_focus":
             # Health-related entities prioritized
             preferred_modules = profile_config.get("preferred_modules", [])
             health_types = {"sensor", "number", "date", "text", "binary_sensor"}
-            return (
-                entity_type in health_types and (
-                    module in preferred_modules or priority >= 7
-                )
+            return entity_type in health_types and (
+                module in preferred_modules or priority >= 7
             )
 
         elif profile == "advanced":
@@ -439,7 +435,9 @@ class EntityFactory:
         if not dog_id or not entity_type or not module:
             _LOGGER.error(
                 "Missing required parameters: dog_id=%s, entity_type=%s, module=%s",
-                dog_id, entity_type, module
+                dog_id,
+                entity_type,
+                module,
             )
             return None
 
@@ -482,7 +480,7 @@ class EntityFactory:
         """
         if profile in self._profile_cache:
             return self._profile_cache[profile]
-            
+
         info = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"]).copy()
         self._profile_cache[profile] = info
         return info
@@ -495,44 +493,50 @@ class EntityFactory:
         """
         # Sort profiles by performance impact and max entities
         profiles = list(ENTITY_PROFILES.keys())
-        
+
         # Custom sort order: basic, standard, focused profiles, advanced
         sort_order = ["basic", "standard", "gps_focus", "health_focus", "advanced"]
-        return sorted(profiles, key=lambda p: sort_order.index(p) if p in sort_order else 99)
+        return sorted(
+            profiles, key=lambda p: sort_order.index(p) if p in sort_order else 99
+        )
 
-    def validate_profile_for_modules(self, profile: str, modules: dict[str, bool]) -> bool:
+    def validate_profile_for_modules(
+        self, profile: str, modules: dict[str, bool]
+    ) -> bool:
         """Validate if a profile is suitable for the given modules.
-        
+
         Args:
             profile: Profile name to validate
             modules: Dictionary of enabled modules
-            
+
         Returns:
             True if profile is suitable
         """
         if not self._validate_profile(profile) or not self._validate_modules(modules):
             return False
-            
+
         profile_config = ENTITY_PROFILES[profile]
-        
+
         # Check for preferred modules alignment
         preferred_modules = profile_config.get("preferred_modules", [])
         if preferred_modules:
-            enabled_preferred = sum(1 for mod in preferred_modules if modules.get(mod, False))
+            enabled_preferred = sum(
+                1 for mod in preferred_modules if modules.get(mod, False)
+            )
             enabled_total = sum(1 for enabled in modules.values() if enabled)
-            
+
             # At least 50% of enabled modules should align with preferred modules
             if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:
                 return False
-        
+
         return True
 
     def _validate_profile(self, profile: str) -> bool:
         """Validate profile name.
-        
+
         Args:
             profile: Profile name to validate
-            
+
         Returns:
             True if profile is valid
         """
@@ -540,22 +544,22 @@ class EntityFactory:
 
     def _validate_modules(self, modules: dict[str, bool]) -> bool:
         """Validate modules configuration.
-        
+
         Args:
             modules: Modules dictionary to validate
-            
+
         Returns:
             True if modules configuration is valid
         """
         if not isinstance(modules, dict):
             return False
-            
+
         # Check that all values are boolean
         return all(isinstance(enabled, bool) for enabled in modules.values())
 
     def _get_default_modules(self) -> dict[str, bool]:
         """Get default modules configuration.
-        
+
         Returns:
             Default modules configuration
         """
@@ -567,28 +571,33 @@ class EntityFactory:
             "notifications": True,
         }
 
-    def get_performance_metrics(self, profile: str, modules: dict[str, bool]) -> dict[str, Any]:
+    def get_performance_metrics(
+        self, profile: str, modules: dict[str, bool]
+    ) -> dict[str, Any]:
         """Get performance metrics for a profile and module combination.
-        
+
         Args:
             profile: Profile name
             modules: Enabled modules
-            
+
         Returns:
             Performance metrics dictionary
         """
         if not self._validate_profile(profile):
             profile = "standard"
-            
+
         estimated_entities = self.estimate_entity_count(profile, modules)
         profile_config = ENTITY_PROFILES[profile]
-        
+
         return {
             "profile": profile,
             "estimated_entities": estimated_entities,
             "max_entities": profile_config["max_entities"],
             "performance_impact": profile_config["performance_impact"],
-            "utilization_percentage": (estimated_entities / profile_config["max_entities"]) * 100,
+            "utilization_percentage": (
+                estimated_entities / profile_config["max_entities"]
+            )
+            * 100,
             "enabled_modules": sum(1 for enabled in modules.values() if enabled),
             "total_modules": len(modules),
         }

@@ -307,9 +307,7 @@ class PawControlOptionsFlow(OptionsFlow):
             total_entities += estimate
 
             enabled_modules = [module for module, enabled in modules.items() if enabled]
-            utilization = (
-                (estimate / max_entities) * 100 if max_entities > 0 else 0
-            )
+            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
 
             entity_breakdown.append(
                 {

@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import DEFAULT_DATA_RETENTION_DAYS, DOMAIN, STORAGE_VERSION
+from .const import DOMAIN, STORAGE_VERSION
 from .exceptions import StorageError
 from .utils import deep_merge_dicts
 
@@ -177,20 +177,20 @@ class AdaptiveCache:
 
     async def cleanup_expired(self) -> int:
         """FIX: Cleanup expired entries to prevent memory leaks.
-        
+
         Returns:
             Number of entries cleaned up
         """
         now = dt_util.utcnow()
         expired_keys = []
-        
+
         for key, metadata in self._metadata.items():
             if now > metadata["expiry"]:
                 expired_keys.append(key)
-        
+
         for key in expired_keys:
             await self._evict(key)
-        
+
         return len(expired_keys)
 
     def _estimate_size(self, value: Any) -> int:
@@ -614,7 +614,7 @@ class PawControlDataManager:
         cleaned_entries = await self._cache.cleanup_expired()
         if cleaned_entries > 0:
             _LOGGER.debug("Cleaned up %d expired cache entries", cleaned_entries)
-        
+
         # Update performance score
         cache_stats = self._cache.get_stats()
         self._metrics["performance_score"] = (
@@ -667,7 +667,7 @@ class PawControlDataManager:
         """Get module data with optimized filtering."""
         try:
             # Check index for quick stats
-            index_info = self._storage.query_index(module, dog_id)
+            self._storage.query_index(module, dog_id)
 
             # Get module data
             module_data = await self._get_namespace_data(module)

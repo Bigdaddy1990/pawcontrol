@@ -58,44 +58,51 @@ def get_platforms_for_profile_and_modules(
     dogs_config: list[dict[str, Any]], profile: str
 ) -> list[Platform]:
     """Determine required platforms based on dogs, modules and profile.
-    
+
     OPTIMIZE: Enhanced with caching, single-pass iteration, and early validation.
-    
+
     Args:
         dogs_config: List of dog configurations
         profile: Entity profile name
-        
+
     Returns:
         List of required platforms
     """
     if not dogs_config:
         return [Platform.SENSOR, Platform.BUTTON]
-    
+
     # OPTIMIZE: Generate cache key with better performance using hash
-    dogs_signature = hash(str(sorted(
-        (dog.get(CONF_DOG_ID, ''), tuple(sorted(dog.get('modules', {}).items())))
-        for dog in dogs_config
-    )))
+    dogs_signature = hash(
+        str(
+            sorted(
+                (
+                    dog.get(CONF_DOG_ID, ""),
+                    tuple(sorted(dog.get("modules", {}).items())),
+                )
+                for dog in dogs_config
+            )
+        )
+    )
     cache_key = f"{len(dogs_config)}_{profile}_{dogs_signature}"
-    
+
     # OPTIMIZE: Cache management with size limits
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
-    
+
     # OPTIMIZE: Clear cache if too large
     if len(_PLATFORM_CACHE) >= _CACHE_SIZE_LIMIT:
-        oldest_keys = list(_PLATFORM_CACHE.keys())[:_CACHE_SIZE_LIMIT // 2]
+        oldest_keys = list(_PLATFORM_CACHE.keys())[: _CACHE_SIZE_LIMIT // 2]
         for key in oldest_keys:
             _PLATFORM_CACHE.pop(key, None)
         _LOGGER.debug("Cleared platform cache: removed %d entries", len(oldest_keys))
-    
+
     # Pre-validate profile to avoid issues later
     from .entity_factory import ENTITY_PROFILES
-    
+
     if profile not in ENTITY_PROFILES:
         _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
         profile = "standard"
-    
+
     # OPTIMIZE: Single-pass collection of enabled modules using set operations
     enabled_modules: set[str] = set()
     for dog in dogs_config:
@@ -143,11 +150,11 @@ def get_platforms_for_profile_and_modules(
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control integration from configuration.yaml.
-    
+
     Args:
         hass: Home Assistant instance
         config: Configuration from configuration.yaml
-        
+
     Returns:
         True if setup successful
     """
@@ -158,7 +165,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
     """Set up Paw Control from a config entry.
 
-    OPTIMIZE: Enhanced with parallel manager initialization, comprehensive error handling, 
+    OPTIMIZE: Enhanced with parallel manager initialization, comprehensive error handling,
     and performance monitoring for Platinum compliance.
 
     Args:
@@ -177,11 +184,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
     if not dogs_config:
         raise ConfigEntryNotReady("No dogs configured")
-    
+
     # Enhanced validation for each dog configuration
     for dog in dogs_config:
         if not dog.get(CONF_DOG_ID):
-            raise ConfigEntryNotReady(f"Invalid dog configuration: missing {CONF_DOG_ID}")
+            raise ConfigEntryNotReady(
+                f"Invalid dog configuration: missing {CONF_DOG_ID}"
+            )
         # Additional validation
         if not isinstance(dog.get(CONF_DOG_ID), str) or not dog[CONF_DOG_ID].strip():
             raise ConfigEntryNotReady(f"Invalid dog ID: {dog.get(CONF_DOG_ID)}")
@@ -196,7 +205,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     # OPTIMIZE: Calculate platforms once for reuse with caching
     platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
-    
+
     # OPTIMIZE: Initialize core components with proper error handling and session injection
     session = async_get_clientsession(hass)
     coordinator = PawControlCoordinator(hass, entry, session)
@@ -207,8 +216,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     entity_factory = EntityFactory(coordinator)
 
     # OPTIMIZE: Efficient entity count estimation with caching
-    total_estimated_entities = _calculate_entity_count_cached(dogs_config, profile, entity_factory)
-    
+    total_estimated_entities = _calculate_entity_count_cached(
+        dogs_config, profile, entity_factory
+    )
+
     _LOGGER.debug(
         "Estimated %d entities for %d dogs with profile '%s'",
         total_estimated_entities,
@@ -221,45 +232,70 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     try:
         # Initialize coordinator first (critical dependency)
         await asyncio.wait_for(
-            coordinator.async_config_entry_first_refresh(),
-            timeout=MANAGER_INIT_TIMEOUT
+            coordinator.async_config_entry_first_refresh(), timeout=MANAGER_INIT_TIMEOUT
         )
         initialized_managers.append(coordinator)
-        
+
         # OPTIMIZE: Initialize remaining managers in parallel with controlled concurrency
         manager_tasks = [
-            ("data_manager", _initialize_manager_with_retry(
-                data_manager.async_initialize, "Data manager", MAX_MANAGER_RETRIES
-            )),
-            ("notification_manager", _initialize_manager_with_retry(
-                notification_manager.async_initialize, "Notification manager", MAX_MANAGER_RETRIES
-            )),
-            ("feeding_manager", _initialize_manager_with_retry(
-                lambda: feeding_manager.async_initialize(dogs_config), "Feeding manager", MAX_MANAGER_RETRIES
-            )),
-            ("walk_manager", _initialize_manager_with_retry(
-                lambda: walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]), 
-                "Walk manager", MAX_MANAGER_RETRIES
-            )),
+            (
+                "data_manager",
+                _initialize_manager_with_retry(
+                    data_manager.async_initialize, "Data manager", MAX_MANAGER_RETRIES
+                ),
+            ),
+            (
+                "notification_manager",
+                _initialize_manager_with_retry(
+                    notification_manager.async_initialize,
+                    "Notification manager",
+                    MAX_MANAGER_RETRIES,
+                ),
+            ),
+            (
+                "feeding_manager",
+                _initialize_manager_with_retry(
+                    lambda: feeding_manager.async_initialize(dogs_config),
+                    "Feeding manager",
+                    MAX_MANAGER_RETRIES,
+                ),
+            ),
+            (
+                "walk_manager",
+                _initialize_manager_with_retry(
+                    lambda: walk_manager.async_initialize(
+                        [dog[CONF_DOG_ID] for dog in dogs_config]
+                    ),
+                    "Walk manager",
+                    MAX_MANAGER_RETRIES,
+                ),
+            ),
         ]
-        
+
         # Execute manager initialization concurrently
         results = await asyncio.gather(
             *(task for _, task in manager_tasks),
             return_exceptions=True,
         )
-        
+
         # Process results and collect successfully initialized managers
         managers = [data_manager, notification_manager, feeding_manager, walk_manager]
-        for i, (manager_name, result) in enumerate(zip([name for name, _ in manager_tasks], results)):
+        for i, (manager_name, result) in enumerate(
+            zip([name for name, _ in manager_tasks], results, strict=False)
+        ):
             if isinstance(result, Exception):
                 await _cleanup_managers(initialized_managers)
-                raise ConfigEntryNotReady(f"{manager_name.replace('_', ' ').title()} initialization failed: {result}") from result
+                raise ConfigEntryNotReady(
+                    f"{manager_name.replace('_', ' ').title()} initialization failed: {result}"
+                ) from result
             else:
                 initialized_managers.append(managers[i])
-                _LOGGER.debug("%s initialized successfully", manager_name.replace('_', ' ').title())
+                _LOGGER.debug(
+                    "%s initialized successfully",
+                    manager_name.replace("_", " ").title(),
+                )
 
-    except (ConfigEntryNotReady, asyncio.TimeoutError):
+    except (TimeoutError, ConfigEntryNotReady):
         # Cleanup on initialization failure
         await _cleanup_managers(initialized_managers)
         raise
@@ -272,9 +308,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     try:
         await asyncio.wait_for(
             hass.config_entries.async_forward_entry_setups(entry, platforms),
-            timeout=60.0  # Allow more time for platform setup
+            timeout=60.0,  # Allow more time for platform setup
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         await _cleanup_managers(initialized_managers)
         raise ConfigEntryNotReady("Platform setup timeout after 60 seconds")
     except Exception as err:
@@ -282,15 +318,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         await _cleanup_managers(initialized_managers)
         if isinstance(err, ImportError):
             raise ConfigEntryNotReady(f"Platform import failed: {err}") from err
-        elif isinstance(err, (ValueError, TypeError)):
+        elif isinstance(err, ValueError | TypeError):
             raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
         else:
-            raise ConfigEntryNotReady(f"Unexpected platform setup error: {err}") from err
+            raise ConfigEntryNotReady(
+                f"Unexpected platform setup error: {err}"
+            ) from err
 
     # OPTIMIZE: Initialize optional services with error isolation (non-critical)
-    service_manager = None
     try:
-        service_manager = PawControlServiceManager(hass)
+        PawControlServiceManager(hass)
         await async_setup_daily_reset_scheduler(hass, entry)
         _LOGGER.debug("Optional services initialized successfully")
     except Exception as err:
@@ -308,7 +345,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         entity_profile=profile,
         dogs=dogs_config,
     )
-    
+
     # OPTIMIZE: Add performance and error tracking
     runtime_data.performance_stats = {
         "setup_duration_ms": 0,  # Will be calculated by caller
@@ -316,12 +353,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         "platforms_count": len(platforms),
         "managers_initialized": len(initialized_managers),
     }
-    
+
     entry.runtime_data = runtime_data
-    
+
     # Start background tasks for coordinator
     coordinator.async_start_background_tasks()
-    
+
     _LOGGER.info(
         "PawControl setup completed: %d dogs, %d platforms, profile '%s', %d entities estimated",
         len(dogs_config),
@@ -329,7 +366,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         profile,
         total_estimated_entities,
     )
-    
+
     return True
 
 
@@ -339,103 +376,118 @@ async def _initialize_manager_with_retry(
     max_retries: int,
 ) -> None:
     """Initialize manager with retry logic.
-    
+
     OPTIMIZE: New function for robust manager initialization with exponential backoff.
-    
+
     Args:
         init_func: Manager initialization function
         manager_name: Name for logging
         max_retries: Maximum retry attempts
-        
+
     Raises:
         Exception: If all retries fail
     """
     last_exception = None
-    
+
     for attempt in range(max_retries + 1):
         try:
             await asyncio.wait_for(init_func(), timeout=MANAGER_INIT_TIMEOUT)
             if attempt > 0:
-                _LOGGER.info("%s initialized successfully after %d attempts", manager_name, attempt + 1)
+                _LOGGER.info(
+                    "%s initialized successfully after %d attempts",
+                    manager_name,
+                    attempt + 1,
+                )
             return
         except Exception as err:
             last_exception = err
             if attempt < max_retries:
-                wait_time = 2 ** attempt  # Exponential backoff
+                wait_time = 2**attempt  # Exponential backoff
                 _LOGGER.warning(
                     "%s initialization failed (attempt %d/%d), retrying in %ds: %s",
-                    manager_name, attempt + 1, max_retries + 1, wait_time, err
+                    manager_name,
+                    attempt + 1,
+                    max_retries + 1,
+                    wait_time,
+                    err,
                 )
                 await asyncio.sleep(wait_time)
             else:
                 _LOGGER.error(
                     "%s initialization failed after %d attempts: %s",
-                    manager_name, max_retries + 1, err
+                    manager_name,
+                    max_retries + 1,
+                    err,
                 )
-    
+
     raise last_exception or Exception(f"{manager_name} initialization failed")
 
 
 def _calculate_entity_count_cached(
-    dogs_config: list[DogConfigData], 
-    profile: str, 
-    entity_factory: EntityFactory
+    dogs_config: list[DogConfigData], profile: str, entity_factory: EntityFactory
 ) -> int:
     """Calculate entity count with caching for performance.
-    
+
     OPTIMIZE: Cached entity count calculation to avoid repeated expensive operations.
-    
+
     Args:
         dogs_config: List of dog configurations
         profile: Entity profile
         entity_factory: Entity factory instance
-        
+
     Returns:
         Estimated total entity count
     """
     # Create cache key
-    dogs_signature = hash(str(sorted(
-        (dog.get(CONF_DOG_ID, ''), tuple(sorted(dog.get('modules', {}).items())))
-        for dog in dogs_config
-    )))
+    dogs_signature = hash(
+        str(
+            sorted(
+                (
+                    dog.get(CONF_DOG_ID, ""),
+                    tuple(sorted(dog.get("modules", {}).items())),
+                )
+                for dog in dogs_config
+            )
+        )
+    )
     cache_key = f"entities_{len(dogs_config)}_{profile}_{dogs_signature}"
-    
+
     # Check cache (using a module-level cache)
-    if not hasattr(_calculate_entity_count_cached, 'cache'):
+    if not hasattr(_calculate_entity_count_cached, "cache"):
         _calculate_entity_count_cached.cache = {}
-    
+
     cache = _calculate_entity_count_cached.cache
     if cache_key in cache:
         return cache[cache_key]
-    
+
     # Calculate and cache result
     total = 0
     for dog in dogs_config:
         modules = dog.get("modules", {})
         total += entity_factory.estimate_entity_count(profile, modules)
-    
+
     # Cache with size limit
     if len(cache) >= _CACHE_SIZE_LIMIT:
         # Clear oldest entries
-        oldest_keys = list(cache.keys())[:_CACHE_SIZE_LIMIT // 2]
+        oldest_keys = list(cache.keys())[: _CACHE_SIZE_LIMIT // 2]
         for key in oldest_keys:
             cache.pop(key, None)
-    
+
     cache[cache_key] = total
     return total
 
 
 async def _cleanup_managers(managers: list[Any]) -> None:
     """Cleanup initialized managers on setup failure.
-    
+
     OPTIMIZE: Enhanced cleanup with timeout protection and parallel execution.
-    
+
     Args:
         managers: List of manager instances to cleanup
     """
     if not managers:
         return
-        
+
     cleanup_tasks = []
     for manager in reversed(managers):  # Cleanup in reverse order
         if hasattr(manager, "async_shutdown"):
@@ -443,21 +495,25 @@ async def _cleanup_managers(managers: list[Any]) -> None:
             async def safe_shutdown(mgr):
                 try:
                     await asyncio.wait_for(mgr.async_shutdown(), timeout=10.0)
-                except asyncio.TimeoutError:
-                    _LOGGER.warning("Manager %s shutdown timeout", mgr.__class__.__name__)
+                except TimeoutError:
+                    _LOGGER.warning(
+                        "Manager %s shutdown timeout", mgr.__class__.__name__
+                    )
                 except Exception as err:
-                    _LOGGER.error("Manager %s shutdown error: %s", mgr.__class__.__name__, err)
-            
+                    _LOGGER.error(
+                        "Manager %s shutdown error: %s", mgr.__class__.__name__, err
+                    )
+
             cleanup_tasks.append(safe_shutdown(manager))
-    
+
     if cleanup_tasks:
         # OPTIMIZE: Run cleanup concurrently with overall timeout
         try:
             await asyncio.wait_for(
                 asyncio.gather(*cleanup_tasks, return_exceptions=True),
-                timeout=30.0  # Overall cleanup timeout
+                timeout=30.0,  # Overall cleanup timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Manager cleanup timeout after 30 seconds")
 
 
@@ -474,7 +530,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         True if unload successful
     """
     runtime_data = entry.runtime_data
-    
+
     # Get platform list for unloading
     if runtime_data:
         dogs = runtime_data.dogs
@@ -482,7 +538,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     else:
         dogs = entry.data.get(CONF_DOGS, [])
         profile = entry.options.get("entity_profile", "standard")
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     # OPTIMIZE: Unload platforms first with timeout and better error handling
@@ -490,13 +546,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     try:
         unload_ok = await asyncio.wait_for(
             hass.config_entries.async_unload_platforms(entry, platforms),
-            timeout=60.0  # Allow more time for platform unload
+            timeout=60.0,  # Allow more time for platform unload
         )
         if unload_ok:
             _LOGGER.debug("Platforms unloaded successfully")
         else:
             _LOGGER.warning("Some platforms failed to unload")
-    except asyncio.TimeoutError:
+    except TimeoutError:
         _LOGGER.error("Platform unload timeout after 60 seconds")
         unload_ok = False
     except Exception as err:
@@ -513,28 +569,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             runtime_data.data_manager,
             runtime_data.coordinator,
         ]
-        
+
         # Filter managers that have shutdown capability and create timeout-protected tasks
         shutdown_tasks = []
         for manager in managers:
             if hasattr(manager, "async_shutdown"):
+
                 async def safe_manager_shutdown(mgr):
                     try:
                         await asyncio.wait_for(mgr.async_shutdown(), timeout=15.0)
                         return mgr.__class__.__name__, None
                     except Exception as err:
                         return mgr.__class__.__name__, err
-                
+
                 shutdown_tasks.append(safe_manager_shutdown(manager))
-        
+
         # Execute shutdown tasks with overall timeout
         if shutdown_tasks:
             try:
                 results = await asyncio.wait_for(
                     asyncio.gather(*shutdown_tasks, return_exceptions=True),
-                    timeout=45.0  # Overall shutdown timeout
+                    timeout=45.0,  # Overall shutdown timeout
                 )
-                
+
                 # Log results
                 for result in results:
                     if isinstance(result, Exception):
@@ -542,19 +599,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                     else:
                         manager_name, error = result
                         if error:
-                            _LOGGER.error("Error shutting down %s: %s", manager_name, error)
+                            _LOGGER.error(
+                                "Error shutting down %s: %s", manager_name, error
+                            )
                         else:
                             _LOGGER.debug("%s shutdown successfully", manager_name)
-                            
-            except asyncio.TimeoutError:
+
+            except TimeoutError:
                 _LOGGER.error("Manager shutdown timeout after 45 seconds")
 
     # OPTIMIZE: Clear platform cache on unload with better management
     global _PLATFORM_CACHE
     _PLATFORM_CACHE.clear()
-    
+
     # Clear function caches
-    if hasattr(_calculate_entity_count_cached, 'cache'):
+    if hasattr(_calculate_entity_count_cached, "cache"):
         _calculate_entity_count_cached.cache.clear()
 
     _LOGGER.info(
@@ -577,13 +636,13 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         entry: Config entry to reload
     """
     _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
-    
+
     # OPTIMIZE: Store current state for recovery if needed
     current_state = {
         "dogs_count": len(entry.data.get(CONF_DOGS, [])),
         "profile": entry.options.get("entity_profile", "standard"),
     }
-    
+
     try:
         await async_unload_entry(hass, entry)
         await async_setup_entry(hass, entry)
@@ -597,6 +656,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         # Clear any partial state
         global _PLATFORM_CACHE
         _PLATFORM_CACHE.clear()
-        if hasattr(_calculate_entity_count_cached, 'cache'):
+        if hasattr(_calculate_entity_count_cached, "cache"):
             _calculate_entity_count_cached.cache.clear()
         raise
