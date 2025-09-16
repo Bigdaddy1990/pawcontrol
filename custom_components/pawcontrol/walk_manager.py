@@ -376,7 +376,7 @@ class WalkManager:
 
                             # Analyze latest location in batch
                             if batch:
-                                latest_lat, latest_lon, latest_time = batch[-1]
+                                latest_lat, latest_lon, _latest_time = batch[-1]
                                 await self._update_location_analysis(
                                     dog_id, latest_lat, latest_lon
                                 )
