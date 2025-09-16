@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
@@ -73,49 +73,47 @@ def get_platforms_for_profile_and_modules(
     if not dogs_config:
         return (Platform.BUTTON, Platform.SENSOR)
 
-    # OPTIMIZE: Generate cache key with better performance using hash
-    dogs_signature = hash(
-        str(
-            sorted(
-                (
-                    dog.get(CONF_DOG_ID, ""),
-                    tuple(sorted(dog.get("modules", {}).items())),
-                )
-                for dog in dogs_config
+    signature_source: list[tuple[str, tuple[tuple[str, bool], ...]]] = []
+    enabled_modules: set[str] = set()
+    for dog in dogs_config:
+        modules = dog.get("modules", {})
+        if isinstance(modules, Mapping):
+            module_items = tuple(
+                sorted((module, bool(enabled)) for module, enabled in modules.items())
             )
-        )
-    )
-    cache_key = f"{len(dogs_config)}_{profile}_{dogs_signature}"
+            enabled_modules.update(
+                module for module, enabled in module_items if enabled
+            )
+        else:
+            module_items = ()
 
-    # OPTIMIZE: Cache management with size limits
+        signature_source.append((dog.get(CONF_DOG_ID, ""), module_items))
+
+    dogs_signature = hash(str(sorted(signature_source)))
+
+    from .entity_factory import ENTITY_PROFILES
+
+    normalized_profile = profile
+    if normalized_profile not in ENTITY_PROFILES:
+        _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
+        normalized_profile = "standard"
+
+    cache_key = f"{len(dogs_config)}_{normalized_profile}_{dogs_signature}"
+
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
 
-    # OPTIMIZE: Clear cache if too large
     if len(_PLATFORM_CACHE) >= _CACHE_SIZE_LIMIT:
         oldest_keys = list(_PLATFORM_CACHE.keys())[: _CACHE_SIZE_LIMIT // 2]
         for key in oldest_keys:
             _PLATFORM_CACHE.pop(key, None)
         _LOGGER.debug("Cleared platform cache: removed %d entries", len(oldest_keys))
 
-    # Pre-validate profile to avoid issues later
-    from .entity_factory import ENTITY_PROFILES
-
-    if profile not in ENTITY_PROFILES:
-        _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
-        profile = "standard"
-
-    # OPTIMIZE: Single-pass collection of enabled modules using set operations
-    enabled_modules: set[str] = set()
-    for dog in dogs_config:
-        modules = dog.get("modules", {})
-        enabled_modules.update(mod for mod, enabled in modules.items() if enabled)
-
     # Base platforms always included
     platforms: set[Platform] = {Platform.SENSOR, Platform.BUTTON}
 
     # OPTIMIZE: Profile-specific platform determination with optimized logic
-    if profile == "basic":
+    if normalized_profile == "basic":
         if enabled_modules.intersection({MODULE_WALK, MODULE_GPS}):
             platforms.add(Platform.BINARY_SENSOR)
         if MODULE_NOTIFICATIONS in enabled_modules:
@@ -138,11 +136,11 @@ def get_platforms_for_profile_and_modules(
             platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
         # Profile-specific additions
-        if profile == "advanced":
+        if normalized_profile == "advanced" and enabled_modules:
             platforms.add(Platform.DATETIME)
-        elif profile == "gps_focus":
+        elif normalized_profile == "gps_focus":
             platforms.add(Platform.NUMBER)
-        elif profile == "health_focus":
+        elif normalized_profile == "health_focus":
             platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
     result_platforms = tuple(sorted(platforms, key=lambda item: item.value))
