@@ -17,7 +17,11 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, time, timedelta
 from typing import Any, TypeVar
 
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.util import dt as dt_util
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +29,47 @@ _LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
+
+
+def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
+    """Create device info for a dog entity.
+    
+    Args:
+        dog_id: Unique dog identifier
+        dog_name: Display name for the dog
+        **kwargs: Additional device info parameters
+        
+    Returns:
+        DeviceInfo dictionary for Home Assistant device registry
+    """
+    # Sanitize dog_id for device identifier
+    sanitized_id = sanitize_dog_id(dog_id)
+    
+    device_info: DeviceInfo = {
+        "identifiers": {(DOMAIN, sanitized_id)},
+        "name": dog_name,
+        "manufacturer": "PawControl",
+        "model": "Virtual Dog",
+        "sw_version": kwargs.get("sw_version", "1.0.0"),
+    }
+    
+    # Add optional device info
+    if "breed" in kwargs and kwargs["breed"]:
+        device_info["model"] = f"Virtual Dog ({kwargs['breed']})"
+    
+    if "microchip_id" in kwargs and kwargs["microchip_id"]:
+        device_info["identifiers"].add(("microchip", kwargs["microchip_id"]))
+    
+    if "serial_number" in kwargs and kwargs["serial_number"]:
+        device_info["serial_number"] = kwargs["serial_number"]
+        
+    if "hw_version" in kwargs and kwargs["hw_version"]:
+        device_info["hw_version"] = kwargs["hw_version"]
+        
+    if "configuration_url" in kwargs:
+        device_info["configuration_url"] = kwargs["configuration_url"]
+    
+    return device_info
 
 
 def deep_merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:

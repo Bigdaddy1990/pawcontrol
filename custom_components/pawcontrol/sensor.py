@@ -30,16 +30,9 @@ from .const import (
     CONF_DOG_NAME,
 )
 from .coordinator import PawControlCoordinator
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import PawControlConfigEntry
 from .utils import create_device_info
-
-# FIX: Add conditional import guard for entity factory
-try:
-    from .entity_factory import ENTITY_PROFILES, EntityFactory
-except ImportError:
-    # Fallback for testing or incomplete installations
-    ENTITY_PROFILES = {"standard": {"max_entities": 12}}
-    EntityFactory = None
 
 _LOGGER = logging.getLogger(__name__)
 
