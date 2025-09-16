@@ -7,12 +7,10 @@ from collections.abc import Coroutine
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-
-
 import pytest
 from custom_components.pawcontrol.helpers import PawControlDataStorage
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 
 class _DummyCache:
