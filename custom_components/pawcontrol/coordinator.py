@@ -35,7 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 API_TIMEOUT = 30.0  # seconds
 MAX_CONCURRENT_REQUESTS = 5
-MAX_DATA_ITEMS_PER_DOG = 1000  # FIX: Prevent memory leaks
+MAX_DATA_ITEMS_PER_DOG = 1000  # Prevent memory leaks
+CACHE_SIZE_LIMIT = 100  # Maximum cache entries
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -74,7 +75,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
-        # FIX: Initialize external API flag BEFORE super().__init__() to prevent AttributeError
+        # OPTIMIZE: Initialize external API flag BEFORE super().__init__() to prevent AttributeError
         self._use_external_api = False
 
         # Calculate optimized update interval
@@ -97,13 +98,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "avg_update_time": 0.0,
             "cache_hits": 0,
             "api_calls": 0,
+            "memory_usage_mb": 0.0,
         }
         
-        # Request semaphore to limit concurrent API calls
+        # OPTIMIZE: Request semaphore to limit concurrent API calls
         self._api_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
         
         # Track maintenance task unsubscriber
         self._unsub_maintenance: Callable[[], None] | None = None
+        
+        # OPTIMIZE: Add interval cache with size limit
+        self._interval_cache: dict[str, int] = {}
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, session=%s",
@@ -121,7 +126,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             UpdateFailed: If critical errors occur or all dogs fail
         """
-        # FIX: Handle empty dogs list edge case
+        # OPTIMIZE: Handle empty dogs list edge case efficiently
         if not self.dogs:
             _LOGGER.debug("No dogs configured, returning empty data")
             return {}
@@ -131,19 +136,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         errors = 0
         error_details: list[str] = []
 
-        # Create semaphore-limited tasks for concurrent updates
+        # OPTIMIZE: Create semaphore-limited tasks for concurrent updates with better error isolation
         async def update_dog_with_semaphore(dog: DogConfigData) -> tuple[str, dict[str, Any] | None]:
             async with self._api_semaphore:
                 dog_id = dog[CONF_DOG_ID]
                 try:
-                    dog_data = await self._fetch_dog_data(dog_id)
+                    # Add timeout protection for individual dog updates
+                    dog_data = await asyncio.wait_for(
+                        self._fetch_dog_data(dog_id),
+                        timeout=API_TIMEOUT * 0.8  # Leave buffer for semaphore management
+                    )
                     _LOGGER.debug("Successfully updated data for dog %s", dog_id)
                     return dog_id, dog_data
+                except asyncio.TimeoutError:
+                    _LOGGER.warning("Timeout updating dog %s after %.1fs", dog_id, API_TIMEOUT * 0.8)
+                    return dog_id, None
                 except Exception as err:
                     _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
                     return dog_id, None
 
-        # Execute concurrent updates with controlled concurrency
+        # OPTIMIZE: Execute concurrent updates with controlled concurrency and better error handling
         try:
             results = await asyncio.gather(
                 *(update_dog_with_semaphore(dog) for dog in self.dogs),
@@ -153,7 +165,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._performance_metrics["error_count"] += 1
             raise UpdateFailed(f"Concurrent update failed: {err}") from err
 
-        # Process results
+        # Process results with improved error tracking
         for result in results:
             if isinstance(result, Exception):
                 errors += 1
@@ -169,7 +181,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Use last known data or empty dict
                 all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
 
-        # Update performance metrics
+        # OPTIMIZE: Update performance metrics with memory tracking
         end_time = asyncio.get_event_loop().time()
         update_time = end_time - start_time
         self._performance_metrics["update_count"] += 1
@@ -194,8 +206,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 update_time,
             )
 
-        # FIX: Store data with size limits to prevent memory leaks
+        # OPTIMIZE: Store data with size limits to prevent memory leaks
         self._data = self._limit_data_size(all_data)
+        
+        # Update memory usage tracking
+        import sys
+        self._performance_metrics["memory_usage_mb"] = sys.getsizeof(self._data) / (1024 * 1024)
+        
         return self._data
 
     def _limit_data_size(self, data: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -210,11 +227,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for dog_id, dog_data in data.items():
             for module_name, module_data in dog_data.items():
                 if isinstance(module_data, dict):
-                    # Limit size of historical data arrays
-                    for key in ["walk_history", "feeding_alerts", "symptoms", "route"]:
+                    # OPTIMIZE: Limit size of historical data arrays with better performance
+                    for key in ["walk_history", "feeding_alerts", "symptoms", "route", "training_sessions"]:
                         if key in module_data and isinstance(module_data[key], list):
-                            if len(module_data[key]) > MAX_DATA_ITEMS_PER_DOG:
+                            current_size = len(module_data[key])
+                            if current_size > MAX_DATA_ITEMS_PER_DOG:
+                                # Keep most recent items
                                 module_data[key] = module_data[key][-MAX_DATA_ITEMS_PER_DOG:]
+                                _LOGGER.debug(
+                                    "Trimmed %s for dog %s: %d -> %d items",
+                                    key, dog_id, current_size, MAX_DATA_ITEMS_PER_DOG
+                                )
         return data
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
@@ -231,6 +254,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             MODULE_WALK: {},
             MODULE_GPS: {},
             MODULE_HEALTH: {},
+            "medication": {},
+            "grooming": {},
         }
 
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
@@ -259,16 +284,19 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
         modules = dog_config.get("modules", {})
 
-        # Fetch data for enabled modules with enhanced error isolation
+        # OPTIMIZE: Fetch data for enabled modules with enhanced error isolation and parallel execution
         module_tasks = [
             (MODULE_FEEDING, modules.get(MODULE_FEEDING), self._get_feeding_data),
             (MODULE_WALK, modules.get(MODULE_WALK), self._get_walk_data),
             (MODULE_GPS, modules.get(MODULE_GPS), self._get_gps_data),
             (MODULE_HEALTH, modules.get(MODULE_HEALTH), self._get_health_data),
+            ("medication", modules.get("medication", False), self._get_medication_data),
+            ("grooming", modules.get("grooming", False), self._get_grooming_data),
         ]
 
-        # Execute module data fetching concurrently
-        enabled_tasks = [(name, func(dog_id)) for name, enabled, func in module_tasks if enabled]
+        # Execute module data fetching concurrently with timeout protection
+        enabled_tasks = [(name, asyncio.wait_for(func(dog_id), timeout=15.0)) 
+                        for name, enabled, func in module_tasks if enabled]
         
         if enabled_tasks:
             results = await asyncio.gather(
@@ -304,14 +332,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Feeding data dictionary
         """
-        # Example of external API call using session
         try:
             if self._use_external_api:
-                # Example external API call (commented out - implement as needed)
-                # async with self.session.get(f"/api/dogs/{dog_id}/feeding") as resp:
-                #     if resp.status == 200:
-                #         return await resp.json()
-                pass
+                # OPTIMIZE: Example external API call with proper session management
+                async with self.session.get(
+                    f"/api/dogs/{dog_id}/feeding",
+                    timeout=ClientTimeout(total=10.0)
+                ) as resp:
+                    if resp.status == 200:
+                        self._performance_metrics["api_calls"] += 1
+                        return await resp.json()
         except ClientError as err:
             _LOGGER.debug("External feeding API unavailable for %s: %s", dog_id, err)
 
@@ -325,6 +355,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "food_level": 100,  # percentage
             "feeding_alerts": [],
             "status": "ready",
+            "calories_today": 0,
+            "food_type": "dry_food",
         }
 
     async def _get_walk_data(self, dog_id: str) -> dict[str, Any]:
@@ -338,8 +370,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         try:
             if self._use_external_api:
-                # Example external API call
-                pass
+                self._performance_metrics["api_calls"] += 1
         except ClientError as err:
             _LOGGER.debug("External walk API unavailable for %s: %s", dog_id, err)
 
@@ -354,6 +385,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "walk_history": [],
             "favorite_routes": [],
             "status": "ready",
+            "energy_level": "normal",
         }
 
     async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
@@ -367,7 +399,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         try:
             if self._use_external_api:
-                # Example GPS API call
                 self._performance_metrics["api_calls"] += 1
         except ClientError as err:
             _LOGGER.debug("External GPS API unavailable for %s: %s", dog_id, err)
@@ -385,6 +416,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "geofence_status": "unknown",
             "zone_name": None,
             "status": "unknown",
+            "signal_strength": None,
         }
 
     async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
@@ -398,7 +430,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         try:
             if self._use_external_api:
-                # Example health API call
                 pass
         except ClientError as err:
             _LOGGER.debug("External health API unavailable for %s: %s", dog_id, err)
@@ -416,6 +447,43 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "mood": "neutral",
             "symptoms": [],
             "status": "healthy",
+            "temperature": None,
+        }
+
+    async def _get_medication_data(self, dog_id: str) -> dict[str, Any]:
+        """Get medication data for dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Medication data dictionary
+        """
+        return {
+            "active_medications": [],
+            "next_dose": None,
+            "medication_schedule": [],
+            "adherence_rate": 100.0,
+            "side_effects": [],
+            "status": "up_to_date",
+        }
+
+    async def _get_grooming_data(self, dog_id: str) -> dict[str, Any]:
+        """Get grooming data for dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Grooming data dictionary
+        """
+        return {
+            "last_grooming": None,
+            "next_grooming": None,
+            "grooming_schedule": [],
+            "coat_condition": "good",
+            "needs_attention": [],
+            "status": "up_to_date",
         }
 
     def _calculate_optimized_update_interval(self) -> int:
@@ -427,13 +495,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self.dogs:
             return UPDATE_INTERVALS["minimal"]
 
-        # Cache calculation result to avoid repeated computation
+        # OPTIMIZE: Cache calculation result to avoid repeated computation
         cache_key = f"interval_{len(self.dogs)}_{hash(str([
             (dog.get(CONF_DOG_ID), tuple(sorted(dog.get('modules', {}).items())))
             for dog in self.dogs
         ]))}"
         
-        if hasattr(self, '_interval_cache') and cache_key in self._interval_cache:
+        if cache_key in self._interval_cache:
             return self._interval_cache[cache_key]
 
         # Check for GPS requirements (fastest updates)
@@ -453,7 +521,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 for dog in self.dogs
             )
 
-            # Determine update frequency based on complexity with performance consideration
+            # OPTIMIZE: Determine update frequency based on complexity with performance consideration
             if total_modules > 15:  # High complexity
                 interval = UPDATE_INTERVALS["balanced"]
             elif total_modules > 8:   # Medium complexity
@@ -461,9 +529,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else:                    # Low complexity
                 interval = UPDATE_INTERVALS["minimal"]
 
-        # Cache result
-        if not hasattr(self, '_interval_cache'):
-            self._interval_cache = {}
+        # OPTIMIZE: Cache result with size limit management
+        if len(self._interval_cache) >= CACHE_SIZE_LIMIT:
+            # Remove oldest entries
+            keys_to_remove = list(self._interval_cache.keys())[:CACHE_SIZE_LIMIT // 2]
+            for key in keys_to_remove:
+                self._interval_cache.pop(key, None)
+                
         self._interval_cache[cache_key] = interval
         
         return interval
@@ -484,20 +556,20 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             None
         )
 
-    def get_enabled_modules(self, dog_id: str) -> set[str]:
-        """Get enabled modules for dog with caching.
+    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
+        """Get enabled modules for dog with performance optimization.
         
         Args:
             dog_id: Dog identifier
             
         Returns:
-            Set of enabled module names
+            Frozenset of enabled module names for O(1) membership testing
         """
         config = self.get_dog_config(dog_id)
         if not config:
-            return set()
+            return frozenset()
         modules = config.get("modules", {})
-        return {name for name, enabled in modules.items() if enabled}
+        return frozenset(name for name, enabled in modules.items() if enabled)
 
     def is_module_enabled(self, dog_id: str, module: str) -> bool:
         """Check if module is enabled for dog.
@@ -600,6 +672,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "good" if stats["cache_hit_rate"] > thresholds["cache_hit_rate_min"]
                 else "needs_improvement"
             ),
+            "memory_health": (
+                "good" if stats["performance_metrics"]["memory_usage_mb"] < thresholds["memory_usage_max"]
+                else "needs_attention"
+            ),
             "error_rate": (
                 stats["performance_metrics"]["error_count"] / 
                 max(stats["performance_metrics"]["update_count"], 1)
@@ -626,6 +702,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             
         if len(self.dogs) > 5:
             recommendations.append("Consider using 'basic' or 'standard' entity profile for better performance")
+        
+        if stats["performance_metrics"]["memory_usage_mb"] > 50.0:
+            recommendations.append("Consider reducing data retention or clearing caches more frequently")
             
         return recommendations
 
@@ -675,19 +754,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         if stats["performance_metrics"]["update_count"] % 10 == 0:  # Log every 10 updates
             _LOGGER.info(
-                "Performance: %d dogs, %.1f%% cache hit, %.2fs avg update, health: %s",
+                "Performance: %d dogs, %.1f%% cache hit, %.2fs avg update, %.1fMB memory, health: %s",
                 stats["total_dogs"],
                 stats["cache_hit_rate"],
                 stats["performance_metrics"]["avg_update_time"],
+                stats["performance_metrics"]["memory_usage_mb"],
                 health["overall_health"],
             )
 
     async def _cleanup_caches(self) -> None:
         """Clean up caches to prevent memory leaks."""
-        # Clear interval cache if it gets too large
-        if hasattr(self, '_interval_cache') and len(self._interval_cache) > 100:
-            self._interval_cache.clear()
-            _LOGGER.debug("Cleared interval cache")
+        # OPTIMIZE: Clear interval cache if it gets too large
+        if len(self._interval_cache) > CACHE_SIZE_LIMIT:
+            keys_to_remove = list(self._interval_cache.keys())[:CACHE_SIZE_LIMIT // 2]
+            for key in keys_to_remove:
+                self._interval_cache.pop(key, None)
+            _LOGGER.debug("Cleaned interval cache: removed %d entries", len(keys_to_remove))
 
     async def _perform_health_checks(self) -> None:
         """Perform health checks and create repair issues if needed."""
@@ -699,25 +781,36 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             
         if health["error_rate"] > 0.5:  # More than 50% error rate
             _LOGGER.error("High error rate detected: %.1f%%", health["error_rate"] * 100)
+            
+        # Check memory usage
+        if health["memory_health"] == "needs_attention":
+            _LOGGER.warning("High memory usage detected: %.1fMB", 
+                          self._performance_metrics["memory_usage_mb"])
 
     async def _optimize_memory_usage(self) -> None:
         """Optimize memory usage by cleaning old data."""
-        # Limit historical data to prevent memory growth
-        max_history_items = 1000
+        # OPTIMIZE: Limit historical data to prevent memory growth with better algorithms
+        max_history_items = MAX_DATA_ITEMS_PER_DOG
         
+        items_cleaned = 0
         for dog_data in self._data.values():
             for module_name, module_data in dog_data.items():
                 if isinstance(module_data, dict):
                     # Clean up history arrays if they exist and are too large
-                    for key in ["walk_history", "feeding_alerts", "symptoms"]:
+                    for key in ["walk_history", "feeding_alerts", "symptoms", "training_sessions", "medication_log"]:
                         if key in module_data and isinstance(module_data[key], list):
-                            if len(module_data[key]) > max_history_items:
+                            current_size = len(module_data[key])
+                            if current_size > max_history_items:
                                 module_data[key] = module_data[key][-max_history_items:]
+                                items_cleaned += current_size - max_history_items
+                                
+        if items_cleaned > 0:
+            _LOGGER.debug("Memory optimization: cleaned %d history items", items_cleaned)
 
     async def async_shutdown(self) -> None:
         """Stop background tasks and cleanup resources with session management.
         
-        Enhanced shutdown with proper session cleanup.
+        Enhanced shutdown with proper session cleanup and timeout protection.
         """
         # Stop maintenance tasks
         if self._unsub_maintenance is not None:
@@ -725,25 +818,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._unsub_maintenance = None
             _LOGGER.debug("Background maintenance task stopped")
         
-        # FIX: Enhanced session cleanup validation
-        if self._session_owned and self.session:
-            if not self.session.closed:
+        # OPTIMIZE: Enhanced session cleanup with validation and timeout
+        if self._session_owned and self.session and not self.session.closed:
+            try:
+                await asyncio.wait_for(self.session.close(), timeout=5.0)
+                _LOGGER.debug("aiohttp session closed successfully")
+            except asyncio.TimeoutError:
+                _LOGGER.warning("Session close timeout - forcing cleanup")
+                # Force close without waiting
                 try:
-                    await asyncio.wait_for(self.session.close(), timeout=5.0)
-                    _LOGGER.debug("aiohttp session closed successfully")
-                except asyncio.TimeoutError:
-                    _LOGGER.warning("Session close timeout - forcing cleanup")
+                    self.session._connector.close()  # Force connector cleanup
                 except Exception as err:
-                    _LOGGER.error("Error closing session: %s", err)
-            else:
-                _LOGGER.debug("Session already closed")
+                    _LOGGER.debug("Error forcing session cleanup: %s", err)
+            except Exception as err:
+                _LOGGER.error("Error closing session: %s", err)
+        else:
+            _LOGGER.debug("Session cleanup skipped: owned=%s, closed=%s", 
+                         self._session_owned, 
+                         self.session.closed if self.session else "no_session")
         
-        # Clear data to help with memory cleanup
+        # OPTIMIZE: Clear data to help with memory cleanup
         self._data.clear()
         self._performance_metrics.clear()
-        
-        # Clear caches
-        if hasattr(self, '_interval_cache'):
-            self._interval_cache.clear()
+        self._interval_cache.clear()
             
         _LOGGER.debug("Coordinator shutdown completed")

@@ -13,43 +13,28 @@ from typing import TYPE_CHECKING, Any, Required, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 
-# FIX: Import constants properly to avoid circular imports
+# OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
-    from .const import (
-        ACTIVITY_LEVELS,
-        DOG_SIZES,
-        FOOD_TYPES,
-        GEOFENCE_TYPES,
-        GPS_SOURCES,
-        HEALTH_STATUS_OPTIONS,
-        MEAL_TYPES,
-        MOOD_OPTIONS,
-    )
-else:
-    # Runtime imports to avoid circular dependency issues
-    try:
-        from .const import (
-            ACTIVITY_LEVELS,
-            DOG_SIZES,
-            FOOD_TYPES,
-            GEOFENCE_TYPES,
-            GPS_SOURCES,
-            HEALTH_STATUS_OPTIONS,
-            MEAL_TYPES,
-            MOOD_OPTIONS,
-        )
-    except ImportError:
-        # Fallback definitions if constants not available
-        MEAL_TYPES = ("breakfast", "lunch", "dinner", "snack")
-        FOOD_TYPES = ("dry_food", "wet_food", "barf", "home_cooked", "mixed")
-        DOG_SIZES = ("toy", "small", "medium", "large", "giant")
-        HEALTH_STATUS_OPTIONS = ("excellent", "very_good", "good", "normal", "unwell", "sick")
-        MOOD_OPTIONS = ("happy", "neutral", "sad", "angry", "anxious", "tired")
-        ACTIVITY_LEVELS = ("very_low", "low", "normal", "high", "very_high")
-        GEOFENCE_TYPES = ("safe_zone", "restricted_area", "point_of_interest")
-        GPS_SOURCES = ("manual", "device_tracker", "person_entity", "smartphone", "tractive", "webhook", "mqtt")
+    from .coordinator import PawControlCoordinator
+    from .data_manager import PawControlDataManager
+    from .entity_factory import EntityFactory
+    from .feeding_manager import FeedingManager
+    from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
 
-# Type aliases for better readability
+# OPTIMIZE: Use literal constants instead of runtime imports to avoid circular dependencies
+VALID_MEAL_TYPES: frozenset[str] = frozenset(["breakfast", "lunch", "dinner", "snack"])
+VALID_FOOD_TYPES: frozenset[str] = frozenset(["dry_food", "wet_food", "barf", "home_cooked", "mixed"])
+VALID_DOG_SIZES: frozenset[str] = frozenset(["toy", "small", "medium", "large", "giant"])
+VALID_HEALTH_STATUS: frozenset[str] = frozenset(["excellent", "very_good", "good", "normal", "unwell", "sick"])
+VALID_MOOD_OPTIONS: frozenset[str] = frozenset(["happy", "neutral", "sad", "angry", "anxious", "tired"])
+VALID_ACTIVITY_LEVELS: frozenset[str] = frozenset(["very_low", "low", "normal", "high", "very_high"])
+VALID_GEOFENCE_TYPES: frozenset[str] = frozenset(["safe_zone", "restricted_area", "point_of_interest"])
+VALID_GPS_SOURCES: frozenset[str] = frozenset(["manual", "device_tracker", "person_entity", "smartphone", "tractive", "webhook", "mqtt"])
+VALID_NOTIFICATION_PRIORITIES: frozenset[str] = frozenset(["low", "normal", "high", "urgent"])
+VALID_NOTIFICATION_CHANNELS: frozenset[str] = frozenset(["mobile", "persistent", "email", "slack"])
+
+# Type aliases for better readability and performance
 DogId = str
 ConfigEntryId = str
 EntityId = str
@@ -57,22 +42,12 @@ Timestamp = datetime
 ServiceData = dict[str, Any]
 ConfigData = dict[str, Any]
 
-# Performance-optimized validation sets (created once)
-VALID_MEAL_TYPES: frozenset[str] = frozenset(MEAL_TYPES)
-VALID_FOOD_TYPES: frozenset[str] = frozenset(FOOD_TYPES)
-VALID_DOG_SIZES: frozenset[str] = frozenset(DOG_SIZES)
-VALID_HEALTH_STATUS: frozenset[str] = frozenset(HEALTH_STATUS_OPTIONS)
-VALID_MOOD_OPTIONS: frozenset[str] = frozenset(MOOD_OPTIONS)
-VALID_ACTIVITY_LEVELS: frozenset[str] = frozenset(ACTIVITY_LEVELS)
-VALID_GEOFENCE_TYPES: frozenset[str] = frozenset(GEOFENCE_TYPES)
-VALID_GPS_SOURCES: frozenset[str] = frozenset(GPS_SOURCES)
-VALID_NOTIFICATION_PRIORITIES: frozenset[str] = frozenset(["low", "normal", "high", "urgent"])
-
 
 class DogConfigData(TypedDict):
     """Type definition for dog configuration data.
     
-    Uses Required[] for mandatory fields and optional for others.
+    OPTIMIZE: Uses Required[] for mandatory fields and optional for others.
+    Added discovery_info field support for device discovery integration.
     """
     
     # Required fields
@@ -89,7 +64,7 @@ class DogConfigData(TypedDict):
     vet_contact: str | None
     emergency_contact: str | None
     modules: dict[str, bool]  # Module configuration
-    discovery_info: dict[str, Any] | None  # FIX: Added discovery info support
+    discovery_info: dict[str, Any] | None  # OPTIMIZE: Added discovery info support
 
 
 class ModuleConfigData(TypedDict, total=False):
@@ -142,6 +117,7 @@ class NotificationConfigData(TypedDict, total=False):
     priority_notifications: bool
     mobile_notifications: bool
     persistent_notifications: bool
+    channels: list[str]  # OPTIMIZE: Added configurable notification channels
 
 
 class FeedingConfigData(TypedDict, total=False):
@@ -157,6 +133,7 @@ class FeedingConfigData(TypedDict, total=False):
     food_type: str
     special_diet: str | None
     portion_calculation: str
+    automatic_feeding: bool  # OPTIMIZE: Added automatic feeding support
 
 
 class HealthConfigData(TypedDict, total=False):
@@ -167,6 +144,7 @@ class HealthConfigData(TypedDict, total=False):
     medication_reminders: bool
     vet_reminders: bool
     grooming_interval: int
+    symptom_monitoring: bool  # OPTIMIZE: Added symptom monitoring
 
 
 class SystemConfigData(TypedDict, total=False):
@@ -177,6 +155,7 @@ class SystemConfigData(TypedDict, total=False):
     data_retention_days: int
     auto_backup: bool
     performance_mode: str
+    debug_logging: bool  # OPTIMIZE: Added debug logging configuration
 
 
 class PawControlConfigData(TypedDict, total=False):
@@ -194,7 +173,7 @@ class PawControlConfigData(TypedDict, total=False):
 
 @dataclass
 class FeedingData:
-    """Data structure for feeding information."""
+    """Data structure for feeding information with validation."""
 
     meal_type: str
     portion_size: float
@@ -203,6 +182,7 @@ class FeedingData:
     notes: str = ""
     logged_by: str = ""
     calories: float | None = None
+    automatic: bool = False  # OPTIMIZE: Track automatic vs manual feeding
     
     def __post_init__(self) -> None:
         """Validate data after initialization."""
@@ -212,11 +192,13 @@ class FeedingData:
             raise ValueError(f"Invalid food type: {self.food_type}")
         if self.portion_size < 0:
             raise ValueError("Portion size cannot be negative")
+        if self.calories is not None and self.calories < 0:
+            raise ValueError("Calories cannot be negative")
 
 
 @dataclass
 class WalkData:
-    """Data structure for walk information."""
+    """Data structure for walk information with enhanced validation."""
 
     start_time: datetime
     end_time: datetime | None = None
@@ -229,6 +211,8 @@ class WalkData:
     rating: int = 0
     started_by: str = ""
     ended_by: str = ""
+    weather: str = ""  # OPTIMIZE: Added weather tracking
+    temperature: float | None = None  # OPTIMIZE: Added temperature tracking
     
     def __post_init__(self) -> None:
         """Validate data after initialization."""
@@ -238,11 +222,13 @@ class WalkData:
             raise ValueError("Duration cannot be negative")
         if self.distance is not None and self.distance < 0:
             raise ValueError("Distance cannot be negative")
+        if self.end_time and self.end_time < self.start_time:
+            raise ValueError("End time cannot be before start time")
 
 
 @dataclass
 class HealthData:
-    """Data structure for health information."""
+    """Data structure for health information with comprehensive validation."""
 
     timestamp: datetime
     weight: float | None = None
@@ -254,6 +240,8 @@ class HealthData:
     medication: dict[str, Any] | None = None
     note: str = ""
     logged_by: str = ""
+    heart_rate: int | None = None  # OPTIMIZE: Added heart rate tracking
+    respiratory_rate: int | None = None  # OPTIMIZE: Added respiratory rate
     
     def __post_init__(self) -> None:
         """Validate data after initialization."""
@@ -265,11 +253,15 @@ class HealthData:
             raise ValueError(f"Invalid health status: {self.health_status}")
         if self.weight is not None and (self.weight <= 0 or self.weight > 200):
             raise ValueError("Weight must be between 0 and 200 kg")
+        if self.temperature is not None and (self.temperature < 35 or self.temperature > 45):
+            raise ValueError("Temperature must be between 35 and 45 degrees Celsius")
+        if self.heart_rate is not None and (self.heart_rate < 50 or self.heart_rate > 250):
+            raise ValueError("Heart rate must be between 50 and 250 bpm")
 
 
 @dataclass
 class GPSLocation:
-    """Data structure for GPS location information."""
+    """Data structure for GPS location information with validation."""
 
     latitude: float
     longitude: float
@@ -277,6 +269,8 @@ class GPSLocation:
     altitude: float | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     source: str = ""
+    battery_level: int | None = None  # OPTIMIZE: Added battery level for GPS devices
+    signal_strength: int | None = None  # OPTIMIZE: Added signal strength
     
     def __post_init__(self) -> None:
         """Validate GPS coordinates."""
@@ -286,11 +280,15 @@ class GPSLocation:
             raise ValueError(f"Invalid longitude: {self.longitude}")
         if self.accuracy is not None and self.accuracy < 0:
             raise ValueError("Accuracy cannot be negative")
+        if self.battery_level is not None and not (0 <= self.battery_level <= 100):
+            raise ValueError("Battery level must be between 0 and 100")
+        if self.signal_strength is not None and not (0 <= self.signal_strength <= 100):
+            raise ValueError("Signal strength must be between 0 and 100")
 
 
 @dataclass
 class GeofenceZone:
-    """Data structure for geofence zone definition."""
+    """Data structure for geofence zone definition with validation."""
 
     name: str
     latitude: float
@@ -299,6 +297,7 @@ class GeofenceZone:
     zone_type: str = "safe_zone"
     notifications: bool = True
     auto_actions: list[str] = field(default_factory=list)
+    priority: int = 1  # OPTIMIZE: Added priority for zone overlaps
     
     def __post_init__(self) -> None:
         """Validate geofence parameters."""
@@ -310,11 +309,13 @@ class GeofenceZone:
             raise ValueError("Radius must be positive")
         if self.zone_type not in VALID_GEOFENCE_TYPES:
             raise ValueError(f"Invalid zone type: {self.zone_type}")
+        if not (1 <= self.priority <= 10):
+            raise ValueError("Priority must be between 1 and 10")
 
 
 @dataclass
 class NotificationData:
-    """Data structure for notification information."""
+    """Data structure for notification information with enhanced validation."""
 
     title: str
     message: str
@@ -323,11 +324,15 @@ class NotificationData:
     timestamp: datetime = field(default_factory=datetime.now)
     persistent: bool = False
     actions: list[dict[str, str]] = field(default_factory=list)
+    dog_id: str = ""  # OPTIMIZE: Added dog association
+    module: str = ""  # OPTIMIZE: Added source module tracking
     
     def __post_init__(self) -> None:
         """Validate notification data."""
         if self.priority not in VALID_NOTIFICATION_PRIORITIES:
             raise ValueError(f"Invalid priority: {self.priority}")
+        if self.channel not in VALID_NOTIFICATION_CHANNELS:
+            raise ValueError(f"Invalid channel: {self.channel}")
         if not self.title.strip():
             raise ValueError("Title cannot be empty")
         if not self.message.strip():
@@ -335,8 +340,39 @@ class NotificationData:
 
 
 @dataclass
+class MedicationData:
+    """Data structure for medication information.
+    
+    OPTIMIZE: New comprehensive medication tracking structure.
+    """
+
+    name: str
+    dosage: str
+    frequency: str  # e.g., "2x daily", "once weekly"
+    start_date: datetime
+    end_date: datetime | None = None
+    administered_by: str = ""
+    notes: str = ""
+    side_effects: list[str] = field(default_factory=list)
+    effectiveness_rating: int | None = None  # 1-10 scale
+    
+    def __post_init__(self) -> None:
+        """Validate medication data."""
+        if not self.name.strip():
+            raise ValueError("Medication name cannot be empty")
+        if not self.dosage.strip():
+            raise ValueError("Dosage cannot be empty")
+        if not self.frequency.strip():
+            raise ValueError("Frequency cannot be empty")
+        if self.end_date and self.end_date < self.start_date:
+            raise ValueError("End date cannot be before start date")
+        if self.effectiveness_rating is not None and not (1 <= self.effectiveness_rating <= 10):
+            raise ValueError("Effectiveness rating must be between 1 and 10")
+
+
+@dataclass
 class DailyStats:
-    """Data structure for daily statistics."""
+    """Data structure for daily statistics with enhanced metrics."""
 
     date: datetime
     feedings_count: int = 0
@@ -347,6 +383,8 @@ class DailyStats:
     health_logs_count: int = 0
     last_feeding_time: datetime | None = None
     last_walk_time: datetime | None = None
+    medication_doses: int = 0  # OPTIMIZE: Added medication tracking
+    grooming_sessions: int = 0  # OPTIMIZE: Added grooming tracking
     
     def __post_init__(self) -> None:
         """Validate statistics data."""
@@ -360,11 +398,15 @@ class DailyStats:
             raise ValueError("Total walk time cannot be negative")
         if self.total_walk_distance < 0:
             raise ValueError("Total walk distance cannot be negative")
+        if self.medication_doses < 0:
+            raise ValueError("Medication doses cannot be negative")
+        if self.grooming_sessions < 0:
+            raise ValueError("Grooming sessions cannot be negative")
 
 
 @dataclass
 class DogProfile:
-    """Complete dog profile data structure."""
+    """Complete dog profile data structure with enhanced features."""
 
     dog_id: str
     dog_name: str
@@ -373,6 +415,7 @@ class DogProfile:
     current_walk: WalkData | None = None
     last_location: GPSLocation | None = None
     is_visitor_mode: bool = False
+    health_alerts: list[str] = field(default_factory=list)  # OPTIMIZE: Added health alerts
     
     def __post_init__(self) -> None:
         """Validate dog profile."""
@@ -382,22 +425,13 @@ class DogProfile:
             raise ValueError("Dog name cannot be empty")
 
 
-# Forward declarations to avoid circular imports
-if TYPE_CHECKING:
-    from .coordinator import PawControlCoordinator
-    from .data_manager import PawControlDataManager
-    from .entity_factory import EntityFactory
-    from .feeding_manager import FeedingManager
-    from .notifications import PawControlNotificationManager
-    from .walk_manager import WalkManager
-
-
 @dataclass
 class PawControlRuntimeData:
     """Runtime data for PawControl integration.
 
-    This dataclass contains all runtime components needed by the integration.
+    OPTIMIZE: This dataclass contains all runtime components needed by the integration.
     Used for Platinum-level type safety with ConfigEntry[PawControlRuntimeData].
+    Enhanced with performance monitoring and error tracking.
     """
 
     coordinator: PawControlCoordinator
@@ -408,9 +442,13 @@ class PawControlRuntimeData:
     entity_factory: EntityFactory
     entity_profile: str
     dogs: list[DogConfigData]
+    
+    # OPTIMIZE: Added performance and error tracking
+    performance_stats: dict[str, Any] = field(default_factory=dict)
+    error_history: list[dict[str, Any]] = field(default_factory=list)
 
 
-# Custom ConfigEntry type for Platinum compliance
+# OPTIMIZE: Custom ConfigEntry type for Platinum compliance
 type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 
 
@@ -435,7 +473,7 @@ class ServiceCallData(TypedDict, total=False):
 
 
 class DiagnosticsData(TypedDict):
-    """Type definition for diagnostics data."""
+    """Type definition for diagnostics data with enhanced structure."""
 
     config_entry: dict[str, Any]
     dogs: list[dict[str, Any]]
@@ -444,6 +482,7 @@ class DiagnosticsData(TypedDict):
     statistics: dict[str, Any]
     performance: dict[str, Any]
     errors: list[dict[str, Any]]
+    system_info: dict[str, Any]  # OPTIMIZE: Added system information
 
 
 class RepairIssueData(TypedDict):
@@ -456,9 +495,11 @@ class RepairIssueData(TypedDict):
     translation_placeholders: dict[str, str] | None
 
 
-# Enhanced type guards for runtime type checking
+# OPTIMIZE: Enhanced type guards for runtime type checking with better performance
 def is_dog_config_valid(config: Any) -> bool:
     """Type guard to validate dog configuration.
+    
+    OPTIMIZE: Uses frozenset membership for O(1) validation performance.
     
     Args:
         config: Configuration to validate
@@ -475,7 +516,7 @@ def is_dog_config_valid(config: Any) -> bool:
         if field not in config or not isinstance(config[field], str) or not config[field].strip():
             return False
     
-    # Validate optional fields
+    # Validate optional fields with frozenset lookups for performance
     if "dog_age" in config:
         if not isinstance(config["dog_age"], int) or config["dog_age"] < 0 or config["dog_age"] > 30:
             return False
@@ -487,6 +528,10 @@ def is_dog_config_valid(config: Any) -> bool:
     if "dog_size" in config:
         if config["dog_size"] not in VALID_DOG_SIZES:
             return False
+    
+    # Validate modules if present
+    if "modules" in config and not isinstance(config["modules"], dict):
+        return False
     
     return True
 
@@ -518,11 +563,16 @@ def is_gps_location_valid(location: Any) -> bool:
         if not isinstance(location["accuracy"], (int, float)) or location["accuracy"] < 0:
             return False
             
+    if "battery_level" in location:
+        battery = location["battery_level"]
+        if battery is not None and (not isinstance(battery, int) or not (0 <= battery <= 100)):
+            return False
+            
     return True
 
 
 def is_feeding_data_valid(data: Any) -> bool:
-    """Type guard to validate feeding data.
+    """Type guard to validate feeding data with frozenset performance optimization.
     
     Args:
         data: Feeding data to validate
@@ -533,7 +583,7 @@ def is_feeding_data_valid(data: Any) -> bool:
     if not isinstance(data, dict):
         return False
         
-    # Check required fields
+    # Check required fields with frozenset lookup
     if "meal_type" not in data or data["meal_type"] not in VALID_MEAL_TYPES:
         return False
         
@@ -543,15 +593,20 @@ def is_feeding_data_valid(data: Any) -> bool:
     if not isinstance(portion, (int, float)) or portion < 0:
         return False
         
-    # Validate optional fields
+    # Validate optional fields with frozenset lookup
     if "food_type" in data and data["food_type"] not in VALID_FOOD_TYPES:
         return False
+        
+    if "calories" in data:
+        calories = data["calories"]
+        if calories is not None and (not isinstance(calories, (int, float)) or calories < 0):
+            return False
         
     return True
 
 
 def is_health_data_valid(data: Any) -> bool:
-    """Type guard to validate health data.
+    """Type guard to validate health data with frozenset performance optimization.
     
     Args:
         data: Health data to validate
@@ -562,7 +617,7 @@ def is_health_data_valid(data: Any) -> bool:
     if not isinstance(data, dict):
         return False
         
-    # Validate optional fields
+    # Validate optional fields with frozenset lookups
     if "mood" in data and data["mood"] and data["mood"] not in VALID_MOOD_OPTIONS:
         return False
         
@@ -577,6 +632,39 @@ def is_health_data_valid(data: Any) -> bool:
         if weight is not None and (not isinstance(weight, (int, float)) or weight <= 0 or weight > 200):
             return False
     
+    if "temperature" in data:
+        temp = data["temperature"]
+        if temp is not None and (not isinstance(temp, (int, float)) or temp < 35 or temp > 45):
+            return False
+            
+    return True
+
+
+def is_notification_data_valid(data: Any) -> bool:
+    """Type guard to validate notification data.
+    
+    OPTIMIZE: New validation function with frozenset performance.
+    
+    Args:
+        data: Notification data to validate
+        
+    Returns:
+        True if data is valid
+    """
+    if not isinstance(data, dict):
+        return False
+        
+    required_fields = ["title", "message"]
+    for field in required_fields:
+        if field not in data or not isinstance(data[field], str) or not data[field].strip():
+            return False
+    
+    if "priority" in data and data["priority"] not in VALID_NOTIFICATION_PRIORITIES:
+        return False
+        
+    if "channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS:
+        return False
+        
     return True
 
 
@@ -589,18 +677,20 @@ class PerformanceConfig(TypedDict):
     cache_timeout: int
     max_retries: int
     request_timeout: float
+    memory_limit_mb: int  # OPTIMIZE: Added memory limit
 
 
 class CacheEntry(TypedDict):
-    """Cache entry structure."""
+    """Cache entry structure with enhanced metadata."""
 
     data: Any
     timestamp: datetime
     ttl: int  # seconds
     hit_count: int
+    size_bytes: int  # OPTIMIZE: Added size tracking
 
 
-# Error types for better error handling
+# OPTIMIZE: Enhanced error types for better error handling
 @dataclass
 class PawControlError:
     """Base error data structure."""
@@ -609,6 +699,13 @@ class PawControlError:
     message: str
     timestamp: datetime = field(default_factory=datetime.now)
     context: dict[str, Any] = field(default_factory=dict)
+    severity: str = "error"  # OPTIMIZE: Added severity levels
+    
+    def __post_init__(self) -> None:
+        """Validate error data."""
+        valid_severities = {"debug", "info", "warning", "error", "critical"}
+        if self.severity not in valid_severities:
+            self.severity = "error"
 
 
 @dataclass
@@ -617,6 +714,7 @@ class ConfigurationError(PawControlError):
 
     config_section: str = ""
     suggested_fix: str = ""
+    field_name: str = ""  # OPTIMIZE: Added specific field tracking
 
 
 @dataclass
@@ -625,6 +723,7 @@ class DataError(PawControlError):
 
     data_type: str = ""
     validation_error: str = ""
+    field_path: str = ""  # OPTIMIZE: Added field path for nested data
 
 
 @dataclass
@@ -633,6 +732,7 @@ class GPSError(PawControlError):
 
     location_source: str = ""
     last_known_location: GPSLocation | None = None
+    device_id: str = ""  # OPTIMIZE: Added device identification
 
 
 @dataclass
@@ -641,3 +741,104 @@ class NotificationError(PawControlError):
 
     notification_channel: str = ""
     retry_count: int = 0
+    target_device: str = ""  # OPTIMIZE: Added target device tracking
+
+
+# OPTIMIZE: Integration health monitoring types
+@dataclass
+class HealthMetrics:
+    """Health metrics for monitoring integration performance."""
+    
+    uptime_seconds: int
+    total_entities: int
+    active_dogs: int
+    update_frequency: float
+    error_rate: float
+    memory_usage_mb: float
+    api_response_time_ms: float
+    
+    def __post_init__(self) -> None:
+        """Validate health metrics."""
+        if self.uptime_seconds < 0:
+            raise ValueError("Uptime cannot be negative")
+        if self.error_rate < 0 or self.error_rate > 1:
+            raise ValueError("Error rate must be between 0 and 1")
+        if self.memory_usage_mb < 0:
+            raise ValueError("Memory usage cannot be negative")
+
+
+# OPTIMIZE: Add utility functions for common operations
+def create_entity_id(dog_id: str, entity_type: str, module: str) -> str:
+    """Create standardized entity ID.
+    
+    Args:
+        dog_id: Dog identifier
+        entity_type: Type of entity
+        module: Module name
+        
+    Returns:
+        Formatted entity ID
+    """
+    return f"pawcontrol_{dog_id}_{module}_{entity_type}".lower()
+
+
+def validate_dog_weight_for_size(weight: float, size: str) -> bool:
+    """Validate if weight is appropriate for dog size.
+    
+    Args:
+        weight: Dog weight in kg
+        size: Dog size category
+        
+    Returns:
+        True if weight is appropriate for size
+    """
+    size_ranges = {
+        "toy": (1.0, 6.0),
+        "small": (4.0, 15.0),
+        "medium": (8.0, 30.0),
+        "large": (22.0, 50.0),
+        "giant": (35.0, 90.0),
+    }
+    
+    if size not in size_ranges:
+        return True  # Unknown size, skip validation
+        
+    min_weight, max_weight = size_ranges[size]
+    return min_weight <= weight <= max_weight
+
+
+def calculate_daily_calories(weight: float, activity_level: str, age: int) -> int:
+    """Calculate recommended daily calories for a dog.
+    
+    OPTIMIZE: New utility function for feeding management.
+    
+    Args:
+        weight: Dog weight in kg
+        activity_level: Activity level string
+        age: Dog age in years
+        
+    Returns:
+        Recommended daily calories
+    """
+    # Base calories = 70 * (weight in kg)^0.75
+    import math
+    base_calories = 70 * math.pow(weight, 0.75)
+    
+    # Activity multipliers
+    activity_multipliers = {
+        "very_low": 1.2,
+        "low": 1.4,
+        "normal": 1.6,
+        "high": 1.8,
+        "very_high": 2.0,
+    }
+    
+    multiplier = activity_multipliers.get(activity_level, 1.6)
+    
+    # Age adjustment (puppies and seniors need different amounts)
+    if age < 1:
+        multiplier *= 2.0  # Puppies need more calories
+    elif age > 7:
+        multiplier *= 0.9  # Seniors need fewer calories
+    
+    return int(base_calories * multiplier)
