@@ -6,9 +6,8 @@ import importlib
 from collections.abc import Iterable
 from typing import Any
 
-import pytest
-
 import custom_components.pawcontrol as pawcontrol_module
+import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     MODULE_FEEDING,
@@ -20,7 +19,9 @@ from custom_components.pawcontrol.const import (
 from homeassistant.const import Platform
 
 
-def _build_dogs_config(modules_per_dog: Iterable[Iterable[str]]) -> list[dict[str, Any]]:
+def _build_dogs_config(
+    modules_per_dog: Iterable[Iterable[str]],
+) -> list[dict[str, Any]]:
     """Create a dogs configuration payload from enabled module sets."""
     return [
         {
@@ -125,12 +126,16 @@ def reload_and_clear_platform_cache() -> None:
     ],
 )
 def test_get_platforms_for_profile_and_modules(
-    profile: str, modules_per_dog: Iterable[Iterable[str]], expected_platforms: set[Platform]
+    profile: str,
+    modules_per_dog: Iterable[Iterable[str]],
+    expected_platforms: set[Platform],
 ) -> None:
     """Ensure the helper returns deterministically sorted platforms per scenario."""
     dogs_config = _build_dogs_config(modules_per_dog)
 
-    result = pawcontrol_module.get_platforms_for_profile_and_modules(dogs_config, profile)
+    result = pawcontrol_module.get_platforms_for_profile_and_modules(
+        dogs_config, profile
+    )
 
     expected_order = tuple(
         sorted(expected_platforms, key=lambda platform: platform.value)
