@@ -29,6 +29,7 @@ from .const import (
     DOMAIN,
     SERVICE_DAILY_RESET,
 )
+from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -261,21 +262,33 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         leash_used = call.data.get("leash_used", True)
 
         try:
-            # Convert weather string to enum if provided
-            weather_enum = None
+            weather_enum: WeatherCondition | None = None
             if weather:
-                from .walk_manager import WeatherCondition
-
-                weather_enum = WeatherCondition(weather)
+                try:
+                    weather_enum = WeatherCondition(weather)
+                except ValueError:
+                    _LOGGER.warning(
+                        "Ignoring unknown weather condition '%s' for %s",
+                        weather,
+                        dog_id,
+                    )
 
             session_id = await coordinator.walk_manager.async_start_walk(
                 dog_id=dog_id,
+                walk_type="manual",
                 walker=walker,
                 weather=weather_enum,
                 leash_used=leash_used,
             )
 
-            _LOGGER.info("Started walk for %s (session: %s)", dog_id, session_id)
+            _LOGGER.info(
+                "Started walk for %s (session: %s, walker: %s, weather: %s, leash_used: %s)",
+                dog_id,
+                session_id,
+                walker or "unknown",
+                weather_enum.value if weather_enum else "unspecified",
+                "yes" if leash_used else "no",
+            )
 
         except Exception as e:
             _LOGGER.error("Failed to start walk for %s: %s", dog_id, e)
@@ -300,11 +313,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 # Trigger coordinator update
                 await coordinator.async_request_refresh()
 
+                distance_km = float(walk_event.get("distance") or 0.0) / 1000
+                duration_minutes = float(walk_event.get("duration") or 0.0) / 60
+
                 _LOGGER.info(
-                    "Ended walk for %s: %.1f km in %d minutes",
+                    "Ended walk for %s: %.2f km in %.0f minutes",
                     dog_id,
-                    walk_event.stats.distance_km,
-                    walk_event.stats.duration_minutes,
+                    distance_km,
+                    duration_minutes,
                 )
             else:
                 _LOGGER.warning("No active walk found for %s", dog_id)
