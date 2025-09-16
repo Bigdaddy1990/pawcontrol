@@ -47,7 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
 # OPTIMIZE: Platform cache with size limits and better management
-_PLATFORM_CACHE: dict[str, list[Platform]] = {}
+_PLATFORM_CACHE: dict[str, tuple[Platform, ...]] = {}
 _CACHE_SIZE_LIMIT = 100
 
 # OPTIMIZE: Manager initialization timeout and retry settings
@@ -58,7 +58,7 @@ MAX_MANAGER_RETRIES = 2
 @bind_hass
 def get_platforms_for_profile_and_modules(
     dogs_config: list[dict[str, Any]], profile: str
-) -> list[Platform]:
+) -> tuple[Platform, ...]:
     """Determine required platforms based on dogs, modules and profile.
 
     OPTIMIZE: Enhanced with caching, single-pass iteration, and early validation.
@@ -68,10 +68,10 @@ def get_platforms_for_profile_and_modules(
         profile: Entity profile name
 
     Returns:
-        List of required platforms
+        Tuple of required platforms sorted for deterministic setup ordering
     """
     if not dogs_config:
-        return [Platform.SENSOR, Platform.BUTTON]
+        return (Platform.BUTTON, Platform.SENSOR)
 
     # OPTIMIZE: Generate cache key with better performance using hash
     dogs_signature = hash(
@@ -145,7 +145,7 @@ def get_platforms_for_profile_and_modules(
         elif profile == "health_focus":
             platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
-    result_platforms = list(platforms)
+    result_platforms = tuple(sorted(platforms, key=lambda item: item.value))
     _PLATFORM_CACHE[cache_key] = result_platforms
     return result_platforms
 
