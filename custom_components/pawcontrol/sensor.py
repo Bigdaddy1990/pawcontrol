@@ -30,7 +30,7 @@ from .const import (
     CONF_DOG_NAME,
 )
 from .coordinator import PawControlCoordinator
-from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
 from .utils import create_device_info
 
