@@ -11,7 +11,7 @@ import logging
 import sys
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.config_entries import ConfigEntry
@@ -33,6 +33,12 @@ from .const import (
     UPDATE_INTERVALS,
 )
 from .types import DogConfigData
+
+if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
+    from .feeding_manager import FeedingManager
+    from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,12 +119,53 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Track maintenance task unsubscriber
         self._unsub_maintenance: Callable[[], None] | None = None
 
+        # Attached runtime manager references for service handlers
+        self.data_manager: PawControlDataManager | None = None
+        self.feeding_manager: FeedingManager | None = None
+        self.walk_manager: WalkManager | None = None
+        self.notification_manager: PawControlNotificationManager | None = None
+
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, session=%s",
             len(self.dogs),
             update_interval,
             "external" if session else "owned",
         )
+
+    def attach_runtime_managers(
+        self,
+        *,
+        data_manager: PawControlDataManager,
+        feeding_manager: FeedingManager,
+        walk_manager: WalkManager,
+        notification_manager: PawControlNotificationManager,
+    ) -> None:
+        """Expose runtime managers for other integration components."""
+
+        self.data_manager = data_manager
+        self.feeding_manager = feeding_manager
+        self.walk_manager = walk_manager
+        self.notification_manager = notification_manager
+        _LOGGER.debug("Attached runtime managers to coordinator")
+
+    def clear_runtime_managers(self) -> None:
+        """Remove references to runtime managers during unload."""
+
+        if any(
+            manager is not None
+            for manager in (
+                self.data_manager,
+                self.feeding_manager,
+                self.walk_manager,
+                self.notification_manager,
+            )
+        ):
+            _LOGGER.debug("Clearing runtime manager references from coordinator")
+
+        self.data_manager = None
+        self.feeding_manager = None
+        self.walk_manager = None
+        self.notification_manager = None
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data for all dogs with enhanced error handling and performance monitoring.
