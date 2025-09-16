@@ -8,7 +8,7 @@ from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
 
 from .config_flow import config_flow_monitor
-from .const import CONF_DOGS, CONF_DOG_NAME, DOMAIN
+from .const import CONF_DOG_NAME, CONF_DOGS, DOMAIN
 
 
 @callback
