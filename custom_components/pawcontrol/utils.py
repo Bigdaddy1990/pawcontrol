@@ -18,7 +18,6 @@ from datetime import datetime, time, timedelta
 from typing import Any, TypeVar
 
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
