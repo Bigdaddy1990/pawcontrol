@@ -276,6 +276,7 @@ class EntityFactory:
         cached_estimate = self._estimate_cache.get(cache_key)
         if cached_estimate is not None:
             self._estimate_cache.move_to_end(cache_key)
+            return cached_estimate
 
         estimate = self._compute_entity_estimate(
             normalized_profile, normalized_modules, module_signature

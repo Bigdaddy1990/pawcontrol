@@ -10,6 +10,8 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
 from homeassistant.const import Platform
@@ -362,6 +364,30 @@ class TestEntityProfiles:
         count = entity_factory.estimate_entity_count("standard", invalid_modules)
         assert isinstance(count, int)
         assert count > 0  # Should use defaults
+
+    def test_entity_estimation_uses_cache(
+        self,
+        entity_factory: EntityFactory,
+        sample_modules_basic: dict[str, bool],
+    ) -> None:
+        """Ensure repeated estimations reuse cached results."""
+        original_compute = entity_factory._compute_entity_estimate
+        with patch.object(
+            entity_factory,
+            "_compute_entity_estimate",
+            wraps=original_compute,
+        ) as mock_compute:
+            first_count = entity_factory.estimate_entity_count(
+                "standard", sample_modules_basic
+            )
+            assert first_count > 0
+            assert mock_compute.call_count == 1
+
+            second_count = entity_factory.estimate_entity_count(
+                "standard", sample_modules_basic
+            )
+            assert second_count == first_count
+            assert mock_compute.call_count == 1
 
     def test_performance_metrics_calculation(
         self, entity_factory: EntityFactory, sample_modules_basic: dict[str, bool]
