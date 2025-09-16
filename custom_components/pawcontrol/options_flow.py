@@ -285,7 +285,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Calculate profile preview with optimized performance."""
 
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        cache_key = f"{profile}_{len(current_dogs)}_{hash(str(current_dogs))}"
+        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
         if cached_preview:
