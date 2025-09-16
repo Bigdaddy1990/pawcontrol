@@ -18,7 +18,6 @@
     "@BigDaddy1990"
   ],
   "config_flow": true,
-  "dependencies": ["bluetooth_adapters"],
   "dhcp": [
     {
       "hostname": "tractive-*",
