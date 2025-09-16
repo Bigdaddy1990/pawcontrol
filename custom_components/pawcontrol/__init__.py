@@ -71,7 +71,7 @@ def get_platforms_for_profile_and_modules(
         Tuple of required platforms sorted for deterministic setup ordering
     """
     if not dogs_config:
-        return (Platform.SENSOR, Platform.BUTTON)
+        return (Platform.BUTTON, Platform.SENSOR)
 
     # OPTIMIZE: Generate cache key with better performance using hash
     dogs_signature = hash(
