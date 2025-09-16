@@ -105,6 +105,81 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
     },
 }
 
+# Pre-computed module entity estimates to avoid rebuilding dictionaries during
+# performance-critical calculations.
+MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
+    "feeding": {
+        "basic": 3,  # feeding_status, last_feeding, next_feeding
+        "standard": 6,  # + portion_today, schedule_active, food_level
+        "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
+        "health_focus": 6,  # Health-optimized feeding entities
+        "gps_focus": 3,  # Minimal feeding for GPS focus
+    },
+    "walk": {
+        "basic": 2,  # walk_status, daily_walks
+        "standard": 4,  # + current_walk_duration, last_walk_distance
+        "advanced": 6,  # + walk_history, activity_score, route_map
+        "gps_focus": 5,  # GPS-optimized walk tracking
+        "health_focus": 4,  # Health metrics from walks
+    },
+    "gps": {
+        "basic": 2,  # location, battery
+        "standard": 4,  # + accuracy, zone_status
+        "advanced": 5,  # + altitude, speed, heading
+        "gps_focus": 6,  # All GPS features optimized
+        "health_focus": 3,  # Basic GPS for health context
+    },
+    "health": {
+        "basic": 2,  # health_status, weight
+        "standard": 4,  # + mood, activity_level
+        "advanced": 6,  # + detailed_metrics, trends, alerts
+        "health_focus": 8,  # Comprehensive health monitoring
+        "gps_focus": 3,  # Basic health for GPS context
+    },
+    "notifications": {
+        "basic": 1,  # notification_status
+        "standard": 2,  # + pending_notifications
+        "advanced": 3,  # + notification_history
+        "gps_focus": 2,  # GPS-related notifications
+        "health_focus": 2,  # Health-related notifications
+    },
+    "dashboard": {
+        "basic": 0,  # No dashboard entities
+        "standard": 1,  # dashboard_status
+        "advanced": 2,  # + dashboard_config
+        "gps_focus": 1,  # GPS dashboard
+        "health_focus": 1,  # Health dashboard
+    },
+    "visitor": {
+        "basic": 1,  # visitor_mode
+        "standard": 2,  # + visitor_schedule
+        "advanced": 3,  # + visitor_history
+        "gps_focus": 2,  # GPS-enhanced visitor mode
+        "health_focus": 1,  # Basic visitor mode
+    },
+    "medication": {
+        "basic": 2,  # medication_due, last_dose
+        "standard": 3,  # + medication_schedule
+        "advanced": 5,  # + medication_history, side_effects
+        "health_focus": 6,  # Comprehensive medication tracking
+        "gps_focus": 2,  # Basic medication for GPS users
+    },
+    "training": {
+        "basic": 1,  # training_status
+        "standard": 3,  # + training_progress, sessions_today
+        "advanced": 5,  # + training_history, skill_levels
+        "gps_focus": 2,  # Location-based training
+        "health_focus": 3,  # Health-integrated training
+    },
+    "grooming": {
+        "basic": 1,  # grooming_due
+        "standard": 2,  # + last_grooming
+        "advanced": 3,  # + grooming_schedule
+        "health_focus": 3,  # Health-integrated grooming
+        "gps_focus": 1,  # Basic grooming status
+    },
+}
+
 
 class EntityFactory:
     """Factory for creating entities based on profile and configuration.
@@ -147,102 +222,25 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES[profile]
         base_entities = 3  # Core entities always present (status, last_seen, battery)
 
-        # Module-based estimates with profile-specific variations
-        module_estimates = {
-            "feeding": {
-                "basic": 3,  # feeding_status, last_feeding, next_feeding
-                "standard": 6,  # + portion_today, schedule_active, food_level
-                "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
-                "health_focus": 6,  # Health-optimized feeding entities
-                "gps_focus": 3,  # Minimal feeding for GPS focus
-            },
-            "walk": {
-                "basic": 2,  # walk_status, daily_walks
-                "standard": 4,  # + current_walk_duration, last_walk_distance
-                "advanced": 6,  # + walk_history, activity_score, route_map
-                "gps_focus": 5,  # GPS-optimized walk tracking
-                "health_focus": 4,  # Health metrics from walks
-            },
-            "gps": {
-                "basic": 2,  # location, battery
-                "standard": 4,  # + accuracy, zone_status
-                "advanced": 5,  # + altitude, speed, heading
-                "gps_focus": 6,  # All GPS features optimized
-                "health_focus": 3,  # Basic GPS for health context
-            },
-            "health": {
-                "basic": 2,  # health_status, weight
-                "standard": 4,  # + mood, activity_level
-                "advanced": 6,  # + detailed_metrics, trends, alerts
-                "health_focus": 8,  # Comprehensive health monitoring
-                "gps_focus": 3,  # Basic health for GPS context
-            },
-            "notifications": {
-                "basic": 1,  # notification_status
-                "standard": 2,  # + pending_notifications
-                "advanced": 3,  # + notification_history
-                "gps_focus": 2,  # GPS-related notifications
-                "health_focus": 2,  # Health-related notifications
-            },
-            "dashboard": {
-                "basic": 0,  # No dashboard entities
-                "standard": 1,  # dashboard_status
-                "advanced": 2,  # + dashboard_config
-                "gps_focus": 1,  # GPS dashboard
-                "health_focus": 1,  # Health dashboard
-            },
-            "visitor": {
-                "basic": 1,  # visitor_mode
-                "standard": 2,  # + visitor_schedule
-                "advanced": 3,  # + visitor_history
-                "gps_focus": 2,  # GPS-enhanced visitor mode
-                "health_focus": 1,  # Basic visitor mode
-            },
-            "medication": {
-                "basic": 2,  # medication_due, last_dose
-                "standard": 3,  # + medication_schedule
-                "advanced": 5,  # + medication_history, side_effects
-                "health_focus": 6,  # Comprehensive medication tracking
-                "gps_focus": 2,  # Basic medication for GPS users
-            },
-            "training": {
-                "basic": 1,  # training_status
-                "standard": 3,  # + training_progress, sessions_today
-                "advanced": 5,  # + training_history, skill_levels
-                "gps_focus": 2,  # Location-based training
-                "health_focus": 3,  # Health-integrated training
-            },
-            "grooming": {
-                "basic": 1,  # grooming_due
-                "standard": 2,  # + last_grooming
-                "advanced": 3,  # + grooming_schedule
-                "health_focus": 3,  # Health-integrated grooming
-                "gps_focus": 1,  # Basic grooming status
-            },
-        }
-
         # Calculate entity count based on enabled modules
         total_entities = base_entities
         for module, enabled in modules.items():
-            if enabled and module in module_estimates:
-                profile_estimates = module_estimates[module]
-                module_count = profile_estimates.get(profile, 2)  # Default fallback
+            if enabled and module in MODULE_ENTITY_ESTIMATES:
+                profile_estimates = MODULE_ENTITY_ESTIMATES[module]
+                module_count = profile_estimates.get(profile, 2)
                 total_entities += module_count
 
-        # Apply profile-specific limits and optimizations
         max_entities = profile_config["max_entities"]
         if total_entities > max_entities:
-            # Apply priority-based reduction for profiles with limits
-            reduction_factor = max_entities / total_entities
-            total_entities = int(total_entities * reduction_factor)
             _LOGGER.debug(
-                "Entity count reduced from %d to %d for profile %s",
-                int(total_entities / reduction_factor),
+                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
                 total_entities,
+                max_entities,
                 profile,
             )
+            total_entities = max_entities
 
-        return min(total_entities, max_entities)
+        return max(base_entities, total_entities)
 
     def should_create_entity(
         self,
@@ -309,10 +307,11 @@ class EntityFactory:
         platform_str = entity_type.lower()
         try:
             platform = Platform(platform_str)
-            if platform not in profile_config["platforms"]:
-                return False
         except ValueError:
             _LOGGER.warning("Invalid entity type: %s", entity_type)
+            return False
+
+        if platform not in profile_config["platforms"]:
             return False
 
         if profile == "basic":
@@ -589,15 +588,16 @@ class EntityFactory:
         estimated_entities = self.estimate_entity_count(profile, modules)
         profile_config = ENTITY_PROFILES[profile]
 
+        capacity = profile_config["max_entities"]
+        utilization = 0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
+        utilization = max(0.0, min(utilization, 100.0))
+
         return {
             "profile": profile,
             "estimated_entities": estimated_entities,
             "max_entities": profile_config["max_entities"],
             "performance_impact": profile_config["performance_impact"],
-            "utilization_percentage": (
-                estimated_entities / profile_config["max_entities"]
-            )
-            * 100,
+            "utilization_percentage": utilization,
             "enabled_modules": sum(1 for enabled in modules.values() if enabled),
             "total_modules": len(modules),
         }
