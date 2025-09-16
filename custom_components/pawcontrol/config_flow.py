@@ -17,10 +17,6 @@ from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
-    SOURCE_DHCP,
-    SOURCE_DISCOVERY,
-    SOURCE_IMPORT,
-    SOURCE_ZEROCONF,
 )
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
@@ -158,7 +154,7 @@ async def timed_operation(operation_name: str):
 
 class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     """Enhanced configuration flow for Paw Control integration.
-    
+
     Features:
     - Device discovery support (Zeroconf, DHCP)
     - Import from configuration.yaml
@@ -191,7 +187,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
@@ -217,15 +213,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Config flow result
         """
         _LOGGER.debug("Zeroconf discovery: %s", discovery_info)
-        
+
         # Extract device information from Zeroconf
         hostname = discovery_info.get("hostname", "")
         properties = discovery_info.get("properties", {})
-        
+
         # Check if this is a supported device
         if not self._is_supported_device(hostname, properties):
             return self.async_abort(reason="not_supported")
-        
+
         # Store discovery info for later use
         self._discovery_info = {
             "source": "zeroconf",
@@ -234,7 +230,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "port": discovery_info.get("port"),
             "properties": properties,
         }
-        
+
         # Set unique ID based on discovered device
         device_id = self._extract_device_id(properties)
         if device_id:
@@ -243,12 +239,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 updates={"host": discovery_info.get("host")},
                 reload_on_update=True,
             )
-        
+
         return await self.async_step_discovery_confirm()
 
-    async def async_step_dhcp(
-        self, discovery_info: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_dhcp(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
         """Handle DHCP discovery.
 
         Args:
@@ -258,28 +252,28 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Config flow result
         """
         _LOGGER.debug("DHCP discovery: %s", discovery_info)
-        
+
         hostname = discovery_info.get("hostname", "")
         macaddress = discovery_info.get("macaddress", "")
-        
+
         # Check if this is a supported device
         if not self._is_supported_device(hostname, {"mac": macaddress}):
             return self.async_abort(reason="not_supported")
-        
+
         self._discovery_info = {
             "source": "dhcp",
             "hostname": hostname,
             "ip": discovery_info.get("ip"),
             "macaddress": macaddress,
         }
-        
+
         # Use MAC address as unique ID
         await self.async_set_unique_id(macaddress)
         self._abort_if_unique_id_configured(
             updates={"host": discovery_info.get("ip")},
             reload_on_update=True,
         )
-        
+
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
@@ -302,12 +296,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         discovery_source = self._discovery_info.get("source", "unknown")
         device_info = self._format_discovery_info()
-        
+
         return self.async_show_form(
             step_id="discovery_confirm",
-            data_schema=vol.Schema({
-                vol.Required("confirm", default=True): cv.boolean,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=True): cv.boolean,
+                }
+            ),
             description_placeholders={
                 "discovery_source": discovery_source,
                 "device_info": device_info,
@@ -326,11 +322,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Config flow result
         """
         _LOGGER.debug("Import configuration: %s", import_config)
-        
+
         # Ensure single instance
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()
-        
+
         try:
             async with timed_operation("import_step"):
                 # Validate and convert import configuration
@@ -340,11 +336,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
             # Create config entry directly from import
             return self.async_create_entry(
-                title=f"PawControl (Imported)",
+                title="PawControl (Imported)",
                 data=validated_config["data"],
                 options=validated_config["options"],
             )
-            
+
         except vol.Invalid as err:
             _LOGGER.error("Invalid import configuration: %s", err)
             return self.async_abort(reason="invalid_import_config")
@@ -409,8 +405,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 if validation_errors:
                     config_flow_monitor.record_validation("import_config_error")
                     raise vol.Invalid(
-                        "No valid dogs found. Errors: "
-                        + "; ".join(validation_errors)
+                        "No valid dogs found. Errors: " + "; ".join(validation_errors)
                     )
                 raise vol.Invalid("No valid dogs found in import configuration")
 
@@ -446,9 +441,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 },
                 "options": {
                     "entity_profile": profile,
-                    "dashboard_enabled": import_config.get(
-                        "dashboard_enabled", True
-                    ),
+                    "dashboard_enabled": import_config.get("dashboard_enabled", True),
                     "dashboard_auto_create": import_config.get(
                         "dashboard_auto_create", True
                     ),
@@ -458,13 +451,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         except Exception as err:
             config_flow_monitor.record_validation("import_config_exception")
-            raise vol.Invalid(
-                f"Import configuration validation failed: {err}"
-            ) from err
+            raise vol.Invalid(f"Import configuration validation failed: {err}") from err
 
-    def _is_supported_device(
-        self, hostname: str, properties: dict[str, Any]
-    ) -> bool:
+    def _is_supported_device(self, hostname: str, properties: dict[str, Any]) -> bool:
         """Check if discovered device is supported.
 
         Args:
@@ -477,13 +466,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Check for known device patterns
         supported_patterns = [
             r"tractive-.*",
-            r"petnet-.*", 
+            r"petnet-.*",
             r"whistle-.*",
             r"paw-control-.*",
         ]
-        
-        return any(re.match(pattern, hostname, re.IGNORECASE) 
-                  for pattern in supported_patterns)
+
+        return any(
+            re.match(pattern, hostname, re.IGNORECASE) for pattern in supported_patterns
+        )
 
     def _extract_device_id(self, properties: dict[str, Any]) -> str | None:
         """Extract device ID from discovery properties.
@@ -517,10 +507,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Add a dog configuration with optimized validation.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
@@ -564,7 +554,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Discovery hint text
         """
         if self._discovery_info:
-            return f"Discovered device: {self._discovery_info.get('hostname', 'Unknown')}"
+            return (
+                f"Discovered device: {self._discovery_info.get('hostname', 'Unknown')}"
+            )
         return ""
 
     async def _validate_dog_input_cached(
@@ -594,17 +586,19 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             config_flow_monitor.record_validation("dog_input_error")
             raise err
 
-    async def _validate_dog_input_optimized(self, user_input: dict[str, Any]) -> dict[str, Any] | None:
+    async def _validate_dog_input_optimized(
+        self, user_input: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Validate dog input data with optimized performance.
-        
+
         Uses set operations and pre-compiled regex for better performance.
-        
+
         Args:
             user_input: Raw user input
-            
+
         Returns:
             Validated input or None if validation fails
-            
+
         Raises:
             ValueError: If validation fails
         """
@@ -614,10 +608,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Batch validation for better performance
         validation_errors = []
-        
+
         # Validate dog ID format (pre-compiled regex)
         if not DOG_ID_PATTERN.match(dog_id):
-            validation_errors.append("Dog ID must start with letter and contain only lowercase letters, numbers, and underscores")
+            validation_errors.append(
+                "Dog ID must start with letter and contain only lowercase letters, numbers, and underscores"
+            )
 
         # Check for duplicate dog ID (O(1) set lookup)
         if dog_id in self._existing_dog_ids:
@@ -626,13 +622,19 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Validate dog name length
         name_len = len(dog_name)
         if name_len < MIN_DOG_NAME_LENGTH:
-            validation_errors.append(f"Dog name must be at least {MIN_DOG_NAME_LENGTH} characters")
+            validation_errors.append(
+                f"Dog name must be at least {MIN_DOG_NAME_LENGTH} characters"
+            )
         elif name_len > MAX_DOG_NAME_LENGTH:
-            validation_errors.append(f"Dog name cannot exceed {MAX_DOG_NAME_LENGTH} characters")
+            validation_errors.append(
+                f"Dog name cannot exceed {MAX_DOG_NAME_LENGTH} characters"
+            )
 
         # Check maximum dogs limit
         if len(self._dogs) >= MAX_DOGS_PER_INTEGRATION:
-            validation_errors.append(f"Maximum {MAX_DOGS_PER_INTEGRATION} dogs allowed per integration")
+            validation_errors.append(
+                f"Maximum {MAX_DOGS_PER_INTEGRATION} dogs allowed per integration"
+            )
 
         # Validate dog size (O(1) frozenset lookup)
         dog_size = user_input.get(CONF_DOG_SIZE, "medium")
@@ -655,10 +657,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _create_dog_config(self, validated_input: dict[str, Any]) -> DogConfigData:
         """Create dog configuration from validated input.
-        
+
         Args:
             validated_input: Validated user input
-            
+
         Returns:
             Dog configuration data
         """
@@ -671,21 +673,21 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "dog_size": validated_input[CONF_DOG_SIZE],
             "modules": {},  # Will be set in next step
         }
-        
+
         # Add discovery info if available
         if self._discovery_info:
             config["discovery_info"] = self._discovery_info.copy()
-            
+
         return config
 
     async def async_step_dog_modules(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure optional modules for the newly added dog.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
@@ -693,7 +695,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_add_dog()
 
         current_dog = self._dogs[-1]
-        
+
         if user_input is not None:
             try:
                 # Validate modules configuration
@@ -717,7 +719,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Enhanced schema with smart defaults based on discovery
         enhanced_schema = self._get_enhanced_modules_schema(current_dog)
-        
+
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=enhanced_schema,
@@ -745,14 +747,22 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             MODULE_GPS: self._should_enable_gps(dog_config),
             MODULE_NOTIFICATIONS: True,
         }
-        
-        return vol.Schema({
-            vol.Optional(MODULE_FEEDING, default=defaults[MODULE_FEEDING]): cv.boolean,
-            vol.Optional(MODULE_WALK, default=defaults[MODULE_WALK]): cv.boolean,
-            vol.Optional(MODULE_HEALTH, default=defaults[MODULE_HEALTH]): cv.boolean,
-            vol.Optional(MODULE_GPS, default=defaults[MODULE_GPS]): cv.boolean,
-            vol.Optional(MODULE_NOTIFICATIONS, default=defaults[MODULE_NOTIFICATIONS]): cv.boolean,
-        })
+
+        return vol.Schema(
+            {
+                vol.Optional(
+                    MODULE_FEEDING, default=defaults[MODULE_FEEDING]
+                ): cv.boolean,
+                vol.Optional(MODULE_WALK, default=defaults[MODULE_WALK]): cv.boolean,
+                vol.Optional(
+                    MODULE_HEALTH, default=defaults[MODULE_HEALTH]
+                ): cv.boolean,
+                vol.Optional(MODULE_GPS, default=defaults[MODULE_GPS]): cv.boolean,
+                vol.Optional(
+                    MODULE_NOTIFICATIONS, default=defaults[MODULE_NOTIFICATIONS]
+                ): cv.boolean,
+            }
+        )
 
     def _should_enable_gps(self, dog_config: DogConfigData) -> bool:
         """Determine if GPS should be enabled by default.
@@ -766,7 +776,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Enable GPS for discovered devices or large dogs
         if self._discovery_info:
             return True
-        
+
         dog_size = dog_config.get("dog_size", "medium")
         return dog_size in {"large", "giant"}
 
@@ -780,31 +790,31 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Explanation text
         """
         reasons = []
-        
+
         if self._discovery_info:
             reasons.append("GPS enabled due to discovered tracking device")
-        
+
         dog_size = dog_config.get("dog_size", "medium")
         if dog_size in {"large", "giant"}:
             reasons.append("GPS recommended for larger dogs")
-        
+
         return "; ".join(reasons) if reasons else "Standard defaults applied"
 
     async def async_step_add_another(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Ask if user wants to add another dog with enhanced logic.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
         if user_input is not None:
             add_another = user_input.get("add_another", False)
             at_limit = len(self._dogs) >= MAX_DOGS_PER_INTEGRATION
-            
+
             if add_another and not at_limit:
                 return await self.async_step_add_dog()
             else:
@@ -812,10 +822,16 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Enhanced logic for smart recommendations
         can_add_more = len(self._dogs) < MAX_DOGS_PER_INTEGRATION
-        
-        schema = vol.Schema({
-            vol.Optional("add_another", default=False): cv.boolean,
-        }) if can_add_more else vol.Schema({})
+
+        schema = (
+            vol.Schema(
+                {
+                    vol.Optional("add_another", default=False): cv.boolean,
+                }
+            )
+            if can_add_more
+            else vol.Schema({})
+        )
 
         return self.async_show_form(
             step_id="add_another",
@@ -846,10 +862,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Select entity profile with performance guidance.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
@@ -858,7 +874,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 profile_data = PROFILE_SCHEMA(user_input)
                 self._entity_profile = profile_data["entity_profile"]
                 return await self.async_step_final_setup()
-                
+
             except vol.Invalid as err:
                 _LOGGER.warning("Profile validation failed: %s", err)
                 return self.async_show_form(
@@ -894,7 +910,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             len([m for m, e in dog.get("modules", {}).items() if e])
             for dog in self._dogs
         )
-        
+
         if dog_count >= 5 or total_modules >= 20:
             return "Recommended: 'basic' profile for optimal performance"
         elif dog_count >= 3 or total_modules >= 12:
@@ -906,10 +922,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Complete setup and create config entry with enhanced validation.
-        
+
         Args:
             user_input: User provided data
-            
+
         Returns:
             Config flow result
         """
@@ -948,16 +964,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _perform_comprehensive_validation(self) -> dict[str, Any]:
         """Perform comprehensive final validation.
-        
+
         Returns:
             Validation results
         """
         errors = []
-        
+
         # Validate all dog configurations
         for dog in self._dogs:
             if not is_dog_config_valid(dog):
-                errors.append(f"Invalid dog configuration: {dog.get(CONF_DOG_ID, 'unknown')}")
+                errors.append(
+                    f"Invalid dog configuration: {dog.get(CONF_DOG_ID, 'unknown')}"
+                )
 
         # Validate entity count limits
         estimated_entities = self._estimate_total_entities()
@@ -976,23 +994,23 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _validate_profile_compatibility(self) -> bool:
         """Validate profile compatibility with configuration.
-        
+
         Returns:
             True if profile is compatible
         """
         # Use shared entity factory to validate profile compatibility
         factory = self._entity_factory
-        
+
         for dog in self._dogs:
             modules = dog.get("modules", {})
             if not factory.validate_profile_for_modules(self._entity_profile, modules):
                 return False
-                
+
         return True
 
     def _build_config_entry_data(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """Build optimized config entry data.
-        
+
         Returns:
             Tuple of (config_data, options_data)
         """
@@ -1002,7 +1020,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "entity_profile": self._entity_profile,
             "setup_timestamp": self.hass.helpers.utcnow().isoformat(),
         }
-        
+
         # Add discovery info if available
         if self._discovery_info:
             config_data["discovery_info"] = self._discovery_info
@@ -1013,15 +1031,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "dashboard_auto_create": True,
             "performance_monitoring": True,
         }
-        
+
         return config_data, options_data
 
     def _generate_entry_title(self, profile_info: dict[str, Any]) -> str:
         """Generate descriptive entry title.
-        
+
         Args:
             profile_info: Profile information
-            
+
         Returns:
             Entry title
         """
@@ -1068,7 +1086,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _format_dogs_list_enhanced(self) -> str:
         """Format enhanced list of configured dogs.
-        
+
         Returns:
             Formatted dogs list with module info
         """
@@ -1080,7 +1098,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             modules = dog.get("modules", {})
             enabled_modules = [name for name, enabled in modules.items() if enabled]
             module_summary = ", ".join(enabled_modules) if enabled_modules else "none"
-            
+
             dogs_list.append(
                 f"{i}. {dog[CONF_DOG_NAME]} ({dog[CONF_DOG_ID]})\n"
                 f"   Size: {dog.get(CONF_DOG_SIZE, 'unknown')}, "
@@ -1092,18 +1110,20 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _get_profiles_info_enhanced(self) -> str:
         """Get enhanced entity profiles information.
-        
+
         Returns:
             Formatted profiles information with performance guidance
         """
         profiles_info = []
-        for name, config in ENTITY_PROFILES.items():
+        for config in ENTITY_PROFILES.values():
             estimated_for_profile = 0
             for dog in self._dogs:
                 modules = dog.get("modules", {})
                 # Rough estimation without full factory
-                estimated_for_profile += sum(3 if enabled else 0 for enabled in modules.values())
-            
+                estimated_for_profile += sum(
+                    3 if enabled else 0 for enabled in modules.values()
+                )
+
             profiles_info.append(
                 f"• {config['name']}: {config['description']}\n"
                 f"  Performance: {config['performance_impact']}\n"
@@ -1126,7 +1146,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         if not self.reauth_entry:
             return self.async_abort(reason="reauth_failed")
-            
+
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -1142,7 +1162,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         if not self.reauth_entry:
             return self.async_abort(reason="reauth_failed")
-            
+
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -1155,7 +1175,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     # Perform configuration health check
                     config_health = await self._check_config_health(self.reauth_entry)
                     if not config_health["healthy"]:
-                        _LOGGER.warning("Configuration health issues: %s", config_health["issues"])
+                        _LOGGER.warning(
+                            "Configuration health issues: %s", config_health["issues"]
+                        )
 
                     return self.async_update_reload_and_abort(
                         self.reauth_entry,
@@ -1172,39 +1194,43 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Show enhanced confirmation form
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({
-                vol.Required("confirm", default=True): cv.boolean,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm", default=True): cv.boolean,
+                }
+            ),
             errors=errors,
             description_placeholders={
                 "integration_name": self.reauth_entry.title,
                 "dogs_count": str(len(self.reauth_entry.data.get(CONF_DOGS, []))),
-                "current_profile": self.reauth_entry.options.get("entity_profile", "unknown"),
+                "current_profile": self.reauth_entry.options.get(
+                    "entity_profile", "unknown"
+                ),
             },
         )
 
     async def _check_config_health(self, entry: ConfigEntry) -> dict[str, Any]:
         """Check configuration health.
-        
+
         Args:
             entry: Config entry to check
-            
+
         Returns:
             Health check results
         """
         issues = []
-        
+
         # Check dogs configuration
         dogs = entry.data.get(CONF_DOGS, [])
         for dog in dogs:
             if not is_dog_config_valid(dog):
                 issues.append(f"Invalid dog config: {dog.get(CONF_DOG_ID, 'unknown')}")
-        
+
         # Check profile validity
         profile = entry.options.get("entity_profile", "standard")
         if profile not in VALID_PROFILES:
             issues.append(f"Invalid profile: {profile}")
-            
+
         return {
             "healthy": len(issues) == 0,
             "issues": issues,
@@ -1239,10 +1265,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 # Validate profile compatibility with existing dogs
                 dogs = entry.data.get(CONF_DOGS, [])
-                compatibility_check = self._check_profile_compatibility(new_profile, dogs)
-                
+                compatibility_check = self._check_profile_compatibility(
+                    new_profile, dogs
+                )
+
                 if not compatibility_check["compatible"]:
-                    _LOGGER.warning("Profile compatibility warning: %s", compatibility_check["warning"])
+                    _LOGGER.warning(
+                        "Profile compatibility warning: %s",
+                        compatibility_check["warning"],
+                    )
 
                 # Update the config entry with enhanced data
                 return self.async_update_reload_and_abort(
@@ -1256,7 +1287,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         "last_reconfigure": self.hass.helpers.utcnow().isoformat(),
                     },
                 )
-                
+
             except vol.Invalid as err:
                 _LOGGER.warning("Reconfigure validation failed: %s", err)
                 return self.async_show_form(
@@ -1268,19 +1299,23 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Show enhanced reconfigure form
         current_profile = entry.options.get("entity_profile", "standard")
         dogs = entry.data.get(CONF_DOGS, [])
-        
+
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema({
-                vol.Required("entity_profile", default=current_profile): vol.In(
-                    VALID_PROFILES
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("entity_profile", default=current_profile): vol.In(
+                        VALID_PROFILES
+                    ),
+                }
+            ),
             description_placeholders={
                 "current_profile": current_profile,
                 "profiles_info": self._get_profiles_info_enhanced(),
                 "dogs_count": str(len(dogs)),
-                "compatibility_info": self._get_compatibility_info(current_profile, dogs),
+                "compatibility_info": self._get_compatibility_info(
+                    current_profile, dogs
+                ),
             },
         )
 
@@ -1288,22 +1323,24 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, profile: str, dogs: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Check profile compatibility with existing dogs.
-        
+
         Args:
             profile: Profile to check
             dogs: Existing dogs configuration
-            
+
         Returns:
             Compatibility check results
         """
         factory = self._entity_factory
         warnings = []
-        
+
         for dog in dogs:
             modules = dog.get("modules", {})
             if not factory.validate_profile_for_modules(profile, modules):
-                warnings.append(f"Profile '{profile}' may not be optimal for {dog.get('dog_name', 'unknown')}")
-        
+                warnings.append(
+                    f"Profile '{profile}' may not be optimal for {dog.get('dog_name', 'unknown')}"
+                )
+
         return {
             "compatible": len(warnings) == 0,
             "warning": "; ".join(warnings) if warnings else None,
@@ -1313,20 +1350,19 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self, current_profile: str, dogs: list[dict[str, Any]]
     ) -> str:
         """Get compatibility information for profile change.
-        
+
         Args:
             current_profile: Current profile
             dogs: Dogs configuration
-            
+
         Returns:
             Compatibility information text
         """
         dog_count = len(dogs)
         total_modules = sum(
-            len([m for m, e in dog.get("modules", {}).items() if e])
-            for dog in dogs
+            len([m for m, e in dog.get("modules", {}).items() if e]) for dog in dogs
         )
-        
+
         if dog_count >= 5:
             return "High dog count - 'basic' profile recommended for performance"
         elif total_modules >= 20:
@@ -1338,10 +1374,10 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> PawControlOptionsFlow:
         """Create options flow.
-        
+
         Args:
             config_entry: Configuration entry
-            
+
         Returns:
             Options flow instance
         """

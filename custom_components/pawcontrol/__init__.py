@@ -53,35 +53,44 @@ def get_platforms_for_profile_and_modules(
     dogs_config: list[dict[str, Any]], profile: str
 ) -> list[Platform]:
     """Determine required platforms based on dogs, modules and profile.
-    
+
     Optimized with caching and single-pass iteration for better performance.
-    
+
     Args:
         dogs_config: List of dog configurations
         profile: Entity profile name
-        
+
     Returns:
         List of required platforms
     """
     if not dogs_config:
         return [Platform.SENSOR, Platform.BUTTON]
-    
+
     # Generate cache key for performance optimization
-    cache_key = f"{len(dogs_config)}_{profile}_{hash(str(sorted(
-        (dog.get(CONF_DOG_ID, ''), tuple(sorted(dog.get('modules', {}).items())))
-        for dog in dogs_config
-    )))}"
-    
+    cache_key = f"{len(dogs_config)}_{profile}_{
+        hash(
+            str(
+                sorted(
+                    (
+                        dog.get(CONF_DOG_ID, ''),
+                        tuple(sorted(dog.get('modules', {}).items())),
+                    )
+                    for dog in dogs_config
+                )
+            )
+        )
+    }"
+
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
-    
+
     # Pre-validate profile to avoid issues later
     from .entity_factory import ENTITY_PROFILES
-    
+
     if profile not in ENTITY_PROFILES:
         _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
         profile = "standard"
-    
+
     # Single-pass collection of enabled modules using set operations
     enabled_modules: set[str] = set()
     for dog in dogs_config:
@@ -129,11 +138,11 @@ def get_platforms_for_profile_and_modules(
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Paw Control integration from configuration.yaml.
-    
+
     Args:
         hass: Home Assistant instance
         config: Configuration from configuration.yaml
-        
+
     Returns:
         True if setup successful
     """
@@ -162,11 +171,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
     if not dogs_config:
         raise ConfigEntryNotReady("No dogs configured")
-    
+
     # Enhanced validation for each dog configuration
     for dog in dogs_config:
         if not dog.get(CONF_DOG_ID):
-            raise ConfigEntryNotReady(f"Invalid dog configuration: missing {CONF_DOG_ID}")
+            raise ConfigEntryNotReady(
+                f"Invalid dog configuration: missing {CONF_DOG_ID}"
+            )
         # Additional validation
         if not isinstance(dog.get(CONF_DOG_ID), str) or not dog[CONF_DOG_ID].strip():
             raise ConfigEntryNotReady(f"Invalid dog ID: {dog.get(CONF_DOG_ID)}")
@@ -181,7 +192,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     # Calculate platforms once for reuse (cached)
     platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
-    
+
     # Initialize core components with proper error handling and session injection
     session = async_get_clientsession(hass)
     coordinator = PawControlCoordinator(hass, entry, session)
@@ -197,7 +208,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         total_estimated_entities += entity_factory.estimate_entity_count(
             profile, dog.get("modules", {})
         )
-    
+
     _LOGGER.debug(
         "Estimated %d entities for %d dogs with profile '%s'",
         total_estimated_entities,
@@ -211,7 +222,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Initialize coordinator first (critical dependency)
         await coordinator.async_config_entry_first_refresh()
         initialized_managers.append(coordinator)
-        
+
         # FIX: Initialize managers sequentially to avoid race conditions
         # Order matters: data_manager -> others (they may depend on data_manager)
         try:
@@ -219,31 +230,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             initialized_managers.append(data_manager)
         except Exception as err:
             await _cleanup_managers(initialized_managers)
-            raise ConfigEntryNotReady(f"Data manager initialization failed: {err}") from err
-            
+            raise ConfigEntryNotReady(
+                f"Data manager initialization failed: {err}"
+            ) from err
+
         try:
-            await asyncio.wait_for(notification_manager.async_initialize(), timeout=10.0)
+            await asyncio.wait_for(
+                notification_manager.async_initialize(), timeout=10.0
+            )
             initialized_managers.append(notification_manager)
         except Exception as err:
             await _cleanup_managers(initialized_managers)
-            raise ConfigEntryNotReady(f"Notification manager initialization failed: {err}") from err
-            
+            raise ConfigEntryNotReady(
+                f"Notification manager initialization failed: {err}"
+            ) from err
+
         try:
-            await asyncio.wait_for(feeding_manager.async_initialize(dogs_config), timeout=10.0)
+            await asyncio.wait_for(
+                feeding_manager.async_initialize(dogs_config), timeout=10.0
+            )
             initialized_managers.append(feeding_manager)
         except Exception as err:
             await _cleanup_managers(initialized_managers)
-            raise ConfigEntryNotReady(f"Feeding manager initialization failed: {err}") from err
-            
+            raise ConfigEntryNotReady(
+                f"Feeding manager initialization failed: {err}"
+            ) from err
+
         try:
             await asyncio.wait_for(
-                walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
-                timeout=10.0
+                walk_manager.async_initialize(
+                    [dog[CONF_DOG_ID] for dog in dogs_config]
+                ),
+                timeout=10.0,
             )
             initialized_managers.append(walk_manager)
         except Exception as err:
             await _cleanup_managers(initialized_managers)
-            raise ConfigEntryNotReady(f"Walk manager initialization failed: {err}") from err
+            raise ConfigEntryNotReady(
+                f"Walk manager initialization failed: {err}"
+            ) from err
 
     except ConfigEntryNotReady:
         # Cleanup on initialization failure
@@ -258,14 +283,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         await _cleanup_managers(initialized_managers)
         if isinstance(err, ImportError):
             raise ConfigEntryNotReady(f"Platform import failed: {err}") from err
-        elif isinstance(err, (ValueError, TypeError)):
+        elif isinstance(err, ValueError | TypeError):
             raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
         else:
-            raise ConfigEntryNotReady(f"Unexpected platform setup error: {err}") from err
+            raise ConfigEntryNotReady(
+                f"Unexpected platform setup error: {err}"
+            ) from err
 
     # Initialize optional services (non-critical) with error isolation
     try:
-        service_manager = PawControlServiceManager(hass)
+        PawControlServiceManager(hass)
         await async_setup_daily_reset_scheduler(hass, entry)
     except Exception as err:
         _LOGGER.warning("Failed to initialize optional services: %s", err)
@@ -283,23 +310,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         dogs=dogs_config,
     )
     entry.runtime_data = runtime_data
-    
+
     # Start background tasks for coordinator
     coordinator.async_start_background_tasks()
-    
+
     _LOGGER.info(
         "PawControl setup completed: %d dogs, %d platforms, profile '%s'",
         len(dogs_config),
         len(platforms),
         profile,
     )
-    
+
     return True
 
 
 async def _cleanup_managers(managers: list[Any]) -> None:
     """Cleanup initialized managers on setup failure.
-    
+
     Args:
         managers: List of manager instances to cleanup
     """
@@ -307,11 +334,11 @@ async def _cleanup_managers(managers: list[Any]) -> None:
     for manager in reversed(managers):  # Cleanup in reverse order
         if hasattr(manager, "async_shutdown"):
             cleanup_tasks.append(manager.async_shutdown())
-    
+
     if cleanup_tasks:
         # Run cleanup concurrently with individual error handling
         results = await asyncio.gather(*cleanup_tasks, return_exceptions=True)
-        for manager, result in zip(reversed(managers), results):
+        for manager, result in zip(reversed(managers), results, strict=False):
             if isinstance(result, Exception):
                 _LOGGER.error(
                     "Failed to cleanup %s during setup failure: %s",
@@ -333,7 +360,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         True if unload successful
     """
     runtime_data = entry.runtime_data
-    
+
     # Get platform list for unloading
     if runtime_data:
         dogs = runtime_data.dogs
@@ -341,16 +368,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     else:
         dogs = entry.data.get(CONF_DOGS, [])
         profile = entry.options.get("entity_profile", "standard")
-    
+
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
     # Unload platforms first with timeout
     try:
         unload_ok = await asyncio.wait_for(
-            hass.config_entries.async_unload_platforms(entry, platforms),
-            timeout=30.0
+            hass.config_entries.async_unload_platforms(entry, platforms), timeout=30.0
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         _LOGGER.error("Platform unload timeout after 30 seconds")
         unload_ok = False
     except Exception as err:
@@ -367,19 +393,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             runtime_data.data_manager,
             runtime_data.coordinator,
         ]
-        
+
         # Filter managers that have shutdown capability
         shutdown_managers = [mgr for mgr in managers if hasattr(mgr, "async_shutdown")]
-        
+
         # Shutdown with concurrent execution and individual error handling
         if shutdown_managers:
             shutdown_results = await asyncio.gather(
                 *(manager.async_shutdown() for manager in shutdown_managers),
                 return_exceptions=True,
             )
-            
+
             # Log any shutdown errors but don't fail the unload
-            for manager, result in zip(shutdown_managers, shutdown_results):
+            for manager, result in zip(
+                shutdown_managers, shutdown_results, strict=False
+            ):
                 if isinstance(result, Exception):
                     _LOGGER.error(
                         "Error shutting down %s: %s",

@@ -78,9 +78,7 @@ async def async_get_config_entry_diagnostics(
     diagnostics = {
         "config_entry": await _get_config_entry_diagnostics(entry),
         "system_info": await _get_system_diagnostics(hass),
-        "integration_status": await _get_integration_status(
-            hass, entry, runtime_data
-        ),
+        "integration_status": await _get_integration_status(hass, entry, runtime_data),
         "coordinator_info": await _get_coordinator_diagnostics(coordinator),
         "entities": await _get_entities_diagnostics(hass, entry),
         "devices": await _get_devices_diagnostics(hass, entry),
@@ -93,7 +91,7 @@ async def async_get_config_entry_diagnostics(
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
-    
+
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
@@ -150,9 +148,7 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def _get_integration_status(
-    hass: HomeAssistant, 
-    entry: ConfigEntry, 
-    runtime_data: dict[str, Any] | None
+    hass: HomeAssistant, entry: ConfigEntry, runtime_data: dict[str, Any] | None
 ) -> dict[str, Any]:
     """Get integration status diagnostics.
 
@@ -217,7 +213,9 @@ async def _get_coordinator_diagnostics(
         if coordinator.last_update_time
         else None,
         "update_interval_seconds": coordinator.update_interval.total_seconds(),
-        "update_method": str(coordinator.update_method) if hasattr(coordinator, "update_method") else "unknown",
+        "update_method": str(coordinator.update_method)
+        if hasattr(coordinator, "update_method")
+        else "unknown",
         "logger_name": coordinator.logger.name,
         "name": coordinator.name,
         "statistics": stats,
@@ -382,7 +380,9 @@ async def _get_dogs_summary(
                 else:
                     dog_summary["coordinator_data_available"] = False
             except Exception as err:
-                _LOGGER.debug("Could not get coordinator data for dog %s: %s", dog_id, err)
+                _LOGGER.debug(
+                    "Could not get coordinator data for dog %s: %s", dog_id, err
+                )
                 dog_summary["coordinator_data_available"] = False
 
         dogs_summary.append(dog_summary)
@@ -524,10 +524,10 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     # Check which platforms have been loaded by checking entity registry
     entity_registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
-    
+
     # Get unique platforms
     loaded_platforms = list(set(entity.platform for entity in entities))
-    
+
     return loaded_platforms
 
 
@@ -540,9 +540,8 @@ async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     Returns:
         List of registered service names
     """
-    services = []
     domain_services = hass.services.async_services().get(DOMAIN, {})
-    
+
     return list(domain_services.keys())
 
 

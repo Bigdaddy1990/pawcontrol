@@ -240,9 +240,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         utilization_percentage = "0"
         if current_dogs and profile_info["max_entities"] > 0:
-            utilization_percentage = (
-                f"{(total_estimate / (profile_info['max_entities'] * len(current_dogs)) * 100):.1f}"
-            )
+            utilization_percentage = f"{(total_estimate / (profile_info['max_entities'] * len(current_dogs)) * 100):.1f}"
 
         placeholders = {
             "current_profile": current_profile,
@@ -318,9 +316,7 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         warnings_text = (
-            "\n".join(preview["warnings"])
-            if preview["warnings"]
-            else "No warnings"
+            "\n".join(preview["warnings"]) if preview["warnings"] else "No warnings"
         )
 
         return self.async_show_form(
@@ -457,7 +453,10 @@ class PawControlOptionsFlow(OptionsFlow):
                     f"🏥 {dog_name}: Health focus profile but health module disabled"
                 )
 
-            if profile == "basic" and sum(1 for enabled in modules.values() if enabled) > 3:
+            if (
+                profile == "basic"
+                and sum(1 for enabled in modules.values() if enabled) > 3
+            ):
                 warnings.append(
                     f"⚡ {dog_name}: Many modules enabled for basic profile"
                 )

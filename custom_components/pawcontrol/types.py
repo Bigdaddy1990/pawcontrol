@@ -43,11 +43,26 @@ else:
         MEAL_TYPES = ("breakfast", "lunch", "dinner", "snack")
         FOOD_TYPES = ("dry_food", "wet_food", "barf", "home_cooked", "mixed")
         DOG_SIZES = ("toy", "small", "medium", "large", "giant")
-        HEALTH_STATUS_OPTIONS = ("excellent", "very_good", "good", "normal", "unwell", "sick")
+        HEALTH_STATUS_OPTIONS = (
+            "excellent",
+            "very_good",
+            "good",
+            "normal",
+            "unwell",
+            "sick",
+        )
         MOOD_OPTIONS = ("happy", "neutral", "sad", "angry", "anxious", "tired")
         ACTIVITY_LEVELS = ("very_low", "low", "normal", "high", "very_high")
         GEOFENCE_TYPES = ("safe_zone", "restricted_area", "point_of_interest")
-        GPS_SOURCES = ("manual", "device_tracker", "person_entity", "smartphone", "tractive", "webhook", "mqtt")
+        GPS_SOURCES = (
+            "manual",
+            "device_tracker",
+            "person_entity",
+            "smartphone",
+            "tractive",
+            "webhook",
+            "mqtt",
+        )
 
 # Type aliases for better readability
 DogId = str
@@ -66,19 +81,21 @@ VALID_MOOD_OPTIONS: frozenset[str] = frozenset(MOOD_OPTIONS)
 VALID_ACTIVITY_LEVELS: frozenset[str] = frozenset(ACTIVITY_LEVELS)
 VALID_GEOFENCE_TYPES: frozenset[str] = frozenset(GEOFENCE_TYPES)
 VALID_GPS_SOURCES: frozenset[str] = frozenset(GPS_SOURCES)
-VALID_NOTIFICATION_PRIORITIES: frozenset[str] = frozenset(["low", "normal", "high", "urgent"])
+VALID_NOTIFICATION_PRIORITIES: frozenset[str] = frozenset(
+    ["low", "normal", "high", "urgent"]
+)
 
 
 class DogConfigData(TypedDict):
     """Type definition for dog configuration data.
-    
+
     Uses Required[] for mandatory fields and optional for others.
     """
-    
+
     # Required fields
     dog_id: Required[str]
     dog_name: Required[str]
-    
+
     # Optional fields with defaults
     dog_breed: str | None
     dog_age: int | None
@@ -203,7 +220,7 @@ class FeedingData:
     notes: str = ""
     logged_by: str = ""
     calories: float | None = None
-    
+
     def __post_init__(self) -> None:
         """Validate data after initialization."""
         if self.meal_type not in VALID_MEAL_TYPES:
@@ -229,7 +246,7 @@ class WalkData:
     rating: int = 0
     started_by: str = ""
     ended_by: str = ""
-    
+
     def __post_init__(self) -> None:
         """Validate data after initialization."""
         if self.rating < 0 or self.rating > 10:
@@ -254,7 +271,7 @@ class HealthData:
     medication: dict[str, Any] | None = None
     note: str = ""
     logged_by: str = ""
-    
+
     def __post_init__(self) -> None:
         """Validate data after initialization."""
         if self.mood and self.mood not in VALID_MOOD_OPTIONS:
@@ -277,7 +294,7 @@ class GPSLocation:
     altitude: float | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     source: str = ""
-    
+
     def __post_init__(self) -> None:
         """Validate GPS coordinates."""
         if not (-90 <= self.latitude <= 90):
@@ -299,7 +316,7 @@ class GeofenceZone:
     zone_type: str = "safe_zone"
     notifications: bool = True
     auto_actions: list[str] = field(default_factory=list)
-    
+
     def __post_init__(self) -> None:
         """Validate geofence parameters."""
         if not (-90 <= self.latitude <= 90):
@@ -323,7 +340,7 @@ class NotificationData:
     timestamp: datetime = field(default_factory=datetime.now)
     persistent: bool = False
     actions: list[dict[str, str]] = field(default_factory=list)
-    
+
     def __post_init__(self) -> None:
         """Validate notification data."""
         if self.priority not in VALID_NOTIFICATION_PRIORITIES:
@@ -347,7 +364,7 @@ class DailyStats:
     health_logs_count: int = 0
     last_feeding_time: datetime | None = None
     last_walk_time: datetime | None = None
-    
+
     def __post_init__(self) -> None:
         """Validate statistics data."""
         if self.feedings_count < 0:
@@ -373,7 +390,7 @@ class DogProfile:
     current_walk: WalkData | None = None
     last_location: GPSLocation | None = None
     is_visitor_mode: bool = False
-    
+
     def __post_init__(self) -> None:
         """Validate dog profile."""
         if not self.dog_id.strip():
@@ -459,124 +476,141 @@ class RepairIssueData(TypedDict):
 # Enhanced type guards for runtime type checking
 def is_dog_config_valid(config: Any) -> bool:
     """Type guard to validate dog configuration.
-    
+
     Args:
         config: Configuration to validate
-        
+
     Returns:
         True if configuration is valid
     """
     if not isinstance(config, dict):
         return False
-        
+
     # Check required fields
     required_fields = ["dog_id", "dog_name"]
     for field in required_fields:
-        if field not in config or not isinstance(config[field], str) or not config[field].strip():
+        if (
+            field not in config
+            or not isinstance(config[field], str)
+            or not config[field].strip()
+        ):
             return False
-    
+
     # Validate optional fields
     if "dog_age" in config:
-        if not isinstance(config["dog_age"], int) or config["dog_age"] < 0 or config["dog_age"] > 30:
+        if (
+            not isinstance(config["dog_age"], int)
+            or config["dog_age"] < 0
+            or config["dog_age"] > 30
+        ):
             return False
-            
+
     if "dog_weight" in config:
-        if not isinstance(config["dog_weight"], (int, float)) or config["dog_weight"] <= 0:
+        if (
+            not isinstance(config["dog_weight"], int | float)
+            or config["dog_weight"] <= 0
+        ):
             return False
-            
-    if "dog_size" in config:
-        if config["dog_size"] not in VALID_DOG_SIZES:
-            return False
-    
-    return True
+
+    return not ("dog_size" in config and config["dog_size"] not in VALID_DOG_SIZES)
 
 
 def is_gps_location_valid(location: Any) -> bool:
     """Type guard to validate GPS location data.
-    
+
     Args:
         location: Location data to validate
-        
+
     Returns:
         True if location is valid
     """
     if not isinstance(location, dict):
         return False
-        
+
     # Check required coordinates
     for coord, limits in [("latitude", (-90, 90)), ("longitude", (-180, 180))]:
         if coord not in location:
             return False
         value = location[coord]
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int | float):
             return False
         if not (limits[0] <= value <= limits[1]):
             return False
-    
+
     # Validate optional fields
     if "accuracy" in location:
-        if not isinstance(location["accuracy"], (int, float)) or location["accuracy"] < 0:
+        if (
+            not isinstance(location["accuracy"], int | float)
+            or location["accuracy"] < 0
+        ):
             return False
-            
+
     return True
 
 
 def is_feeding_data_valid(data: Any) -> bool:
     """Type guard to validate feeding data.
-    
+
     Args:
         data: Feeding data to validate
-        
+
     Returns:
         True if data is valid
     """
     if not isinstance(data, dict):
         return False
-        
+
     # Check required fields
     if "meal_type" not in data or data["meal_type"] not in VALID_MEAL_TYPES:
         return False
-        
+
     if "portion_size" not in data:
         return False
     portion = data["portion_size"]
-    if not isinstance(portion, (int, float)) or portion < 0:
+    if not isinstance(portion, int | float) or portion < 0:
         return False
-        
+
     # Validate optional fields
-    if "food_type" in data and data["food_type"] not in VALID_FOOD_TYPES:
-        return False
-        
-    return True
+    return not ("food_type" in data and data["food_type"] not in VALID_FOOD_TYPES)
 
 
 def is_health_data_valid(data: Any) -> bool:
     """Type guard to validate health data.
-    
+
     Args:
         data: Health data to validate
-        
+
     Returns:
         True if data is valid
     """
     if not isinstance(data, dict):
         return False
-        
+
     # Validate optional fields
     if "mood" in data and data["mood"] and data["mood"] not in VALID_MOOD_OPTIONS:
         return False
-        
-    if "activity_level" in data and data["activity_level"] and data["activity_level"] not in VALID_ACTIVITY_LEVELS:
+
+    if (
+        "activity_level" in data
+        and data["activity_level"]
+        and data["activity_level"] not in VALID_ACTIVITY_LEVELS
+    ):
         return False
-        
-    if "health_status" in data and data["health_status"] and data["health_status"] not in VALID_HEALTH_STATUS:
+
+    if (
+        "health_status" in data
+        and data["health_status"]
+        and data["health_status"] not in VALID_HEALTH_STATUS
+    ):
         return False
-        
+
     if "weight" in data:
         weight = data["weight"]
-        if weight is not None and (not isinstance(weight, (int, float)) or weight <= 0 or weight > 200):
+        if weight is not None and (
+            not isinstance(weight, int | float) or weight <= 0 or weight > 200
+        ):
             return False
-    
+
     return True
 
 
