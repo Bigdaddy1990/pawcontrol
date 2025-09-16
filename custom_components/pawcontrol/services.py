@@ -141,6 +141,8 @@ SERVICE_SEND_NOTIFICATION_SCHEMA = vol.Schema(
                     "webhook",
                     "tts",
                     "media_player",
+                    "slack",
+                    "discord",
                 ]
             )
         ],
