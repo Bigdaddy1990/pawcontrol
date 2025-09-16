@@ -8,7 +8,10 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from custom_components.pawcontrol.helpers import PawControlDataStorage
+from custom_components.pawcontrol.helpers import (
+    PawControlData,
+    PawControlDataStorage,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
