@@ -211,7 +211,7 @@ class PawControlDataStorage:
             # Check cache first
             cache_key = "all_data"
             cached_data = await self._cache.get(cache_key)
-            if cached_data:
+            if cached_data is not None:
                 return cached_data
 
             # Load all data stores concurrently
