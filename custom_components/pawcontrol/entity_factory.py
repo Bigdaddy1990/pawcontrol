@@ -354,6 +354,7 @@ class EntityFactory:
 
         cached_estimate = self._estimate_cache.get(cache_key)
         if cached_estimate is not None:
+            # Move the cached entry to the end to maintain LRU semantics
             self._estimate_cache.move_to_end(cache_key)
             return cached_estimate
 
