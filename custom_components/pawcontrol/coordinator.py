@@ -157,7 +157,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     return dog_id, dog_data
                 except asyncio.CancelledError:
                     raise
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     _LOGGER.warning(
                         "Timeout updating dog %s after %.1fs", dog_id, API_TIMEOUT * 0.8
                     )
