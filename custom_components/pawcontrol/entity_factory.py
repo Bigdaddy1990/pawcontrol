@@ -15,6 +15,7 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
@@ -190,6 +191,62 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
 
+_COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
+    (
+        "standard",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "walk": True,
+                "health": True,
+                "gps": True,
+                "notifications": True,
+            }
+        ),
+    ),
+    (
+        "standard",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "walk": True,
+                "health": True,
+                "gps": True,
+                "notifications": True,
+                "dashboard": True,
+            }
+        ),
+    ),
+    (
+        "gps_focus",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "walk": True,
+                "gps": True,
+                "notifications": True,
+                "visitor": True,
+            }
+        ),
+    ),
+    (
+        "health_focus",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "health": True,
+                "notifications": True,
+                "medication": True,
+                "grooming": True,
+            }
+        ),
+    ),
+    (
+        "advanced",
+        MappingProxyType(dict.fromkeys(MODULE_ENTITY_ESTIMATES, True)),
+    ),
+)
+
 
 @dataclass(slots=True, frozen=True)
 class EntityEstimate:
@@ -233,26 +290,48 @@ class EntityFactory:
         """Warm up internal caches for consistent performance."""
 
         default_modules = self._get_default_modules()
-        module_signature = tuple(sorted(default_modules.items()))
-        estimate = self._compute_entity_estimate(
-            "standard", default_modules, module_signature
+        default_estimate = self._get_entity_estimate(
+            "standard", default_modules, log_invalid_inputs=False
         )
-        self._estimate_cache[("standard", module_signature)] = estimate
-        self._last_estimate_key = ("standard", module_signature)
-        self._last_module_weights = {
+
+        default_module_dict = dict(default_modules)
+        self.estimate_entity_count("standard", default_module_dict)
+        self.get_performance_metrics("standard", default_module_dict)
+        for priority in (3, 5, 7, 9):
+            self.should_create_entity("standard", "sensor", "feeding", priority)
+
+        for profile, modules in _COMMON_PROFILE_PRESETS:
+            module_dict = dict(modules)
+            self._get_entity_estimate(profile, module_dict, log_invalid_inputs=False)
+            self.estimate_entity_count(profile, module_dict)
+            self.get_performance_metrics(profile, module_dict)
+            for priority in (3, 5, 7, 9):
+                self.should_create_entity(profile, "sensor", "feeding", priority)
+
+        # Ensure the default combination remains the active baseline after warming
+        self._update_last_estimate_state(default_estimate)
+
+    def _update_last_estimate_state(self, estimate: EntityEstimate) -> None:
+        """Cache metadata derived from the most recent estimate."""
+
+        module_weights = {
             module: index + 1
-            for index, (module, enabled) in enumerate(module_signature)
+            for index, (module, enabled) in enumerate(estimate.module_signature)
             if enabled
         }
+
+        self._last_estimate_key = (
+            estimate.profile,
+            estimate.module_signature,
+        )
+        self._last_module_weights = module_weights
         self._last_synergy_score = sum(
-            self._last_module_weights[a] + self._last_module_weights[b]
-            for a, b in combinations(self._last_module_weights, 2)
+            module_weights[a] + module_weights[b]
+            for a, b in combinations(module_weights, 2)
         )
         self._last_triad_score = sum(
-            self._last_module_weights[a]
-            + self._last_module_weights[b]
-            + self._last_module_weights[c]
-            for a, b, c in combinations(self._last_module_weights, 3)
+            module_weights[a] + module_weights[b] + module_weights[c]
+            for a, b, c in combinations(module_weights, 3)
         )
 
     def _get_entity_estimate(
@@ -276,6 +355,7 @@ class EntityFactory:
         cached_estimate = self._estimate_cache.get(cache_key)
         if cached_estimate is not None:
             self._estimate_cache.move_to_end(cache_key)
+            return cached_estimate
 
         estimate = self._compute_entity_estimate(
             normalized_profile, normalized_modules, module_signature
@@ -375,25 +455,7 @@ class EntityFactory:
                 estimate.profile,
             )
 
-        self._last_estimate_key = (
-            estimate.profile,
-            estimate.module_signature,
-        )
-        self._last_module_weights = {
-            module: index + 1
-            for index, (module, enabled) in enumerate(estimate.module_signature)
-            if enabled
-        }
-        self._last_synergy_score = sum(
-            self._last_module_weights[a] + self._last_module_weights[b]
-            for a, b in combinations(self._last_module_weights, 2)
-        )
-        self._last_triad_score = sum(
-            self._last_module_weights[a]
-            + self._last_module_weights[b]
-            + self._last_module_weights[c]
-            for a, b, c in combinations(self._last_module_weights, 3)
-        )
+        self._update_last_estimate_state(estimate)
 
         return estimate.final_count
 

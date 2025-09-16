@@ -16,6 +16,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime, time, timedelta
+from functools import wraps
 from typing import Any, TypeVar
 
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -590,7 +591,12 @@ def retry_on_exception(
     backoff_factor: float = 2.0,
     exceptions: tuple[type[Exception], ...] = (Exception,),
 ):
-    """Decorator for retrying functions on exception.
+    """Retry a callable when it raises one of the provided exceptions.
+
+    The returned decorator always exposes an async callable. When applied to a
+    synchronous function the wrapped callable is executed in an executor via
+    :func:`asyncio.to_thread`, ensuring the Home Assistant event loop stays
+    responsive and avoiding blocking sleeps.
 
     Args:
         max_retries: Maximum number of retries
@@ -599,25 +605,30 @@ def retry_on_exception(
         exceptions: Exception types to retry on
 
     Returns:
-        Decorator function
+        Decorator that provides retry behaviour for async and sync callables.
     """
 
     def decorator(func):
+        is_coroutine = asyncio.iscoroutinefunction(func)
+
+        @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            last_exception = None
+            last_exception: Exception | None = None
             current_delay = delay
 
             for attempt in range(max_retries + 1):
                 try:
-                    return await func(*args, **kwargs)
-                except exceptions as e:
-                    last_exception = e
+                    if is_coroutine:
+                        return await func(*args, **kwargs)
+                    return await asyncio.to_thread(func, *args, **kwargs)
+                except exceptions as err:
+                    last_exception = err
                     if attempt < max_retries:
                         _LOGGER.debug(
                             "Attempt %d failed for %s: %s. Retrying in %.1fs",
                             attempt + 1,
                             func.__name__,
-                            e,
+                            err,
                             current_delay,
                         )
                         await asyncio.sleep(current_delay)
@@ -629,39 +640,13 @@ def retry_on_exception(
                             func.__name__,
                         )
 
+            if last_exception is None:  # pragma: no cover - safety net
+                last_exception = Exception(
+                    f"{func.__name__} failed without raising a captured exception"
+                )
             raise last_exception
 
-        def sync_wrapper(*args, **kwargs):
-            last_exception = None
-            current_delay = delay
-
-            for attempt in range(max_retries + 1):
-                try:
-                    return func(*args, **kwargs)
-                except exceptions as e:
-                    last_exception = e
-                    if attempt < max_retries:
-                        _LOGGER.debug(
-                            "Attempt %d failed for %s: %s. Retrying in %.1fs",
-                            attempt + 1,
-                            func.__name__,
-                            e,
-                            current_delay,
-                        )
-                        import time
-
-                        time.sleep(current_delay)
-                        current_delay *= backoff_factor
-                    else:
-                        _LOGGER.error(
-                            "All %d attempts failed for %s",
-                            max_retries + 1,
-                            func.__name__,
-                        )
-
-            raise last_exception
-
-        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
+        return async_wrapper
 
     return decorator
 
