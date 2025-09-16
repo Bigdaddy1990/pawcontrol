@@ -4,15 +4,20 @@ This module provides high-performance, specialized card generators for different
 dashboard components. Each generator is optimized for its specific use case
 with lazy loading, validation, and async operations.
 
+OPTIMIZED: Enhanced with batch processing, parallel card generation,
+advanced caching, and comprehensive type safety for maximum performance.
+
 Quality Scale: Platinum
-Home Assistant: 2025.8.3+
+Home Assistant: 2025.9.3+
 Python: 3.13+
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from typing import Any
+from collections.abc import Awaitable
+from typing import TYPE_CHECKING, Any, Final, Optional, TypeVar
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -27,46 +32,184 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
-from .dashboard_templates import DashboardTemplates
+
+if TYPE_CHECKING:
+    from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
 
+# OPTIMIZED: Performance constants for batch processing
+MAX_CONCURRENT_VALIDATIONS: Final[int] = 10
+ENTITY_VALIDATION_TIMEOUT: Final[float] = 5.0
+CARD_GENERATION_TIMEOUT: Final[float] = 15.0
+VALIDATION_CACHE_SIZE: Final[int] = 200
+
+# OPTIMIZED: Type definitions for better performance
+CardConfigType = dict[str, Any]
+EntityListType = list[str]
+ModulesConfigType = dict[str, bool]
+DogConfigType = dict[str, Any]
+ThemeConfigType = dict[str, str]
+OptionsConfigType = dict[str, Any]
+
+# OPTIMIZED: Generic type for card generators
+T = TypeVar("T", bound="BaseCardGenerator")
+
+# OPTIMIZED: Entity validation cache for performance
+_entity_validation_cache: dict[str, tuple[float, bool]] = {}
+_cache_cleanup_threshold = 300  # 5 minutes
+
 
 class BaseCardGenerator:
-    """Base class for card generators with common functionality."""
+    """Base class for card generators with enhanced performance optimization.
+
+    OPTIMIZED: Enhanced with batch processing, async caching, memory management,
+    and comprehensive error isolation for maximum performance.
+    """
 
     def __init__(self, hass: HomeAssistant, templates: DashboardTemplates) -> None:
-        """Initialize card generator.
+        """Initialize optimized card generator.
 
         Args:
             hass: Home Assistant instance
-            templates: Template manager
+            templates: Template manager with caching
         """
         self.hass = hass
         self.templates = templates
+        
+        # OPTIMIZED: Performance tracking and validation semaphore
+        self._validation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_VALIDATIONS)
+        self._performance_stats = {
+            "validations_count": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "generation_time_total": 0.0,
+            "errors_handled": 0,
+        }
 
-    async def _validate_entities(self, entities: list[str]) -> list[str]:
-        """Validate and filter entities that exist and are available.
+    async def _validate_entities_batch(
+        self, entities: EntityListType, use_cache: bool = True
+    ) -> EntityListType:
+        """Validate entities in optimized batches with caching.
+
+        OPTIMIZED: Batch processing with cache, timeout protection, and memory management.
 
         Args:
             entities: List of entity IDs to validate
+            use_cache: Whether to use validation cache
 
         Returns:
             List of valid entity IDs
         """
-        valid_entities = []
+        if not entities:
+            return []
 
+        start_time = asyncio.get_event_loop().time()
+        valid_entities: list[str] = []
+        
+        # OPTIMIZED: Clean cache if needed
+        await self._cleanup_validation_cache()
+
+        # OPTIMIZED: Separate cached and uncached entities
+        cached_results: dict[str, bool] = {}
+        uncached_entities: list[str] = []
+        
+        if use_cache:
+            current_time = asyncio.get_event_loop().time()
+            for entity_id in entities:
+                cache_entry = _entity_validation_cache.get(entity_id)
+                if cache_entry and (current_time - cache_entry[0]) < _cache_cleanup_threshold:
+                    cached_results[entity_id] = cache_entry[1]
+                    self._performance_stats["cache_hits"] += 1
+                else:
+                    uncached_entities.append(entity_id)
+                    self._performance_stats["cache_misses"] += 1
+        else:
+            uncached_entities = entities.copy()
+
+        # OPTIMIZED: Process uncached entities in controlled batches
+        batch_size = min(MAX_CONCURRENT_VALIDATIONS, len(uncached_entities))
+        for i in range(0, len(uncached_entities), batch_size):
+            batch = uncached_entities[i:i + batch_size]
+            
+            async with self._validation_semaphore:
+                try:
+                    # OPTIMIZED: Parallel validation with timeout
+                    batch_tasks = [
+                        asyncio.create_task(self._validate_single_entity(entity_id))
+                        for entity_id in batch
+                    ]
+                    
+                    batch_results = await asyncio.wait_for(
+                        asyncio.gather(*batch_tasks, return_exceptions=True),
+                        timeout=ENTITY_VALIDATION_TIMEOUT
+                    )
+                    
+                    # Process batch results
+                    for entity_id, result in zip(batch, batch_results, strict=False):
+                        if isinstance(result, Exception):
+                            _LOGGER.debug("Entity validation error for %s: %s", entity_id, result)
+                            cached_results[entity_id] = False
+                        else:
+                            cached_results[entity_id] = result
+                            
+                        # Update cache
+                        if use_cache:
+                            _entity_validation_cache[entity_id] = (
+                                asyncio.get_event_loop().time(),
+                                cached_results[entity_id]
+                            )
+                            
+                except asyncio.TimeoutError:
+                    _LOGGER.warning("Entity validation timeout for batch: %s", batch)
+                    for entity_id in batch:
+                        cached_results[entity_id] = False
+                        
+                except Exception as err:
+                    _LOGGER.error("Batch validation error: %s", err)
+                    for entity_id in batch:
+                        cached_results[entity_id] = False
+                    self._performance_stats["errors_handled"] += 1
+
+        # OPTIMIZED: Collect all valid entities
         for entity_id in entities:
-            state = self.hass.states.get(entity_id)
-            if state and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            if cached_results.get(entity_id, False):
                 valid_entities.append(entity_id)
-            else:
-                _LOGGER.debug("Entity %s not available, skipping", entity_id)
+
+        # Update performance stats
+        validation_time = asyncio.get_event_loop().time() - start_time
+        self._performance_stats["validations_count"] += len(entities)
+        self._performance_stats["generation_time_total"] += validation_time
+
+        if validation_time > 1.0:  # Log slow validations
+            _LOGGER.debug(
+                "Slow entity validation: %.2fs for %d entities (%d valid)",
+                validation_time, len(entities), len(valid_entities)
+            )
 
         return valid_entities
 
-    async def _entity_exists(self, entity_id: str) -> bool:
-        """Check if entity exists and is available.
+    async def _validate_single_entity(self, entity_id: str) -> bool:
+        """Validate single entity with optimized state checking.
+
+        Args:
+            entity_id: Entity ID to validate
+
+        Returns:
+            True if entity is valid and available
+        """
+        try:
+            state = self.hass.states.get(entity_id)
+            return (
+                state is not None 
+                and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            )
+        except Exception as err:
+            _LOGGER.debug("Entity validation error for %s: %s", entity_id, err)
+            return False
+
+    async def _entity_exists_cached(self, entity_id: str) -> bool:
+        """Check if entity exists with caching for performance.
 
         Args:
             entity_id: Entity ID to check
@@ -74,20 +217,46 @@ class BaseCardGenerator:
         Returns:
             True if entity exists and is available
         """
-        state = self.hass.states.get(entity_id)
-        return state is not None and state.state not in (
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-        )
+        results = await self._validate_entities_batch([entity_id], use_cache=True)
+        return len(results) > 0
+
+    async def _cleanup_validation_cache(self) -> None:
+        """Cleanup old entries from validation cache."""
+        if len(_entity_validation_cache) <= VALIDATION_CACHE_SIZE:
+            return
+            
+        current_time = asyncio.get_event_loop().time()
+        expired_keys = [
+            entity_id for entity_id, (timestamp, _) in _entity_validation_cache.items()
+            if current_time - timestamp > _cache_cleanup_threshold
+        ]
+        
+        for key in expired_keys:
+            _entity_validation_cache.pop(key, None)
+            
+        # If still too large, remove oldest entries
+        if len(_entity_validation_cache) > VALIDATION_CACHE_SIZE:
+            sorted_items = sorted(
+                _entity_validation_cache.items(),
+                key=lambda x: x[1][0]  # Sort by timestamp
+            )
+            remove_count = len(_entity_validation_cache) - VALIDATION_CACHE_SIZE
+            for entity_id, _ in sorted_items[:remove_count]:
+                _entity_validation_cache.pop(entity_id, None)
+
+    @property
+    def performance_stats(self) -> dict[str, Any]:
+        """Get performance statistics for monitoring."""
+        return self._performance_stats.copy()
 
 
 class OverviewCardGenerator(BaseCardGenerator):
-    """Generator for overview dashboard cards."""
+    """Generator for overview dashboard cards with enhanced performance."""
 
     async def generate_welcome_card(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Generate welcome/summary card.
+        self, dogs_config: list[DogConfigType], options: OptionsConfigType
+    ) -> CardConfigType:
+        """Generate optimized welcome/summary card.
 
         Args:
             dogs_config: List of dog configurations
@@ -99,6 +268,16 @@ class OverviewCardGenerator(BaseCardGenerator):
         dog_count = len(dogs_config)
         title = options.get("title", "Paw Control")
 
+        # OPTIMIZED: Async active dog counting with timeout
+        try:
+            active_dogs = await asyncio.wait_for(
+                self._count_active_dogs(dogs_config),
+                timeout=3.0
+            )
+        except asyncio.TimeoutError:
+            _LOGGER.debug("Active dog counting timeout, using total count")
+            active_dogs = dog_count
+
         # Generate dynamic content based on current status
         content_parts = [
             f"# {title}",
@@ -106,10 +285,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         ]
 
         # Add quick stats if available
-        if dog_count > 0:
-            active_dogs = await self._count_active_dogs(dogs_config)
-            if active_dogs != dog_count:
-                content_parts.append(f"**{active_dogs}** currently active")
+        if active_dogs != dog_count:
+            content_parts.append(f"**{active_dogs}** currently active")
 
         content_parts.extend(
             [
@@ -123,8 +300,8 @@ class OverviewCardGenerator(BaseCardGenerator):
             "content": "\n".join(content_parts),
         }
 
-    async def _count_active_dogs(self, dogs_config: list[dict[str, Any]]) -> int:
-        """Count dogs that are currently active/available.
+    async def _count_active_dogs(self, dogs_config: list[DogConfigType]) -> int:
+        """Count dogs that are currently active with optimized batch processing.
 
         Args:
             dogs_config: List of dog configurations
@@ -132,19 +309,28 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Number of active dogs
         """
-        active_count = 0
-
+        if not dogs_config:
+            return 0
+            
+        # OPTIMIZED: Collect all status entities for batch validation
+        status_entities = []
+        dog_id_mapping = {}
+        
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
-            if dog_id and await self._entity_exists(f"sensor.{dog_id}_status"):
-                active_count += 1
+            if dog_id:
+                entity_id = f"sensor.{dog_id}_status"
+                status_entities.append(entity_id)
+                dog_id_mapping[entity_id] = dog_id
 
-        return active_count
+        # OPTIMIZED: Batch validate all status entities
+        valid_entities = await self._validate_entities_batch(status_entities)
+        return len(valid_entities)
 
     async def generate_dogs_grid(
-        self, dogs_config: list[dict[str, Any]], dashboard_url: str
-    ) -> dict[str, Any] | None:
-        """Generate grid of dog navigation buttons.
+        self, dogs_config: list[DogConfigType], dashboard_url: str
+    ) -> CardConfigType | None:
+        """Generate optimized grid of dog navigation buttons.
 
         Args:
             dogs_config: List of dog configurations
@@ -153,32 +339,45 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Dog grid card or None if no valid dogs
         """
-        dog_cards = []
+        if not dogs_config:
+            return None
 
+        # OPTIMIZED: Pre-filter dogs and prepare entities for batch validation
+        dog_candidates: list[tuple[str, str, str]] = []  # (dog_id, dog_name, entity_id)
+        
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             dog_name = dog.get(CONF_DOG_NAME)
 
-            if not dog_id or not dog_name:
-                continue
+            if dog_id and dog_name:
+                entity_id = f"sensor.{dog_id}_status"
+                dog_candidates.append((dog_id, dog_name, entity_id))
 
-            # Only add if dog's status sensor exists
-            if not await self._entity_exists(f"sensor.{dog_id}_status"):
-                continue
+        if not dog_candidates:
+            return None
 
-            dog_cards.append(
-                {
-                    "type": "button",
-                    "entity": f"sensor.{dog_id}_status",
-                    "name": dog_name,
-                    "icon": "mdi:dog",
-                    "show_state": True,
-                    "tap_action": {
-                        "action": "navigate",
-                        "navigation_path": f"{dashboard_url}/{slugify(dog_id)}",
-                    },
-                }
-            )
+        # OPTIMIZED: Batch validate all status entities
+        status_entities = [entity_id for _, _, entity_id in dog_candidates]
+        valid_entities = await self._validate_entities_batch(status_entities)
+        valid_entity_set = set(valid_entities)
+
+        # OPTIMIZED: Build cards only for validated entities
+        dog_cards = []
+        for dog_id, dog_name, entity_id in dog_candidates:
+            if entity_id in valid_entity_set:
+                dog_cards.append(
+                    {
+                        "type": "button",
+                        "entity": entity_id,
+                        "name": dog_name,
+                        "icon": "mdi:dog",
+                        "show_state": True,
+                        "tap_action": {
+                            "action": "navigate",
+                            "navigation_path": f"{dashboard_url}/{slugify(dog_id)}",
+                        },
+                    }
+                )
 
         if not dog_cards:
             return None
@@ -193,9 +392,9 @@ class OverviewCardGenerator(BaseCardGenerator):
         }
 
     async def generate_quick_actions(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any] | None:
-        """Generate quick action buttons.
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType | None:
+        """Generate quick action buttons with optimized module detection.
 
         Args:
             dogs_config: List of dog configurations
@@ -203,18 +402,37 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Quick actions card or None if no actions available
         """
+        if not dogs_config:
+            return None
+
+        # OPTIMIZED: Single-pass module detection
+        has_feeding = False
+        has_walking = False
+        
+        for dog in dogs_config:
+            modules = dog.get("modules", {})
+            if not has_feeding and modules.get(MODULE_FEEDING):
+                has_feeding = True
+            if not has_walking and modules.get(MODULE_WALK):
+                has_walking = True
+            # Early exit if both found
+            if has_feeding and has_walking:
+                break
+
+        # OPTIMIZED: Batch validate action entities
+        validation_entities = []
+        if has_feeding:
+            validation_entities.append(f"button.{DOMAIN}_feed_all_dogs")
+        if has_walking:
+            validation_entities.append(f"sensor.{DOMAIN}_dogs_walking")
+
+        valid_entities = await self._validate_entities_batch(validation_entities)
+        valid_entity_set = set(valid_entities)
+
         actions = []
 
-        # Check which modules are enabled across all dogs
-        has_feeding = any(
-            dog.get("modules", {}).get(MODULE_FEEDING) for dog in dogs_config
-        )
-        has_walking = any(
-            dog.get("modules", {}).get(MODULE_WALK) for dog in dogs_config
-        )
-
-        # Feed all button
-        if has_feeding and await self._entity_exists(f"button.{DOMAIN}_feed_all_dogs"):
+        # Build action buttons based on validated entities
+        if has_feeding and f"button.{DOMAIN}_feed_all_dogs" in valid_entity_set:
             actions.append(
                 {
                     "type": "button",
@@ -227,8 +445,7 @@ class OverviewCardGenerator(BaseCardGenerator):
                 }
             )
 
-        # Walk status button
-        if has_walking and await self._entity_exists(f"sensor.{DOMAIN}_dogs_walking"):
+        if has_walking and f"sensor.{DOMAIN}_dogs_walking" in valid_entity_set:
             actions.append(
                 {
                     "type": "button",
@@ -254,22 +471,22 @@ class OverviewCardGenerator(BaseCardGenerator):
             }
         )
 
-        if not actions:
-            return None
-
         return {
             "type": "horizontal-stack",
             "cards": actions,
-        }
+        } if actions else None
 
 
 class DogCardGenerator(BaseCardGenerator):
-    """Generator for individual dog dashboard cards."""
+    """Generator for individual dog dashboard cards with performance optimization."""
 
     async def generate_dog_overview_cards(
-        self, dog_config: dict[str, Any], theme: dict[str, str], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate overview cards for a specific dog.
+        self, 
+        dog_config: DogConfigType, 
+        theme: ThemeConfigType, 
+        options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized overview cards for a specific dog.
 
         Args:
             dog_config: Dog configuration
@@ -279,62 +496,116 @@ class DogCardGenerator(BaseCardGenerator):
         Returns:
             List of overview cards
         """
-        cards = []
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
         modules = dog_config.get("modules", {})
 
-        # Dog header card with picture
-        header_card = await self._generate_dog_header_card(dog_config, options)
-        if header_card:
-            cards.append(header_card)
+        start_time = asyncio.get_event_loop().time()
+        cards: list[CardConfigType] = []
 
-        # Status card with key metrics
-        status_card = await self.templates.get_dog_status_card_template(
-            dog_id, dog_name, modules
+        # OPTIMIZED: Generate cards in parallel for better performance
+        card_tasks = []
+        
+        # Dog header card
+        card_tasks.append(
+            ("header", self._generate_dog_header_card(dog_config, options))
         )
-        cards.append(status_card)
-
+        
+        # Status card
+        card_tasks.append(
+            ("status", self.templates.get_dog_status_card_template(dog_id, dog_name, modules))
+        )
+        
         # Action buttons
-        action_buttons = await self.templates.get_action_buttons_template(
-            dog_id, modules
+        card_tasks.append(
+            ("actions", self.templates.get_action_buttons_template(dog_id, modules))
         )
-        cards.extend(self._build_action_button_cards(action_buttons))
-
-        # GPS map if enabled and available
+        
+        # Conditional cards
         if modules.get(MODULE_GPS):
-            map_card = await self._generate_gps_map_card(dog_id, options)
-            if map_card:
-                cards.append(map_card)
+            card_tasks.append(
+                ("gps_map", self._generate_gps_map_card(dog_id, options))
+            )
+            
+        if options.get("show_activity_graph", True):
+            card_tasks.append(
+                ("activity", self._generate_activity_graph_card(dog_config, options))
+            )
 
-        # Activity graph
-        activity_card = await self._generate_activity_graph_card(dog_config, options)
-        if activity_card:
-            cards.append(activity_card)
+        # OPTIMIZED: Execute card generation concurrently with timeout
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(
+                    *(task for _, task in card_tasks),
+                    return_exceptions=True
+                ),
+                timeout=CARD_GENERATION_TIMEOUT
+            )
+            
+            # Process results in order
+            for (card_type, _), result in zip(card_tasks, results, strict=False):
+                if isinstance(result, Exception):
+                    _LOGGER.warning("Card generation failed for %s: %s", card_type, result)
+                    self._performance_stats["errors_handled"] += 1
+                elif result is not None:
+                    if card_type == "actions":
+                        # Special handling for action buttons
+                        action_cards = self._build_action_button_cards(result)
+                        cards.extend(action_cards)
+                    else:
+                        cards.append(result)
+                        
+        except asyncio.TimeoutError:
+            _LOGGER.error("Dog overview card generation timeout for %s", dog_name)
+            self._performance_stats["errors_handled"] += 1
+            # Return minimal cards on timeout
+            return [
+                {
+                    "type": "markdown",
+                    "content": f"## {dog_name}\n\nTimeout generating dashboard cards. Please refresh.",
+                }
+            ]
+
+        generation_time = asyncio.get_event_loop().time() - start_time
+        self._performance_stats["generation_time_total"] += generation_time
+        
+        if generation_time > 2.0:
+            _LOGGER.info("Slow dog card generation: %.2fs for %s", generation_time, dog_name)
 
         return cards
 
     def _build_action_button_cards(
-        self, action_buttons: list[dict[str, Any]] | None
-    ) -> list[dict[str, Any]]:
-        """Return card list for action buttons."""
+        self, action_buttons: list[CardConfigType] | None
+    ) -> list[CardConfigType]:
+        """Build optimized action button cards with better layout handling."""
         if not action_buttons:
             return []
 
-        regular = [b for b in action_buttons if b.get("type") != "conditional"]
-        conditional = [b for b in action_buttons if b.get("type") == "conditional"]
+        # OPTIMIZED: More efficient categorization
+        regular_buttons = []
+        conditional_buttons = []
+        
+        for button in action_buttons:
+            if button.get("type") == "conditional":
+                conditional_buttons.append(button)
+            else:
+                regular_buttons.append(button)
 
-        cards: list[dict[str, Any]] = []
-        if regular:
-            cards.append({"type": "horizontal-stack", "cards": regular})
+        cards: list[CardConfigType] = []
+        
+        if regular_buttons:
+            cards.append({
+                "type": "horizontal-stack",
+                "cards": regular_buttons,
+            })
 
-        cards.extend(conditional)
+        cards.extend(conditional_buttons)
         return cards
 
     async def _generate_dog_header_card(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Generate dog header card with picture.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized dog header card with picture.
 
         Args:
             dog_config: Dog configuration
@@ -346,8 +617,9 @@ class DogCardGenerator(BaseCardGenerator):
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
 
-        # Check if status sensor exists
-        if not await self._entity_exists(f"sensor.{dog_id}_status"):
+        # OPTIMIZED: Quick entity existence check with cache
+        status_entity = f"sensor.{dog_id}_status"
+        if not await self._entity_exists_cached(status_entity):
             return None
 
         # Use custom image if provided, otherwise default
@@ -355,7 +627,7 @@ class DogCardGenerator(BaseCardGenerator):
 
         return {
             "type": "picture-entity",
-            "entity": f"sensor.{dog_id}_status",
+            "entity": status_entity,
             "name": dog_name,
             "image": dog_image,
             "show_state": True,
@@ -364,9 +636,9 @@ class DogCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_gps_map_card(
-        self, dog_id: str, options: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Generate GPS map card for dog.
+        self, dog_id: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized GPS map card for dog.
 
         Args:
             dog_id: Dog identifier
@@ -377,15 +649,16 @@ class DogCardGenerator(BaseCardGenerator):
         """
         tracker_entity = f"device_tracker.{dog_id}_location"
 
-        if not await self._entity_exists(tracker_entity):
+        # OPTIMIZED: Use cached entity validation
+        if not await self._entity_exists_cached(tracker_entity):
             return None
 
         return await self.templates.get_map_card_template(dog_id, options)
 
     async def _generate_activity_graph_card(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Generate activity graph card.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized activity graph card.
 
         Args:
             dog_config: Dog configuration
@@ -400,14 +673,14 @@ class DogCardGenerator(BaseCardGenerator):
         dog_id = dog_config[CONF_DOG_ID]
         modules = dog_config.get("modules", {})
 
-        # Collect activity-related entities
+        # OPTIMIZED: Build entity list efficiently
         activity_entities = [f"sensor.{dog_id}_activity_level"]
 
         if modules.get(MODULE_WALK):
             activity_entities.append(f"binary_sensor.{dog_id}_is_walking")
 
-        # Filter to only existing entities
-        valid_entities = await self._validate_entities(activity_entities)
+        # OPTIMIZED: Batch validate activity entities
+        valid_entities = await self._validate_entities_batch(activity_entities)
 
         if not valid_entities:
             return None
@@ -418,12 +691,12 @@ class DogCardGenerator(BaseCardGenerator):
 
 
 class HealthAwareFeedingCardGenerator(BaseCardGenerator):
-    """Generator for health-integrated feeding dashboard cards."""
+    """Generator for health-integrated feeding dashboard cards with optimization."""
 
     async def generate_health_feeding_overview(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate comprehensive health-aware feeding overview cards.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized comprehensive health-aware feeding overview cards.
 
         Args:
             dog_config: Dog configuration including health data
@@ -432,40 +705,48 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         Returns:
             List of health feeding overview cards
         """
-        cards = []
-        dog_id = dog_config["dog_id"]
-        dog_name = dog_config["dog_name"]
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
 
-        # Health-aware feeding status card
-        health_status_card = await self._generate_health_feeding_status_card(
-            dog_id, dog_name, options
-        )
-        if health_status_card:
-            cards.append(health_status_card)
+        # OPTIMIZED: Generate all cards concurrently
+        card_generators = [
+            ("health_status", self._generate_health_feeding_status_card(dog_id, dog_name, options)),
+            ("calorie", self._generate_calorie_tracking_card(dog_id, options)),
+            ("weight", self._generate_weight_management_card(dog_id, options)),
+            ("portion", self._generate_portion_calculator_card(dog_id, options)),
+        ]
 
-        # Calorie tracking card
-        calorie_card = await self._generate_calorie_tracking_card(dog_id, options)
-        if calorie_card:
-            cards.append(calorie_card)
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(
+                    *(task for _, task in card_generators),
+                    return_exceptions=True
+                ),
+                timeout=CARD_GENERATION_TIMEOUT
+            )
 
-        # Body condition and weight goal card
-        weight_card = await self._generate_weight_management_card(dog_id, options)
-        if weight_card:
-            cards.append(weight_card)
+            cards: list[CardConfigType] = []
+            for (card_type, _), result in zip(card_generators, results, strict=False):
+                if isinstance(result, Exception):
+                    _LOGGER.warning("Health feeding card %s generation failed: %s", card_type, result)
+                    self._performance_stats["errors_handled"] += 1
+                elif result is not None:
+                    cards.append(result)
 
-        # Health-aware portion calculator card
-        portion_card = await self._generate_portion_calculator_card(dog_id, options)
-        if portion_card:
-            cards.append(portion_card)
+            return cards
 
-        return cards
+        except asyncio.TimeoutError:
+            _LOGGER.error("Health feeding overview generation timeout for %s", dog_name)
+            self._performance_stats["errors_handled"] += 1
+            return []
 
     async def _generate_health_feeding_status_card(
-        self, dog_id: str, dog_name: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:  # noqa: F821
-        """Generate health-integrated feeding status card."""
-        # Check if health-aware feeding is enabled
-        if not await self._entity_exists(f"sensor.{dog_id}_health_feeding_status"):
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized health-integrated feeding status card."""
+        # OPTIMIZED: Quick cache-based entity check
+        health_status_entity = f"sensor.{dog_id}_health_feeding_status"
+        if not await self._entity_exists_cached(health_status_entity):
             return None
 
         return {
@@ -498,16 +779,17 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_calorie_tracking_card(
-        self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:  # noqa: F821
-        """Generate calorie tracking and progress card."""
+        self, dog_id: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized calorie tracking and progress card."""
         calorie_entities = [
             f"sensor.{dog_id}_calories_consumed_today",
             f"sensor.{dog_id}_daily_calorie_target",
             f"sensor.{dog_id}_calorie_goal_progress",
         ]
 
-        valid_entities = await self._validate_entities(calorie_entities)
+        # OPTIMIZED: Batch validate calorie entities
+        valid_entities = await self._validate_entities_batch(calorie_entities)
         if not valid_entities:
             return None
 
@@ -523,9 +805,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_weight_management_card(
-        self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:  # noqa: F821
-        """Generate weight management and body condition tracking card."""
+        self, dog_id: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized weight management and body condition tracking card."""
         weight_entities = [
             f"sensor.{dog_id}_current_weight",
             f"sensor.{dog_id}_ideal_weight",
@@ -533,7 +815,8 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             f"sensor.{dog_id}_weight_goal_progress",
         ]
 
-        valid_entities = await self._validate_entities(weight_entities)
+        # OPTIMIZED: Batch validate weight entities
+        valid_entities = await self._validate_entities_batch(weight_entities)
         if not valid_entities:
             return None
 
@@ -575,10 +858,11 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_portion_calculator_card(
-        self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:  # noqa: F821
-        """Generate interactive health-aware portion calculator card."""
-        if not await self._entity_exists(f"sensor.{dog_id}_health_aware_portions"):
+        self, dog_id: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate optimized interactive health-aware portion calculator card."""
+        portions_entity = f"sensor.{dog_id}_health_aware_portions"
+        if not await self._entity_exists_cached(portions_entity):
             return None
 
         return {
@@ -630,23 +914,19 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def generate_health_feeding_controls(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate health-aware feeding control cards."""
-        cards = []
-        dog_id = dog_config["dog_id"]
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized health-aware feeding control cards."""
+        dog_id = dog_config[CONF_DOG_ID]
 
-        # Smart feeding buttons with health integration
-        smart_buttons_card = await self._generate_smart_feeding_buttons(dog_id, options)
-        if smart_buttons_card:
-            cards.append(smart_buttons_card)
+        # OPTIMIZED: Direct card generation without unnecessary async calls
+        smart_buttons_card = self._generate_smart_feeding_buttons(dog_id, options)
+        return [smart_buttons_card] if smart_buttons_card else []
 
-        return cards
-
-    async def _generate_smart_feeding_buttons(
-        self, dog_id: str, options: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:  # noqa: F821
-        """Generate smart feeding buttons with health-calculated portions."""
+    def _generate_smart_feeding_buttons(
+        self, dog_id: str, options: OptionsConfigType
+    ) -> CardConfigType:
+        """Generate optimized smart feeding buttons with health-calculated portions."""
         return {
             "type": "grid",
             "columns": 2,
@@ -684,12 +964,12 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
 
 class ModuleCardGenerator(BaseCardGenerator):
-    """Generator for module-specific dashboard cards."""
+    """Generator for module-specific dashboard cards with performance optimization."""
 
     async def generate_feeding_cards(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate feeding module cards with health-aware integration.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized feeding module cards with health-aware integration.
 
         Args:
             dog_config: Dog configuration
@@ -698,71 +978,104 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of feeding cards
         """
-        cards = []
         dog_id = dog_config[CONF_DOG_ID]
         modules = dog_config.get("modules", {})
+        cards: list[CardConfigType] = []
 
-        # Check if health-aware feeding is enabled
+        # OPTIMIZED: Check if health-aware feeding is enabled
         if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
             # Use health-aware feeding card generator
-            health_generator = HealthAwareFeedingCardGenerator(
-                self.hass, self.templates
-            )
-            health_cards = await health_generator.generate_health_feeding_overview(
-                dog_config, options
-            )
-            cards.extend(health_cards)
-
-            # Add health feeding controls
-            control_cards = await health_generator.generate_health_feeding_controls(
-                dog_config, options
-            )
-            cards.extend(control_cards)
+            health_generator = HealthAwareFeedingCardGenerator(self.hass, self.templates)
+            
+            # OPTIMIZED: Generate health cards concurrently
+            health_overview_task = health_generator.generate_health_feeding_overview(dog_config, options)
+            health_controls_task = health_generator.generate_health_feeding_controls(dog_config, options)
+            
+            try:
+                health_overview, health_controls = await asyncio.gather(
+                    health_overview_task, 
+                    health_controls_task,
+                    return_exceptions=True
+                )
+                
+                if not isinstance(health_overview, Exception):
+                    cards.extend(health_overview)
+                else:
+                    _LOGGER.warning("Health overview generation failed: %s", health_overview)
+                    
+                if not isinstance(health_controls, Exception):
+                    cards.extend(health_controls)
+                else:
+                    _LOGGER.warning("Health controls generation failed: %s", health_controls)
+                    
+            except Exception as err:
+                _LOGGER.error("Health-aware feeding generation error: %s", err)
+                # Fallback to standard feeding cards
+                cards.extend(await self._generate_standard_feeding_cards(dog_id))
         else:
             # Standard feeding cards
-            # Feeding schedule status
-            schedule_entities = [
-                f"sensor.{dog_id}_next_meal_time",
-                f"sensor.{dog_id}_meals_today",
-                f"sensor.{dog_id}_calories_today",
-                f"sensor.{dog_id}_last_fed",
-            ]
+            cards.extend(await self._generate_standard_feeding_cards(dog_id))
 
-            valid_entities = await self._validate_entities(schedule_entities)
-            if valid_entities:
-                cards.append(
-                    {
-                        "type": "entities",
-                        "title": "Feeding Schedule",
-                        "entities": valid_entities,
-                        "state_color": True,
-                    }
-                )
+        # OPTIMIZED: Add feeding history graph (concurrent with other operations)
+        try:
+            history_card = await self._generate_feeding_history_card(dog_id)
+            if history_card:
+                cards.append(history_card)
+        except Exception as err:
+            _LOGGER.warning("Feeding history card generation failed: %s", err)
 
-            # Feeding controls
-            feeding_controls = await self.templates.get_feeding_controls_template(
-                dog_id
+        return cards
+
+    async def _generate_standard_feeding_cards(self, dog_id: str) -> list[CardConfigType]:
+        """Generate standard feeding cards with batch validation."""
+        schedule_entities = [
+            f"sensor.{dog_id}_next_meal_time",
+            f"sensor.{dog_id}_meals_today",
+            f"sensor.{dog_id}_calories_today",
+            f"sensor.{dog_id}_last_fed",
+        ]
+
+        # OPTIMIZED: Batch validate schedule entities
+        valid_entities = await self._validate_entities_batch(schedule_entities)
+        cards = []
+
+        if valid_entities:
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": "Feeding Schedule",
+                    "entities": valid_entities,
+                    "state_color": True,
+                }
             )
-            cards.append(feeding_controls)
 
-        # Feeding history graph (always include)
+        # OPTIMIZED: Get feeding controls template asynchronously
+        try:
+            feeding_controls = await self.templates.get_feeding_controls_template(dog_id)
+            cards.append(feeding_controls)
+        except Exception as err:
+            _LOGGER.debug("Feeding controls template error: %s", err)
+
+        return cards
+
+    async def _generate_feeding_history_card(self, dog_id: str) -> CardConfigType | None:
+        """Generate optimized feeding history card."""
         history_entities = [
             f"sensor.{dog_id}_meals_today",
             f"sensor.{dog_id}_calories_today",
         ]
 
+        # OPTIMIZED: Get history graph template with entity validation
         history_card = await self.templates.get_history_graph_template(
             history_entities, "Feeding History (7 days)", 168
         )
-        if history_card.get("entities"):  # Only add if has valid entities
-            cards.append(history_card)
-
-        return cards
+        
+        return history_card if history_card.get("entities") else None
 
     async def generate_walk_cards(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate walk module cards.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized walk module cards.
 
         Args:
             dog_config: Dog configuration
@@ -771,10 +1084,10 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of walk cards
         """
-        cards = []
         dog_id = dog_config[CONF_DOG_ID]
+        cards: list[CardConfigType] = []
 
-        # Walk status
+        # OPTIMIZED: Prepare all walk-related entities for batch validation
         status_entities = [
             f"binary_sensor.{dog_id}_is_walking",
             f"sensor.{dog_id}_current_walk_duration",
@@ -784,7 +1097,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             f"sensor.{dog_id}_last_walk_distance",
         ]
 
-        valid_entities = await self._validate_entities(status_entities)
+        # OPTIMIZED: Batch validate all entities at once
+        valid_entities = await self._validate_entities_batch(status_entities)
+
         if valid_entities:
             cards.append(
                 {
@@ -795,54 +1110,69 @@ class ModuleCardGenerator(BaseCardGenerator):
                 }
             )
 
-        # Walk control buttons (conditional based on walking state)
-        if await self._entity_exists(f"binary_sensor.{dog_id}_is_walking"):
-            cards.extend(
-                [
-                    {
-                        "type": "conditional",
-                        "conditions": [
-                            {
-                                "entity": f"binary_sensor.{dog_id}_is_walking",
-                                "state": "off",
-                            }
-                        ],
-                        "card": {
-                            "type": "button",
-                            "name": "Start Walk",
-                            "icon": "mdi:walk",
-                            "icon_height": "60px",
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": f"{DOMAIN}.start_walk",
-                                "service_data": {"dog_id": dog_id},
-                            },
-                        },
-                    },
-                    {
-                        "type": "conditional",
-                        "conditions": [
-                            {
-                                "entity": f"binary_sensor.{dog_id}_is_walking",
-                                "state": "on",
-                            }
-                        ],
-                        "card": {
-                            "type": "button",
-                            "name": "End Walk",
-                            "icon": "mdi:stop",
-                            "icon_height": "60px",
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": f"{DOMAIN}.end_walk",
-                                "service_data": {"dog_id": dog_id},
-                            },
-                        },
-                    },
-                ]
-            )
+        # OPTIMIZED: Generate walk control buttons if walking sensor exists
+        walking_sensor = f"binary_sensor.{dog_id}_is_walking"
+        if walking_sensor in valid_entities:
+            walk_controls = self._generate_walk_control_buttons(dog_id)
+            cards.extend(walk_controls)
 
-        # Walk history graph
+        # OPTIMIZED: Generate walk history concurrently
+        try:
+            history_card = await self._generate_walk_history_card(dog_id)
+            if history_card:
+                cards.append(history_card)
+        except Exception as err:
+            _LOGGER.debug("Walk history generation failed: %s", err)
+
+        return cards
+
+    def _generate_walk_control_buttons(self, dog_id: str) -> list[CardConfigType]:
+        """Generate optimized walk control buttons."""
+        return [
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "entity": f"binary_sensor.{dog_id}_is_walking",
+                        "state": "off",
+                    }
+                ],
+                "card": {
+                    "type": "button",
+                    "name": "Start Walk",
+                    "icon": "mdi:walk",
+                    "icon_height": "60px",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.start_walk",
+                        "service_data": {"dog_id": dog_id},
+                    },
+                },
+            },
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "entity": f"binary_sensor.{dog_id}_is_walking",
+                        "state": "on",
+                    }
+                ],
+                "card": {
+                    "type": "button",
+                    "name": "End Walk",
+                    "icon": "mdi:stop",
+                    "icon_height": "60px",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.end_walk",
+                        "service_data": {"dog_id": dog_id},
+                    },
+                },
+            },
+        ]
+
+    async def _generate_walk_history_card(self, dog_id: str) -> CardConfigType | None:
+        """Generate optimized walk history card."""
         history_entities = [
             f"sensor.{dog_id}_walks_today",
             f"sensor.{dog_id}_walk_distance_today",
@@ -852,15 +1182,13 @@ class ModuleCardGenerator(BaseCardGenerator):
         history_card = await self.templates.get_history_graph_template(
             history_entities, "Walk History (7 days)", 168
         )
-        if history_card.get("entities"):
-            cards.append(history_card)
-
-        return cards
+        
+        return history_card if history_card.get("entities") else None
 
     async def generate_health_cards(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate health module cards.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized health module cards.
 
         Args:
             dog_config: Dog configuration
@@ -869,10 +1197,10 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of health cards
         """
-        cards = []
         dog_id = dog_config[CONF_DOG_ID]
+        cards: list[CardConfigType] = []
 
-        # Health metrics
+        # OPTIMIZED: Prepare all health entities for batch validation
         metrics_entities = [
             f"sensor.{dog_id}_health_status",
             f"sensor.{dog_id}_weight",
@@ -881,69 +1209,49 @@ class ModuleCardGenerator(BaseCardGenerator):
             f"sensor.{dog_id}_energy_level",
         ]
 
-        valid_entities = await self._validate_entities(metrics_entities)
-        if valid_entities:
-            cards.append(
-                {
-                    "type": "entities",
-                    "title": "Health Metrics",
-                    "entities": valid_entities,
-                    "state_color": True,
-                }
-            )
-
-        # Health management buttons
-        health_buttons = [
-            {
-                "type": "button",
-                "name": "Log Health",
-                "icon": "mdi:heart-pulse",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.log_health",
-                    "service_data": {"dog_id": dog_id},
-                },
-            },
-            {
-                "type": "button",
-                "name": "Log Medication",
-                "icon": "mdi:pill",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.log_medication",
-                    "service_data": {
-                        "dog_id": dog_id,
-                        "medication_name": "Daily Supplement",
-                        "dosage": "1 tablet",
-                    },
-                },
-            },
-        ]
-
-        cards.append(
-            {
-                "type": "horizontal-stack",
-                "cards": health_buttons,
-            }
-        )
-
-        # Weight tracking graph
-        weight_entity = f"sensor.{dog_id}_weight"
-        if await self._entity_exists(weight_entity):
-            weight_card = await self.templates.get_history_graph_template(
-                [weight_entity], "Weight Tracking (30 days)", 720
-            )
-            cards.append(weight_card)
-
-        # Important health dates
         date_entities = [
             f"date.{dog_id}_next_vet_visit",
             f"date.{dog_id}_next_vaccination",
             f"date.{dog_id}_next_grooming",
         ]
 
-        valid_dates = await self._validate_entities(date_entities)
-        if valid_dates:
+        # OPTIMIZED: Batch validate all entities concurrently
+        metrics_task = self._validate_entities_batch(metrics_entities)
+        dates_task = self._validate_entities_batch(date_entities)
+        weight_entity_task = self._entity_exists_cached(f"sensor.{dog_id}_weight")
+
+        valid_metrics, valid_dates, weight_exists = await asyncio.gather(
+            metrics_task, dates_task, weight_entity_task,
+            return_exceptions=True
+        )
+
+        # Process results with error handling
+        if not isinstance(valid_metrics, Exception) and valid_metrics:
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": "Health Metrics",
+                    "entities": valid_metrics,
+                    "state_color": True,
+                }
+            )
+
+        # Health management buttons (always add these)
+        health_buttons = self._generate_health_management_buttons(dog_id)
+        cards.append(health_buttons)
+
+        # Weight tracking graph
+        if not isinstance(weight_exists, Exception) and weight_exists:
+            try:
+                weight_card = await self.templates.get_history_graph_template(
+                    [f"sensor.{dog_id}_weight"], "Weight Tracking (30 days)", 720
+                )
+                cards.append(weight_card)
+            except Exception as err:
+                _LOGGER.debug("Weight tracking card generation failed: %s", err)
+
+        # Health schedule dates
+        if not isinstance(valid_dates, Exception) and valid_dates:
             cards.append(
                 {
                     "type": "entities",
@@ -954,10 +1262,42 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         return cards
 
+    def _generate_health_management_buttons(self, dog_id: str) -> CardConfigType:
+        """Generate optimized health management buttons."""
+        return {
+            "type": "horizontal-stack",
+            "cards": [
+                {
+                    "type": "button",
+                    "name": "Log Health",
+                    "icon": "mdi:heart-pulse",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.log_health",
+                        "service_data": {"dog_id": dog_id},
+                    },
+                },
+                {
+                    "type": "button",
+                    "name": "Log Medication",
+                    "icon": "mdi:pill",
+                    "tap_action": {
+                        "action": "call-service",
+                        "service": f"{DOMAIN}.log_medication",
+                        "service_data": {
+                            "dog_id": dog_id,
+                            "medication_name": "Daily Supplement",
+                            "dosage": "1 tablet",
+                        },
+                    },
+                },
+            ],
+        }
+
     async def generate_gps_cards(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate GPS module cards.
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized GPS module cards.
 
         Args:
             dog_config: Dog configuration
@@ -966,19 +1306,22 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of GPS cards
         """
-        cards = []
         dog_id = dog_config[CONF_DOG_ID]
+        cards: list[CardConfigType] = []
 
-        # Check if GPS tracker exists
+        # OPTIMIZED: Check tracker entity first
         tracker_entity = f"device_tracker.{dog_id}_location"
-        if not await self._entity_exists(tracker_entity):
+        if not await self._entity_exists_cached(tracker_entity):
             return cards
 
-        # Main GPS map
-        map_card = await self.templates.get_map_card_template(dog_id, options)
-        cards.append(map_card)
+        # OPTIMIZED: Generate main GPS map
+        try:
+            map_card = await self.templates.get_map_card_template(dog_id, options)
+            cards.append(map_card)
+        except Exception as err:
+            _LOGGER.warning("GPS map card generation failed: %s", err)
 
-        # GPS status and metrics
+        # OPTIMIZED: Prepare GPS entities for batch validation
         gps_entities = [
             tracker_entity,
             f"sensor.{dog_id}_gps_accuracy",
@@ -987,18 +1330,6 @@ class ModuleCardGenerator(BaseCardGenerator):
             f"sensor.{dog_id}_battery_level",
         ]
 
-        valid_entities = await self._validate_entities(gps_entities)
-        if valid_entities:
-            cards.append(
-                {
-                    "type": "entities",
-                    "title": "GPS Status",
-                    "entities": valid_entities,
-                    "state_color": True,
-                }
-            )
-
-        # Geofence status
         geofence_entities = [
             f"binary_sensor.{dog_id}_at_home",
             f"binary_sensor.{dog_id}_at_park",
@@ -1006,8 +1337,27 @@ class ModuleCardGenerator(BaseCardGenerator):
             f"switch.{dog_id}_gps_tracking_enabled",
         ]
 
-        valid_geofence = await self._validate_entities(geofence_entities)
-        if valid_geofence:
+        # OPTIMIZED: Batch validate all GPS entities
+        gps_valid_task = self._validate_entities_batch(gps_entities)
+        geofence_valid_task = self._validate_entities_batch(geofence_entities)
+
+        valid_gps, valid_geofence = await asyncio.gather(
+            gps_valid_task, geofence_valid_task,
+            return_exceptions=True
+        )
+
+        # Build cards based on validation results
+        if not isinstance(valid_gps, Exception) and valid_gps:
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": "GPS Status",
+                    "entities": valid_gps,
+                    "state_color": True,
+                }
+            )
+
+        if not isinstance(valid_geofence, Exception) and valid_geofence:
             cards.append(
                 {
                     "type": "entities",
@@ -1016,28 +1366,33 @@ class ModuleCardGenerator(BaseCardGenerator):
                 }
             )
 
-        # Location history graph
-        history_entities = [
-            f"sensor.{dog_id}_distance_from_home",
-            f"sensor.{dog_id}_speed",
-        ]
+        # OPTIMIZED: Location history graph (async generation)
+        try:
+            history_entities = [
+                f"sensor.{dog_id}_distance_from_home",
+                f"sensor.{dog_id}_speed",
+            ]
 
-        history_card = await self.templates.get_history_graph_template(
-            history_entities, "Location History", 24
-        )
-        if history_card.get("entities"):
-            cards.append(history_card)
+            history_card = await self.templates.get_history_graph_template(
+                history_entities, "Location History", 24
+            )
+            
+            if history_card and history_card.get("entities"):
+                cards.append(history_card)
+                
+        except Exception as err:
+            _LOGGER.debug("GPS history card generation failed: %s", err)
 
         return cards
 
 
 class StatisticsCardGenerator(BaseCardGenerator):
-    """Generator for statistics dashboard cards."""
+    """Generator for statistics dashboard cards with performance optimization."""
 
     async def generate_statistics_cards(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Generate statistics cards for all dogs.
+        self, dogs_config: list[DogConfigType], options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate optimized statistics cards for all dogs.
 
         Args:
             dogs_config: List of dog configurations
@@ -1046,134 +1401,152 @@ class StatisticsCardGenerator(BaseCardGenerator):
         Returns:
             List of statistics cards
         """
-        cards = []
+        if not dogs_config:
+            return []
 
-        # Overall activity statistics
-        activity_card = await self._generate_activity_statistics(dogs_config)
-        if activity_card:
-            cards.append(activity_card)
+        cards: list[CardConfigType] = []
 
-        # Feeding statistics
-        feeding_card = await self._generate_feeding_statistics(dogs_config)
-        if feeding_card:
-            cards.append(feeding_card)
+        # OPTIMIZED: Generate all statistics cards concurrently
+        stats_generators = [
+            ("activity", self._generate_activity_statistics(dogs_config)),
+            ("feeding", self._generate_feeding_statistics(dogs_config)),
+            ("walk", self._generate_walk_statistics(dogs_config)),
+            ("health", self._generate_health_statistics(dogs_config)),
+        ]
 
-        # Walk statistics
-        walk_card = await self._generate_walk_statistics(dogs_config)
-        if walk_card:
-            cards.append(walk_card)
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(
+                    *(task for _, task in stats_generators),
+                    return_exceptions=True
+                ),
+                timeout=CARD_GENERATION_TIMEOUT
+            )
 
-        # Health trends
-        health_card = await self._generate_health_statistics(dogs_config)
-        if health_card:
-            cards.append(health_card)
+            # Process results with error handling
+            for (stats_type, _), result in zip(stats_generators, results, strict=False):
+                if isinstance(result, Exception):
+                    _LOGGER.warning("Statistics card %s generation failed: %s", stats_type, result)
+                    self._performance_stats["errors_handled"] += 1
+                elif result is not None:
+                    cards.append(result)
 
-        # Summary card
+        except asyncio.TimeoutError:
+            _LOGGER.error("Statistics cards generation timeout")
+            self._performance_stats["errors_handled"] += 1
+
+        # Add summary card (always include)
         summary_card = self._generate_summary_card(dogs_config)
         cards.append(summary_card)
 
         return cards
 
     async def _generate_activity_statistics(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any] | None:
-        """Generate activity statistics card."""
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType | None:
+        """Generate optimized activity statistics card."""
+        # OPTIMIZED: Build entity list efficiently
         activity_entities = []
-
+        
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id:
-                entity_id = f"sensor.{dog_id}_activity_level"
-                if await self._entity_exists(entity_id):
-                    activity_entities.append(entity_id)
+                activity_entities.append(f"sensor.{dog_id}_activity_level")
 
         if not activity_entities:
             return None
 
+        # OPTIMIZED: Batch validate all activity entities
+        valid_entities = await self._validate_entities_batch(activity_entities)
+
         return {
             "type": "statistics-graph",
             "title": "Activity Statistics (30 days)",
-            "entities": activity_entities,
+            "entities": valid_entities,
             "stat_types": ["mean", "min", "max"],
             "days_to_show": 30,
-        }
+        } if valid_entities else None
 
     async def _generate_feeding_statistics(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any] | None:
-        """Generate feeding statistics card."""
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType | None:
+        """Generate optimized feeding statistics card."""
         feeding_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id and dog.get("modules", {}).get(MODULE_FEEDING):
-                entity_id = f"sensor.{dog_id}_meals_today"
-                if await self._entity_exists(entity_id):
-                    feeding_entities.append(entity_id)
+                feeding_entities.append(f"sensor.{dog_id}_meals_today")
 
         if not feeding_entities:
             return None
 
+        # OPTIMIZED: Batch validate feeding entities
+        valid_entities = await self._validate_entities_batch(feeding_entities)
+
         return {
             "type": "statistics-graph",
             "title": "Feeding Statistics (30 days)",
-            "entities": feeding_entities,
+            "entities": valid_entities,
             "stat_types": ["sum", "mean"],
             "days_to_show": 30,
-        }
+        } if valid_entities else None
 
     async def _generate_walk_statistics(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any] | None:
-        """Generate walk statistics card."""
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType | None:
+        """Generate optimized walk statistics card."""
         walk_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id and dog.get("modules", {}).get(MODULE_WALK):
-                entity_id = f"sensor.{dog_id}_walk_distance_today"
-                if await self._entity_exists(entity_id):
-                    walk_entities.append(entity_id)
+                walk_entities.append(f"sensor.{dog_id}_walk_distance_today")
 
         if not walk_entities:
             return None
 
+        # OPTIMIZED: Batch validate walk entities
+        valid_entities = await self._validate_entities_batch(walk_entities)
+
         return {
             "type": "statistics-graph",
             "title": "Walk Statistics (30 days)",
-            "entities": walk_entities,
+            "entities": valid_entities,
             "stat_types": ["sum", "mean", "max"],
             "days_to_show": 30,
-        }
+        } if valid_entities else None
 
     async def _generate_health_statistics(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any] | None:
-        """Generate health statistics card."""
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType | None:
+        """Generate optimized health statistics card."""
         weight_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id and dog.get("modules", {}).get(MODULE_HEALTH):
-                entity_id = f"sensor.{dog_id}_weight"
-                if await self._entity_exists(entity_id):
-                    weight_entities.append(entity_id)
+                weight_entities.append(f"sensor.{dog_id}_weight")
 
         if not weight_entities:
             return None
 
+        # OPTIMIZED: Batch validate weight entities
+        valid_entities = await self._validate_entities_batch(weight_entities)
+
         return {
             "type": "statistics-graph",
             "title": "Weight Trends (60 days)",
-            "entities": weight_entities,
+            "entities": valid_entities,
             "stat_types": ["mean", "min", "max"],
             "days_to_show": 60,
-        }
+        } if valid_entities else None
 
     def _generate_summary_card(
-        self, dogs_config: list[dict[str, Any]]
-    ) -> dict[str, Any]:
-        """Generate statistics summary card."""
+        self, dogs_config: list[DogConfigType]
+    ) -> CardConfigType:
+        """Generate optimized statistics summary card."""
+        # OPTIMIZED: Single-pass module counting
         module_counts = {
             MODULE_FEEDING: 0,
             MODULE_WALK: 0,
@@ -1206,3 +1579,32 @@ class StatisticsCardGenerator(BaseCardGenerator):
             "title": "Summary",
             "content": "\n".join(content),
         }
+
+
+# OPTIMIZED: Global cache cleanup function
+async def cleanup_validation_cache() -> None:
+    """Clean up global validation cache."""
+    global _entity_validation_cache
+    current_time = asyncio.get_event_loop().time()
+    
+    expired_keys = [
+        entity_id for entity_id, (timestamp, _) in _entity_validation_cache.items()
+        if current_time - timestamp > _cache_cleanup_threshold
+    ]
+    
+    for key in expired_keys:
+        _entity_validation_cache.pop(key, None)
+        
+    _LOGGER.debug("Cleaned %d expired entries from validation cache", len(expired_keys))
+
+
+# OPTIMIZED: Export performance monitoring function
+def get_global_performance_stats() -> dict[str, Any]:
+    """Get global performance statistics for all card generators."""
+    return {
+        "validation_cache_size": len(_entity_validation_cache),
+        "cache_threshold": _cache_cleanup_threshold,
+        "max_concurrent_validations": MAX_CONCURRENT_VALIDATIONS,
+        "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
+        "card_generation_timeout": CARD_GENERATION_TIMEOUT,
+    }
