@@ -58,7 +58,7 @@ def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
         device_info["model"] = f"Virtual Dog ({kwargs['breed']})"
 
     microchip_id = kwargs.get("microchip_id")
-    if microchip_id:
+    if microchip_id is not None:
         sanitized_microchip = sanitize_microchip_id(str(microchip_id))
         if sanitized_microchip:
             device_info["identifiers"].add(("microchip", sanitized_microchip))
