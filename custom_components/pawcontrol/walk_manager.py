@@ -11,11 +11,12 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import math
+from collections import deque
 from datetime import datetime, timedelta
 from typing import Any
-from collections import deque
 
 from homeassistant.util import dt as dt_util
 
@@ -34,7 +35,7 @@ class GPSCache:
 
     def __init__(self, max_size: int = GPS_CACHE_SIZE_LIMIT) -> None:
         """Initialize GPS cache.
-        
+
         Args:
             max_size: Maximum cache entries
         """
@@ -45,10 +46,10 @@ class GPSCache:
 
     def get_location(self, dog_id: str) -> tuple[float, float, datetime] | None:
         """Get cached location with LRU update.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Location tuple or None
         """
@@ -59,9 +60,11 @@ class GPSCache:
             return self._cache[dog_id]
         return None
 
-    def set_location(self, dog_id: str, latitude: float, longitude: float, timestamp: datetime) -> None:
+    def set_location(
+        self, dog_id: str, latitude: float, longitude: float, timestamp: datetime
+    ) -> None:
         """Set location with LRU eviction.
-        
+
         Args:
             dog_id: Dog identifier
             latitude: Latitude coordinate
@@ -74,50 +77,54 @@ class GPSCache:
             del self._cache[oldest]
 
         self._cache[dog_id] = (latitude, longitude, timestamp)
-        
+
         # Update access order
         if dog_id in self._access_order:
             self._access_order.remove(dog_id)
         self._access_order.append(dog_id)
 
-    def calculate_distance_cached(self, point1: tuple[float, float], point2: tuple[float, float]) -> float:
+    def calculate_distance_cached(
+        self, point1: tuple[float, float], point2: tuple[float, float]
+    ) -> float:
         """Calculate distance with caching for frequently used points.
-        
+
         Args:
             point1: First GPS coordinate (lat, lon)
             point2: Second GPS coordinate (lat, lon)
-            
+
         Returns:
             Distance in meters
         """
         # Create cache key (order independent)
         cache_key = tuple(sorted([point1, point2]))
-        
+
         if cache_key in self._distance_cache:
             return self._distance_cache[cache_key]
-        
+
         # Calculate distance using Haversine formula
         distance = self._haversine_distance(point1, point2)
-        
+
         # Cache result with size limit
         if len(self._distance_cache) >= DISTANCE_CALCULATION_CACHE_SIZE:
             # Remove oldest entry
             oldest_key = next(iter(self._distance_cache))
             del self._distance_cache[oldest_key]
-        
+
         self._distance_cache[cache_key] = distance
         return distance
 
     @staticmethod
-    def _haversine_distance(point1: tuple[float, float], point2: tuple[float, float]) -> float:
+    def _haversine_distance(
+        point1: tuple[float, float], point2: tuple[float, float]
+    ) -> float:
         """Calculate Haversine distance between two points.
-        
+
         OPTIMIZE: Static method for better performance, no self access needed.
-        
+
         Args:
             point1: First GPS coordinate (lat, lon)
             point2: Second GPS coordinate (lat, lon)
-            
+
         Returns:
             Distance in meters
         """
@@ -188,7 +195,9 @@ class WalkManager:
         }
 
         # OPTIMIZE: Batch processing for location analysis
-        self._location_analysis_queue: dict[str, list[tuple[float, float, datetime]]] = {}
+        self._location_analysis_queue: dict[
+            str, list[tuple[float, float, datetime]]
+        ] = {}
         self._batch_analysis_task: asyncio.Task | None = None
 
         _LOGGER.debug("WalkManager initialized with optimizations")
@@ -232,7 +241,7 @@ class WalkManager:
                     "zone": "unknown",
                     "distance_from_home": None,
                     "signal_strength": None,  # OPTIMIZE: Added signal strength
-                    "battery_level": None,    # OPTIMIZE: Added battery tracking
+                    "battery_level": None,  # OPTIMIZE: Added battery tracking
                 }
 
                 self._walk_history[dog_id] = []
@@ -240,9 +249,13 @@ class WalkManager:
 
             # Start batch analysis task
             if self._batch_analysis_task is None:
-                self._batch_analysis_task = asyncio.create_task(self._batch_location_analysis())
+                self._batch_analysis_task = asyncio.create_task(
+                    self._batch_location_analysis()
+                )
 
-        _LOGGER.info("WalkManager initialized for %d dogs with optimizations", len(dog_ids))
+        _LOGGER.info(
+            "WalkManager initialized for %d dogs with optimizations", len(dog_ids)
+        )
 
     async def async_update_gps_data(
         self,
@@ -337,13 +350,17 @@ class WalkManager:
 
             _LOGGER.debug(
                 "Updated GPS data for %s: %f, %f (accuracy: %s, battery: %s%%)",
-                dog_id, latitude, longitude, accuracy, battery_level,
+                dog_id,
+                latitude,
+                longitude,
+                accuracy,
+                battery_level,
             )
             return True
 
     async def _batch_location_analysis(self) -> None:
         """Background task for batch location analysis.
-        
+
         OPTIMIZE: Process location analysis in batches for better performance.
         """
         while True:
@@ -505,7 +522,9 @@ class WalkManager:
                 )
                 walk_data["average_speed"] = self._calculate_average_speed(walk_data)
                 walk_data["max_speed"] = self._calculate_max_speed(walk_data["path"])
-                walk_data["elevation_gain"] = self._calculate_elevation_gain(walk_data["path"])
+                walk_data["elevation_gain"] = self._calculate_elevation_gain(
+                    walk_data["path"]
+                )
                 walk_data["calories_burned"] = self._estimate_calories_burned(
                     dog_id, walk_data
                 )
@@ -540,12 +559,12 @@ class WalkManager:
 
     def _optimize_path(self, path: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Optimize walk path by removing redundant points.
-        
+
         OPTIMIZE: Reduce memory usage by removing points that don't add significant value.
-        
+
         Args:
             path: Original path points
-            
+
         Returns:
             Optimized path
         """
@@ -554,20 +573,16 @@ class WalkManager:
 
         # Keep start and end points
         optimized = [path[0]]
-        
+
         # Sample points at regular intervals
         interval = len(path) // (PATH_POINT_LIMIT - 2)
-        for i in range(interval, len(path) - 1, interval):
-            optimized.append(path[i])
-        
+        optimized.extend(path[i] for i in range(interval, len(path) - 1, interval))
+
         # Always keep end point
         optimized.append(path[-1])
-        
-        _LOGGER.debug(
-            "Optimized path: %d -> %d points", 
-            len(path), len(optimized)
-        )
-        
+
+        _LOGGER.debug("Optimized path: %d -> %d points", len(path), len(optimized))
+
         return optimized
 
     async def _process_walk_detection_optimized(
@@ -601,13 +616,15 @@ class WalkManager:
             await self.async_start_walk(dog_id, "auto_detected")
             _LOGGER.debug(
                 "Auto-detected walk start for %s: distance=%.1fm, speed=%.1fkm/h",
-                dog_id, distance, speed or 0
+                dog_id,
+                distance,
+                speed or 0,
             )
 
         # OPTIMIZE: Add to walk path if walk in progress with point limits
         if dog_id in self._current_walks:
             current_walk = self._current_walks[dog_id]
-            
+
             # Only add point if it's significant (distance > 5m or time > 30s since last point)
             should_add_point = True
             if current_walk["path"]:
@@ -616,12 +633,12 @@ class WalkManager:
                 last_distance = self._gps_cache.calculate_distance_cached(
                     last_location, new_location
                 )
-                
+
                 # Only add if moved significantly or time passed
                 now = dt_util.now()
                 last_time = dt_util.parse_datetime(last_point["timestamp"])
                 time_diff = (now - last_time).total_seconds()
-                
+
                 should_add_point = last_distance > 5.0 or time_diff > 30
 
             if should_add_point and len(current_walk["path"]) < PATH_POINT_LIMIT:
@@ -635,7 +652,9 @@ class WalkManager:
                 }
                 current_walk["path"].append(path_point)
 
-    async def _calculate_total_distance_optimized(self, path: list[dict[str, Any]]) -> float:
+    async def _calculate_total_distance_optimized(
+        self, path: list[dict[str, Any]]
+    ) -> float:
         """Calculate total distance with caching optimization.
 
         OPTIMIZE: Batch distance calculations for better performance.
@@ -650,7 +669,7 @@ class WalkManager:
             return 0.0
 
         total_distance = 0.0
-        
+
         # OPTIMIZE: Batch process distance calculations
         for i in range(1, len(path)):
             point1 = (path[i - 1]["latitude"], path[i - 1]["longitude"])
@@ -682,13 +701,21 @@ class WalkManager:
         # OPTIMIZE: Batch calculate averages from recent walks
         recent_walks = await self.async_get_walk_history(dog_id, 7)
         if recent_walks:
-            durations = [w.get("duration", 0) for w in recent_walks if w.get("duration")]
-            distances = [w.get("distance", 0) for w in recent_walks if w.get("distance")]
-            
+            durations = [
+                w.get("duration", 0) for w in recent_walks if w.get("duration")
+            ]
+            distances = [
+                w.get("distance", 0) for w in recent_walks if w.get("distance")
+            ]
+
             if durations:
-                self._walk_data[dog_id]["average_duration"] = sum(durations) / len(durations)
+                self._walk_data[dog_id]["average_duration"] = sum(durations) / len(
+                    durations
+                )
             if distances:
-                self._walk_data[dog_id]["average_distance"] = sum(distances) / len(distances)
+                self._walk_data[dog_id]["average_distance"] = sum(distances) / len(
+                    distances
+                )
 
         # OPTIMIZE: Update weekly stats in single pass
         week_walks = await self.async_get_walk_history(dog_id, 7)
@@ -698,19 +725,21 @@ class WalkManager:
         )
 
         # OPTIMIZE: Calculate walk streak efficiently
-        self._walk_data[dog_id]["walk_streak"] = await self._calculate_walk_streak_optimized(dog_id)
+        self._walk_data[dog_id][
+            "walk_streak"
+        ] = await self._calculate_walk_streak_optimized(dog_id)
 
         # Update energy level based on recent activity
         self._update_energy_level(dog_id, walk_data)
 
     async def _calculate_walk_streak_optimized(self, dog_id: str) -> int:
         """Calculate walk streak with optimized algorithm.
-        
+
         OPTIMIZE: More efficient streak calculation using binary search approach.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Current walk streak in days
         """
@@ -731,7 +760,7 @@ class WalkManager:
         # Calculate streak
         streak = 0
         current_date = dt_util.now().date()
-        
+
         for _ in range(30):  # Check last 30 days
             date_str = current_date.isoformat()
             if date_str in walks_by_date:
@@ -744,7 +773,7 @@ class WalkManager:
 
     def _update_energy_level(self, dog_id: str, walk_data: dict[str, Any]) -> None:
         """Update dog's energy level based on walk activity.
-        
+
         Args:
             dog_id: Dog identifier
             walk_data: Recent walk data
@@ -752,24 +781,24 @@ class WalkManager:
         # Simple energy level calculation based on walk distance and duration
         distance = walk_data.get("distance", 0)
         duration = walk_data.get("duration", 0)
-        
+
         if distance > 2000 or duration > 3600:  # Long walk (>2km or >1h)
             energy_level = "low"
         elif distance > 1000 or duration > 1800:  # Moderate walk (>1km or >30min)
             energy_level = "medium"
         else:
             energy_level = "high"
-            
+
         self._walk_data[dog_id]["energy_level"] = energy_level
 
     def _calculate_elevation_gain(self, path: list[dict[str, Any]]) -> float:
         """Calculate total elevation gain from path.
-        
+
         OPTIMIZE: New feature for comprehensive walk analysis.
-        
+
         Args:
             path: List of GPS path points with altitude data
-            
+
         Returns:
             Total elevation gain in meters
         """
@@ -817,16 +846,20 @@ class WalkManager:
             # Add current walk if in progress
             if dog_id in self._current_walks:
                 current_walk = self._current_walks[dog_id].copy()
-                
+
                 # Calculate current walk duration and distance
                 if current_walk["path"]:
-                    current_walk["current_distance"] = await self._calculate_total_distance_optimized(
+                    current_walk[
+                        "current_distance"
+                    ] = await self._calculate_total_distance_optimized(
                         current_walk["path"]
                     )
-                    
+
                 start_time = dt_util.parse_datetime(current_walk["start_time"])
-                current_walk["current_duration"] = (dt_util.now() - start_time).total_seconds()
-                
+                current_walk["current_duration"] = (
+                    dt_util.now() - start_time
+                ).total_seconds()
+
                 data["current_walk"] = current_walk
                 data["walk_in_progress"] = True
             else:
@@ -839,7 +872,7 @@ class WalkManager:
 
     def _invalidate_statistics_cache(self, dog_id: str) -> None:
         """Invalidate statistics cache for a dog.
-        
+
         Args:
             dog_id: Dog identifier
         """
@@ -848,9 +881,9 @@ class WalkManager:
 
     async def async_get_performance_statistics(self) -> dict[str, Any]:
         """Get performance statistics for the walk manager.
-        
+
         OPTIMIZE: New method for monitoring performance and optimization effectiveness.
-        
+
         Returns:
             Performance statistics
         """
@@ -879,7 +912,6 @@ class WalkManager:
                 "total_walks_today": total_walks_today,
                 "total_distance_today": round(total_distance_today, 1),
                 "walk_detection_enabled": self._walk_detection_enabled,
-                
                 # Performance metrics
                 "performance_metrics": self._performance_metrics.copy(),
                 "cache_stats": cache_stats,
@@ -887,12 +919,11 @@ class WalkManager:
                 "location_analysis_queue_size": sum(
                     len(queue) for queue in self._location_analysis_queue.values()
                 ),
-                
                 # Memory usage
                 "average_path_length": sum(
-                    len(walk.get("path", []))
-                    for walk in self._current_walks.values()
-                ) / max(len(self._current_walks), 1),
+                    len(walk.get("path", [])) for walk in self._current_walks.values()
+                )
+                / max(len(self._current_walks), 1),
             }
 
     # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls
@@ -943,9 +974,9 @@ class WalkManager:
         self, dog_id: str, latitude: float, longitude: float
     ) -> None:
         """Update location-based analysis with caching.
-        
+
         OPTIMIZE: Enhanced with zone caching and reduced calculations.
-        
+
         Args:
             dog_id: Dog identifier
             latitude: Current latitude
@@ -1021,10 +1052,8 @@ class WalkManager:
         # Cancel batch analysis task
         if self._batch_analysis_task:
             self._batch_analysis_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._batch_analysis_task
-            except asyncio.CancelledError:
-                pass
 
         async with self._data_lock:
             self._walk_data.clear()
@@ -1033,7 +1062,7 @@ class WalkManager:
             self._walk_history.clear()
             self._location_analysis_queue.clear()
             self._statistics_cache.clear()
-            
+
             # Clear caches
             self._gps_cache.clear()
             self._zone_cache.clear()

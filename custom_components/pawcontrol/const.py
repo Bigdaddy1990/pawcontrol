@@ -77,18 +77,20 @@ MODULE_MEDICATION: Final[str] = "medication"
 MODULE_TRAINING: Final[str] = "training"
 
 # OPTIMIZED: All modules as frozenset for O(1) membership testing
-ALL_MODULES: Final[frozenset[str]] = frozenset([
-    MODULE_GPS,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-    MODULE_NOTIFICATIONS,
-    MODULE_DASHBOARD,
-    MODULE_VISITOR,
-    MODULE_GROOMING,
-    MODULE_MEDICATION,
-    MODULE_TRAINING,
-])
+ALL_MODULES: Final[frozenset[str]] = frozenset(
+    [
+        MODULE_GPS,
+        MODULE_FEEDING,
+        MODULE_HEALTH,
+        MODULE_WALK,
+        MODULE_NOTIFICATIONS,
+        MODULE_DASHBOARD,
+        MODULE_VISITOR,
+        MODULE_GROOMING,
+        MODULE_MEDICATION,
+        MODULE_TRAINING,
+    ]
+)
 
 # OPTIMIZED: Source entities configuration
 CONF_SOURCES: Final[str] = "sources"
@@ -179,11 +181,11 @@ GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSe
 
 # OPTIMIZED: Food types as tuple for immutability (better performance than list)
 FOOD_TYPES: Final[tuple[str, ...]] = (
-    "dry_food", 
-    "wet_food", 
-    "barf", 
-    "home_cooked", 
-    "mixed"
+    "dry_food",
+    "wet_food",
+    "barf",
+    "home_cooked",
+    "mixed",
 )
 
 # OPTIMIZED: Special diet options as tuple
@@ -205,28 +207,13 @@ SPECIAL_DIET_OPTIONS: Final[tuple[str, ...]] = (
 )
 
 # OPTIMIZED: Schedule types as tuple for better performance
-FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = (
-    "flexible", 
-    "strict", 
-    "custom"
-)
+FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = ("flexible", "strict", "custom")
 
 # OPTIMIZED: Meal types as tuple
-MEAL_TYPES: Final[tuple[str, ...]] = (
-    "breakfast", 
-    "lunch", 
-    "dinner", 
-    "snack"
-)
+MEAL_TYPES: Final[tuple[str, ...]] = ("breakfast", "lunch", "dinner", "snack")
 
 # OPTIMIZED: Dog sizes as tuple for consistency and performance
-DOG_SIZES: Final[tuple[str, ...]] = (
-    "toy", 
-    "small", 
-    "medium", 
-    "large", 
-    "giant"
-)
+DOG_SIZES: Final[tuple[str, ...]] = ("toy", "small", "medium", "large", "giant")
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
 DOG_SIZE_WEIGHT_RANGES: Final[dict[str, tuple[float, float]]] = {
@@ -259,20 +246,20 @@ HEALTH_STATUS_OPTIONS: Final[tuple[str, ...]] = (
 )
 
 MOOD_OPTIONS: Final[tuple[str, ...]] = (
-    "happy", 
-    "neutral", 
-    "sad", 
-    "angry", 
-    "anxious", 
-    "tired"
+    "happy",
+    "neutral",
+    "sad",
+    "angry",
+    "anxious",
+    "tired",
 )
 
 ACTIVITY_LEVELS: Final[tuple[str, ...]] = (
-    "very_low", 
-    "low", 
-    "normal", 
-    "high", 
-    "very_high"
+    "very_low",
+    "low",
+    "normal",
+    "high",
+    "very_high",
 )
 
 # OPTIMIZED: Dashboard configuration
@@ -327,13 +314,15 @@ SERVICE_GPS_POST_LOCATION: Final[str] = "gps_post_location"
 SERVICE_GPS_EXPORT_ROUTE: Final[str] = "gps_export_last_route"
 
 # OPTIMIZED: Core services as frozenset for fast lookup
-CORE_SERVICES: Final[frozenset[str]] = frozenset([
-    SERVICE_FEED_DOG,
-    SERVICE_START_WALK,
-    SERVICE_END_WALK,
-    SERVICE_LOG_HEALTH,
-    SERVICE_NOTIFY_TEST,
-])
+CORE_SERVICES: Final[frozenset[str]] = frozenset(
+    [
+        SERVICE_FEED_DOG,
+        SERVICE_START_WALK,
+        SERVICE_END_WALK,
+        SERVICE_LOG_HEALTH,
+        SERVICE_NOTIFY_TEST,
+    ]
+)
 
 # OPTIMIZED: Entity and event identifiers
 ENTITY_ID_FORMAT: Final[str] = "pawcontrol_{dog_id}_{entity_type}_{purpose}"
@@ -373,15 +362,24 @@ SECONDS_IN_DAY: Final[int] = 86400
 MINUTES_IN_HOUR: Final[int] = 60
 
 # OPTIMIZED: Type definitions as tuples
-GEOFENCE_TYPES: Final[tuple[str, ...]] = ("safe_zone", "restricted_area", "point_of_interest")
-NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = ("mobile", "persistent", "email", "slack")
+GEOFENCE_TYPES: Final[tuple[str, ...]] = (
+    "safe_zone",
+    "restricted_area",
+    "point_of_interest",
+)
+NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
+    "mobile",
+    "persistent",
+    "email",
+    "slack",
+)
 
 # FIX: Update intervals with consistent key naming throughout codebase
 UPDATE_INTERVALS: Final[dict[str, int]] = {
-    "minimal": 300,    # 5 minutes - power saving
-    "balanced": 120,   # 2 minutes - balanced (FIX: consistent key)
-    "frequent": 60,    # 1 minute - responsive
-    "real_time": 30,   # 30 seconds - high performance
+    "minimal": 300,  # 5 minutes - power saving
+    "balanced": 120,  # 2 minutes - balanced (FIX: consistent key)
+    "frequent": 60,  # 1 minute - responsive
+    "real_time": 30,  # 30 seconds - high performance
 }
 
 # OPTIMIZED: Data file names as constants
@@ -410,10 +408,10 @@ ERROR_SERVICE_UNAVAILABLE: Final[str] = "service_unavailable"
 
 # OPTIMIZED: Performance thresholds for monitoring
 PERFORMANCE_THRESHOLDS: Final[dict[str, float]] = {
-    "update_timeout": 30.0,        # seconds
-    "cache_hit_rate_min": 70.0,    # percentage
-    "memory_usage_max": 100.0,     # MB
-    "response_time_max": 2.0,      # seconds
+    "update_timeout": 30.0,  # seconds
+    "cache_hit_rate_min": 70.0,  # percentage
+    "memory_usage_max": 100.0,  # MB
+    "response_time_max": 2.0,  # seconds
 }
 
 # OPTIMIZED: Streamlined exports - only frequently used constants
