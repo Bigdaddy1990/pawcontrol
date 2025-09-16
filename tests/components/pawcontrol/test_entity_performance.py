@@ -272,7 +272,7 @@ class TestEntityPerformanceScaling:
 
         # Performance and correctness assertions
         assert execution_time < 1.0  # Should complete quickly
-        assert len(results) == 50  # 10 threads × 5 operations
+        assert len(results) == 50  # 10 threads × 5 operations  # noqa: RUF003
 
         # Verify results consistency
         estimate_results = [r[1] for r in results if r[0] == "estimate"]
@@ -385,7 +385,7 @@ class TestEntityPerformanceScaling:
         assert len(priorities) == len(platforms)
 
         # Validate priority values
-        for platform, priority in priorities:
+        for platform, priority in priorities:  # noqa: B007
             assert isinstance(priority, int)
             assert 1 <= priority <= 99
 
