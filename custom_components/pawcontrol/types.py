@@ -546,11 +546,11 @@ def is_dog_config_valid(config: Any) -> bool:
 
     # Check required fields
     required_fields = ["dog_id", "dog_name"]
-    for field in required_fields:
+    for required_field in required_fields:
         if (
-            field not in config
-            or not isinstance(config[field], str)
-            or not config[field].strip()
+            required_field not in config
+            or not isinstance(config[required_field], str)
+            or not config[required_field].strip()
         ):
             return False
 
@@ -710,11 +710,11 @@ def is_notification_data_valid(data: Any) -> bool:
         return False
 
     required_fields = ["title", "message"]
-    for field in required_fields:
+    for required_field in required_fields:
         if (
-            field not in data
-            or not isinstance(data[field], str)
-            or not data[field].strip()
+            required_field not in data
+            or not isinstance(data[required_field], str)
+            or not data[required_field].strip()
         ):
             return False
 

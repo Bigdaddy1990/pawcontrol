@@ -124,10 +124,6 @@ config_flow_monitor = ConfigFlowPerformanceMonitor()
 async def timed_operation(operation_name: str):
     """Async context manager that records operation duration."""
 
-    start_time = time.time()
-    try:
-        yield
-    finally:
     start_time = time.monotonic()
     try:
         yield
@@ -140,6 +136,9 @@ async def timed_operation(operation_name: str):
                 operation_name,
                 duration,
             )
+
+
+MODULES_SCHEMA = vol.Schema(
     {
         vol.Optional(MODULE_FEEDING, default=True): cv.boolean,
         vol.Optional(MODULE_WALK, default=True): cv.boolean,
@@ -1027,13 +1026,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """Perform comprehensive final validation."""
 
         async with timed_operation("final_validation"):
-            errors: list[str] = []
-
-            for dog in self._dogs:
-                if not is_dog_config_valid(dog):
-                    errors.append(
-                        f"Invalid dog configuration: {dog.get(CONF_DOG_ID, 'unknown')}"
-                    )
+            errors: list[str] = [
+                f"Invalid dog configuration: {dog.get(CONF_DOG_ID, 'unknown')}"
+                for dog in self._dogs
+                if not is_dog_config_valid(dog)
+            ]
 
             estimated_entities = self._estimate_total_entities_cached()
             if estimated_entities > 200:
@@ -1250,13 +1247,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Health check results
         """
-        issues = []
-
-        # Check dogs configuration
         dogs = entry.data.get(CONF_DOGS, [])
-        for dog in dogs:
-            if not is_dog_config_valid(dog):
-                issues.append(f"Invalid dog config: {dog.get(CONF_DOG_ID, 'unknown')}")
+        issues = [
+            f"Invalid dog config: {dog.get(CONF_DOG_ID, 'unknown')}"
+            for dog in dogs
+            if not is_dog_config_valid(dog)
+        ]
 
         # Check profile validity
         profile = entry.options.get("entity_profile", "standard")

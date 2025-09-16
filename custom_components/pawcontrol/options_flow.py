@@ -15,6 +15,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -211,7 +212,10 @@ class PawControlOptionsFlow(OptionsFlow):
 
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
         current_profile = self._config_entry.options.get("entity_profile", "standard")
-        cache_key = f"{current_profile}_{len(current_dogs)}_{hash(str(current_dogs))}"
+        cache_key = (
+            f"{current_profile}_{len(current_dogs)}_"
+            f"{hash(json.dumps(current_dogs, sort_keys=True))}"
+        )
 
         cached = self._profile_cache.get(cache_key)
         if cached:
@@ -285,7 +289,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Calculate profile preview with optimized performance."""
 
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        cache_key = f"{profile}_{len(current_dogs)}_{hash(json.dumps(current_dogs, sort_keys=True))}"
+        cache_key = (
+            f"{profile}_{len(current_dogs)}_"
+            f"{hash(json.dumps(current_dogs, sort_keys=True))}"
+        )
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
         if cached_preview:

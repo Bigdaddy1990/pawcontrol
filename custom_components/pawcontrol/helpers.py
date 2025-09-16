@@ -138,7 +138,7 @@ class OptimizedDataCache:
             import sys
 
             return sys.getsizeof(value)
-        except:
+        except Exception:
             # Fallback estimate
             if isinstance(value, str):
                 return len(value) * 2  # Unicode chars
@@ -324,9 +324,10 @@ class PawControlDataStorage:
         cutoff_date = dt_util.utcnow() - timedelta(days=retention_days)
 
         # Clean up each data store
-        cleanup_tasks = []
-        for store_key in self._stores:
-            cleanup_tasks.append(self._cleanup_store_optimized(store_key, cutoff_date))
+        cleanup_tasks = [
+            self._cleanup_store_optimized(store_key, cutoff_date)
+            for store_key in self._stores
+        ]
 
         # Run cleanup tasks concurrently
         results = await asyncio.gather(*cleanup_tasks, return_exceptions=True)
@@ -538,12 +539,10 @@ class PawControlData:
                     continue
 
                 # Process batch of events
-                batch = []
-                for _ in range(
-                    min(10, len(self._event_queue))
-                ):  # Process up to 10 events
-                    if self._event_queue:
-                        batch.append(self._event_queue.popleft())
+                batch = [
+                    self._event_queue.popleft()
+                    for _ in range(min(10, len(self._event_queue)))
+                ]
 
                 if batch:
                     await self._process_event_batch(batch)
@@ -569,7 +568,7 @@ class PawControlData:
             grouped_events[key].append(event)
 
         # Process each group
-        for key, group_events in grouped_events.items():
+        for group_events in grouped_events.values():
             event_type = group_events[0]["type"]
 
             if event_type == "feeding":
@@ -732,11 +731,11 @@ class PawControlNotificationManager:
                 if self._notification_queue:
                     # Rate limit: max 3 notifications per 30 seconds
                     batch_size = min(3, len(self._notification_queue))
-                    batch = []
-
-                    for _ in range(batch_size):
-                        if self._notification_queue:
-                            batch.append(self._notification_queue.popleft())
+                    batch = [
+                        self._notification_queue.popleft()
+                        for _ in range(batch_size)
+                        if self._notification_queue
+                    ]
 
                     # Send batch concurrently
                     if batch:
@@ -897,7 +896,7 @@ class PawControlNotificationManager:
                 await asyncio.wait_for(
                     self._send_notification_now(notification), timeout=2.0
                 )
-            except:
+            except Exception:
                 break  # Don't block shutdown
 
 

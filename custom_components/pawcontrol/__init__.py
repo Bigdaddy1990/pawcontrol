@@ -31,6 +31,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
+from .entity_factory import EntityFactory
 from .exceptions import PawControlSetupError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
@@ -310,9 +311,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             hass.config_entries.async_forward_entry_setups(entry, platforms),
             timeout=60.0,  # Allow more time for platform setup
         )
-    except TimeoutError:
+    except TimeoutError as err:
         await _cleanup_managers(initialized_managers)
-        raise ConfigEntryNotReady("Platform setup timeout after 60 seconds")
+        raise ConfigEntryNotReady("Platform setup timeout after 60 seconds") from err
     except Exception as err:
         # Cleanup managers if platform setup fails
         await _cleanup_managers(initialized_managers)

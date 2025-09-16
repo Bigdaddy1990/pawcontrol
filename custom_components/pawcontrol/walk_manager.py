@@ -576,8 +576,7 @@ class WalkManager:
 
         # Sample points at regular intervals
         interval = len(path) // (PATH_POINT_LIMIT - 2)
-        for i in range(interval, len(path) - 1, interval):
-            optimized.append(path[i])
+        optimized.extend(path[i] for i in range(interval, len(path) - 1, interval))
 
         # Always keep end point
         optimized.append(path[-1])

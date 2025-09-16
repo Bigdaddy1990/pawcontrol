@@ -849,7 +849,7 @@ class PawControlNotificationManager:
                                 del self._pending_batches[batch_key]
 
                     # Send batches
-                    for batch_key, notifications in batches_to_send.items():
+                    for notifications in batches_to_send.values():
                         await self._send_batch(notifications)
                         self._performance_metrics["batch_operations"] += 1
 
@@ -872,9 +872,7 @@ class PawControlNotificationManager:
         dog_name = dog_id.replace("_", " ").title() if dog_id else "System"
 
         # Create summary
-        summary_lines = []
-        for notification in notifications:
-            summary_lines.append(f"• {notification.title}")
+        summary_lines = [f"• {notification.title}" for notification in notifications]
 
         # Create batch notification
         batch_title = f"📋 {len(notifications)} notifications for {dog_name}"
