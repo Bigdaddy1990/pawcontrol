@@ -198,7 +198,8 @@ class AdaptiveCache:
         try:
             # Serialize to estimate size
             return len(json.dumps(value, default=str).encode())
-        except:  # noqa: E722
+        except (TypeError, ValueError, OverflowError, RecursionError) as err:
+            _LOGGER.debug("Using fallback size estimate for %s: %s", type(value), err)
             # Fallback to rough estimate
             return 1024  # 1KB default
 
@@ -334,7 +335,13 @@ class OptimizedStorage:
                                     ).isoformat(),
                                 }
                             daily_summary[day_key]["count"] += 1
-                    except:  # noqa: E722
+                    except (ValueError, TypeError, AttributeError) as err:
+                        _LOGGER.debug(
+                            "Failed to compress %s entry for %s: %s",
+                            namespace,
+                            key,
+                            err,
+                        )
                         new_entries.append(entry)
 
                 # Add summaries
@@ -728,7 +735,8 @@ class PawControlDataManager:
 
                 filtered.append(entry)
 
-            except:  # noqa: E722
+            except (ValueError, TypeError, AttributeError) as err:
+                _LOGGER.debug("Failed to parse timestamp for %s: %s", entry, err)
                 filtered.append(entry)
 
         return filtered

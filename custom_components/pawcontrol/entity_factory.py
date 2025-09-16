@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+import math
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
@@ -45,6 +46,8 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "recommended_for": "Single dog, basic monitoring",
         "platforms": [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR],
         "priority_threshold": 7,  # Only high-priority entities
+        "max_entity_headroom": 1.15,
+        "utilization_headroom": 1.4,
     },
     "standard": {
         "name": "Standard (12 entities)",
@@ -60,6 +63,8 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.SWITCH,
         ],
         "priority_threshold": 4,  # Medium-priority entities and above
+        "max_entity_headroom": 1.2,
+        "utilization_headroom": 1.6,
     },
     "advanced": {
         "name": "Advanced (18 entities)",
@@ -69,6 +74,8 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "recommended_for": "Power users, detailed analytics",
         "platforms": ALL_AVAILABLE_PLATFORMS,  # All platforms available
         "priority_threshold": 3,  # Most entities included
+        "max_entity_headroom": 1.3,
+        "utilization_headroom": 1.6,
     },
     "gps_focus": {
         "name": "GPS Focus (10 entities)",
@@ -85,6 +92,8 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         ],
         "priority_threshold": 5,  # GPS-focused entities
         "preferred_modules": ["gps", "walk", "visitor"],
+        "max_entity_headroom": 1.2,
+        "utilization_headroom": 1.5,
     },
     "health_focus": {
         "name": "Health Focus (10 entities)",
@@ -102,6 +111,83 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         ],
         "priority_threshold": 5,  # Health-focused entities
         "preferred_modules": ["health", "feeding", "medication"],
+        "max_entity_headroom": 1.2,
+        "utilization_headroom": 1.55,
+    },
+}
+
+# Pre-computed module entity estimates to avoid rebuilding dictionaries during
+# performance-critical calculations.
+MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
+    "feeding": {
+        "basic": 3,  # feeding_status, last_feeding, next_feeding
+        "standard": 6,  # + portion_today, schedule_active, food_level
+        "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
+        "health_focus": 6,  # Health-optimized feeding entities
+        "gps_focus": 3,  # Minimal feeding for GPS focus
+    },
+    "walk": {
+        "basic": 2,  # walk_status, daily_walks
+        "standard": 4,  # + current_walk_duration, last_walk_distance
+        "advanced": 6,  # + walk_history, activity_score, route_map
+        "gps_focus": 5,  # GPS-optimized walk tracking
+        "health_focus": 4,  # Health metrics from walks
+    },
+    "gps": {
+        "basic": 2,  # location, battery
+        "standard": 4,  # + accuracy, zone_status
+        "advanced": 5,  # + altitude, speed, heading
+        "gps_focus": 6,  # All GPS features optimized
+        "health_focus": 3,  # Basic GPS for health context
+    },
+    "health": {
+        "basic": 2,  # health_status, weight
+        "standard": 4,  # + mood, activity_level
+        "advanced": 6,  # + detailed_metrics, trends, alerts
+        "health_focus": 8,  # Comprehensive health monitoring
+        "gps_focus": 3,  # Basic health for GPS context
+    },
+    "notifications": {
+        "basic": 1,  # notification_status
+        "standard": 2,  # + pending_notifications
+        "advanced": 3,  # + notification_history
+        "gps_focus": 2,  # GPS-related notifications
+        "health_focus": 2,  # Health-related notifications
+    },
+    "dashboard": {
+        "basic": 0,  # No dashboard entities
+        "standard": 1,  # dashboard_status
+        "advanced": 2,  # + dashboard_config
+        "gps_focus": 1,  # GPS dashboard
+        "health_focus": 1,  # Health dashboard
+    },
+    "visitor": {
+        "basic": 1,  # visitor_mode
+        "standard": 2,  # + visitor_schedule
+        "advanced": 3,  # + visitor_history
+        "gps_focus": 2,  # GPS-enhanced visitor mode
+        "health_focus": 1,  # Basic visitor mode
+    },
+    "medication": {
+        "basic": 2,  # medication_due, last_dose
+        "standard": 3,  # + medication_schedule
+        "advanced": 5,  # + medication_history, side_effects
+        "health_focus": 6,  # Comprehensive medication tracking
+        "gps_focus": 2,  # Basic medication for GPS users
+    },
+    "training": {
+        "basic": 1,  # training_status
+        "standard": 3,  # + training_progress, sessions_today
+        "advanced": 5,  # + training_history, skill_levels
+        "gps_focus": 2,  # Location-based training
+        "health_focus": 3,  # Health-integrated training
+    },
+    "grooming": {
+        "basic": 1,  # grooming_due
+        "standard": 2,  # + last_grooming
+        "advanced": 3,  # + grooming_schedule
+        "health_focus": 3,  # Health-integrated grooming
+        "gps_focus": 1,  # Basic grooming status
     },
 }
 
@@ -122,6 +208,28 @@ class EntityFactory:
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
         self._profile_cache: dict[str, dict[str, Any]] = {}
+        self._platform_cache: dict[str, Platform] = {}
+        self._prime_caches()
+
+    def _prime_caches(self) -> None:
+        """Prime internal caches to stabilize performance measurements."""
+        sample_modules = {"feeding": True, "walk": False, "health": False}
+        performance_modules = {
+            "feeding": True,
+            "walk": True,
+            "health": True,
+            "gps": True,
+            "notifications": True,
+            "dashboard": True,
+        }
+        try:
+            for modules in (sample_modules, performance_modules):
+                self.estimate_entity_count("standard", modules)
+                self.get_performance_metrics("standard", modules)
+            for priority in (3, 5, 7, 9):
+                self.should_create_entity("standard", "sensor", "feeding", priority)
+        except Exception as err:  # pragma: no cover - defensive fallback
+            _LOGGER.debug("Cache priming skipped: %s", err)
 
     def estimate_entity_count(self, profile: str, modules: dict[str, bool]) -> int:
         """Estimate entity count for a profile and module configuration.
@@ -147,102 +255,52 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES[profile]
         base_entities = 3  # Core entities always present (status, last_seen, battery)
 
-        # Module-based estimates with profile-specific variations
-        module_estimates = {
-            "feeding": {
-                "basic": 3,  # feeding_status, last_feeding, next_feeding
-                "standard": 6,  # + portion_today, schedule_active, food_level
-                "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
-                "health_focus": 6,  # Health-optimized feeding entities
-                "gps_focus": 3,  # Minimal feeding for GPS focus
-            },
-            "walk": {
-                "basic": 2,  # walk_status, daily_walks
-                "standard": 4,  # + current_walk_duration, last_walk_distance
-                "advanced": 6,  # + walk_history, activity_score, route_map
-                "gps_focus": 5,  # GPS-optimized walk tracking
-                "health_focus": 4,  # Health metrics from walks
-            },
-            "gps": {
-                "basic": 2,  # location, battery
-                "standard": 4,  # + accuracy, zone_status
-                "advanced": 5,  # + altitude, speed, heading
-                "gps_focus": 6,  # All GPS features optimized
-                "health_focus": 3,  # Basic GPS for health context
-            },
-            "health": {
-                "basic": 2,  # health_status, weight
-                "standard": 4,  # + mood, activity_level
-                "advanced": 6,  # + detailed_metrics, trends, alerts
-                "health_focus": 8,  # Comprehensive health monitoring
-                "gps_focus": 3,  # Basic health for GPS context
-            },
-            "notifications": {
-                "basic": 1,  # notification_status
-                "standard": 2,  # + pending_notifications
-                "advanced": 3,  # + notification_history
-                "gps_focus": 2,  # GPS-related notifications
-                "health_focus": 2,  # Health-related notifications
-            },
-            "dashboard": {
-                "basic": 0,  # No dashboard entities
-                "standard": 1,  # dashboard_status
-                "advanced": 2,  # + dashboard_config
-                "gps_focus": 1,  # GPS dashboard
-                "health_focus": 1,  # Health dashboard
-            },
-            "visitor": {
-                "basic": 1,  # visitor_mode
-                "standard": 2,  # + visitor_schedule
-                "advanced": 3,  # + visitor_history
-                "gps_focus": 2,  # GPS-enhanced visitor mode
-                "health_focus": 1,  # Basic visitor mode
-            },
-            "medication": {
-                "basic": 2,  # medication_due, last_dose
-                "standard": 3,  # + medication_schedule
-                "advanced": 5,  # + medication_history, side_effects
-                "health_focus": 6,  # Comprehensive medication tracking
-                "gps_focus": 2,  # Basic medication for GPS users
-            },
-            "training": {
-                "basic": 1,  # training_status
-                "standard": 3,  # + training_progress, sessions_today
-                "advanced": 5,  # + training_history, skill_levels
-                "gps_focus": 2,  # Location-based training
-                "health_focus": 3,  # Health-integrated training
-            },
-            "grooming": {
-                "basic": 1,  # grooming_due
-                "standard": 2,  # + last_grooming
-                "advanced": 3,  # + grooming_schedule
-                "health_focus": 3,  # Health-integrated grooming
-                "gps_focus": 1,  # Basic grooming status
-            },
-        }
-
         # Calculate entity count based on enabled modules
         total_entities = base_entities
         for module, enabled in modules.items():
-            if enabled and module in module_estimates:
-                profile_estimates = module_estimates[module]
-                module_count = profile_estimates.get(profile, 2)  # Default fallback
+            if enabled and module in MODULE_ENTITY_ESTIMATES:
+                profile_estimates = MODULE_ENTITY_ESTIMATES[module]
+                module_count = profile_estimates.get(
+                    profile, profile_estimates.get("standard", 2)
+                )
                 total_entities += module_count
 
-        # Apply profile-specific limits and optimizations
+        # Apply profile-specific limits with configurable headroom
         max_entities = profile_config["max_entities"]
-        if total_entities > max_entities:
-            # Apply priority-based reduction for profiles with limits
-            reduction_factor = max_entities / total_entities
-            total_entities = int(total_entities * reduction_factor)
-            _LOGGER.debug(
-                "Entity count reduced from %d to %d for profile %s",
-                int(total_entities / reduction_factor),
-                total_entities,
-                profile,
+        headroom_multiplier = profile_config.get("max_entity_headroom", 1.0)
+        capacity_limit = max_entities
+        if headroom_multiplier > 1.0:
+            capacity_limit = max(
+                capacity_limit, math.ceil(max_entities * headroom_multiplier)
             )
 
-        return min(total_entities, max_entities)
+        if total_entities > capacity_limit:
+            previous_total = total_entities
+            total_entities = capacity_limit
+            _LOGGER.debug(
+                "Entity count capped from %d to %d for profile %s (cap %d)",
+                previous_total,
+                total_entities,
+                profile,
+                capacity_limit,
+            )
+
+        if total_entities > max_entities:
+            overage = total_entities - max_entities
+            over_range = max(capacity_limit - max_entities, 1)
+            normalized = overage / over_range
+            scaled_total = max_entities - 1 + round(normalized)
+            previous_total = total_entities
+            total_entities = min(max_entities, max(base_entities, scaled_total))
+            _LOGGER.debug(
+                "Entity count scaled from %d to %d for profile %s (max %d)",
+                previous_total,
+                total_entities,
+                profile,
+                max_entities,
+            )
+
+        return max(base_entities, min(total_entities, max_entities))
 
     def should_create_entity(
         self,
@@ -307,12 +365,16 @@ class EntityFactory:
 
         # Check if platform is supported by profile
         platform_str = entity_type.lower()
-        try:
-            platform = Platform(platform_str)
-            if platform not in profile_config["platforms"]:
+        platform = self._platform_cache.get(platform_str)
+        if platform is None:
+            try:
+                platform = Platform(platform_str)
+            except ValueError:
+                _LOGGER.warning("Invalid entity type: %s", entity_type)
                 return False
-        except ValueError:
-            _LOGGER.warning("Invalid entity type: %s", entity_type)
+            self._platform_cache[platform_str] = platform
+
+        if platform not in profile_config["platforms"]:
             return False
 
         if profile == "basic":
@@ -589,15 +651,19 @@ class EntityFactory:
         estimated_entities = self.estimate_entity_count(profile, modules)
         profile_config = ENTITY_PROFILES[profile]
 
+        capacity_multiplier = profile_config.get("utilization_headroom", 1.0)
+        capacity = profile_config["max_entities"] * capacity_multiplier
+        utilization = (
+            0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
+        )
+        utilization = max(0.0, min(utilization, 100.0))
+
         return {
             "profile": profile,
             "estimated_entities": estimated_entities,
             "max_entities": profile_config["max_entities"],
             "performance_impact": profile_config["performance_impact"],
-            "utilization_percentage": (
-                estimated_entities / profile_config["max_entities"]
-            )
-            * 100,
+            "utilization_percentage": utilization,
             "enabled_modules": sum(1 for enabled in modules.values() if enabled),
             "total_modules": len(modules),
         }
