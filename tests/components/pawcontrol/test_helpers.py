@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections import deque
 from collections.abc import Coroutine
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.helpers import PawControlData, PawControlDataStorage
@@ -58,17 +57,12 @@ async def test_async_load_all_data_uses_cached_empty_payload() -> None:
 async def test_async_load_data_starts_event_processor_on_failure(monkeypatch) -> None:
     """Ensure the event processor starts even when initial loading fails."""
 
+    hass = MagicMock()
+    config_entry = MagicMock()
+    config_entry.data = {}
+
     storage = MagicMock()
     storage.async_load_all_data = AsyncMock(side_effect=RuntimeError("load failed"))
-
-    data = object.__new__(PawControlData)
-    data.storage = storage  # type: ignore[assignment]
-    data._data = {}
-    data._dogs = []
-    data.hass = MagicMock()
-    data.config_entry = MagicMock()
-    data._event_queue = deque()
-    data._event_task = None
 
     created_coroutines: list[Coroutine[Any, Any, Any]] = []
     sentinel_task = MagicMock(spec=asyncio.Task)
@@ -83,7 +77,12 @@ async def test_async_load_data_starts_event_processor_on_failure(monkeypatch) ->
         _capture_task,
     )
 
-    await data.async_load_data()
+    with patch(
+        "custom_components.pawcontrol.helpers.PawControlDataStorage",
+        return_value=storage,
+    ):
+        data = PawControlData(hass, config_entry)
+        await data.async_load_data()
 
     storage.async_load_all_data.assert_awaited_once()
     assert data._event_task is sentinel_task
