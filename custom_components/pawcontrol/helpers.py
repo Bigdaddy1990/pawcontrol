@@ -9,10 +9,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Deque
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Deque
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
