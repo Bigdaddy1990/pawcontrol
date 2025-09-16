@@ -61,8 +61,8 @@ async def test_async_load_all_data_uses_cached_empty_payload() -> None:
 async def test_async_load_data_starts_event_processor_on_failure(monkeypatch) -> None:
     """Ensure the event processor starts even when initial loading fails."""
 
-    hass = MagicMock()
-    config_entry = MagicMock()
+    hass = MagicMock(spec=HomeAssistant)
+    config_entry = MagicMock(spec=ConfigEntry)
     config_entry.data = {}
 
     storage = MagicMock()
