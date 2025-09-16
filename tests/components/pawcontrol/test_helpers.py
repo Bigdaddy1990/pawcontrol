@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Coroutine
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.helpers import PawControlDataStorage
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 
 class _DummyCache:
@@ -48,3 +53,46 @@ async def test_async_load_all_data_uses_cached_empty_payload() -> None:
 
     assert result == {}
     assert called is False
+
+
+@pytest.mark.asyncio
+async def test_async_load_data_starts_event_processor_on_failure(monkeypatch) -> None:
+    """Ensure the event processor starts even when initial loading fails."""
+
+    hass = MagicMock(spec=HomeAssistant)
+    config_entry = MagicMock(spec=ConfigEntry)
+    config_entry.data = {}
+
+    storage = MagicMock()
+    storage.async_load_all_data = AsyncMock(side_effect=RuntimeError("load failed"))
+
+    created_coroutines: list[Coroutine[Any, Any, Any]] = []
+    sentinel_task = MagicMock(spec=asyncio.Task)
+    sentinel_task.done.return_value = False
+
+    def _capture_task(coro: Coroutine[Any, Any, Any]) -> asyncio.Task[Any]:
+        created_coroutines.append(coro)
+        return sentinel_task  # type: ignore[return-value]
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helpers.asyncio.create_task",
+        _capture_task,
+    )
+
+    with patch(
+        "custom_components.pawcontrol.helpers.PawControlDataStorage",
+        return_value=storage,
+    ):
+        data = PawControlData(hass, config_entry)
+        await data.async_load_data()
+
+    storage.async_load_all_data.assert_awaited_once()
+    assert data._event_task is sentinel_task
+    assert len(created_coroutines) == 1
+    assert set(data._data.keys()) == {
+        "walks",
+        "feedings",
+        "health",
+        "routes",
+        "statistics",
+    }
