@@ -22,6 +22,11 @@ from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
+from .config_flow_profile import (
+    PROFILE_SCHEMA,
+    build_profile_summary_text,
+    validate_profile_selection,
+)
 from .const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -44,11 +49,6 @@ from .const import (
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
-)
-from .config_flow_profile import (
-    PROFILE_SCHEMA,
-    build_profile_summary_text,
-    validate_profile_selection,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .options_flow import PawControlOptionsFlow
@@ -152,6 +152,7 @@ MODULES_SCHEMA = vol.Schema(
         vol.Optional(MODULE_NOTIFICATIONS, default=True): cv.boolean,
     }
 )
+
 
 class DogValidationError(Exception):
     """Raised when validating a dog configuration fails."""

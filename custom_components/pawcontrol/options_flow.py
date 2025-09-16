@@ -23,6 +23,11 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
 from homeassistant.helpers import selector
 
+from .config_flow_profile import (
+    DEFAULT_PROFILE,
+    get_profile_selector_options,
+    validate_profile_selection,
+)
 from .const import (
     CONF_DASHBOARD_MODE,
     CONF_DOG_AGE,
@@ -53,11 +58,6 @@ from .const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
-)
-from .config_flow_profile import (
-    DEFAULT_PROFILE,
-    get_profile_selector_options,
-    validate_profile_selection,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData

@@ -27,11 +27,7 @@ PROFILE_TITLES: Final[dict[str, str]] = {
 
 # Schema reused by the config flow and options flow when asking for a profile.
 PROFILE_SCHEMA: Final[vol.Schema] = vol.Schema(
-    {
-        vol.Required("entity_profile", default=DEFAULT_PROFILE): vol.In(
-            PROFILE_TITLES
-        )
-    }
+    {vol.Required("entity_profile", default=DEFAULT_PROFILE): vol.In(PROFILE_TITLES)}
 )
 
 
