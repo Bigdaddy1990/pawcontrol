@@ -16,8 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable
-from typing import TYPE_CHECKING, Any, Final, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Final, TypeVar
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -76,7 +75,7 @@ class BaseCardGenerator:
         """
         self.hass = hass
         self.templates = templates
-        
+
         # OPTIMIZED: Performance tracking and validation semaphore
         self._validation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_VALIDATIONS)
         self._performance_stats = {
@@ -106,19 +105,22 @@ class BaseCardGenerator:
 
         start_time = asyncio.get_event_loop().time()
         valid_entities: list[str] = []
-        
+
         # OPTIMIZED: Clean cache if needed
         await self._cleanup_validation_cache()
 
         # OPTIMIZED: Separate cached and uncached entities
         cached_results: dict[str, bool] = {}
         uncached_entities: list[str] = []
-        
+
         if use_cache:
             current_time = asyncio.get_event_loop().time()
             for entity_id in entities:
                 cache_entry = _entity_validation_cache.get(entity_id)
-                if cache_entry and (current_time - cache_entry[0]) < _cache_cleanup_threshold:
+                if (
+                    cache_entry
+                    and (current_time - cache_entry[0]) < _cache_cleanup_threshold
+                ):
                     cached_results[entity_id] = cache_entry[1]
                     self._performance_stats["cache_hits"] += 1
                 else:
@@ -130,8 +132,8 @@ class BaseCardGenerator:
         # OPTIMIZED: Process uncached entities in controlled batches
         batch_size = min(MAX_CONCURRENT_VALIDATIONS, len(uncached_entities))
         for i in range(0, len(uncached_entities), batch_size):
-            batch = uncached_entities[i:i + batch_size]
-            
+            batch = uncached_entities[i : i + batch_size]
+
             async with self._validation_semaphore:
                 try:
                     # OPTIMIZED: Parallel validation with timeout
@@ -139,32 +141,34 @@ class BaseCardGenerator:
                         asyncio.create_task(self._validate_single_entity(entity_id))
                         for entity_id in batch
                     ]
-                    
+
                     batch_results = await asyncio.wait_for(
                         asyncio.gather(*batch_tasks, return_exceptions=True),
-                        timeout=ENTITY_VALIDATION_TIMEOUT
+                        timeout=ENTITY_VALIDATION_TIMEOUT,
                     )
-                    
+
                     # Process batch results
                     for entity_id, result in zip(batch, batch_results, strict=False):
                         if isinstance(result, Exception):
-                            _LOGGER.debug("Entity validation error for %s: %s", entity_id, result)
+                            _LOGGER.debug(
+                                "Entity validation error for %s: %s", entity_id, result
+                            )
                             cached_results[entity_id] = False
                         else:
                             cached_results[entity_id] = result
-                            
+
                         # Update cache
                         if use_cache:
                             _entity_validation_cache[entity_id] = (
                                 asyncio.get_event_loop().time(),
-                                cached_results[entity_id]
+                                cached_results[entity_id],
                             )
-                            
-                except asyncio.TimeoutError:
+
+                except TimeoutError:
                     _LOGGER.warning("Entity validation timeout for batch: %s", batch)
                     for entity_id in batch:
                         cached_results[entity_id] = False
-                        
+
                 except Exception as err:
                     _LOGGER.error("Batch validation error: %s", err)
                     for entity_id in batch:
@@ -184,7 +188,9 @@ class BaseCardGenerator:
         if validation_time > 1.0:  # Log slow validations
             _LOGGER.debug(
                 "Slow entity validation: %.2fs for %d entities (%d valid)",
-                validation_time, len(entities), len(valid_entities)
+                validation_time,
+                len(entities),
+                len(valid_entities),
             )
 
         return valid_entities
@@ -200,9 +206,9 @@ class BaseCardGenerator:
         """
         try:
             state = self.hass.states.get(entity_id)
-            return (
-                state is not None 
-                and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            return state is not None and state.state not in (
+                STATE_UNKNOWN,
+                STATE_UNAVAILABLE,
             )
         except Exception as err:
             _LOGGER.debug("Entity validation error for %s: %s", entity_id, err)
@@ -224,21 +230,22 @@ class BaseCardGenerator:
         """Cleanup old entries from validation cache."""
         if len(_entity_validation_cache) <= VALIDATION_CACHE_SIZE:
             return
-            
+
         current_time = asyncio.get_event_loop().time()
         expired_keys = [
-            entity_id for entity_id, (timestamp, _) in _entity_validation_cache.items()
+            entity_id
+            for entity_id, (timestamp, _) in _entity_validation_cache.items()
             if current_time - timestamp > _cache_cleanup_threshold
         ]
-        
+
         for key in expired_keys:
             _entity_validation_cache.pop(key, None)
-            
+
         # If still too large, remove oldest entries
         if len(_entity_validation_cache) > VALIDATION_CACHE_SIZE:
             sorted_items = sorted(
                 _entity_validation_cache.items(),
-                key=lambda x: x[1][0]  # Sort by timestamp
+                key=lambda x: x[1][0],  # Sort by timestamp
             )
             remove_count = len(_entity_validation_cache) - VALIDATION_CACHE_SIZE
             for entity_id, _ in sorted_items[:remove_count]:
@@ -271,10 +278,9 @@ class OverviewCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Async active dog counting with timeout
         try:
             active_dogs = await asyncio.wait_for(
-                self._count_active_dogs(dogs_config),
-                timeout=3.0
+                self._count_active_dogs(dogs_config), timeout=3.0
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.debug("Active dog counting timeout, using total count")
             active_dogs = dog_count
 
@@ -311,11 +317,11 @@ class OverviewCardGenerator(BaseCardGenerator):
         """
         if not dogs_config:
             return 0
-            
+
         # OPTIMIZED: Collect all status entities for batch validation
         status_entities = []
         dog_id_mapping = {}
-        
+
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id:
@@ -344,7 +350,7 @@ class OverviewCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Pre-filter dogs and prepare entities for batch validation
         dog_candidates: list[tuple[str, str, str]] = []  # (dog_id, dog_name, entity_id)
-        
+
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             dog_name = dog.get(CONF_DOG_NAME)
@@ -408,7 +414,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Single-pass module detection
         has_feeding = False
         has_walking = False
-        
+
         for dog in dogs_config:
             modules = dog.get("modules", {})
             if not has_feeding and modules.get(MODULE_FEEDING):
@@ -471,20 +477,24 @@ class OverviewCardGenerator(BaseCardGenerator):
             }
         )
 
-        return {
-            "type": "horizontal-stack",
-            "cards": actions,
-        } if actions else None
+        return (
+            {
+                "type": "horizontal-stack",
+                "cards": actions,
+            }
+            if actions
+            else None
+        )
 
 
 class DogCardGenerator(BaseCardGenerator):
     """Generator for individual dog dashboard cards with performance optimization."""
 
     async def generate_dog_overview_cards(
-        self, 
-        dog_config: DogConfigType, 
-        theme: ThemeConfigType, 
-        options: OptionsConfigType
+        self,
+        dog_config: DogConfigType,
+        theme: ThemeConfigType,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized overview cards for a specific dog.
 
@@ -505,28 +515,29 @@ class DogCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate cards in parallel for better performance
         card_tasks = []
-        
+
         # Dog header card
         card_tasks.append(
             ("header", self._generate_dog_header_card(dog_config, options))
         )
-        
+
         # Status card
         card_tasks.append(
-            ("status", self.templates.get_dog_status_card_template(dog_id, dog_name, modules))
+            (
+                "status",
+                self.templates.get_dog_status_card_template(dog_id, dog_name, modules),
+            )
         )
-        
+
         # Action buttons
         card_tasks.append(
             ("actions", self.templates.get_action_buttons_template(dog_id, modules))
         )
-        
+
         # Conditional cards
         if modules.get(MODULE_GPS):
-            card_tasks.append(
-                ("gps_map", self._generate_gps_map_card(dog_id, options))
-            )
-            
+            card_tasks.append(("gps_map", self._generate_gps_map_card(dog_id, options)))
+
         if options.get("show_activity_graph", True):
             card_tasks.append(
                 ("activity", self._generate_activity_graph_card(dog_config, options))
@@ -536,16 +547,17 @@ class DogCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in card_tasks),
-                    return_exceptions=True
+                    *(task for _, task in card_tasks), return_exceptions=True
                 ),
-                timeout=CARD_GENERATION_TIMEOUT
+                timeout=CARD_GENERATION_TIMEOUT,
             )
-            
+
             # Process results in order
             for (card_type, _), result in zip(card_tasks, results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning("Card generation failed for %s: %s", card_type, result)
+                    _LOGGER.warning(
+                        "Card generation failed for %s: %s", card_type, result
+                    )
                     self._performance_stats["errors_handled"] += 1
                 elif result is not None:
                     if card_type == "actions":
@@ -554,8 +566,8 @@ class DogCardGenerator(BaseCardGenerator):
                         cards.extend(action_cards)
                     else:
                         cards.append(result)
-                        
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             _LOGGER.error("Dog overview card generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             # Return minimal cards on timeout
@@ -568,9 +580,11 @@ class DogCardGenerator(BaseCardGenerator):
 
         generation_time = asyncio.get_event_loop().time() - start_time
         self._performance_stats["generation_time_total"] += generation_time
-        
+
         if generation_time > 2.0:
-            _LOGGER.info("Slow dog card generation: %.2fs for %s", generation_time, dog_name)
+            _LOGGER.info(
+                "Slow dog card generation: %.2fs for %s", generation_time, dog_name
+            )
 
         return cards
 
@@ -584,7 +598,7 @@ class DogCardGenerator(BaseCardGenerator):
         # OPTIMIZED: More efficient categorization
         regular_buttons = []
         conditional_buttons = []
-        
+
         for button in action_buttons:
             if button.get("type") == "conditional":
                 conditional_buttons.append(button)
@@ -592,12 +606,14 @@ class DogCardGenerator(BaseCardGenerator):
                 regular_buttons.append(button)
 
         cards: list[CardConfigType] = []
-        
+
         if regular_buttons:
-            cards.append({
-                "type": "horizontal-stack",
-                "cards": regular_buttons,
-            })
+            cards.append(
+                {
+                    "type": "horizontal-stack",
+                    "cards": regular_buttons,
+                }
+            )
 
         cards.extend(conditional_buttons)
         return cards
@@ -710,7 +726,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate all cards concurrently
         card_generators = [
-            ("health_status", self._generate_health_feeding_status_card(dog_id, dog_name, options)),
+            (
+                "health_status",
+                self._generate_health_feeding_status_card(dog_id, dog_name, options),
+            ),
             ("calorie", self._generate_calorie_tracking_card(dog_id, options)),
             ("weight", self._generate_weight_management_card(dog_id, options)),
             ("portion", self._generate_portion_calculator_card(dog_id, options)),
@@ -719,23 +738,26 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in card_generators),
-                    return_exceptions=True
+                    *(task for _, task in card_generators), return_exceptions=True
                 ),
-                timeout=CARD_GENERATION_TIMEOUT
+                timeout=CARD_GENERATION_TIMEOUT,
             )
 
             cards: list[CardConfigType] = []
             for (card_type, _), result in zip(card_generators, results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning("Health feeding card %s generation failed: %s", card_type, result)
+                    _LOGGER.warning(
+                        "Health feeding card %s generation failed: %s",
+                        card_type,
+                        result,
+                    )
                     self._performance_stats["errors_handled"] += 1
                 elif result is not None:
                     cards.append(result)
 
             return cards
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Health feeding overview generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             return []
@@ -985,29 +1007,37 @@ class ModuleCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Check if health-aware feeding is enabled
         if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
             # Use health-aware feeding card generator
-            health_generator = HealthAwareFeedingCardGenerator(self.hass, self.templates)
-            
+            health_generator = HealthAwareFeedingCardGenerator(
+                self.hass, self.templates
+            )
+
             # OPTIMIZED: Generate health cards concurrently
-            health_overview_task = health_generator.generate_health_feeding_overview(dog_config, options)
-            health_controls_task = health_generator.generate_health_feeding_controls(dog_config, options)
-            
+            health_overview_task = health_generator.generate_health_feeding_overview(
+                dog_config, options
+            )
+            health_controls_task = health_generator.generate_health_feeding_controls(
+                dog_config, options
+            )
+
             try:
                 health_overview, health_controls = await asyncio.gather(
-                    health_overview_task, 
-                    health_controls_task,
-                    return_exceptions=True
+                    health_overview_task, health_controls_task, return_exceptions=True
                 )
-                
+
                 if not isinstance(health_overview, Exception):
                     cards.extend(health_overview)
                 else:
-                    _LOGGER.warning("Health overview generation failed: %s", health_overview)
-                    
+                    _LOGGER.warning(
+                        "Health overview generation failed: %s", health_overview
+                    )
+
                 if not isinstance(health_controls, Exception):
                     cards.extend(health_controls)
                 else:
-                    _LOGGER.warning("Health controls generation failed: %s", health_controls)
-                    
+                    _LOGGER.warning(
+                        "Health controls generation failed: %s", health_controls
+                    )
+
             except Exception as err:
                 _LOGGER.error("Health-aware feeding generation error: %s", err)
                 # Fallback to standard feeding cards
@@ -1026,7 +1056,9 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         return cards
 
-    async def _generate_standard_feeding_cards(self, dog_id: str) -> list[CardConfigType]:
+    async def _generate_standard_feeding_cards(
+        self, dog_id: str
+    ) -> list[CardConfigType]:
         """Generate standard feeding cards with batch validation."""
         schedule_entities = [
             f"sensor.{dog_id}_next_meal_time",
@@ -1051,14 +1083,18 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Get feeding controls template asynchronously
         try:
-            feeding_controls = await self.templates.get_feeding_controls_template(dog_id)
+            feeding_controls = await self.templates.get_feeding_controls_template(
+                dog_id
+            )
             cards.append(feeding_controls)
         except Exception as err:
             _LOGGER.debug("Feeding controls template error: %s", err)
 
         return cards
 
-    async def _generate_feeding_history_card(self, dog_id: str) -> CardConfigType | None:
+    async def _generate_feeding_history_card(
+        self, dog_id: str
+    ) -> CardConfigType | None:
         """Generate optimized feeding history card."""
         history_entities = [
             f"sensor.{dog_id}_meals_today",
@@ -1069,7 +1105,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         history_card = await self.templates.get_history_graph_template(
             history_entities, "Feeding History (7 days)", 168
         )
-        
+
         return history_card if history_card.get("entities") else None
 
     async def generate_walk_cards(
@@ -1182,7 +1218,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         history_card = await self.templates.get_history_graph_template(
             history_entities, "Walk History (7 days)", 168
         )
-        
+
         return history_card if history_card.get("entities") else None
 
     async def generate_health_cards(
@@ -1221,8 +1257,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         weight_entity_task = self._entity_exists_cached(f"sensor.{dog_id}_weight")
 
         valid_metrics, valid_dates, weight_exists = await asyncio.gather(
-            metrics_task, dates_task, weight_entity_task,
-            return_exceptions=True
+            metrics_task, dates_task, weight_entity_task, return_exceptions=True
         )
 
         # Process results with error handling
@@ -1342,8 +1377,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         geofence_valid_task = self._validate_entities_batch(geofence_entities)
 
         valid_gps, valid_geofence = await asyncio.gather(
-            gps_valid_task, geofence_valid_task,
-            return_exceptions=True
+            gps_valid_task, geofence_valid_task, return_exceptions=True
         )
 
         # Build cards based on validation results
@@ -1376,10 +1410,10 @@ class ModuleCardGenerator(BaseCardGenerator):
             history_card = await self.templates.get_history_graph_template(
                 history_entities, "Location History", 24
             )
-            
+
             if history_card and history_card.get("entities"):
                 cards.append(history_card)
-                
+
         except Exception as err:
             _LOGGER.debug("GPS history card generation failed: %s", err)
 
@@ -1417,21 +1451,22 @@ class StatisticsCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in stats_generators),
-                    return_exceptions=True
+                    *(task for _, task in stats_generators), return_exceptions=True
                 ),
-                timeout=CARD_GENERATION_TIMEOUT
+                timeout=CARD_GENERATION_TIMEOUT,
             )
 
             # Process results with error handling
             for (stats_type, _), result in zip(stats_generators, results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning("Statistics card %s generation failed: %s", stats_type, result)
+                    _LOGGER.warning(
+                        "Statistics card %s generation failed: %s", stats_type, result
+                    )
                     self._performance_stats["errors_handled"] += 1
                 elif result is not None:
                     cards.append(result)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Statistics cards generation timeout")
             self._performance_stats["errors_handled"] += 1
 
@@ -1447,7 +1482,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         """Generate optimized activity statistics card."""
         # OPTIMIZED: Build entity list efficiently
         activity_entities = []
-        
+
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
             if dog_id:
@@ -1459,13 +1494,17 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate all activity entities
         valid_entities = await self._validate_entities_batch(activity_entities)
 
-        return {
-            "type": "statistics-graph",
-            "title": "Activity Statistics (30 days)",
-            "entities": valid_entities,
-            "stat_types": ["mean", "min", "max"],
-            "days_to_show": 30,
-        } if valid_entities else None
+        return (
+            {
+                "type": "statistics-graph",
+                "title": "Activity Statistics (30 days)",
+                "entities": valid_entities,
+                "stat_types": ["mean", "min", "max"],
+                "days_to_show": 30,
+            }
+            if valid_entities
+            else None
+        )
 
     async def _generate_feeding_statistics(
         self, dogs_config: list[DogConfigType]
@@ -1484,13 +1523,17 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate feeding entities
         valid_entities = await self._validate_entities_batch(feeding_entities)
 
-        return {
-            "type": "statistics-graph",
-            "title": "Feeding Statistics (30 days)",
-            "entities": valid_entities,
-            "stat_types": ["sum", "mean"],
-            "days_to_show": 30,
-        } if valid_entities else None
+        return (
+            {
+                "type": "statistics-graph",
+                "title": "Feeding Statistics (30 days)",
+                "entities": valid_entities,
+                "stat_types": ["sum", "mean"],
+                "days_to_show": 30,
+            }
+            if valid_entities
+            else None
+        )
 
     async def _generate_walk_statistics(
         self, dogs_config: list[DogConfigType]
@@ -1509,13 +1552,17 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate walk entities
         valid_entities = await self._validate_entities_batch(walk_entities)
 
-        return {
-            "type": "statistics-graph",
-            "title": "Walk Statistics (30 days)",
-            "entities": valid_entities,
-            "stat_types": ["sum", "mean", "max"],
-            "days_to_show": 30,
-        } if valid_entities else None
+        return (
+            {
+                "type": "statistics-graph",
+                "title": "Walk Statistics (30 days)",
+                "entities": valid_entities,
+                "stat_types": ["sum", "mean", "max"],
+                "days_to_show": 30,
+            }
+            if valid_entities
+            else None
+        )
 
     async def _generate_health_statistics(
         self, dogs_config: list[DogConfigType]
@@ -1534,13 +1581,17 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate weight entities
         valid_entities = await self._validate_entities_batch(weight_entities)
 
-        return {
-            "type": "statistics-graph",
-            "title": "Weight Trends (60 days)",
-            "entities": valid_entities,
-            "stat_types": ["mean", "min", "max"],
-            "days_to_show": 60,
-        } if valid_entities else None
+        return (
+            {
+                "type": "statistics-graph",
+                "title": "Weight Trends (60 days)",
+                "entities": valid_entities,
+                "stat_types": ["mean", "min", "max"],
+                "days_to_show": 60,
+            }
+            if valid_entities
+            else None
+        )
 
     def _generate_summary_card(
         self, dogs_config: list[DogConfigType]
@@ -1586,15 +1637,16 @@ async def cleanup_validation_cache() -> None:
     """Clean up global validation cache."""
     global _entity_validation_cache
     current_time = asyncio.get_event_loop().time()
-    
+
     expired_keys = [
-        entity_id for entity_id, (timestamp, _) in _entity_validation_cache.items()
+        entity_id
+        for entity_id, (timestamp, _) in _entity_validation_cache.items()
         if current_time - timestamp > _cache_cleanup_threshold
     ]
-    
+
     for key in expired_keys:
         _entity_validation_cache.pop(key, None)
-        
+
     _LOGGER.debug("Cleaned %d expired entries from validation cache", len(expired_keys))
 
 

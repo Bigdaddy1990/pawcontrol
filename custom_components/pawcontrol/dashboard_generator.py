@@ -11,11 +11,12 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from pathlib import Path
 from typing import Any, Final
-import aiofiles
 
+import aiofiles
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -30,7 +31,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # Dashboard configuration constants
 DASHBOARD_STORAGE_KEY: Final[str] = f"{DOMAIN}_dashboards"
-DASHBOARD_STORAGE_VERSION: Final[int] = 4  # OPTIMIZED: Version bump for performance improvements
+DASHBOARD_STORAGE_VERSION: Final[int] = (
+    4  # OPTIMIZED: Version bump for performance improvements
+)
 DEFAULT_DASHBOARD_TITLE: Final[str] = "🐕 Paw Control"
 DEFAULT_DASHBOARD_ICON: Final[str] = "mdi:dog"
 DEFAULT_DASHBOARD_URL: Final[str] = "paw-control"
@@ -74,7 +77,9 @@ class PawControlDashboardGenerator:
         # OPTIMIZED: Enhanced state management
         self._initialized = False
         self._lock = asyncio.Lock()
-        self._operation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_DASHBOARD_OPERATIONS)
+        self._operation_semaphore = asyncio.Semaphore(
+            MAX_CONCURRENT_DASHBOARD_OPERATIONS
+        )
 
         # OPTIMIZED: Performance monitoring
         self._performance_metrics = {
@@ -116,7 +121,7 @@ class PawControlDashboardGenerator:
                     len(self._dashboards),
                 )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Dashboard generator initialization timeout")
                 await self._cleanup_failed_initialization()
                 raise HomeAssistantError("Dashboard initialization timeout")
@@ -141,7 +146,7 @@ class PawControlDashboardGenerator:
             validation_task = asyncio.create_task(self._validate_stored_dashboards())
             await asyncio.wait_for(validation_task, timeout=10.0)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Dashboard validation timeout, using empty state")
             self._dashboards = {}
         except Exception as err:
@@ -152,7 +157,7 @@ class PawControlDashboardGenerator:
         """Cleanup resources after failed initialization."""
         cleanup_tasks = []
 
-        if hasattr(self, '_renderer'):
+        if hasattr(self, "_renderer"):
             cleanup_tasks.append(self._renderer.cleanup())
 
         if cleanup_tasks:
@@ -179,7 +184,7 @@ class PawControlDashboardGenerator:
                 config_task = asyncio.create_task(
                     self._renderer.render_main_dashboard(dogs_config, options)
                 )
-                
+
                 url_task = asyncio.create_task(
                     self._generate_unique_dashboard_url(options)
                 )
@@ -199,9 +204,9 @@ class PawControlDashboardGenerator:
 
                 if generation_time > PERFORMANCE_LOG_THRESHOLD:
                     _LOGGER.info(
-                        "Dashboard creation took %.2fs for %d dogs", 
-                        generation_time, 
-                        len(dogs_config)
+                        "Dashboard creation took %.2fs for %d dogs",
+                        generation_time,
+                        len(dogs_config),
                     )
 
                 return result_url
@@ -257,7 +262,7 @@ class PawControlDashboardGenerator:
 
                 return f"/{dashboard_url}"
 
-            except Exception as err:
+            except Exception:
                 # OPTIMIZED: Cleanup on failure
                 await self._cleanup_failed_dashboard(dashboard_url)
                 raise
@@ -290,8 +295,9 @@ class PawControlDashboardGenerator:
 
         # OPTIMIZED: Async file writing with proper encoding
         try:
-            async with aiofiles.open(dashboard_file, 'w', encoding='utf-8') as f:
+            async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as f:
                 import json
+
                 json_str = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await f.write(json_str)
 
@@ -301,10 +307,8 @@ class PawControlDashboardGenerator:
         except Exception as err:
             _LOGGER.error("Failed to write dashboard file %s: %s", dashboard_file, err)
             # OPTIMIZED: Cleanup partial file
-            try:
+            with contextlib.suppress(Exception):
                 await asyncio.to_thread(dashboard_file.unlink, missing_ok=True)
-            except Exception:
-                pass
             raise HomeAssistantError(f"Dashboard file creation failed: {err}") from err
 
     async def _store_dashboard_metadata_batch(
@@ -328,9 +332,7 @@ class PawControlDashboardGenerator:
             "version": DASHBOARD_STORAGE_VERSION,
             "performance": {
                 "generation_time": asyncio.get_event_loop().time(),
-                "entity_count": sum(
-                    len(dog.get("modules", {})) for dog in dogs_config
-                ),
+                "entity_count": sum(len(dog.get("modules", {})) for dog in dogs_config),
             },
         }
 
@@ -393,16 +395,27 @@ class PawControlDashboardGenerator:
                     await self._save_dashboard_metadata_async()
 
                 generation_time = asyncio.get_event_loop().time() - start_time
-                await self._update_performance_metrics("dog_generation", generation_time)
+                await self._update_performance_metrics(
+                    "dog_generation", generation_time
+                )
 
-                _LOGGER.info("Created dog dashboard for '%s' at /%s", dog_name, dashboard_url)
+                _LOGGER.info(
+                    "Created dog dashboard for '%s' at /%s", dog_name, dashboard_url
+                )
 
                 return f"/{dashboard_url}"
 
             except Exception as err:
                 self._performance_metrics["errors"] += 1
-                _LOGGER.error("Dog dashboard creation failed for %s: %s", dog_name, err, exc_info=True)
-                raise HomeAssistantError(f"Dog dashboard creation failed: {err}") from err
+                _LOGGER.error(
+                    "Dog dashboard creation failed for %s: %s",
+                    dog_name,
+                    err,
+                    exc_info=True,
+                )
+                raise HomeAssistantError(
+                    f"Dog dashboard creation failed: {err}"
+                ) from err
 
     async def async_update_dashboard(
         self,
@@ -458,12 +471,19 @@ class PawControlDashboardGenerator:
                 update_time = asyncio.get_event_loop().time() - start_time
                 await self._update_performance_metrics("update", update_time)
 
-                _LOGGER.info("Updated dashboard %s in %.2fs", dashboard_url, update_time)
+                _LOGGER.info(
+                    "Updated dashboard %s in %.2fs", dashboard_url, update_time
+                )
                 return True
 
             except Exception as err:
                 self._performance_metrics["errors"] += 1
-                _LOGGER.error("Dashboard update failed for %s: %s", dashboard_url, err, exc_info=True)
+                _LOGGER.error(
+                    "Dashboard update failed for %s: %s",
+                    dashboard_url,
+                    err,
+                    exc_info=True,
+                )
                 return False
 
     async def _update_dashboard_file_async(
@@ -488,8 +508,9 @@ class PawControlDashboardGenerator:
         }
 
         try:
-            async with aiofiles.open(dashboard_path, 'w', encoding='utf-8') as f:
+            async with aiofiles.open(dashboard_path, "w", encoding="utf-8") as f:
                 import json
+
                 json_str = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await f.write(json_str)
 
@@ -521,7 +542,12 @@ class PawControlDashboardGenerator:
 
             except Exception as err:
                 self._performance_metrics["errors"] += 1
-                _LOGGER.error("Dashboard deletion failed for %s: %s", dashboard_url, err, exc_info=True)
+                _LOGGER.error(
+                    "Dashboard deletion failed for %s: %s",
+                    dashboard_url,
+                    err,
+                    exc_info=True,
+                )
                 return False
 
     async def async_batch_update_dashboards(
@@ -538,18 +564,20 @@ class PawControlDashboardGenerator:
         # OPTIMIZED: Process updates in controlled batches
         batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
         for i in range(0, len(updates), batch_size):
-            batch = updates[i:i + batch_size]
-            
+            batch = updates[i : i + batch_size]
+
             # Process batch concurrently
             batch_tasks = [
-                asyncio.create_task(self.async_update_dashboard(url, dogs_config, options))
+                asyncio.create_task(
+                    self.async_update_dashboard(url, dogs_config, options)
+                )
                 for url, dogs_config, options in batch
             ]
 
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
 
             # Process results
-            for (url, _, _), result in zip(batch, batch_results):
+            for (url, _, _), result in zip(batch, batch_results, strict=False):
                 if isinstance(result, Exception):
                     results[url] = False
                     _LOGGER.error("Batch update failed for %s: %s", url, result)
@@ -557,11 +585,7 @@ class PawControlDashboardGenerator:
                     results[url] = result
 
         batch_time = asyncio.get_event_loop().time() - start_time
-        _LOGGER.info(
-            "Batch updated %d dashboards in %.2fs", 
-            len(updates), 
-            batch_time
-        )
+        _LOGGER.info("Batch updated %d dashboards in %.2fs", len(updates), batch_time)
 
         return results
 
@@ -587,14 +611,14 @@ class PawControlDashboardGenerator:
     ) -> None:
         """Update performance metrics with new operation data."""
         self._performance_metrics["total_generations"] += 1
-        
+
         # Update rolling average
         current_avg = self._performance_metrics["avg_generation_time"]
         count = self._performance_metrics["total_generations"]
-        
+
         self._performance_metrics["avg_generation_time"] = (
-            (current_avg * (count - 1) + duration) / count
-        )
+            current_avg * (count - 1) + duration
+        ) / count
 
         # Log slow operations
         if duration > PERFORMANCE_LOG_THRESHOLD:
@@ -627,7 +651,7 @@ class PawControlDashboardGenerator:
         for task in self._cleanup_tasks.copy():
             if not task.done():
                 task.cancel()
-        
+
         # Wait for cancellation
         if self._cleanup_tasks:
             await asyncio.gather(*self._cleanup_tasks, return_exceptions=True)
@@ -658,7 +682,7 @@ class PawControlDashboardGenerator:
             self._dashboards.clear()
 
         # Clean up renderer
-        if hasattr(self, '_renderer'):
+        if hasattr(self, "_renderer"):
             await self._renderer.cleanup()
 
         _LOGGER.info("Dashboard generator cleanup completed")
@@ -683,7 +707,9 @@ class PawControlDashboardGenerator:
         )
 
         # Process results
-        for (url, dashboard_info), result in zip(self._dashboards.items(), validation_results):
+        for (url, dashboard_info), result in zip(
+            self._dashboards.items(), validation_results, strict=False
+        ):
             if isinstance(result, Exception):
                 _LOGGER.warning("Error validating dashboard %s: %s", url, result)
                 invalid_dashboards.append(url)
@@ -749,7 +775,7 @@ class PawControlDashboardGenerator:
         """Get all dashboards with enhanced metadata."""
         dashboards = self._dashboards.copy()
         performance_data = self._get_dashboard_performance_metrics()
-        
+
         for dashboard_info in dashboards.values():
             dashboard_info["system_performance"] = performance_data
 
@@ -771,7 +797,7 @@ class PawControlDashboardGenerator:
         }
 
         # Add renderer stats if available
-        if hasattr(self, '_renderer') and self._renderer:
+        if hasattr(self, "_renderer") and self._renderer:
             try:
                 render_stats = self._renderer.get_render_stats()
                 base_stats["renderer"] = render_stats
@@ -786,11 +812,17 @@ class PawControlDashboardGenerator:
             "avg_generation_time": self._performance_metrics["avg_generation_time"],
             "total_operations": self._performance_metrics["total_generations"],
             "error_rate": (
-                self._performance_metrics["errors"] / 
-                max(self._performance_metrics["total_generations"], 1)
-            ) * 100,
+                self._performance_metrics["errors"]
+                / max(self._performance_metrics["total_generations"], 1)
+            )
+            * 100,
             "cache_efficiency": (
-                self._performance_metrics["cache_hits"] / 
-                max(self._performance_metrics["cache_hits"] + self._performance_metrics["cache_misses"], 1)
-            ) * 100,
+                self._performance_metrics["cache_hits"]
+                / max(
+                    self._performance_metrics["cache_hits"]
+                    + self._performance_metrics["cache_misses"],
+                    1,
+                )
+            )
+            * 100,
         }
