@@ -487,12 +487,13 @@ class PawControlData:
 
     async def async_load_data(self) -> None:
         """Load data with performance monitoring."""
-        start_time = asyncio.get_event_loop().time()
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
 
         try:
             self._data = await self.storage.async_load_all_data()
 
-            load_time = asyncio.get_event_loop().time() - start_time
+            load_time = loop.time() - start_time
             _LOGGER.debug(
                 "Data manager initialized with %d data types in %.2fs",
                 len(self._data),
