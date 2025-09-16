@@ -16,11 +16,24 @@ import logging
 import math
 from collections import deque
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class WeatherCondition(StrEnum):
+    """Enumeration of supported walk weather conditions."""
+
+    SUNNY = "sunny"
+    CLOUDY = "cloudy"
+    RAINY = "rainy"
+    SNOWY = "snowy"
+    WINDY = "windy"
+    HOT = "hot"
+    COLD = "cold"
 
 # OPTIMIZE: Performance constants
 GPS_CACHE_SIZE_LIMIT = 1000
@@ -387,7 +400,13 @@ class WalkManager:
                 _LOGGER.error("Batch location analysis error: %s", err)
 
     async def async_start_walk(
-        self, dog_id: str, walk_type: str = "manual"
+        self,
+        dog_id: str,
+        walk_type: str = "manual",
+        *,
+        walker: str | None = None,
+        leash_used: bool | None = None,
+        weather: WeatherCondition | str | None = None,
     ) -> str | None:
         """Start a walk with optimized data structure.
 
@@ -411,6 +430,19 @@ class WalkManager:
 
             now = dt_util.now()
             walk_id = f"{dog_id}_{int(now.timestamp())}"
+
+            weather_condition: WeatherCondition | None = None
+            if isinstance(weather, WeatherCondition):
+                weather_condition = weather
+            elif isinstance(weather, str):
+                try:
+                    weather_condition = WeatherCondition(weather)
+                except ValueError:
+                    _LOGGER.warning(
+                        "Ignoring unknown weather condition '%s' for %s", weather, dog_id
+                    )
+
+            leash_flag = True if leash_used is None else bool(leash_used)
 
             # OPTIMIZE: Get current location from cache first
             start_location = None
@@ -448,6 +480,11 @@ class WalkManager:
                 "calories_burned": None,
                 "elevation_gain": 0.0,  # OPTIMIZE: Added elevation tracking
                 "path_optimization_applied": False,  # Track if path was optimized
+                "walker": walker,
+                "leash_used": leash_flag,
+                "weather": weather_condition.value if weather_condition else None,
+                "notes": None,
+                "dog_weight_kg": None,
             }
 
             self._current_walks[dog_id] = walk_data
@@ -456,10 +493,24 @@ class WalkManager:
             self._walk_data[dog_id]["walk_in_progress"] = True
             self._walk_data[dog_id]["current_walk"] = walk_data
 
-            _LOGGER.info("Started %s walk for %s (ID: %s)", walk_type, dog_id, walk_id)
+            _LOGGER.info(
+                "Started %s walk for %s (ID: %s, walker: %s, weather: %s, leash_used: %s)",
+                walk_type,
+                dog_id,
+                walk_id,
+                walker or "unknown",
+                weather_condition.value if weather_condition else "unspecified",
+                "yes" if leash_flag else "no",
+            )
             return walk_id
 
-    async def async_end_walk(self, dog_id: str) -> dict[str, Any] | None:
+    async def async_end_walk(
+        self,
+        dog_id: str,
+        *,
+        notes: str | None = None,
+        dog_weight_kg: float | None = None,
+    ) -> dict[str, Any] | None:
         """End the current walk with optimized statistics calculation.
 
         OPTIMIZE: Enhanced with batch statistics calculation and path optimization.
@@ -477,6 +528,11 @@ class WalkManager:
 
             now = dt_util.now()
             walk_data = self._current_walks[dog_id]
+
+            if notes is not None:
+                walk_data["notes"] = notes
+            if dog_weight_kg is not None:
+                walk_data["dog_weight_kg"] = dog_weight_kg
 
             # OPTIMIZE: Get end location from cache if available
             end_location = None
@@ -1033,7 +1089,10 @@ class WalkManager:
             return None
 
         # Enhanced calorie estimation with elevation
-        estimated_weight = 20.0  # kg (would get from dog config)
+        weight = walk_data.get("dog_weight_kg")
+        estimated_weight = (
+            float(weight) if isinstance(weight, int | float) and weight > 0 else 20.0
+        )
         duration_minutes = walk_data["duration"] / 60
         base_calories = estimated_weight * duration_minutes * 0.5
 
