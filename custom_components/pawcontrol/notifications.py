@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -928,10 +928,12 @@ class PawControlNotificationManager:
             notification: Notification to send
         """
         # Send to all channels in parallel
-        send_tasks = []
+        send_tasks: list[Awaitable[None]] = []
+        task_channels: list[NotificationChannel] = []
         for channel in notification.channels:
             handler = self._handlers.get(channel)
             if handler:
+                task_channels.append(channel)
                 send_tasks.append(
                     self._send_to_channel_safe(notification, channel, handler)
                 )
@@ -944,9 +946,8 @@ class PawControlNotificationManager:
             results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
             # Process results
-            for i, result in enumerate(results):
+            for channel, result in zip(task_channels, results, strict=True):
                 if isinstance(result, Exception):
-                    channel = notification.channels[i]
                     _LOGGER.error(
                         "Failed to send notification %s to channel %s: %s",
                         notification.id,

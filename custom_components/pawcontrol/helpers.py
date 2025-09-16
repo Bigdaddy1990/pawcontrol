@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Deque
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
@@ -497,7 +496,7 @@ class PawControlData:
         self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
 
         # OPTIMIZATION: Event queue for batch processing
-        self._event_queue: Deque[dict[str, Any]] = deque(maxlen=1000)
+        self._event_queue: deque[dict[str, Any]] = deque(maxlen=1000)
         self._event_task: asyncio.Task | None = None
         self._valid_dog_ids: set[str] | None = None
 
@@ -724,10 +723,10 @@ class PawControlNotificationManager:
         self.config_entry = config_entry
 
         # OPTIMIZATION: Use deque for efficient queue operations
-        self._notification_queue: Deque[dict[str, Any]] = deque(
+        self._notification_queue: deque[dict[str, Any]] = deque(
             maxlen=MAX_NOTIFICATION_QUEUE
         )
-        self._high_priority_queue: Deque[dict[str, Any]] = deque(
+        self._high_priority_queue: deque[dict[str, Any]] = deque(
             maxlen=50
         )  # Separate urgent queue
 
@@ -951,7 +950,7 @@ class PerformanceMonitor:
             "avg_operation_time": 0.0,
             "last_cleanup": None,
         }
-        self._operation_times: Deque[float] = deque(maxlen=100)
+        self._operation_times: deque[float] = deque(maxlen=100)
 
     def record_operation(self, operation_time: float, success: bool = True) -> None:
         """Record an operation."""
