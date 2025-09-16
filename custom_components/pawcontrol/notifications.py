@@ -946,7 +946,7 @@ class PawControlNotificationManager:
             results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
             # Process results
-            for channel, result in zip(task_channels, results, strict=False):
+            for channel, result in zip(task_channels, results, strict=True):
                 if isinstance(result, Exception):
                     _LOGGER.error(
                         "Failed to send notification %s to channel %s: %s",
