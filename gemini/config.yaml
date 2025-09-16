@@ -1,0 +1,29 @@
+# Gemini Code Assist configuration tuned for the PawControl Home Assistant integration.
+have_fun: false
+ignore_patterns:
+  - "assets/**"
+  - "docs/**/*.png"
+  - "docs/**/*.jpg"
+  - "docs/**/*.jpeg"
+  - "docs/**/*.gif"
+  - "docs/**/*.svg"
+  - "docs/**/*.webp"
+  - "docs/**/*.mp4"
+  - "docs/**/*.mov"
+  - "docs/**/*.pdf"
+  - "docs/**/*.zip"
+  - "docs/**/*.tar*"
+  - "docs/**/*.ico"
+  - "tests/fixtures/**"
+  - "**/.pytest_cache/**"
+  - "**/__pycache__/**"
+  - "htmlcov/**"
+code_review:
+  disable: false
+  comment_severity_threshold: MEDIUM
+  max_review_comments: 30
+pull_request_opened:
+  help: true
+  summary: true
+  code_review: true
+  include_drafts: true
