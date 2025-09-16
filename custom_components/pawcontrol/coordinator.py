@@ -79,6 +79,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # OPTIMIZE: Initialize external API flag BEFORE super().__init__() to prevent AttributeError
         self._use_external_api = False
 
+        # OPTIMIZE: Prepare caches before calculating interval
+        self._interval_cache: dict[str, int] = {}
+
         # Calculate optimized update interval
         update_interval = self._calculate_optimized_update_interval()
 
@@ -107,9 +110,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Track maintenance task unsubscriber
         self._unsub_maintenance: Callable[[], None] | None = None
-
-        # OPTIMIZE: Add interval cache with size limit
-        self._interval_cache: dict[str, int] = {}
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, session=%s",

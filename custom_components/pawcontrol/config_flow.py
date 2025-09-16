@@ -156,6 +156,37 @@ PROFILE_SCHEMA = vol.Schema(
 )
 
 
+class DogValidationError(Exception):
+    """Raised when validating a dog configuration fails."""
+
+    def __init__(
+        self,
+        *,
+        field_errors: dict[str, str] | None = None,
+        base_errors: list[str] | None = None,
+    ) -> None:
+        """Store validation errors for later conversion to form errors."""
+
+        self.field_errors = field_errors or {}
+        self.base_errors = base_errors or []
+
+        message_parts: list[str] = []
+        message_parts.extend(self.field_errors.values())
+        message_parts.extend(self.base_errors)
+        super().__init__("; ".join(message_parts) or "Invalid dog configuration")
+
+    def as_form_errors(self) -> dict[str, str]:
+        """Return errors in the format expected by Home Assistant forms."""
+
+        if self.field_errors:
+            return dict(self.field_errors)
+
+        if self.base_errors:
+            return {"base": self.base_errors[0]}
+
+        return {"base": "invalid_dog_data"}
+
+
 class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     """Enhanced configuration flow for Paw Control integration.
 
@@ -540,9 +571,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         self._invalidate_profile_caches()
                         return await self.async_step_dog_modules()
 
-                except ValueError as err:
-                    _LOGGER.warning("Dog validation failed: %s", err)
-                    errors["base"] = "invalid_dog_data"
+                except DogValidationError as err:
+                    errors.update(err.as_form_errors())
+                    if "base" not in errors:
+                        _LOGGER.warning("Dog validation failed: %s", err)
+                    else:
+                        _LOGGER.warning("Dog validation failed: %s", errors["base"])
                 except Exception as err:
                     _LOGGER.error("Unexpected error during dog validation: %s", err)
                     errors["base"] = "unknown_error"
@@ -593,7 +627,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         try:
             result = await self._validate_dog_input_optimized(user_input)
-        except ValueError:
+        except DogValidationError:
             config_flow_monitor.record_validation("dog_input_error")
             raise
 
@@ -670,43 +704,45 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         dog_name = user_input[CONF_DOG_NAME].strip()
 
         # Batch validation for better performance
-        validation_errors = []
+        field_errors: dict[str, str] = {}
+        base_errors: list[str] = []
 
         # Validate dog ID format (pre-compiled regex)
         if not DOG_ID_PATTERN.match(dog_id):
-            validation_errors.append(
-                "Dog ID must start with letter and contain only lowercase letters, numbers, and underscores"
-            )
+            field_errors[CONF_DOG_ID] = "Invalid ID format"
 
         # Check for duplicate dog ID (O(1) set lookup)
         if dog_id in self._existing_dog_ids:
-            validation_errors.append("Dog ID already exists")
+            field_errors.setdefault(CONF_DOG_ID, "ID already exists")
 
         # Validate dog name length
         name_len = len(dog_name)
         if name_len < MIN_DOG_NAME_LENGTH:
-            validation_errors.append(
+            field_errors[CONF_DOG_NAME] = (
                 f"Dog name must be at least {MIN_DOG_NAME_LENGTH} characters"
             )
         elif name_len > MAX_DOG_NAME_LENGTH:
-            validation_errors.append(
+            field_errors[CONF_DOG_NAME] = (
                 f"Dog name cannot exceed {MAX_DOG_NAME_LENGTH} characters"
             )
 
         # Check maximum dogs limit
         if len(self._dogs) >= MAX_DOGS_PER_INTEGRATION:
-            validation_errors.append(
+            base_errors.append(
                 f"Maximum {MAX_DOGS_PER_INTEGRATION} dogs allowed per integration"
             )
 
         # Validate dog size (O(1) frozenset lookup)
         dog_size = user_input.get(CONF_DOG_SIZE, "medium")
         if dog_size not in VALID_DOG_SIZES:
-            validation_errors.append(f"Invalid dog size: {dog_size}")
+            field_errors[CONF_DOG_SIZE] = f"Invalid dog size: {dog_size}"
 
         # Raise single error with all issues
-        if validation_errors:
-            raise ValueError("; ".join(validation_errors))
+        if field_errors or base_errors:
+            raise DogValidationError(
+                field_errors=field_errors,
+                base_errors=base_errors,
+            )
 
         # Return validated data
         return {
@@ -1073,7 +1109,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "name": self._integration_name,
             CONF_DOGS: self._dogs,
             "entity_profile": self._entity_profile,
-            "setup_timestamp": self.hass.helpers.utcnow().isoformat(),
+            "setup_timestamp": dt_util.utcnow().isoformat(),
         }
 
         # Add discovery info if available
@@ -1098,12 +1134,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Entry title
         """
-        dog_count = len(self._dogs)
-        if dog_count == 1:
-            dog_name = self._dogs[0][CONF_DOG_NAME]
-            return f"PawControl - {dog_name} ({profile_info['name']})"
-        else:
-            return f"PawControl - {dog_count} dogs ({profile_info['name']})"
+        return f"Paw Control ({profile_info['name']})"
 
     def _estimate_total_entities(self) -> int:
         """Estimate total entities with caching.
@@ -1211,7 +1242,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     return self.async_update_reload_and_abort(
                         self.reauth_entry,
                         data_updates={
-                            "reauth_timestamp": self.hass.helpers.utcnow().isoformat(),
+                            "reauth_timestamp": dt_util.utcnow().isoformat(),
                         },
                     )
                 except Exception as err:
@@ -1308,11 +1339,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     entry,
                     data_updates={
                         "entity_profile": new_profile,
-                        "reconfigure_timestamp": self.hass.helpers.utcnow().isoformat(),
+                        "reconfigure_timestamp": dt_util.utcnow().isoformat(),
                     },
                     options_updates={
                         "entity_profile": new_profile,
-                        "last_reconfigure": self.hass.helpers.utcnow().isoformat(),
+                        "last_reconfigure": dt_util.utcnow().isoformat(),
                     },
                 )
 
