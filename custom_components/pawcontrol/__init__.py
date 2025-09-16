@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Final
+from typing import Any, Awaitable, Callable, Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -326,15 +326,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 f"Unexpected platform setup error: {err}"
             ) from err
 
-    # OPTIMIZE: Initialize optional services with error isolation (non-critical)
-    try:
-        PawControlServiceManager(hass)
-        await async_setup_daily_reset_scheduler(hass, entry)
-        _LOGGER.debug("Optional services initialized successfully")
-    except Exception as err:
-        _LOGGER.warning("Failed to initialize optional services: %s", err)
-        # Continue setup even if services fail
-
     # Store runtime data in typed ConfigEntry - Platinum compliance
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
@@ -357,6 +348,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     entry.runtime_data = runtime_data
 
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    entry_data = {
+        "coordinator": coordinator,
+        "data_manager": data_manager,
+        "notification_manager": notification_manager,
+        "feeding_manager": feeding_manager,
+        "walk_manager": walk_manager,
+        "entity_factory": entity_factory,
+        "dogs": dogs_config,
+        "entity_profile": profile,
+        "runtime_data": runtime_data,
+    }
+    domain_data[entry.entry_id] = entry_data
+    domain_data["coordinator"] = coordinator
+    domain_data["data_manager"] = data_manager
+    domain_data["notification_manager"] = notification_manager
+    domain_data["feeding_manager"] = feeding_manager
+    domain_data["walk_manager"] = walk_manager
+    domain_data["entity_factory"] = entity_factory
+    domain_data["dogs"] = dogs_config
+    domain_data["entity_profile"] = profile
+    domain_data["runtime_data"] = runtime_data
+
+    # OPTIMIZE: Initialize optional services with error isolation (non-critical)
+    try:
+        PawControlServiceManager(hass)
+        reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
+        if reset_unsub is not None:
+            entry_data["daily_reset_unsub"] = reset_unsub
+        _LOGGER.debug("Optional services initialized successfully")
+    except Exception as err:
+        _LOGGER.warning("Failed to initialize optional services: %s", err)
+        # Continue setup even if services fail
+
     # Start background tasks for coordinator
     coordinator.async_start_background_tasks()
 
@@ -372,7 +397,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
 
 async def _initialize_manager_with_retry(
-    init_func: callable,
+    init_func: Callable[[], Awaitable[Any]],
     manager_name: str,
     max_retries: int,
 ) -> None:
@@ -388,7 +413,7 @@ async def _initialize_manager_with_retry(
     Raises:
         Exception: If all retries fail
     """
-    last_exception = None
+    last_exception: Exception | None = None
 
     for attempt in range(max_retries + 1):
         try:
@@ -616,6 +641,32 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Clear function caches
     if hasattr(_calculate_entity_count_cached, "cache"):
         _calculate_entity_count_cached.cache.clear()
+
+    domain_data = hass.data.get(DOMAIN)
+    if domain_data is not None:
+        entry_store = domain_data.pop(entry.entry_id, None)
+        if entry_store and (unsub := entry_store.get("daily_reset_unsub")):
+            try:
+                unsub()
+            except Exception as err:  # pragma: no cover - best effort cleanup
+                _LOGGER.debug("Error unsubscribing daily reset listener: %s", err)
+
+        manager = domain_data.get("service_manager")
+        if isinstance(manager, PawControlServiceManager):
+            await manager.async_shutdown()
+
+        for key in (
+            "coordinator",
+            "data_manager",
+            "notification_manager",
+            "feeding_manager",
+            "walk_manager",
+            "entity_factory",
+            "dogs",
+            "entity_profile",
+            "runtime_data",
+        ):
+            domain_data.pop(key, None)
 
     _LOGGER.info(
         "PawControl unload completed: success=%s, platforms=%d, dogs=%d",
