@@ -58,6 +58,8 @@ def test_get_platforms_sorted_deterministically() -> None:
         Platform.DATETIME,
         Platform.TEXT,
     }
-    expected_order = tuple(sorted(expected_platforms, key=lambda platform: platform.value))
+    expected_order = tuple(
+        sorted(expected_platforms, key=lambda platform: platform.value)
+    )
 
     assert result == expected_order
