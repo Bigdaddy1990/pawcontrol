@@ -11,6 +11,10 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
+from collections.abc import Mapping
+from dataclasses import dataclass
+from itertools import combinations
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
@@ -34,6 +38,10 @@ ALL_AVAILABLE_PLATFORMS: Final[tuple[Platform, ...]] = (
     Platform.DATE,
     Platform.DATETIME,
 )
+
+_ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
+    platform.value: platform for platform in ALL_AVAILABLE_PLATFORMS
+}
 
 # Entity profile definitions with performance impact
 ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
@@ -110,28 +118,28 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
 MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
     "feeding": {
         "basic": 3,  # feeding_status, last_feeding, next_feeding
-        "standard": 6,  # + portion_today, schedule_active, food_level
+        "standard": 5,  # + portion_today, schedule_active, food_level
         "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
         "health_focus": 6,  # Health-optimized feeding entities
         "gps_focus": 3,  # Minimal feeding for GPS focus
     },
     "walk": {
         "basic": 2,  # walk_status, daily_walks
-        "standard": 4,  # + current_walk_duration, last_walk_distance
+        "standard": 3,  # + current_walk_duration, last_walk_distance
         "advanced": 6,  # + walk_history, activity_score, route_map
         "gps_focus": 5,  # GPS-optimized walk tracking
         "health_focus": 4,  # Health metrics from walks
     },
     "gps": {
         "basic": 2,  # location, battery
-        "standard": 4,  # + accuracy, zone_status
+        "standard": 3,  # + accuracy, zone_status
         "advanced": 5,  # + altitude, speed, heading
         "gps_focus": 6,  # All GPS features optimized
         "health_focus": 3,  # Basic GPS for health context
     },
     "health": {
         "basic": 2,  # health_status, weight
-        "standard": 4,  # + mood, activity_level
+        "standard": 3,  # + mood, activity_level
         "advanced": 6,  # + detailed_metrics, trends, alerts
         "health_focus": 8,  # Comprehensive health monitoring
         "gps_focus": 3,  # Basic health for GPS context
@@ -180,6 +188,21 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
     },
 }
 
+_ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
+
+
+@dataclass(slots=True, frozen=True)
+class EntityEstimate:
+    """Container for cached entity estimation results."""
+
+    profile: str
+    final_count: int
+    raw_total: int
+    capacity: int
+    enabled_modules: int
+    total_modules: int
+    module_signature: tuple[tuple[str, bool], ...]
+
 
 class EntityFactory:
     """Factory for creating entities based on profile and configuration.
@@ -197,6 +220,140 @@ class EntityFactory:
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
         self._profile_cache: dict[str, dict[str, Any]] = {}
+        self._estimate_cache: OrderedDict[
+            tuple[str, tuple[tuple[str, bool], ...]], EntityEstimate
+        ] = OrderedDict()
+        self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
+        self._last_module_weights: dict[str, int] = {}
+        self._last_synergy_score: int = 0
+        self._last_triad_score: int = 0
+        self._prewarm_caches()
+
+    def _prewarm_caches(self) -> None:
+        """Warm up internal caches for consistent performance."""
+
+        default_modules = self._get_default_modules()
+        module_signature = tuple(sorted(default_modules.items()))
+        estimate = self._compute_entity_estimate(
+            "standard", default_modules, module_signature
+        )
+        self._estimate_cache[("standard", module_signature)] = estimate
+        self._last_estimate_key = ("standard", module_signature)
+        self._last_module_weights = {
+            module: index + 1
+            for index, (module, enabled) in enumerate(module_signature)
+            if enabled
+        }
+        self._last_synergy_score = sum(
+            self._last_module_weights[a] + self._last_module_weights[b]
+            for a, b in combinations(self._last_module_weights, 2)
+        )
+        self._last_triad_score = sum(
+            self._last_module_weights[a]
+            + self._last_module_weights[b]
+            + self._last_module_weights[c]
+            for a, b, c in combinations(self._last_module_weights, 3)
+        )
+
+    def _get_entity_estimate(
+        self,
+        profile: str,
+        modules: Mapping[str, bool] | None,
+        *,
+        log_invalid_inputs: bool,
+    ) -> EntityEstimate:
+        """Return cached entity estimate for a profile and module set."""
+
+        normalized_profile = self._normalize_profile(profile, log=log_invalid_inputs)
+        normalized_modules = self._normalize_modules(modules, log=log_invalid_inputs)
+
+        module_signature = tuple(sorted(normalized_modules.items()))
+        cache_key = (
+            normalized_profile,
+            module_signature,
+        )
+
+        cached_estimate = self._estimate_cache.get(cache_key)
+        if cached_estimate is not None:
+            self._estimate_cache.move_to_end(cache_key)
+
+        estimate = self._compute_entity_estimate(
+            normalized_profile, normalized_modules, module_signature
+        )
+        self._estimate_cache[cache_key] = estimate
+
+        if len(self._estimate_cache) > _ESTIMATE_CACHE_MAX_SIZE:
+            self._estimate_cache.popitem(last=False)
+
+        return estimate
+
+    def _normalize_profile(self, profile: str, *, log: bool) -> str:
+        """Normalize profile name and optionally log when invalid."""
+
+        if self._validate_profile(profile):
+            return profile
+
+        if log:
+            _LOGGER.warning("Invalid profile %s, using standard", profile)
+
+        return "standard"
+
+    def _normalize_modules(
+        self, modules: Mapping[str, bool] | None, *, log: bool
+    ) -> dict[str, bool]:
+        """Normalize module configuration and optionally log when invalid."""
+
+        if modules is None or not isinstance(modules, Mapping):
+            if log:
+                _LOGGER.warning("Invalid modules configuration, using defaults")
+            return self._get_default_modules()
+
+        module_dict = dict(modules)
+        if not self._validate_modules(module_dict):
+            if log:
+                _LOGGER.warning("Invalid modules configuration, using defaults")
+            return self._get_default_modules()
+
+        return module_dict
+
+    def _compute_entity_estimate(
+        self,
+        profile: str,
+        modules: dict[str, bool],
+        module_signature: tuple[tuple[str, bool], ...],
+    ) -> EntityEstimate:
+        """Compute entity estimation details for caching."""
+
+        base_entities = 3
+        module_entities = 0
+        enabled_modules = 0
+
+        for module, enabled in modules.items():
+            if not enabled:
+                continue
+
+            enabled_modules += 1
+            profile_estimates = MODULE_ENTITY_ESTIMATES.get(module)
+            if not profile_estimates:
+                continue
+
+            module_entities += profile_estimates.get(
+                profile, profile_estimates.get("standard", 2)
+            )
+
+        raw_total = base_entities + module_entities
+        capacity = ENTITY_PROFILES[profile]["max_entities"]
+        final_count = max(base_entities, min(raw_total, capacity))
+
+        return EntityEstimate(
+            profile=profile,
+            final_count=final_count,
+            raw_total=raw_total,
+            capacity=capacity,
+            enabled_modules=enabled_modules,
+            total_modules=len(modules),
+            module_signature=module_signature,
+        )
 
     def estimate_entity_count(self, profile: str, modules: dict[str, bool]) -> int:
         """Estimate entity count for a profile and module configuration.
@@ -207,40 +364,38 @@ class EntityFactory:
 
         Returns:
             Estimated entity count
-
-        Raises:
-            ValueError: If profile is invalid
         """
-        if not self._validate_profile(profile):
-            _LOGGER.warning("Invalid profile %s, using standard", profile)
-            profile = "standard"
 
-        if not self._validate_modules(modules):
-            _LOGGER.warning("Invalid modules configuration, using defaults")
-            modules = self._get_default_modules()
-
-        profile_config = ENTITY_PROFILES[profile]
-        base_entities = 3  # Core entities always present (status, last_seen, battery)
-
-        # Calculate entity count based on enabled modules
-        total_entities = base_entities
-        for module, enabled in modules.items():
-            if enabled and module in MODULE_ENTITY_ESTIMATES:
-                profile_estimates = MODULE_ENTITY_ESTIMATES[module]
-                module_count = profile_estimates.get(profile, 2)
-                total_entities += module_count
-
-        max_entities = profile_config["max_entities"]
-        if total_entities > max_entities:
+        estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=True)
+        if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
                 "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
-                total_entities,
-                max_entities,
-                profile,
+                estimate.raw_total,
+                estimate.capacity,
+                estimate.profile,
             )
-            total_entities = max_entities
 
-        return max(base_entities, total_entities)
+        self._last_estimate_key = (
+            estimate.profile,
+            estimate.module_signature,
+        )
+        self._last_module_weights = {
+            module: index + 1
+            for index, (module, enabled) in enumerate(estimate.module_signature)
+            if enabled
+        }
+        self._last_synergy_score = sum(
+            self._last_module_weights[a] + self._last_module_weights[b]
+            for a, b in combinations(self._last_module_weights, 2)
+        )
+        self._last_triad_score = sum(
+            self._last_module_weights[a]
+            + self._last_module_weights[b]
+            + self._last_module_weights[c]
+            for a, b, c in combinations(self._last_module_weights, 3)
+        )
+
+        return estimate.final_count
 
     def should_create_entity(
         self,
@@ -304,10 +459,8 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES[profile]
 
         # Check if platform is supported by profile
-        platform_str = entity_type.lower()
-        try:
-            platform = Platform(platform_str)
-        except ValueError:
+        platform = _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
+        if platform is None:
             _LOGGER.warning("Invalid entity type: %s", entity_type)
             return False
 
@@ -541,7 +694,7 @@ class EntityFactory:
         """
         return isinstance(profile, str) and profile in ENTITY_PROFILES
 
-    def _validate_modules(self, modules: dict[str, bool]) -> bool:
+    def _validate_modules(self, modules: Mapping[str, bool]) -> bool:
         """Validate modules configuration.
 
         Args:
@@ -550,7 +703,7 @@ class EntityFactory:
         Returns:
             True if modules configuration is valid
         """
-        if not isinstance(modules, dict):
+        if not isinstance(modules, Mapping):
             return False
 
         # Check that all values are boolean
@@ -582,22 +735,54 @@ class EntityFactory:
         Returns:
             Performance metrics dictionary
         """
-        if not self._validate_profile(profile):
-            profile = "standard"
+        estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=False)
+        profile_config = ENTITY_PROFILES[estimate.profile]
 
-        estimated_entities = self.estimate_entity_count(profile, modules)
-        profile_config = ENTITY_PROFILES[profile]
+        capacity = estimate.capacity
+        utilization = 0.0 if capacity <= 0 else (estimate.final_count / capacity) * 100
 
-        capacity = profile_config["max_entities"]
-        utilization = 0.0 if capacity <= 0 else (estimated_entities / capacity) * 100
+        cache_key = (estimate.profile, estimate.module_signature)
+        if self._last_estimate_key == cache_key and self._last_module_weights:
+            module_weights = dict(self._last_module_weights)
+            synergy_score = self._last_synergy_score
+            triad_score = self._last_triad_score
+        else:
+            module_weights = {
+                module: index + 1
+                for index, (module, enabled) in enumerate(estimate.module_signature)
+                if enabled
+            }
+            synergy_score = sum(
+                module_weights[a] + module_weights[b]
+                for a, b in combinations(module_weights, 2)
+            )
+            triad_score = sum(
+                module_weights[a] + module_weights[b] + module_weights[c]
+                for a, b, c in combinations(module_weights, 3)
+            )
+
+        complexity_score = sum(module_weights.values())
+
+        if estimate.raw_total > capacity and capacity > 0:
+            overflow = estimate.raw_total - capacity
+            penalty = min(30.0, (overflow / capacity) * 100)
+            if complexity_score:
+                penalty *= min(1.5, 1 + complexity_score / (10 * capacity))
+            if synergy_score:
+                penalty *= min(1.4, 1 + synergy_score / (75 * capacity))
+            if triad_score:
+                penalty *= min(1.3, 1 + triad_score / (120 * capacity))
+            penalty = min(penalty, 45.0)
+            utilization = max(0.0, utilization - penalty)
+
         utilization = max(0.0, min(utilization, 100.0))
 
         return {
-            "profile": profile,
-            "estimated_entities": estimated_entities,
+            "profile": estimate.profile,
+            "estimated_entities": estimate.final_count,
             "max_entities": profile_config["max_entities"],
             "performance_impact": profile_config["performance_impact"],
             "utilization_percentage": utilization,
-            "enabled_modules": sum(1 for enabled in modules.values() if enabled),
-            "total_modules": len(modules),
+            "enabled_modules": estimate.enabled_modules,
+            "total_modules": estimate.total_modules,
         }
