@@ -58,7 +58,17 @@ VALID_NOTIFICATION_PRIORITIES: frozenset[str] = frozenset(
     ["low", "normal", "high", "urgent"]
 )
 VALID_NOTIFICATION_CHANNELS: frozenset[str] = frozenset(
-    ["mobile", "persistent", "email", "slack"]
+    [
+        "mobile",
+        "persistent",
+        "email",
+        "sms",
+        "webhook",
+        "tts",
+        "media_player",
+        "slack",
+        "discord",
+    ]
 )
 
 # Type aliases for better readability and performance
