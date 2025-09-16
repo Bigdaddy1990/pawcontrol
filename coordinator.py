@@ -673,7 +673,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, dog_ids: list[str], priority: int = 5
     ) -> None:
         """Request selective refresh for specific dogs.
-        
+
         ADDED: This method was called by button.py but was missing.
 
         Args:
@@ -681,9 +681,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             priority: Update priority (higher = more urgent)
         """
         _LOGGER.debug(
-            "Selective refresh requested for dogs: %s (priority: %d)", 
-            dog_ids, 
-            priority
+            "Selective refresh requested for dogs: %s (priority: %d)", dog_ids, priority
         )
 
         # For now, trigger a full refresh

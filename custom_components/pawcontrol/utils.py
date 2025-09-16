@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import re
 from collections.abc import Mapping, Sequence
@@ -56,14 +57,17 @@ def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
     if kwargs.get("breed"):
         device_info["model"] = f"Virtual Dog ({kwargs['breed']})"
 
-    if kwargs.get("microchip_id"):
-        device_info["identifiers"].add(("microchip", kwargs["microchip_id"]))
+    microchip_id = kwargs.get("microchip_id")
+    if microchip_id is not None:
+        sanitized_microchip = sanitize_microchip_id(str(microchip_id))
+        if sanitized_microchip:
+            device_info["identifiers"].add(("microchip", sanitized_microchip))
 
     if kwargs.get("serial_number"):
-        device_info["serial_number"] = kwargs["serial_number"]
+        device_info["serial_number"] = str(kwargs["serial_number"])
 
     if kwargs.get("hw_version"):
-        device_info["hw_version"] = kwargs["hw_version"]
+        device_info["hw_version"] = str(kwargs["hw_version"])
 
     if "configuration_url" in kwargs:
         device_info["configuration_url"] = kwargs["configuration_url"]
@@ -203,16 +207,22 @@ def sanitize_dog_id(dog_id: str) -> str:
     """
     # Convert to lowercase and replace invalid characters
     sanitized = re.sub(r"[^a-z0-9_]", "_", dog_id.lower())
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
 
-    # Ensure it starts with a letter
-    if sanitized and not sanitized[0].isalpha():
+    if not sanitized:
+        digest = hashlib.sha256(dog_id.encode("utf-8", "ignore")).hexdigest()
+        sanitized = f"dog_{digest[:8]}"
+    elif not sanitized[0].isalpha():
         sanitized = f"dog_{sanitized}"
 
-    # Remove consecutive underscores
-    sanitized = re.sub(r"_+", "_", sanitized)
+    return sanitized
 
-    # Remove leading/trailing underscores
-    return sanitized.strip("_")
+
+def sanitize_microchip_id(microchip_id: str) -> str | None:
+    """Normalize microchip identifiers for consistent device registry entries."""
+
+    sanitized = re.sub(r"[^A-Za-z0-9]", "", microchip_id).upper()
+    return sanitized or None
 
 
 def format_duration(seconds: int | float) -> str:

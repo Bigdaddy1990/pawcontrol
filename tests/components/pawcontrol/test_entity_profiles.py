@@ -73,7 +73,13 @@ class TestEntityProfiles:
 
     def test_all_profiles_available(self, entity_factory: EntityFactory) -> None:
         """Test that all expected profiles are available."""
-        expected_profiles = ["basic", "standard", "advanced", "gps_focus", "health_focus"]
+        expected_profiles = [
+            "basic",
+            "standard",
+            "advanced",
+            "gps_focus",
+            "health_focus",
+        ]
         available_profiles = entity_factory.get_available_profiles()
 
         assert len(available_profiles) == len(expected_profiles)
@@ -98,7 +104,7 @@ class TestEntityProfiles:
             assert isinstance(info["max_entities"], int)
             assert info["max_entities"] > 0
             assert info["performance_impact"] in ["minimal", "low", "medium"]
-            assert isinstance(info["platforms"], (list, tuple))
+            assert isinstance(info["platforms"], list | tuple)
             assert isinstance(info["priority_threshold"], int)
 
     @pytest.mark.parametrize(
@@ -164,7 +170,9 @@ class TestEntityProfiles:
             "notifications": True,
         }
 
-        count_minimal = entity_factory.estimate_entity_count("standard", minimal_modules)
+        count_minimal = entity_factory.estimate_entity_count(
+            "standard", minimal_modules
+        )
         count_many = entity_factory.estimate_entity_count("standard", many_modules)
 
         # More modules should result in more entities
@@ -174,8 +182,12 @@ class TestEntityProfiles:
         self, entity_factory: EntityFactory, sample_modules_gps: dict[str, bool]
     ) -> None:
         """Test that GPS focus profile optimizes for GPS modules."""
-        gps_count = entity_factory.estimate_entity_count("gps_focus", sample_modules_gps)
-        standard_count = entity_factory.estimate_entity_count("standard", sample_modules_gps)
+        gps_count = entity_factory.estimate_entity_count(
+            "gps_focus", sample_modules_gps
+        )
+        standard_count = entity_factory.estimate_entity_count(
+            "standard", sample_modules_gps
+        )
 
         # GPS focus should be efficient for GPS-heavy configurations
         assert gps_count <= 10  # Within profile limit
@@ -247,7 +259,9 @@ class TestEntityProfiles:
         assert device_tracker_priority == 1
         assert sensor_priority <= 3  # Also high priority
 
-    def test_health_focus_platform_priorities(self, entity_factory: EntityFactory) -> None:
+    def test_health_focus_platform_priorities(
+        self, entity_factory: EntityFactory
+    ) -> None:
         """Test that health focus profile prioritizes health-related platforms."""
         sensor_priority = entity_factory.get_platform_priority(
             Platform.SENSOR, "health_focus"
@@ -296,7 +310,9 @@ class TestEntityProfiles:
 
         assert config is None  # Should be filtered out
 
-    def test_profile_validation_for_modules(self, entity_factory: EntityFactory) -> None:
+    def test_profile_validation_for_modules(
+        self, entity_factory: EntityFactory
+    ) -> None:
         """Test profile validation for module combinations."""
         # GPS focus should be suitable for GPS-heavy modules
         gps_modules = {
@@ -316,7 +332,9 @@ class TestEntityProfiles:
             "gps": False,
             "walk": False,
         }
-        assert entity_factory.validate_profile_for_modules("health_focus", health_modules)
+        assert entity_factory.validate_profile_for_modules(
+            "health_focus", health_modules
+        )
 
     def test_invalid_profile_handling(self, entity_factory: EntityFactory) -> None:
         """Test handling of invalid profile names."""
@@ -328,7 +346,9 @@ class TestEntityProfiles:
         assert count == standard_count
 
         # Should return False for validation
-        assert not entity_factory.validate_profile_for_modules("invalid_profile", modules)
+        assert not entity_factory.validate_profile_for_modules(
+            "invalid_profile", modules
+        )
 
     def test_invalid_modules_handling(self, entity_factory: EntityFactory) -> None:
         """Test handling of invalid module configurations."""
@@ -347,7 +367,9 @@ class TestEntityProfiles:
         self, entity_factory: EntityFactory, sample_modules_basic: dict[str, bool]
     ) -> None:
         """Test performance metrics calculation."""
-        metrics = entity_factory.get_performance_metrics("standard", sample_modules_basic)
+        metrics = entity_factory.get_performance_metrics(
+            "standard", sample_modules_basic
+        )
 
         assert "profile" in metrics
         assert "estimated_entities" in metrics
@@ -365,7 +387,9 @@ class TestEntityProfiles:
         assert metrics["enabled_modules"] > 0
         assert metrics["total_modules"] >= metrics["enabled_modules"]
 
-    def test_performance_scaling_single_dog(self, entity_factory: EntityFactory) -> None:
+    def test_performance_scaling_single_dog(
+        self, entity_factory: EntityFactory
+    ) -> None:
         """Test performance characteristics for single dog."""
         modules = {"feeding": True, "walk": True, "health": True, "gps": True}
 
@@ -374,8 +398,14 @@ class TestEntityProfiles:
         advanced_metrics = entity_factory.get_performance_metrics("advanced", modules)
 
         # Entity count should scale with profile sophistication
-        assert basic_metrics["estimated_entities"] <= standard_metrics["estimated_entities"]
-        assert standard_metrics["estimated_entities"] <= advanced_metrics["estimated_entities"]
+        assert (
+            basic_metrics["estimated_entities"]
+            <= standard_metrics["estimated_entities"]
+        )
+        assert (
+            standard_metrics["estimated_entities"]
+            <= advanced_metrics["estimated_entities"]
+        )
 
         # Performance impact should be consistent with design
         assert basic_metrics["performance_impact"] == "minimal"
@@ -438,7 +468,9 @@ class TestEntityProfilesEdgeCases:
             assert count >= 4  # Base + module entities
             assert isinstance(count, int)
 
-    def test_profile_consistency_across_calls(self, entity_factory: EntityFactory) -> None:
+    def test_profile_consistency_across_calls(
+        self, entity_factory: EntityFactory
+    ) -> None:
         """Test that repeated calls return consistent results."""
         modules = {"feeding": True, "walk": True, "health": True}
 
@@ -457,7 +489,9 @@ class TestEntityProfilesEdgeCases:
         full_modules = {"feeding": True, "walk": True, "health": True, "gps": True}
 
         base_count = entity_factory.estimate_entity_count("standard", base_modules)
-        extended_count = entity_factory.estimate_entity_count("standard", extended_modules)
+        extended_count = entity_factory.estimate_entity_count(
+            "standard", extended_modules
+        )
         full_count = entity_factory.estimate_entity_count("standard", full_modules)
 
         # Should scale predictably
@@ -493,7 +527,9 @@ class TestEntityProfilesEdgeCases:
     def test_platform_priority_edge_cases(self, entity_factory: EntityFactory) -> None:
         """Test platform priority handling for edge cases."""
         # Test with invalid platform
-        priority = entity_factory.get_platform_priority(Platform.SENSOR, "invalid_profile")
+        priority = entity_factory.get_platform_priority(
+            Platform.SENSOR, "invalid_profile"
+        )
         assert isinstance(priority, int)
         assert priority > 0
 
@@ -504,7 +540,9 @@ class TestEntityProfilesEdgeCases:
                 assert isinstance(priority, int)
                 assert 1 <= priority <= 99  # Valid priority range
 
-    def test_memory_efficiency_large_configs(self, entity_factory: EntityFactory) -> None:
+    def test_memory_efficiency_large_configs(
+        self, entity_factory: EntityFactory
+    ) -> None:
         """Test memory efficiency with large configurations."""
         # Create large module configuration
         large_modules = {f"module_{i}": i % 2 == 0 for i in range(50)}
@@ -516,7 +554,6 @@ class TestEntityProfilesEdgeCases:
 
     def test_concurrent_access_simulation(self, entity_factory: EntityFactory) -> None:
         """Simulate concurrent access patterns."""
-        modules = {"feeding": True, "walk": True}
 
         # Simulate multiple dogs accessing factory simultaneously
         results = []
