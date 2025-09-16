@@ -497,20 +497,17 @@ def is_dog_config_valid(config: Any) -> bool:
             return False
 
     # Validate optional fields
-    if "dog_age" in config:
-        if (
-            not isinstance(config["dog_age"], int)
-            or config["dog_age"] < 0
-            or config["dog_age"] > 30
-        ):
-            return False
+    if "dog_age" in config and (
+        not isinstance(config["dog_age"], int)
+        or config["dog_age"] < 0
+        or config["dog_age"] > 30
+    ):
+        return False
 
-    if "dog_weight" in config:
-        if (
-            not isinstance(config["dog_weight"], int | float)
-            or config["dog_weight"] <= 0
-        ):
-            return False
+    if "dog_weight" in config and (
+        not isinstance(config["dog_weight"], int | float) or config["dog_weight"] <= 0
+    ):
+        return False
 
     return not ("dog_size" in config and config["dog_size"] not in VALID_DOG_SIZES)
 
@@ -538,14 +535,13 @@ def is_gps_location_valid(location: Any) -> bool:
             return False
 
     # Validate optional fields
-    if "accuracy" in location:
-        if (
+    return not (
+        "accuracy" in location
+        and (
             not isinstance(location["accuracy"], int | float)
             or location["accuracy"] < 0
-        ):
-            return False
-
-    return True
+        )
+    )
 
 
 def is_feeding_data_valid(data: Any) -> bool:
