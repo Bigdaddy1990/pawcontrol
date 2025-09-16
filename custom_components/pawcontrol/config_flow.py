@@ -144,11 +144,11 @@ async def timed_operation(operation_name: str):
     try:
         yield
     finally:
-        duration = time.time() - start_time
-        config_flow_monitor.record_operation(operation_name, duration)
-        if duration > 2.0:  # Log slow operations
-            _LOGGER.warning(
-                "Slow config flow operation: %s took %.2fs", operation_name, duration
+    start_time = time.monotonic()
+    try:
+        yield
+    finally:
+        duration = time.monotonic() - start_time
             )
 
 
