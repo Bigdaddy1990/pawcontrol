@@ -140,16 +140,17 @@ config_flow_monitor = ConfigFlowPerformanceMonitor()
 async def timed_operation(operation_name: str):
     """Context manager to time config flow operations."""
 
-    start_time = time.time()
-    try:
-        yield
-    finally:
     start_time = time.monotonic()
     try:
         yield
     finally:
         duration = time.monotonic() - start_time
-            )
+        config_flow_monitor.record_operation(operation_name, duration)
+        _LOGGER.debug(
+            "Config flow operation '%s' completed in %.3f seconds",
+            operation_name,
+            duration,
+        )
 
 
 class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -178,7 +179,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Validation and estimation caches
         self._validation_cache: dict[str, tuple[dict[str, Any] | None, Any]] = {}
-        self._profile_estimates_cache: dict[str, int] = {}
+        self._profile_estimates_cache: dict[tuple[Any, ...], int] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -1053,18 +1054,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     def _estimate_total_entities_cached(self) -> int:
         """Estimate total entities with improved caching."""
 
-        dogs_signature = hash(
-            str(
-                [
-                    (
-                        dog.get("dog_id"),
-                        tuple(sorted(dog.get("modules", {}).items())),
-                    )
-                    for dog in self._dogs
-                ]
+        dogs_signature = tuple(
+            (
+                dog.get(CONF_DOG_ID, ""),
+                dog.get(CONF_DOG_NAME, ""),
+                tuple(sorted((dog.get("modules") or {}).items())),
+            )
+            for dog in sorted(
+                self._dogs,
+                key=lambda dog: (dog.get(CONF_DOG_ID, ""), dog.get(CONF_DOG_NAME, "")),
             )
         )
-        cache_key = f"{self._entity_profile}_{len(self._dogs)}_{dogs_signature}"
+        cache_key = (self._entity_profile, len(self._dogs), dogs_signature)
 
         if cache_key in self._profile_estimates_cache:
             return self._profile_estimates_cache[cache_key]

@@ -88,8 +88,8 @@ class PawControlOptionsFlow(OptionsFlow):
         self._entity_factory = EntityFactory(None)
 
         # Optimization caches for profile calculations
-        self._profile_cache: dict[str, dict[str, Any]] = {}
-        self._entity_estimates_cache: dict[str, int] = {}
+        self._profile_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
+        self._entity_estimates_cache: dict[tuple[Any, ...], int] = {}
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -200,6 +200,25 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
+    def _build_profile_cache_key(
+        self, profile: str, dogs: list[DogConfigData]
+    ) -> tuple[Any, ...]:
+        """Create a stable cache key for dog-dependent calculations."""
+
+        canonical_dogs: list[tuple[str, str, tuple[tuple[str, bool], ...]]] = []
+        for dog in dogs:
+            modules = dog.get("modules") or {}
+            canonical_dogs.append(
+                (
+                    dog.get(CONF_DOG_ID, ""),
+                    dog.get(CONF_DOG_NAME, ""),
+                    tuple(sorted(modules.items())),
+                )
+            )
+
+        canonical_dogs.sort(key=lambda item: (item[0], item[1]))
+        return profile, tuple(canonical_dogs)
+
     def _get_profile_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for profile selection."""
 
@@ -211,7 +230,7 @@ class PawControlOptionsFlow(OptionsFlow):
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
         current_profile = self._config_entry.options.get("entity_profile", "standard")
 
-        cache_key = f"{current_profile}_{len(current_dogs)}_{hash(str(current_dogs))}"
+        cache_key = self._build_profile_cache_key(current_profile, current_dogs)
         if cache_key in self._profile_cache:
             return self._profile_cache[cache_key]
 
@@ -355,7 +374,7 @@ class PawControlOptionsFlow(OptionsFlow):
         current_dogs = self._config_entry.data.get(CONF_DOGS, [])
         profile_key = profile if profile in ENTITY_PROFILES else "standard"
 
-        cache_key = f"{profile_key}_{len(current_dogs)}_{hash(str(current_dogs))}"
+        cache_key = self._build_profile_cache_key(profile_key, current_dogs)
 
         entity_breakdown: list[dict[str, Any]] = []
         total_entities = 0

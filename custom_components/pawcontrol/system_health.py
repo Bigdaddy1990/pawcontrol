@@ -7,7 +7,8 @@ from typing import Any
 from homeassistant.components import system_health
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DOMAIN
+from .config_flow import config_flow_monitor
+from .const import CONF_DOGS, CONF_DOG_NAME, DOMAIN
 
 
 @callback
@@ -27,13 +28,30 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     api = getattr(runtime, "api", None) if runtime else None
     remaining_quota = getattr(runtime, "remaining_quota", "unknown")
 
+    dogs: list[dict[str, Any]] = []
+    profile = "standard"
+    if entry:
+        dogs = list(entry.data.get(CONF_DOGS, []))
+        profile = entry.options.get(
+            "entity_profile", entry.data.get("entity_profile", "standard")
+        )
+
+    info: dict[str, Any] = {
+        "can_reach_backend": False,
+        "remaining_quota": remaining_quota,
+        "configured_dogs": len(dogs),
+        "entity_profile": profile,
+        "config_flow_operations": config_flow_monitor.get_stats(),
+    }
+
+    if dogs:
+        info["dog_names"] = [dog.get(CONF_DOG_NAME, "Unknown") for dog in dogs]
+
     if not api or not getattr(api, "base_url", None):
-        return {"can_reach_backend": False, "remaining_quota": remaining_quota}
+        return info
 
     can_reach_backend = await system_health.async_check_can_reach_url(
         hass, api.base_url
     )
-    return {
-        "can_reach_backend": can_reach_backend,
-        "remaining_quota": remaining_quota,
-    }
+    info["can_reach_backend"] = can_reach_backend
+    return info
