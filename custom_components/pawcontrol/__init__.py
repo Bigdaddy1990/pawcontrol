@@ -306,6 +306,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         await _cleanup_managers(initialized_managers)
         raise ConfigEntryNotReady(f"Manager initialization failed: {err}") from err
 
+    # Attach runtime managers to the coordinator for service access
+    coordinator.attach_runtime_managers(
+        data_manager=data_manager,
+        feeding_manager=feeding_manager,
+        walk_manager=walk_manager,
+        notification_manager=notification_manager,
+    )
+
     # OPTIMIZE: Set up platforms with comprehensive error handling and recovery
     try:
         await asyncio.wait_for(
@@ -556,15 +564,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     Returns:
         True if unload successful
     """
+    domain_data = hass.data.get(DOMAIN)
     runtime_data = entry.runtime_data
+    coordinator_ref: PawControlCoordinator | None = None
 
     # Get platform list for unloading
     if runtime_data:
         dogs = runtime_data.dogs
         profile = runtime_data.entity_profile
+        coordinator_ref = runtime_data.coordinator
     else:
         dogs = entry.data.get(CONF_DOGS, [])
         profile = entry.options.get("entity_profile", "standard")
+        if domain_data is not None:
+            entry_store = domain_data.get(entry.entry_id)
+            if isinstance(entry_store, dict):
+                stored_runtime = entry_store.get("runtime_data")
+                if isinstance(stored_runtime, PawControlRuntimeData):
+                    coordinator_ref = stored_runtime.coordinator
+
+            if coordinator_ref is None:
+                candidate = domain_data.get("coordinator")
+                if isinstance(candidate, PawControlCoordinator):
+                    coordinator_ref = candidate
 
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
@@ -635,6 +657,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             except TimeoutError:
                 _LOGGER.error("Manager shutdown timeout after 45 seconds")
 
+        entry.runtime_data = None
+
+    if coordinator_ref is not None:
+        coordinator_ref.clear_runtime_managers()
+
     # OPTIMIZE: Clear platform cache on unload with better management
     global _PLATFORM_CACHE
     _PLATFORM_CACHE.clear()
@@ -643,7 +670,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     if hasattr(_calculate_entity_count_cached, "cache"):
         _calculate_entity_count_cached.cache.clear()
 
-    domain_data = hass.data.get(DOMAIN)
     if domain_data is not None:
         entry_store = domain_data.pop(entry.entry_id, None)
         if entry_store and (unsub := entry_store.get("daily_reset_unsub")):
