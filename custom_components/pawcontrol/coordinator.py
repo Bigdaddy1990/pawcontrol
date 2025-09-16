@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
@@ -15,6 +16,7 @@ from typing import Any
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -153,12 +155,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                     _LOGGER.debug("Successfully updated data for dog %s", dog_id)
                     return dog_id, dog_data
-                except TimeoutError:
+                except asyncio.CancelledError:
+                    raise
+                except asyncio.TimeoutError:
                     _LOGGER.warning(
                         "Timeout updating dog %s after %.1fs", dog_id, API_TIMEOUT * 0.8
                     )
                     return dog_id, None
-                except Exception as err:
+                except (ClientError, HomeAssistantError, ValueError) as err:
                     _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
                     return dog_id, None
 
@@ -168,13 +172,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 *(update_dog_with_semaphore(dog) for dog in self.dogs),
                 return_exceptions=True,
             )
-        except Exception as err:
+        except asyncio.CancelledError:
             self._performance_metrics["error_count"] += 1
-            raise UpdateFailed(f"Concurrent update failed: {err}") from err
+            raise
 
         # Process results with improved error tracking
         for result in results:
             if isinstance(result, Exception):
+                if isinstance(result, asyncio.CancelledError):
+                    self._performance_metrics["error_count"] += 1
+                    raise result
                 errors += 1
                 error_details.append(str(result))
                 continue
@@ -217,8 +224,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._data = self._limit_data_size(all_data)
 
         # Update memory usage tracking
-        import sys
-
         self._performance_metrics["memory_usage_mb"] = sys.getsizeof(self._data) / (
             1024 * 1024
         )
