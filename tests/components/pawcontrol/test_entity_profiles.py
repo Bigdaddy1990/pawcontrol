@@ -414,9 +414,7 @@ class TestEntityProfiles:
         assert standard_metrics["performance_impact"] == "low"
         assert advanced_metrics["performance_impact"] == "medium"
 
-    def test_entity_estimate_uses_cache(
-        self, entity_factory: EntityFactory
-    ) -> None:
+    def test_entity_estimate_uses_cache(self, entity_factory: EntityFactory) -> None:
         """Test that cached entity estimates are reused for identical inputs."""
 
         modules = {"feeding": True, "walk": True, "health": False}
