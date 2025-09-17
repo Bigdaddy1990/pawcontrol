@@ -1,13 +1,10 @@
-"""Sensor platform for Paw Control integration.
-
-Enhanced with profile-based optimization, intelligent caching,
-and performance monitoring for Platinum quality compliance.
-"""
+"""Sensor platform for the PawControl integration."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
@@ -50,10 +47,16 @@ ACTIVITY_SCORE_CACHE_TTL = 300  # 5 minutes cache for expensive calculations
 SENSOR_MAPPING: dict[str, type[PawControlSensorBase]] = {}
 
 
-def register_sensor(name: str):
+def register_sensor(
+    name: str,
+) -> Callable[[type[PawControlSensorBase]], type[PawControlSensorBase]]:
     """Decorator to register sensor classes."""
 
-    def decorator(cls):
+    def decorator(
+        cls: type[PawControlSensorBase],
+    ) -> type[PawControlSensorBase]:
+        """Register the decorated sensor class in the mapping."""
+
         SENSOR_MAPPING[name] = cls
         return cls
 
