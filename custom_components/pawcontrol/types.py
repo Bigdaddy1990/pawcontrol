@@ -164,7 +164,7 @@ class FeedingConfigData(TypedDict, total=False):
     daily_food_amount: float | None
     meals_per_day: int
     food_type: str
-    special_diet: str | None
+    special_diet: list[str] | None
     portion_calculation: str
     automatic_feeding: bool  # OPTIMIZE: Added automatic feeding support
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 from enum import Enum
@@ -609,12 +610,16 @@ class FeedingManager:
         self, dog_id: str, config_data: dict[str, Any]
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
+        special_diet = self._normalize_special_diet(
+            config_data.get("special_diet", [])
+        )
+
         config = FeedingConfig(
             dog_id=dog_id,
             meals_per_day=config_data.get("meals_per_day", 2),
             daily_food_amount=config_data.get("daily_food_amount", 500.0),
             food_type=config_data.get("food_type", "dry_food"),
-            special_diet=config_data.get("special_diet", []),
+            special_diet=special_diet,
             schedule_type=FeedingScheduleType(
                 config_data.get("feeding_schedule", "flexible")
             ),
@@ -692,6 +697,36 @@ class FeedingManager:
             _LOGGER.warning("Failed to parse time: %s", time_str)
 
         return None
+
+    def _normalize_special_diet(self, raw_value: Any) -> list[str]:
+        """Normalize special diet configuration values into a list of strings."""
+
+        if raw_value is None:
+            return []
+
+        if isinstance(raw_value, str):
+            stripped_value = raw_value.strip()
+            return [stripped_value] if stripped_value else []
+
+        if isinstance(raw_value, Iterable) and not isinstance(raw_value, bytes | str):
+            normalized: list[str] = []
+            for item in raw_value:
+                if not isinstance(item, str):
+                    _LOGGER.debug(
+                        "Ignoring non-string special diet entry for %s: %s",
+                        type(item).__name__,
+                        item,
+                    )
+                    continue
+
+                stripped_item = item.strip()
+                if stripped_item:
+                    normalized.append(stripped_item)
+
+            return normalized
+
+        _LOGGER.debug("Unsupported special diet format: %s", raw_value)
+        return []
 
     async def _setup_reminder(self, dog_id: str) -> None:
         """Setup event-based reminder for a dog.
