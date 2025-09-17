@@ -37,6 +37,7 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
+from .types import HealthEvent, WalkEvent
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -526,6 +527,7 @@ class PawControlData:
             loaded_data = self._create_empty_data()
 
         self._data = self._ensure_data_structure(loaded_data)
+        self._hydrate_event_models()
 
         load_time = loop.time() - start_time
         if load_failed:
@@ -596,6 +598,136 @@ class PawControlData:
                 sanitized[key] = value
 
         return sanitized
+
+    def _hydrate_event_models(self) -> None:
+        """Ensure stored history entries use structured dataclasses."""
+
+        health_namespace = self._data.setdefault("health", {})
+        for dog_id, history in list(health_namespace.items()):
+            if not isinstance(history, list):
+                health_namespace[dog_id] = []
+                continue
+
+            normalized_history: list[HealthEvent] = []
+            for entry in history:
+                if isinstance(entry, HealthEvent):
+                    normalized_history.append(entry)
+                elif isinstance(entry, dict):
+                    try:
+                        normalized_history.append(
+                            HealthEvent.from_storage(dog_id, entry)
+                        )
+                    except Exception as err:
+                        _LOGGER.debug(
+                            "Unable to hydrate health history for %s: %s",
+                            dog_id,
+                            err,
+                        )
+                else:
+                    _LOGGER.debug(
+                        "Skipping unsupported health history entry type: %s",
+                        type(entry).__name__,
+                    )
+            health_namespace[dog_id] = normalized_history
+
+        walk_namespace = self._data.setdefault("walks", {})
+        for dog_id, walk_data in list(walk_namespace.items()):
+            if not isinstance(walk_data, dict):
+                walk_namespace[dog_id] = {"active": None, "history": []}
+                continue
+
+            history = walk_data.get("history", [])
+            normalized_history: list[WalkEvent] = []
+            if isinstance(history, list):
+                for entry in history:
+                    if isinstance(entry, WalkEvent):
+                        normalized_history.append(entry)
+                    elif isinstance(entry, dict):
+                        try:
+                            normalized_history.append(
+                                WalkEvent.from_storage(dog_id, entry)
+                            )
+                        except Exception as err:
+                            _LOGGER.debug(
+                                "Unable to hydrate walk history for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                    else:
+                        _LOGGER.debug(
+                            "Skipping unsupported walk history entry type: %s",
+                            type(entry).__name__,
+                        )
+            walk_data["history"] = normalized_history
+
+            active_entry = walk_data.get("active")
+            if isinstance(active_entry, WalkEvent):
+                continue
+
+            if isinstance(active_entry, dict):
+                try:
+                    walk_data["active"] = WalkEvent.from_storage(dog_id, active_entry)
+                except Exception as err:
+                    _LOGGER.debug(
+                        "Unable to hydrate active walk session for %s: %s",
+                        dog_id,
+                        err,
+                    )
+                    walk_data["active"] = None
+            else:
+                walk_data["active"] = None
+
+    @staticmethod
+    def _serialize_health_namespace(namespace: dict[str, Any]) -> dict[str, Any]:
+        """Convert health namespace to storage-safe data."""
+
+        serialized: dict[str, Any] = {}
+        for dog_id, history in namespace.items():
+            if isinstance(history, list):
+                serialized[dog_id] = [
+                    entry.as_dict() if isinstance(entry, HealthEvent) else entry
+                    for entry in history
+                ]
+            else:
+                serialized[dog_id] = history
+        return serialized
+
+    @staticmethod
+    def _serialize_walk_namespace(namespace: dict[str, Any]) -> dict[str, Any]:
+        """Convert walk namespace to storage-safe data."""
+
+        serialized: dict[str, Any] = {}
+        for dog_id, walk_data in namespace.items():
+            if not isinstance(walk_data, dict):
+                serialized[dog_id] = walk_data
+                continue
+
+            active_entry = walk_data.get("active")
+            if isinstance(active_entry, WalkEvent):
+                active_value: Any = active_entry.as_dict()
+            else:
+                active_value = active_entry
+
+            history = walk_data.get("history", [])
+            if isinstance(history, list):
+                history_value: Any = [
+                    entry.as_dict() if isinstance(entry, WalkEvent) else entry
+                    for entry in history
+                ]
+            else:
+                history_value = history
+
+            serialized[dog_id] = {
+                **{
+                    key: value
+                    for key, value in walk_data.items()
+                    if key not in {"active", "history"}
+                },
+                "active": active_value,
+                "history": history_value,
+            }
+
+        return serialized
 
     async def async_log_feeding(
         self, dog_id: str, feeding_data: dict[str, Any]
@@ -721,28 +853,45 @@ class PawControlData:
         try:
             health_namespace = self._data.setdefault("health", {})
             dog_history = health_namespace.setdefault(dog_id, [])
-            updated = False
+
+            if dog_history:
+                normalized_history: list[HealthEvent] = []
+                for entry in dog_history:
+                    if isinstance(entry, HealthEvent):
+                        normalized_history.append(entry)
+                    elif isinstance(entry, dict):
+                        normalized_history.append(
+                            HealthEvent.from_storage(dog_id, entry)
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "Skipping unsupported health history entry type: %s",
+                            type(entry).__name__,
+                        )
+                health_namespace[dog_id] = normalized_history
+                dog_history = normalized_history
+
+            new_events: list[HealthEvent] = []
 
             for event in events:
-                event_data = dict(event.get("data", {}))
+                event_data = event.get("data", {})
                 timestamp = event.get("timestamp")
-                if timestamp and "timestamp" not in event_data:
-                    event_data["timestamp"] = timestamp
-
-                dog_history.append(event_data)
-                updated = True
+                health_event = HealthEvent.from_raw(dog_id, event_data, timestamp)
+                dog_history.append(health_event)
+                new_events.append(health_event)
 
             if len(dog_history) > MAX_HISTORY_ITEMS:
                 dog_history[:] = dog_history[-MAX_HISTORY_ITEMS:]
 
-            if not updated:
-                return
+            await self.storage.async_save_data(
+                "health", self._serialize_health_namespace(health_namespace)
+            )
 
-            await self.storage.async_save_data("health", health_namespace)
-
-            for event in events:
-                payload = {"dog_id": dog_id, **event.get("data", {})}
-                self.hass.bus.async_fire(EVENT_HEALTH_LOGGED, payload)
+            for health_event in new_events:
+                self.hass.bus.async_fire(
+                    EVENT_HEALTH_LOGGED,
+                    {"dog_id": dog_id, **health_event.as_dict()},
+                )
         except Exception as err:
             _LOGGER.error("Failed to process health event batch: %s", err)
 
@@ -762,62 +911,99 @@ class PawControlData:
             dog_walks = walk_namespace.setdefault(
                 dog_id, {"active": None, "history": []}
             )
-            history: list[dict[str, Any]] = dog_walks.setdefault("history", [])
+            history_list = dog_walks.setdefault("history", [])
+            if history_list:
+                normalized_history: list[WalkEvent] = []
+                for entry in history_list:
+                    if isinstance(entry, WalkEvent):
+                        normalized_history.append(entry)
+                    elif isinstance(entry, dict):
+                        normalized_history.append(
+                            WalkEvent.from_storage(dog_id, entry)
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "Skipping unsupported walk history entry type: %s",
+                            type(entry).__name__,
+                        )
+                dog_walks["history"] = normalized_history
+
+            history: list[WalkEvent] = dog_walks["history"]
+
             active_session = dog_walks.get("active")
+            if isinstance(active_session, dict):
+                try:
+                    active_session = WalkEvent.from_storage(dog_id, active_session)
+                except Exception:
+                    active_session = None
+                dog_walks["active"] = active_session
+            elif not isinstance(active_session, WalkEvent):
+                active_session = None
+                dog_walks["active"] = None
             updated = False
 
             for event in events:
-                event_data = dict(event.get("data", {}))
+                event_data = event.get("data", {})
                 timestamp = event.get("timestamp")
-                if timestamp and "timestamp" not in event_data:
-                    event_data["timestamp"] = timestamp
+                walk_event = WalkEvent.from_raw(dog_id, event_data, timestamp)
 
-                action = event_data.get("action")
-                session_id = event_data.get("session_id")
-
-                if action == "start":
-                    dog_walks["active"] = event_data
-                    active_session = event_data
+                if walk_event.action == "start":
+                    dog_walks["active"] = walk_event
+                    active_session = walk_event
                     updated = True
                     self.hass.bus.async_fire(
-                        EVENT_WALK_STARTED, {"dog_id": dog_id, **event_data}
+                        EVENT_WALK_STARTED,
+                        {"dog_id": dog_id, **walk_event.as_dict()},
                     )
                     continue
 
-                if action == "end":
-                    if active_session and (
-                        session_id is None
-                        or session_id == active_session.get("session_id")
+                if walk_event.action == "end":
+                    if (
+                        isinstance(active_session, WalkEvent)
+                        and (
+                            walk_event.session_id is None
+                            or walk_event.session_id
+                            == active_session.session_id
+                        )
                     ):
-                        completed_walk = {**active_session, **event_data}
+                        merged_payload = {
+                            **active_session.as_dict(),
+                            **walk_event.as_dict(),
+                        }
+                        completed_walk = WalkEvent.from_raw(
+                            dog_id, merged_payload
+                        )
                         history.append(completed_walk)
                         dog_walks["active"] = None
                         active_session = None
                     else:
-                        history.append(event_data)
+                        history.append(walk_event)
 
                     updated = True
                     self.hass.bus.async_fire(
-                        EVENT_WALK_ENDED, {"dog_id": dog_id, **event_data}
+                        EVENT_WALK_ENDED,
+                        {"dog_id": dog_id, **walk_event.as_dict()},
                     )
                     continue
 
                 if (
-                    active_session
-                    and session_id
-                    and session_id == active_session.get("session_id")
+                    isinstance(active_session, WalkEvent)
+                    and walk_event.session_id
+                    and walk_event.session_id == active_session.session_id
                 ):
-                    active_session.update(event_data)
+                    active_session.merge(walk_event.as_dict(), walk_event.timestamp)
                     updated = True
                 else:
-                    history.append(event_data)
+                    history.append(walk_event)
                     updated = True
 
             if len(history) > MAX_HISTORY_ITEMS:
-                del history[:-MAX_HISTORY_ITEMS]
+                history[:] = history[-MAX_HISTORY_ITEMS:]
 
             if updated:
-                await self.storage.async_save_data("walks", walk_namespace)
+                await self.storage.async_save_data(
+                    "walks", self._serialize_walk_namespace(walk_namespace)
+                )
         except Exception as err:
             _LOGGER.error("Failed to process walk event batch: %s", err)
 
@@ -835,22 +1021,32 @@ class PawControlData:
                 self._data["walks"][dog_id] = {"active": None, "history": []}
 
             # Check if a walk is already active
-            if self._data["walks"][dog_id]["active"]:
+            active_entry = self._data["walks"][dog_id].get("active")
+            if isinstance(active_entry, dict):
+                try:
+                    active_entry = WalkEvent.from_storage(dog_id, active_entry)
+                except Exception:
+                    active_entry = None
+                self._data["walks"][dog_id]["active"] = active_entry
+
+            if active_entry:
                 raise HomeAssistantError(f"Walk already active for {dog_id}")
 
             # Set active walk
-            self._data["walks"][dog_id]["active"] = walk_data
+            active_walk = WalkEvent.from_raw(
+                dog_id, walk_data, walk_data.get("timestamp")
+            )
+            self._data["walks"][dog_id]["active"] = active_walk
 
             # Save immediately for real-time operations
-            await self.storage.async_save_data("walks", self._data["walks"])
+            await self.storage.async_save_data(
+                "walks", self._serialize_walk_namespace(self._data["walks"])
+            )
 
             # Fire event
             self.hass.bus.async_fire(
                 EVENT_WALK_STARTED,
-                {
-                    "dog_id": dog_id,
-                    **walk_data,
-                },
+                {"dog_id": dog_id, **active_walk.as_dict()},
             )
 
             _LOGGER.debug("Started walk for %s", dog_id)
