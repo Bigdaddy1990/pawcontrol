@@ -456,8 +456,8 @@ class PawControlDataManager:
         """Load data with optimized caching."""
         async with self._lock:
             try:
-                # Load from storage
-                all_data = await self._storage.load()
+                # Load from storage using helper that normalizes data structure
+                all_data = await self._load_storage_data()
 
                 # Initialize missing namespaces
                 for namespace in self._namespaces:
@@ -511,13 +511,27 @@ class PawControlDataManager:
 
         # Load from storage
         async with self._lock:
-            all_data = await self._storage.load()
+            all_data = await self._load_storage_data()
             namespace_data = all_data.get(namespace, {})
 
             # Cache with adaptive TTL
             await self._cache.set(namespace, namespace_data)
 
             return namespace_data
+
+    async def _load_storage_data(self) -> dict[str, Any]:
+        """Load raw storage data and ensure a dictionary is returned."""
+
+        data = await self._storage.load()
+        if data is None:
+            return {}
+        if not isinstance(data, dict):
+            _LOGGER.warning(
+                "Unexpected storage payload type: %s. Resetting to empty dict.",
+                type(data).__name__,
+            )
+            return {}
+        return data
 
     async def _save_namespace(self, namespace: str, data: dict[str, Any]) -> None:
         """Save namespace with adaptive batching."""
@@ -561,7 +575,7 @@ class PawControlDataManager:
                     return
 
                 # Load current data
-                all_data = await self._storage.load()
+                all_data = await self._load_storage_data()
 
                 # Update dirty namespaces
                 for namespace in self._dirty_namespaces:
@@ -744,7 +758,7 @@ class PawControlDataManager:
     async def _flush_all(self) -> None:
         """Flush all cached data to storage."""
         try:
-            all_data = await self._storage.load()
+            all_data = await self._load_storage_data()
 
             for namespace in self._namespaces:
                 data, _ = await self._cache.get(namespace)
