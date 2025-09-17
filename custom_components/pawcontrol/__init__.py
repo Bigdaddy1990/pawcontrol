@@ -43,7 +43,11 @@ ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
 # OPTIMIZE: Platform cache with size limits and better management
 _PLATFORM_CACHE: dict[str, tuple[Platform, ...]] = {}
-_CACHE_SIZE_LIMIT = 100
+_PLATFORM_CACHE_SIZE_LIMIT = 100
+
+# Entity count cache for deterministic entity estimation
+_ENTITY_COUNT_CACHE: dict[str, int] = {}
+_ENTITY_COUNT_CACHE_SIZE_LIMIT = 128
 
 # OPTIMIZE: Manager initialization timeout and retry settings
 MANAGER_INIT_TIMEOUT = 30.0  # seconds
@@ -81,7 +85,8 @@ def get_platforms_for_profile_and_modules(
         else:
             module_items = ()
 
-        signature_source.append((dog.get(CONF_DOG_ID, ""), module_items))
+        dog_id = str(dog.get(CONF_DOG_ID, ""))
+        signature_source.append((dog_id, module_items))
 
     dogs_signature = hash(str(sorted(signature_source)))
 
@@ -95,8 +100,8 @@ def get_platforms_for_profile_and_modules(
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
 
-    if len(_PLATFORM_CACHE) >= _CACHE_SIZE_LIMIT:
-        oldest_keys = list(_PLATFORM_CACHE.keys())[: _CACHE_SIZE_LIMIT // 2]
+    if len(_PLATFORM_CACHE) >= _PLATFORM_CACHE_SIZE_LIMIT:
+        oldest_keys = list(_PLATFORM_CACHE.keys())[: _PLATFORM_CACHE_SIZE_LIMIT // 2]
         for key in oldest_keys:
             _PLATFORM_CACHE.pop(key, None)
         _LOGGER.debug("Cleared platform cache: removed %d entries", len(oldest_keys))
@@ -520,13 +525,8 @@ def _calculate_entity_count_cached(
     )
     cache_key = f"entities_{len(dogs_config)}_{profile}_{dogs_signature}"
 
-    # Check cache (using a module-level cache)
-    if not hasattr(_calculate_entity_count_cached, "cache"):
-        _calculate_entity_count_cached.cache = {}
-
-    cache = _calculate_entity_count_cached.cache
-    if cache_key in cache:
-        return cache[cache_key]
+    if cache_key in _ENTITY_COUNT_CACHE:
+        return _ENTITY_COUNT_CACHE[cache_key]
 
     # Calculate and cache result
     total = 0
@@ -535,13 +535,14 @@ def _calculate_entity_count_cached(
         total += entity_factory.estimate_entity_count(profile, modules)
 
     # Cache with size limit
-    if len(cache) >= _CACHE_SIZE_LIMIT:
-        # Clear oldest entries
-        oldest_keys = list(cache.keys())[: _CACHE_SIZE_LIMIT // 2]
+    if len(_ENTITY_COUNT_CACHE) >= _ENTITY_COUNT_CACHE_SIZE_LIMIT:
+        oldest_keys = list(_ENTITY_COUNT_CACHE.keys())[
+            : _ENTITY_COUNT_CACHE_SIZE_LIMIT // 2
+        ]
         for key in oldest_keys:
-            cache.pop(key, None)
+            _ENTITY_COUNT_CACHE.pop(key, None)
 
-    cache[cache_key] = total
+    _ENTITY_COUNT_CACHE[cache_key] = total
     return total
 
 
@@ -711,9 +712,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     global _PLATFORM_CACHE
     _PLATFORM_CACHE.clear()
 
-    # Clear function caches
-    if hasattr(_calculate_entity_count_cached, "cache"):
-        _calculate_entity_count_cached.cache.clear()
+    _ENTITY_COUNT_CACHE.clear()
 
     if domain_data is not None:
         entry_store = domain_data.pop(entry.entry_id, None)
@@ -782,6 +781,5 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         # Clear any partial state
         global _PLATFORM_CACHE
         _PLATFORM_CACHE.clear()
-        if hasattr(_calculate_entity_count_cached, "cache"):
-            _calculate_entity_count_cached.cache.clear()
+        _ENTITY_COUNT_CACHE.clear()
         raise
