@@ -1,15 +1,11 @@
-"""Core setup and platform initialization for the PawControl integration.
-
-Optimized setup with enhanced error handling, performance monitoring,
-and Platinum-level compliance for Home Assistant 2025.9.3+.
-"""
+"""Set up and manage the PawControl integration lifecycle."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -17,7 +13,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import bind_hass
 
 from .const import (
     CONF_DOG_ID,
@@ -32,7 +27,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
-from .entity_factory import EntityFactory
+from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import PawControlSetupError
 from .feeding_manager import FeedingManager
 from .health_calculator import HealthCalculator
@@ -55,9 +50,8 @@ MANAGER_INIT_TIMEOUT = 30.0  # seconds
 MAX_MANAGER_RETRIES = 2
 
 
-@bind_hass
 def get_platforms_for_profile_and_modules(
-    dogs_config: list[dict[str, Any]], profile: str
+    dogs_config: list[DogConfigData], profile: str
 ) -> tuple[Platform, ...]:
     """Determine required platforms based on dogs, modules and profile.
 
@@ -90,8 +84,6 @@ def get_platforms_for_profile_and_modules(
         signature_source.append((dog.get(CONF_DOG_ID, ""), module_items))
 
     dogs_signature = hash(str(sorted(signature_source)))
-
-    from .entity_factory import ENTITY_PROFILES
 
     normalized_profile = profile
     if normalized_profile not in ENTITY_PROFILES:
@@ -181,9 +173,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     _LOGGER.debug("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     # Validate dogs configuration early with enhanced validation
-    dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-    if not dogs_config:
+    from .types import is_dog_config_valid
+
+    dogs_config_raw = entry.data.get(CONF_DOGS, [])
+    if not dogs_config_raw:
         raise ConfigEntryNotReady("No dogs configured")
+
+    if not isinstance(dogs_config_raw, list) or not all(
+        is_dog_config_valid(dog) for dog in dogs_config_raw
+    ):
+        _LOGGER.error("Invalid dog configuration detected in entry %s", entry.entry_id)
+        raise PawControlSetupError(
+            "Invalid dog configuration. Please remove and re-add the integration."
+        )
+    dogs_config = cast(list[DogConfigData], dogs_config_raw)
 
     # Enhanced validation for each dog configuration
     for dog in dogs_config:
@@ -197,8 +200,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
     # Determine and validate profile
     profile = entry.options.get("entity_profile", "standard")
-    from .entity_factory import ENTITY_PROFILES, EntityFactory
-
     if profile not in ENTITY_PROFILES:
         _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
         profile = "standard"
