@@ -737,7 +737,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                 _LOGGER.debug("Error unsubscribing daily reset listener: %s", err)
 
         manager = domain_data.get("service_manager")
-        if isinstance(manager, PawControlServiceManager):
+        if (
+            not any(isinstance(value, dict) for value in domain_data.values())
+            and isinstance(manager, PawControlServiceManager)
+        ):
             await manager.async_shutdown()
 
         for key in (
