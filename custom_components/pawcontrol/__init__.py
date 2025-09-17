@@ -536,7 +536,9 @@ def _calculate_entity_count_cached(
 
     # Cache with size limit
     if len(_ENTITY_COUNT_CACHE) >= _ENTITY_COUNT_CACHE_SIZE_LIMIT:
-        oldest_keys = list(_ENTITY_COUNT_CACHE.keys())[: _ENTITY_COUNT_CACHE_SIZE_LIMIT // 2]
+        oldest_keys = list(_ENTITY_COUNT_CACHE.keys())[
+            : _ENTITY_COUNT_CACHE_SIZE_LIMIT // 2
+        ]
         for key in oldest_keys:
             _ENTITY_COUNT_CACHE.pop(key, None)
 
