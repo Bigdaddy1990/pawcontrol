@@ -33,6 +33,8 @@ from .const import (
     DATA_FILE_WALKS,
     DOMAIN,
     EVENT_FEEDING_LOGGED,
+    EVENT_HEALTH_LOGGED,
+    EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
 
@@ -539,7 +541,22 @@ class PawControlData:
             )
 
         if self._event_task is None or self._event_task.done():
-            self._event_task = asyncio.create_task(self._process_events())
+            event_coro = self._process_events()
+            try:
+                task = asyncio.create_task(event_coro)
+            except Exception:
+                event_coro.close()
+                raise
+
+            try:
+                scheduled_coro = task.get_coro()
+            except AttributeError:
+                scheduled_coro = None
+
+            if scheduled_coro is not event_coro:
+                event_coro.close()
+
+            self._event_task = task
 
     @staticmethod
     def _create_empty_data() -> dict[str, Any]:
@@ -692,13 +709,117 @@ class PawControlData:
     # Similar optimized methods for other event types...
     async def _process_health_batch(self, events: list[dict[str, Any]]) -> None:
         """Process health events in batch."""
-        # Implementation similar to feeding batch
-        pass
+        if not events:
+            return
+
+        try:
+            dog_id = events[0]["dog_id"]
+        except (IndexError, KeyError):
+            _LOGGER.error("Health event batch missing dog identifier")
+            return
+
+        try:
+            health_namespace = self._data.setdefault("health", {})
+            dog_history = health_namespace.setdefault(dog_id, [])
+            updated = False
+
+            for event in events:
+                event_data = dict(event.get("data", {}))
+                timestamp = event.get("timestamp")
+                if timestamp and "timestamp" not in event_data:
+                    event_data["timestamp"] = timestamp
+
+                dog_history.append(event_data)
+                updated = True
+
+            if len(dog_history) > MAX_HISTORY_ITEMS:
+                del dog_history[:-MAX_HISTORY_ITEMS]
+
+            if not updated:
+                return
+
+            await self.storage.async_save_data("health", health_namespace)
+
+            for event in events:
+                payload = {"dog_id": dog_id, **dict(event.get("data", {}))}
+                self.hass.bus.async_fire(EVENT_HEALTH_LOGGED, payload)
+        except Exception as err:
+            _LOGGER.error("Failed to process health event batch: %s", err)
 
     async def _process_walk_batch(self, events: list[dict[str, Any]]) -> None:
         """Process walk events in batch."""
-        # Implementation similar to feeding batch
-        pass
+        if not events:
+            return
+
+        try:
+            dog_id = events[0]["dog_id"]
+        except (IndexError, KeyError):
+            _LOGGER.error("Walk event batch missing dog identifier")
+            return
+
+        try:
+            walk_namespace = self._data.setdefault("walks", {})
+            dog_walks = walk_namespace.setdefault(
+                dog_id, {"active": None, "history": []}
+            )
+            history: list[dict[str, Any]] = dog_walks.setdefault("history", [])
+            active_session = dog_walks.get("active")
+            updated = False
+
+            for event in events:
+                event_data = dict(event.get("data", {}))
+                timestamp = event.get("timestamp")
+                if timestamp and "timestamp" not in event_data:
+                    event_data["timestamp"] = timestamp
+
+                action = event_data.get("action")
+                session_id = event_data.get("session_id")
+
+                if action == "start":
+                    dog_walks["active"] = event_data
+                    active_session = event_data
+                    updated = True
+                    self.hass.bus.async_fire(
+                        EVENT_WALK_STARTED, {"dog_id": dog_id, **event_data}
+                    )
+                    continue
+
+                if action == "end":
+                    if active_session and (
+                        session_id is None
+                        or session_id == active_session.get("session_id")
+                    ):
+                        completed_walk = {**active_session, **event_data}
+                        history.append(completed_walk)
+                        dog_walks["active"] = None
+                        active_session = None
+                    else:
+                        history.append(event_data)
+
+                    updated = True
+                    self.hass.bus.async_fire(
+                        EVENT_WALK_ENDED, {"dog_id": dog_id, **event_data}
+                    )
+                    continue
+
+                if (
+                    active_session
+                    and session_id
+                    and session_id == active_session.get("session_id")
+                ):
+                    active_session.update(event_data)
+                    updated = True
+                else:
+                    history.append(event_data)
+                    updated = True
+
+            if len(history) > MAX_HISTORY_ITEMS:
+                del history[:-MAX_HISTORY_ITEMS]
+
+            if updated:
+                await self.storage.async_save_data("walks", walk_namespace)
+        except Exception as err:
+            _LOGGER.error("Failed to process walk event batch: %s", err)
 
     # Keep existing methods but add async optimizations where needed
     async def async_start_walk(self, dog_id: str, walk_data: dict[str, Any]) -> None:
