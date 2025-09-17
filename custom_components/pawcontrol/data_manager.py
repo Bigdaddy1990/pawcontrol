@@ -428,6 +428,8 @@ class PawControlDataManager:
                 "Data manager initialized (adaptive cache, dynamic batch save)"
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Initialization failed: %s", err)
             raise StorageError("initialize", str(err)) from err
@@ -449,6 +451,8 @@ class PawControlDataManager:
 
             _LOGGER.info("Data manager shutdown complete")
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Shutdown error: %s", err)
 
@@ -484,6 +488,8 @@ class PawControlDataManager:
                     len(self._storage._index),
                 )
 
+            except asyncio.CancelledError:
+                raise
             except Exception as err:
                 _LOGGER.error("Load failed: %s", err)
                 # Initialize empty
@@ -596,6 +602,8 @@ class PawControlDataManager:
                     "Batch saved %d namespaces (delay: %.1fs)", saved_count, delay
                 )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Batch save failed: %s", err)
             self._metrics["errors"] += 1
@@ -710,6 +718,8 @@ class PawControlDataManager:
             self._metrics["operations"] += 1
             return entries
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Get module data failed: %s", err)
             self._metrics["errors"] += 1
@@ -768,6 +778,8 @@ class PawControlDataManager:
             await self._storage.save(all_data)
             self._dirty_namespaces.clear()
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Flush failed: %s", err)
 

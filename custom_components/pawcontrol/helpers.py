@@ -260,6 +260,8 @@ class PawControlDataStorage:
             _LOGGER.debug("Loaded data for %d stores", len(data))
             return data
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to load integration data: %s", err)
             raise HomeAssistantError(f"Data loading failed: {err}") from err
@@ -284,6 +286,8 @@ class PawControlDataStorage:
             await self._cache.set(f"store_{store_key}", result, ttl_seconds=600)
             return result
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to load %s store: %s", store_key, err)
             return {}
@@ -392,6 +396,8 @@ class PawControlDataStorage:
 
             return 0
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to cleanup %s data: %s", store_key, err)
             return 0
@@ -536,6 +542,8 @@ class PawControlData:
 
         try:
             loaded_data = await self.storage.async_load_all_data()
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             load_failed = True
             _LOGGER.error("Failed to initialize data manager: %s", err)
@@ -869,6 +877,8 @@ class PawControlData:
 
             _LOGGER.debug("Processed %d feeding events for %s", len(events), dog_id)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to process feeding batch: %s", err)
 
@@ -926,6 +936,8 @@ class PawControlData:
                     EVENT_HEALTH_LOGGED,
                     {"dog_id": dog_id, **health_event.as_dict()},
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to process health event batch: %s", err)
 
@@ -1030,6 +1042,8 @@ class PawControlData:
                 await self.storage.async_save_data(
                     "walks", self._serialize_walk_namespace(walk_namespace)
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to process walk event batch: %s", err)
 
@@ -1077,6 +1091,8 @@ class PawControlData:
 
             _LOGGER.debug("Started walk for %s", dog_id)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
             raise HomeAssistantError(f"Failed to start walk: {err}") from err
@@ -1239,6 +1255,8 @@ class PawControlNotificationManager:
                 _LOGGER.warning(
                     "Notification send timeout for %s", notification["dog_id"]
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as err:
                 _LOGGER.error("Failed to send notification: %s", err)
 
