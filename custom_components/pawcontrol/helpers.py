@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
+from collections.abc import Awaitable
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any, Final, cast
@@ -328,19 +329,21 @@ class PawControlDataStorage:
             self._dirty_stores.clear()
 
             # Save all dirty stores concurrently
-            save_tasks = []
+            save_tasks: list[Awaitable[None]] = []
+            task_store_keys: list[str] = []
             for store_key in stores_to_save:
                 cached_data = await self._cache.get(f"store_{store_key}")
-                if cached_data is not None:
-                    save_tasks.append(
-                        self._save_store_immediate(store_key, cached_data)
-                    )
+                if cached_data is None:
+                    continue
+
+                save_tasks.append(self._save_store_immediate(store_key, cached_data))
+                task_store_keys.append(store_key)
 
             if save_tasks:
                 results = await asyncio.gather(*save_tasks, return_exceptions=True)
 
-                # Log any errors
-                for store_key, result in zip(stores_to_save, results, strict=False):
+                # Log any errors while maintaining alignment with the executed tasks.
+                for store_key, result in zip(task_store_keys, results, strict=True):
                     if isinstance(result, Exception):
                         _LOGGER.error("Failed to save %s: %s", store_key, result)
                     else:
