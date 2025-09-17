@@ -10,6 +10,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_EXTERNAL_INTEGRATIONS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -125,3 +126,24 @@ async def test_update_interval_honors_gps_option(hass: HomeAssistant) -> None:
     coordinator = PawControlCoordinator(hass, entry, async_get_clientsession(hass))
 
     assert coordinator.update_interval.total_seconds() == 45
+
+
+async def test_coordinator_external_api_option(hass: HomeAssistant) -> None:
+    """External integrations option should toggle coordinator API usage."""
+
+    enabled_entry = _create_entry(
+        hass,
+        options={CONF_EXTERNAL_INTEGRATIONS: True},
+    )
+    coordinator_enabled = PawControlCoordinator(
+        hass, enabled_entry, async_get_clientsession(hass)
+    )
+
+    assert coordinator_enabled.use_external_api is True
+
+    disabled_entry = _create_entry(hass)
+    coordinator_disabled = PawControlCoordinator(
+        hass, disabled_entry, async_get_clientsession(hass)
+    )
+
+    assert coordinator_disabled.use_external_api is False

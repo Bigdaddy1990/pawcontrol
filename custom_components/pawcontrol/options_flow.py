@@ -1748,6 +1748,9 @@ class PawControlOptionsFlow(OptionsFlow):
                         "experimental_features": user_input.get(
                             "experimental_features", False
                         ),
+                        CONF_EXTERNAL_INTEGRATIONS: user_input.get(
+                            CONF_EXTERNAL_INTEGRATIONS, False
+                        ),
                     }
                 )
                 # Save changes and return to main menu
@@ -1831,6 +1834,13 @@ class PawControlOptionsFlow(OptionsFlow):
                     default=current_values.get(
                         "experimental_features",
                         current_options.get("experimental_features", False),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_EXTERNAL_INTEGRATIONS,
+                    default=current_values.get(
+                        CONF_EXTERNAL_INTEGRATIONS,
+                        current_options.get(CONF_EXTERNAL_INTEGRATIONS, False),
                     ),
                 ): selector.BooleanSelector(),
             }
