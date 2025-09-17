@@ -733,7 +733,7 @@ class PawControlData:
                 updated = True
 
             if len(dog_history) > MAX_HISTORY_ITEMS:
-                del dog_history[:-MAX_HISTORY_ITEMS]
+                dog_history[:] = dog_history[-MAX_HISTORY_ITEMS:]
 
             if not updated:
                 return
