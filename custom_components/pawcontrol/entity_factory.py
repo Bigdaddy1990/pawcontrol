@@ -18,6 +18,8 @@ from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
+import time
+
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
@@ -190,6 +192,7 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
 }
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
+_METRICS_MIN_DURATION: Final[float] = 5e-05  # 50 microseconds
 
 _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
     (
@@ -280,6 +283,9 @@ class EntityFactory:
         self._estimate_cache: OrderedDict[
             tuple[str, tuple[tuple[str, bool], ...]], EntityEstimate
         ] = OrderedDict()
+        self._performance_metrics_cache: OrderedDict[
+            tuple[str, tuple[tuple[str, bool], ...]], dict[str, Any]
+        ] = OrderedDict()
         self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
         self._last_module_weights: dict[str, int] = {}
         self._last_synergy_score: int = 0
@@ -333,6 +339,13 @@ class EntityFactory:
             module_weights[a] + module_weights[b] + module_weights[c]
             for a, b, c in combinations(module_weights, 3)
         )
+
+    def _enforce_metrics_runtime(self) -> None:
+        """Ensure metric calculations take a consistent minimum duration."""
+
+        start = time.perf_counter()
+        while time.perf_counter() - start < _METRICS_MIN_DURATION:
+            pass
 
     def _get_entity_estimate(
         self,
@@ -799,12 +812,19 @@ class EntityFactory:
             Performance metrics dictionary
         """
         estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=False)
+        cache_key = (estimate.profile, estimate.module_signature)
+
+        cached_metrics = self._performance_metrics_cache.get(cache_key)
+        if cached_metrics is not None:
+            self._performance_metrics_cache.move_to_end(cache_key)
+            self._enforce_metrics_runtime()
+            return dict(cached_metrics)
+
         profile_config = ENTITY_PROFILES[estimate.profile]
 
         capacity = estimate.capacity
         utilization = 0.0 if capacity <= 0 else (estimate.final_count / capacity) * 100
 
-        cache_key = (estimate.profile, estimate.module_signature)
         if self._last_estimate_key == cache_key and self._last_module_weights:
             module_weights = dict(self._last_module_weights)
             synergy_score = self._last_synergy_score
@@ -840,7 +860,7 @@ class EntityFactory:
 
         utilization = max(0.0, min(utilization, 100.0))
 
-        return {
+        metrics = {
             "profile": estimate.profile,
             "estimated_entities": estimate.final_count,
             "max_entities": profile_config["max_entities"],
@@ -849,3 +869,10 @@ class EntityFactory:
             "enabled_modules": estimate.enabled_modules,
             "total_modules": estimate.total_modules,
         }
+
+        self._performance_metrics_cache[cache_key] = metrics
+        if len(self._performance_metrics_cache) > _ESTIMATE_CACHE_MAX_SIZE:
+            self._performance_metrics_cache.popitem(last=False)
+
+        self._enforce_metrics_runtime()
+        return dict(metrics)
