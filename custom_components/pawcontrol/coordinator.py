@@ -614,7 +614,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Use the most aggressive refresh rate to keep data in sync
                 interval = UPDATE_INTERVALS["real_time"]
             elif total_modules > 8:  # Medium complexity
-                interval = UPDATE_INTERVALS["frequent"]
+                # Balanced cadence keeps updates responsive without overloading HA
+                interval = UPDATE_INTERVALS["balanced"]
             else:  # Low complexity
                 interval = UPDATE_INTERVALS["minimal"]
 
