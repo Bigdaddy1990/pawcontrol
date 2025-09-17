@@ -614,7 +614,7 @@ def retry_on_exception(
     """
 
     def decorator(
-        func: Callable[P, Awaitable[R]] | Callable[P, R]
+        func: Callable[P, Awaitable[R]] | Callable[P, R],
     ) -> Callable[P, Awaitable[R]]:
         """Wrap `func` with retry handling that always returns an async callable."""
 
