@@ -146,6 +146,7 @@ CONF_RESET_TIME: Final[str] = "reset_time"
 CONF_DASHBOARD_MODE: Final[str] = "dashboard_mode"
 CONF_DATA_RETENTION_DAYS: Final[str] = "data_retention_days"
 CONF_AUTO_BACKUP: Final[str] = "auto_backup"
+CONF_EXTERNAL_INTEGRATIONS: Final[str] = "external_integrations"
 
 # OPTIMIZED: Default values as immutable constants
 DEFAULT_RESET_TIME: Final[str] = "23:59:00"
