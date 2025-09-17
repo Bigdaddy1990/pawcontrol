@@ -11,7 +11,7 @@ import logging
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -589,10 +589,13 @@ class PawControlData:
                     if scheduled_coro is not event_coro:
                         event_coro.close()
                 else:
-                    # The Home Assistant mock returned a sentinel rather than
-                    # a real task, so close the unused coroutine to avoid
-                    # leaking it and fall back to asyncio.create_task.
+                    # Some test harnesses return sentinel objects instead of
+                    # real asyncio tasks. Close the coroutine to avoid a
+                    # "coroutine was never awaited" warning and track the
+                    # returned handle so callers can assert that scheduling
+                    # occurred.
                     event_coro.close()
+                    task = cast(asyncio.Task[Any], maybe_task)
 
             if task is None:
                 event_coro = self._process_events()
