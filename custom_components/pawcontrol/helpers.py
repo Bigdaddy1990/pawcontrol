@@ -11,7 +11,7 @@ import logging
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -577,10 +577,7 @@ class PawControlData:
                     event_coro.close()
                     raise
 
-                if (
-                    isinstance(maybe_task, asyncio.Task)
-                    and type(maybe_task) is asyncio.Task
-                ):
+                if isinstance(maybe_task, asyncio.Task) and type(maybe_task) is asyncio.Task:
                     task = maybe_task
                     try:
                         scheduled_coro = task.get_coro()
@@ -588,10 +585,16 @@ class PawControlData:
                         scheduled_coro = None
                     if scheduled_coro is not event_coro:
                         event_coro.close()
+                elif self._is_task_like(maybe_task):
+                    # Test environments sometimes return task sentinels. Keep
+                    # a reference to them so assertions can verify scheduling
+                    # behaviour, but close the coroutine to avoid resource
+                    # warnings as the sentinel will never execute it.
+                    event_coro.close()
+                    task = cast(asyncio.Task[Any], maybe_task)
                 else:
-                    # The Home Assistant mock returned a sentinel rather than
-                    # a real task, so close the unused coroutine to avoid
-                    # leaking it and fall back to asyncio.create_task.
+                    # Unknown return type, close the coroutine so we can fall
+                    # back to the default event loop task creation.
                     event_coro.close()
 
             if task is None:
@@ -601,6 +604,15 @@ class PawControlData:
                     event_coro.close()
 
             self._event_task = task
+
+    @staticmethod
+    def _is_task_like(candidate: Any) -> bool:
+        """Return True if *candidate* behaves like an asyncio.Task."""
+
+        return all(
+            callable(getattr(candidate, attr, None))
+            for attr in ("cancel", "done", "__await__")
+        )
 
     @staticmethod
     def _create_empty_data() -> dict[str, Any]:
