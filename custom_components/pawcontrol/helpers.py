@@ -343,7 +343,7 @@ class PawControlDataStorage:
                 results = await asyncio.gather(*save_tasks, return_exceptions=True)
 
                 # Log any errors while maintaining alignment with the executed tasks.
-                for store_key, result in zip(task_store_keys, results, strict=False):
+                for store_key, result in zip(task_store_keys, results, strict=True):
                     if isinstance(result, Exception):
                         _LOGGER.error("Failed to save %s: %s", store_key, result)
                     else:
