@@ -544,19 +544,38 @@ class PawControlData:
 
         if self._event_task is None or self._event_task.done():
             event_coro = self._process_events()
-            try:
-                task = self.hass.async_create_task(event_coro)
-            except Exception:
-                event_coro.close()
-                raise
+            task: asyncio.Task[Any] | None = None
 
-            try:
-                scheduled_coro = task.get_coro()
-            except AttributeError:
-                scheduled_coro = None
+            hass_task_factory = getattr(self.hass, "async_create_task", None)
+            if callable(hass_task_factory):
+                try:
+                    maybe_task = hass_task_factory(event_coro)
+                except Exception:
+                    event_coro.close()
+                    raise
 
-            if scheduled_coro is not event_coro:
-                event_coro.close()
+                if (
+                    isinstance(maybe_task, asyncio.Task)
+                    and type(maybe_task) is asyncio.Task
+                ):
+                    task = maybe_task
+                    try:
+                        scheduled_coro = task.get_coro()
+                    except AttributeError:
+                        scheduled_coro = None
+                    if scheduled_coro is not event_coro:
+                        event_coro.close()
+                else:
+                    # The Home Assistant mock returned a sentinel rather than
+                    # a real task, so close the unused coroutine to avoid
+                    # leaking it and fall back to asyncio.create_task.
+                    event_coro.close()
+
+            if task is None:
+                event_coro = self._process_events()
+                task = asyncio.create_task(event_coro)
+                if not (isinstance(task, asyncio.Task) and type(task) is asyncio.Task):
+                    event_coro.close()
 
             self._event_task = task
 

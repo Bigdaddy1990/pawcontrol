@@ -20,6 +20,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_ID,
@@ -355,7 +356,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: dict[str, Any] = {
             "dog_info": dog_config,
             "status": "online",
-            "last_update": asyncio.get_running_loop().time(),
+            # Use wall-clock time to ensure other components can parse the timestamp.
+            "last_update": dt_util.utcnow().isoformat(),
         }
         modules = dog_config.get("modules", {})
 
