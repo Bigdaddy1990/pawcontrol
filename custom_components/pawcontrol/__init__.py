@@ -150,7 +150,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     Returns:
         True if setup successful
     """
-    hass.data.setdefault(DOMAIN, {})
+    domain_data = hass.data.setdefault(DOMAIN, {})
+
+    # Register integration-level services at startup so they are available
+    # before any config entries are loaded. The service manager stores itself
+    # in domain data and avoids double registration automatically.
+    try:
+        if "service_manager" not in domain_data:
+            domain_data["service_manager"] = PawControlServiceManager(hass)
+            _LOGGER.debug("Registered PawControl services during async_setup")
+    except Exception as err:  # pragma: no cover - defensive logging
+        _LOGGER.warning("Failed to register PawControl services: %s", err)
+
     return True
 
 
@@ -379,16 +390,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     domain_data["entity_profile"] = profile
     domain_data["runtime_data"] = runtime_data
 
-    # OPTIMIZE: Initialize optional services with error isolation (non-critical)
+    service_manager = domain_data.get("service_manager")
+    if service_manager is not None:
+        entry_data["service_manager"] = service_manager
+    else:  # pragma: no cover - legacy fallback
+        _LOGGER.debug("Service manager not registered yet; services unavailable")
+
+    # Schedule optional daily maintenance tasks. Failure to schedule should
+    # not abort the overall setup because the integration can operate without
+    # the automated reset.
     try:
-        PawControlServiceManager(hass)
         reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
         if reset_unsub is not None:
             entry_data["daily_reset_unsub"] = reset_unsub
-        _LOGGER.debug("Optional services initialized successfully")
+        _LOGGER.debug("Optional daily reset scheduler initialized successfully")
     except Exception as err:
-        _LOGGER.warning("Failed to initialize optional services: %s", err)
-        # Continue setup even if services fail
+        _LOGGER.warning("Failed to initialize daily reset scheduler: %s", err)
+        # Continue setup even if scheduler fails
 
     # Start background tasks for coordinator
     coordinator.async_start_background_tasks()
