@@ -199,7 +199,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog: DogConfigData,
         ) -> tuple[str, dict[str, Any] | None]:
             async with self._api_semaphore:
-                dog_id = dog[CONF_DOG_ID]
+                dog_id_value = dog.get(CONF_DOG_ID)
+                if not isinstance(dog_id_value, str):
+                    _LOGGER.debug("Skipping dog with invalid id: %s", dog_id_value)
+                    return "", None
+                dog_id = dog_id_value
                 try:
                     # Add timeout protection for individual dog updates
                     dog_data = await asyncio.wait_for(
@@ -222,7 +226,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # OPTIMIZE: Execute concurrent updates with controlled concurrency and better error handling
         try:
-            results = await asyncio.gather(
+            raw_results = await asyncio.gather(
                 *(update_dog_with_semaphore(dog) for dog in self.dogs),
                 return_exceptions=True,
             )
@@ -231,8 +235,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
 
         # Process results with improved error tracking
-        for result in results:
-            if isinstance(result, Exception):
+        for result in raw_results:
+            if isinstance(result, BaseException):
                 if isinstance(result, asyncio.CancelledError):
                     self._performance_metrics["error_count"] += 1
                     raise result
@@ -241,6 +245,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 continue
 
             dog_id, dog_data = result
+            if not dog_id:
+                continue
             if dog_data is not None:
                 all_data[dog_id] = dog_data
             else:
@@ -654,7 +660,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return interval
 
     # Public interface methods with enhanced functionality
-    def get_dog_config(self, dog_id: str) -> dict[str, Any] | None:
+    def get_dog_config(self, dog_id: str) -> DogConfigData | None:
         """Get dog configuration by ID with caching.
 
         Args:
@@ -663,10 +669,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Dog configuration dictionary or None if not found
         """
-        # Use generator for memory efficiency
-        return next(
-            (dog for dog in self._dogs_config if dog.get(CONF_DOG_ID) == dog_id), None
-        )
+        for config in self._dogs_config:
+            configured_id = config.get(CONF_DOG_ID)
+            if isinstance(configured_id, str) and configured_id == dog_id:
+                return config
+        return None
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
         """Get enabled modules for dog with performance optimization.
@@ -678,10 +685,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Frozenset of enabled module names for O(1) membership testing
         """
         config = self.get_dog_config(dog_id)
-        if not config:
+        if config is None:
             return frozenset()
         modules = config.get("modules", {})
-        return frozenset(name for name, enabled in modules.items() if enabled)
+        return frozenset(
+            name for name, enabled in modules.items() if bool(enabled)
+        )
 
     def is_module_enabled(self, dog_id: str, module: str) -> bool:
         """Check if module is enabled for dog.
@@ -694,7 +703,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             True if module is enabled, False otherwise
         """
         config = self.get_dog_config(dog_id)
-        return config.get("modules", {}).get(module, False) if config else False
+        if config is None:
+            return False
+        modules = config.get("modules", {})
+        enabled = modules.get(module)
+        return bool(enabled)
 
     def get_dog_ids(self) -> list[str]:
         """Get all configured dog IDs.
@@ -702,9 +715,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             List of dog identifiers
         """
-        return [
-            dog.get(CONF_DOG_ID) for dog in self._dogs_config if dog.get(CONF_DOG_ID)
-        ]
+        dog_ids: list[str] = []
+        for dog in self._dogs_config:
+            dog_id_value = dog.get(CONF_DOG_ID)
+            if isinstance(dog_id_value, str) and dog_id_value:
+                dog_ids.append(dog_id_value)
+        return dog_ids
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get data for specific dog with performance tracking.
