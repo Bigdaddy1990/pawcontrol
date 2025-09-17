@@ -11,7 +11,7 @@ import logging
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -47,6 +47,14 @@ BATCH_SAVE_DELAY = 2.0  # Batch save delay in seconds
 MAX_NOTIFICATION_QUEUE = 100  # Max queued notifications
 DATA_CLEANUP_INTERVAL = 3600  # 1 hour cleanup interval
 MAX_HISTORY_ITEMS = 1000  # Max items per dog per category
+
+DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
+    "walks",
+    "feedings",
+    "health",
+    "routes",
+    "statistics",
+)
 
 
 class OptimizedDataCache:
@@ -505,31 +513,72 @@ class PawControlData:
         loop = asyncio.get_running_loop()
         start_time = loop.time()
 
-        try:
-            self._data = await self.storage.async_load_all_data()
+        load_failed = False
+        loaded_data: Any = {}
 
-            load_time = loop.time() - start_time
+        try:
+            loaded_data = await self.storage.async_load_all_data()
+        except Exception as err:
+            load_failed = True
+            _LOGGER.error("Failed to initialize data manager: %s", err)
+            loaded_data = self._create_empty_data()
+
+        self._data = self._ensure_data_structure(loaded_data)
+
+        load_time = loop.time() - start_time
+        if load_failed:
             _LOGGER.debug(
-                "Data manager initialized with %d data types in %.2fs",
+                "Initialized data manager with fallback data in %.2fs",
+                load_time,
+            )
+        else:
+            _LOGGER.debug(
+                "Data manager initialized with %d data namespaces in %.2fs",
                 len(self._data),
                 load_time,
             )
 
-        except asyncio.CancelledError:
-            raise
-        except Exception as err:
-            _LOGGER.error("Failed to initialize data manager: %s", err)
-            # Initialize with empty data if loading fails
-            self._data = {
-                "walks": {},
-                "feedings": {},
-                "health": {},
-                "routes": {},
-                "statistics": {},
-            }
-        finally:
-            if self._event_task is None or self._event_task.done():
-                self._event_task = asyncio.create_task(self._process_events())
+        if self._event_task is None or self._event_task.done():
+            self._event_task = asyncio.create_task(self._process_events())
+
+    @staticmethod
+    def _create_empty_data() -> dict[str, Any]:
+        """Return a fresh default data structure for runtime use."""
+
+        return {key: {} for key in DEFAULT_DATA_KEYS}
+
+    def _ensure_data_structure(self, data: Any) -> dict[str, Any]:
+        """Normalize stored data to the expected namespace layout.
+
+        The storage backend may return malformed payloads if the underlying
+        file was manually edited or partially written. We rebuild the
+        namespaces here so later operations can rely on their presence.
+        """
+
+        sanitized = self._create_empty_data()
+
+        if not isinstance(data, dict):
+            if data not in (None, {}):
+                _LOGGER.warning(
+                    "Unexpected data payload type %s; using default layout",
+                    type(data).__name__,
+                )
+            return sanitized
+
+        for key in DEFAULT_DATA_KEYS:
+            value = data.get(key)
+            if isinstance(value, dict):
+                sanitized[key] = value
+            elif value not in (None, {}):
+                _LOGGER.warning(
+                    "Invalid data structure for '%s'; resetting namespace", key
+                )
+
+        for key, value in data.items():
+            if key not in sanitized:
+                sanitized[key] = value
+
+        return sanitized
 
     async def async_log_feeding(
         self, dog_id: str, feeding_data: dict[str, Any]
