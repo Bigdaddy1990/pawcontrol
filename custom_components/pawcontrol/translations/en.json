@@ -199,6 +199,7 @@
       "door_sensor_not_found": "The selected door sensor entity was not found",
       "notification_service_not_found": "The selected notification service was not found",
       "invalid_notification_service": "The notification service format is invalid",
+      "invalid_profile": "You need to select a valid profile",
       "external_entity_validation_failed": "External entity validation failed"
     },
     "abort": {

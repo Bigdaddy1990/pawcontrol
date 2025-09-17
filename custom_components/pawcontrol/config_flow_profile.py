@@ -77,7 +77,7 @@ def get_profile_selector_options() -> list[dict[str, str]]:
             # Use second-person tone to match the global writing guidance.
             label_parts.append(description)
 
-        options.append({"value": profile, "label": " – ".join(label_parts)})
+        options.append({"value": profile, "label": " - ".join(label_parts)})
 
     return options
 
