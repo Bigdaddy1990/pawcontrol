@@ -515,9 +515,8 @@ class PawControlData:
                 load_time,
             )
 
-            # Start event processing
-            self._event_task = asyncio.create_task(self._process_events())
-
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to initialize data manager: %s", err)
             # Initialize with empty data if loading fails
@@ -528,6 +527,9 @@ class PawControlData:
                 "routes": {},
                 "statistics": {},
             }
+        finally:
+            if self._event_task is None or self._event_task.done():
+                self._event_task = asyncio.create_task(self._process_events())
 
     async def async_log_feeding(
         self, dog_id: str, feeding_data: dict[str, Any]
