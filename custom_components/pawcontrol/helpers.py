@@ -918,9 +918,7 @@ class PawControlData:
                     if isinstance(entry, WalkEvent):
                         normalized_history.append(entry)
                     elif isinstance(entry, dict):
-                        normalized_history.append(
-                            WalkEvent.from_storage(dog_id, entry)
-                        )
+                        normalized_history.append(WalkEvent.from_storage(dog_id, entry))
                     else:
                         _LOGGER.debug(
                             "Skipping unsupported walk history entry type: %s",
@@ -958,21 +956,15 @@ class PawControlData:
                     continue
 
                 if walk_event.action == "end":
-                    if (
-                        isinstance(active_session, WalkEvent)
-                        and (
-                            walk_event.session_id is None
-                            or walk_event.session_id
-                            == active_session.session_id
-                        )
+                    if isinstance(active_session, WalkEvent) and (
+                        walk_event.session_id is None
+                        or walk_event.session_id == active_session.session_id
                     ):
                         merged_payload = {
                             **active_session.as_dict(),
                             **walk_event.as_dict(),
                         }
-                        completed_walk = WalkEvent.from_raw(
-                            dog_id, merged_payload
-                        )
+                        completed_walk = WalkEvent.from_raw(dog_id, merged_payload)
                         history.append(completed_walk)
                         dog_walks["active"] = None
                         active_session = None
