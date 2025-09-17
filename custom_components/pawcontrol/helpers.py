@@ -577,10 +577,7 @@ class PawControlData:
                     event_coro.close()
                     raise
 
-                if (
-                    isinstance(maybe_task, asyncio.Task)
-                    and type(maybe_task) is asyncio.Task
-                ):
+                if isinstance(maybe_task, asyncio.Task) and type(maybe_task) is asyncio.Task:
                     task = maybe_task
                     try:
                         scheduled_coro = task.get_coro()
@@ -588,6 +585,13 @@ class PawControlData:
                         scheduled_coro = None
                     if scheduled_coro is not event_coro:
                         event_coro.close()
+                elif self._is_task_like(maybe_task):
+                    # Test environments sometimes return task sentinels. Keep
+                    # a reference to them so assertions can verify scheduling
+                    # behaviour, but close the coroutine to avoid resource
+                    # warnings as the sentinel will never execute it.
+                    event_coro.close()
+                    task = cast(asyncio.Task[Any], maybe_task)
                 else:
                     # Some test harnesses return sentinel objects instead of
                     # real asyncio tasks. Close the coroutine to avoid a
@@ -604,6 +608,15 @@ class PawControlData:
                     event_coro.close()
 
             self._event_task = task
+
+    @staticmethod
+    def _is_task_like(candidate: Any) -> bool:
+        """Return True if *candidate* behaves like an asyncio.Task."""
+
+        return all(
+            callable(getattr(candidate, attr, None))
+            for attr in ("cancel", "done", "__await__")
+        )
 
     @staticmethod
     def _create_empty_data() -> dict[str, Any]:
