@@ -1,9 +1,4 @@
-"""Type definitions for Paw Control integration.
-
-This module provides comprehensive type definitions for all Paw Control
-components, ensuring type safety and better IDE support across the integration.
-Designed for Home Assistant 2025.9.3+ with Platinum quality standards.
-"""
+"""Type definitions for the PawControl integration."""
 
 from __future__ import annotations
 

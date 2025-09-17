@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -126,7 +127,7 @@ config_flow_monitor = ConfigFlowPerformanceMonitor()
 
 
 @asynccontextmanager
-async def timed_operation(operation_name: str):
+async def timed_operation(operation_name: str) -> AsyncIterator[None]:
     """Async context manager that records operation duration."""
 
     start_time = time.monotonic()

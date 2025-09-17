@@ -522,11 +522,13 @@ async def _cleanup_managers(managers: list[Any]) -> None:
     if not managers:
         return
 
-    cleanup_tasks = []
+    cleanup_tasks: list[Awaitable[None]] = []
     for manager in reversed(managers):  # Cleanup in reverse order
         if hasattr(manager, "async_shutdown"):
             # Wrap each cleanup in timeout protection
-            async def safe_shutdown(mgr):
+            async def safe_shutdown(mgr: Any) -> None:
+                """Shut down a manager instance with timeout protection."""
+
                 try:
                     await asyncio.wait_for(mgr.async_shutdown(), timeout=10.0)
                 except TimeoutError:
@@ -619,11 +621,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         ]
 
         # Filter managers that have shutdown capability and create timeout-protected tasks
-        shutdown_tasks = []
+        shutdown_tasks: list[Awaitable[tuple[str, Exception | None]]] = []
         for manager in managers:
             if hasattr(manager, "async_shutdown"):
 
-                async def safe_manager_shutdown(mgr):
+                async def safe_manager_shutdown(
+                    mgr: Any,
+                ) -> tuple[str, Exception | None]:
+                    """Shut down a manager and report the result."""
+
                     try:
                         await asyncio.wait_for(mgr.async_shutdown(), timeout=15.0)
                         return mgr.__class__.__name__, None

@@ -14,10 +14,10 @@ import asyncio
 import hashlib
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
@@ -30,6 +30,8 @@ _LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
@@ -590,7 +592,10 @@ def retry_on_exception(
     delay: float = 1.0,
     backoff_factor: float = 2.0,
     exceptions: tuple[type[Exception], ...] = (Exception,),
-):
+) -> Callable[
+    [Callable[P, Awaitable[R]] | Callable[P, R]],
+    Callable[P, Awaitable[R]],
+]:
     """Retry a callable when it raises one of the provided exceptions.
 
     The returned decorator always exposes an async callable. When applied to a
@@ -608,19 +613,27 @@ def retry_on_exception(
         Decorator that provides retry behaviour for async and sync callables.
     """
 
-    def decorator(func):
+    def decorator(
+        func: Callable[P, Awaitable[R]] | Callable[P, R]
+    ) -> Callable[P, Awaitable[R]]:
+        """Wrap `func` with retry handling that always returns an async callable."""
+
         is_coroutine = asyncio.iscoroutinefunction(func)
 
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """Execute the wrapped function with retry and backoff support."""
+
             last_exception: Exception | None = None
             current_delay = delay
 
             for attempt in range(max_retries + 1):
                 try:
                     if is_coroutine:
-                        return await func(*args, **kwargs)
-                    return await asyncio.to_thread(func, *args, **kwargs)
+                        coroutine = cast(Callable[P, Awaitable[R]], func)
+                        return await coroutine(*args, **kwargs)
+                    sync_func = cast(Callable[P, R], func)
+                    return await asyncio.to_thread(sync_func, *args, **kwargs)
                 except exceptions as err:
                     last_exception = err
                     if attempt < max_retries:
