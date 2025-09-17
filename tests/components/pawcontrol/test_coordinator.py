@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 from custom_components.pawcontrol.const import (
-    CONF_DOGS,
     CONF_DOG_ID,
+    CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
     DOMAIN,
     MODULE_FEEDING,
