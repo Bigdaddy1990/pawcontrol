@@ -1,20 +1,17 @@
 """Coordinator for PawControl integration.
 
-Enhanced coordinator with session management, external API support,
-and comprehensive performance monitoring for Platinum quality compliance.
+Simplified coordinator with session management and intelligent caching
+for Platinum quality compliance without overengineering.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import sys
-from collections.abc import Callable, Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -31,10 +28,9 @@ from .const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
-    PERFORMANCE_THRESHOLDS,
     UPDATE_INTERVALS,
 )
-from .types import DogConfigData
+from .types import DogConfigData, PawControlConfigEntry
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
@@ -44,98 +40,68 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Simplified constants
+API_TIMEOUT = 30.0
+CACHE_TTL_SECONDS = 300  # 5 minutes
 MAINTENANCE_INTERVAL = timedelta(hours=1)
-API_TIMEOUT = 30.0  # seconds
-MAX_CONCURRENT_REQUESTS = 5
-MAX_DATA_ITEMS_PER_DOG = 1000  # Prevent memory leaks
-CACHE_SIZE_LIMIT = 100  # Maximum cache entries
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for PawControl integration.
 
-    Enhanced with external API support, session management, and comprehensive
-    performance monitoring for Platinum-level quality.
-
-    Responsibilities:
-    - Fetch and coordinate dog data updates
-    - Manage configuration and dog profiles
-    - Handle external API calls with session management
-    - Provide data interface for entities
-    - Handle errors and recovery with retry logic
-    - Perform periodic maintenance and performance monitoring
+    Simplified coordinator focused on reliability and maintainability
+    while meeting all Platinum quality requirements.
     """
 
     def __init__(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: PawControlConfigEntry,
         session: ClientSession | None = None,
     ) -> None:
-        """Initialize coordinator with Home Assistant managed session support.
+        """Initialize coordinator with session management and simple caching.
 
         Args:
             hass: Home Assistant instance
-            entry: Config entry for this integration
+            entry: Config entry for this integration with typed runtime data
             session: Optional aiohttp session for external API calls
         """
         self.config_entry = entry
-        session_injected = session is not None
-        if session is None:
-            session = async_get_clientsession(hass)
-        self.session = session
-        self._external_session_injected = session_injected
+        self.session = session or async_get_clientsession(hass)
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-        self.dogs = self._dogs_config
+        self._use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
 
-        # OPTIMIZE: Initialize external API flag BEFORE super().__init__() to prevent AttributeError
-        self._use_external_api = bool(
-            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
-        )
+        # Simple TTL-based cache
+        self._cache: dict[str, tuple[Any, datetime]] = {}
+        
+        # Calculate update interval
+        update_interval = self._calculate_update_interval()
 
-        # OPTIMIZE: Prepare caches before calculating interval
-        self._interval_cache: dict[str, int] = {}
-
-        # Calculate optimized update interval
-        update_interval = self._calculate_optimized_update_interval()
-
+        # PLATINUM: Pass config_entry to coordinator for proper type safety
         super().__init__(
             hass,
             _LOGGER,
             name="PawControl Data",
             update_interval=timedelta(seconds=update_interval),
-            always_update=False,
             config_entry=entry,
         )
 
-        # Enhanced data storage with type safety and performance monitoring
+        # Runtime data and performance tracking
         self._data: dict[str, dict[str, Any]] = {}
-        self._performance_metrics = {
-            "update_count": 0,
-            "error_count": 0,
-            "avg_update_time": 0.0,
-            "cache_hits": 0,
-            "api_calls": 0,
-            "memory_usage_mb": 0.0,
-        }
+        self._update_count = 0
+        self._error_count = 0
+        self._maintenance_unsub: callback | None = None
 
-        # OPTIMIZE: Request semaphore to limit concurrent API calls
-        self._api_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
-
-        # Track maintenance task unsubscriber
-        self._unsub_maintenance: Callable[[], None] | None = None
-
-        # Attached runtime manager references for service handlers
+        # Runtime manager references
         self.data_manager: PawControlDataManager | None = None
         self.feeding_manager: FeedingManager | None = None
         self.walk_manager: WalkManager | None = None
         self.notification_manager: PawControlNotificationManager | None = None
 
         _LOGGER.info(
-            "Coordinator initialized: %d dogs, %ds interval, session=%s, external_api=%s",
-            len(self.dogs),
+            "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
+            len(self._dogs_config),
             update_interval,
-            "injected" if session_injected else "shared",
             self._use_external_api,
         )
 
@@ -147,843 +113,312 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         walk_manager: WalkManager,
         notification_manager: PawControlNotificationManager,
     ) -> None:
-        """Expose runtime managers for other integration components."""
-
+        """Attach runtime managers for service integration."""
         self.data_manager = data_manager
         self.feeding_manager = feeding_manager
         self.walk_manager = walk_manager
         self.notification_manager = notification_manager
-        _LOGGER.debug("Attached runtime managers to coordinator")
+        _LOGGER.debug("Runtime managers attached")
 
     def clear_runtime_managers(self) -> None:
-        """Remove references to runtime managers during unload."""
-
-        if any(
-            manager is not None
-            for manager in (
-                self.data_manager,
-                self.feeding_manager,
-                self.walk_manager,
-                self.notification_manager,
-            )
-        ):
-            _LOGGER.debug("Clearing runtime manager references from coordinator")
-
+        """Clear runtime manager references during unload."""
         self.data_manager = None
         self.feeding_manager = None
         self.walk_manager = None
         self.notification_manager = None
 
+    def _get_cache(self, key: str) -> Any | None:
+        """Get item from cache if not expired."""
+        if key not in self._cache:
+            return None
+        
+        data, timestamp = self._cache[key]
+        if (dt_util.utcnow() - timestamp).total_seconds() > CACHE_TTL_SECONDS:
+            del self._cache[key]
+            return None
+        
+        return data
+
+    def _set_cache(self, key: str, data: Any) -> None:
+        """Set item in cache with timestamp."""
+        self._cache[key] = (data, dt_util.utcnow())
+
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data for all dogs with enhanced error handling and performance monitoring.
+        """Fetch data for all dogs efficiently.
 
         Returns:
             Dictionary mapping dog_id to dog data
 
         Raises:
-            UpdateFailed: If critical errors occur or all dogs fail
+            UpdateFailed: If all dogs fail or critical errors occur
         """
-        # OPTIMIZE: Handle empty dogs list edge case efficiently
-        if not self.dogs:
-            _LOGGER.debug("No dogs configured, returning empty data")
+        if not self._dogs_config:
             return {}
 
-        loop = asyncio.get_running_loop()
-        start_time = loop.time()
+        self._update_count += 1
         all_data: dict[str, dict[str, Any]] = {}
         errors = 0
-        error_details: list[str] = []
 
-        # OPTIMIZE: Create semaphore-limited tasks for concurrent updates with better error isolation
-        async def update_dog_with_semaphore(
-            dog: DogConfigData,
-        ) -> tuple[str, dict[str, Any] | None]:
-            async with self._api_semaphore:
-                dog_id_value = dog.get(CONF_DOG_ID)
-                if not isinstance(dog_id_value, str):
-                    _LOGGER.debug("Skipping dog with invalid id: %s", dog_id_value)
-                    return "", None
-                dog_id = dog_id_value
-                try:
-                    # Add timeout protection for individual dog updates
-                    dog_data = await asyncio.wait_for(
-                        self._fetch_dog_data(dog_id),
-                        timeout=API_TIMEOUT
-                        * 0.8,  # Leave buffer for semaphore management
-                    )
-                    _LOGGER.debug("Successfully updated data for dog %s", dog_id)
-                    return dog_id, dog_data
-                except asyncio.CancelledError:
-                    raise
-                except TimeoutError:
-                    _LOGGER.warning(
-                        "Timeout updating dog %s after %.1fs", dog_id, API_TIMEOUT * 0.8
-                    )
-                    return dog_id, None
-                except (ClientError, HomeAssistantError, ValueError) as err:
-                    _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
-                    return dog_id, None
-
-        # OPTIMIZE: Execute concurrent updates with controlled concurrency and better error handling
-        try:
-            raw_results = await asyncio.gather(
-                *(update_dog_with_semaphore(dog) for dog in self.dogs),
-                return_exceptions=True,
-            )
-        except asyncio.CancelledError:
-            self._performance_metrics["error_count"] += 1
-            raise
-
-        # Process results with improved error tracking
-        for result in raw_results:
-            if isinstance(result, BaseException):
-                if isinstance(result, asyncio.CancelledError):
-                    self._performance_metrics["error_count"] += 1
-                    raise result
-                errors += 1
-                error_details.append(str(result))
+        # Fetch data for each dog
+        for dog in self._dogs_config:
+            dog_id = dog.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str):
                 continue
 
-            dog_id, dog_data = result
-            if not dog_id:
-                continue
-            if dog_data is not None:
+            try:
+                dog_data = await asyncio.wait_for(
+                    self._fetch_dog_data(dog_id), timeout=API_TIMEOUT
+                )
                 all_data[dog_id] = dog_data
-            else:
+            except asyncio.TimeoutError as err:
+                _LOGGER.warning("Timeout fetching data for dog %s: %s", dog_id, err)
                 errors += 1
-                error_details.append(f"{dog_id}: update failed")
-                # Use last known data or empty dict
+                # Use last known data
+                all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
+            except (ClientError, HomeAssistantError) as err:
+                _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
+                errors += 1
+                # Use last known data
                 all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
 
-        # OPTIMIZE: Update performance metrics with memory tracking
-        end_time = loop.time()
-        update_time = end_time - start_time
-        self._performance_metrics["update_count"] += 1
-        self._performance_metrics["avg_update_time"] = (
-            self._performance_metrics["avg_update_time"]
-            * (self._performance_metrics["update_count"] - 1)
-            + update_time
-        ) / self._performance_metrics["update_count"]
+        # Check if all dogs failed
+        if errors == len(self._dogs_config) and len(self._dogs_config) > 0:
+            self._error_count += 1
+            raise UpdateFailed("All dogs failed to update")
 
-        # Fail if all dogs failed to update
-        if errors == len(self.dogs) and len(self.dogs) > 0:
-            self._performance_metrics["error_count"] += 1
-            error_summary = "; ".join(error_details[:3])  # Limit error message length
-            raise UpdateFailed(f"All dogs failed to update: {error_summary}")
-
-        # Log partial failures for monitoring
-        if errors > 0:
-            _LOGGER.warning(
-                "Partial update failure: %d/%d dogs failed (avg: %.2fs)",
-                errors,
-                len(self.dogs),
-                update_time,
-            )
-
-        # OPTIMIZE: Store data with size limits to prevent memory leaks
-        self._data = self._limit_data_size(all_data)
-
-        # Update memory usage tracking
-        self._performance_metrics["memory_usage_mb"] = sys.getsizeof(self._data) / (
-            1024 * 1024
-        )
-
+        self._data = all_data
         return self._data
 
-    def _limit_data_size(
-        self, data: dict[str, dict[str, Any]]
-    ) -> dict[str, dict[str, Any]]:
-        """Limit data size to prevent memory leaks.
-
-        Args:
-            data: Raw data dictionary
-
-        Returns:
-            Size-limited data dictionary
-        """
-        for dog_id, dog_data in data.items():
-            for module_data in dog_data.values():
-                if isinstance(module_data, dict):
-                    # OPTIMIZE: Limit size of historical data arrays with better performance
-                    for key in [
-                        "walk_history",
-                        "feeding_alerts",
-                        "symptoms",
-                        "route",
-                        "training_sessions",
-                    ]:
-                        if key in module_data and isinstance(module_data[key], list):
-                            current_size = len(module_data[key])
-                            if current_size > MAX_DATA_ITEMS_PER_DOG:
-                                # Keep most recent items
-                                module_data[key] = module_data[key][
-                                    -MAX_DATA_ITEMS_PER_DOG:
-                                ]
-                                _LOGGER.debug(
-                                    "Trimmed %s for dog %s: %d -> %d items",
-                                    key,
-                                    dog_id,
-                                    current_size,
-                                    MAX_DATA_ITEMS_PER_DOG,
-                                )
-        return data
-
-    def _get_empty_dog_data(self) -> dict[str, Any]:
-        """Get empty dog data structure.
-
-        Returns:
-            Empty dog data dictionary
-        """
-        return {
-            "dog_info": {},
-            "status": "unknown",
-            "last_update": None,
-            MODULE_FEEDING: {},
-            MODULE_WALK: {},
-            MODULE_GPS: {},
-            MODULE_HEALTH: {},
-            "medication": {},
-            "grooming": {},
-        }
-
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
-        """Fetch data for a single dog with external API support.
-
-        Enhanced with session-based API calls and comprehensive error handling.
+        """Fetch data for a single dog.
 
         Args:
             dog_id: Dog identifier
 
         Returns:
-            Dog data dictionary with all enabled modules
+            Dog data dictionary
 
         Raises:
-            ValueError: If dog configuration is invalid
-            ClientError: If external API call fails
+            ValueError: If dog not found
         """
         dog_config = self.get_dog_config(dog_id)
         if not dog_config:
-            raise ValueError(f"Dog {dog_id} not found in configuration")
+            raise ValueError(f"Dog {dog_id} not found")
 
-        data: dict[str, Any] = {
+        data = {
             "dog_info": dog_config,
             "status": "online",
-            # Use wall-clock time to ensure other components can parse the timestamp.
             "last_update": dt_util.utcnow().isoformat(),
         }
+
         modules = dog_config.get("modules", {})
 
-        # OPTIMIZE: Fetch data for enabled modules with enhanced error isolation and parallel execution
-        module_tasks = [
-            (MODULE_FEEDING, modules.get(MODULE_FEEDING), self._get_feeding_data),
-            (MODULE_WALK, modules.get(MODULE_WALK), self._get_walk_data),
-            (MODULE_GPS, modules.get(MODULE_GPS), self._get_gps_data),
-            (MODULE_HEALTH, modules.get(MODULE_HEALTH), self._get_health_data),
-            ("medication", modules.get("medication", False), self._get_medication_data),
-            ("grooming", modules.get("grooming", False), self._get_grooming_data),
-        ]
+        # Fetch enabled module data
+        module_tasks = []
+        if modules.get(MODULE_FEEDING):
+            module_tasks.append(("feeding", self._get_feeding_data(dog_id)))
+        if modules.get(MODULE_WALK):
+            module_tasks.append(("walk", self._get_walk_data(dog_id)))
+        if modules.get(MODULE_GPS):
+            module_tasks.append(("gps", self._get_gps_data(dog_id)))
+        if modules.get(MODULE_HEALTH):
+            module_tasks.append(("health", self._get_health_data(dog_id)))
 
-        # Execute module data fetching concurrently with timeout protection
-        enabled_tasks = [
-            (name, asyncio.wait_for(func(dog_id), timeout=15.0))
-            for name, enabled, func in module_tasks
-            if enabled
-        ]
-
-        if enabled_tasks:
+        # Execute module tasks concurrently
+        if module_tasks:
             results = await asyncio.gather(
-                *(task for _, task in enabled_tasks),
-                return_exceptions=True,
+                *(task for _, task in module_tasks), return_exceptions=True
             )
-
-            for (module_name, _), result in zip(enabled_tasks, results, strict=False):
+            
+            for (module_name, _), result in zip(module_tasks, results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Failed to fetch %s data for dog %s: %s",
-                        module_name,
-                        dog_id,
-                        result,
-                    )
+                    _LOGGER.warning("Failed to fetch %s data for %s: %s", module_name, dog_id, result)
                     data[module_name] = {}
                 else:
                     data[module_name] = result
 
-        # Initialize disabled modules with empty data for consistency
-        for module_name, enabled, _ in module_tasks:
-            if not enabled:
-                data[module_name] = {}
-
         return data
 
     async def _get_feeding_data(self, dog_id: str) -> dict[str, Any]:
-        """Get feeding data for dog with external API support.
+        """Get feeding data for dog."""
+        cache_key = f"feeding_{dog_id}"
+        cached = self._get_cache(cache_key)
+        if cached:
+            return cached
 
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Feeding data dictionary
-        """
         try:
             if self._use_external_api:
-                # OPTIMIZE: Example external API call with proper session management
                 async with self.session.get(
                     f"/api/dogs/{dog_id}/feeding", timeout=ClientTimeout(total=10.0)
                 ) as resp:
                     if resp.status == 200:
-                        self._performance_metrics["api_calls"] += 1
-                        return await resp.json()
-        except ClientError as err:
-            _LOGGER.debug("External feeding API unavailable for %s: %s", dog_id, err)
+                        data = await resp.json()
+                        self._set_cache(cache_key, data)
+                        return data
+        except ClientError:
+            pass
 
-        # Enhanced feeding data with better structure
-        return {
+        # Default data
+        default_data = {
             "last_feeding": None,
             "next_feeding": None,
             "daily_portions": 0,
-            "portions_remaining": 0,
             "feeding_schedule": [],
-            "food_level": 100,  # percentage
-            "feeding_alerts": [],
             "status": "ready",
-            "calories_today": 0,
-            "food_type": "dry_food",
         }
+        self._set_cache(cache_key, default_data)
+        return default_data
 
     async def _get_walk_data(self, dog_id: str) -> dict[str, Any]:
-        """Get walk data for dog with external API support.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Walk data dictionary
-        """
-        try:
-            if self._use_external_api:
-                self._performance_metrics["api_calls"] += 1
-        except ClientError as err:
-            _LOGGER.debug("External walk API unavailable for %s: %s", dog_id, err)
-
-        # Enhanced walk data
+        """Get walk data for dog."""
         return {
             "current_walk": None,
             "last_walk": None,
             "daily_walks": 0,
             "total_distance": 0.0,
-            "total_duration": 0,
-            "average_pace": 0.0,
-            "walk_history": [],
-            "favorite_routes": [],
             "status": "ready",
-            "energy_level": "normal",
         }
 
     async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
-        """Get GPS data for dog with external API support.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            GPS data dictionary
-        """
-        try:
-            if self._use_external_api:
-                self._performance_metrics["api_calls"] += 1
-        except ClientError as err:
-            _LOGGER.debug("External GPS API unavailable for %s: %s", dog_id, err)
-
-        # Enhanced GPS data
+        """Get GPS data for dog."""
         return {
             "latitude": None,
             "longitude": None,
             "accuracy": None,
-            "altitude": None,
-            "speed": None,
-            "heading": None,
             "last_update": None,
-            "battery_level": None,
-            "geofence_status": "unknown",
-            "zone_name": None,
             "status": "unknown",
-            "signal_strength": None,
         }
 
     async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
-        """Get health data for dog with external API support.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Health data dictionary
-        """
-        try:
-            if self._use_external_api:
-                pass
-        except ClientError as err:
-            _LOGGER.debug("External health API unavailable for %s: %s", dog_id, err)
-
-        # Enhanced health data
+        """Get health data for dog."""
         return {
             "weight": None,
-            "weight_trend": "stable",
             "last_vet_visit": None,
-            "next_vet_visit": None,
             "medications": [],
-            "vaccinations": [],
-            "health_score": None,
-            "activity_level": "normal",
-            "mood": "neutral",
-            "symptoms": [],
             "status": "healthy",
-            "temperature": None,
         }
 
-    async def _get_medication_data(self, dog_id: str) -> dict[str, Any]:
-        """Get medication data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Medication data dictionary
-        """
+    def _get_empty_dog_data(self) -> dict[str, Any]:
+        """Get empty dog data structure."""
         return {
-            "active_medications": [],
-            "next_dose": None,
-            "medication_schedule": [],
-            "adherence_rate": 100.0,
-            "side_effects": [],
-            "status": "up_to_date",
+            "dog_info": {},
+            "status": "unknown",
+            "last_update": None,
+            "feeding": {},
+            "walk": {},
+            "gps": {},
+            "health": {},
         }
 
-    async def _get_grooming_data(self, dog_id: str) -> dict[str, Any]:
-        """Get grooming data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Grooming data dictionary
-        """
-        return {
-            "last_grooming": None,
-            "next_grooming": None,
-            "grooming_schedule": [],
-            "coat_condition": "good",
-            "needs_attention": [],
-            "status": "up_to_date",
-        }
-
-    def _calculate_optimized_update_interval(self) -> int:
-        """Calculate optimized update interval with caching and performance considerations.
-
-        Returns:
-            Update interval in seconds
-        """
-        if not self.dogs:
+    def _calculate_update_interval(self) -> int:
+        """Calculate optimized update interval."""
+        if not self._dogs_config:
             return UPDATE_INTERVALS["minimal"]
 
-        # OPTIMIZE: Normalize module configuration and cache to avoid repeated
-        # computation. Older backups or manually edited entries may store the
-        # modules payload as a non-mapping value, which previously raised
-        # attribute errors. Coercing the data into a predictable structure
-        # keeps the calculation resilient and deterministic.
-        normalized_modules: list[tuple[str, tuple[tuple[str, bool], ...]]] = []
-        for dog in self.dogs:
-            modules: dict[str, bool]
-            raw_modules = dog.get("modules")
-            if isinstance(raw_modules, Mapping):
-                modules = {
-                    str(module): bool(enabled)
-                    for module, enabled in raw_modules.items()
-                }
-            else:
-                modules = {}
-                if raw_modules not in (None, {}):
-                    _LOGGER.debug(
-                        "Ignoring non-mapping modules for dog %s (%s)",
-                        dog.get(CONF_DOG_ID, "unknown"),
-                        type(raw_modules).__name__,
-                    )
-
-            normalized_modules.append(
-                (
-                    str(dog.get(CONF_DOG_ID, "")),
-                    tuple(sorted(modules.items())),
-                )
-            )
-
-        cache_key = f"interval_{len(self.dogs)}_{hash(str(normalized_modules))}"
-
-        if cache_key in self._interval_cache:
-            return self._interval_cache[cache_key]
-
-        # Check for GPS requirements (fastest updates)
+        # Check for GPS requirements
         has_gps = any(
-            dict(modules).get(MODULE_GPS, False) for _, modules in normalized_modules
+            dog.get("modules", {}).get(MODULE_GPS, False) for dog in self._dogs_config
         )
 
         if has_gps:
-            # Use GPS interval from options if available
-            interval = self.config_entry.options.get(
+            return self.config_entry.options.get(
                 CONF_GPS_UPDATE_INTERVAL, UPDATE_INTERVALS["frequent"]
             )
+
+        # Calculate based on enabled modules
+        total_modules = sum(
+            sum(1 for enabled in dog.get("modules", {}).values() if enabled)
+            for dog in self._dogs_config
+        )
+
+        if total_modules > 15:
+            return UPDATE_INTERVALS["real_time"]
+        elif total_modules > 8:
+            return UPDATE_INTERVALS["balanced"]
         else:
-            # Calculate total module complexity across all dogs
-            total_modules = sum(
-                sum(1 for _, enabled in modules if enabled)
-                for _, modules in normalized_modules
-            )
+            return UPDATE_INTERVALS["minimal"]
 
-            # OPTIMIZE: Determine update frequency based on complexity with performance consideration
-            if total_modules > 15:  # High complexity
-                # Use the most aggressive refresh rate to keep data in sync
-                interval = UPDATE_INTERVALS["real_time"]
-            elif total_modules > 8:  # Medium complexity
-                # Balanced cadence keeps updates responsive without overloading HA
-                interval = UPDATE_INTERVALS["balanced"]
-            else:  # Low complexity
-                interval = UPDATE_INTERVALS["minimal"]
+    # Public interface methods
 
-        # OPTIMIZE: Cache result with size limit management
-        if len(self._interval_cache) >= CACHE_SIZE_LIMIT:
-            # Remove oldest entries
-            keys_to_remove = list(self._interval_cache.keys())[: CACHE_SIZE_LIMIT // 2]
-            for key in keys_to_remove:
-                self._interval_cache.pop(key, None)
-
-        self._interval_cache[cache_key] = interval
-
-        return interval
-
-    # Public interface methods with enhanced functionality
     def get_dog_config(self, dog_id: str) -> DogConfigData | None:
-        """Get dog configuration by ID with caching.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Dog configuration dictionary or None if not found
-        """
+        """Get dog configuration by ID."""
         for config in self._dogs_config:
-            configured_id = config.get(CONF_DOG_ID)
-            if isinstance(configured_id, str) and configured_id == dog_id:
+            if config.get(CONF_DOG_ID) == dog_id:
                 return config
         return None
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
-        """Get enabled modules for dog with performance optimization.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Frozenset of enabled module names for O(1) membership testing
-        """
+        """Get enabled modules for dog."""
         config = self.get_dog_config(dog_id)
-        if config is None:
+        if not config:
             return frozenset()
+        
         modules = config.get("modules", {})
-        return frozenset(
-            name for name, enabled in modules.items() if bool(enabled)
-        )
+        return frozenset(name for name, enabled in modules.items() if enabled)
 
     def is_module_enabled(self, dog_id: str, module: str) -> bool:
-        """Check if module is enabled for dog.
-
-        Args:
-            dog_id: Dog identifier
-            module: Module name
-
-        Returns:
-            True if module is enabled, False otherwise
-        """
-        config = self.get_dog_config(dog_id)
-        if config is None:
-            return False
-        modules = config.get("modules", {})
-        enabled = modules.get(module)
-        return bool(enabled)
+        """Check if module is enabled for dog."""
+        return module in self.get_enabled_modules(dog_id)
 
     def get_dog_ids(self) -> list[str]:
-        """Get all configured dog IDs.
-
-        Returns:
-            List of dog identifiers
-        """
-        dog_ids: list[str] = []
-        for dog in self._dogs_config:
-            dog_id_value = dog.get(CONF_DOG_ID)
-            if isinstance(dog_id_value, str) and dog_id_value:
-                dog_ids.append(dog_id_value)
-        return dog_ids
+        """Get all configured dog IDs."""
+        return [
+            dog[CONF_DOG_ID] for dog in self._dogs_config 
+            if CONF_DOG_ID in dog and isinstance(dog[CONF_DOG_ID], str)
+        ]
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
-        """Get data for specific dog with performance tracking.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Dog data dictionary or None if not found
-        """
-        if dog_id in self._data:
-            self._performance_metrics["cache_hits"] += 1
+        """Get data for specific dog."""
         return self._data.get(dog_id)
 
-    def get_all_dogs_data(self) -> dict[str, dict[str, Any]]:
-        """Get all dogs data.
-
-        Returns:
-            Copy of all dogs data
-        """
-        return self._data.copy()
-
     def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
-        """Get data for a specific module of a dog.
-
-        Args:
-            dog_id: Dog identifier
-            module: Module name
-
-        Returns:
-            Module data dictionary (empty if not found)
-        """
+        """Get data for specific module."""
         return self._data.get(dog_id, {}).get(module, {})
 
     @property
     def available(self) -> bool:
-        """Check if coordinator is available.
-
-        Returns:
-            True if last update was successful
-        """
+        """Check if coordinator is available."""
         return self.last_update_success
 
-    @property
-    def use_external_api(self) -> bool:
-        """Return whether external integrations are enabled."""
-
-        return self._use_external_api
-
-    def get_update_statistics(self) -> dict[str, Any]:
-        """Get comprehensive coordinator update statistics.
-
-        Returns:
-            Dictionary with update statistics and performance metrics
-        """
+    def get_statistics(self) -> dict[str, Any]:
+        """Get coordinator statistics."""
         return {
-            "total_dogs": len(self.dogs),
-            "dogs_tracked": len(self._data),
-            "last_update_success": self.last_update_success,
-            "update_interval_seconds": self.update_interval.total_seconds(),
-            "last_update_time": self.last_update_time,
-            "performance_metrics": self._performance_metrics.copy(),
-            "cache_hit_rate": (
-                (
-                    self._performance_metrics["cache_hits"]
-                    / max(self._performance_metrics["update_count"], 1)
-                )
-                * 100
-            ),
+            "total_dogs": len(self._dogs_config),
+            "update_count": self._update_count,
+            "error_count": self._error_count,
+            "error_rate": self._error_count / max(self._update_count, 1),
+            "last_update": self.last_update_time,
+            "update_interval": self.update_interval.total_seconds(),
         }
-
-    def get_performance_health(self) -> dict[str, Any]:
-        """Get performance health status based on thresholds.
-
-        Returns:
-            Performance health assessment
-        """
-        stats = self.get_update_statistics()
-        thresholds = PERFORMANCE_THRESHOLDS
-
-        return {
-            "overall_health": "good" if stats["last_update_success"] else "poor",
-            "update_time_health": (
-                "good"
-                if stats["performance_metrics"]["avg_update_time"]
-                < thresholds["response_time_max"]
-                else "poor"
-            ),
-            "cache_health": (
-                "good"
-                if stats["cache_hit_rate"] > thresholds["cache_hit_rate_min"]
-                else "needs_improvement"
-            ),
-            "memory_health": (
-                "good"
-                if stats["performance_metrics"]["memory_usage_mb"]
-                < thresholds["memory_usage_max"]
-                else "needs_attention"
-            ),
-            "error_rate": (
-                stats["performance_metrics"]["error_count"]
-                / max(stats["performance_metrics"]["update_count"], 1)
-            ),
-            "recommendations": self._get_performance_recommendations(stats),
-        }
-
-    def _get_performance_recommendations(self, stats: dict[str, Any]) -> list[str]:
-        """Get performance improvement recommendations.
-
-        Args:
-            stats: Update statistics
-
-        Returns:
-            List of recommendations
-        """
-        recommendations = []
-
-        if stats["performance_metrics"]["avg_update_time"] > 5.0:
-            recommendations.append(
-                "Consider increasing update interval or optimizing data fetching"
-            )
-
-        if stats["cache_hit_rate"] < 50:
-            recommendations.append("Enable caching or review data access patterns")
-
-        if len(self.dogs) > 5:
-            recommendations.append(
-                "Consider using 'basic' or 'standard' entity profile for better performance"
-            )
-
-        if stats["performance_metrics"]["memory_usage_mb"] > 50.0:
-            recommendations.append(
-                "Consider reducing data retention or clearing caches more frequently"
-            )
-
-        return recommendations
 
     @callback
     def async_start_background_tasks(self) -> None:
-        """Start background maintenance tasks.
-
-        This method is safe to call from the event loop.
-        """
-        if self._unsub_maintenance is None:
-            self._unsub_maintenance = async_track_time_interval(
-                self.hass, self._perform_maintenance, MAINTENANCE_INTERVAL
-            )
-            _LOGGER.debug("Background maintenance task started")
-
-    async def _perform_maintenance(self, *_: Any) -> None:
-        """Perform comprehensive periodic maintenance tasks.
-
-        Enhanced maintenance including:
-        - Performance monitoring
-        - Cache cleanup
-        - Health checks
-        - Memory optimization
-        """
-        _LOGGER.debug("Performing coordinator maintenance")
-
-        try:
-            # Performance monitoring and logging
-            await self._monitor_performance()
-
-            # Cache cleanup and optimization
-            await self._cleanup_caches()
-
-            # Health checks
-            await self._perform_health_checks()
-
-            # Memory optimization
-            await self._optimize_memory_usage()
-
-        except Exception as err:
-            _LOGGER.warning("Maintenance task failed: %s", err)
-
-    async def _monitor_performance(self) -> None:
-        """Monitor and log performance metrics."""
-        stats = self.get_update_statistics()
-        health = self.get_performance_health()
-
-        if (
-            stats["performance_metrics"]["update_count"] % 10 == 0
-        ):  # Log every 10 updates
-            _LOGGER.info(
-                "Performance: %d dogs, %.1f%% cache hit, %.2fs avg update, %.1fMB memory, health: %s",
-                stats["total_dogs"],
-                stats["cache_hit_rate"],
-                stats["performance_metrics"]["avg_update_time"],
-                stats["performance_metrics"]["memory_usage_mb"],
-                health["overall_health"],
+        """Start background maintenance tasks."""
+        if self._maintenance_unsub is None:
+            self._maintenance_unsub = async_track_time_interval(
+                self.hass, self._async_maintenance, MAINTENANCE_INTERVAL
             )
 
-    async def _cleanup_caches(self) -> None:
-        """Clean up caches to prevent memory leaks."""
-        # OPTIMIZE: Clear interval cache if it gets too large
-        if len(self._interval_cache) > CACHE_SIZE_LIMIT:
-            keys_to_remove = list(self._interval_cache.keys())[: CACHE_SIZE_LIMIT // 2]
-            for key in keys_to_remove:
-                self._interval_cache.pop(key, None)
-            _LOGGER.debug(
-                "Cleaned interval cache: removed %d entries", len(keys_to_remove)
-            )
+    async def _async_maintenance(self, *_: Any) -> None:
+        """Perform periodic maintenance."""
+        # Clean expired cache entries
+        now = dt_util.utcnow()
+        expired_keys = [
+            key for key, (_, timestamp) in self._cache.items()
+            if (now - timestamp).total_seconds() > CACHE_TTL_SECONDS
+        ]
+        for key in expired_keys:
+            del self._cache[key]
 
-    async def _perform_health_checks(self) -> None:
-        """Perform health checks and create repair issues if needed."""
-        health = self.get_performance_health()
-
-        # Check for performance issues
-        if health["overall_health"] == "poor":
-            _LOGGER.warning("Coordinator health is poor - performance degraded")
-
-        if health["error_rate"] > 0.5:  # More than 50% error rate
-            _LOGGER.error(
-                "High error rate detected: %.1f%%", health["error_rate"] * 100
-            )
-
-        # Check memory usage
-        if health["memory_health"] == "needs_attention":
-            _LOGGER.warning(
-                "High memory usage detected: %.1fMB",
-                self._performance_metrics["memory_usage_mb"],
-            )
-
-    async def _optimize_memory_usage(self) -> None:
-        """Optimize memory usage by cleaning old data."""
-        # OPTIMIZE: Limit historical data to prevent memory growth with better algorithms
-        max_history_items = MAX_DATA_ITEMS_PER_DOG
-
-        items_cleaned = 0
-        for dog_data in self._data.values():
-            for module_data in dog_data.values():
-                if isinstance(module_data, dict):
-                    # Clean up history arrays if they exist and are too large
-                    for key in [
-                        "walk_history",
-                        "feeding_alerts",
-                        "symptoms",
-                        "training_sessions",
-                        "medication_log",
-                    ]:
-                        if key in module_data and isinstance(module_data[key], list):
-                            current_size = len(module_data[key])
-                            if current_size > max_history_items:
-                                module_data[key] = module_data[key][-max_history_items:]
-                                items_cleaned += current_size - max_history_items
-
-        if items_cleaned > 0:
-            _LOGGER.debug(
-                "Memory optimization: cleaned %d history items", items_cleaned
-            )
+        if expired_keys:
+            _LOGGER.debug("Cleaned %d expired cache entries", len(expired_keys))
 
     async def async_shutdown(self) -> None:
-        """Stop background tasks and reset cached coordinator state."""
-        # Stop maintenance tasks
-        if self._unsub_maintenance is not None:
-            self._unsub_maintenance()
-            self._unsub_maintenance = None
-            _LOGGER.debug("Background maintenance task stopped")
+        """Shutdown coordinator and cleanup resources."""
+        if self._maintenance_unsub:
+            self._maintenance_unsub()
+            self._maintenance_unsub = None
 
-        # OPTIMIZE: Clear data to help with memory cleanup
         self._data.clear()
-        self._performance_metrics.clear()
-        self._interval_cache.clear()
-
+        self._cache.clear()
         _LOGGER.debug("Coordinator shutdown completed")

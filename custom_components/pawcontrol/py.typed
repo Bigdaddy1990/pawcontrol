@@ -1,3 +1,8 @@
-# PEP-561 marker file
-# This file indicates that this package supports type hints
-# Required for Platinum-level compliance in Home Assistant
+# PEP-561 Compliance Marker
+#
+# This file indicates that the PawControl integration provides type information
+# and is compatible with static type checkers like mypy.
+#
+# Quality Scale: Platinum
+# Home Assistant: 2025.9.3+
+# Python: 3.13+

@@ -4,6 +4,8 @@ This module provides comprehensive binary sensor entities for dog monitoring
 including status indicators, alerts, and automated detection sensors. All
 binary sensors are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust error handling.
+
+OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
 """
 
 from __future__ import annotations
@@ -19,7 +21,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -32,28 +33,106 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .types import PawControlConfigEntry
+from .utils import create_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better code readability (Python 3.13 compatible)
 AttributeDict = dict[str, Any]
 
+# OPTIMIZATION: Performance constants for batched entity creation
+ENTITY_CREATION_BATCH_SIZE = 12  # Optimized for binary sensors
+ENTITY_CREATION_DELAY = 0.1  # 100ms between batches
+PARALLEL_THRESHOLD = 24  # Threshold for parallel vs batched creation
+
+
+# OPTIMIZED: Shared logic patterns to reduce code duplication
+class BinarySensorLogicMixin:
+    """Mixin providing shared logic patterns for binary sensors."""
+
+    @staticmethod
+    def _calculate_time_based_status(
+        timestamp_value: str | datetime | None,
+        threshold_hours: float,
+        default_if_none: bool = False,
+    ) -> bool:
+        """Calculate status based on time threshold.
+        
+        Args:
+            timestamp_value: Timestamp to evaluate
+            threshold_hours: Hours threshold for comparison
+            default_if_none: Return value when timestamp is None
+            
+        Returns:
+            True if within threshold, False otherwise
+        """
+        if not timestamp_value:
+            return default_if_none
+
+        try:
+            if isinstance(timestamp_value, str):
+                timestamp = datetime.fromisoformat(timestamp_value)
+            else:
+                timestamp = timestamp_value
+
+            time_diff = dt_util.utcnow() - timestamp
+            return time_diff < timedelta(hours=threshold_hours)
+
+        except (ValueError, TypeError):
+            return default_if_none
+
+    @staticmethod
+    def _evaluate_threshold(
+        value: float | int | None,
+        threshold: float,
+        comparison: str = "greater",
+        default_if_none: bool = False,
+    ) -> bool:
+        """Evaluate value against threshold.
+        
+        Args:
+            value: Value to compare
+            threshold: Threshold value
+            comparison: 'greater', 'less', 'greater_equal', 'less_equal'
+            default_if_none: Return value when value is None
+            
+        Returns:
+            Comparison result
+        """
+        if value is None:
+            return default_if_none
+
+        try:
+            num_value = float(value)
+            if comparison == "greater":
+                return num_value > threshold
+            elif comparison == "less":
+                return num_value < threshold
+            elif comparison == "greater_equal":
+                return num_value >= threshold
+            elif comparison == "less_equal":
+                return num_value <= threshold
+            else:
+                raise ValueError(f"Unknown comparison: {comparison}")
+
+        except (TypeError, ValueError):
+            return default_if_none
+
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
     entities: list[PawControlBinarySensorBase],
-    batch_size: int = 15,
-    delay_between_batches: float = 0.1,
+    batch_size: int = ENTITY_CREATION_BATCH_SIZE,
+    delay_between_batches: float = ENTITY_CREATION_DELAY,
 ) -> None:
-    """Add binary sensor entities in small batches to prevent Entity Registry overload.
+    """Add binary sensor entities in optimized batches.
 
     The Entity Registry logs warnings when >200 messages occur rapidly.
     By batching entities and adding delays, we prevent registry overload.
@@ -61,8 +140,8 @@ async def _async_add_entities_in_batches(
     Args:
         async_add_entities_func: The actual async_add_entities callback
         entities: List of binary sensor entities to add
-        batch_size: Number of entities per batch (default: 15)
-        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+        batch_size: Number of entities per batch
+        delay_between_batches: Seconds to wait between batches
     """
     total_entities = len(entities)
 
@@ -95,28 +174,19 @@ async def _async_add_entities_in_batches(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Paw Control binary sensor platform.
+    """Set up Paw Control binary sensor platform with optimized performance."""
 
-    Creates binary sensor entities for all configured dogs based on their
-    enabled modules. Binary sensors provide boolean status indicators for
-    various aspects of dog monitoring and care.
+    # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    dogs = runtime_data.dogs
 
-    Args:
-        hass: Home Assistant instance
-        entry: Configuration entry containing dog configurations
-        async_add_entities: Callback to add binary sensor entities
-    """
-    runtime_data = getattr(entry, "runtime_data", None)
-
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
-    else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+    if not dogs:
+        _LOGGER.warning("No dogs configured for binary sensor platform")
+        return
 
     entities: list[PawControlBinarySensorBase] = []
 
@@ -148,15 +218,23 @@ async def async_setup_entry(
                 _create_health_binary_sensors(coordinator, dog_id, dog_name)
             )
 
-    # Add entities in smaller batches to prevent Entity Registry overload
-    # With 46+ binary sensor entities (2 dogs), batching prevents Registry flooding
-    await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
-
-    _LOGGER.info(
-        "Created %d binary sensor entities for %d dogs using batched approach",
-        len(entities),
-        len(dogs),
-    )
+    # OPTIMIZED: Smart batching based on entity count
+    if len(entities) <= PARALLEL_THRESHOLD:
+        # Small setup: Create all at once for better performance
+        async_add_entities(entities, update_before_add=False)
+        _LOGGER.info(
+            "Created %d binary sensor entities for %d dogs (single batch)",
+            len(entities),
+            len(dogs),
+        )
+    else:
+        # Large setup: Use optimized batching to prevent registry overload
+        await _async_add_entities_in_batches(async_add_entities, entities)
+        _LOGGER.info(
+            "Created %d binary sensor entities for %d dogs (batched approach)",
+            len(entities),
+            len(dogs),
+        )
 
 
 def _create_base_binary_sensors(
@@ -182,16 +260,7 @@ def _create_base_binary_sensors(
 def _create_feeding_binary_sensors(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
 ) -> list[PawControlBinarySensorBase]:
-    """Create feeding-related binary sensors for a dog.
-
-    Args:
-        coordinator: Data coordinator instance
-        dog_id: Unique identifier for the dog
-        dog_name: Display name for the dog
-
-    Returns:
-        List of feeding binary sensor entities
-    """
+    """Create feeding-related binary sensors for a dog."""
     return [
         PawControlIsHungryBinarySensor(coordinator, dog_id, dog_name),
         PawControlFeedingDueBinarySensor(coordinator, dog_id, dog_name),
@@ -203,16 +272,7 @@ def _create_feeding_binary_sensors(
 def _create_walk_binary_sensors(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
 ) -> list[PawControlBinarySensorBase]:
-    """Create walk-related binary sensors for a dog.
-
-    Args:
-        coordinator: Data coordinator instance
-        dog_id: Unique identifier for the dog
-        dog_name: Display name for the dog
-
-    Returns:
-        List of walk binary sensor entities
-    """
+    """Create walk-related binary sensors for a dog."""
     return [
         PawControlWalkInProgressBinarySensor(coordinator, dog_id, dog_name),
         PawControlNeedsWalkBinarySensor(coordinator, dog_id, dog_name),
@@ -224,16 +284,7 @@ def _create_walk_binary_sensors(
 def _create_gps_binary_sensors(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
 ) -> list[PawControlBinarySensorBase]:
-    """Create GPS and location-related binary sensors for a dog.
-
-    Args:
-        coordinator: Data coordinator instance
-        dog_id: Unique identifier for the dog
-        dog_name: Display name for the dog
-
-    Returns:
-        List of GPS binary sensor entities
-    """
+    """Create GPS and location-related binary sensors for a dog."""
     return [
         PawControlIsHomeBinarySensor(coordinator, dog_id, dog_name),
         PawControlInSafeZoneBinarySensor(coordinator, dog_id, dog_name),
@@ -247,16 +298,7 @@ def _create_gps_binary_sensors(
 def _create_health_binary_sensors(
     coordinator: PawControlCoordinator, dog_id: str, dog_name: str
 ) -> list[PawControlBinarySensorBase]:
-    """Create health and medical-related binary sensors for a dog.
-
-    Args:
-        coordinator: Data coordinator instance
-        dog_id: Unique identifier for the dog
-        dog_name: Display name for the dog
-
-    Returns:
-        List of health binary sensor entities
-    """
+    """Create health and medical-related binary sensors for a dog."""
     return [
         PawControlHealthAlertBinarySensor(coordinator, dog_id, dog_name),
         PawControlWeightAlertBinarySensor(coordinator, dog_id, dog_name),
@@ -268,13 +310,11 @@ def _create_health_binary_sensors(
 
 
 class PawControlBinarySensorBase(
-    CoordinatorEntity[PawControlCoordinator], BinarySensorEntity
+    CoordinatorEntity[PawControlCoordinator], BinarySensorEntity, BinarySensorLogicMixin
 ):
     """Base class for all Paw Control binary sensor entities.
 
-    Provides common functionality and ensures consistent behavior across
-    all binary sensor types. Includes proper device grouping, state management,
-    and error handling.
+    OPTIMIZED: Thread-safe caching, shared logic patterns, improved performance.
     """
 
     def __init__(
@@ -289,18 +329,7 @@ class PawControlBinarySensorBase(
         icon_off: str | None = None,
         entity_category: EntityCategory | None = None,
     ) -> None:
-        """Initialize the binary sensor entity.
-
-        Args:
-            coordinator: Data coordinator for updates
-            dog_id: Unique identifier for the dog
-            dog_name: Display name for the dog
-            sensor_type: Type identifier for the sensor
-            device_class: Home Assistant device class
-            icon_on: Material Design icon when sensor is on
-            icon_off: Material Design icon when sensor is off
-            entity_category: Entity category for organization
-        """
+        """Initialize the binary sensor entity."""
         super().__init__(coordinator)
 
         self._dog_id = dog_id
@@ -315,15 +344,13 @@ class PawControlBinarySensorBase(
         self._attr_device_class = device_class
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Monitoring",
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Device info for proper grouping
+        self._attr_device_info = create_device_info(dog_id, dog_name)
+
+        # OPTIMIZED: Thread-safe instance-level caching
+        self._data_cache: dict[str, Any] = {}
+        self._cache_timestamp: datetime | None = None
+        self._cache_ttl = 30  # 30 seconds cache TTL
 
     @property
     def is_on(self) -> bool:
@@ -351,31 +378,17 @@ class PawControlBinarySensorBase(
 
     @property
     def icon(self) -> str | None:
-        """Return the icon to use in the frontend.
-
-        Dynamically changes icon based on sensor state for better UX.
-
-        Returns:
-            Material Design icon string
-        """
+        """Return the icon to use in the frontend."""
         if self.is_on and self._icon_on:
             return self._icon_on
         elif not self.is_on and self._icon_off:
             return self._icon_off
         else:
-            # Fallback to device class default or generic icon
             return "mdi:information-outline"
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
-        """Return additional state attributes for the binary sensor.
-
-        Provides common attributes that are useful across all binary sensors
-        including dog identification and last update information.
-
-        Returns:
-            Dictionary of additional state attributes
-        """
+        """Return additional state attributes for the binary sensor."""
         attrs: AttributeDict = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
@@ -383,63 +396,87 @@ class PawControlBinarySensorBase(
             "sensor_type": self._sensor_type,
         }
 
-        # Add dog-specific information
-        dog_data = self._get_dog_data()
-        if isinstance(dog_data, dict) and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]
-            attrs.update(
-                {
-                    "dog_breed": dog_info.get("dog_breed", ""),
-                    "dog_age": dog_info.get("dog_age"),
-                    "dog_size": dog_info.get("dog_size"),
-                    "dog_weight": dog_info.get("dog_weight"),
-                }
-            )
+        # Add dog-specific information with error handling
+        try:
+            dog_data = self._get_dog_data_cached()
+            if isinstance(dog_data, dict) and "dog_info" in dog_data:
+                dog_info = dog_data["dog_info"]
+                attrs.update(
+                    {
+                        "dog_breed": dog_info.get("dog_breed", ""),
+                        "dog_age": dog_info.get("dog_age"),
+                        "dog_size": dog_info.get("dog_size"),
+                        "dog_weight": dog_info.get("dog_weight"),
+                    }
+                )
+        except Exception as err:
+            _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
 
         return attrs
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
-        """Get data for this sensor's dog from the coordinator.
+    def _get_dog_data_cached(self) -> dict[str, Any] | None:
+        """Get dog data from coordinator with thread-safe caching."""
+        cache_key = f"dog_data_{self._dog_id}"
+        now = dt_util.utcnow()
 
-        Returns:
-            Dog data dictionary or None if not available
-        """
+        # Check cache validity
+        if (
+            self._cache_timestamp
+            and cache_key in self._data_cache
+            and (now - self._cache_timestamp).total_seconds() < self._cache_ttl
+        ):
+            return self._data_cache[cache_key]
+
+        # Fetch fresh data
         if not self.coordinator.available:
             return None
 
-        return self.coordinator.get_dog_data(self._dog_id)
+        dog_data = self.coordinator.get_dog_data(self._dog_id)
+
+        # Update cache
+        self._data_cache[cache_key] = dog_data
+        self._cache_timestamp = now
+
+        return dog_data
+
+    def _get_dog_data(self) -> dict[str, Any] | None:
+        """Get dog data - wrapper for cached access."""
+        return self._get_dog_data_cached()
 
     def _get_module_data(self, module: str) -> dict[str, Any] | None:
-        """Get specific module data for this dog.
+        """Get specific module data for this dog."""
+        try:
+            dog_data = self._get_dog_data_cached()
+            if not dog_data:
+                return None
 
-        Args:
-            module: Module name to retrieve data for
+            module_data = dog_data.get(module, {})
+            if not isinstance(module_data, dict):
+                _LOGGER.warning(
+                    "Invalid module data for %s/%s: expected dict, got %s",
+                    self._dog_id,
+                    module,
+                    type(module_data).__name__,
+                )
+                return {}
 
-        Returns:
-            Module data dictionary or None if not available
-        """
-        return self.coordinator.get_module_data(self._dog_id, module)
+            return module_data
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error fetching module data for %s/%s: %s", self._dog_id, module, err
+            )
+            return None
 
     @property
     def available(self) -> bool:
-        """Return if the binary sensor is available.
-
-        A binary sensor is available when the coordinator is available and
-        the dog data can be retrieved.
-
-        Returns:
-            True if sensor is available, False otherwise
-        """
-        return self.coordinator.available and self._get_dog_data() is not None
+        """Return if the binary sensor is available."""
+        return self.coordinator.available and self._get_dog_data_cached() is not None
 
 
 # Base binary sensors
 class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor indicating if the dog monitoring system is online.
-
-    This sensor provides overall connectivity and system health status
-    for the dog's monitoring components.
-    """
+    """Binary sensor indicating if the dog monitoring system is online."""
 
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
@@ -457,26 +494,18 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog monitoring system is online."""
-        dog_data = self._get_dog_data()
+        dog_data = self._get_dog_data_cached()
         if not dog_data:
             return False
 
         last_update = dog_data.get("last_update")
-        if last_update:
-            try:
-                last_update_dt = datetime.fromisoformat(last_update)
-                time_diff = dt_util.utcnow() - last_update_dt
-                return time_diff < timedelta(minutes=10)
-            except (ValueError, TypeError):
-                return False
-
-        return False
+        return self._calculate_time_based_status(last_update, 10.0 / 60, False)  # 10 minutes
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for the online sensor."""
         attrs = super().extra_state_attributes
-        dog_data = self._get_dog_data()
+        dog_data = self._get_dog_data_cached()
 
         if dog_data:
             attrs.update(
@@ -492,11 +521,7 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor indicating if the dog needs immediate attention.
-
-    This aggregated sensor considers multiple factors to determine if
-    the dog requires immediate care or attention from the owner.
-    """
+    """Binary sensor indicating if the dog needs immediate attention."""
 
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
@@ -513,15 +538,8 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        """Return True if the dog needs immediate attention.
-
-        Evaluates multiple conditions across all modules to determine
-        if urgent attention is required.
-
-        Returns:
-            True if attention is needed
-        """
-        dog_data = self._get_dog_data()
+        """Return True if the dog needs immediate attention."""
+        dog_data = self._get_dog_data_cached()
         if not dog_data:
             return False
 
@@ -578,11 +596,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         return attrs
 
     def _calculate_urgency_level(self) -> str:
-        """Calculate the urgency level based on attention reasons.
-
-        Returns:
-            Urgency level string
-        """
+        """Calculate the urgency level based on attention reasons."""
         if not hasattr(self, "_attention_reasons"):
             return "none"
 
@@ -598,11 +612,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
             return "none"
 
     def _get_recommended_actions(self) -> list[str]:
-        """Get recommended actions based on attention reasons.
-
-        Returns:
-            List of recommended action strings
-        """
+        """Get recommended actions based on attention reasons."""
         if not hasattr(self, "_attention_reasons"):
             return []
 
@@ -626,11 +636,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
 
 
 class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
-    """Binary sensor indicating if visitor mode is active.
-
-    Visitor mode modifies notification behavior and monitoring sensitivity
-    when the dog is being cared for by someone else.
-    """
+    """Binary sensor indicating if visitor mode is active."""
 
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
@@ -647,7 +653,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if visitor mode is active."""
-        dog_data = self._get_dog_data()
+        dog_data = self._get_dog_data_cached()
         if not dog_data:
             return False
 
@@ -657,7 +663,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for visitor mode."""
         attrs = super().extra_state_attributes
-        dog_data = self._get_dog_data()
+        dog_data = self._get_dog_data_cached()
 
         if dog_data:
             attrs.update(
@@ -720,14 +726,7 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
         return attrs
 
     def _calculate_hunger_level(self, feeding_data: dict[str, Any]) -> str:
-        """Calculate hunger level based on time since last feeding.
-
-        Args:
-            feeding_data: Feeding module data
-
-        Returns:
-            Hunger level description
-        """
+        """Calculate hunger level based on time since last feeding."""
         last_feeding_hours = feeding_data.get("last_feeding_hours")
 
         if not last_feeding_hours:
@@ -799,7 +798,7 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
             return True  # Assume on track if no data
 
         adherence = feeding_data.get("feeding_schedule_adherence", 100.0)
-        return adherence >= 80.0  # 80% adherence threshold
+        return self._evaluate_threshold(adherence, 80.0, "greater_equal", True)
 
 
 class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
@@ -872,14 +871,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
         return attrs
 
     def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> int | None:
-        """Estimate remaining walk time based on typical patterns.
-
-        Args:
-            walk_data: Walk module data
-
-        Returns:
-            Estimated remaining minutes or None
-        """
+        """Estimate remaining walk time based on typical patterns."""
         current_duration = walk_data.get("current_walk_duration", 0)
         average_duration = walk_data.get("average_walk_duration")
 
@@ -932,14 +924,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
         return attrs
 
     def _calculate_walk_urgency(self, walk_data: dict[str, Any]) -> str:
-        """Calculate walk urgency level.
-
-        Args:
-            walk_data: Walk module data
-
-        Returns:
-            Urgency level description
-        """
+        """Calculate walk urgency level."""
         last_walk_hours = walk_data.get("last_walk_hours")
 
         if not last_walk_hours:
@@ -1007,12 +992,8 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
         if not last_long_walk:
             return True  # No long walk recorded
 
-        try:
-            last_long_walk_dt = datetime.fromisoformat(last_long_walk)
-            days_since = (dt_util.utcnow() - last_long_walk_dt).days
-            return days_since > 3
-        except (ValueError, TypeError):
-            return True
+        # OPTIMIZED: Use shared time-based logic
+        return not self._calculate_time_based_status(last_long_walk, 72, False)  # 3 days
 
 
 # GPS binary sensors
@@ -1117,14 +1098,8 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
         last_seen = gps_data.get("last_seen")
 
         # Check accuracy threshold and data freshness
-        accuracy_good = accuracy and accuracy <= 50  # 50 meter threshold
-
-        data_fresh = False
-        if last_seen:
-            with suppress(ValueError, TypeError):
-                last_seen_dt = datetime.fromisoformat(last_seen)
-                time_diff = dt_util.utcnow() - last_seen_dt
-                data_fresh = time_diff < timedelta(minutes=5)
+        accuracy_good = self._evaluate_threshold(accuracy, 50, "less_equal", False)
+        data_fresh = self._calculate_time_based_status(last_seen, 5.0 / 60, False)  # 5 minutes
 
         return accuracy_good and data_fresh
 
@@ -1153,7 +1128,7 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
             return False
 
         speed = gps_data.get("speed", 0)
-        return speed is not None and speed > 1.0  # 1 km/h threshold for movement
+        return self._evaluate_threshold(speed, 1.0, "greater", False)  # 1 km/h threshold
 
 
 class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
@@ -1206,10 +1181,7 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
             return False
 
         battery_level = gps_data.get("battery_level")
-        if battery_level is not None:
-            return battery_level <= 20  # 20% threshold
-
-        return False
+        return self._evaluate_threshold(battery_level, 20, "less_equal", False)  # 20% threshold
 
 
 # Health binary sensors
@@ -1415,14 +1387,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
         return attrs
 
     def _get_concern_reason(self, activity_level: str) -> str:
-        """Get reason for activity level concern.
-
-        Args:
-            activity_level: Current activity level
-
-        Returns:
-            Reason for concern
-        """
+        """Get reason for activity level concern."""
         if activity_level == "very_low":
             return "Activity level is unusually low"
         elif activity_level == "very_high":
@@ -1431,14 +1396,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
             return "No concern"
 
     def _get_recommended_action(self, activity_level: str) -> str:
-        """Get recommended action for activity level concern.
-
-        Args:
-            activity_level: Current activity level
-
-        Returns:
-            Recommended action
-        """
+        """Get recommended action for activity level concern."""
         if activity_level == "very_low":
             return "Consider vet consultation or encouraging more activity"
         elif activity_level == "very_high":

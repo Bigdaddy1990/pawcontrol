@@ -20,6 +20,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
 )
 from homeassistant.core import callback
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
@@ -52,8 +53,9 @@ from .const import (
     MODULE_WALK,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
-from .types import DogConfigData, is_dog_config_valid
+from .types import DogConfigData, PawControlConfigEntry, is_dog_config_valid
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -354,6 +356,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Returns:
             Config flow result
+
+        Raises:
+            ConfigEntryNotReady: If import validation fails
         """
         _LOGGER.debug("Import configuration: %s", import_config)
 
@@ -375,7 +380,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
             except vol.Invalid as err:
                 _LOGGER.error("Invalid import configuration: %s", err)
-                return self.async_abort(reason="invalid_import_config")
+                raise ConfigEntryNotReady(
+                    "Invalid import configuration format"
+                ) from err
+            except ValidationError as err:
+                _LOGGER.error("Import validation failed: %s", err)
+                raise ConfigEntryNotReady(
+                    f"Import validation failed: {err}"
+                ) from err
 
     async def _validate_import_config(
         self, import_config: dict[str, Any]
@@ -387,8 +399,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _validate_import_config_enhanced(
         self, import_config: dict[str, Any]
     ) -> dict[str, Any]:
-        """Enhanced validation for imported configuration with better error reporting."""
+        """Enhanced validation for imported configuration with better error reporting.
 
+        Args:
+            import_config: Configuration to validate
+
+        Returns:
+            Validated configuration data
+
+        Raises:
+            ValidationError: If validation fails
+            ConfigurationError: If configuration is invalid
+        """
         config_flow_monitor.record_validation("import_attempt")
 
         async with timed_operation("import_validation"):
@@ -397,7 +419,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 dogs_config = import_config.get(CONF_DOGS, [])
                 if not isinstance(dogs_config, list):
-                    raise vol.Invalid("Dogs configuration must be a list")
+                    raise ConfigurationError(
+                        "dogs",
+                        dogs_config,
+                        "Dogs configuration must be a list",
+                    )
 
                 validated_dogs = []
                 seen_ids: set[str] = set()
@@ -441,11 +467,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 if not validated_dogs:
                     if validation_errors:
-                        raise vol.Invalid(
-                            "No valid dogs found. Errors: "
-                            + "; ".join(validation_errors)
+                        raise ValidationError(
+                            "import_dogs",
+                            constraint="No valid dogs found. Errors: "
+                            + "; ".join(validation_errors),
                         )
-                    raise vol.Invalid("No valid dogs found in import configuration")
+                    raise ValidationError(
+                        "import_dogs",
+                        constraint="No valid dogs found in import configuration",
+                    )
 
                 profile = import_config.get("entity_profile", "standard")
                 if profile not in VALID_PROFILES:
@@ -492,8 +522,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
 
             except Exception as err:
-                raise vol.Invalid(
-                    f"Import configuration validation failed: {err}"
+                raise ValidationError(
+                    "import_configuration",
+                    constraint=f"Import configuration validation failed: {err}",
                 ) from err
 
     def _is_supported_device(self, hostname: str, properties: dict[str, Any]) -> bool:
@@ -696,7 +727,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Validated input or None if validation fails
 
         Raises:
-            ValueError: If validation fails
+            DogValidationError: If validation fails
         """
         # Sanitize inputs with optimized string operations
         dog_id = user_input[CONF_DOG_ID].lower().strip()
@@ -1027,17 +1058,22 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Returns:
             Config flow result
+
+        Raises:
+            PawControlSetupError: If setup validation fails
         """
         async with timed_operation("final_setup"):
             if not self._dogs:
-                return self.async_abort(reason="no_dogs_configured")
+                raise PawControlSetupError("No dogs configured for setup")
 
             validation_results = await self._perform_comprehensive_validation()
             if not validation_results["valid"]:
                 _LOGGER.error(
                     "Final validation failed: %s", validation_results["errors"]
                 )
-                return self.async_abort(reason="setup_validation_failed")
+                raise PawControlSetupError(
+                    f"Setup validation failed: {'; '.join(validation_results['errors'])}"
+                )
 
             if not self._validate_profile_compatibility():
                 _LOGGER.warning("Profile compatibility issues detected")
@@ -1056,7 +1092,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
             except Exception as err:
                 _LOGGER.error("Final setup failed: %s", err)
-                return self.async_abort(reason="setup_failed")
+                raise PawControlSetupError(f"Setup failed: {err}") from err
 
     async def _perform_comprehensive_validation(self) -> dict[str, Any]:
         """Perform comprehensive final validation."""
@@ -1192,7 +1228,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return "\n\n".join(profiles_info)
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> ConfigFlowResult:
         """Handle reauthentication flow for Platinum compliance.
 
         Args:
@@ -1200,14 +1238,64 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Returns:
             Config flow result
+
+        Raises:
+            ConfigEntryAuthFailed: If entry cannot be found or is invalid
         """
+        _LOGGER.debug("Starting reauthentication flow for entry data: %s", entry_data)
+        
         self.reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
+        
         if not self.reauth_entry:
-            return self.async_abort(reason="reauth_failed")
+            _LOGGER.error("Reauthentication failed: entry not found")
+            raise ConfigEntryAuthFailed("Config entry not found for reauthentication")
+
+        # Validate the entry is in a reauth-able state
+        try:
+            await self._validate_reauth_entry(self.reauth_entry)
+        except ValidationError as err:
+            _LOGGER.error("Reauthentication validation failed: %s", err)
+            raise ConfigEntryAuthFailed(f"Entry validation failed: {err}") from err
 
         return await self.async_step_reauth_confirm()
+
+    async def _validate_reauth_entry(self, entry: ConfigEntry) -> None:
+        """Validate config entry for reauthentication.
+
+        Args:
+            entry: Config entry to validate
+
+        Raises:
+            ValidationError: If entry is invalid
+        """
+        # Check entry structure
+        if not entry.data.get(CONF_DOGS):
+            raise ValidationError(
+                "entry_dogs", constraint="No dogs found in config entry"
+            )
+
+        # Validate dogs configuration
+        dogs = entry.data.get(CONF_DOGS, [])
+        invalid_dogs = [
+            dog.get(CONF_DOG_ID, "unknown")
+            for dog in dogs
+            if not is_dog_config_valid(dog)
+        ]
+        
+        if invalid_dogs:
+            raise ValidationError(
+                "entry_dogs",
+                constraint=f"Invalid dog configurations: {', '.join(invalid_dogs)}",
+            )
+
+        # Check profile validity
+        profile = entry.options.get("entity_profile", "standard")
+        if profile not in VALID_PROFILES:
+            raise ValidationError(
+                "entry_profile", value=profile, constraint="Invalid entity profile"
+            )
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -1219,9 +1307,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Returns:
             Config flow result
+
+        Raises:
+            ConfigEntryAuthFailed: If reauthentication fails
         """
         if not self.reauth_entry:
-            return self.async_abort(reason="reauth_failed")
+            raise ConfigEntryAuthFailed("No entry available for reauthentication")
 
         errors: dict[str, str] = {}
 
@@ -1232,26 +1323,43 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(self.reauth_entry.unique_id)
                     self._abort_if_unique_id_mismatch(reason="wrong_account")
 
-                    # Perform configuration health check
+                    # Perform comprehensive configuration health check
                     config_health = await self._check_config_health(self.reauth_entry)
                     if not config_health["healthy"]:
                         _LOGGER.warning(
-                            "Configuration health issues: %s", config_health["issues"]
+                            "Configuration health issues detected: %s", 
+                            config_health["issues"]
                         )
+                        # Don't fail reauth for health issues, just warn
+
+                    # Update entry with reauth timestamp
+                    data_updates = {
+                        "reauth_timestamp": dt_util.utcnow().isoformat(),
+                        "reauth_version": self.VERSION,
+                    }
 
                     return self.async_update_reload_and_abort(
                         self.reauth_entry,
-                        data_updates={
-                            "reauth_timestamp": dt_util.utcnow().isoformat(),
+                        data_updates=data_updates,
+                        options_updates={
+                            "last_reauth": dt_util.utcnow().isoformat(),
                         },
                     )
+
+                except ConfigEntryAuthFailed:
+                    raise
                 except Exception as err:
                     _LOGGER.error("Reauthentication failed: %s", err)
-                    errors["base"] = "reauth_failed"
+                    raise ConfigEntryAuthFailed(
+                        f"Reauthentication process failed: {err}"
+                    ) from err
             else:
                 errors["base"] = "reauth_unsuccessful"
 
         # Show enhanced confirmation form
+        dogs_count = len(self.reauth_entry.data.get(CONF_DOGS, []))
+        profile = self.reauth_entry.options.get("entity_profile", "unknown")
+
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema(
@@ -1262,15 +1370,16 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "integration_name": self.reauth_entry.title,
-                "dogs_count": str(len(self.reauth_entry.data.get(CONF_DOGS, []))),
-                "current_profile": self.reauth_entry.options.get(
-                    "entity_profile", "unknown"
+                "dogs_count": str(dogs_count),
+                "current_profile": profile,
+                "health_status": await self._get_health_status_summary(
+                    self.reauth_entry
                 ),
             },
         )
 
     async def _check_config_health(self, entry: ConfigEntry) -> dict[str, Any]:
-        """Check configuration health.
+        """Check configuration health for reauthentication.
 
         Args:
             entry: Config entry to check
@@ -1279,23 +1388,62 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             Health check results
         """
         dogs = entry.data.get(CONF_DOGS, [])
-        issues = [
-            f"Invalid dog config: {dog.get(CONF_DOG_ID, 'unknown')}"
-            for dog in dogs
-            if not is_dog_config_valid(dog)
-        ]
+        issues = []
+
+        # Validate each dog configuration
+        for dog in dogs:
+            if not is_dog_config_valid(dog):
+                dog_id = dog.get(CONF_DOG_ID, "unknown")
+                issues.append(f"Invalid dog config: {dog_id}")
 
         # Check profile validity
         profile = entry.options.get("entity_profile", "standard")
         if profile not in VALID_PROFILES:
             issues.append(f"Invalid profile: {profile}")
 
+        # Check for duplicate dog IDs
+        dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID)]
+        if len(dog_ids) != len(set(dog_ids)):
+            issues.append("Duplicate dog IDs detected")
+
+        # Estimate entities and check for performance issues
+        try:
+            factory = EntityFactory(None)
+            total_entities = sum(
+                factory.estimate_entity_count(profile, dog.get("modules", {}))
+                for dog in dogs
+            )
+            if total_entities > 200:
+                issues.append(f"High entity count ({total_entities}) may impact performance")
+        except Exception as err:
+            issues.append(f"Entity estimation failed: {err}")
+
         return {
             "healthy": len(issues) == 0,
             "issues": issues,
             "dogs_count": len(dogs),
             "profile": profile,
+            "estimated_entities": total_entities if 'total_entities' in locals() else 0,
         }
+
+    async def _get_health_status_summary(self, entry: ConfigEntry) -> str:
+        """Get health status summary for display.
+
+        Args:
+            entry: Config entry
+
+        Returns:
+            Health status summary text
+        """
+        try:
+            health = await self._check_config_health(entry)
+            if health["healthy"]:
+                return f"Healthy ({health['dogs_count']} dogs, {health['profile']} profile)"
+            else:
+                issue_count = len(health["issues"])
+                return f"Issues detected ({issue_count} problems found)"
+        except Exception as err:
+            return f"Health check failed: {err}"
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -1307,10 +1455,13 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Returns:
             Config flow result
+
+        Raises:
+            ConfigEntryNotReady: If reconfiguration fails
         """
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         if not entry:
-            return self.async_abort(reason="reconfigure_failed")
+            raise ConfigEntryNotReady("Config entry not found for reconfiguration")
 
         if user_input is not None:
             try:
@@ -1318,7 +1469,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 profile_data = PROFILE_SCHEMA(user_input)
                 new_profile = profile_data["entity_profile"]
 
-                # Prevent changing underlying account
+                # Prevent changing to invalid profile
                 await self.async_set_unique_id(entry.unique_id)
                 self._abort_if_unique_id_mismatch(reason="wrong_account")
 
@@ -1333,6 +1484,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         "Profile compatibility warning: %s",
                         compatibility_check["warning"],
                     )
+                    # Don't fail, just warn user
+
+                # Perform health check before reconfiguring
+                health_check = await self._check_config_health(entry)
+                if not health_check["healthy"]:
+                    _LOGGER.warning(
+                        "Configuration health issues before reconfigure: %s",
+                        health_check["issues"],
+                    )
 
                 # Update the config entry with enhanced data
                 return self.async_update_reload_and_abort(
@@ -1340,10 +1500,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     data_updates={
                         "entity_profile": new_profile,
                         "reconfigure_timestamp": dt_util.utcnow().isoformat(),
+                        "reconfigure_version": self.VERSION,
                     },
                     options_updates={
                         "entity_profile": new_profile,
                         "last_reconfigure": dt_util.utcnow().isoformat(),
+                        "previous_profile": entry.options.get("entity_profile", "standard"),
                     },
                 )
 
@@ -1353,7 +1515,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     step_id="reconfigure",
                     data_schema=PROFILE_SCHEMA,
                     errors={"base": "invalid_profile"},
+                    description_placeholders={
+                        "current_profile": entry.options.get("entity_profile", "standard"),
+                        "error_details": str(err),
+                    },
                 )
+            except Exception as err:
+                _LOGGER.error("Reconfiguration failed: %s", err)
+                raise ConfigEntryNotReady(f"Reconfiguration failed: {err}") from err
 
         # Show enhanced reconfigure form
         current_profile = entry.options.get("entity_profile", "standard")
@@ -1375,8 +1544,33 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 "compatibility_info": self._get_compatibility_info(
                     current_profile, dogs
                 ),
+                "estimated_entities": str(
+                    await self._estimate_entities_for_reconfigure(dogs, current_profile)
+                ),
             },
         )
+
+    async def _estimate_entities_for_reconfigure(
+        self, dogs: list[dict[str, Any]], profile: str
+    ) -> int:
+        """Estimate entities for reconfiguration display.
+
+        Args:
+            dogs: Dogs configuration
+            profile: Profile to estimate for
+
+        Returns:
+            Estimated entity count
+        """
+        try:
+            factory = EntityFactory(None)
+            return sum(
+                factory.estimate_entity_count(profile, dog.get("modules", {}))
+                for dog in dogs
+            )
+        except Exception as err:
+            _LOGGER.debug("Entity estimation failed: %s", err)
+            return 0
 
     def _check_profile_compatibility(
         self, profile: str, dogs: list[dict[str, Any]]
@@ -1392,12 +1586,18 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         warnings = []
 
-        for dog in dogs:
-            modules = dog.get("modules", {})
-            if not self._entity_factory.validate_profile_for_modules(profile, modules):
-                warnings.append(
-                    f"Profile '{profile}' may not be optimal for {dog.get('dog_name', 'unknown')}"
-                )
+        try:
+            for dog in dogs:
+                modules = dog.get("modules", {})
+                if not self._entity_factory.validate_profile_for_modules(
+                    profile, modules
+                ):
+                    dog_name = dog.get(CONF_DOG_NAME, "unknown")
+                    warnings.append(
+                        f"Profile '{profile}' may not be optimal for {dog_name}"
+                    )
+        except Exception as err:
+            warnings.append(f"Profile validation error: {err}")
 
         return {
             "compatible": len(warnings) == 0,
