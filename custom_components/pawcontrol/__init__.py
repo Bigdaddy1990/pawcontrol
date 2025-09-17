@@ -173,9 +173,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     _LOGGER.debug("Setting up Paw Control integration entry: %s", entry.entry_id)
 
     # Validate dogs configuration early with enhanced validation
-    dogs_config = cast(list[DogConfigData], entry.data.get(CONF_DOGS, []))
-    if not dogs_config:
+    from .types import is_dog_config_valid
+
+    dogs_config_raw = entry.data.get(CONF_DOGS, [])
+    if not dogs_config_raw:
         raise ConfigEntryNotReady("No dogs configured")
+
+    if not isinstance(dogs_config_raw, list) or not all(
+        is_dog_config_valid(dog) for dog in dogs_config_raw
+    ):
+        _LOGGER.error("Invalid dog configuration detected in entry %s", entry.entry_id)
+        raise PawControlSetupError(
+            "Invalid dog configuration. Please remove and re-add the integration."
+        )
+    dogs_config = cast(list[DogConfigData], dogs_config_raw)
 
     # Enhanced validation for each dog configuration
     for dog in dogs_config:
