@@ -476,16 +476,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if expires_in_hours:
                 expires_in = timedelta(hours=expires_in_hours)
 
-            notification_id = (
-                await notification_manager.async_send_notification(
-                    notification_type=notification_type_enum,
-                    title=title,
-                    message=message,
-                    dog_id=dog_id,
-                    priority=priority_enum,
-                    expires_in=expires_in,
-                    force_channels=channel_enums,
-                )
+            notification_id = await notification_manager.async_send_notification(
+                notification_type=notification_type_enum,
+                title=title,
+                message=message,
+                dog_id=dog_id,
+                priority=priority_enum,
+                expires_in=expires_in,
+                force_channels=channel_enums,
             )
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)
