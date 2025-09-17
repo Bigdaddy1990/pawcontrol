@@ -199,6 +199,7 @@
       "door_sensor_not_found": "Die ausgewählte Türsensor-Entität wurde nicht gefunden",
       "notification_service_not_found": "Der ausgewählte Benachrichtigungsdienst wurde nicht gefunden",
       "invalid_notification_service": "Das Format des Benachrichtigungsdienstes ist ungültig",
+      "invalid_profile": "Du musst ein gültiges Profil auswählen",
       "external_entity_validation_failed": "Validierung externer Entitäten fehlgeschlagen"
     },
     "abort": {
