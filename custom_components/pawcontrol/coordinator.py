@@ -19,7 +19,10 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorUpdateFailed,
+    DataUpdateCoordinator,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -181,7 +184,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Dictionary mapping dog_id to dog data
 
         Raises:
-            UpdateFailed: If critical errors occur or all dogs fail
+            CoordinatorUpdateFailed: If critical errors occur or all dogs fail
         """
         # OPTIMIZE: Handle empty dogs list edge case efficiently
         if not self.dogs:
@@ -263,7 +266,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if errors == len(self.dogs) and len(self.dogs) > 0:
             self._performance_metrics["error_count"] += 1
             error_summary = "; ".join(error_details[:3])  # Limit error message length
-            raise UpdateFailed(f"All dogs failed to update: {error_summary}")
+            raise CoordinatorUpdateFailed(
+                f"All dogs failed to update: {error_summary}"
+            )
 
         # Log partial failures for monitoring
         if errors > 0:
