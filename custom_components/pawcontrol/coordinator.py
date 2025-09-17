@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -580,27 +580,44 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self.dogs:
             return UPDATE_INTERVALS["minimal"]
 
-        # OPTIMIZE: Cache calculation result to avoid repeated computation
-        cache_key = f"interval_{len(self.dogs)}_{
-            hash(
-                str(
-                    [
-                        (
-                            dog.get(CONF_DOG_ID),
-                            tuple(sorted(dog.get('modules', {}).items())),
-                        )
-                        for dog in self.dogs
-                    ]
+        # OPTIMIZE: Normalize module configuration and cache to avoid repeated
+        # computation. Older backups or manually edited entries may store the
+        # modules payload as a non-mapping value, which previously raised
+        # attribute errors. Coercing the data into a predictable structure
+        # keeps the calculation resilient and deterministic.
+        normalized_modules: list[tuple[str, tuple[tuple[str, bool], ...]]] = []
+        for dog in self.dogs:
+            modules: dict[str, bool]
+            raw_modules = dog.get("modules")
+            if isinstance(raw_modules, Mapping):
+                modules = {
+                    str(module): bool(enabled)
+                    for module, enabled in raw_modules.items()
+                }
+            else:
+                modules = {}
+                if raw_modules not in (None, {}):
+                    _LOGGER.debug(
+                        "Ignoring non-mapping modules for dog %s (%s)",
+                        dog.get(CONF_DOG_ID, "unknown"),
+                        type(raw_modules).__name__,
+                    )
+
+            normalized_modules.append(
+                (
+                    str(dog.get(CONF_DOG_ID, "")),
+                    tuple(sorted(modules.items())),
                 )
             )
-        }"
+
+        cache_key = f"interval_{len(self.dogs)}_{hash(str(normalized_modules))}"
 
         if cache_key in self._interval_cache:
             return self._interval_cache[cache_key]
 
         # Check for GPS requirements (fastest updates)
         has_gps = any(
-            dog.get("modules", {}).get(MODULE_GPS, False) for dog in self.dogs
+            dict(modules).get(MODULE_GPS, False) for _, modules in normalized_modules
         )
 
         if has_gps:
@@ -611,8 +628,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             # Calculate total module complexity across all dogs
             total_modules = sum(
-                sum(1 for enabled in dog.get("modules", {}).values() if enabled)
-                for dog in self.dogs
+                sum(1 for _, enabled in modules if enabled)
+                for _, modules in normalized_modules
             )
 
             # OPTIMIZE: Determine update frequency based on complexity with performance consideration

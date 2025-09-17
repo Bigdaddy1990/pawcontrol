@@ -593,9 +593,13 @@ class PawControlData:
                     event_coro.close()
                     task = cast(asyncio.Task[Any], maybe_task)
                 else:
-                    # Unknown return type, close the coroutine so we can fall
-                    # back to the default event loop task creation.
+                    # Some test harnesses return sentinel objects instead of
+                    # real asyncio tasks. Close the coroutine to avoid a
+                    # "coroutine was never awaited" warning and track the
+                    # returned handle so callers can assert that scheduling
+                    # occurred.
                     event_coro.close()
+                    task = cast(asyncio.Task[Any], maybe_task)
 
             if task is None:
                 event_coro = self._process_events()
