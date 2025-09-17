@@ -78,8 +78,10 @@ async def test_async_load_data_starts_event_processor_on_failure(monkeypatch) ->
         return sentinel_task  # type: ignore[return-value]
 
     monkeypatch.setattr(
-        "custom_components.pawcontrol.helpers.asyncio.create_task",
-        _capture_task,
+        hass,
+        "async_create_task",
+        MagicMock(side_effect=_capture_task),
+        raising=False,
     )
 
     with patch(
