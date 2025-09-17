@@ -554,7 +554,10 @@ class PawControlData:
                     event_coro.close()
                     raise
 
-                if isinstance(maybe_task, asyncio.Task) and type(maybe_task) is asyncio.Task:
+                if (
+                    isinstance(maybe_task, asyncio.Task)
+                    and type(maybe_task) is asyncio.Task
+                ):
                     task = maybe_task
                     try:
                         scheduled_coro = task.get_coro()

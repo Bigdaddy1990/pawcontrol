@@ -11,14 +11,13 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+import time
 from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
-
-import time
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
