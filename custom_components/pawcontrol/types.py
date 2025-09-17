@@ -7,6 +7,7 @@ Designed for Home Assistant 2025.9.3+ with Platinum quality standards.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Required, TypedDict
@@ -261,6 +262,116 @@ class WalkData:
             raise ValueError("Distance cannot be negative")
         if self.end_time and self.end_time < self.start_time:
             raise ValueError("End time cannot be before start time")
+
+
+@dataclass(slots=True)
+class HealthEvent:
+    """Structured health event stored in history."""
+
+    dog_id: str
+    timestamp: str | None = None
+    metrics: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(
+        cls,
+        dog_id: str,
+        payload: Mapping[str, Any],
+        timestamp: str | None = None,
+    ) -> HealthEvent:
+        """Create an event from raw payload data."""
+
+        event_data = dict(payload)
+        event_timestamp = event_data.pop("timestamp", None) or timestamp
+        if isinstance(event_timestamp, datetime):
+            event_timestamp = event_timestamp.isoformat()
+
+        return cls(dog_id=dog_id, timestamp=event_timestamp, metrics=event_data)
+
+    @classmethod
+    def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> HealthEvent:
+        """Create an event from stored data."""
+
+        return cls.from_raw(dog_id, payload)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a storage-friendly representation of the event."""
+
+        payload = dict(self.metrics)
+        if self.timestamp is not None:
+            payload["timestamp"] = self.timestamp
+        return payload
+
+
+@dataclass(slots=True)
+class WalkEvent:
+    """Structured walk event stored in history or as an active session."""
+
+    dog_id: str
+    action: str | None = None
+    session_id: str | None = None
+    timestamp: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_raw(
+        cls,
+        dog_id: str,
+        payload: Mapping[str, Any],
+        timestamp: str | None = None,
+    ) -> WalkEvent:
+        """Create a walk event from raw payload data."""
+
+        event_data = dict(payload)
+        action = event_data.pop("action", None)
+        session = event_data.pop("session_id", None)
+        event_timestamp = event_data.pop("timestamp", None) or timestamp
+        if isinstance(event_timestamp, datetime):
+            event_timestamp = event_timestamp.isoformat()
+
+        return cls(
+            dog_id=dog_id,
+            action=action,
+            session_id=session,
+            timestamp=event_timestamp,
+            details=event_data,
+        )
+
+    @classmethod
+    def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> WalkEvent:
+        """Create a walk event from stored data."""
+
+        return cls.from_raw(dog_id, payload)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a storage-friendly representation of the walk event."""
+
+        payload = dict(self.details)
+        if self.action is not None:
+            payload["action"] = self.action
+        if self.session_id is not None:
+            payload["session_id"] = self.session_id
+        if self.timestamp is not None:
+            payload["timestamp"] = self.timestamp
+        return payload
+
+    def merge(self, payload: Mapping[str, Any], timestamp: str | None = None) -> None:
+        """Merge incremental updates into the event."""
+
+        updates = dict(payload)
+        if "action" in updates:
+            self.action = updates.pop("action")
+        if "session_id" in updates:
+            self.session_id = updates.pop("session_id")
+        if "timestamp" in updates:
+            raw_timestamp = updates.pop("timestamp")
+            if isinstance(raw_timestamp, datetime):
+                raw_timestamp = raw_timestamp.isoformat()
+            self.timestamp = raw_timestamp
+        elif timestamp and self.timestamp is None:
+            self.timestamp = timestamp
+
+        self.details.update(updates)
 
 
 @dataclass
