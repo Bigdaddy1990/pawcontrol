@@ -266,9 +266,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if errors == len(self.dogs) and len(self.dogs) > 0:
             self._performance_metrics["error_count"] += 1
             error_summary = "; ".join(error_details[:3])  # Limit error message length
-            raise CoordinatorUpdateFailed(
-                f"All dogs failed to update: {error_summary}"
-            )
+            raise CoordinatorUpdateFailed(f"All dogs failed to update: {error_summary}")
 
         # Log partial failures for monitoring
         if errors > 0:
