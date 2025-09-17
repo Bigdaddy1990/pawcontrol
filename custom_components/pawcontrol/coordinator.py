@@ -609,7 +609,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # OPTIMIZE: Determine update frequency based on complexity with performance consideration
             if total_modules > 15:  # High complexity
-                interval = UPDATE_INTERVALS["balanced"]
+                # Use the most aggressive refresh rate to keep data in sync
+                interval = UPDATE_INTERVALS["real_time"]
             elif total_modules > 8:  # Medium complexity
                 interval = UPDATE_INTERVALS["frequent"]
             else:  # Low complexity
