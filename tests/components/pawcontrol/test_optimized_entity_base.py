@@ -81,7 +81,7 @@ class TestEntityBase(OptimizedEntityBase):
             dog_id=dog_id,
             dog_name=dog_name,
             entity_type="test_entity",
-            **kwargs
+            **kwargs,
         )
         self._test_state = "test_value"
 
@@ -174,8 +174,8 @@ class TestPerformanceTracker:
         assert summary["max_operation_time"] == 0.3
         assert summary["total_operations"] == 3
         assert summary["error_count"] == 1
-        assert summary["error_rate"] == 1/3
-        assert summary["cache_hit_rate"] == (2/3) * 100  # 66.67%
+        assert summary["error_rate"] == 1 / 3
+        assert summary["cache_hit_rate"] == (2 / 3) * 100  # 66.67%
         assert summary["total_cache_operations"] == 3
 
 
@@ -191,9 +191,7 @@ class TestOptimizedEntityBase:
     def test_entity(self, mock_coordinator) -> TestEntityBase:
         """Create test entity instance."""
         return TestEntityBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog"
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
         )
 
     def test_entity_initialization(self, test_entity: TestEntityBase) -> None:
@@ -205,7 +203,9 @@ class TestOptimizedEntityBase:
         assert test_entity._attr_name == "Test Dog Test Entity"
         assert isinstance(test_entity._performance_tracker, PerformanceTracker)
 
-    def test_entity_initialization_with_custom_attributes(self, mock_coordinator) -> None:
+    def test_entity_initialization_with_custom_attributes(
+        self, mock_coordinator
+    ) -> None:
         """Test entity initialization with custom attributes."""
         entity = TestEntityBase(
             coordinator=mock_coordinator,
@@ -214,10 +214,12 @@ class TestOptimizedEntityBase:
             unique_id_suffix="custom_suffix",
             name_suffix="Custom Name",
             device_class="custom_class",
-            icon="mdi:test"
+            icon="mdi:test",
         )
 
-        assert entity._attr_unique_id == "pawcontrol_custom_dog_test_entity_custom_suffix"
+        assert (
+            entity._attr_unique_id == "pawcontrol_custom_dog_test_entity_custom_suffix"
+        )
         assert entity._attr_name == "Custom Dog Custom Name"
         assert entity._attr_device_class == "custom_class"
         assert entity._attr_icon == "mdi:test"
@@ -252,9 +254,7 @@ class TestOptimizedEntityBase:
         """Test availability when coordinator is unavailable."""
         mock_coordinator.available = False
         entity = TestEntityBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog"
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
         )
 
         assert entity.available is False
@@ -263,9 +263,7 @@ class TestOptimizedEntityBase:
         """Test availability when no dog data exists."""
         mock_coordinator._data = {}  # Remove dog data
         entity = TestEntityBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog"
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
         )
 
         assert entity.available is False
@@ -276,14 +274,14 @@ class TestOptimizedEntityBase:
         mock_coordinator._data["test_dog"]["last_update"] = old_time
 
         entity = TestEntityBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog"
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
         )
 
         assert entity.available is False
 
-    def test_extra_state_attributes_generation(self, test_entity: TestEntityBase) -> None:
+    def test_extra_state_attributes_generation(
+        self, test_entity: TestEntityBase
+    ) -> None:
         """Test extra state attributes generation."""
         attributes = test_entity.extra_state_attributes
 
@@ -329,22 +327,32 @@ class TestOptimizedEntityBase:
         assert feeding_data1 == feeding_data2
         assert "last_feeding" in feeding_data1
 
-    async def test_async_update_performance_tracking(self, test_entity: TestEntityBase) -> None:
+    async def test_async_update_performance_tracking(
+        self, test_entity: TestEntityBase
+    ) -> None:
         """Test that async_update tracks performance."""
         initial_count = test_entity._performance_tracker._operation_times
 
-        with patch.object(test_entity, '_async_invalidate_caches', new_callable=AsyncMock):
+        with patch.object(
+            test_entity, "_async_invalidate_caches", new_callable=AsyncMock
+        ):
             await test_entity.async_update()
 
         # Should have recorded operation time
-        assert len(test_entity._performance_tracker._operation_times) > len(initial_count)
+        assert len(test_entity._performance_tracker._operation_times) > len(
+            initial_count
+        )
 
-    async def test_async_update_error_handling(self, test_entity: TestEntityBase) -> None:
+    async def test_async_update_error_handling(
+        self, test_entity: TestEntityBase
+    ) -> None:
         """Test async_update error handling."""
         initial_errors = test_entity._performance_tracker._error_count
 
         # Mock super().async_update() to raise an exception
-        with patch.object(OptimizedEntityBase, 'async_update', side_effect=Exception("Test error")):  # noqa: SIM117
+        with patch.object(
+            OptimizedEntityBase, "async_update", side_effect=Exception("Test error")
+        ):  # noqa: SIM117
             with pytest.raises(Exception):  # noqa: B017
                 await test_entity.async_update()
 
@@ -401,7 +409,7 @@ class TestOptimizedSensorBase:
             sensor_type="test_sensor",
             device_class="temperature",
             state_class="measurement",
-            unit_of_measurement="°C"
+            unit_of_measurement="°C",
         )
 
     def test_sensor_initialization(self, sensor_entity: OptimizedSensorBase) -> None:
@@ -430,7 +438,9 @@ class TestOptimizedBinarySensorBase:
     """Test suite for OptimizedBinarySensorBase class."""
 
     @pytest.fixture
-    def binary_sensor_entity(self, mock_coordinator: MockCoordinator) -> OptimizedBinarySensorBase:
+    def binary_sensor_entity(
+        self, mock_coordinator: MockCoordinator
+    ) -> OptimizedBinarySensorBase:
         """Create test binary sensor entity."""
         return OptimizedBinarySensorBase(
             coordinator=mock_coordinator,
@@ -439,17 +449,21 @@ class TestOptimizedBinarySensorBase:
             sensor_type="test_binary_sensor",
             device_class="motion",
             icon_on="mdi:motion-sensor",
-            icon_off="mdi:motion-sensor-off"
+            icon_off="mdi:motion-sensor-off",
         )
 
-    def test_binary_sensor_initialization(self, binary_sensor_entity: OptimizedBinarySensorBase) -> None:
+    def test_binary_sensor_initialization(
+        self, binary_sensor_entity: OptimizedBinarySensorBase
+    ) -> None:
         """Test binary sensor initialization."""
         assert binary_sensor_entity._entity_type == "binary_sensor_test_binary_sensor"
         assert binary_sensor_entity._attr_device_class == "motion"
         assert binary_sensor_entity._icon_on == "mdi:motion-sensor"
         assert binary_sensor_entity._icon_off == "mdi:motion-sensor-off"
 
-    def test_binary_sensor_state(self, binary_sensor_entity: OptimizedBinarySensorBase) -> None:
+    def test_binary_sensor_state(
+        self, binary_sensor_entity: OptimizedBinarySensorBase
+    ) -> None:
         """Test binary sensor state."""
         # Initially off
         assert binary_sensor_entity.is_on is False
@@ -459,7 +473,9 @@ class TestOptimizedBinarySensorBase:
         assert binary_sensor_entity.is_on is True
         assert binary_sensor_entity._get_entity_state() is True
 
-    def test_binary_sensor_dynamic_icon(self, binary_sensor_entity: OptimizedBinarySensorBase) -> None:
+    def test_binary_sensor_dynamic_icon(
+        self, binary_sensor_entity: OptimizedBinarySensorBase
+    ) -> None:
         """Test dynamic icon based on state."""
         # When off
         binary_sensor_entity._attr_is_on = False
@@ -482,7 +498,7 @@ class TestOptimizedSwitchBase:
             dog_name="Test Dog",
             switch_type="test_switch",
             device_class="switch",
-            initial_state=False
+            initial_state=False,
         )
 
     def test_switch_initialization(self, switch_entity: OptimizedSwitchBase) -> None:
@@ -520,10 +536,16 @@ class TestOptimizedSwitchBase:
         assert switch_entity.is_on is False
         assert switch_entity._performance_tracker._operation_times[-1] > 0
 
-    async def test_switch_turn_on_error_handling(self, switch_entity: OptimizedSwitchBase) -> None:
+    async def test_switch_turn_on_error_handling(
+        self, switch_entity: OptimizedSwitchBase
+    ) -> None:
         """Test switch turn on error handling."""
         # Mock implementation to raise error
-        with patch.object(switch_entity, '_async_turn_on_implementation', side_effect=Exception("Test error")):
+        with patch.object(
+            switch_entity,
+            "_async_turn_on_implementation",
+            side_effect=Exception("Test error"),
+        ):
             initial_errors = switch_entity._performance_tracker._error_count
 
             with pytest.raises(HomeAssistantError):
@@ -532,12 +554,18 @@ class TestOptimizedSwitchBase:
             # Should record error
             assert switch_entity._performance_tracker._error_count > initial_errors
 
-    async def test_switch_turn_off_error_handling(self, switch_entity: OptimizedSwitchBase) -> None:
+    async def test_switch_turn_off_error_handling(
+        self, switch_entity: OptimizedSwitchBase
+    ) -> None:
         """Test switch turn off error handling."""
         switch_entity._attr_is_on = True
 
         # Mock implementation to raise error
-        with patch.object(switch_entity, '_async_turn_off_implementation', side_effect=Exception("Test error")):
+        with patch.object(
+            switch_entity,
+            "_async_turn_off_implementation",
+            side_effect=Exception("Test error"),
+        ):
             initial_errors = switch_entity._performance_tracker._error_count
 
             with pytest.raises(HomeAssistantError):
@@ -591,26 +619,24 @@ class TestOptimizedEntityBatching:
         mock_callback = Mock()
 
         await create_optimized_entities_batched(
-            entities=[],
-            async_add_entities_callback=mock_callback
+            entities=[], async_add_entities_callback=mock_callback
         )
 
         # Should not call callback for empty list
         mock_callback.assert_not_called()
 
-    async def test_create_optimized_entities_batched_single_batch(self, mock_coordinator) -> None:
+    async def test_create_optimized_entities_batched_single_batch(
+        self, mock_coordinator
+    ) -> None:
         """Test batched entity creation with single batch."""
         entities = [
-            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
-            for i in range(5)
+            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}") for i in range(5)
         ]
 
         mock_callback = Mock()
 
         await create_optimized_entities_batched(
-            entities=entities,
-            async_add_entities_callback=mock_callback,
-            batch_size=10
+            entities=entities, async_add_entities_callback=mock_callback, batch_size=10
         )
 
         # Should call callback once with all entities
@@ -619,11 +645,12 @@ class TestOptimizedEntityBatching:
         assert len(args[0]) == 5
         assert args[1] is False  # update_before_add=False
 
-    async def test_create_optimized_entities_batched_multiple_batches(self, mock_coordinator) -> None:
+    async def test_create_optimized_entities_batched_multiple_batches(
+        self, mock_coordinator
+    ) -> None:
         """Test batched entity creation with multiple batches."""
         entities = [
-            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
-            for i in range(25)
+            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}") for i in range(25)
         ]
 
         mock_callback = Mock()
@@ -632,7 +659,7 @@ class TestOptimizedEntityBatching:
             entities=entities,
             async_add_entities_callback=mock_callback,
             batch_size=10,
-            delay_between_batches=0.001  # Minimal delay for testing
+            delay_between_batches=0.001,  # Minimal delay for testing
         )
 
         # Should call callback 3 times (25 entities, batch size 10 = 3 batches)
@@ -642,7 +669,7 @@ class TestOptimizedEntityBatching:
         call_args = mock_callback.call_args_list
         assert len(call_args[0][0][0]) == 10  # First batch: 10 entities
         assert len(call_args[1][0][0]) == 10  # Second batch: 10 entities
-        assert len(call_args[2][0][0]) == 5   # Third batch: 5 entities
+        assert len(call_args[2][0][0]) == 5  # Third batch: 5 entities
 
 
 class TestPerformanceOptimizations:
@@ -750,7 +777,7 @@ class TestPerformanceOptimizations:
             coordinator=mock_coordinator,
             dog_id="restore_dog",
             dog_name="Restore Dog",
-            switch_type="test_switch"
+            switch_type="test_switch",
         )
 
         # Mock last state

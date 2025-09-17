@@ -586,7 +586,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             )
             return None
 
-    def _compute_activity_score_optimized(self, dog_data: dict[str, Any]) -> float | None:
+    def _compute_activity_score_optimized(
+        self, dog_data: dict[str, Any]
+    ) -> float | None:
         """Compute activity score with optimized algorithm - 70% faster."""
         # OPTIMIZED: Pre-calculate weights and use single loop
         component_weights = [

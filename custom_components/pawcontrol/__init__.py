@@ -56,10 +56,12 @@ def get_platforms_for_profile_and_modules(
         return frozenset([Platform.BUTTON, Platform.SENSOR])
 
     # OPTIMIZED: Create efficient cache key with better hash strategy
-    modules_hash = frozenset().union(*(
-        frozenset(m for m, enabled in dog.get("modules", {}).items() if enabled)
-        for dog in dogs_config
-    ))
+    modules_hash = frozenset().union(
+        *(
+            frozenset(m for m, enabled in dog.get("modules", {}).items() if enabled)
+            for dog in dogs_config
+        )
+    )
     cache_key = f"{len(dogs_config)}_{profile}_{hash(modules_hash)}"
 
     if cache_key in _PLATFORM_CACHE:
@@ -263,7 +265,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Cleanup runtime data
     if runtime_data:
         # Shutdown daily reset scheduler
-        if hasattr(runtime_data, 'daily_reset_unsub') and runtime_data.daily_reset_unsub:
+        if (
+            hasattr(runtime_data, "daily_reset_unsub")
+            and runtime_data.daily_reset_unsub
+        ):
             runtime_data.daily_reset_unsub()
 
         # Shutdown managers with specific exception handling
@@ -275,7 +280,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             ("feeding_manager", runtime_data.feeding_manager),
             ("walk_manager", runtime_data.walk_manager),
         ]:
-            if hasattr(manager, 'async_shutdown'):
+            if hasattr(manager, "async_shutdown"):
                 shutdown_tasks.append(manager.async_shutdown())
 
         if shutdown_tasks:
@@ -296,7 +301,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Cleanup service manager if no more entries
     domain_data = hass.data.get(DOMAIN, {})
     service_manager = domain_data.get("service_manager")
-    if service_manager and hasattr(service_manager, '_tracked_entries'):
+    if service_manager and hasattr(service_manager, "_tracked_entries"):
         service_manager._tracked_entries.discard(entry.entry_id)
         if not service_manager._tracked_entries:
             try:
