@@ -518,8 +518,7 @@ def _calculate_entity_count_cached(
         raw_modules = dog.get("modules")
         if isinstance(raw_modules, Mapping):
             modules = {
-                str(module): bool(enabled)
-                for module, enabled in raw_modules.items()
+                str(module): bool(enabled) for module, enabled in raw_modules.items()
             }
         else:
             modules = {}
