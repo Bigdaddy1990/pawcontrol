@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
@@ -29,7 +30,10 @@ from .const import (
     DOMAIN,
     SERVICE_DAILY_RESET,
 )
+from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
+
+from typing import TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +49,8 @@ SERVICE_CALCULATE_PORTION = "calculate_portion"
 SERVICE_EXPORT_DATA = "export_data"
 SERVICE_ANALYZE_PATTERNS = "analyze_patterns"
 SERVICE_GENERATE_REPORT = "generate_report"
+
+_ManagerT = TypeVar("_ManagerT")
 
 # Service schemas
 SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
@@ -210,9 +216,40 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass: Home Assistant instance
     """
 
+    def _get_coordinator() -> PawControlCoordinator:
+        """Return the active coordinator or raise a descriptive error."""
+
+        domain_data = hass.data.get(DOMAIN)
+        if not domain_data:
+            raise HomeAssistantError(
+                "PawControl is not set up. Add the integration before calling its services.",
+            )
+
+        coordinator = domain_data.get("coordinator")
+        if coordinator is None:
+            raise HomeAssistantError(
+                "PawControl is still initializing. Try again once setup has finished.",
+            )
+
+        return cast(PawControlCoordinator, coordinator)
+
+    def _require_manager(manager: _ManagerT | None, description: str) -> _ManagerT:
+        """Ensure a runtime manager is available before using it."""
+
+        if manager is None:
+            raise HomeAssistantError(
+                f"The PawControl {description} is not ready yet. "
+                "Wait for the integration to finish setting up or reload it.",
+            )
+
+        return manager
+
     async def add_feeding_service(call: ServiceCall) -> None:
         """Handle add feeding service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
 
         dog_id = call.data["dog_id"]
         amount = call.data["amount"]
@@ -225,7 +262,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         try:
             if with_medication and medication_data:
-                await coordinator.feeding_manager.async_add_feeding_with_medication(
+                await feeding_manager.async_add_feeding_with_medication(
                     dog_id=dog_id,
                     amount=amount,
                     meal_type=meal_type,
@@ -234,7 +271,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     feeder=feeder,
                 )
             else:
-                await coordinator.feeding_manager.async_add_feeding(
+                await feeding_manager.async_add_feeding(
                     dog_id=dog_id,
                     amount=amount,
                     meal_type=meal_type,
@@ -243,20 +280,24 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     scheduled=scheduled,
                 )
 
-            # Trigger coordinator update
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
                 "Added feeding for %s: %.1fg %s", dog_id, amount, meal_type or "unknown"
             )
 
-        except Exception as e:
-            _LOGGER.error("Failed to add feeding for %s: %s", dog_id, e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to add feeding for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to add feeding for {dog_id}. Check the logs for details."
+            ) from err
 
     async def start_walk_service(call: ServiceCall) -> None:
         """Handle start walk service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
         dog_id = call.data["dog_id"]
         walker = call.data.get("walker")
@@ -275,7 +316,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         dog_id,
                     )
 
-            session_id = await coordinator.walk_manager.async_start_walk(
+            session_id = await walk_manager.async_start_walk(
                 dog_id=dog_id,
                 walk_type="manual",
                 walker=walker,
@@ -292,27 +333,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "yes" if leash_used else "no",
             )
 
-        except Exception as e:
-            _LOGGER.error("Failed to start walk for %s: %s", dog_id, e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to start walk for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to start the walk for {dog_id}. Check the logs for details."
+            ) from err
 
     async def end_walk_service(call: ServiceCall) -> None:
         """Handle end walk service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
         dog_id = call.data["dog_id"]
         notes = call.data.get("notes")
         dog_weight_kg = call.data.get("dog_weight_kg")
 
         try:
-            walk_event = await coordinator.walk_manager.async_end_walk(
+            walk_event = await walk_manager.async_end_walk(
                 dog_id=dog_id,
                 notes=notes,
                 dog_weight_kg=dog_weight_kg,
             )
 
             if walk_event:
-                # Trigger coordinator update
                 await coordinator.async_request_refresh()
 
                 distance_km = float(walk_event.get("distance") or 0.0) / 1000
@@ -327,13 +372,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             else:
                 _LOGGER.warning("No active walk found for %s", dog_id)
 
-        except Exception as e:
-            _LOGGER.error("Failed to end walk for %s: %s", dog_id, e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to end walk for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to end the walk for {dog_id}. Check the logs for details."
+            ) from err
 
     async def add_gps_point_service(call: ServiceCall) -> None:
         """Handle add GPS point service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
         dog_id = call.data["dog_id"]
         latitude = call.data["latitude"]
@@ -342,7 +392,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         accuracy = call.data.get("accuracy")
 
         try:
-            success = await coordinator.walk_manager.async_add_gps_point(
+            success = await walk_manager.async_add_gps_point(
                 dog_id=dog_id,
                 latitude=latitude,
                 longitude=longitude,
@@ -353,13 +403,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if not success:
                 _LOGGER.warning("Failed to add GPS point for %s", dog_id)
 
-        except Exception as e:
-            _LOGGER.error("Failed to add GPS point for %s: %s", dog_id, e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to add GPS point for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to add GPS point for {dog_id}. Check the logs for details."
+            ) from err
 
     async def update_health_service(call: ServiceCall) -> None:
         """Handle update health service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
 
         dog_id = call.data["dog_id"]
         health_data = {
@@ -367,26 +424,32 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         }
 
         try:
-            success = await coordinator.feeding_manager.async_update_health_data(
+            success = await feeding_manager.async_update_health_data(
                 dog_id=dog_id,
                 health_data=health_data,
             )
 
             if success:
-                # Trigger coordinator update
                 await coordinator.async_request_refresh()
 
                 _LOGGER.info("Updated health data for %s: %s", dog_id, health_data)
             else:
                 _LOGGER.warning("Failed to update health data for %s", dog_id)
 
-        except Exception as e:
-            _LOGGER.error("Failed to update health data for %s: %s", dog_id, e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to update health data for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to update health data for {dog_id}. Check the logs for details."
+            ) from err
 
     async def send_notification_service(call: ServiceCall) -> None:
         """Handle send notification service call."""
-        coordinator = hass.data[DOMAIN]["coordinator"]
+        coordinator = _get_coordinator()
+        notification_manager = _require_manager(
+            coordinator.notification_manager, "notification manager"
+        )
 
         title = call.data["title"]
         message = call.data["message"]
@@ -397,8 +460,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         expires_in_hours = call.data.get("expires_in_hours")
 
         try:
-            # Convert string enums
-            from .notifications import (
+            from .notifications import (  # Local import keeps startup fast
                 NotificationChannel,
                 NotificationPriority,
                 NotificationType,
@@ -416,7 +478,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 expires_in = timedelta(hours=expires_in_hours)
 
             notification_id = (
-                await coordinator.notification_manager.async_send_notification(
+                await notification_manager.async_send_notification(
                     notification_type=notification_type_enum,
                     title=title,
                     message=message,
@@ -429,9 +491,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)
 
-        except Exception as e:
-            _LOGGER.error("Failed to send notification: %s", e)
+        except HomeAssistantError:
             raise
+        except Exception as err:
+            _LOGGER.error("Failed to send notification: %s", err)
+            raise HomeAssistantError(
+                "Failed to send the PawControl notification. Check the logs for details."
+            ) from err
 
     async def daily_reset_service(call: ServiceCall) -> None:
         """Trigger a manual daily reset."""
