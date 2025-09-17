@@ -70,6 +70,8 @@ class OptimizedDataCache:
         self._access_count: dict[str, int] = {}
         self._max_memory_bytes = max_memory_mb * 1024 * 1024
         self._current_memory = 0
+        self._hits = 0
+        self._misses = 0
         self._lock = asyncio.Lock()
 
     async def get(self, key: str, default: Any = None) -> Any:
@@ -78,7 +80,10 @@ class OptimizedDataCache:
             if key in self._cache:
                 self._access_count[key] = self._access_count.get(key, 0) + 1
                 self._timestamps[key] = dt_util.utcnow()
+                self._hits += 1
                 return self._cache[key]
+
+            self._misses += 1
             return default
 
     async def set(self, key: str, value: Any, ttl_seconds: int = 300) -> None:
@@ -161,7 +166,14 @@ class OptimizedDataCache:
             return 1024  # Default 1KB
 
     def get_stats(self) -> dict[str, Any]:
-        """Get cache performance statistics."""
+        """Get cache performance statistics with hit/miss tracking.
+
+        Returns a dictionary that includes size metrics, access frequency, and
+        high-level effectiveness indicators (hits, misses, hit rate).
+        """
+        total_requests = self._hits + self._misses
+        hit_rate = (self._hits / total_requests * 100) if total_requests else 0.0
+
         return {
             "entries": len(self._cache),
             "memory_mb": round(self._current_memory / (1024 * 1024), 2),
@@ -171,6 +183,9 @@ class OptimizedDataCache:
                 if self._access_count
                 else 0
             ),
+            "hits": self._hits,
+            "misses": self._misses,
+            "hit_rate": round(hit_rate, 1),
         }
 
 
