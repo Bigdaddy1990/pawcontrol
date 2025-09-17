@@ -741,7 +741,7 @@ class PawControlData:
             await self.storage.async_save_data("health", health_namespace)
 
             for event in events:
-                payload = {"dog_id": dog_id, **dict(event.get("data", {}))}
+                payload = {"dog_id": dog_id, **event.get("data", {})}
                 self.hass.bus.async_fire(EVENT_HEALTH_LOGGED, payload)
         except Exception as err:
             _LOGGER.error("Failed to process health event batch: %s", err)
