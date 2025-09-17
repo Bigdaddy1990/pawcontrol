@@ -26,6 +26,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_EXTERNAL_INTEGRATIONS,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -79,14 +80,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             session: Optional aiohttp session for external API calls
         """
         self.config_entry = entry
+        session_injected = session is not None
         if session is None:
             session = async_get_clientsession(hass)
         self.session = session
+        self._external_session_injected = session_injected
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
         self.dogs = self._dogs_config
 
         # OPTIMIZE: Initialize external API flag BEFORE super().__init__() to prevent AttributeError
-        self._use_external_api = False
+        self._use_external_api = bool(
+            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
+        )
 
         # OPTIMIZE: Prepare caches before calculating interval
         self._interval_cache: dict[str, int] = {}
@@ -127,10 +132,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager: PawControlNotificationManager | None = None
 
         _LOGGER.info(
-            "Coordinator initialized: %d dogs, %ds interval, session=%s",
+            "Coordinator initialized: %d dogs, %ds interval, session=%s, external_api=%s",
             len(self.dogs),
             update_interval,
-            "external" if session else "owned",
+            "injected" if session_injected else "shared",
+            self._use_external_api,
         )
 
     def attach_runtime_managers(
@@ -724,6 +730,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             True if last update was successful
         """
         return self.last_update_success
+
+    @property
+    def use_external_api(self) -> bool:
+        """Return whether external integrations are enabled."""
+
+        return self._use_external_api
 
     def get_update_statistics(self) -> dict[str, Any]:
         """Get comprehensive coordinator update statistics.

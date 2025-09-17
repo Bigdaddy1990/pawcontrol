@@ -411,6 +411,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     # Start background tasks for coordinator
     coordinator.async_start_background_tasks()
 
+    # Reload the integration when options change so coordinator picks up
+    # new performance or external integration settings immediately.
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
     _LOGGER.info(
         "PawControl setup completed: %d dogs, %d platforms, profile '%s', %d entities estimated",
         len(dogs_config),

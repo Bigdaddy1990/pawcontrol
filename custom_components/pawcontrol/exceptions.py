@@ -13,6 +13,7 @@ Python: 3.12+
 from __future__ import annotations
 
 import traceback
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from typing import Any, Final
@@ -902,11 +903,11 @@ def raise_from_error_code(
 
 
 def handle_exception_gracefully(
-    func: callable,
+    func: Callable[..., Any],
     default_return: Any = None,
     log_errors: bool = True,
     reraise_critical: bool = True,
-) -> Any:
+) -> Callable[..., Any]:
     """Decorator for graceful exception handling with logging.
 
     Args:
@@ -916,7 +917,7 @@ def handle_exception_gracefully(
         reraise_critical: Whether to reraise critical errors
 
     Returns:
-        Function result or default value on error
+        Callable that wraps ``func`` and handles exceptions gracefully
     """
 
     def wrapper(*args: Any, **kwargs: Any) -> Any:
