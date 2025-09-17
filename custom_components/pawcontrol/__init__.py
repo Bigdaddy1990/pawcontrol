@@ -512,17 +512,32 @@ def _calculate_entity_count_cached(
         Estimated total entity count
     """
     # Create cache key
-    dogs_signature = hash(
-        str(
-            sorted(
-                (
-                    dog.get(CONF_DOG_ID, ""),
-                    tuple(sorted(dog.get("modules", {}).items())),
+    normalized_signatures: list[tuple[str, tuple[tuple[str, bool], ...]]] = []
+
+    for dog in dogs_config:
+        raw_modules = dog.get("modules")
+        if isinstance(raw_modules, Mapping):
+            modules = {
+                str(module): bool(enabled)
+                for module, enabled in raw_modules.items()
+            }
+        else:
+            modules = {}
+            if raw_modules not in (None, {}):
+                _LOGGER.debug(
+                    "Ignoring non-mapping modules for dog %s during entity estimation (%s)",
+                    dog.get(CONF_DOG_ID, "unknown"),
+                    type(raw_modules).__name__,
                 )
-                for dog in dogs_config
+
+        normalized_signatures.append(
+            (
+                str(dog.get(CONF_DOG_ID, "")),
+                tuple(sorted(modules.items())),
             )
         )
-    )
+
+    dogs_signature = hash(str(sorted(normalized_signatures)))
     cache_key = f"entities_{len(dogs_config)}_{profile}_{dogs_signature}"
 
     if cache_key in _ENTITY_COUNT_CACHE:
@@ -530,9 +545,9 @@ def _calculate_entity_count_cached(
 
     # Calculate and cache result
     total = 0
-    for dog in dogs_config:
-        modules = dog.get("modules", {})
-        total += entity_factory.estimate_entity_count(profile, modules)
+    for _, modules in normalized_signatures:
+        module_dict = dict(modules)
+        total += entity_factory.estimate_entity_count(profile, module_dict)
 
     # Cache with size limit
     if len(_ENTITY_COUNT_CACHE) >= _ENTITY_COUNT_CACHE_SIZE_LIMIT:
