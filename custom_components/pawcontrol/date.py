@@ -40,7 +40,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .exceptions import PawControlError, ValidationError
-from .utils import performance_monitor
+from .helpers import performance_monitor
 
 _LOGGER = logging.getLogger(__name__)
 
