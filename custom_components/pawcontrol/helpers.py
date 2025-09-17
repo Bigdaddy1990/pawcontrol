@@ -192,8 +192,8 @@ class PawControlDataStorage:
         # Initialize storage for each data type
         self._initialize_stores()
 
-        # Start cleanup task
-        self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
+        # Start cleanup task with Home Assistant helper for lifecycle tracking
+        self._cleanup_task = hass.async_create_task(self._periodic_cleanup())
 
     def _initialize_stores(self) -> None:
         """Initialize storage stores with atomic writes."""
@@ -290,7 +290,7 @@ class PawControlDataStorage:
         if self._save_task and not self._save_task.done():
             return  # Already scheduled
 
-        self._save_task = asyncio.create_task(self._batch_save())
+        self._save_task = self.hass.async_create_task(self._batch_save())
 
     async def _batch_save(self, *, delay: float | None = BATCH_SAVE_DELAY) -> None:
         """Perform batch save with optional delay."""
@@ -545,7 +545,7 @@ class PawControlData:
         if self._event_task is None or self._event_task.done():
             event_coro = self._process_events()
             try:
-                task = asyncio.create_task(event_coro)
+                task = self.hass.async_create_task(event_coro)
             except Exception:
                 event_coro.close()
                 raise
@@ -1099,7 +1099,9 @@ class PawControlNotificationManager:
 
     def _setup_async_processor(self) -> None:
         """Set up async notification processor."""
-        self._processor_task = asyncio.create_task(self._async_process_notifications())
+        self._processor_task = self.hass.async_create_task(
+            self._async_process_notifications()
+        )
 
     async def _async_process_notifications(self) -> None:
         """OPTIMIZED: Async notification processor with prioritization."""
