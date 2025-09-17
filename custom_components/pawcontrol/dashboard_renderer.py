@@ -340,11 +340,16 @@ class DashboardRenderer:
         Returns:
             List of dog view configurations
         """
-        views = []
+        if not dogs_config:
+            # Nothing to render; avoid zero batch size that would break range.
+            return []
+
+        views: list[dict[str, Any]] = []
 
         # Process dogs in batches to prevent memory issues
+        estimated_cards_per_dog = max(1, MAX_CARDS_PER_BATCH // 10)
         batch_size = min(
-            MAX_CARDS_PER_BATCH // 10, len(dogs_config)
+            estimated_cards_per_dog, len(dogs_config)
         )  # Estimate cards per dog
 
         for i in range(0, len(dogs_config), batch_size):
