@@ -15,6 +15,7 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
+from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -32,8 +33,6 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
-
-from typing import TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
