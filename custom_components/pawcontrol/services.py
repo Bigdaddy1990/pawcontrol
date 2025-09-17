@@ -15,6 +15,7 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
+from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -32,8 +33,6 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
-
-from typing import TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -477,16 +476,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if expires_in_hours:
                 expires_in = timedelta(hours=expires_in_hours)
 
-            notification_id = (
-                await notification_manager.async_send_notification(
-                    notification_type=notification_type_enum,
-                    title=title,
-                    message=message,
-                    dog_id=dog_id,
-                    priority=priority_enum,
-                    expires_in=expires_in,
-                    force_channels=channel_enums,
-                )
+            notification_id = await notification_manager.async_send_notification(
+                notification_type=notification_type_enum,
+                title=title,
+                message=message,
+                dog_id=dog_id,
+                priority=priority_enum,
+                expires_in=expires_in,
+                force_channels=channel_enums,
             )
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)

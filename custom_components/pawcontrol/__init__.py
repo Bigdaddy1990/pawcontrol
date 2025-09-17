@@ -159,6 +159,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         if "service_manager" not in domain_data:
             domain_data["service_manager"] = PawControlServiceManager(hass)
             _LOGGER.debug("Registered PawControl services during async_setup")
+    except asyncio.CancelledError:  # pragma: no cover - defensive logging
+        raise
     except Exception as err:  # pragma: no cover - defensive logging
         _LOGGER.warning("Failed to register PawControl services: %s", err)
 
@@ -311,6 +313,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Cleanup on initialization failure
         await _cleanup_managers(initialized_managers)
         raise
+    except asyncio.CancelledError:
+        await _cleanup_managers(initialized_managers)
+        raise
     except Exception as err:
         # Cleanup on unexpected failure
         await _cleanup_managers(initialized_managers)
@@ -333,6 +338,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     except TimeoutError as err:
         await _cleanup_managers(initialized_managers)
         raise ConfigEntryNotReady("Platform setup timeout after 60 seconds") from err
+    except asyncio.CancelledError:
+        await _cleanup_managers(initialized_managers)
+        raise
     except Exception as err:
         # Cleanup managers if platform setup fails
         await _cleanup_managers(initialized_managers)
@@ -404,6 +412,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         if reset_unsub is not None:
             entry_data["daily_reset_unsub"] = reset_unsub
         _LOGGER.debug("Optional daily reset scheduler initialized successfully")
+    except asyncio.CancelledError:
+        raise
     except Exception as err:
         _LOGGER.warning("Failed to initialize daily reset scheduler: %s", err)
         # Continue setup even if scheduler fails
@@ -455,6 +465,8 @@ async def _initialize_manager_with_retry(
                     attempt + 1,
                 )
             return
+        except asyncio.CancelledError:
+            raise
         except Exception as err:
             last_exception = err
             if attempt < max_retries:
@@ -557,6 +569,8 @@ async def _cleanup_managers(managers: list[Any]) -> None:
                     _LOGGER.warning(
                         "Manager %s shutdown timeout", mgr.__class__.__name__
                     )
+                except asyncio.CancelledError:
+                    raise
                 except Exception as err:
                     _LOGGER.error(
                         "Manager %s shutdown error: %s", mgr.__class__.__name__, err
@@ -627,6 +641,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     except TimeoutError:
         _LOGGER.error("Platform unload timeout after 60 seconds")
         unload_ok = False
+    except asyncio.CancelledError:
+        raise
     except Exception as err:
         _LOGGER.error("Failed to unload platforms: %s", err)
         unload_ok = False
@@ -655,6 +671,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                     try:
                         await asyncio.wait_for(mgr.async_shutdown(), timeout=15.0)
                         return mgr.__class__.__name__, None
+                    except asyncio.CancelledError:
+                        raise
                     except Exception as err:
                         return mgr.__class__.__name__, err
 
@@ -757,6 +775,8 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             current_state["dogs_count"],
             current_state["profile"],
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as err:
         _LOGGER.error("PawControl reload failed: %s", err)
         # Clear any partial state

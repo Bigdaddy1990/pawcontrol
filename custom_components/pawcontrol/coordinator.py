@@ -25,8 +25,8 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_DOG_ID,
     CONF_DOGS,
-    CONF_GPS_UPDATE_INTERVAL,
     CONF_EXTERNAL_INTEGRATIONS,
+    CONF_GPS_UPDATE_INTERVAL,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,

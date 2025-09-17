@@ -9,8 +9,8 @@ import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOGS,
-    CONF_GPS_UPDATE_INTERVAL,
     CONF_EXTERNAL_INTEGRATIONS,
+    CONF_GPS_UPDATE_INTERVAL,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
