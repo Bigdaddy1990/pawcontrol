@@ -55,7 +55,7 @@ from .const import (
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
-from .types import DogConfigData, PawControlConfigEntry, is_dog_config_valid
+from .types import DogConfigData, is_dog_config_valid
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1243,11 +1243,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             ConfigEntryAuthFailed: If entry cannot be found or is invalid
         """
         _LOGGER.debug("Starting reauthentication flow for entry data: %s", entry_data)
-        
+
         self.reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
-        
+
         if not self.reauth_entry:
             _LOGGER.error("Reauthentication failed: entry not found")
             raise ConfigEntryAuthFailed("Config entry not found for reauthentication")
@@ -1283,7 +1283,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             for dog in dogs
             if not is_dog_config_valid(dog)
         ]
-        
+
         if invalid_dogs:
             raise ValidationError(
                 "entry_dogs",
@@ -1327,7 +1327,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     config_health = await self._check_config_health(self.reauth_entry)
                     if not config_health["healthy"]:
                         _LOGGER.warning(
-                            "Configuration health issues detected: %s", 
+                            "Configuration health issues detected: %s",
                             config_health["issues"]
                         )
                         # Don't fail reauth for health issues, just warn

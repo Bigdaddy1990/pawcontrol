@@ -3,7 +3,7 @@
 Comprehensive test suite for the OptimizedEntityBase class hierarchy including
 performance tracking, caching mechanisms, memory management, and error handling.
 
-Quality Scale: Platinum  
+Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """
@@ -35,7 +35,7 @@ from homeassistant.util import dt as dt_util
 
 class MockCoordinator:
     """Mock coordinator for testing."""
-    
+
     def __init__(self, available: bool = True) -> None:
         self.available = available
         self._data = {
@@ -61,11 +61,11 @@ class MockCoordinator:
                 },
             }
         }
-    
+
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get dog data for testing."""
         return self._data.get(dog_id)
-    
+
     def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
         """Get module data for testing."""
         dog_data = self._data.get(dog_id, {})
@@ -74,7 +74,7 @@ class MockCoordinator:
 
 class TestEntityBase(OptimizedEntityBase):
     """Test implementation of OptimizedEntityBase."""
-    
+
     def __init__(self, coordinator, dog_id: str, dog_name: str, **kwargs) -> None:
         super().__init__(
             coordinator=coordinator,
@@ -84,7 +84,7 @@ class TestEntityBase(OptimizedEntityBase):
             **kwargs
         )
         self._test_state = "test_value"
-    
+
     def _get_entity_state(self) -> Any:
         """Return test state."""
         return self._test_state
@@ -92,11 +92,11 @@ class TestEntityBase(OptimizedEntityBase):
 
 class TestPerformanceTracker:
     """Test suite for PerformanceTracker class."""
-    
+
     def test_performance_tracker_initialization(self) -> None:
         """Test performance tracker initialization."""
         tracker = PerformanceTracker("test_entity")
-        
+
         assert tracker._entity_id == "test_entity"
         assert tracker._operation_times == []
         assert tracker._error_count == 0
@@ -106,22 +106,22 @@ class TestPerformanceTracker:
     def test_record_operation_time(self) -> None:
         """Test recording operation times."""
         tracker = PerformanceTracker("test_entity")
-        
+
         tracker.record_operation_time(0.1)
         tracker.record_operation_time(0.2)
         tracker.record_operation_time(0.15)
-        
+
         assert len(tracker._operation_times) == 3
         assert tracker._operation_times == [0.1, 0.2, 0.15]
 
     def test_record_operation_time_memory_limit(self) -> None:
         """Test that operation times are limited to prevent memory growth."""
         tracker = PerformanceTracker("test_entity")
-        
+
         # Add more than the sample size limit
         for i in range(150):
             tracker.record_operation_time(i * 0.001)
-        
+
         # Should be limited to PERFORMANCE_SAMPLE_SIZE (100)
         assert len(tracker._operation_times) == 100
         assert tracker._operation_times[0] == 0.05  # Should have removed oldest
@@ -129,35 +129,35 @@ class TestPerformanceTracker:
     def test_error_tracking(self) -> None:
         """Test error counting."""
         tracker = PerformanceTracker("test_entity")
-        
+
         tracker.record_error()
-        tracker.record_error() 
         tracker.record_error()
-        
+        tracker.record_error()
+
         assert tracker._error_count == 3
 
     def test_cache_hit_miss_tracking(self) -> None:
         """Test cache performance tracking."""
         tracker = PerformanceTracker("test_entity")
-        
+
         tracker.record_cache_hit()
         tracker.record_cache_hit()
         tracker.record_cache_miss()
-        
+
         assert tracker._cache_hits == 2
         assert tracker._cache_misses == 1
 
     def test_performance_summary_no_data(self) -> None:
         """Test performance summary with no data."""
         tracker = PerformanceTracker("test_entity")
-        
+
         summary = tracker.get_performance_summary()
         assert summary == {"status": "no_data"}
 
     def test_performance_summary_with_data(self) -> None:
         """Test performance summary with recorded data."""
         tracker = PerformanceTracker("test_entity")
-        
+
         # Record some data
         tracker.record_operation_time(0.1)
         tracker.record_operation_time(0.2)
@@ -166,9 +166,9 @@ class TestPerformanceTracker:
         tracker.record_cache_hit()
         tracker.record_cache_hit()
         tracker.record_cache_miss()
-        
+
         summary = tracker.get_performance_summary()
-        
+
         assert summary["avg_operation_time"] == 0.2
         assert summary["min_operation_time"] == 0.1
         assert summary["max_operation_time"] == 0.3
@@ -216,7 +216,7 @@ class TestOptimizedEntityBase:
             device_class="custom_class",
             icon="mdi:test"
         )
-        
+
         assert entity._attr_unique_id == "pawcontrol_custom_dog_test_entity_custom_suffix"
         assert entity._attr_name == "Custom Dog Custom Name"
         assert entity._attr_device_class == "custom_class"
@@ -225,7 +225,7 @@ class TestOptimizedEntityBase:
     def test_device_info_generation(self, test_entity: TestEntityBase) -> None:
         """Test device info generation and caching."""
         device_info = test_entity.device_info
-        
+
         assert device_info is not None
         assert device_info["name"] == "Test Dog"
         assert device_info["manufacturer"] == "PawControl"
@@ -236,10 +236,10 @@ class TestOptimizedEntityBase:
         """Test that device info is cached properly."""
         # First call should miss cache
         device_info1 = test_entity.device_info
-        
+
         # Second call should hit cache
         device_info2 = test_entity.device_info
-        
+
         # Should be the same object (cached)
         assert device_info1 == device_info2
 
@@ -256,7 +256,7 @@ class TestOptimizedEntityBase:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert entity.available is False
 
     def test_availability_no_dog_data(self, mock_coordinator) -> None:
@@ -267,26 +267,26 @@ class TestOptimizedEntityBase:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert entity.available is False
 
     def test_availability_old_data(self, mock_coordinator) -> None:
         """Test availability when data is too old."""
         old_time = (dt_util.utcnow() - timedelta(minutes=15)).isoformat()
         mock_coordinator._data["test_dog"]["last_update"] = old_time
-        
+
         entity = TestEntityBase(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert entity.available is False
 
     def test_extra_state_attributes_generation(self, test_entity: TestEntityBase) -> None:
         """Test extra state attributes generation."""
         attributes = test_entity.extra_state_attributes
-        
+
         assert attributes["dog_id"] == "test_dog"
         assert attributes["dog_name"] == "Test Dog"
         assert attributes["entity_type"] == "test_entity"
@@ -300,10 +300,10 @@ class TestOptimizedEntityBase:
         """Test that extra state attributes are cached."""
         # First call should miss cache
         attrs1 = test_entity.extra_state_attributes
-        
+
         # Second call should hit cache (within TTL)
         attrs2 = test_entity.extra_state_attributes
-        
+
         # Should have same content but different timestamp due to generation
         assert attrs1["dog_id"] == attrs2["dog_id"]
         assert attrs1["dog_name"] == attrs2["dog_name"]
@@ -312,10 +312,10 @@ class TestOptimizedEntityBase:
         """Test dog data caching mechanism."""
         # First call should fetch from coordinator
         data1 = test_entity._get_dog_data_cached()
-        
+
         # Second call should use cache
         data2 = test_entity._get_dog_data_cached()
-        
+
         assert data1 == data2
         assert data1 is not None
         assert "dog_info" in data1
@@ -325,29 +325,29 @@ class TestOptimizedEntityBase:
         # Test feeding module data
         feeding_data1 = test_entity._get_module_data_cached("feeding")
         feeding_data2 = test_entity._get_module_data_cached("feeding")
-        
+
         assert feeding_data1 == feeding_data2
         assert "last_feeding" in feeding_data1
 
     async def test_async_update_performance_tracking(self, test_entity: TestEntityBase) -> None:
         """Test that async_update tracks performance."""
         initial_count = test_entity._performance_tracker._operation_times
-        
+
         with patch.object(test_entity, '_async_invalidate_caches', new_callable=AsyncMock):
             await test_entity.async_update()
-        
+
         # Should have recorded operation time
         assert len(test_entity._performance_tracker._operation_times) > len(initial_count)
 
     async def test_async_update_error_handling(self, test_entity: TestEntityBase) -> None:
         """Test async_update error handling."""
         initial_errors = test_entity._performance_tracker._error_count
-        
+
         # Mock super().async_update() to raise an exception
-        with patch.object(OptimizedEntityBase, 'async_update', side_effect=Exception("Test error")):
-            with pytest.raises(Exception):
+        with patch.object(OptimizedEntityBase, 'async_update', side_effect=Exception("Test error")):  # noqa: SIM117
+            with pytest.raises(Exception):  # noqa: B017
                 await test_entity.async_update()
-        
+
         # Should have recorded the error
         assert test_entity._performance_tracker._error_count > initial_errors
 
@@ -355,11 +355,11 @@ class TestOptimizedEntityBase:
         """Test cache invalidation functionality."""
         # Populate caches first
         test_entity._get_dog_data_cached()
-        test_entity.extra_state_attributes
-        
+        test_entity.extra_state_attributes  # noqa: B018
+
         # Invalidate caches
         await test_entity._async_invalidate_caches()
-        
+
         # This test mainly ensures no exceptions are raised during invalidation
         assert True
 
@@ -368,9 +368,9 @@ class TestOptimizedEntityBase:
         # Record some performance data
         test_entity._performance_tracker.record_operation_time(0.1)
         test_entity._performance_tracker.record_cache_hit()
-        
+
         metrics = test_entity.get_performance_metrics()
-        
+
         assert "entity_id" in metrics
         assert "dog_id" in metrics
         assert "entity_type" in metrics
@@ -381,7 +381,7 @@ class TestOptimizedEntityBase:
     def test_memory_usage_estimation(self, test_entity: TestEntityBase) -> None:
         """Test memory usage estimation."""
         memory_usage = test_entity._estimate_memory_usage()
-        
+
         assert "base_entity_bytes" in memory_usage
         assert "cache_contribution_bytes" in memory_usage
         assert "estimated_total_bytes" in memory_usage
@@ -415,7 +415,7 @@ class TestOptimizedSensorBase:
         """Test sensor native value property."""
         # Initially None
         assert sensor_entity.native_value is None
-        
+
         # Set value
         sensor_entity._attr_native_value = 25.5
         assert sensor_entity.native_value == 25.5
@@ -434,7 +434,7 @@ class TestOptimizedBinarySensorBase:
         """Create test binary sensor entity."""
         return OptimizedBinarySensorBase(
             coordinator=mock_coordinator,
-            dog_id="test_dog", 
+            dog_id="test_dog",
             dog_name="Test Dog",
             sensor_type="test_binary_sensor",
             device_class="motion",
@@ -453,7 +453,7 @@ class TestOptimizedBinarySensorBase:
         """Test binary sensor state."""
         # Initially off
         assert binary_sensor_entity.is_on is False
-        
+
         # Turn on
         binary_sensor_entity._attr_is_on = True
         assert binary_sensor_entity.is_on is True
@@ -464,7 +464,7 @@ class TestOptimizedBinarySensorBase:
         # When off
         binary_sensor_entity._attr_is_on = False
         assert binary_sensor_entity.icon == "mdi:motion-sensor-off"
-        
+
         # When on
         binary_sensor_entity._attr_is_on = True
         assert binary_sensor_entity.icon == "mdi:motion-sensor"
@@ -473,13 +473,13 @@ class TestOptimizedBinarySensorBase:
 class TestOptimizedSwitchBase:
     """Test suite for OptimizedSwitchBase class."""
 
-    @pytest.fixture  
+    @pytest.fixture
     def switch_entity(self, mock_coordinator: MockCoordinator) -> OptimizedSwitchBase:
         """Create test switch entity."""
         return OptimizedSwitchBase(
             coordinator=mock_coordinator,
             dog_id="test_dog",
-            dog_name="Test Dog", 
+            dog_name="Test Dog",
             switch_type="test_switch",
             device_class="switch",
             initial_state=False
@@ -495,7 +495,7 @@ class TestOptimizedSwitchBase:
         """Test switch state management."""
         assert switch_entity.is_on is False
         assert switch_entity._get_entity_state() is False
-        
+
         switch_entity._attr_is_on = True
         assert switch_entity.is_on is True
         assert switch_entity._get_entity_state() is True
@@ -503,9 +503,9 @@ class TestOptimizedSwitchBase:
     async def test_switch_turn_on(self, switch_entity: OptimizedSwitchBase) -> None:
         """Test switch turn on functionality."""
         assert switch_entity.is_on is False
-        
+
         await switch_entity.async_turn_on()
-        
+
         assert switch_entity.is_on is True
         assert switch_entity._performance_tracker._operation_times[-1] > 0
 
@@ -514,9 +514,9 @@ class TestOptimizedSwitchBase:
         # Start with switch on
         switch_entity._attr_is_on = True
         assert switch_entity.is_on is True
-        
+
         await switch_entity.async_turn_off()
-        
+
         assert switch_entity.is_on is False
         assert switch_entity._performance_tracker._operation_times[-1] > 0
 
@@ -525,31 +525,31 @@ class TestOptimizedSwitchBase:
         # Mock implementation to raise error
         with patch.object(switch_entity, '_async_turn_on_implementation', side_effect=Exception("Test error")):
             initial_errors = switch_entity._performance_tracker._error_count
-            
+
             with pytest.raises(HomeAssistantError):
                 await switch_entity.async_turn_on()
-            
+
             # Should record error
             assert switch_entity._performance_tracker._error_count > initial_errors
 
     async def test_switch_turn_off_error_handling(self, switch_entity: OptimizedSwitchBase) -> None:
         """Test switch turn off error handling."""
         switch_entity._attr_is_on = True
-        
+
         # Mock implementation to raise error
         with patch.object(switch_entity, '_async_turn_off_implementation', side_effect=Exception("Test error")):
             initial_errors = switch_entity._performance_tracker._error_count
-            
+
             with pytest.raises(HomeAssistantError):
                 await switch_entity.async_turn_off()
-            
+
             # Should record error
             assert switch_entity._performance_tracker._error_count > initial_errors
 
     def test_switch_state_attributes(self, switch_entity: OptimizedSwitchBase) -> None:
         """Test switch-specific state attributes."""
         attributes = switch_entity._generate_state_attributes()
-        
+
         assert "last_changed" in attributes
         assert "switch_type" in attributes
         assert attributes["switch_type"] == switch_entity._entity_type
@@ -567,14 +567,14 @@ class TestGlobalCacheManagement:
     def test_get_global_performance_stats(self) -> None:
         """Test global performance statistics retrieval."""
         stats = get_global_performance_stats()
-        
+
         assert "total_entities_registered" in stats
         assert "active_entities" in stats
         assert "cache_statistics" in stats
         assert "average_operation_time_ms" in stats
         assert "average_cache_hit_rate" in stats
         assert "total_errors" in stats
-        
+
         # Values should be non-negative
         assert stats["total_entities_registered"] >= 0
         assert stats["active_entities"] >= 0
@@ -589,12 +589,12 @@ class TestOptimizedEntityBatching:
     async def test_create_optimized_entities_batched_empty_list(self) -> None:
         """Test batched entity creation with empty list."""
         mock_callback = Mock()
-        
+
         await create_optimized_entities_batched(
             entities=[],
             async_add_entities_callback=mock_callback
         )
-        
+
         # Should not call callback for empty list
         mock_callback.assert_not_called()
 
@@ -604,15 +604,15 @@ class TestOptimizedEntityBatching:
             TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
             for i in range(5)
         ]
-        
+
         mock_callback = Mock()
-        
+
         await create_optimized_entities_batched(
             entities=entities,
             async_add_entities_callback=mock_callback,
             batch_size=10
         )
-        
+
         # Should call callback once with all entities
         mock_callback.assert_called_once()
         args = mock_callback.call_args[0]
@@ -625,23 +625,23 @@ class TestOptimizedEntityBatching:
             TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
             for i in range(25)
         ]
-        
+
         mock_callback = Mock()
-        
+
         await create_optimized_entities_batched(
             entities=entities,
             async_add_entities_callback=mock_callback,
             batch_size=10,
             delay_between_batches=0.001  # Minimal delay for testing
         )
-        
+
         # Should call callback 3 times (25 entities, batch size 10 = 3 batches)
         assert mock_callback.call_count == 3
-        
+
         # Verify batch sizes
         call_args = mock_callback.call_args_list
         assert len(call_args[0][0][0]) == 10  # First batch: 10 entities
-        assert len(call_args[1][0][0]) == 10  # Second batch: 10 entities  
+        assert len(call_args[1][0][0]) == 10  # Second batch: 10 entities
         assert len(call_args[2][0][0]) == 5   # Third batch: 5 entities
 
 
@@ -656,14 +656,14 @@ class TestPerformanceOptimizations:
     def test_cache_ttl_behavior(self, mock_coordinator) -> None:
         """Test cache TTL behavior with time manipulation."""
         entity = TestEntityBase(mock_coordinator, "test_dog", "Test Dog")
-        
+
         # First call should populate cache
         data1 = entity._get_dog_data_cached()
-        
+
         # Immediate second call should hit cache
         data2 = entity._get_dog_data_cached()
         assert data1 == data2
-        
+
         # Cache hit should be recorded
         assert entity._performance_tracker._cache_hits > 0
 
@@ -675,12 +675,12 @@ class TestPerformanceOptimizations:
             entity = TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
             # Generate some data to populate caches
             entity._get_dog_data_cached()
-            entity.extra_state_attributes
+            entity.extra_state_attributes  # noqa: B018
             entities.append(entity)
-        
+
         # Trigger cleanup
         _cleanup_global_caches()
-        
+
         # Verify entities are still functional after cleanup
         for entity in entities[:5]:  # Test subset for performance
             assert entity._get_dog_data_cached() is not None
@@ -688,14 +688,14 @@ class TestPerformanceOptimizations:
     def test_concurrent_access_simulation(self, mock_coordinator) -> None:
         """Test concurrent access patterns (simulated)."""
         entity = TestEntityBase(mock_coordinator, "concurrent_dog", "Concurrent Dog")
-        
+
         # Simulate rapid concurrent access
         results = []
         for _ in range(100):
             dog_data = entity._get_dog_data_cached()
             attributes = entity.extra_state_attributes
             results.append((dog_data, attributes))
-        
+
         # All results should be consistent
         first_dog_data, first_attrs = results[0]
         for dog_data, attrs in results:
@@ -705,7 +705,7 @@ class TestPerformanceOptimizations:
     def test_performance_metrics_accuracy(self, mock_coordinator) -> None:
         """Test accuracy of performance metrics tracking."""
         entity = TestEntityBase(mock_coordinator, "perf_dog", "Performance Dog")
-        
+
         # Record known operations
         entity._performance_tracker.record_operation_time(0.1)
         entity._performance_tracker.record_operation_time(0.2)
@@ -713,10 +713,10 @@ class TestPerformanceOptimizations:
         entity._performance_tracker.record_cache_hit()
         entity._performance_tracker.record_cache_miss()
         entity._performance_tracker.record_error()
-        
+
         metrics = entity.get_performance_metrics()
         perf_data = metrics["performance"]
-        
+
         # Verify accuracy
         assert perf_data["avg_operation_time"] == 0.2
         assert perf_data["min_operation_time"] == 0.1
@@ -728,18 +728,18 @@ class TestPerformanceOptimizations:
     async def test_error_recovery_resilience(self, mock_coordinator) -> None:
         """Test entity resilience during error conditions."""
         entity = TestEntityBase(mock_coordinator, "error_dog", "Error Dog")
-        
+
         # Simulate coordinator becoming unavailable
         mock_coordinator.available = False
-        
+
         # Entity should handle gracefully
         assert entity.available is False
         attributes = entity.extra_state_attributes
-        
+
         # Should return fallback attributes without crashing
         assert "status" in attributes
         assert attributes["dog_id"] == "error_dog"
-        
+
         # Restore coordinator
         mock_coordinator.available = True
         assert entity.available is True
@@ -752,14 +752,14 @@ class TestPerformanceOptimizations:
             dog_name="Restore Dog",
             switch_type="test_switch"
         )
-        
+
         # Mock last state
         mock_state = Mock()
         mock_state.state = "on"
-        
+
         # Test restoration
-        asyncio.create_task(switch._handle_state_restoration(mock_state))
-        
+        asyncio.create_task(switch._handle_state_restoration(mock_state))  # noqa: RUF006
+
         # Should restore state
         # Note: This is more of a smoke test since _handle_state_restoration is async
         assert True  # If no exception, test passes

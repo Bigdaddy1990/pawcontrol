@@ -72,7 +72,7 @@ def sample_dogs_config() -> list[dict[str, Any]]:
         },
         {
             "dog_id": "max",
-            "dog_name": "Max", 
+            "dog_name": "Max",
             "dog_breed": "German Shepherd",
             "dog_age": 3,
             "dog_weight": 30.0,
@@ -106,7 +106,7 @@ class TestPawControlDataManagerInitialization:
 
             # Verify data directory creation
             mock_mkdir.assert_called()
-            
+
             # Verify dog profiles were initialized
             assert len(data_manager._dog_profiles) == 2
             assert "buddy" in data_manager._dog_profiles
@@ -140,9 +140,9 @@ class TestPawControlDataManagerInitialization:
              patch("pathlib.Path.exists", return_value=True), \
              patch("builtins.open", mock_open(read_data=json.dumps(existing_data))), \
              patch("json.load", return_value=existing_data):
-            
+
             await data_manager.async_initialize()
-            
+
             # Verify existing data was loaded
             buddy_profile = data_manager._dog_profiles["buddy"]
             assert buddy_profile.daily_stats.feedings_count == 2
@@ -163,10 +163,10 @@ class TestPawControlDataManagerInitialization:
              patch("pathlib.Path.exists", return_value=True), \
              patch("builtins.open", mock_open(read_data="corrupted json data")), \
              patch("json.load", side_effect=json.JSONDecodeError("Invalid JSON", "", 0)):
-            
+
             # Should not raise exception, but recover gracefully
             await data_manager.async_initialize()
-            
+
             # Should create new profiles despite corrupted data
             assert len(data_manager._dog_profiles) == 2
 
@@ -180,7 +180,7 @@ class TestPawControlDataManagerInitialization:
             dogs_config=sample_dogs_config,
         )
 
-        with patch("pathlib.Path.mkdir", side_effect=PermissionError("Access denied")):
+        with patch("pathlib.Path.mkdir", side_effect=PermissionError("Access denied")):  # noqa: SIM117
             # Should raise HomeAssistantError for permission issues
             with pytest.raises(HomeAssistantError):
                 await data_manager.async_initialize()
@@ -199,11 +199,11 @@ class TestPawControlDataManagerFeedingOperations:
             coordinator=mock_coordinator,
             dogs_config=sample_dogs_config,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_log_feeding_success(
@@ -222,10 +222,10 @@ class TestPawControlDataManagerFeedingOperations:
 
         with patch.object(initialized_data_manager, '_async_save_dog_data') as mock_save:
             result = await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-            
+
             assert result is True
             mock_save.assert_called_once_with("buddy")
-            
+
             # Verify daily stats were updated
             buddy_profile = initialized_data_manager._dog_profiles["buddy"]
             assert buddy_profile.daily_stats.feedings_count == 1
@@ -254,7 +254,7 @@ class TestPawControlDataManagerFeedingOperations:
             FeedingData(
                 meal_type="breakfast",
                 portion_size=-50.0,  # Invalid negative portion
-                food_type="dry_food", 
+                food_type="dry_food",
                 timestamp=dt_util.utcnow(),
             )
 
@@ -270,9 +270,9 @@ class TestPawControlDataManagerFeedingOperations:
             timestamp=dt_util.utcnow(),
             calories=250.0,
         )
-        
+
         feeding_data_2 = FeedingData(
-            meal_type="lunch", 
+            meal_type="lunch",
             portion_size=100.0,
             food_type="wet_food",
             timestamp=dt_util.utcnow(),
@@ -285,7 +285,7 @@ class TestPawControlDataManagerFeedingOperations:
 
         # Get daily stats
         stats = initialized_data_manager.get_daily_feeding_stats("buddy")
-        
+
         assert stats is not None
         assert stats["total_feedings"] == 2
         assert stats["total_food_amount"] == 250.0
@@ -310,7 +310,7 @@ class TestPawControlDataManagerFeedingOperations:
 
         # Get history
         history = initialized_data_manager.get_feeding_history("buddy", limit=10)
-        
+
         assert len(history) == 1
         assert history[0]["meal_type"] == "dinner"
         assert history[0]["portion_size"] == 180.0
@@ -330,11 +330,11 @@ class TestPawControlDataManagerWalkOperations:
             coordinator=mock_coordinator,
             dogs_config=sample_dogs_config,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_start_walk_success(
@@ -348,10 +348,10 @@ class TestPawControlDataManagerWalkOperations:
                 location="Park",
                 notes="Morning walk"
             )
-            
+
             assert result is True
             mock_save.assert_called_once_with("buddy")
-            
+
             # Verify walk was started
             buddy_profile = initialized_data_manager._dog_profiles["buddy"]
             assert buddy_profile.current_walk is not None
@@ -378,21 +378,21 @@ class TestPawControlDataManagerWalkOperations:
         start_time = dt_util.utcnow()
         with patch.object(initialized_data_manager, '_async_save_dog_data'):
             await initialized_data_manager.async_start_walk("buddy", started_by="user")
-            
+
             # Simulate some time passing
             end_time = start_time + timedelta(minutes=30)
-            
+
             with patch("homeassistant.util.dt.utcnow", return_value=end_time):
                 result = await initialized_data_manager.async_end_walk(
                     dog_id="buddy",
-                    ended_by="user", 
+                    ended_by="user",
                     distance=2500.0,
                     rating=8,
                     notes="Great walk!"
                 )
-                
+
                 assert result is True
-                
+
                 # Verify walk was completed and stats updated
                 buddy_profile = initialized_data_manager._dog_profiles["buddy"]
                 assert buddy_profile.current_walk is None  # Walk ended
@@ -418,7 +418,7 @@ class TestPawControlDataManagerWalkOperations:
 
         # Get history
         history = initialized_data_manager.get_walk_history("buddy", limit=10)
-        
+
         assert len(history) == 1
         assert history[0]["location"] == "Beach"
         assert history[0]["distance"] == 3000.0
@@ -431,7 +431,7 @@ class TestPawControlDataManagerWalkOperations:
         # Start a walk
         with patch.object(initialized_data_manager, '_async_save_dog_data'):
             await initialized_data_manager.async_start_walk("buddy", started_by="user")
-            
+
             # Add GPS points to route
             gps_point = GPSLocation(
                 latitude=40.7128,
@@ -440,10 +440,10 @@ class TestPawControlDataManagerWalkOperations:
                 timestamp=dt_util.utcnow(),
                 source="gps_tracker"
             )
-            
+
             result = await initialized_data_manager.async_update_walk_route("buddy", gps_point)
             assert result is True
-            
+
             # Verify route was updated
             buddy_profile = initialized_data_manager._dog_profiles["buddy"]
             assert buddy_profile.current_walk is not None
@@ -460,7 +460,7 @@ class TestPawControlDataManagerWalkOperations:
             accuracy=5.0,
             timestamp=dt_util.utcnow()
         )
-        
+
         result = await initialized_data_manager.async_update_walk_route("buddy", gps_point)
         assert result is False  # Should fail because no active walk
 
@@ -478,11 +478,11 @@ class TestPawControlDataManagerHealthOperations:
             coordinator=mock_coordinator,
             dogs_config=sample_dogs_config,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_log_health_data_success(
@@ -503,10 +503,10 @@ class TestPawControlDataManagerHealthOperations:
 
         with patch.object(initialized_data_manager, '_async_save_dog_data') as mock_save:
             result = await initialized_data_manager.async_log_health_data("buddy", health_data)
-            
+
             assert result is True
             mock_save.assert_called_once_with("buddy")
-            
+
             # Verify daily stats were updated
             buddy_profile = initialized_data_manager._dog_profiles["buddy"]
             assert buddy_profile.daily_stats.health_logs_count == 1
@@ -559,12 +559,12 @@ class TestPawControlDataManagerHealthOperations:
 
         # Get trends
         trends = initialized_data_manager.get_health_trends("buddy", days=7)
-        
+
         assert trends is not None
         assert "weight_trend" in trends
         assert "mood_distribution" in trends
         assert "health_status_progression" in trends
-        
+
         # Verify weight trend calculation
         weight_trend = trends["weight_trend"]
         assert weight_trend["direction"] == "increasing"  # Weight increased from 25.0 to 26.0
@@ -590,7 +590,7 @@ class TestPawControlDataManagerHealthOperations:
 
         # Get history
         history = initialized_data_manager.get_health_history("buddy", limit=5)
-        
+
         assert len(history) == 1
         assert history[0]["weight"] == 25.5
         assert history[0]["temperature"] == 38.2
@@ -611,11 +611,11 @@ class TestPawControlDataManagerPersistence:
             coordinator=mock_coordinator,
             dogs_config=sample_dogs_config,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_data_persistence_save_success(
@@ -632,12 +632,12 @@ class TestPawControlDataManagerPersistence:
 
         with patch("builtins.open", mock_open()) as mock_file, \
              patch("json.dump") as mock_json_dump:
-            
+
             await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-            
+
             # Verify file was opened for writing
             mock_file.assert_called()
-            
+
             # Verify data was dumped to JSON
             mock_json_dump.assert_called()
 
@@ -653,10 +653,10 @@ class TestPawControlDataManagerPersistence:
             timestamp=dt_util.utcnow(),
         )
 
-        with patch("builtins.open", side_effect=IOError("Disk full")):
+        with patch("builtins.open", side_effect=OSError("Disk full")):
             # Should handle IO errors gracefully
             result = await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-            
+
             # Operation should complete but save may fail
             # (depends on implementation - might return False or log warning)
             assert isinstance(result, bool)
@@ -666,17 +666,17 @@ class TestPawControlDataManagerPersistence:
     ) -> None:
         """Test automatic backup creation during save operations."""
         # Mock backup functionality
-        with patch.object(initialized_data_manager, '_create_backup') as mock_backup:
+        with patch.object(initialized_data_manager, '_create_backup'):
             feeding_data = FeedingData(
                 meal_type="breakfast",
                 portion_size=200.0,
-                food_type="dry_food", 
+                food_type="dry_food",
                 timestamp=dt_util.utcnow(),
             )
-            
+
             with patch.object(initialized_data_manager, '_async_save_dog_data'):
                 await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-                
+
                 # Verify backup was created (if backup interval reached)
                 # This depends on implementation details
                 if hasattr(initialized_data_manager, '_backup_interval'):
@@ -716,12 +716,12 @@ class TestPawControlDataManagerPersistence:
              patch("pathlib.Path.exists") as mock_exists, \
              patch("builtins.open", mock_open(read_data=json.dumps(backup_data))), \
              patch("json.load", return_value=backup_data):
-            
+
             # Primary file doesn't exist, backup does
             mock_exists.side_effect = lambda path: str(path).endswith('.backup')
-            
+
             await data_manager.async_initialize()
-            
+
             # Verify data was recovered from backup
             buddy_profile = data_manager._dog_profiles["buddy"]
             assert buddy_profile.daily_stats.feedings_count == 3
@@ -739,7 +739,7 @@ class TestPawControlDataManagerPerformance:
         # Create many dogs for performance testing
         many_dogs = []
         for i in range(50):
-            many_dogs.append({
+            many_dogs.append({  # noqa: PERF401
                 "dog_id": f"dog_{i:02d}",
                 "dog_name": f"Dog {i:02d}",
                 "dog_breed": "Test Breed",
@@ -753,11 +753,11 @@ class TestPawControlDataManagerPerformance:
             coordinator=mock_coordinator,
             dogs_config=many_dogs,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_bulk_operations_performance(
@@ -765,7 +765,7 @@ class TestPawControlDataManagerPerformance:
     ) -> None:
         """Test performance of bulk data operations."""
         import time
-        
+
         # Prepare bulk feeding data
         feeding_operations = []
         for i in range(50):  # 50 dogs
@@ -780,7 +780,7 @@ class TestPawControlDataManagerPerformance:
         # Measure performance
         with patch.object(initialized_data_manager, '_async_save_dog_data'):
             start_time = time.perf_counter()
-            
+
             # Execute bulk operations
             results = await asyncio.gather(
                 *[
@@ -789,7 +789,7 @@ class TestPawControlDataManagerPerformance:
                 ],
                 return_exceptions=True
             )
-            
+
             end_time = time.perf_counter()
             execution_time = end_time - start_time
 
@@ -812,7 +812,7 @@ class TestPawControlDataManagerPerformance:
         with patch.object(initialized_data_manager, '_async_save_dog_data'):
             for dog_num in range(10):  # 10 dogs
                 dog_id = f"dog_{dog_num:02d}"
-                
+
                 # Add multiple feedings per dog
                 for feeding_num in range(20):  # 20 feedings per dog
                     feeding_data = FeedingData(
@@ -837,7 +837,7 @@ class TestPawControlDataManagerPerformance:
         """Test thread safety with concurrent operations."""
         # Simulate concurrent access from multiple "threads" (async tasks)
         tasks = []
-        
+
         # Create concurrent feeding logs
         for dog_num in range(10):
             for operation_num in range(5):
@@ -853,7 +853,7 @@ class TestPawControlDataManagerPerformance:
         # Create concurrent walk operations
         for dog_num in range(10):
             start_task = initialized_data_manager.async_start_walk(
-                f"dog_{dog_num:02d}", 
+                f"dog_{dog_num:02d}",
                 started_by="concurrent_test"
             )
             tasks.append(start_task)
@@ -886,11 +886,11 @@ class TestPawControlDataManagerEdgeCases:
             coordinator=mock_coordinator,
             dogs_config=sample_dogs_config,
         )
-        
+
         with patch("pathlib.Path.mkdir"), \
              patch("pathlib.Path.exists", return_value=False):
             await data_manager.async_initialize()
-        
+
         return data_manager
 
     async def test_operations_with_invalid_dog_ids(
@@ -906,11 +906,11 @@ class TestPawControlDataManagerEdgeCases:
 
         # Test various invalid dog IDs
         invalid_ids = ["", "non_existent_dog", None, "123", "dog with spaces"]
-        
+
         for invalid_id in invalid_ids:
             if invalid_id is None:
                 continue  # Skip None as it would cause TypeError
-                
+
             result = await initialized_data_manager.async_log_feeding(invalid_id, feeding_data)
             assert result is False  # Should fail gracefully
 
@@ -929,7 +929,7 @@ class TestPawControlDataManagerEdgeCases:
 
         with patch.object(initialized_data_manager, '_async_save_dog_data'):
             await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-            
+
             # Verify data was logged
             buddy_profile = initialized_data_manager._dog_profiles["buddy"]
             assert buddy_profile.daily_stats.feedings_count == 1
@@ -945,10 +945,10 @@ class TestPawControlDataManagerEdgeCases:
                 food_type="dry_food",
                 timestamp=today,
             )
-            
+
             with patch.object(initialized_data_manager, '_async_save_dog_data'):
                 await initialized_data_manager.async_log_feeding("buddy", new_feeding)
-                
+
                 # The implementation should handle date rollover appropriately
                 # (exact behavior depends on implementation details)
 
@@ -967,7 +967,7 @@ class TestPawControlDataManagerEdgeCases:
         with patch.object(initialized_data_manager, '_async_save_dog_data', side_effect=Exception("Corruption error")):
             # Should handle corruption gracefully
             result = await initialized_data_manager.async_log_feeding("buddy", feeding_data)
-            
+
             # Result depends on implementation - might return False or raise exception
             assert isinstance(result, (bool, Exception))
 
@@ -987,9 +987,9 @@ class TestPawControlDataManagerEdgeCases:
             await initialized_data_manager.async_log_feeding("buddy", feeding_data)
 
         # Test shutdown
-        with patch.object(initialized_data_manager, '_async_save_dog_data') as mock_save:
+        with patch.object(initialized_data_manager, '_async_save_dog_data'):
             await initialized_data_manager.async_shutdown()
-            
+
             # Should save data before shutdown (implementation dependent)
             # Main goal is to ensure no exceptions during shutdown
             assert True  # If we get here without exception, shutdown succeeded

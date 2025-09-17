@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -64,12 +63,12 @@ class BinarySensorLogicMixin:
         default_if_none: bool = False,
     ) -> bool:
         """Calculate status based on time threshold.
-        
+
         Args:
             timestamp_value: Timestamp to evaluate
             threshold_hours: Hours threshold for comparison
             default_if_none: Return value when timestamp is None
-            
+
         Returns:
             True if within threshold, False otherwise
         """
@@ -96,13 +95,13 @@ class BinarySensorLogicMixin:
         default_if_none: bool = False,
     ) -> bool:
         """Evaluate value against threshold.
-        
+
         Args:
             value: Value to compare
             threshold: Threshold value
             comparison: 'greater', 'less', 'greater_equal', 'less_equal'
             default_if_none: Return value when value is None
-            
+
         Returns:
             Comparison result
         """

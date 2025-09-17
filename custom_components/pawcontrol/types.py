@@ -105,7 +105,7 @@ notifications to activity logging when dogs enter or leave specific areas.
 """
 
 VALID_GPS_SOURCES: Final[frozenset[str]] = frozenset([
-    "manual", "device_tracker", "person_entity", "smartphone", 
+    "manual", "device_tracker", "person_entity", "smartphone",
     "tractive", "webhook", "mqtt"
 ])
 """Valid GPS data sources for location tracking.
@@ -124,7 +124,7 @@ to ensure important alerts are appropriately escalated.
 """
 
 VALID_NOTIFICATION_CHANNELS: Final[frozenset[str]] = frozenset([
-    "mobile", "persistent", "email", "sms", "webhook", 
+    "mobile", "persistent", "email", "sms", "webhook",
     "tts", "media_player", "slack", "discord"
 ])
 """Valid notification delivery channels for flexible alert routing.
@@ -202,7 +202,7 @@ class DogConfigData(TypedDict):
         modules: Module enablement configuration (affects available features)
         discovery_info: Device discovery metadata (optional, for hardware integration)
     """
-    
+
     # Required fields - must be present for valid configuration
     dog_id: Required[str]
     dog_name: Required[str]
@@ -266,11 +266,11 @@ class PawControlRuntimeData:
 
     def as_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of the runtime data.
-        
+
         Provides dictionary access to all runtime components for scenarios
         where dictionary-style access is more convenient than direct
         attribute access.
-        
+
         Returns:
             Dictionary mapping component names to runtime instances
         """
@@ -289,16 +289,16 @@ class PawControlRuntimeData:
 
     def __getitem__(self, key: str) -> Any:
         """Allow dictionary-style access for backward compatibility.
-        
+
         Provides backward compatibility for code that expects dictionary-style
         access to runtime data while maintaining type safety.
-        
+
         Args:
             key: Attribute name to retrieve
-            
+
         Returns:
             The requested attribute value
-            
+
         Raises:
             KeyError: If the requested key does not exist
         """
@@ -308,14 +308,14 @@ class PawControlRuntimeData:
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
         """Return an attribute using dictionary-style access with default.
-        
+
         Provides safe dictionary-style access with default value support
         for robust runtime data access patterns.
-        
+
         Args:
             key: Attribute name to retrieve
             default: Default value if attribute does not exist
-            
+
         Returns:
             The requested attribute value or default
         """
@@ -370,11 +370,11 @@ class FeedingData:
 
     def __post_init__(self) -> None:
         """Validate feeding data after initialization.
-        
+
         Performs comprehensive validation including meal type validation,
         food type validation, and numerical constraint checking to ensure
         data integrity throughout the system.
-        
+
         Raises:
             ValueError: If any validation constraint is violated
         """
@@ -431,10 +431,10 @@ class WalkData:
 
     def __post_init__(self) -> None:
         """Validate walk data after initialization.
-        
+
         Ensures logical consistency in walk data including time relationships,
         rating constraints, and numerical validity.
-        
+
         Raises:
             ValueError: If validation constraints are violated
         """
@@ -478,15 +478,15 @@ class HealthEvent:
         timestamp: str | None = None,
     ) -> HealthEvent:
         """Create a health event from raw payload data.
-        
+
         Factory method for creating HealthEvent instances from various data
         sources including API responses, user input, and stored data.
-        
+
         Args:
             dog_id: Identifier of the dog
             payload: Raw event data with metrics and optional timestamp
             timestamp: Override timestamp if not in payload
-            
+
         Returns:
             Initialized HealthEvent instance with validated data
         """
@@ -500,14 +500,14 @@ class HealthEvent:
     @classmethod
     def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> HealthEvent:
         """Create a health event from stored data.
-        
+
         Factory method specifically for deserializing health events from
         persistent storage with proper data structure restoration.
-        
+
         Args:
             dog_id: Identifier of the dog
             payload: Stored event data
-            
+
         Returns:
             Restored HealthEvent instance
         """
@@ -515,10 +515,10 @@ class HealthEvent:
 
     def as_dict(self) -> dict[str, Any]:
         """Return a storage-friendly representation of the health event.
-        
+
         Serializes the health event into a dictionary format suitable for
         persistent storage while preserving all event data and metadata.
-        
+
         Returns:
             Dictionary representation suitable for storage
         """
@@ -562,15 +562,15 @@ class WalkEvent:
         timestamp: str | None = None,
     ) -> WalkEvent:
         """Create a walk event from raw payload data.
-        
+
         Factory method for creating WalkEvent instances from various sources
         including real-time walk tracking, user actions, and API data.
-        
+
         Args:
             dog_id: Identifier of the dog
             payload: Raw event data with action and details
             timestamp: Override timestamp if not in payload
-            
+
         Returns:
             Initialized WalkEvent instance with validated structure
         """
@@ -592,14 +592,14 @@ class WalkEvent:
     @classmethod
     def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> WalkEvent:
         """Create a walk event from stored data.
-        
+
         Factory method for deserializing walk events from persistent storage
         with proper data structure and session state restoration.
-        
+
         Args:
             dog_id: Identifier of the dog
             payload: Stored event data with complete session information
-            
+
         Returns:
             Restored WalkEvent instance with session data
         """
@@ -607,10 +607,10 @@ class WalkEvent:
 
     def as_dict(self) -> dict[str, Any]:
         """Return a storage-friendly representation of the walk event.
-        
+
         Serializes the walk event into a dictionary format optimized for
         persistent storage while maintaining session tracking capabilities.
-        
+
         Returns:
             Dictionary representation suitable for storage and transmission
         """
@@ -625,10 +625,10 @@ class WalkEvent:
 
     def merge(self, payload: Mapping[str, Any], timestamp: str | None = None) -> None:
         """Merge incremental updates into the existing walk event.
-        
+
         Allows for incremental updates to walk events during active sessions
         while preserving existing data and maintaining session continuity.
-        
+
         Args:
             payload: New or updated event data
             timestamp: Optional timestamp for the update
@@ -690,11 +690,11 @@ class HealthData:
 
     def __post_init__(self) -> None:
         """Validate health data against veterinary standards.
-        
+
         Performs comprehensive validation of all health parameters against
         veterinary standards and physiological constraints to ensure data
         quality for health analysis and trend tracking.
-        
+
         Raises:
             ValueError: If any parameter is outside acceptable ranges
         """
@@ -749,10 +749,10 @@ class GPSLocation:
 
     def __post_init__(self) -> None:
         """Validate GPS coordinates and device parameters.
-        
+
         Ensures GPS coordinates are within valid Earth coordinate ranges and
         device parameters are within acceptable bounds for reliable tracking.
-        
+
         Raises:
             ValueError: If coordinates or parameters are invalid
         """
@@ -856,10 +856,10 @@ def calculate_daily_calories(weight: float, activity_level: str, age: int) -> in
         Calculation uses the formula: 70 × (weight in kg)^0.75 × activity_multiplier
         with age-based adjustments for puppies and senior dogs. Always consult
         with a veterinarian for specific dietary recommendations.
-    """
+    """  # noqa: RUF002
     import math
 
-    # Base metabolic rate: 70 × (weight in kg)^0.75
+    # Base metabolic rate: 70 × (weight in kg)^0.75  # noqa: RUF003
     base_calories = 70 * math.pow(weight, 0.75)
 
     # Activity level multipliers based on veterinary guidelines
@@ -940,10 +940,7 @@ def is_dog_config_valid(config: Any) -> bool:
         return False
 
     # Validate modules configuration if present
-    if "modules" in config and not isinstance(config["modules"], dict):
-        return False
-
-    return True
+    return not ("modules" in config and not isinstance(config["modules"], dict))
 
 
 def is_gps_location_valid(location: Any) -> bool:
@@ -984,7 +981,7 @@ def is_gps_location_valid(location: Any) -> bool:
 
     # Validate optional fields with appropriate constraints
     if "accuracy" in location and (
-        not isinstance(location["accuracy"], (int, float)) 
+        not isinstance(location["accuracy"], (int, float))
         or location["accuracy"] < 0
     ):
         return False
@@ -992,7 +989,7 @@ def is_gps_location_valid(location: Any) -> bool:
     if "battery_level" in location:
         battery = location["battery_level"]
         if battery is not None and (
-            not isinstance(battery, int) 
+            not isinstance(battery, int)
             or not (0 <= battery <= 100)
         ):
             return False
@@ -1032,7 +1029,7 @@ def is_feeding_data_valid(data: Any) -> bool:
 
     if "portion_size" not in data:
         return False
-    
+
     portion = data["portion_size"]
     if not isinstance(portion, (int, float)) or portion < 0:
         return False
@@ -1044,7 +1041,7 @@ def is_feeding_data_valid(data: Any) -> bool:
     if "calories" in data:
         calories = data["calories"]
         if calories is not None and (
-            not isinstance(calories, (int, float)) 
+            not isinstance(calories, (int, float))
             or calories < 0
         ):
             return False
@@ -1100,8 +1097,8 @@ def is_health_data_valid(data: Any) -> bool:
     if "weight" in data:
         weight = data["weight"]
         if weight is not None and (
-            not isinstance(weight, (int, float)) 
-            or weight <= 0 
+            not isinstance(weight, (int, float))
+            or weight <= 0
             or weight > 200
         ):
             return False
@@ -1109,8 +1106,8 @@ def is_health_data_valid(data: Any) -> bool:
     if "temperature" in data:
         temp = data["temperature"]
         if temp is not None and (
-            not isinstance(temp, (int, float)) 
-            or temp < 35 
+            not isinstance(temp, (int, float))
+            or temp < 35
             or temp > 45
         ):
             return False
@@ -1158,7 +1155,4 @@ def is_notification_data_valid(data: Any) -> bool:
     if "priority" in data and data["priority"] not in VALID_NOTIFICATION_PRIORITIES:
         return False
 
-    if "channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS:
-        return False
-
-    return True
+    return not ("channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS)

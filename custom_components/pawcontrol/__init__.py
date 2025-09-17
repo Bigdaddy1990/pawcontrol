@@ -61,13 +61,13 @@ def get_platforms_for_profile_and_modules(
         for dog in dogs_config
     ))
     cache_key = f"{len(dogs_config)}_{profile}_{hash(modules_hash)}"
-    
+
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
 
     # Calculate platforms
     platforms = {Platform.SENSOR, Platform.BUTTON}
-    
+
     # Check enabled modules across all dogs
     all_enabled_modules = set()
     for dog in dogs_config:
@@ -77,16 +77,16 @@ def get_platforms_for_profile_and_modules(
     # Add platforms based on enabled modules
     if MODULE_NOTIFICATIONS in all_enabled_modules:
         platforms.add(Platform.SWITCH)
-    
+
     if any(m in all_enabled_modules for m in [MODULE_WALK, MODULE_GPS]):
         platforms.add(Platform.BINARY_SENSOR)
-    
+
     if MODULE_FEEDING in all_enabled_modules:
         platforms.add(Platform.SELECT)
-    
+
     if MODULE_GPS in all_enabled_modules:
         platforms.update({Platform.DEVICE_TRACKER, Platform.NUMBER})
-    
+
     if MODULE_HEALTH in all_enabled_modules:
         platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
@@ -162,7 +162,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     # Initialize managers
     try:
         await coordinator.async_config_entry_first_refresh()
-        
+
         # Initialize other managers
         await asyncio.gather(
             data_manager.async_initialize(),
@@ -170,7 +170,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
             walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-    except asyncio.TimeoutError as err:
+    except TimeoutError as err:
         raise ConfigEntryNotReady(f"Manager initialization timeout: {err}") from err
     except ConfigEntryAuthFailed:
         raise  # Re-raise auth failures
@@ -268,7 +268,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
         # Shutdown managers with specific exception handling
         shutdown_tasks = []
-        for manager_name, manager in [
+        for _manager_name, manager in [
             ("coordinator", runtime_data.coordinator),
             ("data_manager", runtime_data.data_manager),
             ("notification_manager", runtime_data.notification_manager),
@@ -277,12 +277,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         ]:
             if hasattr(manager, 'async_shutdown'):
                 shutdown_tasks.append(manager.async_shutdown())
-        
+
         if shutdown_tasks:
             shutdown_results = await asyncio.gather(
                 *shutdown_tasks, return_exceptions=True
             )
-            
+
             for result in shutdown_results:
                 if isinstance(result, Exception):
                     _LOGGER.warning("Error during manager shutdown: %s", result)
@@ -318,6 +318,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         entry: Config entry to reload
     """
     _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
-    
+
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)

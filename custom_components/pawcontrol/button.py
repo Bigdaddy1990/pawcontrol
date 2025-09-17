@@ -335,12 +335,12 @@ class ProfileAwareButtonFactory:
                 try:
                     button_class = rule["class"]
                     args = rule.get("args", [])
-                    
+
                     if args:
                         button = button_class(self.coordinator, dog_id, dog_name, *args)
                     else:
                         button = button_class(self.coordinator, dog_id, dog_name)
-                    
+
                     button_candidates.append({
                         "button": button,
                         "type": rule["type"],
@@ -469,7 +469,7 @@ async def async_setup_entry(
         (max_possible * len(dogs) - total_buttons_created) / (max_possible * len(dogs)) * 100
         if max_possible * len(dogs) > 0 else 0
     )
-    
+
     _LOGGER.info(
         "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
         profile,
@@ -651,7 +651,7 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
 
             domain_data = self.hass.data.get("pawcontrol", {})
             entry_data = domain_data.get(entry_id)
-            
+
             if not entry_data:
                 raise HomeAssistantError("Entry data not found")
 
@@ -740,7 +740,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
             # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
             hour = dt_util.now().hour
             meal_type = "snack"  # Default
-            
+
             for time_range, meal in self._meal_schedule.items():
                 if hour in time_range:
                     meal_type = meal

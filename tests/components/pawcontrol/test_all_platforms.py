@@ -73,7 +73,7 @@ def mock_coordinator() -> Mock:
     coordinator.available = True
     coordinator.config_entry = Mock()
     coordinator.config_entry.entry_id = "test_entry_id"
-    
+
     # Mock comprehensive dog data
     coordinator.data = {
         "test_dog": {
@@ -131,19 +131,19 @@ def mock_coordinator() -> Mock:
             "visitor_mode_started": None,
         }
     }
-    
+
     def get_dog_data(dog_id: str) -> dict[str, Any] | None:
         return coordinator.data.get(dog_id)
-    
+
     def get_module_data(dog_id: str, module: str) -> dict[str, Any]:
         dog_data = coordinator.data.get(dog_id, {})
         return dog_data.get(module, {})
-    
+
     coordinator.get_dog_data = get_dog_data
     coordinator.get_module_data = get_module_data
     coordinator.async_request_refresh = AsyncMock()
     coordinator.async_request_selective_refresh = AsyncMock()
-    
+
     return coordinator
 
 
@@ -182,11 +182,11 @@ class TestSensorPlatform:
             entities.extend(new_entities)
 
         result = await async_setup_entry(hass, entry, mock_add_entities)
-        
+
         # Verify setup succeeded and entities were created
         assert result is None  # async_setup_entry doesn't return anything
         assert len(entities) > 0
-        
+
         # Verify essential sensor entities were created
         entity_names = [entity.name for entity in entities]
         assert any("Feeding" in name for name in entity_names)
@@ -198,9 +198,9 @@ class TestSensorPlatform:
     ) -> None:
         """Test feeding-related sensor entities."""
         from custom_components.pawcontrol.sensor import (
+            PawControlFeedingScheduleAdherenceSensor,
             PawControlLastFeedingHoursSensor,
             PawControlPortionsTodaySensor,
-            PawControlFeedingScheduleAdherenceSensor,
         )
 
         # Test last feeding hours sensor
@@ -209,7 +209,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert last_feeding_sensor.native_value == 4.0
         assert last_feeding_sensor.device_class == SensorDeviceClass.DURATION
         assert last_feeding_sensor.native_unit_of_measurement == UnitOfTime.HOURS
@@ -218,10 +218,10 @@ class TestSensorPlatform:
         # Test portions today sensor
         portions_sensor = PawControlPortionsTodaySensor(
             coordinator=mock_coordinator,
-            dog_id="test_dog", 
+            dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert portions_sensor.native_value == 1
         assert portions_sensor.state_class == SensorStateClass.TOTAL_INCREASING
 
@@ -231,7 +231,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert adherence_sensor.native_value == 85.0
         assert adherence_sensor.native_unit_of_measurement == "%"
 
@@ -240,9 +240,9 @@ class TestSensorPlatform:
     ) -> None:
         """Test walk-related sensor entities."""
         from custom_components.pawcontrol.sensor import (
+            PawControlCurrentWalkDurationSensor,
             PawControlLastWalkHoursSensor,
             PawControlWalksTodaySensor,
-            PawControlCurrentWalkDurationSensor,
         )
 
         # Test last walk hours sensor
@@ -251,7 +251,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert last_walk_sensor.native_value == 6.0
         assert last_walk_sensor.device_class == SensorDeviceClass.DURATION
 
@@ -261,7 +261,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert walks_sensor.native_value == 0
         assert walks_sensor.state_class == SensorStateClass.TOTAL_INCREASING
 
@@ -271,7 +271,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert duration_sensor.native_value == 0  # No walk in progress
 
     async def test_health_sensors(
@@ -279,9 +279,9 @@ class TestSensorPlatform:
     ) -> None:
         """Test health-related sensor entities."""
         from custom_components.pawcontrol.sensor import (
-            PawControlWeightSensor,
             PawControlActivityLevelSensor,
             PawControlHealthStatusSensor,
+            PawControlWeightSensor,
         )
 
         # Test weight sensor
@@ -290,7 +290,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert weight_sensor.native_value == 22.5
         assert weight_sensor.device_class == SensorDeviceClass.WEIGHT
         assert weight_sensor.native_unit_of_measurement == UnitOfMass.KILOGRAMS
@@ -301,7 +301,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert activity_sensor.native_value == "normal"
 
         # Test health status sensor
@@ -310,7 +310,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert health_sensor.native_value == "good"
 
     async def test_gps_sensors(
@@ -330,7 +330,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert location_sensor.native_value == "home"
 
         # Test distance from home sensor
@@ -339,7 +339,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert distance_sensor.native_value == 0
 
         # Test GPS accuracy sensor
@@ -348,7 +348,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert accuracy_sensor.native_value == 5.0
 
         # Test speed sensor
@@ -357,7 +357,7 @@ class TestSensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert speed_sensor.native_value == 0.0
 
 
@@ -396,11 +396,11 @@ class TestBinarySensorPlatform:
             entities.extend(new_entities)
 
         result = await async_setup_entry(hass, entry, mock_add_entities)
-        
+
         # Verify setup succeeded and entities were created
         assert result is None
         assert len(entities) > 0
-        
+
         # Verify essential binary sensor entities were created
         entity_names = [entity.name for entity in entities]
         assert any("Online" in name for name in entity_names)
@@ -412,8 +412,8 @@ class TestBinarySensorPlatform:
     ) -> None:
         """Test base binary sensor entities."""
         from custom_components.pawcontrol.binary_sensor import (
-            PawControlOnlineBinarySensor,
             PawControlAttentionNeededBinarySensor,
+            PawControlOnlineBinarySensor,
             PawControlVisitorModeBinarySensor,
         )
 
@@ -423,7 +423,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert online_sensor.device_class == BinarySensorDeviceClass.CONNECTIVITY
         assert online_sensor.is_on is True  # Recent update time
 
@@ -433,7 +433,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert attention_sensor.device_class == BinarySensorDeviceClass.PROBLEM
         assert attention_sensor.is_on is True  # Dog is hungry and needs walk
 
@@ -443,7 +443,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert visitor_sensor.is_on is False  # Not in visitor mode
 
     async def test_feeding_binary_sensors(
@@ -451,10 +451,10 @@ class TestBinarySensorPlatform:
     ) -> None:
         """Test feeding-related binary sensor entities."""
         from custom_components.pawcontrol.binary_sensor import (
-            PawControlIsHungryBinarySensor,
+            PawControlDailyFeedingGoalMetBinarySensor,
             PawControlFeedingDueBinarySensor,
             PawControlFeedingScheduleOnTrackBinarySensor,
-            PawControlDailyFeedingGoalMetBinarySensor,
+            PawControlIsHungryBinarySensor,
         )
 
         # Test hungry sensor
@@ -463,7 +463,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert hungry_sensor.is_on is True
 
         # Test feeding due sensor
@@ -472,7 +472,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert feeding_due_sensor.is_on is False  # Next feeding in 2 hours
 
         # Test schedule on track sensor
@@ -481,7 +481,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert schedule_sensor.is_on is True  # 85% adherence > 80% threshold
 
         # Test daily goal met sensor
@@ -490,7 +490,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert goal_sensor.is_on is False
 
     async def test_walk_binary_sensors(
@@ -498,10 +498,10 @@ class TestBinarySensorPlatform:
     ) -> None:
         """Test walk-related binary sensor entities."""
         from custom_components.pawcontrol.binary_sensor import (
-            PawControlWalkInProgressBinarySensor,
+            PawControlLongWalkOverdueBinarySensor,
             PawControlNeedsWalkBinarySensor,
             PawControlWalkGoalMetBinarySensor,
-            PawControlLongWalkOverdueBinarySensor,
+            PawControlWalkInProgressBinarySensor,
         )
 
         # Test walk in progress sensor
@@ -510,7 +510,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert walk_progress_sensor.device_class == BinarySensorDeviceClass.RUNNING
         assert walk_progress_sensor.is_on is False
 
@@ -520,7 +520,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert needs_walk_sensor.is_on is True
 
         # Test walk goal met sensor
@@ -529,7 +529,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert goal_met_sensor.is_on is False
 
         # Test long walk overdue sensor
@@ -538,7 +538,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert overdue_sensor.is_on is True  # Last long walk 2 days ago
 
     async def test_gps_binary_sensors(
@@ -546,12 +546,12 @@ class TestBinarySensorPlatform:
     ) -> None:
         """Test GPS-related binary sensor entities."""
         from custom_components.pawcontrol.binary_sensor import (
-            PawControlIsHomeBinarySensor,
-            PawControlInSafeZoneBinarySensor,
-            PawControlGPSAccuratelyTrackedBinarySensor,
-            PawControlMovingBinarySensor,
             PawControlGeofenceAlertBinarySensor,
+            PawControlGPSAccuratelyTrackedBinarySensor,
             PawControlGPSBatteryLowBinarySensor,
+            PawControlInSafeZoneBinarySensor,
+            PawControlIsHomeBinarySensor,
+            PawControlMovingBinarySensor,
         )
 
         # Test is home sensor
@@ -560,7 +560,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert home_sensor.device_class == BinarySensorDeviceClass.PRESENCE
         assert home_sensor.is_on is True
 
@@ -570,7 +570,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert safe_zone_sensor.device_class == BinarySensorDeviceClass.SAFETY
         assert safe_zone_sensor.is_on is True
 
@@ -580,7 +580,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert tracked_sensor.device_class == BinarySensorDeviceClass.CONNECTIVITY
         assert tracked_sensor.is_on is True  # Good accuracy and recent data
 
@@ -590,7 +590,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert moving_sensor.device_class == BinarySensorDeviceClass.MOTION
         assert moving_sensor.is_on is False  # Speed is 0
 
@@ -600,7 +600,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert geofence_sensor.device_class == BinarySensorDeviceClass.PROBLEM
         assert geofence_sensor.is_on is False
 
@@ -610,7 +610,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert battery_sensor.device_class == BinarySensorDeviceClass.BATTERY
         assert battery_sensor.is_on is False  # 75% > 20% threshold
 
@@ -619,12 +619,12 @@ class TestBinarySensorPlatform:
     ) -> None:
         """Test health-related binary sensor entities."""
         from custom_components.pawcontrol.binary_sensor import (
+            PawControlActivityLevelConcernBinarySensor,
+            PawControlGroomingDueBinarySensor,
             PawControlHealthAlertBinarySensor,
-            PawControlWeightAlertBinarySensor,
             PawControlMedicationDueBinarySensor,
             PawControlVetCheckupDueBinarySensor,
-            PawControlGroomingDueBinarySensor,
-            PawControlActivityLevelConcernBinarySensor,
+            PawControlWeightAlertBinarySensor,
         )
 
         # Test health alert sensor
@@ -633,7 +633,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert health_alert_sensor.device_class == BinarySensorDeviceClass.PROBLEM
         assert health_alert_sensor.is_on is False  # No alerts
 
@@ -643,7 +643,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert weight_alert_sensor.device_class == BinarySensorDeviceClass.PROBLEM
         assert weight_alert_sensor.is_on is False  # 2% change < 10% threshold
 
@@ -653,7 +653,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert medication_sensor.is_on is False  # No medications due
 
         # Test vet checkup due sensor
@@ -662,7 +662,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert checkup_sensor.is_on is False  # Checkup in 30 days
 
         # Test grooming due sensor
@@ -671,7 +671,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert grooming_sensor.is_on is False
 
         # Test activity level concern sensor
@@ -680,7 +680,7 @@ class TestBinarySensorPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert activity_concern_sensor.device_class == BinarySensorDeviceClass.PROBLEM
         assert activity_concern_sensor.is_on is False  # Normal activity level
 
@@ -720,11 +720,11 @@ class TestSwitchPlatform:
             entities.extend(new_entities)
 
         result = await async_setup_entry(hass, entry, mock_add_entities)
-        
+
         # Verify setup succeeded and entities were created
         assert result is None
         assert len(entities) > 0
-        
+
         # Verify essential switch entities were created
         entity_names = [entity.name for entity in entities]
         assert any("Main Power" in name for name in entity_names)
@@ -735,8 +735,8 @@ class TestSwitchPlatform:
     ) -> None:
         """Test core switch entities."""
         from custom_components.pawcontrol.switch import (
-            PawControlMainPowerSwitch,
             PawControlDoNotDisturbSwitch,
+            PawControlMainPowerSwitch,
             PawControlVisitorModeSwitch,
         )
 
@@ -746,14 +746,14 @@ class TestSwitchPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert power_switch.device_class == SwitchDeviceClass.SWITCH
         assert power_switch.is_on is True  # Default initial state
 
         # Test turn on/off functionality
         await power_switch.async_turn_off()
         assert power_switch.is_on is False
-        
+
         await power_switch.async_turn_on()
         assert power_switch.is_on is True
 
@@ -763,7 +763,7 @@ class TestSwitchPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert dnd_switch.is_on is False  # Default initial state
 
         # Test visitor mode switch
@@ -772,7 +772,7 @@ class TestSwitchPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert visitor_switch.is_on is False  # Based on coordinator data
 
     async def test_module_switches(
@@ -791,7 +791,7 @@ class TestSwitchPlatform:
             icon="mdi:food-drumstick",
             initial_state=True
         )
-        
+
         assert feeding_switch.is_on is True
         assert feeding_switch.icon == "mdi:food-drumstick"
 
@@ -815,7 +815,7 @@ class TestSwitchPlatform:
             icon="mdi:crosshairs-gps",
             module="gps"
         )
-        
+
         assert gps_switch.is_on is True  # Default initial state
         assert gps_switch.icon == "mdi:crosshairs-gps"
 
@@ -859,11 +859,11 @@ class TestButtonPlatform:
             entities.extend(new_entities)
 
         result = await async_setup_entry(hass, entry, mock_add_entities)
-        
+
         # Verify setup succeeded and entities were created
         assert result is None
         assert len(entities) > 0
-        
+
         # Verify essential button entities were created
         entity_names = [entity.name for entity in entities]
         assert any("Feed Now" in name for name in entity_names)
@@ -874,9 +874,9 @@ class TestButtonPlatform:
     ) -> None:
         """Test action button entities."""
         from custom_components.pawcontrol.button import (
+            PawControlEndWalkButton,
             PawControlFeedNowButton,
             PawControlStartWalkButton,
-            PawControlEndWalkButton,
         )
 
         # Test feed now button
@@ -885,9 +885,9 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert feed_button.device_class == ButtonDeviceClass.IDENTIFY
-        
+
         # Test button press
         with patch("homeassistant.core.HomeAssistant.services") as mock_services:
             mock_services.async_call = AsyncMock()
@@ -901,7 +901,7 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert start_walk_button.device_class == ButtonDeviceClass.IDENTIFY
 
         # Test end walk button
@@ -910,7 +910,7 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert end_walk_button.device_class == ButtonDeviceClass.IDENTIFY
 
     async def test_utility_buttons(
@@ -919,8 +919,8 @@ class TestButtonPlatform:
         """Test utility button entities."""
         from custom_components.pawcontrol.button import (
             PawControlRefreshDataButton,
-            PawControlUpdateLocationButton,
             PawControlSyncDataButton,
+            PawControlUpdateLocationButton,
         )
 
         # Test refresh data button
@@ -929,7 +929,7 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         # Test button press
         await refresh_button.async_press()
         mock_coordinator.async_request_refresh.assert_called()
@@ -940,7 +940,7 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         # Test button press
         await location_button.async_press()
         # Should request selective refresh
@@ -952,7 +952,7 @@ class TestButtonPlatform:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         # Test button press
         await sync_button.async_press()
         # Should request high priority refresh
@@ -976,7 +976,7 @@ class TestEntityAvailability:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert sensor.available is False
 
     async def test_entity_availability_no_dog_data(
@@ -993,7 +993,7 @@ class TestEntityAvailability:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         assert sensor.available is False
 
     async def test_entity_state_attributes(
@@ -1007,9 +1007,9 @@ class TestEntityAvailability:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         attributes = sensor.extra_state_attributes
-        
+
         assert attributes["dog_id"] == "test_dog"
         assert attributes["dog_name"] == "Test Dog"
         assert "last_updated" in attributes
@@ -1027,9 +1027,9 @@ class TestEntityAvailability:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         device_info = sensor.device_info
-        
+
         assert device_info is not None
         assert device_info["name"] == "Test Dog"
         assert device_info["manufacturer"] == "Paw Control"
@@ -1052,16 +1052,16 @@ class TestPlatformIntegration:
 
         # Create entities and add to registry
         from custom_components.pawcontrol.sensor import PawControlLastFeedingHoursSensor
-        
+
         sensor = PawControlLastFeedingHoursSensor(
             coordinator=mock_coordinator,
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         # Get entity registry
         entity_registry = er.async_get(hass)
-        
+
         # Register entity
         entity_entry = entity_registry.async_get_or_create(
             domain=Platform.SENSOR,
@@ -1069,7 +1069,7 @@ class TestPlatformIntegration:
             unique_id=sensor.unique_id,
             config_entry=entry,
         )
-        
+
         assert entity_entry.unique_id == sensor.unique_id
         assert entity_entry.platform == DOMAIN
 
@@ -1105,13 +1105,13 @@ class TestPlatformIntegration:
             entities.extend(new_entities)
 
         await async_setup_entry(hass, entry, mock_add_entities)
-        
+
         # Verify entities were created
         assert len(entities) > 0
-        
+
         # Test that entities handle coordinator shutdown gracefully
         mock_coordinator.available = False
-        
+
         # Entities should become unavailable but not crash
         for entity in entities[:5]:  # Test subset for performance
             assert entity.available is False
@@ -1127,17 +1127,17 @@ class TestPlatformIntegration:
             dog_id="test_dog",
             dog_name="Test Dog"
         )
-        
+
         # Simulate state restoration
         power_switch.hass = hass
-        
+
         # Mock last state
         mock_state = Mock()
         mock_state.state = "off"
-        
+
         with patch.object(power_switch, "async_get_last_state", return_value=mock_state):
             await power_switch.async_added_to_hass()
-            
+
             # State should be restored (exact behavior depends on implementation)
             # Main goal is to ensure no exceptions during restoration
 
@@ -1193,11 +1193,11 @@ class TestPlatformIntegration:
         end_time = time.perf_counter()
 
         setup_time = end_time - start_time
-        
+
         # Should complete setup reasonably quickly even with many dogs
         assert setup_time < 1.0  # Less than 1 second
         assert len(entities) > 0
-        
+
         # Test entity state access performance
         start_time = time.perf_counter()
         for entity in entities[:20]:  # Test subset
