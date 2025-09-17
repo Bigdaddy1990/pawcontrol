@@ -9,10 +9,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from functools import wraps
+from time import perf_counter
+from typing import Any, Final, ParamSpec, TypeVar, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -41,6 +43,9 @@ from .const import (
 from .types import HealthEvent, WalkEvent
 
 _LOGGER = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 # Storage version for data persistence
 STORAGE_VERSION = 1
@@ -1409,6 +1414,94 @@ class PerformanceMonitor:
     def record_cache_miss(self) -> None:
         """Record cache miss."""
         self._metrics["cache_misses"] += 1
+
+    def __call__(
+        self,
+        *,
+        timeout: float | None = None,
+        label: str | None = None,
+    ) -> Callable[[Callable[P, Awaitable[R] | R]], Callable[P, Awaitable[R] | R]]:
+        """Return a decorator that measures the wrapped function.
+
+        Args:
+            timeout: Optional timeout in seconds for async functions. When
+                provided, the wrapped coroutine is guarded with
+                ``asyncio.wait_for``.
+            label: Optional human readable label used in debug logging.
+
+        Returns:
+            A decorator that records execution metrics through the monitor.
+        """
+
+        def decorator(
+            func: Callable[P, Awaitable[R] | R],
+        ) -> Callable[P, Awaitable[R] | R]:
+            func_label = label or getattr(func, "__qualname__", func.__name__)
+
+            if asyncio.iscoroutinefunction(func):
+
+                @wraps(func)
+                async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                    loop = asyncio.get_running_loop()
+                    start = loop.time()
+                    try:
+                        if timeout is not None:
+                            result = await asyncio.wait_for(
+                                func(*args, **kwargs), timeout
+                            )
+                        else:
+                            result = await func(*args, **kwargs)
+                    except TimeoutError:
+                        duration = loop.time() - start
+                        self.record_operation(duration, success=False)
+                        _LOGGER.warning(
+                            "Operation %s timed out after %.2fs", func_label, timeout
+                        )
+                        raise
+                    except asyncio.CancelledError:
+                        duration = loop.time() - start
+                        self.record_operation(duration, success=False)
+                        raise
+                    except Exception:
+                        duration = loop.time() - start
+                        self.record_operation(duration, success=False)
+                        _LOGGER.exception(
+                            "Operation %s raised an unexpected error", func_label
+                        )
+                        raise
+                    else:
+                        duration = loop.time() - start
+                        self.record_operation(duration, success=True)
+                        return result
+
+                return async_wrapper
+
+            @wraps(func)
+            def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                start = perf_counter()
+                try:
+                    result = cast(R, func(*args, **kwargs))
+                except Exception:
+                    duration = perf_counter() - start
+                    self.record_operation(duration, success=False)
+                    _LOGGER.exception(
+                        "Operation %s raised an unexpected error", func_label
+                    )
+                    raise
+                else:
+                    duration = perf_counter() - start
+                    self.record_operation(duration, success=True)
+                    if timeout is not None:
+                        _LOGGER.debug(
+                            "Timeout %.2fs for synchronous operation %s is ignored",
+                            timeout,
+                            func_label,
+                        )
+                    return result
+
+            return sync_wrapper
+
+        return decorator
 
     def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics."""
