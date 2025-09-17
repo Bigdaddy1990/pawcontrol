@@ -74,18 +74,23 @@ def get_platforms_for_profile_and_modules(
     signature_source: list[tuple[str, tuple[tuple[str, bool], ...]]] = []
     enabled_modules: set[str] = set()
     for dog in dogs_config:
-        modules = dog.get("modules", {})
-        if isinstance(modules, Mapping):
-            module_items = tuple(
-                sorted((module, bool(enabled)) for module, enabled in modules.items())
-            )
+        raw_modules = dog.get("modules")
+        normalized_modules: dict[str, bool]
+        if isinstance(raw_modules, Mapping):
+            normalized_modules = {
+                str(module): bool(enabled)
+                for module, enabled in raw_modules.items()
+            }
+            module_items = tuple(sorted(normalized_modules.items()))
             enabled_modules.update(
                 module for module, enabled in module_items if enabled
             )
         else:
+            normalized_modules = {}
             module_items = ()
 
-        dog_id = str(dog.get(CONF_DOG_ID, ""))
+        dog_id_raw = dog.get(CONF_DOG_ID)
+        dog_id = dog_id_raw if isinstance(dog_id_raw, str) else ""
         signature_source.append((dog_id, module_items))
 
     dogs_signature = hash(str(sorted(signature_source)))
@@ -143,6 +148,17 @@ def get_platforms_for_profile_and_modules(
     result_platforms = tuple(sorted(platforms, key=lambda item: item.value))
     _PLATFORM_CACHE[cache_key] = result_platforms
     return result_platforms
+
+
+def _extract_valid_dog_ids(dogs_config: list[DogConfigData]) -> list[str]:
+    """Return all valid dog identifiers from the configuration."""
+
+    dog_ids: list[str] = []
+    for dog in dogs_config:
+        dog_id_value = dog.get(CONF_DOG_ID)
+        if isinstance(dog_id_value, str) and dog_id_value:
+            dog_ids.append(dog_id_value)
+    return dog_ids
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -213,7 +229,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 f"Invalid dog configuration: missing {CONF_DOG_ID}"
             )
         # Additional validation
-        if not isinstance(dog.get(CONF_DOG_ID), str) or not dog[CONF_DOG_ID].strip():
+        dog_id_raw = dog.get(CONF_DOG_ID)
+        if not isinstance(dog_id_raw, str) or not dog_id_raw.strip():
             raise ConfigEntryNotReady(f"Invalid dog ID: {dog.get(CONF_DOG_ID)}")
 
     # Determine and validate profile
@@ -274,7 +291,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             (
                 "feeding_manager",
                 _initialize_manager_with_retry(
-                    lambda: feeding_manager.async_initialize(dogs_config),
+                    lambda: feeding_manager.async_initialize(
+                        cast(list[dict[str, Any]], dogs_config)
+                    ),
                     "Feeding manager",
                     MAX_MANAGER_RETRIES,
                 ),
@@ -283,7 +302,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 "walk_manager",
                 _initialize_manager_with_retry(
                     lambda: walk_manager.async_initialize(
-                        [dog[CONF_DOG_ID] for dog in dogs_config]
+                        _extract_valid_dog_ids(dogs_config)
                     ),
                     "Walk manager",
                     MAX_MANAGER_RETRIES,
@@ -544,8 +563,8 @@ def _calculate_entity_count_cached(
 
     # Calculate and cache result
     total = 0
-    for _, modules in normalized_signatures:
-        module_dict = dict(modules)
+    for _, module_items in normalized_signatures:
+        module_dict = dict(module_items)
         total += entity_factory.estimate_entity_count(profile, module_dict)
 
     # Cache with size limit
