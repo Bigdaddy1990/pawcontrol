@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
-
 from homeassistant.components import system_health
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
@@ -57,9 +56,7 @@ def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
     return next(iter(hass.config_entries.async_entries(DOMAIN)), None)
 
 
-def _async_resolve_coordinator(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> Any | None:
+def _async_resolve_coordinator(hass: HomeAssistant, entry: ConfigEntry) -> Any | None:
     """Resolve the coordinator for system health lookups."""
 
     runtime = getattr(entry, "runtime_data", None)
