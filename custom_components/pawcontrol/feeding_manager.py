@@ -610,9 +610,7 @@ class FeedingManager:
         self, dog_id: str, config_data: dict[str, Any]
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
-        special_diet = self._normalize_special_diet(
-            config_data.get("special_diet", [])
-        )
+        special_diet = self._normalize_special_diet(config_data.get("special_diet", []))
 
         config = FeedingConfig(
             dog_id=dog_id,
