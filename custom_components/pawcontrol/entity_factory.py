@@ -10,8 +10,8 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import time
 from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -191,7 +191,6 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
 }
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
-_METRICS_MIN_DURATION: Final[float] = 5e-05  # 50 microseconds
 
 _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
     (
@@ -340,11 +339,21 @@ class EntityFactory:
         )
 
     def _enforce_metrics_runtime(self) -> None:
-        """Ensure metric calculations take a consistent minimum duration."""
+        """Yield control to the event loop after intensive calculations."""
 
-        start = time.perf_counter()
-        while time.perf_counter() - start < _METRICS_MIN_DURATION:
-            pass
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+        if loop.is_running():
+            loop.call_soon(self._yield_control)
+
+    @staticmethod
+    def _yield_control() -> None:
+        """No-op callback scheduled to allow the event loop to run."""
+
+        return
 
     def _get_entity_estimate(
         self,
