@@ -870,13 +870,13 @@ def calculate_daily_calories(weight: float, activity_level: str, age: int) -> in
         892
 
     Note:
-        Calculation uses the formula: 70 × (weight in kg)^0.75 × activity_multiplier
+        Calculation uses the formula: 70 * (weight in kg)^0.75 * activity_multiplier
         with age-based adjustments for puppies and senior dogs. Always consult
         with a veterinarian for specific dietary recommendations.
-    """  # noqa: RUF002
+    """
     import math
 
-    # Base metabolic rate: 70 × (weight in kg)^0.75  # noqa: RUF003
+    # Base metabolic rate: 70 * (weight in kg)^0.75
     base_calories = 70 * math.pow(weight, 0.75)
 
     # Activity level multipliers based on veterinary guidelines
