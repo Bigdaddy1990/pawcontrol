@@ -976,7 +976,7 @@ class DogManagementMixin:
 
             # Check cache first for performance
             cache_key = self._create_cache_key(dog_id, dog_name, user_input)
-            if cached := self._get_cached_validation(cache_key):
+            if (cached := self._get_cached_validation(cache_key)) is not None:
                 return cached
 
             # Enhanced dog ID validation
@@ -1027,9 +1027,8 @@ class DogManagementMixin:
 
     def _get_cached_validation(self, cache_key: str) -> dict[str, Any] | None:
         cached = self._validation_cache.get(cache_key)
-        if (
-            cached
-            and cached.get("timestamp", 0) > asyncio.get_running_loop().time() - 5
+        if cached is not None and (
+            cached.get("timestamp", 0) > asyncio.get_running_loop().time() - 5
         ):
             return cached["result"]
         return None

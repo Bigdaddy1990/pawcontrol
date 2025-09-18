@@ -644,7 +644,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         cached_entry = self._validation_cache.get(cache_key)
         now = dt_util.utcnow()
 
-        if cached_entry:
+        if cached_entry is not None:
             cached_result, cache_time, cached_state = cached_entry
             if (
                 cached_state == state_signature

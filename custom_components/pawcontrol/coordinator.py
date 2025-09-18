@@ -249,8 +249,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _get_feeding_data(self, dog_id: str) -> dict[str, Any]:
         """Get feeding data for dog."""
         cache_key = f"feeding_{dog_id}"
-        cached = self._get_cache(cache_key)
-        if cached:
+        if (cached := self._get_cache(cache_key)) is not None:
             return cached
 
         try:
