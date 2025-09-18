@@ -17,7 +17,7 @@ import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
-from typing import Any, ParamSpec, TypeVar, cast
+from typing import Any, ParamSpec, TypedDict, TypeVar, cast
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
@@ -32,6 +32,15 @@ K = TypeVar("K")
 V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
+
+
+class PortionValidationResult(TypedDict):
+    """Validation outcome for a single portion size."""
+
+    valid: bool
+    warnings: list[str]
+    recommendations: list[str]
+    percentage_of_daily: float
 
 
 def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
@@ -392,7 +401,7 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
 
 def validate_portion_size(
     portion: float, daily_amount: float, meals_per_day: int = 2
-) -> dict[str, Any]:
+) -> PortionValidationResult:
     """Validate portion size against daily requirements.
 
     Args:
@@ -403,7 +412,7 @@ def validate_portion_size(
     Returns:
         Validation result with warnings and recommendations
     """
-    result = {
+    result: PortionValidationResult = {
         "valid": True,
         "warnings": [],
         "recommendations": [],

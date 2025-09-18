@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from homeassistant.util import dt as dt_util
 
@@ -49,6 +49,27 @@ class ActivityLevel(Enum):
     MODERATE = "moderate"  # Regular walks
     HIGH = "high"  # Active, long walks
     VERY_HIGH = "very_high"  # Working, athletic dogs
+
+
+class DietSafetyResult(TypedDict):
+    """Structured information about calculated portion safety."""
+
+    safe: bool
+    warnings: list[str]
+    recommendations: list[str]
+    portion_per_kg: float
+
+
+class DietInteractionDetails(TypedDict):
+    """Detailed description of how special diets interact."""
+
+    synergistic: list[tuple[str, str]]
+    neutral: list[tuple[str, str]]
+    caution: list[tuple[str, str]]
+    conflicting: list[tuple[str, str]]
+    recommendations: list[str]
+    overall_complexity: int
+    risk_level: Literal["low", "medium", "high"]
 
 
 @dataclass
@@ -468,7 +489,7 @@ class HealthCalculator:
         life_stage: LifeStage,
         special_diets: list[str],
         diet_validation: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> DietSafetyResult:
         """Validate calculated portion for safety concerns.
 
         Args:
@@ -481,13 +502,13 @@ class HealthCalculator:
         Returns:
             Dictionary with safety validation results
         """
-        safety_result = {
+        safety_result: DietSafetyResult = {
             "safe": True,
             "warnings": [],
             "recommendations": [],
             "portion_per_kg": round(calculated_portion / dog_weight, 1)
             if dog_weight > 0
-            else 0,
+            else 0.0,
         }
 
         # Check portion size relative to body weight
@@ -542,7 +563,9 @@ class HealthCalculator:
         return safety_result
 
     @staticmethod
-    def get_diet_interaction_effects(special_diets: list[str]) -> dict[str, Any]:
+    def get_diet_interaction_effects(
+        special_diets: list[str],
+    ) -> DietInteractionDetails:
         """Analyze potential interactions between special diets.
 
         Args:
@@ -551,11 +574,14 @@ class HealthCalculator:
         Returns:
             Dictionary with interaction analysis
         """
-        interactions = {
+        interactions: DietInteractionDetails = {
             "synergistic": [],  # Diets that work well together
             "neutral": [],  # Diets with no significant interaction
             "caution": [],  # Combinations requiring monitoring
             "conflicting": [],  # Combinations that may conflict
+            "recommendations": [],
+            "overall_complexity": 0,
+            "risk_level": "low",
         }
 
         # Define interaction matrix
@@ -597,7 +623,7 @@ class HealthCalculator:
                 interactions["conflicting"].append((diet1, diet2))
 
         # Add recommendations based on interactions
-        recommendations = []
+        recommendations: list[str] = []
 
         if interactions["synergistic"]:
             recommendations.append(

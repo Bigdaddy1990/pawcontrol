@@ -16,6 +16,7 @@ from homeassistant.util import dt as dt_util
 try:  # pragma: no cover - fallback for direct test execution
     from .health_calculator import (
         ActivityLevel,
+        DietSafetyResult,
         HealthCalculator,
         HealthMetrics,
         LifeStage,
@@ -23,6 +24,7 @@ try:  # pragma: no cover - fallback for direct test execution
 except ImportError:  # pragma: no cover
     from custom_components.pawcontrol.health_calculator import (
         ActivityLevel,
+        DietSafetyResult,
         HealthCalculator,
         HealthMetrics,
         LifeStage,
@@ -1728,6 +1730,7 @@ class FeedingManager:
                     portion = max(portion, 7 * config.dog_weight)
 
                 # Validate portion safety with diet considerations
+                safety_result: DietSafetyResult
                 if config.dog_weight and portion > 0:
                     safety_result = HealthCalculator.validate_portion_safety(
                         calculated_portion=portion,
@@ -1743,6 +1746,7 @@ class FeedingManager:
                         "safe": True,
                         "warnings": [],
                         "recommendations": [],
+                        "portion_per_kg": 0.0,
                     }
 
                 # Include diet validation info
