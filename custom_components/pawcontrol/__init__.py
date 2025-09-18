@@ -43,9 +43,7 @@ ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 type PlatformCacheKey = tuple[int, str, frozenset[str]]
 type PlatformSet = frozenset[Platform]
 
-_DEFAULT_PLATFORMS: Final[PlatformSet] = frozenset(
-    (Platform.BUTTON, Platform.SENSOR)
-)
+_DEFAULT_PLATFORMS: Final[PlatformSet] = frozenset((Platform.BUTTON, Platform.SENSOR))
 _PLATFORM_CACHE: dict[PlatformCacheKey, PlatformSet] = {}
 
 
