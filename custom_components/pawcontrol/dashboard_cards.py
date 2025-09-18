@@ -164,7 +164,7 @@ class BaseCardGenerator:
                                 cached_results[entity_id],
                             )
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     _LOGGER.warning("Entity validation timeout for batch: %s", batch)
                     for entity_id in batch:
                         cached_results[entity_id] = False
@@ -280,7 +280,7 @@ class OverviewCardGenerator(BaseCardGenerator):
             active_dogs = await asyncio.wait_for(
                 self._count_active_dogs(dogs_config), timeout=3.0
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.debug("Active dog counting timeout, using total count")
             active_dogs = dog_count
 
@@ -567,7 +567,7 @@ class DogCardGenerator(BaseCardGenerator):
                     else:
                         cards.append(result)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Dog overview card generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             # Return minimal cards on timeout
@@ -757,7 +757,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
             return cards
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Health feeding overview generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             return []
@@ -1466,7 +1466,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
                 elif result is not None:
                     cards.append(result)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Statistics cards generation timeout")
             self._performance_stats["errors_handled"] += 1
 

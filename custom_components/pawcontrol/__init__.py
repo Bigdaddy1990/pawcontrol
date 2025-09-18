@@ -172,7 +172,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
             walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-    except asyncio.TimeoutError as err:
+    except TimeoutError as err:
         raise ConfigEntryNotReady(f"Manager initialization timeout: {err}") from err
     except ConfigEntryAuthFailed:
         raise  # Re-raise auth failures

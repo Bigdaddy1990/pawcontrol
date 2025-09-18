@@ -121,7 +121,7 @@ class PawControlDashboardGenerator:
                     len(self._dashboards),
                 )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.error("Dashboard generator initialization timeout")
                 await self._cleanup_failed_initialization()
                 raise HomeAssistantError("Dashboard initialization timeout")  # noqa: B904
@@ -146,7 +146,7 @@ class PawControlDashboardGenerator:
             validation_task = asyncio.create_task(self._validate_stored_dashboards())
             await asyncio.wait_for(validation_task, timeout=10.0)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Dashboard validation timeout, using empty state")
             self._dashboards = {}
         except Exception as err:

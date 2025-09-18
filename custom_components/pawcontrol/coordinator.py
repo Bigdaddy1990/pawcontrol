@@ -172,7 +172,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._fetch_dog_data(dog_id), timeout=API_TIMEOUT
                 )
                 all_data[dog_id] = dog_data
-            except asyncio.TimeoutError as err:
+            except TimeoutError as err:
                 _LOGGER.warning("Timeout fetching data for dog %s: %s", dog_id, err)
                 errors += 1
                 # Use last known data
