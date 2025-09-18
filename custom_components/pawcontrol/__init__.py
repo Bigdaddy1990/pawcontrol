@@ -41,10 +41,13 @@ ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
 # OPTIMIZED: Efficient platform determination cache with better hash strategy
 type PlatformCacheKey = tuple[int, str, frozenset[str]]
-type PlatformSet = frozenset[Platform]
+type PlatformTuple = tuple[Platform, ...]
 
-_DEFAULT_PLATFORMS: Final[PlatformSet] = frozenset((Platform.BUTTON, Platform.SENSOR))
-_PLATFORM_CACHE: dict[PlatformCacheKey, PlatformSet] = {}
+_DEFAULT_PLATFORMS: Final[PlatformTuple] = (
+    Platform.BUTTON,
+    Platform.SENSOR,
+)
+_PLATFORM_CACHE: dict[PlatformCacheKey, PlatformTuple] = {}
 
 
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
@@ -86,7 +89,7 @@ def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[
 
 def get_platforms_for_profile_and_modules(
     dogs_config: Sequence[DogConfigData], profile: str
-) -> PlatformSet:
+) -> PlatformTuple:
     """Determine required platforms based on dogs, modules and profile.
 
     Args:
@@ -94,7 +97,7 @@ def get_platforms_for_profile_and_modules(
         profile: Entity profile name
 
     Returns:
-        Frozenset of required platforms
+        Tuple of required platforms sorted by their enum value for determinism.
     """
     if not dogs_config:
         return _DEFAULT_PLATFORMS
@@ -125,9 +128,11 @@ def get_platforms_for_profile_and_modules(
     if profile == "advanced" and enabled_modules:
         platforms.add(Platform.DATETIME)
 
-    result: PlatformSet = frozenset(platforms)
-    _PLATFORM_CACHE[cache_key] = result
-    return result
+    ordered_platforms: PlatformTuple = tuple(
+        sorted(platforms, key=lambda platform: platform.value)
+    )
+    _PLATFORM_CACHE[cache_key] = ordered_platforms
+    return ordered_platforms
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
