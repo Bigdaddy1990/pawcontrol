@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
 from homeassistant.const import Platform
@@ -12,8 +13,10 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    ALL_MODULES,
     CONF_DOG_ID,
     CONF_DOGS,
+    CONF_MODULES,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -37,12 +40,55 @@ _LOGGER = logging.getLogger(__name__)
 ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
 # OPTIMIZED: Efficient platform determination cache with better hash strategy
-_PLATFORM_CACHE: dict[str, frozenset[Platform]] = {}
+type PlatformCacheKey = tuple[int, str, frozenset[str]]
+type PlatformSet = frozenset[Platform]
+
+_DEFAULT_PLATFORMS: Final[PlatformSet] = frozenset(
+    (Platform.BUTTON, Platform.SENSOR)
+)
+_PLATFORM_CACHE: dict[PlatformCacheKey, PlatformSet] = {}
+
+
+def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
+    """Return the set of enabled modules across all configured dogs."""
+
+    enabled_modules: set[str] = set()
+    unknown_modules: set[str] = set()
+
+    for dog in dogs_config:
+        modules_config = dog.get(CONF_MODULES)
+        if modules_config is None:
+            continue
+
+        if not isinstance(modules_config, Mapping):
+            _LOGGER.warning(
+                "Ignoring modules for dog %s because configuration is not a mapping",
+                dog.get(CONF_DOG_ID, "<unknown>"),
+            )
+            continue
+
+        for module_name, enabled in modules_config.items():
+            if not enabled:
+                continue
+
+            if module_name not in ALL_MODULES:
+                unknown_modules.add(module_name)
+                continue
+
+            enabled_modules.add(module_name)
+
+    if unknown_modules:
+        _LOGGER.warning(
+            "Ignoring unknown PawControl modules: %s",
+            ", ".join(sorted(unknown_modules)),
+        )
+
+    return frozenset(enabled_modules)
 
 
 def get_platforms_for_profile_and_modules(
-    dogs_config: list[DogConfigData], profile: str
-) -> frozenset[Platform]:
+    dogs_config: Sequence[DogConfigData], profile: str
+) -> PlatformSet:
     """Determine required platforms based on dogs, modules and profile.
 
     Args:
@@ -53,50 +99,35 @@ def get_platforms_for_profile_and_modules(
         Frozenset of required platforms
     """
     if not dogs_config:
-        return frozenset([Platform.BUTTON, Platform.SENSOR])
+        return _DEFAULT_PLATFORMS
 
-    # OPTIMIZED: Create efficient cache key with better hash strategy
-    modules_hash = frozenset().union(
-        *(
-            frozenset(m for m, enabled in dog.get("modules", {}).items() if enabled)
-            for dog in dogs_config
-        )
-    )
-    cache_key = f"{len(dogs_config)}_{profile}_{hash(modules_hash)}"
+    enabled_modules = _extract_enabled_modules(dogs_config)
+    cache_key: PlatformCacheKey = (len(dogs_config), profile, enabled_modules)
 
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
 
-    # Calculate platforms
-    platforms = {Platform.SENSOR, Platform.BUTTON}
+    platforms: set[Platform] = {Platform.SENSOR, Platform.BUTTON}
 
-    # Check enabled modules across all dogs
-    all_enabled_modules = set()
-    for dog in dogs_config:
-        modules = dog.get("modules", {})
-        all_enabled_modules.update(m for m, enabled in modules.items() if enabled)
-
-    # Add platforms based on enabled modules
-    if MODULE_NOTIFICATIONS in all_enabled_modules:
+    if MODULE_NOTIFICATIONS in enabled_modules:
         platforms.add(Platform.SWITCH)
 
-    if any(m in all_enabled_modules for m in [MODULE_WALK, MODULE_GPS]):
+    if {MODULE_WALK, MODULE_GPS} & enabled_modules:
         platforms.add(Platform.BINARY_SENSOR)
 
-    if MODULE_FEEDING in all_enabled_modules:
+    if MODULE_FEEDING in enabled_modules:
         platforms.add(Platform.SELECT)
 
-    if MODULE_GPS in all_enabled_modules:
+    if MODULE_GPS in enabled_modules:
         platforms.update({Platform.DEVICE_TRACKER, Platform.NUMBER})
 
-    if MODULE_HEALTH in all_enabled_modules:
+    if MODULE_HEALTH in enabled_modules:
         platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
-    # Profile-specific additions
-    if profile == "advanced" and all_enabled_modules:
+    if profile == "advanced" and enabled_modules:
         platforms.add(Platform.DATETIME)
 
-    result = frozenset(platforms)
+    result: PlatformSet = frozenset(platforms)
     _PLATFORM_CACHE[cache_key] = result
     return result
 
