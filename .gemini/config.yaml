@@ -24,6 +24,6 @@ code_review:
   max_review_comments: 30
 pull_request_opened:
   help: true
-  summary: true
+  summary: false
   code_review: true
-  include_drafts: true
+  include_drafts: false
