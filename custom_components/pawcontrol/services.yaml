@@ -808,3 +808,14 @@ generate_report:
       default: true
       selector:
         boolean:
+
+acknowledge_notification:
+  name: Acknowledge Notification
+  description: Mark a PawControl notification as acknowledged
+  fields:
+    notification_id:
+      name: Notification ID
+      description: Identifier of the notification to acknowledge
+      required: true
+      selector:
+        text:

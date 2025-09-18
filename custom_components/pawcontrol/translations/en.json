@@ -365,6 +365,10 @@
       "name": "Test Notification",
       "description": "Send a test notification for a dog"
     },
+    "acknowledge_notification": {
+      "name": "Acknowledge notification",
+      "description": "Mark a PawControl notification as acknowledged"
+    },
     "daily_reset": {
       "name": "Daily Reset",
       "description": "Perform daily reset of counters for all dogs"

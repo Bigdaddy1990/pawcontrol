@@ -496,6 +496,37 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "Failed to send the PawControl notification. Check the logs for details."
             ) from err
 
+    async def acknowledge_notification_service(call: ServiceCall) -> None:
+        """Handle acknowledge notification service call."""
+        coordinator = _get_coordinator()
+        notification_manager = _require_manager(
+            coordinator.notification_manager, "notification manager"
+        )
+
+        notification_id = call.data["notification_id"]
+
+        try:
+            acknowledged = await notification_manager.async_acknowledge_notification(
+                notification_id
+            )
+        except HomeAssistantError:
+            raise
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.error(
+                "Failed to acknowledge notification %s: %s", notification_id, err
+            )
+            raise HomeAssistantError(
+                "Failed to acknowledge the PawControl notification. Check the logs for details."
+            ) from err
+
+        if not acknowledged:
+            raise HomeAssistantError(
+                f"No PawControl notification with ID {notification_id} exists."
+            )
+
+        await coordinator.async_request_refresh()
+        _LOGGER.debug("Acknowledged PawControl notification %s", notification_id)
+
     async def daily_reset_service(call: ServiceCall) -> None:
         """Trigger a manual daily reset."""
 
@@ -557,6 +588,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_SEND_NOTIFICATION,
         send_notification_service,
         schema=SERVICE_SEND_NOTIFICATION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ACKNOWLEDGE_NOTIFICATION,
+        acknowledge_notification_service,
+        schema=SERVICE_ACKNOWLEDGE_NOTIFICATION_SCHEMA,
     )
 
     hass.services.async_register(
