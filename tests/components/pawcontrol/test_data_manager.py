@@ -196,10 +196,11 @@ class TestPawControlDataManagerInitialization:
             dogs_config=sample_dogs_config,
         )
 
-        with patch("pathlib.Path.mkdir", side_effect=PermissionError("Access denied")):
-            # Should raise HomeAssistantError for permission issues
-            with pytest.raises(HomeAssistantError):
-                await data_manager.async_initialize()
+        with (
+            patch("pathlib.Path.mkdir", side_effect=PermissionError("Access denied")),
+            pytest.raises(HomeAssistantError),
+        ):
+            await data_manager.async_initialize()
 
 
 class TestPawControlDataManagerFeedingOperations:

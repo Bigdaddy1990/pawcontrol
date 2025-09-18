@@ -555,32 +555,30 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
         }
 
         # Add dog information if available
-        if dog_data := self._get_dog_data_cached():
-            if dog_info := dog_data.get("dog_info", {}):
-                attributes.update(
-                    {
-                        "dog_breed": dog_info.get("dog_breed"),
-                        "dog_age": dog_info.get("dog_age"),
-                        "dog_size": dog_info.get("dog_size"),
-                        "dog_weight": dog_info.get("dog_weight"),
-                    }
-                )
+        if (dog_data := self._get_dog_data_cached()) and (
+            dog_info := dog_data.get("dog_info", {})
+        ):
+            attributes.update(
+                {
+                    "dog_breed": dog_info.get("dog_breed"),
+                    "dog_age": dog_info.get("dog_age"),
+                    "dog_size": dog_info.get("dog_size"),
+                    "dog_weight": dog_info.get("dog_weight"),
+                }
+            )
 
-            # Add performance metrics for debugging
-            if (
-                performance_summary
-                := self._performance_tracker.get_performance_summary()
-            ):
-                if performance_summary.get("status") != "no_data":
-                    attributes["performance_metrics"] = {
-                        "avg_operation_ms": round(
-                            performance_summary["avg_operation_time"] * 1000, 2
-                        ),
-                        "cache_hit_rate": round(
-                            performance_summary["cache_hit_rate"], 1
-                        ),
-                        "error_rate": round(performance_summary["error_rate"] * 100, 1),
-                    }
+        # Add performance metrics for debugging
+        if (
+            performance_summary
+            := self._performance_tracker.get_performance_summary()
+        ) and performance_summary.get("status") != "no_data":
+            attributes["performance_metrics"] = {
+                "avg_operation_ms": round(
+                    performance_summary["avg_operation_time"] * 1000, 2
+                ),
+                "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
+                "error_rate": round(performance_summary["error_rate"] * 100, 1),
+            }
 
         return attributes
 
@@ -742,9 +740,16 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
         pass
 
     @callback
-    def async_invalidate_cache(self) -> None:
-        """Public method to invalidate entity caches manually."""
-        asyncio.create_task(self._async_invalidate_caches())
+    def async_invalidate_cache(self) -> asyncio.Task[None]:
+        """Public method to invalidate entity caches manually.
+
+        Returns:
+            The scheduled asyncio task handling cache invalidation.
+        """
+        cache_invalidation_task = asyncio.create_task(
+            self._async_invalidate_caches()
+        )
+        return cache_invalidation_task
 
 
 class OptimizedSensorBase(OptimizedEntityBase):
@@ -1061,11 +1066,14 @@ def get_global_performance_stats() -> dict[str, Any]:
         "availability_cache_size": len(_AVAILABILITY_CACHE),
     }
 
-    performance_summaries = []
-    for tracker in OptimizedEntityBase._performance_registry.values():
-        if summary := tracker.get_performance_summary():
-            if summary.get("status") != "no_data":
-                performance_summaries.append(summary)
+    performance_summaries = [
+        summary
+        for tracker in OptimizedEntityBase._performance_registry.values()
+        if (
+            summary := tracker.get_performance_summary()
+        )
+        and summary.get("status") != "no_data"
+    ]
 
     if performance_summaries:
         avg_operation_time = sum(
