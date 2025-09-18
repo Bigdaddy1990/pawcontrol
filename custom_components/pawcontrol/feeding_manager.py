@@ -779,7 +779,7 @@ class FeedingManager:
                             # Event was set - recalculate
                             event.clear()
                             continue
-                        except TimeoutError:
+                        except asyncio.TimeoutError:
                             # Time to send reminder
                             schedule = await self._get_reminder_schedule(
                                 config, next_reminder

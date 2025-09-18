@@ -160,7 +160,7 @@ class DogManagementMixin:
                 else:
                     errors = validation_result["errors"]
 
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 _LOGGER.error("Dog validation timed out")
                 errors["base"] = "validation_timeout"
             except Exception as err:

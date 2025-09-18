@@ -1278,7 +1278,7 @@ class PawControlNotificationManager:
                     notification["dog_id"],
                 )
 
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 _LOGGER.warning(
                     "Notification send timeout for %s", notification["dog_id"]
                 )
@@ -1451,7 +1451,7 @@ class PerformanceMonitor:
                             )
                         else:
                             result = await func(*args, **kwargs)
-                    except TimeoutError:
+                    except asyncio.TimeoutError:
                         duration = loop.time() - start
                         self.record_operation(duration, success=False)
                         _LOGGER.warning(

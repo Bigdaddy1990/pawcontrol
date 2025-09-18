@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -176,7 +177,7 @@ class DashboardRenderer:
 
                     return result
 
-            except TimeoutError as err:
+            except asyncio.TimeoutError as err:
                 job.status = "timeout"
                 job.error = "Rendering timed out"
                 _LOGGER.error("Dashboard rendering timeout for job %s", job.job_id)
@@ -668,8 +669,10 @@ class DashboardRenderer:
                 },
             }
 
-            # Ensure parent directory exists
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+            # Ensure parent directory exists without blocking the event loop
+            await self.hass.async_add_executor_job(
+                partial(file_path.parent.mkdir, parents=True, exist_ok=True)
+            )
 
             # Write file asynchronously
             async with aiofiles.open(file_path, "w", encoding="utf-8") as file:
