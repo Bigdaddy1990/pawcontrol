@@ -583,9 +583,8 @@ class TestPawControlPerformanceIntegration:
         import time
 
         # Create configuration with many dogs
-        many_dogs = []
-        for i in range(20):
-            many_dogs.append({
+        many_dogs = [
+            {
                 CONF_DOG_ID: f"dog_{i:02d}",
                 CONF_DOG_NAME: f"Dog {i:02d}",
                 "dog_breed": "Test Breed",
@@ -599,7 +598,9 @@ class TestPawControlPerformanceIntegration:
                     "gps": i % 5 == 0,     # Every 5th dog has GPS
                     "notifications": True,
                 },
-            })
+            }
+            for i in range(20)
+        ]
 
         entry = MockConfigEntry(
             domain=DOMAIN,
