@@ -121,10 +121,7 @@ async def _async_add_entities_in_batches(
 
         async_add_entities_func(batch, update_before_add=False)
 
-        if (
-            delay_between_batches > 0
-            and batch_index + 1 < total_batches
-        ):
+        if delay_between_batches > 0 and batch_index + 1 < total_batches:
             await asyncio.sleep(delay_between_batches)
 
 
@@ -141,7 +138,9 @@ async def async_setup_entry(
         coordinator = runtime_data.coordinator
         dogs: list[DogConfigData] = runtime_data.dogs
     else:
-        domain_data = cast(dict[str, Any] | None, hass.data.get(DOMAIN, {}).get(entry.entry_id))
+        domain_data = cast(
+            dict[str, Any] | None, hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        )
         if domain_data is None:
             _LOGGER.error(
                 "Missing runtime data for PawControl entry %s", entry.entry_id
