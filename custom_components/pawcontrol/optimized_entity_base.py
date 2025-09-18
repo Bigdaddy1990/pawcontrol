@@ -567,18 +567,18 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
                 }
             )
 
-        # Add performance metrics for debugging
-        if (
-            performance_summary
-            := self._performance_tracker.get_performance_summary()
-        ) and performance_summary.get("status") != "no_data":
-            attributes["performance_metrics"] = {
-                "avg_operation_ms": round(
-                    performance_summary["avg_operation_time"] * 1000, 2
-                ),
-                "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
-                "error_rate": round(performance_summary["error_rate"] * 100, 1),
-            }
+            # Add performance metrics for debugging
+            if (
+                performance_summary
+                := self._performance_tracker.get_performance_summary()
+            ) and performance_summary.get("status") != "no_data":
+                attributes["performance_metrics"] = {
+                    "avg_operation_ms": round(
+                        performance_summary["avg_operation_time"] * 1000, 2
+                    ),
+                    "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
+                    "error_rate": round(performance_summary["error_rate"] * 100, 1),
+                }
 
         return attributes
 
