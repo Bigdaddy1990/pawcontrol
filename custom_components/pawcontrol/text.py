@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Any, cast
 
 from homeassistant.components.text import TextEntity, TextMode
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -25,72 +25,138 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def _normalize_dog_configs(
+    raw_configs: Iterable[Any] | None,
+) -> list[DogConfigData]:
+    """Return validated dog configurations for text entity creation.
+
+    The runtime data path provides fully typed ``DogConfigData`` entries, but the
+    legacy fallback path may contain partially defined dictionaries. This helper
+    filters out invalid items and ensures a mutable modules mapping is available
+    for each configuration so downstream code can rely on Platinum-level types.
+    """
+
+    normalized_configs: list[DogConfigData] = []
+
+    if raw_configs is None:
+        return normalized_configs
+
+    for index, config in enumerate(raw_configs):
+        if not isinstance(config, dict):
+            _LOGGER.warning(
+                "Skipping dog configuration at index %d: expected mapping but got %s",
+                index,
+                type(config),
+            )
+            continue
+
+        if CONF_DOG_ID not in config or CONF_DOG_NAME not in config:
+            _LOGGER.warning(
+                "Skipping dog configuration at index %d: missing required identifiers",
+                index,
+            )
+            continue
+
+        modules = config.get("modules")
+        normalized_config: DogConfigData = cast(
+            DogConfigData,
+            {
+                **config,
+                "modules": modules if isinstance(modules, dict) else {},
+            },
+        )
+        normalized_configs.append(normalized_config)
+
+    return normalized_configs
+
+
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
-    entities,
+    async_add_entities_func: AddEntitiesCallback,
+    entities: Sequence[PawControlTextBase],
+    *,
     batch_size: int = 8,
     delay_between_batches: float = 0.1,
 ) -> None:
-    """Add text entities in small batches to prevent Entity Registry overload.
+    """Add text entities in small batches to prevent registry overload.
 
-    The Entity Registry logs warnings when >200 messages occur rapidly.
-    By batching entities and adding delays, we prevent registry overload.
-
-    Args:
-        async_add_entities_func: The actual async_add_entities callback
-        entities: List of text entities to add
-        batch_size: Number of entities per batch (default: 8)
-        delay_between_batches: Seconds to wait between batches (default: 0.1s)
+    Home Assistant logs warnings if large volumes of entity registry updates are
+    submitted simultaneously. Batching entity creation limits the peak load
+    while still yielding responsive setup times.
     """
+
+    if batch_size <= 0:
+        raise ValueError("batch_size must be greater than zero")
+
     total_entities = len(entities)
 
+    if not total_entities:
+        _LOGGER.debug("No text entities to register for PawControl")
+        return
+
+    total_batches = (total_entities + batch_size - 1) // batch_size
+
     _LOGGER.debug(
-        "Adding %d text entities in batches of %d to prevent Registry overload",
+        "Adding %d text entities across %d batches (size=%d, delay=%.2fs)",
         total_entities,
+        total_batches,
         batch_size,
+        delay_between_batches,
     )
 
-    # Process entities in batches
-    for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
-        batch_num = (i // batch_size) + 1
-        total_batches = (total_entities + batch_size - 1) // batch_size
+    for batch_index in range(total_batches):
+        start = batch_index * batch_size
+        batch = list(entities[start : start + batch_size])
 
         _LOGGER.debug(
             "Processing text batch %d/%d with %d entities",
-            batch_num,
+            batch_index + 1,
             total_batches,
             len(batch),
         )
 
-        # Add batch without update_before_add to reduce Registry load
         async_add_entities_func(batch, update_before_add=False)
 
-        # Small delay between batches to prevent Registry flooding
-        if i + batch_size < total_entities:  # No delay after last batch
+        if (
+            delay_between_batches > 0
+            and batch_index + 1 < total_batches
+        ):
             await asyncio.sleep(delay_between_batches)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Paw Control text platform."""
-    runtime_data = getattr(entry, "runtime_data", None)
+    """Set up the PawControl text platform for a config entry."""
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs = runtime_data.get("dogs", [])
+    runtime_data: PawControlRuntimeData | None = getattr(entry, "runtime_data", None)
+
+    if isinstance(runtime_data, PawControlRuntimeData):
+        coordinator = runtime_data.coordinator
+        dogs: list[DogConfigData] = runtime_data.dogs
     else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+        domain_data = cast(dict[str, Any] | None, hass.data.get(DOMAIN, {}).get(entry.entry_id))
+        if domain_data is None:
+            _LOGGER.error(
+                "Missing runtime data for PawControl entry %s", entry.entry_id
+            )
+            return
 
-    entities = []
+        coordinator = cast(PawControlCoordinator, domain_data["coordinator"])
+        raw_dogs = domain_data.get("dogs") or entry.data.get(CONF_DOGS)
+        dogs = _normalize_dog_configs(cast(Iterable[Any] | None, raw_dogs))
+
+    if not dogs:
+        _LOGGER.info("No dogs configured for PawControl entry %s", entry.entry_id)
+        return
+
+    entities: list[PawControlTextBase] = []
 
     for dog in dogs:
         dog_id = dog[CONF_DOG_ID]
