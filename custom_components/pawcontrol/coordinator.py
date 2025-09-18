@@ -107,6 +107,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._use_external_api,
         )
 
+    @property
+    def use_external_api(self) -> bool:
+        """Return whether external integrations are enabled."""
+
+        return self._use_external_api
+
+    @use_external_api.setter
+    def use_external_api(self, value: bool) -> None:
+        """Update the external API usage flag."""
+
+        self._use_external_api = bool(value)
+
     def attach_runtime_managers(
         self,
         *,
@@ -201,6 +213,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._data = all_data
         return self._data
+
+    def get_update_statistics(self) -> dict[str, Any]:
+        """Return coordinator update metrics for diagnostics and system health."""
+
+        successful_updates = max(self._update_count - self._error_count, 0)
+        cache_entries = len(self._cache)
+        return {
+            "update_counts": {
+                "total": self._update_count,
+                "successful": successful_updates,
+                "failed": self._error_count,
+            },
+            "performance_metrics": {
+                # External API calls mirror update attempts when enabled; otherwise
+                # they are treated as internal cache refreshes.
+                "api_calls": self._update_count if self._use_external_api else 0,
+                "cache_entries": cache_entries,
+                "cache_ttl": CACHE_TTL_SECONDS,
+            },
+        }
 
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Fetch data for a single dog.
