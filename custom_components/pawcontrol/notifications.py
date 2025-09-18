@@ -1,4 +1,4 @@
-"""Advanced notification system for PawControl integration.
+"""Advanced notification system for the PawControl integration.
 
 Comprehensive notification management with batch processing, advanced caching,
 and performance optimizations for Platinum quality compliance.
