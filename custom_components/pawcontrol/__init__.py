@@ -28,7 +28,11 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import PawControlSetupError
+from .exceptions import (
+    ConfigurationError,
+    PawControlSetupError,
+    ValidationError,
+)
 from .feeding_manager import FeedingManager
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
@@ -51,8 +55,14 @@ _PLATFORM_CACHE: dict[PlatformCacheKey, PlatformTuple] = {}
 
 
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
-    """Return the set of enabled modules across all configured dogs."""
-
+    """Return the set of enabled modules across all configured dogs.
+    
+    Args:
+        dogs_config: List of dog configuration data
+        
+    Returns:
+        Set of enabled module names
+    """
     enabled_modules: set[str] = set()
     unknown_modules: set[str] = set()
 
@@ -136,7 +146,15 @@ def get_platforms_for_profile_and_modules(
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up the PawControl integration from configuration.yaml."""
+    """Set up the PawControl integration from configuration.yaml.
+    
+    Args:
+        hass: Home Assistant instance
+        config: Configuration dictionary
+        
+    Returns:
+        True if setup successful
+    """
     domain_data = hass.data.setdefault(DOMAIN, {})
 
     # Register integration-level services
@@ -160,115 +178,171 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     Raises:
         ConfigEntryNotReady: If setup prerequisites not met
         ConfigEntryAuthFailed: If authentication fails
+        PawControlSetupError: If setup validation fails
     """
     _LOGGER.debug("Setting up PawControl integration entry: %s", entry.entry_id)
 
-    # Validate dogs configuration
-    dogs_config_raw = entry.data.get(CONF_DOGS, [])
-    if not dogs_config_raw:
-        raise ConfigEntryNotReady("No dogs configured")
-
-    if not isinstance(dogs_config_raw, list):
-        raise PawControlSetupError("Invalid dogs configuration format")
-
-    dogs_config: list[DogConfigData] = []
-    for dog in dogs_config_raw:
-        if not isinstance(dog, dict) or not dog.get(CONF_DOG_ID):
-            raise ConfigEntryNotReady("Invalid dog configuration")
-        dogs_config.append(dog)
-
-    # Validate profile
-    profile = entry.options.get("entity_profile", "standard")
-    if profile not in ENTITY_PROFILES:
-        _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
-        profile = "standard"
-
-    # Calculate platforms
-    platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
-
-    # Initialize core components
-    session = async_get_clientsession(hass)
-    coordinator = PawControlCoordinator(hass, entry, session)
-    data_manager = PawControlDataManager(hass, entry.entry_id)
-    notification_manager = PawControlNotificationManager(hass, entry.entry_id)
-    feeding_manager = FeedingManager()
-    walk_manager = WalkManager()
-    entity_factory = EntityFactory(coordinator)
-
-    # Initialize managers
     try:
-        await coordinator.async_config_entry_first_refresh()
+        # Validate dogs configuration with specific error handling
+        dogs_config_raw = entry.data.get(CONF_DOGS, [])
+        if not dogs_config_raw:
+            raise ConfigurationError(
+                "dogs_configuration", 
+                dogs_config_raw, 
+                "No dogs configured in integration setup"
+            )
 
-        # Initialize other managers
-        await asyncio.gather(
-            data_manager.async_initialize(),
-            notification_manager.async_initialize(),
-            feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
-            walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
+        if not isinstance(dogs_config_raw, list):
+            raise ConfigurationError(
+                "dogs_configuration",
+                type(dogs_config_raw).__name__,
+                "Dogs configuration must be a list"
+            )
+
+        # PLATINUM: Validate each dog config with specific errors
+        dogs_config: list[DogConfigData] = []
+        for i, dog in enumerate(dogs_config_raw):
+            if not isinstance(dog, dict) or not dog.get(CONF_DOG_ID):
+                raise ConfigurationError(
+                    f"dog_config_{i}",
+                    dog,
+                    f"Invalid dog configuration at index {i}: missing or invalid dog_id"
+                )
+            dogs_config.append(dog)
+
+        # Validate profile with fallback
+        profile = entry.options.get("entity_profile", "standard")
+        if profile not in ENTITY_PROFILES:
+            _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
+            profile = "standard"
+
+        # Calculate platforms
+        platforms = get_platforms_for_profile_and_modules(dogs_config, profile)
+
+        # PLATINUM: Enhanced session management
+        session = async_get_clientsession(hass)
+        coordinator = PawControlCoordinator(hass, entry, session)
+        
+        # Initialize managers with specific error handling
+        try:
+            data_manager = PawControlDataManager(hass, entry.entry_id)
+            notification_manager = PawControlNotificationManager(hass, entry.entry_id)
+            feeding_manager = FeedingManager()
+            walk_manager = WalkManager()
+            entity_factory = EntityFactory(coordinator)
+        except Exception as err:
+            raise PawControlSetupError(
+                f"Manager initialization failed: {err.__class__.__name__}: {err}"
+            ) from err
+
+        # PLATINUM: Specific timeout and connection error handling
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except asyncio.TimeoutError as err:
+            raise ConfigEntryNotReady(
+                f"Coordinator initialization timeout after {err.args}"
+            ) from err
+        except ConfigEntryAuthFailed:
+            raise  # Re-raise auth failures directly
+        except (OSError, ConnectionError) as err:
+            raise ConfigEntryNotReady(
+                f"Network connectivity issue during coordinator setup: {err}"
+            ) from err
+
+        # Initialize other managers with specific error handling
+        try:
+            await asyncio.gather(
+                data_manager.async_initialize(),
+                notification_manager.async_initialize(),
+                feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
+                walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
+                return_exceptions=False  # Fail fast on any error
+            )
+        except asyncio.TimeoutError as err:
+            raise ConfigEntryNotReady(
+                f"Manager initialization timeout: {err}"
+            ) from err
+        except ValidationError as err:
+            raise ConfigEntryNotReady(
+                f"Manager validation failed: {err.field} - {err.constraint}"
+            ) from err
+        except Exception as err:
+            # PLATINUM: More specific error categorization
+            error_type = err.__class__.__name__
+            raise ConfigEntryNotReady(
+                f"Manager initialization failed ({error_type}): {err}"
+            ) from err
+
+        # Attach runtime managers
+        coordinator.attach_runtime_managers(
+            data_manager=data_manager,
+            feeding_manager=feeding_manager,
+            walk_manager=walk_manager,
+            notification_manager=notification_manager,
         )
-    except TimeoutError as err:
-        raise ConfigEntryNotReady(f"Manager initialization timeout: {err}") from err
-    except ConfigEntryAuthFailed:
-        raise  # Re-raise auth failures
-    except (ConnectionError, OSError) as err:
-        raise ConfigEntryNotReady(f"Connection failed during setup: {err}") from err
+
+        # PLATINUM: Enhanced platform setup with specific error handling
+        try:
+            await hass.config_entries.async_forward_entry_setups(entry, platforms)
+        except ImportError as err:
+            raise ConfigEntryNotReady(
+                f"Platform import failed - missing dependency: {err}"
+            ) from err
+        except Exception as err:
+            _LOGGER.exception("Platform setup failed")
+            raise ConfigEntryNotReady(
+                f"Platform setup failed ({err.__class__.__name__}): {err}"
+            ) from err
+
+        # Create runtime data
+        runtime_data = PawControlRuntimeData(
+            coordinator=coordinator,
+            data_manager=data_manager,
+            notification_manager=notification_manager,
+            feeding_manager=feeding_manager,
+            walk_manager=walk_manager,
+            entity_factory=entity_factory,
+            entity_profile=profile,
+            dogs=dogs_config,
+        )
+
+        # PLATINUM: Store runtime data only in ConfigEntry.runtime_data
+        entry.runtime_data = runtime_data
+
+        # Setup daily reset scheduler with error tolerance
+        try:
+            reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
+            if reset_unsub:
+                runtime_data.daily_reset_unsub = reset_unsub
+        except Exception as err:
+            _LOGGER.warning(
+                "Failed to setup daily reset scheduler (non-critical): %s", err
+            )
+
+        # Start background tasks
+        coordinator.async_start_background_tasks()
+
+        # Add reload listener
+        entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+        _LOGGER.info(
+            "PawControl setup completed: %d dogs, %d platforms, profile '%s'",
+            len(dogs_config),
+            len(platforms),
+            profile,
+        )
+
+        return True
+
+    except (ConfigEntryNotReady, ConfigEntryAuthFailed, PawControlSetupError):
+        # Re-raise expected exceptions without modification
+        raise
     except Exception as err:
-        # PLATINUM: Only broad exception in setup for robustness
-        _LOGGER.exception("Unexpected error during manager initialization")
-        raise ConfigEntryNotReady(f"Manager initialization failed: {err}") from err
-
-    # Attach runtime managers
-    coordinator.attach_runtime_managers(
-        data_manager=data_manager,
-        feeding_manager=feeding_manager,
-        walk_manager=walk_manager,
-        notification_manager=notification_manager,
-    )
-
-    # Setup platforms
-    try:
-        await hass.config_entries.async_forward_entry_setups(entry, platforms)
-    except Exception as err:
-        _LOGGER.exception("Platform setup failed")
-        raise ConfigEntryNotReady(f"Platform setup failed: {err}") from err
-
-    # Create runtime data
-    runtime_data = PawControlRuntimeData(
-        coordinator=coordinator,
-        data_manager=data_manager,
-        notification_manager=notification_manager,
-        feeding_manager=feeding_manager,
-        walk_manager=walk_manager,
-        entity_factory=entity_factory,
-        entity_profile=profile,
-        dogs=dogs_config,
-    )
-
-    # Store runtime data (PLATINUM: Only store in ConfigEntry.runtime_data)
-    entry.runtime_data = runtime_data
-
-    # Setup daily reset scheduler (optional)
-    try:
-        reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
-        if reset_unsub:
-            runtime_data.daily_reset_unsub = reset_unsub
-    except Exception as err:
-        _LOGGER.warning("Failed to setup daily reset scheduler: %s", err)
-
-    # Start background tasks
-    coordinator.async_start_background_tasks()
-
-    # Add reload listener
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-
-    _LOGGER.info(
-        "PawControl setup completed: %d dogs, %d platforms, profile '%s'",
-        len(dogs_config),
-        len(platforms),
-        profile,
-    )
-
-    return True
+        # PLATINUM: Catch-all with better error context for debugging
+        _LOGGER.exception("Unexpected setup error")
+        raise PawControlSetupError(
+            f"Unexpected setup failure ({err.__class__.__name__}): {err}"
+        ) from err
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
@@ -293,46 +367,63 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
-    # Unload platforms
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
+    # Unload platforms with error tolerance
+    try:
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
+    except Exception as err:
+        _LOGGER.error("Error unloading platforms: %s", err)
+        unload_ok = False
 
-    # Cleanup runtime data
+    # Cleanup runtime data with enhanced error handling
     if runtime_data:
         # Shutdown daily reset scheduler
         if (
             hasattr(runtime_data, "daily_reset_unsub")
             and runtime_data.daily_reset_unsub
         ):
-            runtime_data.daily_reset_unsub()
+            try:
+                runtime_data.daily_reset_unsub()
+            except Exception as err:
+                _LOGGER.warning("Error canceling daily reset scheduler: %s", err)
 
-        # Shutdown managers with specific exception handling
-        shutdown_tasks = []
-        for _manager_name, manager in [
+        # PLATINUM: Enhanced manager shutdown with specific error handling
+        managers_to_shutdown = [
             ("coordinator", runtime_data.coordinator),
             ("data_manager", runtime_data.data_manager),
             ("notification_manager", runtime_data.notification_manager),
             ("feeding_manager", runtime_data.feeding_manager),
             ("walk_manager", runtime_data.walk_manager),
-        ]:
+        ]
+
+        shutdown_tasks = []
+        for manager_name, manager in managers_to_shutdown:
             if hasattr(manager, "async_shutdown"):
-                shutdown_tasks.append(manager.async_shutdown())
+                shutdown_tasks.append((manager_name, manager.async_shutdown()))
 
         if shutdown_tasks:
             shutdown_results = await asyncio.gather(
-                *shutdown_tasks, return_exceptions=True
+                *[task for _, task in shutdown_tasks], return_exceptions=True
             )
 
-            for result in shutdown_results:
+            for (manager_name, _), result in zip(shutdown_tasks, shutdown_results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning("Error during manager shutdown: %s", result)
+                    _LOGGER.warning(
+                        "Error during %s shutdown: %s (%s)", 
+                        manager_name, 
+                        result,
+                        result.__class__.__name__
+                    )
 
         # Clear coordinator references
-        runtime_data.coordinator.clear_runtime_managers()
+        try:
+            runtime_data.coordinator.clear_runtime_managers()
+        except Exception as err:
+            _LOGGER.warning("Error clearing coordinator references: %s", err)
 
     # Clear caches
     _PLATFORM_CACHE.clear()
 
-    # Cleanup service manager if no more entries
+    # PLATINUM: Enhanced service manager cleanup
     domain_data = hass.data.get(DOMAIN, {})
     service_manager = domain_data.get("service_manager")
     if service_manager and hasattr(service_manager, "_tracked_entries"):

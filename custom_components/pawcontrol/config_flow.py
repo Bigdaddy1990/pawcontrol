@@ -6,6 +6,7 @@ and comprehensive error handling for Platinum quality compliance.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -66,6 +67,11 @@ MAX_DOGS_PER_INTEGRATION = 10
 # Pre-compiled validation sets for O(1) lookups
 VALID_DOG_SIZES: frozenset[str] = frozenset(DOG_SIZES)
 VALID_PROFILES: frozenset[str] = frozenset(ENTITY_PROFILES.keys())
+
+# PLATINUM: Enhanced timeouts for robust operations
+REAUTH_TIMEOUT_SECONDS = 30.0
+CONFIG_HEALTH_CHECK_TIMEOUT = 15.0
+NETWORK_OPERATION_TIMEOUT = 10.0
 
 # Optimized schema definitions using constants from const.py
 DOG_SCHEMA = vol.Schema(
@@ -1227,7 +1233,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         return "\n\n".join(profiles_info)
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
-        """Handle reauthentication flow for Platinum compliance.
+        """PLATINUM: Handle reauthentication flow with enhanced error handling.
 
         Args:
             entry_data: Existing config entry data
@@ -1240,25 +1246,39 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         _LOGGER.debug("Starting reauthentication flow for entry data: %s", entry_data)
 
-        self.reauth_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
-
-        if not self.reauth_entry:
-            _LOGGER.error("Reauthentication failed: entry not found")
-            raise ConfigEntryAuthFailed("Config entry not found for reauthentication")
-
-        # Validate the entry is in a reauth-able state
         try:
-            await self._validate_reauth_entry(self.reauth_entry)
-        except ValidationError as err:
-            _LOGGER.error("Reauthentication validation failed: %s", err)
-            raise ConfigEntryAuthFailed(f"Entry validation failed: {err}") from err
+            # PLATINUM: Enhanced entry validation with timeout
+            async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
+                self.reauth_entry = self.hass.config_entries.async_get_entry(
+                    self.context["entry_id"]
+                )
 
-        return await self.async_step_reauth_confirm()
+            if not self.reauth_entry:
+                _LOGGER.error("Reauthentication failed: entry not found")
+                raise ConfigEntryAuthFailed("Config entry not found for reauthentication")
 
-    async def _validate_reauth_entry(self, entry: ConfigEntry) -> None:
-        """Validate config entry for reauthentication.
+            # PLATINUM: Validate the entry is in a reauth-able state with timeout
+            try:
+                async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
+                    await self._validate_reauth_entry_enhanced(self.reauth_entry)
+            except asyncio.TimeoutError as err:
+                _LOGGER.error("Entry validation timeout during reauth: %s", err)
+                raise ConfigEntryAuthFailed("Entry validation timeout") from err
+            except ValidationError as err:
+                _LOGGER.error("Reauthentication validation failed: %s", err)
+                raise ConfigEntryAuthFailed(f"Entry validation failed: {err}") from err
+
+            return await self.async_step_reauth_confirm()
+
+        except asyncio.TimeoutError as err:
+            _LOGGER.error("Reauth step timeout: %s", err)
+            raise ConfigEntryAuthFailed("Reauthentication timeout") from err
+        except Exception as err:
+            _LOGGER.error("Unexpected reauth error: %s", err)
+            raise ConfigEntryAuthFailed(f"Reauthentication failed: {err}") from err
+
+    async def _validate_reauth_entry_enhanced(self, entry: ConfigEntry) -> None:
+        """PLATINUM: Enhanced config entry validation for reauthentication with graceful degradation.
 
         Args:
             entry: Config entry to validate
@@ -1266,37 +1286,51 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Raises:
             ValidationError: If entry is invalid
         """
-        # Check entry structure
+        # Check basic entry structure
         if not entry.data.get(CONF_DOGS):
             raise ValidationError(
                 "entry_dogs", constraint="No dogs found in config entry"
             )
 
-        # Validate dogs configuration
+        # Validate dogs configuration with graceful error handling
         dogs = entry.data.get(CONF_DOGS, [])
-        invalid_dogs = [
-            dog.get(CONF_DOG_ID, "unknown")
-            for dog in dogs
-            if not is_dog_config_valid(dog)
-        ]
+        invalid_dogs = []
+        
+        for dog in dogs:
+            try:
+                if not is_dog_config_valid(dog):
+                    dog_id = dog.get(CONF_DOG_ID, "unknown")
+                    invalid_dogs.append(dog_id)
+            except Exception as err:
+                # PLATINUM: Graceful degradation for corrupted dog data
+                _LOGGER.warning("Dog validation error during reauth (non-critical): %s", err)
+                dog_id = dog.get(CONF_DOG_ID, "corrupted")
+                invalid_dogs.append(dog_id)
 
         if invalid_dogs:
-            raise ValidationError(
-                "entry_dogs",
-                constraint=f"Invalid dog configurations: {', '.join(invalid_dogs)}",
+            _LOGGER.warning(
+                "Invalid dog configurations found during reauth: %s", 
+                ", ".join(invalid_dogs)
             )
+            # Only fail if ALL dogs are invalid
+            if len(invalid_dogs) == len(dogs):
+                raise ValidationError(
+                    "entry_dogs",
+                    constraint=f"All dog configurations are invalid: {', '.join(invalid_dogs)}",
+                )
 
-        # Check profile validity
+        # Check profile validity with fallback
         profile = entry.options.get("entity_profile", "standard")
         if profile not in VALID_PROFILES:
-            raise ValidationError(
-                "entry_profile", value=profile, constraint="Invalid entity profile"
+            _LOGGER.warning(
+                "Invalid entity profile '%s' during reauth, will use 'standard'", profile
             )
+            # Don't fail reauth for invalid profile, will be corrected
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Confirm reauthentication with enhanced validation.
+        """PLATINUM: Confirm reauthentication with enhanced validation and error handling.
 
         Args:
             user_input: User provided data
@@ -1315,46 +1349,66 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if user_input.get("confirm", False):
                 try:
-                    # Enhanced validation for reauthentication
-                    await self.async_set_unique_id(self.reauth_entry.unique_id)
-                    self._abort_if_unique_id_mismatch(reason="wrong_account")
+                    # PLATINUM: Enhanced validation for reauthentication with timeout
+                    async with asyncio.timeout(REAUTH_TIMEOUT_SECONDS):
+                        await self.async_set_unique_id(self.reauth_entry.unique_id)
+                        self._abort_if_unique_id_mismatch(reason="wrong_account")
 
-                    # Perform comprehensive configuration health check
-                    config_health = await self._check_config_health(self.reauth_entry)
-                    if not config_health["healthy"]:
-                        _LOGGER.warning(
-                            "Configuration health issues detected: %s",
-                            config_health["issues"],
+                        # PLATINUM: Perform configuration health check with graceful degradation
+                        try:
+                            async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
+                                config_health = await self._check_config_health_enhanced(self.reauth_entry)
+                        except asyncio.TimeoutError:
+                            _LOGGER.warning("Config health check timeout - proceeding with reauth")
+                            config_health = {"healthy": True, "issues": ["Health check timeout"]}
+                        except Exception as err:
+                            _LOGGER.warning("Config health check failed: %s - proceeding with reauth", err)
+                            config_health = {"healthy": True, "issues": [f"Health check error: {err}"]}
+
+                        if not config_health["healthy"]:
+                            _LOGGER.warning(
+                                "Configuration health issues detected: %s",
+                                config_health["issues"],
+                            )
+                            # Don't fail reauth for health issues, just warn
+
+                        # PLATINUM: Update entry with reauth timestamp and health info
+                        data_updates = {
+                            "reauth_timestamp": dt_util.utcnow().isoformat(),
+                            "reauth_version": self.VERSION,
+                            "health_status": config_health.get("healthy", True),
+                        }
+
+                        return self.async_update_reload_and_abort(
+                            self.reauth_entry,
+                            data_updates=data_updates,
+                            options_updates={
+                                "last_reauth": dt_util.utcnow().isoformat(),
+                                "reauth_health_issues": config_health.get("issues", []),
+                            },
                         )
-                        # Don't fail reauth for health issues, just warn
 
-                    # Update entry with reauth timestamp
-                    data_updates = {
-                        "reauth_timestamp": dt_util.utcnow().isoformat(),
-                        "reauth_version": self.VERSION,
-                    }
-
-                    return self.async_update_reload_and_abort(
-                        self.reauth_entry,
-                        data_updates=data_updates,
-                        options_updates={
-                            "last_reauth": dt_util.utcnow().isoformat(),
-                        },
-                    )
-
+                except asyncio.TimeoutError as err:
+                    _LOGGER.error("Reauth confirmation timeout: %s", err)
+                    errors["base"] = "reauth_timeout"
                 except ConfigEntryAuthFailed:
                     raise
                 except Exception as err:
                     _LOGGER.error("Reauthentication failed: %s", err)
-                    raise ConfigEntryAuthFailed(
-                        f"Reauthentication process failed: {err}"
-                    ) from err
+                    errors["base"] = "reauth_failed"
             else:
                 errors["base"] = "reauth_unsuccessful"
 
-        # Show enhanced confirmation form
-        dogs_count = len(self.reauth_entry.data.get(CONF_DOGS, []))
-        profile = self.reauth_entry.options.get("entity_profile", "unknown")
+        # Show enhanced confirmation form with graceful error handling
+        try:
+            dogs_count = len(self.reauth_entry.data.get(CONF_DOGS, []))
+            profile = self.reauth_entry.options.get("entity_profile", "unknown")
+            health_status = await self._get_health_status_summary_safe(self.reauth_entry)
+        except Exception as err:
+            _LOGGER.warning("Error getting reauth display info: %s", err)
+            dogs_count = 0
+            profile = "unknown"
+            health_status = "Status check failed"
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -1368,79 +1422,109 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 "integration_name": self.reauth_entry.title,
                 "dogs_count": str(dogs_count),
                 "current_profile": profile,
-                "health_status": await self._get_health_status_summary(
-                    self.reauth_entry
-                ),
+                "health_status": health_status,
             },
         )
 
-    async def _check_config_health(self, entry: ConfigEntry) -> dict[str, Any]:
-        """Check configuration health for reauthentication.
+    async def _check_config_health_enhanced(self, entry: ConfigEntry) -> dict[str, Any]:
+        """PLATINUM: Enhanced configuration health check with graceful degradation.
 
         Args:
             entry: Config entry to check
 
         Returns:
-            Health check results
+            Health check results with graceful error handling
         """
         dogs = entry.data.get(CONF_DOGS, [])
         issues = []
+        warnings = []
 
-        # Validate each dog configuration
-        for dog in dogs:
-            if not is_dog_config_valid(dog):
-                dog_id = dog.get(CONF_DOG_ID, "unknown")
-                issues.append(f"Invalid dog config: {dog_id}")
+        # Validate each dog configuration with graceful error handling
+        valid_dogs = 0
+        for i, dog in enumerate(dogs):
+            try:
+                if is_dog_config_valid(dog):
+                    valid_dogs += 1
+                else:
+                    dog_id = dog.get(CONF_DOG_ID, f"dog_{i}")
+                    issues.append(f"Invalid dog config: {dog_id}")
+            except Exception as err:
+                # PLATINUM: Graceful degradation for corrupted data
+                dog_id = dog.get(CONF_DOG_ID, f"dog_{i}")
+                warnings.append(f"Dog config validation error for {dog_id}: {err}")
 
-        # Check profile validity
+        # Check for minimum viable configuration
+        if valid_dogs == 0 and len(dogs) > 0:
+            issues.append("No valid dog configurations found")
+
+        # Check profile validity with fallback
         profile = entry.options.get("entity_profile", "standard")
         if profile not in VALID_PROFILES:
-            issues.append(f"Invalid profile: {profile}")
+            warnings.append(f"Invalid profile '{profile}' - will use 'standard'")
 
-        # Check for duplicate dog IDs
-        dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID)]
-        if len(dog_ids) != len(set(dog_ids)):
-            issues.append("Duplicate dog IDs detected")
+        # Check for duplicate dog IDs with graceful handling
+        try:
+            dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs if dog.get(CONF_DOG_ID)]
+            if len(dog_ids) != len(set(dog_ids)):
+                issues.append("Duplicate dog IDs detected")
+        except Exception as err:
+            warnings.append(f"Dog ID validation error: {err}")
 
-        # Estimate entities and check for performance issues
+        # PLATINUM: Estimate entities with graceful error handling
+        estimated_entities = 0
         try:
             factory = EntityFactory(None)
-            total_entities = sum(
+            estimated_entities = sum(
                 factory.estimate_entity_count(profile, dog.get("modules", {}))
                 for dog in dogs
+                if is_dog_config_valid(dog)
             )
-            if total_entities > 200:
-                issues.append(
-                    f"High entity count ({total_entities}) may impact performance"
+            if estimated_entities > 200:
+                warnings.append(
+                    f"High entity count ({estimated_entities}) may impact performance"
                 )
         except Exception as err:
-            issues.append(f"Entity estimation failed: {err}")
+            warnings.append(f"Entity estimation failed: {err}")
 
         return {
             "healthy": len(issues) == 0,
             "issues": issues,
+            "warnings": warnings,
             "dogs_count": len(dogs),
+            "valid_dogs": valid_dogs,
             "profile": profile,
-            "estimated_entities": total_entities if "total_entities" in locals() else 0,
+            "estimated_entities": estimated_entities,
         }
 
-    async def _get_health_status_summary(self, entry: ConfigEntry) -> str:
-        """Get health status summary for display.
+    async def _get_health_status_summary_safe(self, entry: ConfigEntry) -> str:
+        """PLATINUM: Get health status summary with graceful error handling.
 
         Args:
             entry: Config entry
 
         Returns:
-            Health status summary text
+            Health status summary text with fallback
         """
         try:
-            health = await self._check_config_health(entry)
+            async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
+                health = await self._check_config_health_enhanced(entry)
+                
             if health["healthy"]:
-                return f"Healthy ({health['dogs_count']} dogs, {health['profile']} profile)"
+                return f"Healthy ({health['valid_dogs']}/{health['dogs_count']} dogs, {health['profile']} profile)"
             else:
                 issue_count = len(health["issues"])
-                return f"Issues detected ({issue_count} problems found)"
+                warning_count = len(health["warnings"])
+                status_parts = []
+                if issue_count > 0:
+                    status_parts.append(f"{issue_count} critical issues")
+                if warning_count > 0:
+                    status_parts.append(f"{warning_count} warnings")
+                return f"Issues: {', '.join(status_parts)}"
+                
+        except asyncio.TimeoutError:
+            return "Health check timeout"
         except Exception as err:
+            _LOGGER.debug("Health status summary error: %s", err)
             return f"Health check failed: {err}"
 
     async def async_step_reconfigure(
@@ -1485,7 +1569,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     # Don't fail, just warn user
 
                 # Perform health check before reconfiguring
-                health_check = await self._check_config_health(entry)
+                health_check = await self._check_config_health_enhanced(entry)
                 if not health_check["healthy"]:
                     _LOGGER.warning(
                         "Configuration health issues before reconfigure: %s",

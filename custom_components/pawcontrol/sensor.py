@@ -25,6 +25,7 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    UPDATE_INTERVALS,
 )
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
@@ -41,7 +42,17 @@ AttributeDict = dict[str, Any]
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
-ACTIVITY_SCORE_CACHE_TTL = 300  # 5 minutes cache for expensive calculations
+
+# PLATINUM: Dynamic cache TTL based on coordinator update interval
+def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
+    """Calculate dynamic cache TTL based on coordinator update interval."""
+    if not coordinator.update_interval:
+        return 300  # Default 5 minutes
+    
+    # Cache for 2.5x the update interval, minimum 60s, maximum 600s
+    interval_seconds = int(coordinator.update_interval.total_seconds())
+    cache_ttl = max(60, min(600, int(interval_seconds * 2.5)))
+    return cache_ttl
 
 # Sensor mapping for profile-based creation
 SENSOR_MAPPING: dict[str, type[PawControlSensorBase]] = {}
@@ -549,7 +560,8 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             unit_of_measurement=PERCENTAGE,
             icon="mdi:chart-line",
         )
-        # OPTIMIZED: Instance-level cache for thread safety
+        # PLATINUM: Dynamic cache TTL based on coordinator update interval
+        self._dynamic_cache_ttl = get_activity_score_cache_ttl(coordinator)
         self._cached_score: float | None = None
         self._score_cache_time: datetime | None = None
 
@@ -558,12 +570,11 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         """Calculate and return the activity score with optimized caching."""
         now = dt_util.utcnow()
 
-        # Check cache validity
+        # Check cache validity with dynamic TTL
         if (
             self._cached_score is not None
             and self._score_cache_time is not None
-            and (now - self._score_cache_time).total_seconds()
-            < ACTIVITY_SCORE_CACHE_TTL
+            and (now - self._score_cache_time).total_seconds() < self._dynamic_cache_ttl
         ):
             return self._cached_score
 
@@ -589,22 +600,35 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     def _compute_activity_score_optimized(
         self, dog_data: dict[str, Any]
     ) -> float | None:
-        """Compute activity score with optimized algorithm - 70% faster."""
-        # OPTIMIZED: Pre-calculate weights and use single loop
-        component_weights = [
-            (dog_data.get("walk", {}), 0.4, self._calculate_walk_score),
-            (dog_data.get("feeding", {}), 0.2, self._calculate_feeding_score),
-            (dog_data.get("gps", {}), 0.25, self._calculate_gps_score),
-            (dog_data.get("health", {}), 0.15, self._calculate_health_score),
-        ]
+        """PLATINUM: Compute activity score with memory-efficient single-pass algorithm."""
+        # OPTIMIZED: Pre-calculated component specifications for single-pass processing
+        component_specs = (
+            ("walk", 0.4, self._calculate_walk_score),
+            ("feeding", 0.2, self._calculate_feeding_score),
+            ("gps", 0.25, self._calculate_gps_score),
+            ("health", 0.15, self._calculate_health_score),
+        )
 
         weighted_sum = 0.0
         total_weight = 0.0
 
-        for data, weight, calc_func in component_weights:
-            if score := calc_func(data):
-                weighted_sum += score * weight
-                total_weight += weight
+        # PLATINUM: Single-pass weighted calculation for memory efficiency
+        for module_name, weight, calc_func in component_specs:
+            module_data = dog_data.get(module_name, {})
+            if not isinstance(module_data, dict):
+                continue
+                
+            try:
+                score = calc_func(module_data)
+                if score is not None:
+                    weighted_sum += score * weight
+                    total_weight += weight
+            except (TypeError, ValueError, KeyError) as err:
+                # Log specific calculation errors for debugging
+                _LOGGER.debug(
+                    "Activity score calculation error for %s module %s: %s",
+                    self._dog_id, module_name, err
+                )
 
         return round(weighted_sum / total_weight, 1) if total_weight > 0 else None
 

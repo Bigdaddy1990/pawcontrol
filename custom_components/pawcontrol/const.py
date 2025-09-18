@@ -295,7 +295,7 @@ DEFAULT_DASHBOARD_THEME: Final[str] = "default"
 DEFAULT_DASHBOARD_MODE: Final[str] = "full"
 
 # OPTIMIZED: Performance modes as tuple
-PERFORMANCE_MODES: Final[tuple[str, ...]] = ("minimal", "balanced", "full")
+PERFORMANCE_MODES: Final[tuple[str, ...]] = ("minimal", "standard", "full")
 
 # OPTIMIZED: Service names - grouped by functionality
 SERVICE_FEED_DOG: Final[str] = "feed_dog"
@@ -380,10 +380,10 @@ NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
     "discord",
 )
 
-# FIX: Update intervals with consistent key naming throughout codebase
+# PLATINUM: Update intervals with consistent key naming throughout codebase
 UPDATE_INTERVALS: Final[dict[str, int]] = {
     "minimal": 300,  # 5 minutes - power saving
-    "balanced": 120,  # 2 minutes - balanced (FIX: consistent key)
+    "standard": 120,  # 2 minutes - balanced (FIXED: consistent key)
     "frequent": 60,  # 1 minute - responsive
     "real_time": 30,  # 30 seconds - high performance
 }
