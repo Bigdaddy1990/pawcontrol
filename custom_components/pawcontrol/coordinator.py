@@ -161,30 +161,41 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         all_data: dict[str, dict[str, Any]] = {}
         errors = 0
 
-        # Fetch data for each dog
+        dog_ids: list[str] = []
         for dog in self._dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
-            if not isinstance(dog_id, str):
-                continue
+            if isinstance(dog_id, str):
+                dog_ids.append(dog_id)
+            else:
+                _LOGGER.warning("Skipping dog with invalid identifier: %s", dog_id)
 
+        if not dog_ids:
+            self._error_count += 1
+            raise UpdateFailed("No valid dogs configured")
+
+        async def fetch_and_store(dog_id: str) -> None:
+            nonlocal errors
             try:
-                dog_data = await asyncio.wait_for(
-                    self._fetch_dog_data(dog_id), timeout=API_TIMEOUT
-                )
-                all_data[dog_id] = dog_data
+                async with asyncio.timeout(API_TIMEOUT):
+                    all_data[dog_id] = await self._fetch_dog_data(dog_id)
             except TimeoutError as err:
-                _LOGGER.warning("Timeout fetching data for dog %s: %s", dog_id, err)
                 errors += 1
-                # Use last known data
+                _LOGGER.warning("Timeout fetching data for dog %s: %s", dog_id, err)
                 all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
             except (ClientError, HomeAssistantError) as err:
-                _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
                 errors += 1
-                # Use last known data
+                _LOGGER.warning("Failed to fetch data for dog %s: %s", dog_id, err)
                 all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
+            except ValueError as err:
+                errors += 1
+                _LOGGER.error("Invalid configuration for dog %s: %s", dog_id, err)
+                all_data[dog_id] = self._get_empty_dog_data()
 
-        # Check if all dogs failed
-        if errors == len(self._dogs_config) and len(self._dogs_config) > 0:
+        async with asyncio.TaskGroup() as task_group:
+            for dog_id in dog_ids:
+                task_group.create_task(fetch_and_store(dog_id))
+
+        if errors == len(dog_ids):
             self._error_count += 1
             raise UpdateFailed("All dogs failed to update")
 
