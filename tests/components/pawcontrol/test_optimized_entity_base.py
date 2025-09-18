@@ -350,11 +350,13 @@ class TestOptimizedEntityBase:
         initial_errors = test_entity._performance_tracker._error_count
 
         # Mock super().async_update() to raise an exception
-        with patch.object(
-            OptimizedEntityBase, "async_update", side_effect=Exception("Test error")
+        with (
+            patch.object(
+                OptimizedEntityBase, "async_update", side_effect=Exception("Test error")
+            ),
+            pytest.raises(Exception),
         ):
-            with pytest.raises(Exception):
-                await test_entity.async_update()
+            await test_entity.async_update()
 
         # Should have recorded the error
         assert test_entity._performance_tracker._error_count > initial_errors
@@ -702,7 +704,7 @@ class TestPerformanceOptimizations:
             entity = TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
             # Generate some data to populate caches
             entity._get_dog_data_cached()
-            entity.extra_state_attributes
+            entity.extra_state_attributes  # noqa: B018
             entities.append(entity)
 
         # Trigger cleanup

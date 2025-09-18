@@ -570,17 +570,14 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
             if (
                 performance_summary
                 := self._performance_tracker.get_performance_summary()
-            ):
-                if performance_summary.get("status") != "no_data":
-                    attributes["performance_metrics"] = {
-                        "avg_operation_ms": round(
-                            performance_summary["avg_operation_time"] * 1000, 2
-                        ),
-                        "cache_hit_rate": round(
-                            performance_summary["cache_hit_rate"], 1
-                        ),
-                        "error_rate": round(performance_summary["error_rate"] * 100, 1),
-                    }
+            ) and performance_summary.get("status") != "no_data":
+                attributes["performance_metrics"] = {
+                    "avg_operation_ms": round(
+                        performance_summary["avg_operation_time"] * 1000, 2
+                    ),
+                    "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
+                    "error_rate": round(performance_summary["error_rate"] * 100, 1),
+                }
 
         return attributes
 
@@ -744,7 +741,7 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
     @callback
     def async_invalidate_cache(self) -> None:
         """Public method to invalidate entity caches manually."""
-        asyncio.create_task(self._async_invalidate_caches())
+        asyncio.create_task(self._async_invalidate_caches())  # noqa: RUF006
 
 
 class OptimizedSensorBase(OptimizedEntityBase):
@@ -1063,7 +1060,7 @@ def get_global_performance_stats() -> dict[str, Any]:
 
     performance_summaries = []
     for tracker in OptimizedEntityBase._performance_registry.values():
-        if summary := tracker.get_performance_summary():
+        if summary := tracker.get_performance_summary():  # noqa: SIM102
             if summary.get("status") != "no_data":
                 performance_summaries.append(summary)
 
