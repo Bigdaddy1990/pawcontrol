@@ -902,6 +902,10 @@
       "name": "Test Notification",
       "description": "Send a test notification for a specific dog"
     },
+    "acknowledge_notification": {
+      "name": "Acknowledge notification",
+      "description": "Mark a PawControl notification as acknowledged"
+    },
     "reset_daily_stats": {
       "name": "Reset Daily Statistics",
       "description": "Reset daily statistics for a specific dog"

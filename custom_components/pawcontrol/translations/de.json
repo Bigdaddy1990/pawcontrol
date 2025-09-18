@@ -668,6 +668,10 @@
       "name": "Test-Benachrichtigung",
       "description": "Eine Test-Benachrichtigung für einen Hund senden"
     },
+    "acknowledge_notification": {
+      "name": "Benachrichtigung bestätigen",
+      "description": "Markiert eine PawControl-Benachrichtigung als bestätigt"
+    },
     "daily_reset": {
       "name": "Täglicher Reset",
       "description": "Täglichen Reset der Zähler für alle Hunde durchführen"
