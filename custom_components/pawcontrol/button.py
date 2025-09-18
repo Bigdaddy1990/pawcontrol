@@ -138,39 +138,43 @@ class ProfileAwareButtonFactory:
         ]
 
         if self.profile in ["standard", "advanced", "health_focus"]:
-            rules.extend([
-                {
-                    "class": PawControlFeedMealButton,
-                    "type": "feed_breakfast",
-                    "priority": BUTTON_PRIORITIES["feed_breakfast"],
-                    "profiles": ["standard", "advanced", "health_focus"],
-                    "args": ["breakfast"],
-                },
-                {
-                    "class": PawControlFeedMealButton,
-                    "type": "feed_dinner",
-                    "priority": BUTTON_PRIORITIES["feed_dinner"],
-                    "profiles": ["standard", "advanced", "health_focus"],
-                    "args": ["dinner"],
-                },
-            ])
+            rules.extend(
+                [
+                    {
+                        "class": PawControlFeedMealButton,
+                        "type": "feed_breakfast",
+                        "priority": BUTTON_PRIORITIES["feed_breakfast"],
+                        "profiles": ["standard", "advanced", "health_focus"],
+                        "args": ["breakfast"],
+                    },
+                    {
+                        "class": PawControlFeedMealButton,
+                        "type": "feed_dinner",
+                        "priority": BUTTON_PRIORITIES["feed_dinner"],
+                        "profiles": ["standard", "advanced", "health_focus"],
+                        "args": ["dinner"],
+                    },
+                ]
+            )
 
         if self.profile == "advanced":
-            rules.extend([
-                {
-                    "class": PawControlFeedMealButton,
-                    "type": "feed_lunch",
-                    "priority": BUTTON_PRIORITIES["feed_lunch"],
-                    "profiles": ["advanced"],
-                    "args": ["lunch"],
-                },
-                {
-                    "class": PawControlLogCustomFeedingButton,
-                    "type": "log_custom_feeding",
-                    "priority": BUTTON_PRIORITIES["log_custom_feeding"],
-                    "profiles": ["advanced"],
-                },
-            ])
+            rules.extend(
+                [
+                    {
+                        "class": PawControlFeedMealButton,
+                        "type": "feed_lunch",
+                        "priority": BUTTON_PRIORITIES["feed_lunch"],
+                        "profiles": ["advanced"],
+                        "args": ["lunch"],
+                    },
+                    {
+                        "class": PawControlLogCustomFeedingButton,
+                        "type": "log_custom_feeding",
+                        "priority": BUTTON_PRIORITIES["log_custom_feeding"],
+                        "profiles": ["advanced"],
+                    },
+                ]
+            )
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
@@ -192,20 +196,24 @@ class ProfileAwareButtonFactory:
         ]
 
         if self.profile in ["standard", "advanced", "gps_focus"]:
-            rules.append({
-                "class": PawControlQuickWalkButton,
-                "type": "quick_walk",
-                "priority": BUTTON_PRIORITIES["quick_walk"],
-                "profiles": ["standard", "advanced", "gps_focus"],
-            })
+            rules.append(
+                {
+                    "class": PawControlQuickWalkButton,
+                    "type": "quick_walk",
+                    "priority": BUTTON_PRIORITIES["quick_walk"],
+                    "profiles": ["standard", "advanced", "gps_focus"],
+                }
+            )
 
         if self.profile == "advanced":
-            rules.append({
-                "class": PawControlLogWalkManuallyButton,
-                "type": "log_walk_manually",
-                "priority": BUTTON_PRIORITIES["log_walk_manually"],
-                "profiles": ["advanced"],
-            })
+            rules.append(
+                {
+                    "class": PawControlLogWalkManuallyButton,
+                    "type": "log_walk_manually",
+                    "priority": BUTTON_PRIORITIES["log_walk_manually"],
+                    "profiles": ["advanced"],
+                }
+            )
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
@@ -221,28 +229,32 @@ class ProfileAwareButtonFactory:
         ]
 
         if self.profile in ["standard", "advanced", "gps_focus"]:
-            rules.append({
-                "class": PawControlCenterMapButton,
-                "type": "center_map",
-                "priority": BUTTON_PRIORITIES["center_map"],
-                "profiles": ["standard", "advanced", "gps_focus"],
-            })
+            rules.append(
+                {
+                    "class": PawControlCenterMapButton,
+                    "type": "center_map",
+                    "priority": BUTTON_PRIORITIES["center_map"],
+                    "profiles": ["standard", "advanced", "gps_focus"],
+                }
+            )
 
         if self.profile in ["advanced", "gps_focus"]:
-            rules.extend([
-                {
-                    "class": PawControlExportRouteButton,
-                    "type": "export_route",
-                    "priority": BUTTON_PRIORITIES["export_route"],
-                    "profiles": ["advanced", "gps_focus"],
-                },
-                {
-                    "class": PawControlCallDogButton,
-                    "type": "call_dog",
-                    "priority": BUTTON_PRIORITIES["call_dog"],
-                    "profiles": ["advanced", "gps_focus"],
-                },
-            ])
+            rules.extend(
+                [
+                    {
+                        "class": PawControlExportRouteButton,
+                        "type": "export_route",
+                        "priority": BUTTON_PRIORITIES["export_route"],
+                        "profiles": ["advanced", "gps_focus"],
+                    },
+                    {
+                        "class": PawControlCallDogButton,
+                        "type": "call_dog",
+                        "priority": BUTTON_PRIORITIES["call_dog"],
+                        "profiles": ["advanced", "gps_focus"],
+                    },
+                ]
+            )
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
@@ -258,36 +270,42 @@ class ProfileAwareButtonFactory:
         ]
 
         if self.profile in ["standard", "advanced", "health_focus"]:
-            rules.append({
-                "class": PawControlLogMedicationButton,
-                "type": "log_medication",
-                "priority": BUTTON_PRIORITIES["log_medication"],
-                "profiles": ["standard", "advanced", "health_focus"],
-            })
+            rules.append(
+                {
+                    "class": PawControlLogMedicationButton,
+                    "type": "log_medication",
+                    "priority": BUTTON_PRIORITIES["log_medication"],
+                    "profiles": ["standard", "advanced", "health_focus"],
+                }
+            )
 
         if self.profile in ["advanced", "health_focus"]:
-            rules.extend([
-                {
-                    "class": PawControlStartGroomingButton,
-                    "type": "start_grooming",
-                    "priority": BUTTON_PRIORITIES["start_grooming"],
-                    "profiles": ["advanced", "health_focus"],
-                },
-                {
-                    "class": PawControlScheduleVetButton,
-                    "type": "schedule_vet",
-                    "priority": BUTTON_PRIORITIES["schedule_vet"],
-                    "profiles": ["advanced", "health_focus"],
-                },
-            ])
+            rules.extend(
+                [
+                    {
+                        "class": PawControlStartGroomingButton,
+                        "type": "start_grooming",
+                        "priority": BUTTON_PRIORITIES["start_grooming"],
+                        "profiles": ["advanced", "health_focus"],
+                    },
+                    {
+                        "class": PawControlScheduleVetButton,
+                        "type": "schedule_vet",
+                        "priority": BUTTON_PRIORITIES["schedule_vet"],
+                        "profiles": ["advanced", "health_focus"],
+                    },
+                ]
+            )
 
         if self.profile == "advanced":
-            rules.append({
-                "class": PawControlHealthCheckButton,
-                "type": "health_check",
-                "priority": BUTTON_PRIORITIES["health_check"],
-                "profiles": ["advanced"],
-            })
+            rules.append(
+                {
+                    "class": PawControlHealthCheckButton,
+                    "type": "health_check",
+                    "priority": BUTTON_PRIORITIES["health_check"],
+                    "profiles": ["advanced"],
+                }
+            )
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
@@ -308,22 +326,24 @@ class ProfileAwareButtonFactory:
         button_candidates = []
 
         # Core buttons (always created)
-        button_candidates.extend([
-            {
-                "button": PawControlTestNotificationButton(
-                    self.coordinator, dog_id, dog_name
-                ),
-                "type": "test_notification",
-                "priority": BUTTON_PRIORITIES["test_notification"],
-            },
-            {
-                "button": PawControlResetDailyStatsButton(
-                    self.coordinator, dog_id, dog_name
-                ),
-                "type": "reset_daily_stats",
-                "priority": BUTTON_PRIORITIES["reset_daily_stats"],
-            },
-        ])
+        button_candidates.extend(
+            [
+                {
+                    "button": PawControlTestNotificationButton(
+                        self.coordinator, dog_id, dog_name
+                    ),
+                    "type": "test_notification",
+                    "priority": BUTTON_PRIORITIES["test_notification"],
+                },
+                {
+                    "button": PawControlResetDailyStatsButton(
+                        self.coordinator, dog_id, dog_name
+                    ),
+                    "type": "reset_daily_stats",
+                    "priority": BUTTON_PRIORITIES["reset_daily_stats"],
+                },
+            ]
+        )
 
         # OPTIMIZED: Use pre-calculated rules instead of creating them on-demand
         for module, enabled in modules.items():
@@ -335,32 +355,38 @@ class ProfileAwareButtonFactory:
                 try:
                     button_class = rule["class"]
                     args = rule.get("args", [])
-                    
+
                     if args:
                         button = button_class(self.coordinator, dog_id, dog_name, *args)
                     else:
                         button = button_class(self.coordinator, dog_id, dog_name)
-                    
-                    button_candidates.append({
-                        "button": button,
-                        "type": rule["type"],
-                        "priority": rule["priority"],
-                    })
+
+                    button_candidates.append(
+                        {
+                            "button": button,
+                            "type": rule["type"],
+                            "priority": rule["priority"],
+                        }
+                    )
                 except Exception as err:
                     _LOGGER.warning(
                         "Failed to create button %s for %s: %s",
-                        rule["type"], dog_name, err
+                        rule["type"],
+                        dog_name,
+                        err,
                     )
 
         # Profile-specific additional buttons
         if self.profile in ["advanced", "gps_focus"]:
-            button_candidates.append({
-                "button": PawControlToggleVisitorModeButton(
-                    self.coordinator, dog_id, dog_name
-                ),
-                "type": "toggle_visitor_mode",
-                "priority": BUTTON_PRIORITIES["toggle_visitor_mode"],
-            })
+            button_candidates.append(
+                {
+                    "button": PawControlToggleVisitorModeButton(
+                        self.coordinator, dog_id, dog_name
+                    ),
+                    "type": "toggle_visitor_mode",
+                    "priority": BUTTON_PRIORITIES["toggle_visitor_mode"],
+                }
+            )
 
         # Sort by priority and apply profile limit
         button_candidates.sort(key=lambda x: x["priority"])
@@ -466,10 +492,13 @@ async def async_setup_entry(
     # Log profile statistics
     max_possible = PROFILE_BUTTON_LIMITS.get(profile, 6)
     efficiency = (
-        (max_possible * len(dogs) - total_buttons_created) / (max_possible * len(dogs)) * 100
-        if max_possible * len(dogs) > 0 else 0
+        (max_possible * len(dogs) - total_buttons_created)
+        / (max_possible * len(dogs))
+        * 100
+        if max_possible * len(dogs) > 0
+        else 0
     )
-    
+
     _LOGGER.info(
         "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
         profile,
@@ -651,7 +680,7 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
 
             domain_data = self.hass.data.get("pawcontrol", {})
             entry_data = domain_data.get(entry_id)
-            
+
             if not entry_data:
                 raise HomeAssistantError("Entry data not found")
 
@@ -740,7 +769,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
             # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
             hour = dt_util.now().hour
             meal_type = "snack"  # Default
-            
+
             for time_range, meal in self._meal_schedule.items():
                 if hour in time_range:
                     meal_type = meal

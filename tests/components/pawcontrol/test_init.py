@@ -107,13 +107,22 @@ class TestPawControlIntegrationSetup:
         from custom_components.pawcontrol import async_setup_entry
 
         # Mock all the managers and coordinators
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory:
-            
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
             # Configure mocks
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -148,7 +157,9 @@ class TestPawControlIntegrationSetup:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator:
+        with patch(
+            "custom_components.pawcontrol.PawControlCoordinator"
+        ) as mock_coordinator:
             # Make coordinator first refresh fail
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock(
                 side_effect=ConfigEntryNotReady("Coordinator failed to initialize")
@@ -171,9 +182,14 @@ class TestPawControlIntegrationSetup:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager:
-            
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+        ):
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_data_manager.return_value.async_initialize = AsyncMock(
                 side_effect=Exception("Data manager initialization failed")
@@ -196,13 +212,22 @@ class TestPawControlIntegrationSetup:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory:
-            
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
             # Configure mocks for success case
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -254,7 +279,7 @@ class TestPawControlIntegrationSetup:
         # Create mock runtime data
         mock_coordinator = Mock()
         mock_coordinator.async_shutdown = AsyncMock()
-        mock_data_manager = Mock() 
+        mock_data_manager = Mock()
         mock_data_manager.async_shutdown = AsyncMock()
         mock_notification_manager = Mock()
         mock_notification_manager.async_shutdown = AsyncMock()
@@ -262,7 +287,7 @@ class TestPawControlIntegrationSetup:
         mock_feeding_manager.async_shutdown = AsyncMock()
         mock_walk_manager = Mock()
         mock_walk_manager.async_shutdown = AsyncMock()
-        
+
         entry.runtime_data = PawControlRuntimeData(
             coordinator=mock_coordinator,
             data_manager=mock_data_manager,
@@ -275,12 +300,15 @@ class TestPawControlIntegrationSetup:
         )
 
         # Mock platform unloading
-        with patch("homeassistant.config_entries.ConfigEntries.async_unload_platforms", return_value=True) as mock_unload:
+        with patch(
+            "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
+            return_value=True,
+        ) as mock_unload:
             result = await async_unload_entry(hass, entry)
 
             assert result is True
             mock_unload.assert_called_once_with(entry, PLATFORMS)
-            
+
             # Verify all managers were shut down
             mock_coordinator.async_shutdown.assert_called_once()
             mock_data_manager.async_shutdown.assert_called_once()
@@ -314,7 +342,10 @@ class TestPawControlIntegrationSetup:
         )
 
         # Mock platform unloading to fail
-        with patch("homeassistant.config_entries.ConfigEntries.async_unload_platforms", return_value=False):
+        with patch(
+            "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
+            return_value=False,
+        ):
             result = await async_unload_entry(hass, entry)
             assert result is False
 
@@ -332,7 +363,10 @@ class TestPawControlIntegrationSetup:
         from custom_components.pawcontrol import async_unload_entry
 
         # No runtime data set
-        with patch("homeassistant.config_entries.ConfigEntries.async_unload_platforms", return_value=True):
+        with patch(
+            "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
+            return_value=True,
+        ):
             result = await async_unload_entry(hass, entry)
             # Should still succeed even without runtime data
             assert result is True
@@ -350,14 +384,23 @@ class TestPawControlIntegrationSetup:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory, \
-             patch("homeassistant.helpers.service.async_register_admin_service") as mock_register_service:
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+            patch("homeassistant.helpers.service.async_register_admin_service"),
+        ):
             # Configure mocks
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -438,14 +481,25 @@ class TestPawControlPlatformForwarding:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory, \
-             patch("homeassistant.config_entries.ConfigEntries.async_forward_entry_setups") as mock_forward:
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+            patch(
+                "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups"
+            ) as mock_forward,
+        ):
             # Configure mocks
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -490,14 +544,26 @@ class TestPawControlPlatformForwarding:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory, \
-             patch("homeassistant.config_entries.ConfigEntries.async_forward_entry_setups", side_effect=Exception("Platform forwarding failed")):
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+            patch(
+                "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+                side_effect=Exception("Platform forwarding failed"),
+            ),
+        ):
             # Configure mocks
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -520,7 +586,7 @@ class TestPawControlEntityRegistry:
         """Test that entity registry is properly cleaned up on profile changes."""
         # This is more of a conceptual test since entity cleanup
         # typically happens through HA's built-in mechanisms
-        
+
         entry = MockConfigEntry(
             domain=DOMAIN,
             data=mock_config_entry_data,
@@ -557,7 +623,7 @@ class TestPawControlEntityRegistry:
         entry.runtime_data = PawControlRuntimeData(
             coordinator=Mock(),
             data_manager=Mock(),
-            notification_manager=Mock(), 
+            notification_manager=Mock(),
             feeding_manager=Mock(),
             walk_manager=Mock(),
             entity_factory=Mock(),
@@ -565,7 +631,10 @@ class TestPawControlEntityRegistry:
             dogs=mock_config_entry_data[CONF_DOGS],
         )
 
-        with patch("homeassistant.config_entries.ConfigEntries.async_unload_platforms", return_value=True):
+        with patch(
+            "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
+            return_value=True,
+        ):
             result = await async_unload_entry(hass, entry)
             assert result is True
 
@@ -576,16 +645,13 @@ class TestPawControlEntityRegistry:
 class TestPawControlPerformanceIntegration:
     """Test integration performance characteristics."""
 
-    async def test_setup_performance_with_many_dogs(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_setup_performance_with_many_dogs(self, hass: HomeAssistant) -> None:
         """Test setup performance with many dogs configured."""
         import time
 
         # Create configuration with many dogs
-        many_dogs = []
-        for i in range(20):
-            many_dogs.append({
+        many_dogs = [
+            {
                 CONF_DOG_ID: f"dog_{i:02d}",
                 CONF_DOG_NAME: f"Dog {i:02d}",
                 "dog_breed": "Test Breed",
@@ -596,10 +662,12 @@ class TestPawControlPerformanceIntegration:
                     "feeding": True,
                     "walk": True,
                     "health": i % 2 == 0,  # Alternate health monitoring
-                    "gps": i % 5 == 0,     # Every 5th dog has GPS
+                    "gps": i % 5 == 0,  # Every 5th dog has GPS
                     "notifications": True,
                 },
-            })
+            }
+            for i in range(20)
+        ]
 
         entry = MockConfigEntry(
             domain=DOMAIN,
@@ -610,13 +678,22 @@ class TestPawControlPerformanceIntegration:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory:
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
             # Configure mocks for fast execution
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -634,7 +711,7 @@ class TestPawControlPerformanceIntegration:
             # Verify success and performance
             assert result is True
             setup_time = end_time - start_time
-            
+
             # Should complete setup in reasonable time even with many dogs
             assert setup_time < 2.0  # Less than 2 seconds for 20 dogs
 
@@ -652,7 +729,9 @@ class TestPawControlPerformanceIntegration:
         entry = MockConfigEntry(
             domain=DOMAIN,
             data=mock_config_entry_data,
-            options={"entity_profile": "advanced"},  # Use advanced for more memory usage
+            options={
+                "entity_profile": "advanced"
+            },  # Use advanced for more memory usage
         )
         entry.add_to_hass(hass)
 
@@ -662,13 +741,22 @@ class TestPawControlPerformanceIntegration:
         gc.collect()
         initial_objects = len(gc.get_objects())
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory:
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
             # Configure mocks
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
@@ -685,10 +773,10 @@ class TestPawControlPerformanceIntegration:
             # Measure memory usage after setup
             gc.collect()
             final_objects = len(gc.get_objects())
-            
+
             # Should not create excessive objects
             objects_created = final_objects - initial_objects
-            
+
             # This is a rough check - actual numbers will vary
             # Main goal is to ensure no obvious memory leaks
             assert objects_created < 1000  # Reasonable object creation limit
@@ -697,9 +785,7 @@ class TestPawControlPerformanceIntegration:
 class TestPawControlErrorHandling:
     """Test error handling and edge cases."""
 
-    async def test_setup_with_malformed_dog_data(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_setup_with_malformed_dog_data(self, hass: HomeAssistant) -> None:
         """Test setup behavior with malformed dog data."""
         malformed_data = {
             "name": "PawControl Error Test",
@@ -745,24 +831,34 @@ class TestPawControlErrorHandling:
 
         from custom_components.pawcontrol import async_setup_entry
 
-        with patch("custom_components.pawcontrol.PawControlCoordinator") as mock_coordinator, \
-             patch("custom_components.pawcontrol.PawControlDataManager") as mock_data_manager, \
-             patch("custom_components.pawcontrol.PawControlNotificationManager") as mock_notification_manager, \
-             patch("custom_components.pawcontrol.FeedingManager") as mock_feeding_manager, \
-             patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager, \
-             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory:
-
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
             # Add delays to simulate concurrent access
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
             mock_notification_manager.return_value.async_initialize = AsyncMock()
-            mock_feeding_manager.return_value.async_initialize = AsyncMock() 
+            mock_feeding_manager.return_value.async_initialize = AsyncMock()
             mock_walk_manager.return_value.async_initialize = AsyncMock()
             mock_entity_factory.return_value.validate_profile = Mock(return_value=True)
 
             # Attempt concurrent setup (should be handled gracefully by HA)
             import asyncio
+
             results = await asyncio.gather(
                 async_setup_entry(hass, entry),
                 async_setup_entry(hass, entry),
@@ -771,4 +867,6 @@ class TestPawControlErrorHandling:
 
             # At least one should succeed or fail gracefully
             success_count = sum(1 for result in results if result is True)
-            assert success_count >= 1 or all(isinstance(result, Exception) for result in results)
+            assert success_count >= 1 or all(
+                isinstance(result, Exception) for result in results
+            )

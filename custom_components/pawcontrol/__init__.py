@@ -56,18 +56,20 @@ def get_platforms_for_profile_and_modules(
         return frozenset([Platform.BUTTON, Platform.SENSOR])
 
     # OPTIMIZED: Create efficient cache key with better hash strategy
-    modules_hash = frozenset().union(*(
-        frozenset(m for m, enabled in dog.get("modules", {}).items() if enabled)
-        for dog in dogs_config
-    ))
+    modules_hash = frozenset().union(
+        *(
+            frozenset(m for m, enabled in dog.get("modules", {}).items() if enabled)
+            for dog in dogs_config
+        )
+    )
     cache_key = f"{len(dogs_config)}_{profile}_{hash(modules_hash)}"
-    
+
     if cache_key in _PLATFORM_CACHE:
         return _PLATFORM_CACHE[cache_key]
 
     # Calculate platforms
     platforms = {Platform.SENSOR, Platform.BUTTON}
-    
+
     # Check enabled modules across all dogs
     all_enabled_modules = set()
     for dog in dogs_config:
@@ -77,16 +79,16 @@ def get_platforms_for_profile_and_modules(
     # Add platforms based on enabled modules
     if MODULE_NOTIFICATIONS in all_enabled_modules:
         platforms.add(Platform.SWITCH)
-    
+
     if any(m in all_enabled_modules for m in [MODULE_WALK, MODULE_GPS]):
         platforms.add(Platform.BINARY_SENSOR)
-    
+
     if MODULE_FEEDING in all_enabled_modules:
         platforms.add(Platform.SELECT)
-    
+
     if MODULE_GPS in all_enabled_modules:
         platforms.update({Platform.DEVICE_TRACKER, Platform.NUMBER})
-    
+
     if MODULE_HEALTH in all_enabled_modules:
         platforms.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
@@ -162,7 +164,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     # Initialize managers
     try:
         await coordinator.async_config_entry_first_refresh()
-        
+
         # Initialize other managers
         await asyncio.gather(
             data_manager.async_initialize(),
@@ -170,7 +172,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
             walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
         )
-    except asyncio.TimeoutError as err:
+    except TimeoutError as err:
         raise ConfigEntryNotReady(f"Manager initialization timeout: {err}") from err
     except ConfigEntryAuthFailed:
         raise  # Re-raise auth failures
@@ -263,26 +265,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Cleanup runtime data
     if runtime_data:
         # Shutdown daily reset scheduler
-        if hasattr(runtime_data, 'daily_reset_unsub') and runtime_data.daily_reset_unsub:
+        if (
+            hasattr(runtime_data, "daily_reset_unsub")
+            and runtime_data.daily_reset_unsub
+        ):
             runtime_data.daily_reset_unsub()
 
         # Shutdown managers with specific exception handling
         shutdown_tasks = []
-        for manager_name, manager in [
+        for _manager_name, manager in [
             ("coordinator", runtime_data.coordinator),
             ("data_manager", runtime_data.data_manager),
             ("notification_manager", runtime_data.notification_manager),
             ("feeding_manager", runtime_data.feeding_manager),
             ("walk_manager", runtime_data.walk_manager),
         ]:
-            if hasattr(manager, 'async_shutdown'):
+            if hasattr(manager, "async_shutdown"):
                 shutdown_tasks.append(manager.async_shutdown())
-        
+
         if shutdown_tasks:
             shutdown_results = await asyncio.gather(
                 *shutdown_tasks, return_exceptions=True
             )
-            
+
             for result in shutdown_results:
                 if isinstance(result, Exception):
                     _LOGGER.warning("Error during manager shutdown: %s", result)
@@ -296,7 +301,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Cleanup service manager if no more entries
     domain_data = hass.data.get(DOMAIN, {})
     service_manager = domain_data.get("service_manager")
-    if service_manager and hasattr(service_manager, '_tracked_entries'):
+    if service_manager and hasattr(service_manager, "_tracked_entries"):
         service_manager._tracked_entries.discard(entry.entry_id)
         if not service_manager._tracked_entries:
             try:
@@ -318,6 +323,6 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         entry: Config entry to reload
     """
     _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
-    
+
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)
