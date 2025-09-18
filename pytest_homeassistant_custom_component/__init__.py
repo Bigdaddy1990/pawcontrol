@@ -21,6 +21,7 @@ def _ensure_uuid_compatibility() -> None:
     """Provide the private UUID helpers expected by older dependencies."""
 
     if not hasattr(uuid, "_uuid_generate_time"):
+
         def _uuid_generate_time() -> bytes:
             generated = uuid._generate_time_safe()  # type: ignore[attr-defined]
             return generated[0]
@@ -28,6 +29,7 @@ def _ensure_uuid_compatibility() -> None:
         uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
 
     if not hasattr(uuid, "_load_system_functions"):
+
         def _load_system_functions() -> None:
             if not hasattr(uuid, "_uuid_generate_time"):
                 uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]

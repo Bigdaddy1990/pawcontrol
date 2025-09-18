@@ -18,6 +18,7 @@ import types
 import uuid
 
 if not hasattr(uuid, "_uuid_generate_time"):
+
     def _uuid_generate_time() -> bytes:
         """Return a time-based UUID byte sequence.
 
@@ -36,6 +37,7 @@ if not hasattr(uuid, "_uuid_generate_time"):
     uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
 
 if not hasattr(uuid, "_load_system_functions"):
+
     def _load_system_functions() -> None:
         """Compatibility no-op for removed CPython internals.
 
