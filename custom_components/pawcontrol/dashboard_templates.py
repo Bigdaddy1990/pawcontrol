@@ -374,7 +374,7 @@ class DashboardTemplates:
 
         # Try cache first
         cached = await self._cache.get(cache_key)
-        if cached:
+        if cached is not None:
             return cached
 
         # Generate template
@@ -497,7 +497,7 @@ class DashboardTemplates:
         cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
         cached = await self._cache.get(cache_key)
-        if cached:
+        if cached is not None:
             return cached.get("buttons", [])
 
         base_button = self._get_base_card_template("button")

@@ -318,7 +318,7 @@ class WalkManager:
 
             # OPTIMIZE: Get previous location from cache for better performance
             cached_location = self._gps_cache.get_location(dog_id)
-            if cached_location:
+            if cached_location is not None:
                 old_location = (cached_location[0], cached_location[1])
                 self._performance_metrics["cache_hits"] += 1
             elif (
@@ -450,7 +450,7 @@ class WalkManager:
             # OPTIMIZE: Get current location from cache first
             start_location = None
             cached_location = self._gps_cache.get_location(dog_id)
-            if cached_location:
+            if cached_location is not None:
                 start_location = {
                     "latitude": cached_location[0],
                     "longitude": cached_location[1],
@@ -540,7 +540,7 @@ class WalkManager:
             # OPTIMIZE: Get end location from cache if available
             end_location = None
             cached_location = self._gps_cache.get_location(dog_id)
-            if cached_location:
+            if cached_location is not None:
                 end_location = {
                     "latitude": cached_location[0],
                     "longitude": cached_location[1],

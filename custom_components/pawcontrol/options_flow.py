@@ -226,7 +226,7 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         cached = self._profile_cache.get(cache_key)
-        if cached:
+        if cached is not None:
             return cached
 
         total_estimate = 0
@@ -305,7 +305,7 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         cached_preview = self._entity_estimates_cache.get(cache_key)
-        if cached_preview:
+        if cached_preview is not None:
             return cached_preview
 
         entity_breakdown: list[dict[str, Any]] = []

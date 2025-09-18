@@ -662,7 +662,7 @@ class PawControlNotificationManager:
         """
         # Check cache first
         cached_config = self._cache.get_config(config_key)
-        if cached_config:
+        if cached_config is not None:
             self._performance_metrics["cache_hits"] += 1
             return cached_config
 

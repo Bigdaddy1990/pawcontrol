@@ -1293,7 +1293,7 @@ class PawControlNotificationManager:
         cache_key = f"quiet_hours_{priority}"
 
         cached = self._quiet_hours_cache.get(cache_key)
-        if cached:
+        if cached is not None:
             cached_result, cache_time = cached
             if (dt_util.utcnow() - cache_time).total_seconds() < 60:
                 return cached_result
