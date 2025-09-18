@@ -650,25 +650,24 @@ class TestPawControlPerformanceIntegration:
         import time
 
         # Create configuration with many dogs
-        many_dogs = []
-        for i in range(20):
-            many_dogs.append(
-                {  # noqa: PERF401
-                    CONF_DOG_ID: f"dog_{i:02d}",
-                    CONF_DOG_NAME: f"Dog {i:02d}",
-                    "dog_breed": "Test Breed",
-                    "dog_age": 3,
-                    "dog_weight": 20.0,
-                    "dog_size": "medium",
-                    "modules": {
-                        "feeding": True,
-                        "walk": True,
-                        "health": i % 2 == 0,  # Alternate health monitoring
-                        "gps": i % 5 == 0,  # Every 5th dog has GPS
-                        "notifications": True,
-                    },
-                }
-            )
+        many_dogs = [
+            {
+                CONF_DOG_ID: f"dog_{i:02d}",
+                CONF_DOG_NAME: f"Dog {i:02d}",
+                "dog_breed": "Test Breed",
+                "dog_age": 3,
+                "dog_weight": 20.0,
+                "dog_size": "medium",
+                "modules": {
+                    "feeding": True,
+                    "walk": True,
+                    "health": i % 2 == 0,  # Alternate health monitoring
+                    "gps": i % 5 == 0,  # Every 5th dog has GPS
+                    "notifications": True,
+                },
+            }
+            for i in range(20)
+        ]
 
         entry = MockConfigEntry(
             domain=DOMAIN,

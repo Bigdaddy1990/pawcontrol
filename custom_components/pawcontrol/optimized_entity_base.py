@@ -570,7 +570,7 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
             if (
                 performance_summary
                 := self._performance_tracker.get_performance_summary()
-            ):  # noqa: SIM102
+            ):
                 if performance_summary.get("status") != "no_data":
                     attributes["performance_metrics"] = {
                         "avg_operation_ms": round(

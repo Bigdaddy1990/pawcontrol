@@ -805,18 +805,17 @@ class TestPawControlDataManagerPerformance:
     ) -> PawControlDataManager:
         """Create data manager with many dogs for performance testing."""
         # Create many dogs for performance testing
-        many_dogs = []
-        for i in range(50):
-            many_dogs.append(
-                {  # noqa: PERF401
-                    "dog_id": f"dog_{i:02d}",
-                    "dog_name": f"Dog {i:02d}",
-                    "dog_breed": "Test Breed",
-                    "dog_age": 3,
-                    "dog_weight": 20.0,
-                    "modules": {"feeding": True, "walk": True, "health": True},
-                }
-            )
+        many_dogs = [
+            {
+                "dog_id": f"dog_{i:02d}",
+                "dog_name": f"Dog {i:02d}",
+                "dog_breed": "Test Breed",
+                "dog_age": 3,
+                "dog_weight": 20.0,
+                "modules": {"feeding": True, "walk": True, "health": True},
+            }
+            for i in range(50)
+        ]
 
         data_manager = PawControlDataManager(
             hass=mock_hass,

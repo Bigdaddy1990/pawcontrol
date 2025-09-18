@@ -352,8 +352,8 @@ class TestOptimizedEntityBase:
         # Mock super().async_update() to raise an exception
         with patch.object(
             OptimizedEntityBase, "async_update", side_effect=Exception("Test error")
-        ):  # noqa: SIM117
-            with pytest.raises(Exception):  # noqa: B017
+        ):
+            with pytest.raises(Exception):
                 await test_entity.async_update()
 
         # Should have recorded the error
@@ -363,7 +363,7 @@ class TestOptimizedEntityBase:
         """Test cache invalidation functionality."""
         # Populate caches first
         test_entity._get_dog_data_cached()
-        test_entity.extra_state_attributes  # noqa: B018
+        test_entity.extra_state_attributes
 
         # Invalidate caches
         await test_entity._async_invalidate_caches()
@@ -785,7 +785,7 @@ class TestPerformanceOptimizations:
         mock_state.state = "on"
 
         # Test restoration
-        asyncio.create_task(switch._handle_state_restoration(mock_state))  # noqa: RUF006
+        asyncio.create_task(switch._handle_state_restoration(mock_state))
 
         # Should restore state
         # Note: This is more of a smoke test since _handle_state_restoration is async
