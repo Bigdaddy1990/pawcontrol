@@ -276,7 +276,9 @@ class WalkManager:
         dog_id: str,
         latitude: float,
         longitude: float,
+        *,
         accuracy: float | None = None,
+        altitude: float | None = None,
         speed: float | None = None,
         heading: float | None = None,
         source: str = "unknown",
@@ -288,15 +290,16 @@ class WalkManager:
         OPTIMIZE: Enhanced with async validation, caching, and batch processing.
 
         Args:
-            dog_id: Dog identifier
-            latitude: Latitude coordinate
-            longitude: Longitude coordinate
-            accuracy: GPS accuracy in meters
-            speed: Speed in km/h
-            heading: Heading/direction in degrees
-            source: GPS data source
-            battery_level: GPS device battery level (0-100)
-            signal_strength: GPS signal strength (0-100)
+            dog_id: Dog identifier.
+            latitude: Latitude coordinate.
+            longitude: Longitude coordinate.
+            accuracy: GPS accuracy in meters.
+            altitude: Altitude in meters when available.
+            speed: Speed in km/h.
+            heading: Heading/direction in degrees.
+            source: GPS data source.
+            battery_level: GPS device battery level (0-100).
+            signal_strength: GPS signal strength (0-100).
 
         Returns:
             True if update successful
@@ -337,6 +340,7 @@ class WalkManager:
                     "latitude": latitude,
                     "longitude": longitude,
                     "accuracy": accuracy,
+                    "altitude": altitude,
                     "speed": speed,
                     "heading": heading,
                     "last_seen": now.isoformat(),
@@ -371,6 +375,37 @@ class WalkManager:
                 battery_level,
             )
             return True
+
+    async def async_add_gps_point(
+        self,
+        *,
+        dog_id: str,
+        latitude: float,
+        longitude: float,
+        altitude: float | None = None,
+        accuracy: float | None = None,
+    ) -> bool:
+        """Add a GPS point provided by the ``pawcontrol.add_gps_point`` service.
+
+        Args:
+            dog_id: Identifier of the dog for which the position was reported.
+            latitude: Latitude coordinate from the service call.
+            longitude: Longitude coordinate from the service call.
+            altitude: Optional altitude in meters above sea level.
+            accuracy: Optional horizontal accuracy value in meters.
+
+        Returns:
+            ``True`` when the GPS payload is accepted and stored.
+        """
+
+        return await self.async_update_gps_data(
+            dog_id=dog_id,
+            latitude=latitude,
+            longitude=longitude,
+            accuracy=accuracy,
+            altitude=altitude,
+            source="service_call",
+        )
 
     async def _batch_location_analysis(self) -> None:
         """Background task for batch location analysis.
