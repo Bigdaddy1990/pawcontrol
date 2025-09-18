@@ -746,9 +746,7 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
         Returns:
             The scheduled asyncio task handling cache invalidation.
         """
-        cache_invalidation_task = asyncio.create_task(
-            self._async_invalidate_caches()
-        )
+        cache_invalidation_task = asyncio.create_task(self._async_invalidate_caches())
         return cache_invalidation_task
 
 
@@ -1069,9 +1067,7 @@ def get_global_performance_stats() -> dict[str, Any]:
     performance_summaries = [
         summary
         for tracker in OptimizedEntityBase._performance_registry.values()
-        if (
-            summary := tracker.get_performance_summary()
-        )
+        if (summary := tracker.get_performance_summary())
         and summary.get("status") != "no_data"
     ]
 
