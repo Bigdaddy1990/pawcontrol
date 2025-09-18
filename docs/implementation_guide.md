@@ -202,17 +202,11 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
    # Fehlende Keys führen zu englischen Fallbacks
    ```
 
-## Nächste Schritte
-
-1. **Monitoring**: Implementieren Sie Logging für alle neuen Features
-2. **Dokumentation**: Aktualisieren Sie die README mit neuen Optionen
-3. **Tests**: Erweitern Sie die Testsuite für neue Funktionen
-4. **Community**: Sammeln Sie Feedback von Benutzern
 
 ## Kompatibilität
 
-- ✅ **Home Assistant 2025.8+**: Vollständig kompatibel
-- ✅ **Python 3.12+**: Type Hints und moderne Features
+- ✅ **Home Assistant 2025.9+**: Vollständig kompatibel
+- ✅ **Python 3.13+**: Type Hints und moderne Features
 - ✅ **Bestehende Konfigurationen**: Migration automatisch
 - ✅ **HACS**: Installation über HACS möglich
 
