@@ -55,7 +55,7 @@ from .const import (
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
-from .types import DogConfigData, PawControlConfigEntry, is_dog_config_valid
+from .types import DogConfigData, is_dog_config_valid
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -385,9 +385,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 ) from err
             except ValidationError as err:
                 _LOGGER.error("Import validation failed: %s", err)
-                raise ConfigEntryNotReady(
-                    f"Import validation failed: {err}"
-                ) from err
+                raise ConfigEntryNotReady(f"Import validation failed: {err}") from err
 
     async def _validate_import_config(
         self, import_config: dict[str, Any]
@@ -1228,9 +1226,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return "\n\n".join(profiles_info)
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauthentication flow for Platinum compliance.
 
         Args:
@@ -1243,11 +1239,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             ConfigEntryAuthFailed: If entry cannot be found or is invalid
         """
         _LOGGER.debug("Starting reauthentication flow for entry data: %s", entry_data)
-        
+
         self.reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
-        
+
         if not self.reauth_entry:
             _LOGGER.error("Reauthentication failed: entry not found")
             raise ConfigEntryAuthFailed("Config entry not found for reauthentication")
@@ -1283,7 +1279,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             for dog in dogs
             if not is_dog_config_valid(dog)
         ]
-        
+
         if invalid_dogs:
             raise ValidationError(
                 "entry_dogs",
@@ -1327,8 +1323,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     config_health = await self._check_config_health(self.reauth_entry)
                     if not config_health["healthy"]:
                         _LOGGER.warning(
-                            "Configuration health issues detected: %s", 
-                            config_health["issues"]
+                            "Configuration health issues detected: %s",
+                            config_health["issues"],
                         )
                         # Don't fail reauth for health issues, just warn
 
@@ -1414,7 +1410,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 for dog in dogs
             )
             if total_entities > 200:
-                issues.append(f"High entity count ({total_entities}) may impact performance")
+                issues.append(
+                    f"High entity count ({total_entities}) may impact performance"
+                )
         except Exception as err:
             issues.append(f"Entity estimation failed: {err}")
 
@@ -1423,7 +1421,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "issues": issues,
             "dogs_count": len(dogs),
             "profile": profile,
-            "estimated_entities": total_entities if 'total_entities' in locals() else 0,
+            "estimated_entities": total_entities if "total_entities" in locals() else 0,
         }
 
     async def _get_health_status_summary(self, entry: ConfigEntry) -> str:
@@ -1505,7 +1503,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     options_updates={
                         "entity_profile": new_profile,
                         "last_reconfigure": dt_util.utcnow().isoformat(),
-                        "previous_profile": entry.options.get("entity_profile", "standard"),
+                        "previous_profile": entry.options.get(
+                            "entity_profile", "standard"
+                        ),
                     },
                 )
 
@@ -1516,7 +1516,9 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     data_schema=PROFILE_SCHEMA,
                     errors={"base": "invalid_profile"},
                     description_placeholders={
-                        "current_profile": entry.options.get("entity_profile", "standard"),
+                        "current_profile": entry.options.get(
+                            "entity_profile", "standard"
+                        ),
                         "error_details": str(err),
                     },
                 )

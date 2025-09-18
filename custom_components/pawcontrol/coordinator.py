@@ -69,11 +69,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.config_entry = entry
         self.session = session or async_get_clientsession(hass)
         self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
-        self._use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
+        self._use_external_api = bool(
+            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
+        )
 
         # Simple TTL-based cache
         self._cache: dict[str, tuple[Any, datetime]] = {}
-        
+
         # Calculate update interval
         update_interval = self._calculate_update_interval()
 
@@ -131,12 +133,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Get item from cache if not expired."""
         if key not in self._cache:
             return None
-        
+
         data, timestamp = self._cache[key]
         if (dt_util.utcnow() - timestamp).total_seconds() > CACHE_TTL_SECONDS:
             del self._cache[key]
             return None
-        
+
         return data
 
     def _set_cache(self, key: str, data: Any) -> None:
@@ -170,7 +172,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._fetch_dog_data(dog_id), timeout=API_TIMEOUT
                 )
                 all_data[dog_id] = dog_data
-            except asyncio.TimeoutError as err:
+            except TimeoutError as err:
                 _LOGGER.warning("Timeout fetching data for dog %s: %s", dog_id, err)
                 errors += 1
                 # Use last known data
@@ -229,10 +231,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             results = await asyncio.gather(
                 *(task for _, task in module_tasks), return_exceptions=True
             )
-            
+
             for (module_name, _), result in zip(module_tasks, results, strict=False):
                 if isinstance(result, Exception):
-                    _LOGGER.warning("Failed to fetch %s data for %s: %s", module_name, dog_id, result)
+                    _LOGGER.warning(
+                        "Failed to fetch %s data for %s: %s",
+                        module_name,
+                        dog_id,
+                        result,
+                    )
                     data[module_name] = {}
                 else:
                     data[module_name] = result
@@ -352,7 +359,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         config = self.get_dog_config(dog_id)
         if not config:
             return frozenset()
-        
+
         modules = config.get("modules", {})
         return frozenset(name for name, enabled in modules.items() if enabled)
 
@@ -363,7 +370,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def get_dog_ids(self) -> list[str]:
         """Get all configured dog IDs."""
         return [
-            dog[CONF_DOG_ID] for dog in self._dogs_config 
+            dog[CONF_DOG_ID]
+            for dog in self._dogs_config
             if CONF_DOG_ID in dog and isinstance(dog[CONF_DOG_ID], str)
         ]
 
@@ -404,7 +412,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Clean expired cache entries
         now = dt_util.utcnow()
         expired_keys = [
-            key for key, (_, timestamp) in self._cache.items()
+            key
+            for key, (_, timestamp) in self._cache.items()
             if (now - timestamp).total_seconds() > CACHE_TTL_SECONDS
         ]
         for key in expired_keys:

@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -64,12 +63,12 @@ class BinarySensorLogicMixin:
         default_if_none: bool = False,
     ) -> bool:
         """Calculate status based on time threshold.
-        
+
         Args:
             timestamp_value: Timestamp to evaluate
             threshold_hours: Hours threshold for comparison
             default_if_none: Return value when timestamp is None
-            
+
         Returns:
             True if within threshold, False otherwise
         """
@@ -96,13 +95,13 @@ class BinarySensorLogicMixin:
         default_if_none: bool = False,
     ) -> bool:
         """Evaluate value against threshold.
-        
+
         Args:
             value: Value to compare
             threshold: Threshold value
             comparison: 'greater', 'less', 'greater_equal', 'less_equal'
             default_if_none: Return value when value is None
-            
+
         Returns:
             Comparison result
         """
@@ -499,7 +498,9 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
             return False
 
         last_update = dog_data.get("last_update")
-        return self._calculate_time_based_status(last_update, 10.0 / 60, False)  # 10 minutes
+        return self._calculate_time_based_status(
+            last_update, 10.0 / 60, False
+        )  # 10 minutes
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -993,7 +994,9 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
             return True  # No long walk recorded
 
         # OPTIMIZED: Use shared time-based logic
-        return not self._calculate_time_based_status(last_long_walk, 72, False)  # 3 days
+        return not self._calculate_time_based_status(
+            last_long_walk, 72, False
+        )  # 3 days
 
 
 # GPS binary sensors
@@ -1099,7 +1102,9 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
         # Check accuracy threshold and data freshness
         accuracy_good = self._evaluate_threshold(accuracy, 50, "less_equal", False)
-        data_fresh = self._calculate_time_based_status(last_seen, 5.0 / 60, False)  # 5 minutes
+        data_fresh = self._calculate_time_based_status(
+            last_seen, 5.0 / 60, False
+        )  # 5 minutes
 
         return accuracy_good and data_fresh
 
@@ -1128,7 +1133,9 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
             return False
 
         speed = gps_data.get("speed", 0)
-        return self._evaluate_threshold(speed, 1.0, "greater", False)  # 1 km/h threshold
+        return self._evaluate_threshold(
+            speed, 1.0, "greater", False
+        )  # 1 km/h threshold
 
 
 class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
@@ -1181,7 +1188,9 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
             return False
 
         battery_level = gps_data.get("battery_level")
-        return self._evaluate_threshold(battery_level, 20, "less_equal", False)  # 20% threshold
+        return self._evaluate_threshold(
+            battery_level, 20, "less_equal", False
+        )  # 20% threshold
 
 
 # Health binary sensors
