@@ -1,0 +1,52 @@
+*Bewertung der Ausgangsbasis*
+Die bestehende Integration besitzt bereits eine umfangreiche Service-Schicht (u. a. Fütterung, Walk-Tracking, Gesundheitsupdates, Auswertungen), auf die weitere Features aufbauen können.
+
+Der Options-Flow ist modular aufgebaut und unterstützt zahlreiche Konfigurationsbereiche, was zeigt, dass die Architektur grundsätzlich erweiterbar ist.
+
+**Fahrplan zur vollständigen Umsetzung**
+
+1. Verbindliche Anforderungsaufnahme
+
+- Inventar aller versprochenen Features aus info.md, docs/comprehensive_readme.md, docs/automations_health_feeding.md und docs/options_flow_documentation.md erstellen und in Muss-/Soll-/Kann-Kategorien priorisieren (z. B. Türsensorlogik, automatische Skripte, geofencing, zusätzliche Services und Sensoren).
+
+2. Kernfunktionen nachrüsten
+
+- Benachrichtigungssystem erweitern: dynamische Personenerkennung, Multi-Device-Abgleich und Rückfrage-Quittierungen wie beschrieben implementieren.
+
+- Tür- und Gartengang-Logik: automatische Erfassung, Aufenthaltsdauer und Rückfragen umsetzen, inklusive benötigter Sensoren und Counter.
+
+- Fütterungs- und Gesundheitshelfer: input_boolean/input_datetime-Helper sowie Warnlogik für Überfütterung, Medikationserinnerungen und Tierarzt-Checks hinzufügen.
+
+3. GPS- und Geofencing-Funktionen ergänzen
+
+- Fehlende Services (gps_start_walk, gps_end_walk, gps_post_location, gps_export_last_route etc.) implementieren, damit dokumentierte Automationen und Buttons funktionieren.
+
+- Geofencing inklusive Zonenverwaltung, Radiusvalidierung und Benachrichtigungshooks bauen; Options-Flow entsprechend erweitern (neue async_step_geofence mit geofence_lat/lon/radius und Alerts).
+
+4. Erweiterte Automations- und Analysefunktionen
+
+- Die in docs/automations_health_feeding.md erwarteten Services (z. B. recalculate_health_portions, adjust_weight_goal_strategy, Gesundheits- und Diät-Aktionen) nachrüsten und Sensor-/Binary-Sensor-Entitäten für Kalorien-, Gewicht- und Gesundheitsmetriken hinzufügen.
+
+- Zusätzliche Sensoren, Buttons und Device-Tracker aus dem Comprehensive README bereitstellen, damit Dashboards und Automationen kompatibel sind.
+
+5. Options-Flow & Konfiguration angleichen
+
+- Fehlende Optionen wie route_recording, route_history_days, Prioritätsbenachrichtigungen und modulare Einstellungen aus der Dokumentation in den Options-Flow integrieren.
+
+- Besuchshund-Modus, Dashboard-Profile und Exportformate vereinheitlichen (z. B. csv/json/pdf Auswahl im Systembereich).
+
+6. Helper-Erstellung & Skripte automatisieren
+
+- Automatische Anlage der in info.md versprochenen Helfer und Skripte (Rückfragen, Reset, Push-Test) während Setup/Optionen implementieren.
+
+7. Dokumentationsabgleich
+
+- Nach Umsetzung jede Dokumentdatei aktualisieren oder – falls Features bewusst entfallen – das Dokument klar korrigieren. Damit bleiben README, Guides und Options-Flow-Doku synchron.
+
+8. Test-, QA- und Release-Vorbereitung
+
+- Umfassende Tests (Unit, Integration, UI-Flow) ergänzen, Automationsbeispiele als YAML-Beispiele verifizieren und diagnostische Checks erweitern.
+
+- Changelogs & Migrationshinweise bereitstellen, um Nutzer über neue/angepasste Funktionen zu informieren.
+
+
