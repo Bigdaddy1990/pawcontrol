@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import math
 from collections import deque
@@ -284,6 +285,7 @@ class WalkManager:
         source: str = "unknown",
         battery_level: int | None = None,
         signal_strength: int | None = None,
+        timestamp: datetime | None = None,
     ) -> bool:
         """Update GPS data with optimized validation and caching.
 
@@ -316,7 +318,7 @@ class WalkManager:
                 _LOGGER.warning("Dog %s not initialized for GPS tracking", dog_id)
                 return False
 
-            now = dt_util.now()
+            now = timestamp or dt_util.now()
             old_location = None
 
             # OPTIMIZE: Get previous location from cache for better performance
@@ -384,6 +386,7 @@ class WalkManager:
         longitude: float,
         altitude: float | None = None,
         accuracy: float | None = None,
+        timestamp: datetime | None = None,
     ) -> bool:
         """Add a GPS point provided by the ``pawcontrol.add_gps_point`` service.
 
@@ -405,6 +408,7 @@ class WalkManager:
             accuracy=accuracy,
             altitude=altitude,
             source="service_call",
+            timestamp=timestamp,
         )
 
     async def _batch_location_analysis(self) -> None:
@@ -443,6 +447,8 @@ class WalkManager:
         walker: str | None = None,
         leash_used: bool | None = None,
         weather: WeatherCondition | str | None = None,
+        track_route: bool = True,
+        safety_alerts: bool = True,
     ) -> str | None:
         """Start a walk with optimized data structure.
 
@@ -523,6 +529,8 @@ class WalkManager:
                 "weather": weather_condition.value if weather_condition else None,
                 "notes": None,
                 "dog_weight_kg": None,
+                "track_route": track_route,
+                "safety_alerts": safety_alerts,
             }
 
             self._current_walks[dog_id] = walk_data
@@ -548,6 +556,7 @@ class WalkManager:
         *,
         notes: str | None = None,
         dog_weight_kg: float | None = None,
+        save_route: bool = True,
     ) -> dict[str, Any] | None:
         """End the current walk with optimized statistics calculation.
 
@@ -571,6 +580,8 @@ class WalkManager:
                 walk_data["notes"] = notes
             if dog_weight_kg is not None:
                 walk_data["dog_weight_kg"] = dog_weight_kg
+            
+            walk_data["save_route"] = save_route
 
             # OPTIMIZE: Get end location from cache if available
             end_location = None
@@ -1165,6 +1176,135 @@ class WalkManager:
             self._zone_cache.clear()
 
         _LOGGER.debug("WalkManager cleanup completed with optimizations")
+
+    async def async_export_routes(
+        self,
+        dog_id: str,
+        *,
+        format: str = "gpx",
+        last_n_walks: int = 1,
+    ) -> dict[str, Any] | None:
+        """Export walk routes in specified format.
+        
+        Args:
+            dog_id: Dog identifier
+            format: Export format (gpx, json, csv)
+            last_n_walks: Number of recent walks to export
+            
+        Returns:
+            Export data or None if no walks found
+        """
+        async with self._data_lock:
+            if dog_id not in self._walk_history:
+                _LOGGER.warning("No walk history found for %s", dog_id)
+                return None
+
+            # Get recent walks with routes
+            recent_walks = []
+            for walk in self._walk_history[dog_id][-last_n_walks:]:
+                if walk.get("path") and walk.get("status") == "completed":
+                    recent_walks.append(walk)
+            
+            if not recent_walks:
+                _LOGGER.warning("No walks with routes found for %s", dog_id)
+                return None
+            
+            export_data = {
+                "dog_id": dog_id,
+                "export_timestamp": dt_util.now().isoformat(),
+                "format": format,
+                "walks_count": len(recent_walks),
+                "walks": recent_walks,
+            }
+            
+            if format == "gpx":
+                export_data["gpx_data"] = self._generate_gpx_data(recent_walks)
+            elif format == "json":
+                export_data["json_data"] = json.dumps(recent_walks, indent=2)
+            elif format == "csv":
+                export_data["csv_data"] = self._generate_csv_data(recent_walks)
+            
+            _LOGGER.info(
+                "Exported %d route(s) for %s in %s format",
+                len(recent_walks),
+                dog_id,
+                format
+            )
+            
+            return export_data
+
+    def _generate_gpx_data(self, walks: list[dict[str, Any]]) -> str:
+        """Generate GPX format data from walks.
+        
+        Args:
+            walks: List of walk data with paths
+            
+        Returns:
+            GPX formatted string
+        """
+        gpx_lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<gpx version="1.1" creator="PawControl">',
+        ]
+        
+        for walk in walks:
+            walk_id = walk.get("walk_id", "unknown")
+            start_time = walk.get("start_time", "")
+            
+            gpx_lines.append(f'  <trk name="{walk_id}">')
+            gpx_lines.append(f'    <time>{start_time}</time>')
+            gpx_lines.append('    <trkseg>')
+            
+            for point in walk.get("path", []):
+                lat = point.get("latitude")
+                lon = point.get("longitude")
+                alt = point.get("altitude")
+                timestamp = point.get("timestamp", "")
+                
+                if lat is not None and lon is not None:
+                    ele_attr = f' ele="{alt}"' if alt is not None else ""
+                    gpx_lines.append(
+                        f'      <trkpt lat="{lat}" lon="{lon}"{ele_attr}>'
+                    )
+                    if timestamp:
+                        gpx_lines.append(f'        <time>{timestamp}</time>')
+                    gpx_lines.append('      </trkpt>')
+            
+            gpx_lines.append('    </trkseg>')
+            gpx_lines.append('  </trk>')
+        
+        gpx_lines.append('</gpx>')
+        return '\n'.join(gpx_lines)
+
+    def _generate_csv_data(self, walks: list[dict[str, Any]]) -> str:
+        """Generate CSV format data from walks.
+        
+        Args:
+            walks: List of walk data with paths
+            
+        Returns:
+            CSV formatted string
+        """
+        csv_lines = [
+            "walk_id,timestamp,latitude,longitude,altitude,accuracy,speed"
+        ]
+        
+        for walk in walks:
+            walk_id = walk.get("walk_id", "unknown")
+            
+            for point in walk.get("path", []):
+                lat = point.get("latitude", "")
+                lon = point.get("longitude", "")
+                alt = point.get("altitude", "")
+                acc = point.get("accuracy", "")
+                speed = point.get("speed", "")
+                timestamp = point.get("timestamp", "")
+                
+                csv_lines.append(
+                    f"{walk_id},{timestamp},{lat},{lon},{alt},{acc},{speed}"
+                )
+        
+        return '\n'.join(csv_lines)
 
     async def async_shutdown(self) -> None:
         """Enhanced shutdown method."""

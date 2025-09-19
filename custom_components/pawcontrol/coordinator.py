@@ -50,6 +50,7 @@ from .types import DogConfigData, PawControlConfigEntry
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
+    from .geofencing import PawControlGeofencing
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
 
@@ -141,6 +142,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.feeding_manager: FeedingManager | None = None
         self.walk_manager: WalkManager | None = None
         self.notification_manager: PawControlNotificationManager | None = None
+        self.geofencing_manager: PawControlGeofencing | None = None
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -166,6 +168,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         feeding_manager: FeedingManager,
         walk_manager: WalkManager,
         notification_manager: PawControlNotificationManager,
+        geofencing_manager: PawControlGeofencing | None = None,
     ) -> None:
         """Attach runtime managers for service integration.
         
@@ -174,12 +177,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             feeding_manager: Feeding tracking service  
             walk_manager: Walk tracking service
             notification_manager: Notification service
+            geofencing_manager: Geofencing service (optional)
         """
         self.data_manager = data_manager
         self.feeding_manager = feeding_manager
         self.walk_manager = walk_manager
         self.notification_manager = notification_manager
-        _LOGGER.debug("Runtime managers attached")
+        self.geofencing_manager = geofencing_manager
+        _LOGGER.debug("Runtime managers attached (geofencing: %s)", bool(geofencing_manager))
 
     def clear_runtime_managers(self) -> None:
         """Clear runtime manager references during unload."""
@@ -187,6 +192,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.feeding_manager = None
         self.walk_manager = None
         self.notification_manager = None
+        self.geofencing_manager = None
 
     def _get_cache(self, key: str) -> Any | None:
         """Get item from cache if not expired.
@@ -416,6 +422,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             module_tasks.append(("walk", self._get_walk_data(dog_id)))
         if modules.get(MODULE_GPS):
             module_tasks.append(("gps", self._get_gps_data(dog_id)))
+            # Include geofencing data if geofencing manager is available and GPS is enabled
+            if self.geofencing_manager and self.geofencing_manager.is_enabled():
+                module_tasks.append(("geofencing", self._get_geofencing_data(dog_id)))
         if modules.get(MODULE_HEALTH):
             module_tasks.append(("health", self._get_health_data(dog_id)))
 
@@ -551,6 +560,45 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_vet_visit": None,
             "medications": [],
             "status": "healthy",
+        }
+
+    async def _get_geofencing_data(self, dog_id: str) -> dict[str, Any]:
+        """Get geofencing data for dog.
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Geofencing data dictionary
+        """
+        if not self.geofencing_manager:
+            return {"status": "disabled", "zones": []}
+        
+        dog_state = self.geofencing_manager.get_dog_state(dog_id)
+        if not dog_state:
+            return {"status": "no_location", "zones": []}
+        
+        zones = self.geofencing_manager.get_zones()
+        current_zones = [
+            {
+                "id": zone_id,
+                "name": zones[zone_id].name,
+                "type": zones[zone_id].type.value,
+                "entry_time": dog_state.zone_entry_times.get(zone_id),
+            }
+            for zone_id in dog_state.current_zones
+            if zone_id in zones
+        ]
+        
+        return {
+            "status": "active" if current_zones else "outside_zones",
+            "current_zones": current_zones,
+            "last_location": {
+                "latitude": dog_state.last_location.latitude if dog_state.last_location else None,
+                "longitude": dog_state.last_location.longitude if dog_state.last_location else None,
+                "timestamp": dog_state.last_location.timestamp.isoformat() if dog_state.last_location else None,
+            } if dog_state.last_location else None,
+            "total_zones": len(zones),
         }
 
     def _get_empty_dog_data(self) -> dict[str, Any]:

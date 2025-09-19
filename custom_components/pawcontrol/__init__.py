@@ -27,6 +27,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
+from .door_sensor_manager import DoorSensorManager
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import (
     ConfigurationError,
@@ -34,6 +35,8 @@ from .exceptions import (
     ValidationError,
 )
 from .feeding_manager import FeedingManager
+from .geofencing import PawControlGeofencing
+from .helper_manager import PawControlHelperManager
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
@@ -210,6 +213,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 )
             dogs_config.append(dog)
 
+        # Calculate enabled modules
+        enabled_modules = _extract_enabled_modules(dogs_config)
+
         # Validate profile with fallback
         profile = entry.options.get("entity_profile", "standard")
         if profile not in ENTITY_PROFILES:
@@ -230,6 +236,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager = FeedingManager()
             walk_manager = WalkManager()
             entity_factory = EntityFactory(coordinator)
+            helper_manager = PawControlHelperManager(hass, entry.entry_id)
+            door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
+            
+            # Initialize geofencing manager if GPS module is enabled for any dog
+            geofencing_manager = None
+            if any(dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs_config):
+                geofencing_manager = PawControlGeofencing(hass, entry.entry_id)
+                _LOGGER.debug("Geofencing manager created for GPS-enabled dogs")
+            else:
+                _LOGGER.debug("Geofencing manager not created - no GPS modules enabled")
+                
         except Exception as err:
             raise PawControlSetupError(
                 f"Manager initialization failed: {err.__class__.__name__}: {err}"
@@ -251,13 +268,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
         # Initialize other managers with specific error handling
         try:
-            await asyncio.gather(
+            initialization_tasks = [
                 data_manager.async_initialize(),
                 notification_manager.async_initialize(),
                 feeding_manager.async_initialize([dict(dog) for dog in dogs_config]),
                 walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config]),
-                return_exceptions=False  # Fail fast on any error
-            )
+                helper_manager.async_initialize(),
+                door_sensor_manager.async_initialize(
+                    dogs=dogs_config,
+                    walk_manager=walk_manager,
+                    notification_manager=notification_manager,
+                ),
+            ]
+            
+            # Add geofencing initialization if manager was created
+            if geofencing_manager:
+                geofence_options = entry.options.get("geofence_settings", {})
+                geofencing_enabled = geofence_options.get("geofencing_enabled", False)
+                use_home_location = geofence_options.get("use_home_location", True)
+                home_zone_radius = geofence_options.get("geofence_radius_m", 50)
+                
+                initialization_tasks.append(
+                    geofencing_manager.async_initialize(
+                        dogs=[dog[CONF_DOG_ID] for dog in dogs_config],
+                        enabled=geofencing_enabled,
+                        use_home_location=use_home_location,
+                        home_zone_radius=home_zone_radius,
+                    )
+                )
+                
+            await asyncio.gather(*initialization_tasks, return_exceptions=False)
+            
         except asyncio.TimeoutError as err:
             raise ConfigEntryNotReady(
                 f"Manager initialization timeout: {err}"
@@ -279,6 +320,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager=feeding_manager,
             walk_manager=walk_manager,
             notification_manager=notification_manager,
+            geofencing_manager=geofencing_manager,
         )
 
         # PLATINUM: Enhanced platform setup with specific error handling
@@ -294,6 +336,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 f"Platform setup failed ({err.__class__.__name__}): {err}"
             ) from err
 
+        # Create helpers after platforms are set up (requires HA services to be ready)
+        try:
+            created_helpers = await helper_manager.async_create_helpers_for_dogs(
+                dogs_config, enabled_modules
+            )
+            
+            helper_count = sum(len(helpers) for helpers in created_helpers.values())
+            if helper_count > 0:
+                _LOGGER.info(
+                    "Created %d Home Assistant helpers for %d dogs", 
+                    helper_count, 
+                    len(dogs_config)
+                )
+                
+                # Send notification about helper creation
+                if notification_manager:
+                    try:
+                        await notification_manager.async_send_notification(
+                            notification_type="system_info",
+                            title="PawControl Helper Setup Complete",
+                            message=f"Created {helper_count} helpers for automated feeding schedules, "
+                                  f"health reminders, and other dog management tasks.",
+                            priority="normal",
+                        )
+                    except Exception as notification_err:
+                        _LOGGER.debug(
+                            "Helper creation notification failed (non-critical): %s", 
+                            notification_err
+                        )
+                        
+        except Exception as helper_err:
+            # Helper creation failure is non-critical for integration setup
+            _LOGGER.warning(
+                "Helper creation failed (non-critical): %s. "
+                "You can manually create input_boolean and input_datetime helpers if needed.", 
+                helper_err
+            )
+
         # Create runtime data
         runtime_data = PawControlRuntimeData(
             coordinator=coordinator,
@@ -305,6 +385,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             entity_profile=profile,
             dogs=dogs_config,
         )
+        
+        # Add optional managers to runtime data
+        runtime_data.helper_manager = helper_manager
+        runtime_data.geofencing_manager = geofencing_manager
+        runtime_data.door_sensor_manager = door_sensor_manager
 
         # PLATINUM: Store runtime data only in ConfigEntry.runtime_data
         entry.runtime_data = runtime_data
@@ -325,11 +410,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Add reload listener
         entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
+        # Get door sensor status
+        door_sensor_status = await door_sensor_manager.async_get_detection_status()
+        door_sensors_configured = door_sensor_status["configured_dogs"]
+
         _LOGGER.info(
-            "PawControl setup completed: %d dogs, %d platforms, profile '%s'",
+            "PawControl setup completed: %d dogs, %d platforms, %d helpers, profile '%s', "
+            "geofencing %s, door sensors %d",
             len(dogs_config),
             len(platforms),
+            helper_manager.get_helper_count(),
             profile,
+            "enabled" if geofencing_manager and geofencing_manager.is_enabled() else "disabled",
+            door_sensors_configured,
         )
 
         return True
@@ -376,6 +469,30 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
     # Cleanup runtime data with enhanced error handling
     if runtime_data:
+        # Cleanup door sensor manager
+        if hasattr(runtime_data, "door_sensor_manager") and runtime_data.door_sensor_manager:
+            try:
+                await runtime_data.door_sensor_manager.async_cleanup()
+                _LOGGER.debug("Door sensor manager cleanup completed")
+            except Exception as err:
+                _LOGGER.warning("Error during door sensor manager cleanup: %s", err)
+
+        # Cleanup geofencing manager
+        if hasattr(runtime_data, "geofencing_manager") and runtime_data.geofencing_manager:
+            try:
+                await runtime_data.geofencing_manager.async_cleanup()
+                _LOGGER.debug("Geofencing manager cleanup completed")
+            except Exception as err:
+                _LOGGER.warning("Error during geofencing manager cleanup: %s", err)
+        
+        # Cleanup helper manager
+        if hasattr(runtime_data, "helper_manager") and runtime_data.helper_manager:
+            try:
+                await runtime_data.helper_manager.async_cleanup()
+                _LOGGER.debug("Helper manager cleanup completed")
+            except Exception as err:
+                _LOGGER.warning("Error during helper manager cleanup: %s", err)
+
         # Shutdown daily reset scheduler
         if (
             hasattr(runtime_data, "daily_reset_unsub")

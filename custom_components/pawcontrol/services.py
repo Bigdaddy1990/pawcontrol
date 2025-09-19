@@ -1,7 +1,8 @@
 """Home Assistant services for PawControl integration.
 
 Comprehensive service definitions for all PawControl functionality including
-feeding management, walk tracking, health monitoring, and notifications.
+feeding management, walk tracking, health monitoring, GPS tracking, medication
+logging, visitor mode, and notifications.
 
 Quality Scale: Platinum
 Home Assistant: 2025.9.3+
@@ -11,6 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Callable
 from contextlib import suppress
@@ -29,14 +31,32 @@ from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
+    SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
+    SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
+    SERVICE_ADD_HEALTH_SNACK,
+    SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
+    SERVICE_ADJUST_DAILY_PORTIONS,
+    SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_DAILY_RESET,
+    SERVICE_FEED_DOG,
+    SERVICE_FEED_WITH_MEDICATION,
+    SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+    SERVICE_GPS_END_WALK,
+    SERVICE_GPS_EXPORT_ROUTE,
+    SERVICE_GPS_POST_LOCATION,
+    SERVICE_GPS_START_WALK,
+    SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
+    SERVICE_RECALCULATE_HEALTH_PORTIONS,
+    SERVICE_START_DIET_TRANSITION,
+    SERVICE_TOGGLE_VISITOR_MODE,
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
 
-# Service names
+# Service names - maintain backward compatibility
 SERVICE_ADD_FEEDING = "add_feeding"
 SERVICE_START_WALK = "start_walk"
 SERVICE_END_WALK = "end_walk"
@@ -68,6 +88,17 @@ SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
                 vol.Optional("time"): cv.string,
             }
         ),
+    }
+)
+
+# Alternative feed_dog schema for backward compatibility
+SERVICE_FEED_DOG_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("amount"): vol.Coerce(float),
+        vol.Optional("meal_type"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("feeder"): cv.string,
     }
 )
 
@@ -112,6 +143,80 @@ SERVICE_UPDATE_HEALTH_SCHEMA = vol.Schema(
         vol.Optional("body_condition_score"): vol.Range(min=1, max=9),
         vol.Optional("health_conditions"): [cv.string],
         vol.Optional("weight_goal"): vol.In(["maintain", "lose", "gain"]),
+    }
+)
+
+SERVICE_LOG_HEALTH_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("weight"): vol.Coerce(float),
+        vol.Optional("temperature"): vol.Coerce(float),
+        vol.Optional("activity_level"): vol.In(
+            ["very_low", "low", "moderate", "high", "very_high"]
+        ),
+        vol.Optional("mood"): vol.In(
+            ["happy", "neutral", "sad", "angry", "anxious", "tired"]
+        ),
+        vol.Optional("symptoms"): [cv.string],
+        vol.Optional("notes"): cv.string,
+        vol.Optional("vet_visit", default=False): cv.boolean,
+    }
+)
+
+SERVICE_LOG_MEDICATION_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("medication_name"): cv.string,
+        vol.Required("dose"): cv.string,
+        vol.Optional("administration_time"): cv.datetime,
+        vol.Optional("with_meal", default=False): cv.boolean,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("side_effects"): [cv.string],
+    }
+)
+
+SERVICE_TOGGLE_VISITOR_MODE_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("enabled"): cv.boolean,
+        vol.Optional("visitor_name"): cv.string,
+        vol.Optional("duration_hours"): vol.Coerce(int),
+    }
+)
+
+SERVICE_GPS_START_WALK_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("walker"): cv.string,
+        vol.Optional("track_route", default=True): cv.boolean,
+        vol.Optional("safety_alerts", default=True): cv.boolean,
+    }
+)
+
+SERVICE_GPS_END_WALK_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("save_route", default=True): cv.boolean,
+        vol.Optional("notes"): cv.string,
+    }
+)
+
+SERVICE_GPS_POST_LOCATION_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("latitude"): vol.Coerce(float),
+        vol.Required("longitude"): vol.Coerce(float),
+        vol.Optional("altitude"): vol.Coerce(float),
+        vol.Optional("accuracy"): vol.Coerce(float),
+        vol.Optional("timestamp"): cv.datetime,
+    }
+)
+
+SERVICE_GPS_EXPORT_ROUTE_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("format", default="gpx"): vol.In(["gpx", "json", "csv"]),
+        vol.Optional("last_n_walks", default=1): vol.Coerce(int),
     }
 )
 
@@ -178,9 +283,11 @@ SERVICE_CALCULATE_PORTION_SCHEMA = vol.Schema(
 SERVICE_EXPORT_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("dog_id"): cv.string,
-        vol.Required("data_type"): vol.In(["feeding", "walks", "health", "all"]),
+        vol.Required("data_type"): vol.In(["feeding", "walks", "health", "medication", "routes", "all"]),
         vol.Optional("format"): vol.In(["json", "csv", "gpx"]),
         vol.Optional("days"): vol.Coerce(int),
+        vol.Optional("date_from"): cv.date,
+        vol.Optional("date_to"): cv.date,
     }
 )
 
@@ -206,6 +313,106 @@ SERVICE_GENERATE_REPORT_SCHEMA = vol.Schema(
 )
 
 SERVICE_DAILY_RESET_SCHEMA = vol.Schema({vol.Optional("entry_id"): cv.string})
+
+# Automation service schemas
+SERVICE_RECALCULATE_HEALTH_PORTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("force_recalculation", default=False): cv.boolean,
+        vol.Optional("update_feeding_schedule", default=True): cv.boolean,
+    }
+)
+
+SERVICE_ADJUST_CALORIES_FOR_ACTIVITY_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("activity_level"): vol.In(
+            ["very_low", "low", "moderate", "high", "very_high"]
+        ),
+        vol.Optional("duration_hours"): vol.Coerce(int),
+        vol.Optional("temporary", default=True): cv.boolean,
+    }
+)
+
+SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("meal_frequency", default=4): vol.Range(min=3, max=6),
+        vol.Optional("carb_limit_percent", default=20): vol.Range(min=5, max=30),
+        vol.Optional("monitor_blood_glucose", default=True): cv.boolean,
+    }
+)
+
+SERVICE_FEED_WITH_MEDICATION_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("amount"): vol.Coerce(float),
+        vol.Required("medication_name"): cv.string,
+        vol.Required("dose"): cv.string,
+        vol.Optional("meal_type", default="medication"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("administration_time"): cv.datetime,
+    }
+)
+
+SERVICE_GENERATE_WEEKLY_HEALTH_REPORT_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("include_recommendations", default=True): cv.boolean,
+        vol.Optional("include_charts", default=True): cv.boolean,
+        vol.Optional("format", default="pdf"): vol.In(["pdf", "json", "markdown"]),
+    }
+)
+
+SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("emergency_type"): vol.In(
+            ["illness", "surgery_recovery", "digestive_upset", "medication_reaction"]
+        ),
+        vol.Optional("duration_days", default=3): vol.Range(min=1, max=14),
+        vol.Optional("portion_adjustment", default=0.8): vol.Range(min=0.5, max=1.2),
+    }
+)
+
+SERVICE_START_DIET_TRANSITION_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("new_food_type"): cv.string,
+        vol.Optional("transition_days", default=7): vol.Range(min=3, max=14),
+        vol.Optional("gradual_increase_percent", default=25): vol.Range(min=10, max=50),
+    }
+)
+
+SERVICE_CHECK_FEEDING_COMPLIANCE_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("days_to_check", default=7): vol.Range(min=1, max=30),
+        vol.Optional("notify_on_issues", default=True): cv.boolean,
+    }
+)
+
+SERVICE_ADJUST_DAILY_PORTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("adjustment_percent"): vol.Range(min=-50, max=50),
+        vol.Optional("reason"): cv.string,
+        vol.Optional("temporary", default=False): cv.boolean,
+        vol.Optional("duration_days"): vol.Range(min=1, max=30),
+    }
+)
+
+SERVICE_ADD_HEALTH_SNACK_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("snack_type"): cv.string,
+        vol.Required("amount"): vol.Coerce(float),
+        vol.Optional("health_benefit"): vol.In(
+            ["digestive", "dental", "joint", "skin_coat", "immune", "calming"]
+        ),
+        vol.Optional("notes"): cv.string,
+    }
+)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -292,6 +499,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError(
                 f"Failed to add feeding for {dog_id}. Check the logs for details."
             ) from err
+
+    async def feed_dog_service(call: ServiceCall) -> None:
+        """Handle feed_dog service call (alias for add_feeding)."""
+        # Transform call data to match add_feeding format
+        transformed_call = ServiceCall(
+            domain=call.domain,
+            service=SERVICE_ADD_FEEDING,
+            data={
+                **call.data,
+                "scheduled": False,
+                "with_medication": False,
+            }
+        )
+        await add_feeding_service(transformed_call)
 
     async def start_walk_service(call: ServiceCall) -> None:
         """Handle start walk service call."""
@@ -443,6 +664,259 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 f"Failed to update health data for {dog_id}. Check the logs for details."
             ) from err
 
+    async def log_health_service(call: ServiceCall) -> None:
+        """Handle log health service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        health_data = {
+            k: v for k, v in call.data.items() if k != "dog_id" and v is not None
+        }
+        health_data["timestamp"] = dt_util.utcnow()
+
+        try:
+            await data_manager.async_log_health_data(dog_id=dog_id, health_data=health_data)
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info("Logged health data for %s: %s", dog_id, health_data)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to log health data for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to log health data for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def log_medication_service(call: ServiceCall) -> None:
+        """Handle log medication service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        medication_data = {
+            k: v for k, v in call.data.items() if k != "dog_id" and v is not None
+        }
+        
+        if "administration_time" not in medication_data:
+            medication_data["administration_time"] = dt_util.utcnow()
+
+        try:
+            await data_manager.async_log_medication(dog_id=dog_id, medication_data=medication_data)
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Logged medication for %s: %s %s", 
+                dog_id, 
+                medication_data.get("medication_name"), 
+                medication_data.get("dose")
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to log medication for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to log medication for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def toggle_visitor_mode_service(call: ServiceCall) -> None:
+        """Handle toggle visitor mode service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        enabled = call.data.get("enabled")
+        visitor_name = call.data.get("visitor_name")
+        duration_hours = call.data.get("duration_hours")
+
+        try:
+            # Get current visitor mode state if not explicitly set
+            if enabled is None:
+                current_state = await data_manager.async_get_visitor_mode_status(dog_id)
+                enabled = not current_state.get("enabled", False)
+
+            visitor_data = {
+                "enabled": enabled,
+                "visitor_name": visitor_name,
+                "duration_hours": duration_hours,
+                "timestamp": dt_util.utcnow(),
+            }
+
+            await data_manager.async_set_visitor_mode(dog_id=dog_id, visitor_data=visitor_data)
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Visitor mode for %s: %s (visitor: %s, duration: %sh)",
+                dog_id,
+                "enabled" if enabled else "disabled",
+                visitor_name or "unknown",
+                duration_hours or "unlimited",
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to toggle visitor mode for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to toggle visitor mode for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def gps_start_walk_service(call: ServiceCall) -> None:
+        """Handle GPS start walk service call."""
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+
+        dog_id = call.data["dog_id"]
+        walker = call.data.get("walker")
+        track_route = call.data.get("track_route", True)
+        safety_alerts = call.data.get("safety_alerts", True)
+
+        try:
+            session_id = await walk_manager.async_start_walk(
+                dog_id=dog_id,
+                walk_type="gps",
+                walker=walker,
+                track_route=track_route,
+                safety_alerts=safety_alerts,
+            )
+
+            _LOGGER.info(
+                "Started GPS walk for %s (session: %s, tracking: %s, alerts: %s)",
+                dog_id,
+                session_id,
+                "enabled" if track_route else "disabled",
+                "enabled" if safety_alerts else "disabled",
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to start GPS walk for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to start GPS walk for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def gps_end_walk_service(call: ServiceCall) -> None:
+        """Handle GPS end walk service call."""
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+
+        dog_id = call.data["dog_id"]
+        save_route = call.data.get("save_route", True)
+        notes = call.data.get("notes")
+
+        try:
+            walk_event = await walk_manager.async_end_walk(
+                dog_id=dog_id,
+                notes=notes,
+                save_route=save_route,
+            )
+
+            if walk_event:
+                await coordinator.async_request_refresh()
+
+                distance_km = float(walk_event.get("distance") or 0.0) / 1000
+                duration_minutes = float(walk_event.get("duration") or 0.0) / 60
+
+                _LOGGER.info(
+                    "Ended GPS walk for %s: %.2f km in %.0f minutes (route %s)",
+                    dog_id,
+                    distance_km,
+                    duration_minutes,
+                    "saved" if save_route else "discarded",
+                )
+            else:
+                _LOGGER.warning("No active GPS walk found for %s", dog_id)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to end GPS walk for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to end GPS walk for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def gps_post_location_service(call: ServiceCall) -> None:
+        """Handle GPS post location service call."""
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+
+        dog_id = call.data["dog_id"]
+        latitude = call.data["latitude"]
+        longitude = call.data["longitude"]
+        altitude = call.data.get("altitude")
+        accuracy = call.data.get("accuracy")
+        timestamp = call.data.get("timestamp", dt_util.utcnow())
+
+        try:
+            success = await walk_manager.async_add_gps_point(
+                dog_id=dog_id,
+                latitude=latitude,
+                longitude=longitude,
+                altitude=altitude,
+                accuracy=accuracy,
+                timestamp=timestamp,
+            )
+
+            if success:
+                _LOGGER.debug("Posted GPS location for %s: %.6f,%.6f", dog_id, latitude, longitude)
+            else:
+                _LOGGER.warning("Failed to post GPS location for %s", dog_id)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to post GPS location for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to post GPS location for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def gps_export_route_service(call: ServiceCall) -> None:
+        """Handle GPS export route service call."""
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+
+        dog_id = call.data["dog_id"]
+        export_format = call.data.get("format", "gpx")
+        last_n_walks = call.data.get("last_n_walks", 1)
+
+        try:
+            export_data = await walk_manager.async_export_routes(
+                dog_id=dog_id,
+                format=export_format,
+                last_n_walks=last_n_walks,
+            )
+
+            if export_data:
+                _LOGGER.info(
+                    "Exported %d route(s) for %s in %s format",
+                    last_n_walks,
+                    dog_id,
+                    export_format,
+                )
+                
+                # Send notification with export result
+                notification_manager = coordinator.notification_manager
+                if notification_manager:
+                    await notification_manager.async_send_notification(
+                        notification_type="system_info",
+                        title=f"Route Export Complete",
+                        message=f"Exported {last_n_walks} route(s) for {dog_id} in {export_format} format",
+                        dog_id=dog_id,
+                    )
+            else:
+                _LOGGER.warning("No routes found for export for %s", dog_id)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to export routes for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to export routes for {dog_id}. Check the logs for details."
+            ) from err
+
     async def send_notification_service(call: ServiceCall) -> None:
         """Handle send notification service call."""
         coordinator = _get_coordinator()
@@ -527,6 +1001,120 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await coordinator.async_request_refresh()
         _LOGGER.debug("Acknowledged PawControl notification %s", notification_id)
 
+    async def calculate_portion_service(call: ServiceCall) -> None:
+        """Handle calculate portion service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        meal_type = call.data["meal_type"]
+        override_health_data = call.data.get("override_health_data")
+
+        try:
+            portion_data = await feeding_manager.async_calculate_portion(
+                dog_id=dog_id,
+                meal_type=meal_type,
+                override_health_data=override_health_data,
+            )
+
+            _LOGGER.info("Calculated portion for %s %s: %s", dog_id, meal_type, portion_data)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to calculate portion for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to calculate portion for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def export_data_service(call: ServiceCall) -> None:
+        """Handle export data service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        data_type = call.data["data_type"]
+        export_format = call.data.get("format", "json")
+        days = call.data.get("days")
+        date_from = call.data.get("date_from")
+        date_to = call.data.get("date_to")
+
+        try:
+            export_result = await data_manager.async_export_data(
+                dog_id=dog_id,
+                data_type=data_type,
+                format=export_format,
+                days=days,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            _LOGGER.info("Exported %s data for %s in %s format", data_type, dog_id, export_format)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to export data for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to export data for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def analyze_patterns_service(call: ServiceCall) -> None:
+        """Handle analyze patterns service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        analysis_type = call.data["analysis_type"]
+        days = call.data.get("days", 30)
+
+        try:
+            analysis_result = await data_manager.async_analyze_patterns(
+                dog_id=dog_id,
+                analysis_type=analysis_type,
+                days=days,
+            )
+
+            _LOGGER.info("Analyzed %s patterns for %s over %d days", analysis_type, dog_id, days)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to analyze patterns for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to analyze patterns for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def generate_report_service(call: ServiceCall) -> None:
+        """Handle generate report service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        report_type = call.data["report_type"]
+        include_recommendations = call.data.get("include_recommendations", True)
+        days = call.data.get("days", 30)
+
+        try:
+            report_result = await data_manager.async_generate_report(
+                dog_id=dog_id,
+                report_type=report_type,
+                include_recommendations=include_recommendations,
+                days=days,
+            )
+
+            _LOGGER.info("Generated %s report for %s over %d days", report_type, dog_id, days)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to generate report for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to generate report for {dog_id}. Check the logs for details."
+            ) from err
+
     async def daily_reset_service(call: ServiceCall) -> None:
         """Trigger a manual daily reset."""
 
@@ -547,12 +1135,397 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         await _perform_daily_reset(hass, target_entry)
 
+    # Automation service handlers
+    async def recalculate_health_portions_service(call: ServiceCall) -> None:
+        """Handle recalculate health portions service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        force_recalculation = call.data.get("force_recalculation", False)
+        update_feeding_schedule = call.data.get("update_feeding_schedule", True)
+
+        try:
+            result = await feeding_manager.async_recalculate_health_portions(
+                dog_id=dog_id,
+                force_recalculation=force_recalculation,
+                update_feeding_schedule=update_feeding_schedule,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Recalculated health portions for %s: %s", dog_id, result
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to recalculate health portions for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to recalculate health portions for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def adjust_calories_for_activity_service(call: ServiceCall) -> None:
+        """Handle adjust calories for activity service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        activity_level = call.data["activity_level"]
+        duration_hours = call.data.get("duration_hours")
+        temporary = call.data.get("temporary", True)
+
+        try:
+            result = await feeding_manager.async_adjust_calories_for_activity(
+                dog_id=dog_id,
+                activity_level=activity_level,
+                duration_hours=duration_hours,
+                temporary=temporary,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Adjusted calories for activity for %s: %s level for %sh (temporary: %s)",
+                dog_id,
+                activity_level,
+                duration_hours or "unlimited",
+                temporary,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to adjust calories for activity for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to adjust calories for activity for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def activate_diabetic_feeding_mode_service(call: ServiceCall) -> None:
+        """Handle activate diabetic feeding mode service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        meal_frequency = call.data.get("meal_frequency", 4)
+        carb_limit_percent = call.data.get("carb_limit_percent", 20)
+        monitor_blood_glucose = call.data.get("monitor_blood_glucose", True)
+
+        try:
+            result = await feeding_manager.async_activate_diabetic_feeding_mode(
+                dog_id=dog_id,
+                meal_frequency=meal_frequency,
+                carb_limit_percent=carb_limit_percent,
+                monitor_blood_glucose=monitor_blood_glucose,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Activated diabetic feeding mode for %s: %d meals/day, %d%% carb limit",
+                dog_id,
+                meal_frequency,
+                carb_limit_percent,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to activate diabetic feeding mode for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to activate diabetic feeding mode for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def feed_with_medication_service(call: ServiceCall) -> None:
+        """Handle feed with medication service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        amount = call.data["amount"]
+        medication_name = call.data["medication_name"]
+        dose = call.data["dose"]
+        meal_type = call.data.get("meal_type", "medication")
+        notes = call.data.get("notes")
+        administration_time = call.data.get("administration_time", dt_util.utcnow())
+
+        try:
+            medication_data = {
+                "name": medication_name,
+                "dose": dose,
+                "time": administration_time.isoformat(),
+            }
+
+            await feeding_manager.async_add_feeding_with_medication(
+                dog_id=dog_id,
+                amount=amount,
+                meal_type=meal_type,
+                medication_data=medication_data,
+                notes=notes,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Fed %s with medication: %.1fg %s + %s %s",
+                dog_id,
+                amount,
+                meal_type,
+                medication_name,
+                dose,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to feed with medication for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to feed with medication for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def generate_weekly_health_report_service(call: ServiceCall) -> None:
+        """Handle generate weekly health report service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        include_recommendations = call.data.get("include_recommendations", True)
+        include_charts = call.data.get("include_charts", True)
+        report_format = call.data.get("format", "pdf")
+
+        try:
+            report_result = await data_manager.async_generate_weekly_health_report(
+                dog_id=dog_id,
+                include_recommendations=include_recommendations,
+                include_charts=include_charts,
+                format=report_format,
+            )
+
+            _LOGGER.info(
+                "Generated weekly health report for %s in %s format",
+                dog_id,
+                report_format,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to generate weekly health report for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to generate weekly health report for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def activate_emergency_feeding_mode_service(call: ServiceCall) -> None:
+        """Handle activate emergency feeding mode service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        emergency_type = call.data["emergency_type"]
+        duration_days = call.data.get("duration_days", 3)
+        portion_adjustment = call.data.get("portion_adjustment", 0.8)
+
+        try:
+            result = await feeding_manager.async_activate_emergency_feeding_mode(
+                dog_id=dog_id,
+                emergency_type=emergency_type,
+                duration_days=duration_days,
+                portion_adjustment=portion_adjustment,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
+                dog_id,
+                emergency_type,
+                duration_days,
+                portion_adjustment * 100,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to activate emergency feeding mode for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to activate emergency feeding mode for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def start_diet_transition_service(call: ServiceCall) -> None:
+        """Handle start diet transition service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        new_food_type = call.data["new_food_type"]
+        transition_days = call.data.get("transition_days", 7)
+        gradual_increase_percent = call.data.get("gradual_increase_percent", 25)
+
+        try:
+            result = await feeding_manager.async_start_diet_transition(
+                dog_id=dog_id,
+                new_food_type=new_food_type,
+                transition_days=transition_days,
+                gradual_increase_percent=gradual_increase_percent,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Started diet transition for %s to %s over %d days",
+                dog_id,
+                new_food_type,
+                transition_days,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to start diet transition for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to start diet transition for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def check_feeding_compliance_service(call: ServiceCall) -> None:
+        """Handle check feeding compliance service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        days_to_check = call.data.get("days_to_check", 7)
+        notify_on_issues = call.data.get("notify_on_issues", True)
+
+        try:
+            compliance_result = await feeding_manager.async_check_feeding_compliance(
+                dog_id=dog_id,
+                days_to_check=days_to_check,
+                notify_on_issues=notify_on_issues,
+            )
+
+            _LOGGER.info(
+                "Checked feeding compliance for %s over %d days: %s",
+                dog_id,
+                days_to_check,
+                compliance_result,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to check feeding compliance for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to check feeding compliance for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def adjust_daily_portions_service(call: ServiceCall) -> None:
+        """Handle adjust daily portions service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        adjustment_percent = call.data["adjustment_percent"]
+        reason = call.data.get("reason")
+        temporary = call.data.get("temporary", False)
+        duration_days = call.data.get("duration_days")
+
+        try:
+            result = await feeding_manager.async_adjust_daily_portions(
+                dog_id=dog_id,
+                adjustment_percent=adjustment_percent,
+                reason=reason,
+                temporary=temporary,
+                duration_days=duration_days,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Adjusted daily portions for %s by %+d%% (temporary: %s, reason: %s)",
+                dog_id,
+                adjustment_percent,
+                temporary,
+                reason or "unspecified",
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to adjust daily portions for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to adjust daily portions for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def add_health_snack_service(call: ServiceCall) -> None:
+        """Handle add health snack service call."""
+        coordinator = _get_coordinator()
+        feeding_manager = _require_manager(
+            coordinator.feeding_manager, "feeding manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        snack_type = call.data["snack_type"]
+        amount = call.data["amount"]
+        health_benefit = call.data.get("health_benefit")
+        notes = call.data.get("notes")
+
+        try:
+            result = await feeding_manager.async_add_health_snack(
+                dog_id=dog_id,
+                snack_type=snack_type,
+                amount=amount,
+                health_benefit=health_benefit,
+                notes=notes,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Added health snack for %s: %.1fg %s (benefit: %s)",
+                dog_id,
+                amount,
+                snack_type,
+                health_benefit or "general",
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to add health snack for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to add health snack for {dog_id}. Check the logs for details."
+            ) from err
+
     # Register all services
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_FEEDING,
         add_feeding_service,
         schema=SERVICE_ADD_FEEDING_SCHEMA,
+    )
+
+    # Register feed_dog as alias for backward compatibility
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_FEED_DOG,
+        feed_dog_service,
+        schema=SERVICE_FEED_DOG_SCHEMA,
     )
 
     hass.services.async_register(
@@ -583,6 +1556,57 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_UPDATE_HEALTH_SCHEMA,
     )
 
+    # Register new health and medication services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LOG_HEALTH,
+        log_health_service,
+        schema=SERVICE_LOG_HEALTH_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LOG_MEDICATION,
+        log_medication_service,
+        schema=SERVICE_LOG_MEDICATION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_TOGGLE_VISITOR_MODE,
+        toggle_visitor_mode_service,
+        schema=SERVICE_TOGGLE_VISITOR_MODE_SCHEMA,
+    )
+
+    # Register GPS services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GPS_START_WALK,
+        gps_start_walk_service,
+        schema=SERVICE_GPS_START_WALK_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GPS_END_WALK,
+        gps_end_walk_service,
+        schema=SERVICE_GPS_END_WALK_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GPS_POST_LOCATION,
+        gps_post_location_service,
+        schema=SERVICE_GPS_POST_LOCATION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GPS_EXPORT_ROUTE,
+        gps_export_route_service,
+        schema=SERVICE_GPS_EXPORT_ROUTE_SCHEMA,
+    )
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SEND_NOTIFICATION,
@@ -599,12 +1623,111 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     hass.services.async_register(
         DOMAIN,
+        SERVICE_CALCULATE_PORTION,
+        calculate_portion_service,
+        schema=SERVICE_CALCULATE_PORTION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_DATA,
+        export_data_service,
+        schema=SERVICE_EXPORT_DATA_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ANALYZE_PATTERNS,
+        analyze_patterns_service,
+        schema=SERVICE_ANALYZE_PATTERNS_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GENERATE_REPORT,
+        generate_report_service,
+        schema=SERVICE_GENERATE_REPORT_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_DAILY_RESET,
         daily_reset_service,
         schema=SERVICE_DAILY_RESET_SCHEMA,
     )
 
-    _LOGGER.info("Registered PawControl services")
+    # Register automation services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RECALCULATE_HEALTH_PORTIONS,
+        recalculate_health_portions_service,
+        schema=SERVICE_RECALCULATE_HEALTH_PORTIONS_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
+        adjust_calories_for_activity_service,
+        schema=SERVICE_ADJUST_CALORIES_FOR_ACTIVITY_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
+        activate_diabetic_feeding_mode_service,
+        schema=SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_FEED_WITH_MEDICATION,
+        feed_with_medication_service,
+        schema=SERVICE_FEED_WITH_MEDICATION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+        generate_weekly_health_report_service,
+        schema=SERVICE_GENERATE_WEEKLY_HEALTH_REPORT_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
+        activate_emergency_feeding_mode_service,
+        schema=SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_DIET_TRANSITION,
+        start_diet_transition_service,
+        schema=SERVICE_START_DIET_TRANSITION_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CHECK_FEEDING_COMPLIANCE,
+        check_feeding_compliance_service,
+        schema=SERVICE_CHECK_FEEDING_COMPLIANCE_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADJUST_DAILY_PORTIONS,
+        adjust_daily_portions_service,
+        schema=SERVICE_ADJUST_DAILY_PORTIONS_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_HEALTH_SNACK,
+        add_health_snack_service,
+        schema=SERVICE_ADD_HEALTH_SNACK_SCHEMA,
+    )
+
+    _LOGGER.info("Registered PawControl services with enhanced automation functionality")
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -615,10 +1738,18 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     """
     services_to_remove = [
         SERVICE_ADD_FEEDING,
+        SERVICE_FEED_DOG,
         SERVICE_START_WALK,
         SERVICE_END_WALK,
         SERVICE_ADD_GPS_POINT,
         SERVICE_UPDATE_HEALTH,
+        SERVICE_LOG_HEALTH,
+        SERVICE_LOG_MEDICATION,
+        SERVICE_TOGGLE_VISITOR_MODE,
+        SERVICE_GPS_START_WALK,
+        SERVICE_GPS_END_WALK,
+        SERVICE_GPS_POST_LOCATION,
+        SERVICE_GPS_EXPORT_ROUTE,
         SERVICE_SEND_NOTIFICATION,
         SERVICE_ACKNOWLEDGE_NOTIFICATION,
         SERVICE_CALCULATE_PORTION,
@@ -626,6 +1757,17 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_ANALYZE_PATTERNS,
         SERVICE_GENERATE_REPORT,
         SERVICE_DAILY_RESET,
+        # Automation services
+        SERVICE_RECALCULATE_HEALTH_PORTIONS,
+        SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
+        SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
+        SERVICE_FEED_WITH_MEDICATION,
+        SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+        SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
+        SERVICE_START_DIET_TRANSITION,
+        SERVICE_CHECK_FEEDING_COMPLIANCE,
+        SERVICE_ADJUST_DAILY_PORTIONS,
+        SERVICE_ADD_HEALTH_SNACK,
     ]
 
     for service in services_to_remove:

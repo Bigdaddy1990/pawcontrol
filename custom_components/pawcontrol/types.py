@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .entity_factory import EntityFactory
     from .feeding_manager import FeedingManager
+    from .geofencing import PawControlGeofencing
+    from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
 
@@ -259,6 +261,8 @@ class PawControlRuntimeData:
         dogs: List of all configured dogs with their settings
         performance_stats: Runtime performance monitoring data
         error_history: Historical error tracking for diagnostics
+        helper_manager: Home Assistant helper creation and management service
+        geofencing_manager: Geofencing and GPS zone monitoring service
 
     Note:
         This class implements both dataclass and dictionary-like access
@@ -273,6 +277,8 @@ class PawControlRuntimeData:
     entity_factory: EntityFactory
     entity_profile: str
     dogs: list[DogConfigData]
+    helper_manager: PawControlHelperManager | None = None
+    geofencing_manager: PawControlGeofencing | None = None
 
     # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
@@ -301,6 +307,8 @@ class PawControlRuntimeData:
             "dogs": self.dogs,
             "performance_stats": self.performance_stats,
             "error_history": self.error_history,
+            "helper_manager": self.helper_manager,
+            "geofencing_manager": self.geofencing_manager,
         }
 
     def __getitem__(self, key: str) -> Any:

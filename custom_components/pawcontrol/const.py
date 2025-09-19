@@ -314,6 +314,18 @@ SERVICE_GPS_END_WALK: Final[str] = "gps_end_walk"
 SERVICE_GPS_POST_LOCATION: Final[str] = "gps_post_location"
 SERVICE_GPS_EXPORT_ROUTE: Final[str] = "gps_export_last_route"
 
+# OPTIMIZED: Automation services from docs/automations_health_feeding.md
+SERVICE_RECALCULATE_HEALTH_PORTIONS: Final[str] = "recalculate_health_portions"
+SERVICE_ADJUST_CALORIES_FOR_ACTIVITY: Final[str] = "adjust_calories_for_activity"
+SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE: Final[str] = "activate_diabetic_feeding_mode"
+SERVICE_FEED_WITH_MEDICATION: Final[str] = "feed_with_medication"
+SERVICE_GENERATE_WEEKLY_HEALTH_REPORT: Final[str] = "generate_weekly_health_report"
+SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE: Final[str] = "activate_emergency_feeding_mode"
+SERVICE_START_DIET_TRANSITION: Final[str] = "start_diet_transition"
+SERVICE_CHECK_FEEDING_COMPLIANCE: Final[str] = "check_feeding_compliance"
+SERVICE_ADJUST_DAILY_PORTIONS: Final[str] = "adjust_daily_portions"
+SERVICE_ADD_HEALTH_SNACK: Final[str] = "add_health_snack"
+
 # OPTIMIZED: Core services as frozenset for fast lookup
 CORE_SERVICES: Final[frozenset[str]] = frozenset(
     [

@@ -199,18 +199,21 @@ async def _create_module_entities(
             "basic": [
                 ("last_walk", PawControlLastWalkSensor, 8),
                 ("walk_count_today", PawControlWalkCountTodaySensor, 7),
+                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 6), # NEW: Critical missing sensor
             ],
             "standard": [
                 ("last_walk", PawControlLastWalkSensor, 8),
                 ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                ("last_walk_duration", PawControlLastWalkDurationSensor, 6),
-                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 5),
+                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 6), # NEW: Critical missing sensor
+                ("last_walk_duration", PawControlLastWalkDurationSensor, 5),
+                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 4),
             ],
             "gps_focus": [
                 ("last_walk", PawControlLastWalkSensor, 8),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                ("last_walk_distance", PawControlLastWalkDistanceSensor, 6),
-                ("average_walk_duration", PawControlAverageWalkDurationSensor, 5),
+                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 7), # NEW: Higher priority for GPS
+                ("walk_count_today", PawControlWalkCountTodaySensor, 6),
+                ("last_walk_distance", PawControlLastWalkDistanceSensor, 5),
+                ("average_walk_duration", PawControlAverageWalkDurationSensor, 4),
             ],
         },
         "gps": {
@@ -1021,6 +1024,62 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
             return int(walk_data.get("walks_today", 0))
         except (TypeError, ValueError):
             return 0
+
+
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("walk_distance_today")
+class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
+    """Sensor for total walk distance today.
+    
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as MUSS (must have) priority. Implements daily walk distance tracking.
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "walk_distance_today",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit_of_measurement="m",
+            icon="mdi:map-marker-path",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return total walk distance for today in meters."""
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0.0
+
+        try:
+            distance_today = walk_data.get("total_distance_today", 0)
+            return round(float(distance_today), 1)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for walk distance sensor."""
+        attrs = super().extra_state_attributes
+
+        walk_data = self._get_module_data("walk")
+        if walk_data:
+            try:
+                attrs.update({
+                    "distance_km": round(float(walk_data.get("total_distance_today", 0)) / 1000, 2),
+                    "walks_today": int(walk_data.get("walks_today", 0)),
+                    "average_distance_per_walk": round(
+                        float(walk_data.get("total_distance_today", 0)) / max(1, int(walk_data.get("walks_today", 1))), 1
+                    ),
+                })
+            except (TypeError, ValueError, ZeroDivisionError):
+                pass
+
+        return attrs
 
 
 @register_sensor("last_walk_duration")
