@@ -23,6 +23,8 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.util import dt as dt_util
 
 from .config_flow_profile import (
@@ -244,7 +246,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_add_dog()
 
     async def async_step_zeroconf(
-        self, discovery_info: dict[str, Any]
+        self, discovery_info: ZeroconfServiceInfo
     ) -> ConfigFlowResult:
         """Handle Zeroconf discovery.
 
@@ -257,8 +259,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("Zeroconf discovery: %s", discovery_info)
 
         # Extract device information from Zeroconf
-        hostname = discovery_info.get("hostname", "")
-        properties = discovery_info.get("properties", {})
+        hostname = discovery_info.hostname or ""
+        properties = discovery_info.properties or {}
 
         # Check if this is a supported device
         if not self._is_supported_device(hostname, properties):
@@ -268,9 +270,11 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovery_info = {
             "source": "zeroconf",
             "hostname": hostname,
-            "host": discovery_info.get("host"),
-            "port": discovery_info.get("port"),
+            "host": discovery_info.host,
+            "port": discovery_info.port,
             "properties": properties,
+            "type": discovery_info.type,
+            "name": discovery_info.name,
         }
 
         # Set unique ID based on discovered device
@@ -278,13 +282,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         if device_id:
             await self.async_set_unique_id(device_id)
             self._abort_if_unique_id_configured(
-                updates={"host": discovery_info.get("host")},
+                updates={"host": discovery_info.host},
                 reload_on_update=True,
             )
 
         return await self.async_step_discovery_confirm()
 
-    async def async_step_dhcp(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_dhcp(
+        self, discovery_info: DhcpServiceInfo
+    ) -> ConfigFlowResult:
         """Handle DHCP discovery.
 
         Args:
@@ -295,8 +301,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         _LOGGER.debug("DHCP discovery: %s", discovery_info)
 
-        hostname = discovery_info.get("hostname", "")
-        macaddress = discovery_info.get("macaddress", "")
+        hostname = discovery_info.hostname or ""
+        macaddress = discovery_info.macaddress or ""
 
         # Check if this is a supported device
         if not self._is_supported_device(hostname, {"mac": macaddress}):
@@ -305,14 +311,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovery_info = {
             "source": "dhcp",
             "hostname": hostname,
-            "ip": discovery_info.get("ip"),
+            "ip": discovery_info.ip,
             "macaddress": macaddress,
         }
 
         # Use MAC address as unique ID
         await self.async_set_unique_id(macaddress)
         self._abort_if_unique_id_configured(
-            updates={"host": discovery_info.get("ip")},
+            updates={"host": discovery_info.ip},
             reload_on_update=True,
         )
 

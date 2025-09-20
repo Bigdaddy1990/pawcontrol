@@ -16,6 +16,7 @@ from homeassistant.components.number import NumberDeviceClass, NumberEntity, Num
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfEnergy,
     UnitOfLength,
     UnitOfMass,
     UnitOfSpeed,
@@ -307,6 +308,7 @@ class PawControlNumberBase(
         icon: str | None = None,
         entity_category: EntityCategory | None = None,
         initial_value: float | None = None,
+        translation_key: str | None = None,
     ) -> None:
         """Initialize the number entity.
 
@@ -335,6 +337,7 @@ class PawControlNumberBase(
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{number_type}"
         self._attr_name = f"{dog_name} {number_type.replace('_', ' ').title()}"
+        self._attr_translation_key = translation_key
         self._attr_device_class = device_class
         self._attr_mode = mode
         self._attr_native_unit_of_measurement = native_unit_of_measurement
@@ -534,6 +537,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
             native_step=0.1,
             icon="mdi:scale",
             initial_value=current_weight,
+            translation_key="weight",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -584,13 +588,14 @@ class PawControlDogAgeNumber(PawControlNumberBase):
             dog_name,
             "age",
             mode=NumberMode.BOX,
-            native_unit_of_measurement="years",
+            native_unit_of_measurement=UnitOfTime.YEARS,
             native_min_value=MIN_DOG_AGE,
             native_max_value=MAX_DOG_AGE,
             native_step=1,
             icon="mdi:calendar",
             entity_category=EntityCategory.CONFIG,
             initial_value=current_age,
+            translation_key="age",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -657,12 +662,13 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
             dog_name,
             "daily_food_amount",
             mode=NumberMode.BOX,
-            native_unit_of_measurement="g",
+            native_unit_of_measurement=UnitOfMass.GRAMS,
             native_min_value=50,
             native_max_value=2000,
             native_step=10,
             icon="mdi:food",
             initial_value=300,
+            translation_key="daily_food_amount",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -768,12 +774,13 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
             dog_name,
             "portion_size",
             mode=NumberMode.BOX,
-            native_unit_of_measurement="g",
+            native_unit_of_measurement=UnitOfMass.GRAMS,
             native_min_value=10,
             native_max_value=500,
             native_step=5,
             icon="mdi:food-variant",
             initial_value=150,
+            translation_key="portion_size",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -795,12 +802,13 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
             dog_name,
             "calorie_target",
             mode=NumberMode.BOX,
-            native_unit_of_measurement="kcal",
+            native_unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
             native_min_value=200,
             native_max_value=3000,
             native_step=50,
             icon="mdi:fire",
             initial_value=800,
+            translation_key="calorie_target",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -1179,12 +1187,13 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
             dog_name,
             "vet_checkup_interval",
             mode=NumberMode.BOX,
-            native_unit_of_measurement="months",
+            native_unit_of_measurement=UnitOfTime.MONTHS,
             native_min_value=3,
             native_max_value=24,
             native_step=3,
             icon="mdi:medical-bag",
             initial_value=12,
+            translation_key="vet_checkup_interval",
         )
 
     async def _async_set_number_value(self, value: float) -> None:
