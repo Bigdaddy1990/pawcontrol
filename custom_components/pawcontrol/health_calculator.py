@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import Enum
 from typing import Any, Literal, TypedDict
 
 from homeassistant.util import dt as dt_util
+
+from .utils import ensure_local_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -680,10 +682,7 @@ class HealthCalculator:
         week_ago = now - timedelta(days=7)
 
         for event in feeding_events:
-            event_time = event.get("time")
-            if isinstance(event_time, str):
-                event_time = datetime.fromisoformat(event_time)
-
+            event_time = ensure_local_datetime(event.get("time"))
             if event_time and event_time > week_ago:
                 date_key = event_time.date()
                 if date_key not in recent_days:

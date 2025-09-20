@@ -738,6 +738,48 @@ def format_relative_time(dt: datetime) -> str:
         return f"{months} month{'s' if months > 1 else ''} ago"
 
 
+def ensure_utc_datetime(value: datetime | str | None) -> datetime | None:
+    """Return a timezone-aware UTC datetime from various input formats."""
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        dt_value = value
+    elif isinstance(value, str) and value:
+        dt_value = dt_util.parse_datetime(value)
+        if dt_value is None:
+            date_value = dt_util.parse_date(value)
+            if date_value is None:
+                return None
+            dt_value = datetime.combine(date_value, datetime.min.time())
+    else:
+        return None
+
+    return dt_util.as_utc(dt_value)
+
+
+def ensure_local_datetime(value: datetime | str | None) -> datetime | None:
+    """Return a timezone-aware datetime in the configured local timezone."""
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        dt_value = value
+    elif isinstance(value, str) and value:
+        dt_value = dt_util.parse_datetime(value)
+        if dt_value is None:
+            date_value = dt_util.parse_date(value)
+            if date_value is None:
+                return None
+            dt_value = datetime.combine(date_value, datetime.min.time())
+    else:
+        return None
+
+    return dt_util.as_local(dt_value)
+
+
 def merge_configurations(
     base_config: dict[str, Any],
     user_config: dict[str, Any],

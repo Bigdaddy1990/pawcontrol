@@ -20,6 +20,8 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from .utils import ensure_local_datetime
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -468,17 +470,22 @@ class EnhancedHealthCalculator:
 
         # Medication reminders
         for medication in health_profile.current_medications:
-            if medication.get("next_dose"):
-                next_dose = datetime.fromisoformat(medication["next_dose"])
-                if next_dose <= current_date + timedelta(hours=2):
-                    health_status["priority_alerts"].append(
-                        {
-                            "type": "medication_due",
-                            "message": f"{medication['name']} dose due soon",
-                            "severity": "high",
-                            "action_required": True,
-                        }
-                    )
+            if not medication.get("next_dose"):
+                continue
+
+            next_dose = ensure_local_datetime(medication["next_dose"])
+            if next_dose is None:
+                continue
+
+            if next_dose <= current_date + timedelta(hours=2):
+                health_status["priority_alerts"].append(
+                    {
+                        "type": "medication_due",
+                        "message": f"{medication['name']} dose due soon",
+                        "severity": "high",
+                        "action_required": True,
+                    }
+                )
 
         # Final score adjustment
         health_status["overall_score"] = max(

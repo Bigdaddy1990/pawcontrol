@@ -24,6 +24,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
+from .utils import ensure_utc_datetime
+
 _LOGGER = logging.getLogger(__name__)
 
 # Configuration constants
@@ -68,13 +70,17 @@ class PersonEntityInfo:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PersonEntityInfo:
         """Create from dictionary."""
+        last_updated = ensure_utc_datetime(data["last_updated"])
+        if last_updated is None:
+            last_updated = dt_util.utcnow()
+
         return cls(
             entity_id=data["entity_id"],
             name=data["name"],
             friendly_name=data["friendly_name"],
             state=data["state"],
             is_home=data["is_home"],
-            last_updated=datetime.fromisoformat(data["last_updated"]),
+            last_updated=last_updated,
             mobile_device_id=data.get("mobile_device_id"),
             notification_service=data.get("notification_service"),
             attributes=data.get("attributes", {}),
