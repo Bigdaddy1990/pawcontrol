@@ -260,9 +260,9 @@ class PawControlDateBase(
             "manufacturer": "Paw Control",
             "model": "Smart Dog Management",
             "sw_version": "2025.8.2",
-            "suggested_area": "Pet Area",
             "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }
+        self._attr_suggested_area = f"Pet Area - {dog_name}"
 
     @property
     def native_value(self) -> date | None:
