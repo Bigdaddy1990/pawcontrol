@@ -863,4 +863,3 @@ class PawControlDeviceTracker(
             total_distance += dist * 1000  # Convert km to meters
 
         return total_distance
-
