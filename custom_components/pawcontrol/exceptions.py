@@ -726,6 +726,45 @@ class RateLimitError(PawControlError):
         self.max_count = max_count
 
 
+class NetworkError(PawControlError):
+    """Exception raised when network operations fail."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        endpoint: str | None = None,
+        operation: str | None = None,
+        retryable: bool = True,
+    ) -> None:
+        """Initialize network error."""
+
+        suggestions = [
+            "Check your internet connection",
+            "Verify the PawControl service is reachable",
+        ]
+        if retryable:
+            suggestions.append("Try the operation again later")
+
+        super().__init__(
+            message,
+            error_code="network_error",
+            severity=ErrorSeverity.MEDIUM if retryable else ErrorSeverity.HIGH,
+            category=ErrorCategory.NETWORK,
+            context={
+                "endpoint": endpoint,
+                "operation": operation,
+                "retryable": retryable,
+            },
+            recovery_suggestions=suggestions,
+            user_message="Network communication with PawControl failed",
+        )
+
+        self.endpoint = endpoint
+        self.operation = operation
+        self.retryable = retryable
+
+
 class NotificationError(PawControlError):
     """Exception raised when notification sending fails."""
 
@@ -859,6 +898,7 @@ EXCEPTION_MAP: Final[dict[str, type[PawControlError]]] = {
     "storage_error": StorageError,
     "rate_limit_exceeded": RateLimitError,
     "notification_send_failed": NotificationError,
+    "network_error": NetworkError,
     "data_export_failed": DataExportError,
     "data_import_failed": DataImportError,
     "setup_failed": PawControlSetupError,

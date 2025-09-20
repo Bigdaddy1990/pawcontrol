@@ -720,20 +720,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             hass.config_entries.async_unload_platforms(entry, platforms),
             timeout=30,  # 30 seconds for platform unload
         )
-    except TimeoutError:
+    except (TimeoutError, Exception) as err:
         platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.error(
-            "Platform unload timed out after %.2f seconds",
-            platform_unload_duration,
-        )
-        return False
-    except Exception as err:
-        platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.error(
-            "Error unloading platforms after %.2f seconds: %s",
-            platform_unload_duration,
-            err,
-        )
+        if isinstance(err, TimeoutError):
+            _LOGGER.error(
+                "Platform unload timed out after %.2f seconds",
+                platform_unload_duration,
+            )
+        else:
+            _LOGGER.error(
+                "Error unloading platforms after %.2f seconds: %s",
+                platform_unload_duration,
+                err,
+            )
         return False
 
     platform_unload_duration = time.time() - platform_unload_start
@@ -873,13 +872,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # PLATINUM: Enhanced service manager cleanup
     domain_data = hass.data.get(DOMAIN, {})
     service_manager = domain_data.get("service_manager")
-    if service_manager and not hass.config_entries.async_loaded_entries(DOMAIN):
-        try:
-            await asyncio.wait_for(service_manager.async_shutdown(), timeout=10)
-        except TimeoutError:
-            _LOGGER.warning("Service manager shutdown timed out")
-        except Exception as err:
-            _LOGGER.warning("Error shutting down service manager: %s", err)
+    if service_manager:
+        loaded_entries = hass.config_entries.async_loaded_entries(DOMAIN)
+        # This function is called while the entry is still considered loaded.
+        # So if there's only one loaded entry, it must be this one.
+        if len(loaded_entries) <= 1:
+            try:
+                await asyncio.wait_for(service_manager.async_shutdown(), timeout=10)
+            except TimeoutError:
+                _LOGGER.warning("Service manager shutdown timed out")
+            except Exception as err:
+                _LOGGER.warning("Error shutting down service manager: %s", err)
 
     unload_duration = time.time() - unload_start_time
     _LOGGER.info(
