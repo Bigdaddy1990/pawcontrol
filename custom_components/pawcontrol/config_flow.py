@@ -1747,4 +1747,6 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         Returns:
             Options flow instance
         """
-        return PawControlOptionsFlow(config_entry)
+        flow = PawControlOptionsFlow()
+        flow.initialize_from_config_entry(config_entry)
+        return flow
