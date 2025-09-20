@@ -863,28 +863,3 @@ class PawControlDeviceTracker(
             total_distance += dist * 1000  # Convert km to meters
 
         return total_distance
-
-    @property
-    def state_attributes(self) -> AttributeDict:
-        """Return state attributes for the device tracker.
-
-        Combines base tracker attributes with custom Paw Control attributes
-        for comprehensive tracking information.
-
-        Returns:
-            Complete state attributes dictionary
-        """
-        attrs = super().extra_state_attributes or {}
-
-        # Add coordinate information
-        if self.latitude is not None:
-            attrs[ATTR_LATITUDE] = self.latitude
-        if self.longitude is not None:
-            attrs[ATTR_LONGITUDE] = self.longitude
-        if self.location_accuracy:
-            attrs[ATTR_GPS_ACCURACY] = self.location_accuracy
-
-        # Add source type
-        attrs["source_type"] = self.source_type
-
-        return attrs
