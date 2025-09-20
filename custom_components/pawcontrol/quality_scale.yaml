@@ -1,46 +1,46 @@
 # Home Assistant Quality Scale Configuration for Paw Control
 # https://developers.home-assistant.io/docs/core/integration-quality-scale/
-# Target: Platinum Level
+# Target: Track integration progress against the official quality scale
 
 quality_scale:
-  # Internal requirements (Bronze) ✅
-  has-owner: true  # @BigDaddy1990 in manifest.json
-  config-flow: true  # Comprehensive config flow implemented
-  test-coverage: true  # Tests in tests/ directory
+  # Internal requirements (Bronze)
+  has-owner: true  # Listed in manifest.json
+  config-flow: true  # Config flow implemented
+  test-coverage: false  # Automated coverage metrics still need verification
 
-  # Silver requirements ✅
+  # Silver requirements
   config-flow-discovery: false  # Not applicable for dog management
   docs-actions: true  # Services documented in services.yaml
-  docs-high-level: true  # Comprehensive README.md
-  docs-installation: true  # Setup guide in docs/
+  docs-high-level: true  # High level overview available
+  docs-installation: true  # Setup guide included in docs/
   docs-configuration: true  # Configuration docs available
-  entity-unique-id: true  # All entities use unique IDs
-  integration-setup-errors: true  # Proper error handling in setup
-  log-when-unavailable: true  # Logs when entities unavailable
+  entity-unique-id: true  # Entities expose unique IDs
+  integration-setup-errors: true  # Setup errors handled gracefully
+  log-when-unavailable: true  # Entities log when they become unavailable
 
-  # Gold requirements ✅
-  devices: true  # Creates device for each dog
+  # Gold requirements
+  devices: true  # Creates a device per dog
   diagnostics: true  # diagnostics.py implemented
-  discovery-update-info: false  # Not using discovery
-  discovery-mqtt: false  # Not using MQTT
-  docs-data-update: true  # Coordinator documented
+  discovery-update-info: false  # Discovery not implemented
+  discovery-mqtt: false  # MQTT discovery not implemented
+  docs-data-update: true  # Data update cycle documented
   docs-examples: true  # Example configs in docs/
-  dynamic-devices: true  # Add/remove dogs dynamically
-  entity-unavailable: true  # Proper unavailable states
-  log-invalid-data: true  # Validation and logging
-  parallel-updates: true  # Parallel dog updates in coordinator
-  reauthentication-flow: false  # No auth required
+  dynamic-devices: true  # Dogs can be added/removed dynamically
+  entity-unavailable: true  # Unavailable states handled
+  log-invalid-data: true  # Validation and logging present
+  parallel-updates: true  # Coordinator updates in parallel
+  reauthentication-flow: false  # Re-authentication flow not required
   repair-issues: true  # repairs.py implemented
-  test-before-configure: true  # Validates before config
-  test-before-setup: true  # Tests connections in setup
+  test-before-configure: true  # Input validated before configuration
+  test-before-setup: true  # Connections validated before setup
   unique-config-entry: true  # Unique IDs enforced
 
-  # Platinum requirements ✅
-  async-dependency: true  # Fully async implementation
-  inject-websocket-api: false  # Not required
-  strict-typing: true  # Full type hints throughout
+  # Platinum requirements (pending further work)
+  async-dependency: false
+  inject-websocket-api: false
+  strict-typing: true  # Extensive typing annotations are present
   translations: true  # de.json and en.json provided
-  icon-translations: true  # Entity icons mapped
+  icon-translations: false  # Icon translations not implemented
 
 # Additional quality metrics
 coverage:

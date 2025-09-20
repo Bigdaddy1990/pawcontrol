@@ -3,9 +3,6 @@
 Automatically creates Home Assistant helpers (input_boolean, input_datetime, etc.)
 for feeding schedules, health tracking, and other dog management tasks.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.3+
-Python: 3.13+
 """
 
 from __future__ import annotations

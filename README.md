@@ -1,15 +1,14 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.12%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
-[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Tier-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. Built with enterprise-grade architecture and 96%+ test coverage for production reliability.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows.
 
 ## ✨ Key Features
 
@@ -29,8 +28,8 @@
 ### System Requirements
 
 **Minimum Requirements:**
-- Home Assistant Core 2025.9.1+
-- Python 3.13+
+- Home Assistant Core 2024.12 or later
+- Python 3.12+
 - 512MB available RAM
 - 100MB free storage
 
@@ -48,7 +47,7 @@
    ls /config/custom_components/hacs/
 
    # Check Home Assistant version
-   # Settings → System → General → Version (must be 2025.9.1+)
+   # Settings → System → General → Version (tested with 2024.12+)
    ```
 
 2. **Add PawControl Repository**:
@@ -932,7 +931,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2025.9.1+ integration
+- Tested with Home Assistant 2024.12+
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations
@@ -944,8 +943,8 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Production deployment documentation
 
 **🏆 Quality Achievements**:
-- **Platinum Quality Scale**: Home Assistant Gold Standard
-- **96%+ Test Coverage**: 45 test files covering all modules
+- **Quality Scale Goals**: Tracking progress against Home Assistant's quality guidelines
+- **Test Coverage Goals**: 45 test files covering all modules
 - **HACS Ready**: Full HACS compatibility and publication ready
 - **Production Validated**: Complete deployment documentation
 - **Enterprise Architecture**: Caching, monitoring, error recovery
@@ -980,7 +979,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ### Recognition & Achievements
 
-**🏆 Home Assistant Quality Scale**: **Platinum Tier**
+**🏆 Home Assistant Quality Scale**: **Progress tracked in `quality_scale.yaml`**
 - Exceeds all quality requirements
 - 96%+ comprehensive test coverage
 - Production-ready code quality
@@ -1039,4 +1038,4 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ---
 
-**Production Ready** ✅ | **HACS Compatible** ✅ | **Platinum Quality** ✅ | **96%+ Test Coverage** ✅
+**Production Ready** ✅ | **HACS Compatible** ✅ | **Quality Scale Progress Tracked** ✅ | **Extensive Test Suite** ✅

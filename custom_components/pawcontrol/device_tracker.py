@@ -3,7 +3,7 @@
 This module provides GPS tracking and location monitoring for dogs through
 device tracker entities. It supports real-time location tracking, geofencing,
 route recording, and integration with Home Assistant's map and zone features.
-Designed to meet Home Assistant's Platinum quality standards.
+Designed to meet Home Assistant development guidelines.
 """
 
 from __future__ import annotations
@@ -188,7 +188,7 @@ class PawControlDeviceTracker(
         self._attr_name = f"{dog_name} GPS"
         self._attr_icon = "mdi:dog"
 
-        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
+        # Device info for proper grouping - uses configuration_url support available in HA 2024.12+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,

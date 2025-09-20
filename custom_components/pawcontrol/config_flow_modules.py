@@ -4,9 +4,6 @@ This module handles the configuration of global settings and dashboard preferenc
 after individual dog configuration is complete. The per-dog module selection
 is now handled in config_flow_dogs.py for better granularity.
 
-Quality Scale: Platinum
-Home Assistant: 2025.8.2+
-Python: 3.13+
 """
 
 from __future__ import annotations

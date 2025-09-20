@@ -4,9 +4,6 @@ This module provides comprehensive hardware discovery for dog-related devices
 including GPS trackers, smart feeders, activity monitors, and health devices.
 Supports multiple discovery protocols: USB, Bluetooth, Zeroconf, DHCP, and UPnP.
 
-Quality Scale: Platinum
-Home Assistant: 2025.8.3+
-Python: 3.13+
 """
 
 from __future__ import annotations

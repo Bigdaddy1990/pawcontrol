@@ -1,11 +1,8 @@
 """Coordinator for PawControl integration.
 
 Simplified coordinator with session management and intelligent caching
-for Platinum quality compliance without overengineering.
+for Home Assistant development guidelines compliance without overengineering.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.3+
-Python: 3.13+
 """
 
 from __future__ import annotations
@@ -66,7 +63,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for PawControl integration.
 
     Enhanced coordinator focused on reliability, maintainability and performance
-    while meeting all Platinum quality requirements with specific error handling.
+    while meeting all high quality requirements with specific error handling.
     """
 
     def __init__(
