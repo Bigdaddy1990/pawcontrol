@@ -26,6 +26,15 @@
 - **Portionsüberwachung** und Kalorienzählung
 - **Fütterungshistorie** und Trends
 
+### 🌱 **Garden Tracking & Activities**
+- **Automatische Gartenerkennung** über Türsensoren
+- **Gartengang-Sessions** mit Start/End-Tracking
+- **Aktivitätsprotokollierung** (Spielen, Schnüffeln, Graben, Ruhen)
+- **Intelligente Poop-Erkennung** mit Push-Rückfragen
+- **Wetter-Integration** für Gartensessions
+- **Aufenthaltsdauer-Statistiken** und Verlauf
+- **Automatische Benachrichtigungen** bei Gartenaktivitäten
+
 ### 🏥 **Gesundheitsüberwachung**
 - **Gewichtstracking** mit Trendanalyse
 - **Medikationserinnerungen** mit anpassbaren Zeitplänen
@@ -105,6 +114,14 @@ sensor.buddy_current_speed              # Aktuelle Geschwindigkeit
 sensor.buddy_distance_from_home         # Entfernung von Zuhause
 sensor.buddy_gps_accuracy               # GPS-Genauigkeit
 
+# Garden & Activity Tracking
+sensor.buddy_garden_time_today          # Heutige Gartenzeit
+sensor.buddy_garden_sessions_today      # Gartensessions heute
+sensor.buddy_garden_poop_count_today    # Poop-Events heute
+sensor.buddy_last_garden_session        # Letzte Gartensession
+sensor.buddy_garden_activities_count    # Anzahl Gartenaktivitäten
+sensor.buddy_avg_garden_duration        # Durchschnittliche Gartendauer
+
 # Gesundheit & Aktivität
 sensor.buddy_weight                     # Aktuelles Gewicht
 sensor.buddy_activity_level             # Aktivitätslevel (1-10)
@@ -128,6 +145,7 @@ sensor.buddy_walks_this_week           # Walks diese Woche
 ```yaml
 # Status-Indikatoren
 binary_sensor.buddy_walk_in_progress    # Walk läuft gerade
+binary_sensor.buddy_garden_session_active # Gartensession aktiv
 binary_sensor.buddy_is_home             # Ist zu Hause
 binary_sensor.buddy_in_safe_zone        # In Sicherheitszone
 binary_sensor.buddy_needs_walk          # Braucht Gassi
@@ -146,6 +164,12 @@ binary_sensor.buddy_vet_checkup_due     # Tierarzt-Termin fällig
 button.buddy_start_walk                 # Walk starten
 button.buddy_end_walk                   # Walk beenden
 button.buddy_pause_tracking             # Tracking pausieren
+
+# Garden Tracking
+button.buddy_start_garden_session      # Gartensession starten
+button.buddy_end_garden_session        # Gartensession beenden
+button.buddy_log_garden_activity        # Gartenaktivität protokollieren
+button.buddy_confirm_garden_poop        # Garten-Poop bestätigen
 
 # Fütterung & Pflege
 button.buddy_mark_fed                   # Als gefüttert markieren
@@ -238,6 +262,43 @@ pawcontrol.start_grooming:
     dog_id: "Hund-ID"
     type: "bath, brush, nails, teeth, trim"
     notes: "Notizen zur Pflege"
+```
+
+### Garden Tracking Services
+```yaml
+pawcontrol.start_garden_session:
+  description: "Startet eine Gartensession für den Hund"
+  fields:
+    dog_id: "Hund-ID"
+    detection_method: "manual, door_sensor, auto"
+    weather_conditions: "Optional: Wetterbedingungen"
+    temperature: "Optional: Temperatur in °C"
+
+pawcontrol.end_garden_session:
+  description: "Beendet die aktive Gartensession"
+  fields:
+    dog_id: "Hund-ID"
+    notes: "Optional: Notizen zur Session"
+    activities: "Optional: Liste von Aktivitäten"
+
+pawcontrol.add_garden_activity:
+  description: "Fügt eine Aktivität zur aktiven Gartensession hinzu"
+  fields:
+    dog_id: "Hund-ID"
+    activity_type: "general, poop, play, sniffing, digging, resting"
+    duration_seconds: "Optional: Dauer in Sekunden"
+    location: "Optional: Ort im Garten"
+    notes: "Optional: Notizen zur Aktivität"
+    confirmed: "Optional: Bestätigt (Standard: true)"
+
+pawcontrol.confirm_garden_poop:
+  description: "Bestätigt oder verneint einen Poop-Event im Garten"
+  fields:
+    dog_id: "Hund-ID"
+    confirmed: "true/false - Poop bestätigen oder verneinen"
+    quality: "Optional: excellent, good, normal, soft, loose, watery"
+    size: "Optional: small, normal, large"
+    location: "Optional: Ort im Garten"
 ```
 
 ### System-Services
@@ -358,6 +419,48 @@ notifications:
 
 ## 🎯 Beispiel-Automatisierungen
 
+### Intelligente Garden-Erkennung
+
+```yaml
+automation:
+  - alias: "Smart Garden Detection"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.garden_door
+        to: "on"
+        for: "00:00:30"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.buddy_garden_session_active
+        state: "off"
+      - condition: time
+        after: "06:00:00"
+        before: "22:00:00"
+    action:
+      - service: notify.mobile_app_phone
+        data:
+          title: "🌱 Garten-Erkennung"
+          message: "Buddy ist in den Garten gegangen!"
+          data:
+            actions:
+              - action: "START_GARDEN"
+                title: "Gartensession starten"
+              - action: "NOT_GARDEN"
+                title: "Kein Gartengang"
+
+      # Auto-start nach 1 Minute ohne Antwort
+      - delay: "00:01:00"
+      - condition: state
+        entity_id: binary_sensor.buddy_garden_session_active
+        state: "off"
+      - service: pawcontrol.start_garden_session
+        data:
+          dog_id: "buddy"
+          detection_method: "door_sensor"
+          weather_conditions: "{{ states('weather.home') }}"
+          temperature: "{{ states('sensor.outdoor_temperature') | float }}"
+```
+
 ### Intelligente Walk-Erkennung
 
 ```yaml
@@ -446,6 +549,59 @@ automation:
                   message: "Warten Sie auf kühleres Wetter (aktuell {{ states('sensor.temperature') }}°C)"
 ```
 
+### Garden Poop Confirmation Automation
+
+```yaml
+automation:
+  - alias: "Garden Poop Confirmation"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.buddy_garden_session_active
+        to: "on"
+        for: "00:03:00"  # Nach 3 Minuten im Garten
+    condition:
+      - condition: template
+        value_template: "{{ states('sensor.buddy_garden_poop_count_today') | int == 0 }}"
+    action:
+      - service: notify.mobile_app_phone
+        data:
+          title: "💩 Poop Check"
+          message: "Hat Buddy im Garten sein Geschäft erledigt?"
+          data:
+            actions:
+              - action: "CONFIRM_GARDEN_POOP"
+                title: "✅ Ja, hatte Poop"
+              - action: "DENY_GARDEN_POOP"
+                title: "❌ Nein, kein Poop"
+            timeout: 300  # 5 Minuten Timeout
+
+  - alias: "Handle Garden Poop Confirmation"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "CONFIRM_GARDEN_POOP"
+    action:
+      - service: pawcontrol.confirm_garden_poop
+        data:
+          dog_id: "buddy"
+          confirmed: true
+          quality: "normal"
+          size: "normal"
+
+  - alias: "Handle Garden Poop Denial"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "DENY_GARDEN_POOP"
+    action:
+      - service: pawcontrol.confirm_garden_poop
+        data:
+          dog_id: "buddy"
+          confirmed: false
+```
+
 ### Gesundheits-Monitoring
 
 ```yaml
@@ -507,6 +663,10 @@ cards:
         name: "Walk Status"
         icon: "mdi:walk"
       - type: custom:mushroom-entity-card
+        entity: binary_sensor.buddy_garden_session_active
+        name: "Garten Status"
+        icon: "mdi:flower"
+      - type: custom:mushroom-entity-card
         entity: sensor.buddy_last_walk_hours
         name: "Letzter Walk"
         icon: "mdi:clock"
@@ -525,6 +685,14 @@ cards:
           service: pawcontrol.gps_start_walk
           service_data:
             dog_id: "buddy"
+      - type: custom:mushroom-entity-card
+        entity: button.buddy_start_garden_session
+        tap_action:
+          action: call-service
+          service: pawcontrol.start_garden_session
+          service_data:
+            dog_id: "buddy"
+            detection_method: "manual"
       - type: custom:mushroom-entity-card
         entity: button.buddy_mark_fed
         tap_action:
@@ -547,6 +715,26 @@ cards:
         - sensor.buddy_walk_duration_current
         - sensor.buddy_current_speed
         - device_tracker.buddy_gps
+
+  # Current Garden Session (conditional)
+  - type: conditional
+    conditions:
+      - entity: binary_sensor.buddy_garden_session_active
+        state: "on"
+    card:
+      type: entities
+      title: "🌱 Aktuelle Gartensession"
+      entities:
+        - sensor.buddy_garden_time_today
+        - sensor.buddy_garden_activities_count
+        - sensor.buddy_garden_poop_count_today
+      footer:
+        type: buttons
+        entities:
+          - entity: button.buddy_log_garden_activity
+            name: "Aktivität protokollieren"
+          - entity: button.buddy_end_garden_session
+            name: "Session beenden"
 
   # Statistics
   - type: custom:apexcharts-card
