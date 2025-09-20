@@ -345,9 +345,8 @@ class OptimizedEntityBase(
 
         info = super()._device_link_details()
         dog_data = self._get_dog_data_cached()
-
-        if dog_data and (dog_info := dog_data.get("dog_info")):
             if dog_breed := dog_info.get("dog_breed"):
+                info["breed"] = dog_breed
                 info["model"] = (
                     f"{info.get('model', 'Smart Dog Monitoring')} - {dog_breed}"
                 )
