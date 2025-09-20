@@ -1,6 +1,4 @@
-"""Ultra-optimized data management for PawControl with adaptive caching.
-
-"""
+"""Ultra-optimized data management for PawControl with adaptive caching."""
 
 from __future__ import annotations
 
