@@ -38,7 +38,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
-from .utils import create_device_info, ensure_utc_datetime
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -348,7 +348,9 @@ def _log_setup_metrics(
     )
 
 
-class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntity):
+class PawControlSensorBase(
+    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], SensorEntity
+):
     """Base sensor class with optimized data access and thread-safe caching."""
 
     _attr_should_poll = False
@@ -382,8 +384,8 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
-        self._attr_device_info = create_device_info(dog_id, dog_name)
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching system
         self._data_cache: dict[str, Any] = {}

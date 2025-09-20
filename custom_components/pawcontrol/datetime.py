@@ -26,7 +26,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .utils import ensure_utc_datetime
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,7 +153,10 @@ async def async_setup_entry(
 
 
 class PawControlDateTimeBase(
-    CoordinatorEntity[PawControlCoordinator], DateTimeEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    DateTimeEntity,
+    RestoreEntity,
 ):
     """Base class for Paw Control datetime entities."""
 
@@ -174,15 +177,12 @@ class PawControlDateTimeBase(
         self._attr_unique_id = f"pawcontrol_{dog_id}_{datetime_type}"
         self._attr_name = f"{dog_name} {datetime_type.replace('_', ' ').title()}"
 
-        # Device info - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog",
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+        )
 
     @property
     def native_value(self) -> datetime | None:

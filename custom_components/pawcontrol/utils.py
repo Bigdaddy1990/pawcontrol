@@ -14,15 +14,18 @@ import asyncio
 import hashlib
 import logging
 import re
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
 from typing import Any, ParamSpec, TypedDict, TypeVar, cast
 
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,13 +46,36 @@ class PortionValidationResult(TypedDict):
     percentage_of_daily: float
 
 
-def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
+def create_device_info(
+    dog_id: str,
+    dog_name: str,
+    *,
+    manufacturer: str = MANUFACTURER,
+    model: str = DEFAULT_MODEL,
+    sw_version: str | None = None,
+    configuration_url: str | None = None,
+    breed: str | None = None,
+    microchip_id: str | None = None,
+    serial_number: str | None = None,
+    hw_version: str | None = None,
+    suggested_area: str | None = None,
+    extra_identifiers: Iterable[tuple[str, str]] | None = None,
+) -> DeviceInfo:
     """Create device info for a dog entity.
 
     Args:
         dog_id: Unique dog identifier
         dog_name: Display name for the dog
-        **kwargs: Additional device info parameters
+        manufacturer: Manufacturer name for the device entry
+        model: Model string for the device entry
+        sw_version: Optional software version metadata
+        configuration_url: Optional configuration URL for the device
+        breed: Optional breed information used to enrich the model string
+        microchip_id: Optional microchip identifier used for device identifiers
+        serial_number: Optional serial number metadata
+        hw_version: Optional hardware version metadata
+        suggested_area: Optional suggested area assignment for the device
+        extra_identifiers: Optional iterable of additional identifiers
 
     Returns:
         DeviceInfo dictionary for Home Assistant device registry
@@ -57,34 +83,230 @@ def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
     # Sanitize dog_id for device identifier
     sanitized_id = sanitize_dog_id(dog_id)
 
-    device_info: DeviceInfo = {
-        "identifiers": {(DOMAIN, sanitized_id)},
-        "name": dog_name,
-        "manufacturer": "PawControl",
-        "model": "Virtual Dog",
-        "sw_version": kwargs.get("sw_version", "1.0.0"),
-    }
+    identifiers: set[tuple[str, str]] = {(DOMAIN, sanitized_id)}
 
-    # Add optional device info
-    if kwargs.get("breed"):
-        device_info["model"] = f"Virtual Dog ({kwargs['breed']})"
+    if extra_identifiers:
+        identifiers.update(extra_identifiers)
 
-    microchip_id = kwargs.get("microchip_id")
     if microchip_id is not None:
         sanitized_microchip = sanitize_microchip_id(str(microchip_id))
         if sanitized_microchip:
-            device_info["identifiers"].add(("microchip", sanitized_microchip))
+            identifiers.add(("microchip", sanitized_microchip))
 
-    if kwargs.get("serial_number"):
-        device_info["serial_number"] = str(kwargs["serial_number"])
+    computed_model = f"{model} ({breed})" if breed else model
 
-    if kwargs.get("hw_version"):
-        device_info["hw_version"] = str(kwargs["hw_version"])
+    device_info: DeviceInfo = {
+        "identifiers": identifiers,
+        "name": dog_name,
+        "manufacturer": manufacturer,
+        "model": computed_model,
+    }
 
-    if "configuration_url" in kwargs:
-        device_info["configuration_url"] = kwargs["configuration_url"]
+    if sw_version:
+        device_info["sw_version"] = sw_version
+
+    if configuration_url:
+        device_info["configuration_url"] = configuration_url
+
+    if serial_number:
+        device_info["serial_number"] = str(serial_number)
+
+    if hw_version:
+        device_info["hw_version"] = str(hw_version)
+
+    if suggested_area:
+        device_info["suggested_area"] = suggested_area
 
     return device_info
+
+
+async def async_get_or_create_dog_device_entry(
+    hass: HomeAssistant,
+    *,
+    config_entry_id: str,
+    dog_id: str,
+    dog_name: str,
+    manufacturer: str = MANUFACTURER,
+    model: str = DEFAULT_MODEL,
+    sw_version: str | None = None,
+    configuration_url: str | None = None,
+    breed: str | None = None,
+    microchip_id: str | None = None,
+    suggested_area: str | None = None,
+    serial_number: str | None = None,
+    hw_version: str | None = None,
+    extra_identifiers: Iterable[tuple[str, str]] | None = None,
+) -> DeviceEntry:
+    """Link a dog to a device registry entry and return it."""
+
+    device_info = create_device_info(
+        dog_id,
+        dog_name,
+        manufacturer=manufacturer,
+        model=model,
+        sw_version=sw_version,
+        configuration_url=configuration_url,
+        breed=breed,
+        microchip_id=microchip_id,
+        suggested_area=suggested_area,
+        serial_number=serial_number,
+        hw_version=hw_version,
+        extra_identifiers=extra_identifiers,
+    )
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry_id,
+        identifiers=device_info["identifiers"],
+        manufacturer=device_info["manufacturer"],
+        model=device_info["model"],
+        name=device_info["name"],
+        sw_version=device_info.get("sw_version"),
+        configuration_url=device_info.get("configuration_url"),
+    )
+
+    if suggested_area := device_info.get("suggested_area"):
+        try:
+            if updated_device := device_registry.async_update_device(
+                device.id, suggested_area=suggested_area
+            ):
+                device = updated_device
+        except Exception as err:  # pragma: no cover - defensive, HA guarantees API
+            _LOGGER.warning(
+                "Unable to set suggested area for %s (%s): %s", dog_name, dog_id, err
+            )
+
+    update_kwargs: dict[str, Any] = {}
+    if serial_number := device_info.get("serial_number"):
+        update_kwargs["serial_number"] = serial_number
+    if hw_version := device_info.get("hw_version"):
+        update_kwargs["hw_version"] = hw_version
+
+    if update_kwargs and (
+        updated_device := device_registry.async_update_device(
+            device.id, **update_kwargs
+        )
+    ):
+        device = updated_device
+
+    return device
+
+
+class PawControlDeviceLinkMixin:
+    """Mixin providing device registry linking for PawControl entities."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Set up default device link metadata."""
+
+        super().__init__(*args, **kwargs)
+        self._device_link_defaults: dict[str, Any] = {
+            "manufacturer": MANUFACTURER,
+            "model": DEFAULT_MODEL,
+            "sw_version": "1.0.0",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+        }
+        self._linked_device_entry: DeviceEntry | None = None
+        self._device_link_initialized = False
+
+    def _set_device_link_info(self, **info: Any) -> None:
+        """Update device link metadata used when creating the device entry."""
+
+        self._device_link_defaults.update(info)
+
+    def _device_link_details(self) -> dict[str, Any]:
+        """Return a copy of the device metadata for linking."""
+
+        return dict(self._device_link_defaults)
+
+    # Home Assistant's cooperative multiple inheritance confuses type checkers
+    # about the precise async_added_to_hass signature, so we silence the
+    # override warning here.
+    async def async_added_to_hass(self) -> None:  # type: ignore[override]
+        """Link entity to device entry after regular setup."""
+
+        # CoordinatorEntity and RestoreEntity expose incompatible type hints for
+        # async_added_to_hass(), so we silence the mismatch on the cooperative
+        # super() call used by Home Assistant's entity model.
+        await super().async_added_to_hass()  # type: ignore[misc]
+        await self._async_link_device_entry()
+
+    @property
+    def device_info(self) -> DeviceInfo | None:
+        """Return device metadata for entity registry registration."""
+
+        dog_id = getattr(self, "_dog_id", None)
+        dog_name = getattr(self, "_dog_name", None)
+        if not dog_id or not dog_name:
+            return None
+
+        info = self._device_link_details()
+        suggested_area = info.get("suggested_area") or getattr(
+            self, "_attr_suggested_area", None
+        )
+
+        return create_device_info(
+            dog_id,
+            dog_name,
+            manufacturer=info.get("manufacturer", MANUFACTURER),
+            model=info.get("model", DEFAULT_MODEL),
+            sw_version=info.get("sw_version"),
+            configuration_url=info.get("configuration_url"),
+            breed=info.get("breed"),
+            microchip_id=info.get("microchip_id"),
+            serial_number=info.get("serial_number"),
+            hw_version=info.get("hw_version"),
+            suggested_area=suggested_area,
+            extra_identifiers=cast(
+                Iterable[tuple[str, str]] | None, info.get("extra_identifiers")
+            ),
+        )
+
+    async def _async_link_device_entry(self) -> None:
+        """Create or fetch the device entry and attach it to the entity."""
+
+        if self._device_link_initialized:
+            return
+
+        hass: HomeAssistant | None = getattr(self, "hass", None)
+        coordinator = getattr(self, "coordinator", None)
+        if hass is None or coordinator is None:
+            return
+
+        config_entry = getattr(coordinator, "config_entry", None)
+        dog_id = getattr(self, "_dog_id", None)
+        dog_name = getattr(self, "_dog_name", None)
+
+        if config_entry is None or dog_id is None or dog_name is None:
+            return
+
+        try:
+            device = await async_get_or_create_dog_device_entry(
+                hass,
+                config_entry_id=config_entry.entry_id,
+                dog_id=dog_id,
+                dog_name=dog_name,
+                **self._device_link_details(),
+            )
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to link PawControl entity %s to device: %s",
+                getattr(self, "entity_id", f"pawcontrol_{dog_id}"),
+                err,
+            )
+            return
+
+        self.device_entry = device
+        self._linked_device_entry = device
+        self._device_link_initialized = True
+
+        if self.entity_id:
+            entity_registry = er.async_get(hass)
+            entity_entry = entity_registry.async_get(self.entity_id)
+            if entity_entry and entity_entry.device_id != device.id:
+                entity_registry.async_update_entity(
+                    self.entity_id,
+                    device_id=device.id,
+                )
 
 
 def deep_merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:

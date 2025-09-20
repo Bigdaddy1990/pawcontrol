@@ -41,7 +41,7 @@ from .const import (
     MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
-from .utils import ensure_utc_datetime
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,7 +155,10 @@ async def async_setup_entry(
 
 
 class PawControlDeviceTracker(
-    CoordinatorEntity[PawControlCoordinator], TrackerEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    TrackerEntity,
+    RestoreEntity,
 ):
     """Device tracker entity for dog GPS location tracking.
 
@@ -188,15 +191,12 @@ class PawControlDeviceTracker(
         self._attr_name = f"{dog_name} GPS"
         self._attr_icon = "mdi:dog"
 
-        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog GPS Tracker",
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog GPS Tracker",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+        )
 
         # Internal state
         self._last_known_location: LocationTuple | None = None

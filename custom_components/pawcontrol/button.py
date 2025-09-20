@@ -44,7 +44,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .types import PawControlConfigEntry
-from .utils import create_device_info
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -508,7 +508,9 @@ async def async_setup_entry(
     )
 
 
-class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntity):
+class PawControlButtonBase(
+    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], ButtonEntity
+):
     """Optimized base button class with thread-safe caching and improved performance."""
 
     _attr_should_poll = False
@@ -540,8 +542,8 @@ class PawControlButtonBase(CoordinatorEntity[PawControlCoordinator], ButtonEntit
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
-        self._attr_device_info = create_device_info(dog_id, dog_name)
+        # Link to virtual PawControl device for the dog
+        self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching
         self._dog_data_cache: dict[str, Any] = {}

@@ -42,6 +42,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -308,7 +309,10 @@ async def async_setup_entry(
 
 
 class OptimizedSwitchBase(
-    CoordinatorEntity[PawControlCoordinator], SwitchEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    SwitchEntity,
+    RestoreEntity,
 ):
     """Optimized base switch class with enhanced caching and state management."""
 
@@ -347,15 +351,12 @@ class OptimizedSwitchBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Monitoring",
-            "sw_version": "1.1.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog Monitoring",
+            sw_version="1.1.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+        )
 
     async def async_added_to_hass(self) -> None:
         """Restore state when added with enhanced logging."""

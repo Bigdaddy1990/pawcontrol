@@ -41,6 +41,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -217,7 +218,10 @@ async def async_setup_entry(
 
 
 class PawControlDateBase(
-    CoordinatorEntity[PawControlCoordinator], DateEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    DateEntity,
+    RestoreEntity,
 ):
     """Base class for Paw Control date entities.
 
@@ -253,7 +257,6 @@ class PawControlDateBase(
         self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
         self._attr_icon = icon
 
-        # Device association for proper grouping in UI - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,

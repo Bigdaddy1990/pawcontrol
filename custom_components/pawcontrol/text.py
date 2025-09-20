@@ -26,6 +26,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -211,7 +212,10 @@ async def async_setup_entry(
 
 
 class PawControlTextBase(
-    CoordinatorEntity[PawControlCoordinator], TextEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    TextEntity,
+    RestoreEntity,
 ):
     """Base class for Paw Control text entities."""
 
@@ -236,15 +240,12 @@ class PawControlTextBase(
         self._attr_native_max = max_length
         self._attr_mode = mode
 
-        # Device info - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog",
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+        )
 
     @property
     def native_value(self) -> str:

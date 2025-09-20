@@ -34,15 +34,14 @@ from typing import Any, ClassVar, Final
 
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID, ATTR_DOG_NAME, DOMAIN
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .utils import ensure_utc_datetime
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +49,6 @@ _LOGGER = logging.getLogger(__name__)
 CACHE_TTL_SECONDS: Final[dict[str, int]] = {
     "state": 30,  # Entity state cache TTL
     "attributes": 60,  # Attribute cache TTL
-    "device_info": 300,  # Device info cache TTL (5 minutes)
     "availability": 10,  # Availability cache TTL
 }
 
@@ -64,7 +62,6 @@ MEMORY_OPTIMIZATION: Final[dict[str, Any]] = {
 # Global caches with memory management
 _STATE_CACHE: dict[str, tuple[Any, float]] = {}
 _ATTRIBUTES_CACHE: dict[str, tuple[dict[str, Any], float]] = {}
-_DEVICE_INFO_CACHE: dict[str, tuple[DeviceInfo, float]] = {}
 _AVAILABILITY_CACHE: dict[str, tuple[bool, float]] = {}
 
 # Performance tracking with weak references to prevent memory leaks
@@ -163,7 +160,6 @@ def _cleanup_global_caches() -> None:
     for cache_name, (cache_dict, ttl) in [
         ("state", (_STATE_CACHE, CACHE_TTL_SECONDS["state"])),
         ("attributes", (_ATTRIBUTES_CACHE, CACHE_TTL_SECONDS["attributes"])),
-        ("device_info", (_DEVICE_INFO_CACHE, CACHE_TTL_SECONDS["device_info"])),
         ("availability", (_AVAILABILITY_CACHE, CACHE_TTL_SECONDS["availability"])),
     ]:
         original_size = len(cache_dict)
@@ -203,7 +199,9 @@ def _cleanup_global_caches() -> None:
         )
 
 
-class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntity):
+class OptimizedEntityBase(
+    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], RestoreEntity
+):
     """Optimized base entity with advanced performance features.
 
     This base class provides comprehensive optimization features including:
@@ -287,6 +285,15 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
             unique_id_suffix, name_suffix, device_class, entity_category, icon
         )
 
+        # Prepare default device link information for the dog
+        self._set_device_link_info(
+            model="Smart Dog Monitoring System",
+            sw_version="2.1.0",
+            configuration_url=(
+                f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{dog_id}"
+            ),
+        )
+
         # Register entity for cleanup tracking
         _ENTITY_REGISTRY.add(weakref.ref(self))
 
@@ -332,6 +339,19 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
         self._attr_should_poll = False
         # Default suggested area follows updated HA guidance using entity property
         self._attr_suggested_area = f"Pet Area - {self._dog_name}"
+
+    def _device_link_details(self) -> dict[str, Any]:
+        """Extend base device metadata with dynamic dog information."""
+
+        info = super()._device_link_details()
+        dog_data = self._get_dog_data_cached()
+        if dog_data and (dog_info := dog_data.get("dog_info")):
+            if dog_breed := dog_info.get("dog_breed"):
+                info["breed"] = dog_breed
+            if dog_age := dog_info.get("dog_age"):
+                info["suggested_area"] = f"Pet Area - {self._dog_name} ({dog_age}yo)"
+
+        return info
 
     @classmethod
     def _get_or_create_tracker(cls, entity_key: str) -> PerformanceTracker:
@@ -405,56 +425,6 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
         """
         # Base implementation - subclasses can override for specific logic
         pass
-
-    @property
-    def device_info(self) -> DeviceInfo | None:
-        """Return optimized device information with caching.
-
-        Returns:
-            DeviceInfo dictionary for proper device grouping
-        """
-        cache_key = f"device_{self._dog_id}"
-        now = dt_util.utcnow().timestamp()
-
-        # Check cache first
-        if cache_key in _DEVICE_INFO_CACHE:
-            cached_info, cache_time = _DEVICE_INFO_CACHE[cache_key]
-            if now - cache_time < CACHE_TTL_SECONDS["device_info"]:
-                self._performance_tracker.record_cache_hit()
-                return cached_info
-
-        # Generate device info
-        device_info: DeviceInfo = {
-            "identifiers": {(DOMAIN, self._dog_id)},
-            "name": self._dog_name,
-            "manufacturer": "PawControl",
-            "model": "Smart Dog Monitoring System",
-            "sw_version": "2.1.0",
-            "configuration_url": f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{self._dog_id}",
-        }
-
-        # Add additional info if available
-        dog_data = self._get_dog_data_cached()
-        suggested_area: str | None = None
-
-        if dog_data and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]
-            if dog_breed := dog_info.get("dog_breed"):
-                device_info["model"] = f"Smart Dog Monitoring - {dog_breed}"
-            if dog_age := dog_info.get("dog_age"):
-                suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
-
-        if (
-            suggested_area
-            and getattr(self, "_attr_suggested_area", None) != suggested_area
-        ):
-            self._attr_suggested_area = suggested_area
-
-        # Cache the result
-        _DEVICE_INFO_CACHE[cache_key] = (device_info, now)
-        self._performance_tracker.record_cache_miss()
-
-        return device_info
 
     @property
     def available(self) -> bool:
@@ -725,7 +695,6 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
             for cache in [
                 _STATE_CACHE,
                 _ATTRIBUTES_CACHE,
-                _DEVICE_INFO_CACHE,
                 _AVAILABILITY_CACHE,
             ]
             for key, value in cache.items()
@@ -1068,7 +1037,6 @@ def get_global_performance_stats() -> dict[str, Any]:
     cache_stats = {
         "state_cache_size": len(_STATE_CACHE),
         "attributes_cache_size": len(_ATTRIBUTES_CACHE),
-        "device_info_cache_size": len(_DEVICE_INFO_CACHE),
         "availability_cache_size": len(_AVAILABILITY_CACHE),
     }
 
