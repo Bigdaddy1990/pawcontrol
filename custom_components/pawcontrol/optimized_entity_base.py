@@ -39,7 +39,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID, ATTR_DOG_NAME, DOMAIN
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .utils import PawControlDeviceLinkMixin
 
