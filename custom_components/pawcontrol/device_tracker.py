@@ -41,7 +41,7 @@ from .const import (
     MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 

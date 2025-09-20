@@ -39,7 +39,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
