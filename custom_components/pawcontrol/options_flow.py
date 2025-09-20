@@ -444,9 +444,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Get description placeholders with caching for better performance."""
 
         current_dogs = self._entry.data.get(CONF_DOGS, [])
-        current_profile = self._entry.options.get(
-            "entity_profile", DEFAULT_PROFILE
-        )
+        current_profile = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
         cache_key = (
             f"{current_profile}_{len(current_dogs)}_"
             f"{hash(json.dumps(current_dogs, sort_keys=True))}"
@@ -1146,9 +1144,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_data = {**self._entry.data}
                 new_data[CONF_DOGS] = current_dogs
 
-                self.hass.config_entries.async_update_entry(
-                    self._entry, data=new_data
-                )
+                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
                 return await self.async_step_init()
             except Exception as err:
@@ -1376,9 +1372,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_data = {**self._entry.data}
                 new_data[CONF_DOGS] = updated_dogs
 
-                self.hass.config_entries.async_update_entry(
-                    self._entry, data=new_data
-                )
+                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
 
             return await self.async_step_init()
 
