@@ -17,11 +17,12 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_track_state_change_event,
 )
+from homeassistant.helpers.typing import CALLBACK_TYPE
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -162,7 +163,7 @@ class DoorSensorManager:
         # Configuration and state tracking
         self._sensor_configs: dict[str, DoorSensorConfig] = {}
         self._detection_states: dict[str, WalkDetectionState] = {}
-        self._state_listeners: list[callable] = []
+        self._state_listeners: list[CALLBACK_TYPE] = []
         self._cleanup_task: asyncio.Task | None = None
 
         # Dependencies (injected during initialization)
@@ -292,15 +293,16 @@ class DoorSensorManager:
         sensor_entities = [config.entity_id for config in self._sensor_configs.values()]
 
         # Track state changes for all door sensors
-        async def handle_state_change(event):
+        async def handle_state_change(
+            event: Event[EventStateChangedData],
+        ) -> None:
             await self._handle_door_state_change(event)
 
         # Register state change listener
-        self._state_listeners.append(
-            async_track_state_change_event(
-                self.hass, sensor_entities, handle_state_change
-            )
+        listener = async_track_state_change_event(
+            self.hass, sensor_entities, handle_state_change
         )
+        self._state_listeners.append(listener)
 
         # Start cleanup task
         if not self._cleanup_task:
@@ -308,8 +310,9 @@ class DoorSensorManager:
 
         _LOGGER.debug("Started monitoring %d door sensors", len(sensor_entities))
 
-    @callback
-    async def _handle_door_state_change(self, event) -> None:
+    async def _handle_door_state_change(
+        self, event: Event[EventStateChangedData]
+    ) -> None:
         """Handle door sensor state changes.
 
         Args:
@@ -828,8 +831,7 @@ class DoorSensorManager:
         """Stop monitoring door sensors."""
         # Cancel all listeners
         for listener in self._state_listeners:
-            if callable(listener):
-                listener()
+            listener()
         self._state_listeners.clear()
 
         # Cancel cleanup task
