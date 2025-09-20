@@ -443,7 +443,10 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
             if dog_age := dog_info.get("dog_age"):
                 suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
 
-        if suggested_area and getattr(self, "_attr_suggested_area", None) != suggested_area:
+        if (
+            suggested_area
+            and getattr(self, "_attr_suggested_area", None) != suggested_area
+        ):
             self._attr_suggested_area = suggested_area
 
         # Cache the result
