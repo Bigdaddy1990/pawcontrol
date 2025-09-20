@@ -1228,7 +1228,7 @@ class WalkManager:
                 "Exported %d route(s) for %s in %s format",
                 len(recent_walks),
                 dog_id,
-                format
+                format,
             )
 
             return export_data
@@ -1252,8 +1252,8 @@ class WalkManager:
             start_time = walk.get("start_time", "")
 
             gpx_lines.append(f'  <trk name="{walk_id}">')
-            gpx_lines.append(f'    <time>{start_time}</time>')
-            gpx_lines.append('    <trkseg>')
+            gpx_lines.append(f"    <time>{start_time}</time>")
+            gpx_lines.append("    <trkseg>")
 
             for point in walk.get("path", []):
                 lat = point.get("latitude")
@@ -1263,18 +1263,16 @@ class WalkManager:
 
                 if lat is not None and lon is not None:
                     ele_attr = f' ele="{alt}"' if alt is not None else ""
-                    gpx_lines.append(
-                        f'      <trkpt lat="{lat}" lon="{lon}"{ele_attr}>'
-                    )
+                    gpx_lines.append(f'      <trkpt lat="{lat}" lon="{lon}"{ele_attr}>')
                     if timestamp:
-                        gpx_lines.append(f'        <time>{timestamp}</time>')
-                    gpx_lines.append('      </trkpt>')
+                        gpx_lines.append(f"        <time>{timestamp}</time>")
+                    gpx_lines.append("      </trkpt>")
 
-            gpx_lines.append('    </trkseg>')
-            gpx_lines.append('  </trk>')
+            gpx_lines.append("    </trkseg>")
+            gpx_lines.append("  </trk>")
 
-        gpx_lines.append('</gpx>')
-        return '\n'.join(gpx_lines)
+        gpx_lines.append("</gpx>")
+        return "\n".join(gpx_lines)
 
     def _generate_csv_data(self, walks: list[dict[str, Any]]) -> str:
         """Generate CSV format data from walks.
@@ -1285,9 +1283,7 @@ class WalkManager:
         Returns:
             CSV formatted string
         """
-        csv_lines = [
-            "walk_id,timestamp,latitude,longitude,altitude,accuracy,speed"
-        ]
+        csv_lines = ["walk_id,timestamp,latitude,longitude,altitude,accuracy,speed"]
 
         for walk in walks:
             walk_id = walk.get("walk_id", "unknown")
@@ -1304,7 +1300,7 @@ class WalkManager:
                     f"{walk_id},{timestamp},{lat},{lon},{alt},{acc},{speed}"
                 )
 
-        return '\n'.join(csv_lines)
+        return "\n".join(csv_lines)
 
     async def async_shutdown(self) -> None:
         """Enhanced shutdown method."""

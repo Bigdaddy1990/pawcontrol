@@ -113,7 +113,8 @@ def _cleanup_platform_cache() -> None:
     """Clean up expired cache entries to prevent memory growth."""
     now = time.time()
     expired_keys = [
-        key for key, (_, timestamp) in _PLATFORM_CACHE.items()
+        key
+        for key, (_, timestamp) in _PLATFORM_CACHE.items()
         if now - timestamp > _CACHE_TTL_SECONDS
     ]
 
@@ -125,7 +126,7 @@ def _cleanup_platform_cache() -> None:
         # Remove oldest entries
         sorted_entries = sorted(
             _PLATFORM_CACHE.items(),
-            key=lambda x: x[1][1]  # Sort by timestamp
+            key=lambda x: x[1][1],  # Sort by timestamp
         )
         excess_count = len(_PLATFORM_CACHE) - _MAX_CACHE_SIZE
         for key, _ in sorted_entries[:excess_count]:
@@ -219,9 +220,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 
 async def _async_initialize_manager_with_timeout(
-    manager_name: str,
-    coro: Any,
-    timeout: int = _MANAGER_INIT_TIMEOUT
+    manager_name: str, coro: Any, timeout: int = _MANAGER_INIT_TIMEOUT
 ) -> None:
     """Initialize a manager with timeout and proper error handling.
 
@@ -238,17 +237,13 @@ async def _async_initialize_manager_with_timeout(
     try:
         await asyncio.wait_for(coro, timeout=timeout)
         duration = time.time() - start_time
-        _LOGGER.debug(
-            "Initialized %s in %.2f seconds",
-            manager_name,
-            duration
-        )
+        _LOGGER.debug("Initialized %s in %.2f seconds", manager_name, duration)
     except TimeoutError:
         duration = time.time() - start_time
         _LOGGER.error(
             "Manager %s initialization timed out after %.2f seconds",
             manager_name,
-            duration
+            duration,
         )
         raise
     except Exception as err:
@@ -257,7 +252,7 @@ async def _async_initialize_manager_with_timeout(
             "Manager %s initialization failed after %.2f seconds: %s",
             manager_name,
             duration,
-            err
+            err,
         )
         raise
 
@@ -287,14 +282,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             raise ConfigurationError(
                 "dogs_configuration",
                 dogs_config_raw,
-                "No dogs configured in integration setup"
+                "No dogs configured in integration setup",
             )
 
         if not isinstance(dogs_config_raw, list):
             raise ConfigurationError(
                 "dogs_configuration",
                 type(dogs_config_raw).__name__,
-                "Dogs configuration must be a list"
+                "Dogs configuration must be a list",
             )
 
         # PLATINUM: Validate each dog config with specific errors
@@ -304,7 +299,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 raise ConfigurationError(
                     f"dog_config_{i}",
                     dog,
-                    f"Invalid dog configuration at index {i}: missing or invalid dog_id"
+                    f"Invalid dog configuration at index {i}: missing or invalid dog_id",
                 )
             dogs_config.append(dog)
 
@@ -338,7 +333,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
             # Initialize geofencing manager if GPS module is enabled for any dog
             geofencing_manager = None
-            if any(dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs_config):
+            if any(
+                dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs_config
+            ):
                 geofencing_manager = PawControlGeofencing(hass, entry.entry_id)
                 _LOGGER.debug("Geofencing manager created for GPS-enabled dogs")
             else:
@@ -350,17 +347,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             ) from err
 
         manager_init_duration = time.time() - manager_init_start
-        _LOGGER.debug("Manager creation completed in %.2f seconds", manager_init_duration)
+        _LOGGER.debug(
+            "Manager creation completed in %.2f seconds", manager_init_duration
+        )
 
         # PLATINUM: Enhanced coordinator refresh with timeout
         coordinator_start = time.time()
         try:
             await asyncio.wait_for(
                 coordinator.async_config_entry_first_refresh(),
-                timeout=_COORDINATOR_REFRESH_TIMEOUT
+                timeout=_COORDINATOR_REFRESH_TIMEOUT,
             )
             coordinator_duration = time.time() - coordinator_start
-            _LOGGER.debug("Coordinator refresh completed in %.2f seconds", coordinator_duration)
+            _LOGGER.debug(
+                "Coordinator refresh completed in %.2f seconds", coordinator_duration
+            )
         except TimeoutError as err:
             coordinator_duration = time.time() - coordinator_start
             raise ConfigEntryNotReady(
@@ -378,24 +379,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         try:
             initialization_tasks = [
                 _async_initialize_manager_with_timeout(
-                    "data_manager",
-                    data_manager.async_initialize()
+                    "data_manager", data_manager.async_initialize()
                 ),
                 _async_initialize_manager_with_timeout(
-                    "notification_manager",
-                    notification_manager.async_initialize()
+                    "notification_manager", notification_manager.async_initialize()
                 ),
                 _async_initialize_manager_with_timeout(
                     "feeding_manager",
-                    feeding_manager.async_initialize([dict(dog) for dog in dogs_config])
+                    feeding_manager.async_initialize(
+                        [dict(dog) for dog in dogs_config]
+                    ),
                 ),
                 _async_initialize_manager_with_timeout(
                     "walk_manager",
-                    walk_manager.async_initialize([dog[CONF_DOG_ID] for dog in dogs_config])
+                    walk_manager.async_initialize(
+                        [dog[CONF_DOG_ID] for dog in dogs_config]
+                    ),
                 ),
                 _async_initialize_manager_with_timeout(
-                    "helper_manager",
-                    helper_manager.async_initialize()
+                    "helper_manager", helper_manager.async_initialize()
                 ),
                 _async_initialize_manager_with_timeout(
                     "door_sensor_manager",
@@ -403,7 +405,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         dogs=dogs_config,
                         walk_manager=walk_manager,
                         notification_manager=notification_manager,
-                    )
+                    ),
                 ),
                 _async_initialize_manager_with_timeout(
                     "garden_manager",
@@ -411,7 +413,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         dogs=[dog[CONF_DOG_ID] for dog in dogs_config],
                         notification_manager=notification_manager,
                         door_sensor_manager=door_sensor_manager,
-                    )
+                    ),
                 ),
             ]
 
@@ -430,7 +432,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             enabled=geofencing_enabled,
                             use_home_location=use_home_location,
                             home_zone_radius=home_zone_radius,
-                        )
+                        ),
                     )
                 )
 
@@ -438,8 +440,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
             managers_init_duration = time.time() - managers_init_start
             _LOGGER.debug(
-                "All managers initialized in %.2f seconds",
-                managers_init_duration
+                "All managers initialized in %.2f seconds", managers_init_duration
             )
 
         except TimeoutError as err:
@@ -476,13 +477,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             try:
                 await asyncio.wait_for(
                     hass.config_entries.async_forward_entry_setups(entry, platforms),
-                    timeout=30  # 30 seconds for platform setup
+                    timeout=30,  # 30 seconds for platform setup
                 )
                 platform_setup_duration = time.time() - platform_setup_start
                 _LOGGER.debug(
                     "Platform setup completed in %.2f seconds (attempt %d)",
                     platform_setup_duration,
-                    attempt + 1
+                    attempt + 1,
                 )
                 break
             except TimeoutError as err:
@@ -492,8 +493,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         f"Platform setup timeout after {platform_setup_duration:.2f}s"
                     ) from err
                 _LOGGER.warning(
-                    "Platform setup attempt %d timed out, retrying...",
-                    attempt + 1
+                    "Platform setup attempt %d timed out, retrying...", attempt + 1
                 )
                 await asyncio.sleep(1)  # Brief delay before retry
             except ImportError as err:
@@ -509,7 +509,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 _LOGGER.warning(
                     "Platform setup attempt %d failed: %s, retrying...",
                     attempt + 1,
-                    err
+                    err,
                 )
                 await asyncio.sleep(1)  # Brief delay before retry
 
@@ -517,8 +517,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         helpers_start = time.time()
         try:
             created_helpers = await asyncio.wait_for(
-                helper_manager.async_create_helpers_for_dogs(dogs_config, enabled_modules),
-                timeout=20  # 20 seconds for helper creation
+                helper_manager.async_create_helpers_for_dogs(
+                    dogs_config, enabled_modules
+                ),
+                timeout=20,  # 20 seconds for helper creation
             )
 
             helper_count = sum(len(helpers) for helpers in created_helpers.values())
@@ -529,7 +531,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     "Created %d Home Assistant helpers for %d dogs in %.2f seconds",
                     helper_count,
                     len(dogs_config),
-                    helpers_duration
+                    helpers_duration,
                 )
 
                 # Send notification about helper creation
@@ -539,13 +541,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             notification_type="system_info",
                             title="PawControl Helper Setup Complete",
                             message=f"Created {helper_count} helpers for automated feeding schedules, "
-                                  f"health reminders, and other dog management tasks.",
+                            f"health reminders, and other dog management tasks.",
                             priority="normal",
                         )
                     except Exception as notification_err:
                         _LOGGER.debug(
                             "Helper creation notification failed (non-critical): %s",
-                            notification_err
+                            notification_err,
                         )
 
         except TimeoutError:
@@ -554,7 +556,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             _LOGGER.warning(
                 "Helper creation timed out after %.2f seconds (non-critical). "
                 "You can manually create input_boolean and input_datetime helpers if needed.",
-                helpers_duration
+                helpers_duration,
             )
         except Exception as helper_err:
             # Helper creation failure is non-critical for integration setup
@@ -563,7 +565,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 "Helper creation failed after %.2f seconds (non-critical): %s. "
                 "You can manually create input_boolean and input_datetime helpers if needed.",
                 helpers_duration,
-                helper_err
+                helper_err,
             )
 
         # Create runtime data
@@ -619,7 +621,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             len(platforms),
             helper_manager.get_helper_count(),
             profile,
-            "enabled" if geofencing_manager and geofencing_manager.is_enabled() else "disabled",
+            "enabled"
+            if geofencing_manager and geofencing_manager.is_enabled()
+            else "disabled",
             door_sensors_configured,
         )
 
@@ -654,17 +658,25 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                 garden_manager = runtime_data.garden_manager
 
                 # Check if cleanup task is still running
-                if (hasattr(garden_manager, "_cleanup_task") and
-                    garden_manager._cleanup_task and
-                    garden_manager._cleanup_task.done()):
-                    _LOGGER.warning("Garden manager cleanup task died, attempting restart")
+                if (
+                    hasattr(garden_manager, "_cleanup_task")
+                    and garden_manager._cleanup_task
+                    and garden_manager._cleanup_task.done()
+                ):
+                    _LOGGER.warning(
+                        "Garden manager cleanup task died, attempting restart"
+                    )
                     # Task would be restarted by the manager's internal logic
 
                 # Check if stats update task is still running
-                if (hasattr(garden_manager, "_stats_update_task") and
-                    garden_manager._stats_update_task and
-                    garden_manager._stats_update_task.done()):
-                    _LOGGER.warning("Garden manager stats update task died, attempting restart")
+                if (
+                    hasattr(garden_manager, "_stats_update_task")
+                    and garden_manager._stats_update_task
+                    and garden_manager._stats_update_task.done()
+                ):
+                    _LOGGER.warning(
+                        "Garden manager stats update task died, attempting restart"
+                    )
                     # Task would be restarted by the manager's internal logic
 
             # Log task health status periodically
@@ -706,17 +718,25 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     try:
         unload_ok = await asyncio.wait_for(
             hass.config_entries.async_unload_platforms(entry, platforms),
-            timeout=30  # 30 seconds for platform unload
+            timeout=30,  # 30 seconds for platform unload
         )
         platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.debug("Platform unload completed in %.2f seconds", platform_unload_duration)
+        _LOGGER.debug(
+            "Platform unload completed in %.2f seconds", platform_unload_duration
+        )
     except TimeoutError:
         platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.error("Platform unload timed out after %.2f seconds", platform_unload_duration)
+        _LOGGER.error(
+            "Platform unload timed out after %.2f seconds", platform_unload_duration
+        )
         unload_ok = False
     except Exception as err:
         platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.error("Error unloading platforms after %.2f seconds: %s", platform_unload_duration, err)
+        _LOGGER.error(
+            "Error unloading platforms after %.2f seconds: %s",
+            platform_unload_duration,
+            err,
+        )
         unload_ok = False
 
     # Cleanup runtime data with enhanced error handling and timeouts
@@ -727,13 +747,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         cleanup_tasks = []
 
         # Cleanup door sensor manager
-        if hasattr(runtime_data, "door_sensor_manager") and runtime_data.door_sensor_manager:
+        if (
+            hasattr(runtime_data, "door_sensor_manager")
+            and runtime_data.door_sensor_manager
+        ):
             cleanup_tasks.append(
-                ("door_sensor_manager", runtime_data.door_sensor_manager.async_cleanup())
+                (
+                    "door_sensor_manager",
+                    runtime_data.door_sensor_manager.async_cleanup(),
+                )
             )
 
         # Cleanup geofencing manager
-        if hasattr(runtime_data, "geofencing_manager") and runtime_data.geofencing_manager:
+        if (
+            hasattr(runtime_data, "geofencing_manager")
+            and runtime_data.geofencing_manager
+        ):
             cleanup_tasks.append(
                 ("geofencing_manager", runtime_data.geofencing_manager.async_cleanup())
             )
@@ -753,12 +782,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         # Execute cleanup tasks with individual timeouts
         for manager_name, cleanup_coro in cleanup_tasks:
             try:
-                await asyncio.wait_for(cleanup_coro, timeout=10)  # 10 seconds per manager
-                _LOGGER.debug("%s cleanup completed", manager_name.replace("_", " ").title())
+                await asyncio.wait_for(
+                    cleanup_coro, timeout=10
+                )  # 10 seconds per manager
+                _LOGGER.debug(
+                    "%s cleanup completed", manager_name.replace("_", " ").title()
+                )
             except TimeoutError:
-                _LOGGER.warning("%s cleanup timed out", manager_name.replace("_", " ").title())
+                _LOGGER.warning(
+                    "%s cleanup timed out", manager_name.replace("_", " ").title()
+                )
             except Exception as err:
-                _LOGGER.warning("Error during %s cleanup: %s", manager_name.replace("_", " "), err)
+                _LOGGER.warning(
+                    "Error during %s cleanup: %s", manager_name.replace("_", " "), err
+                )
 
         # Shutdown daily reset scheduler
         if (
@@ -783,30 +820,33 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         for manager_name, manager in managers_to_shutdown:
             if hasattr(manager, "async_shutdown"):
                 # Wrap each shutdown in a timeout
-                shutdown_tasks.append((
-                    manager_name,
-                    asyncio.wait_for(manager.async_shutdown(), timeout=10)
-                ))
+                shutdown_tasks.append(
+                    (
+                        manager_name,
+                        asyncio.wait_for(manager.async_shutdown(), timeout=10),
+                    )
+                )
 
         if shutdown_tasks:
             shutdown_results = await asyncio.gather(
-                *[task for _, task in shutdown_tasks],
-                return_exceptions=True
+                *[task for _, task in shutdown_tasks], return_exceptions=True
             )
 
-            for (manager_name, _), result in zip(shutdown_tasks, shutdown_results, strict=False):
+            for (manager_name, _), result in zip(
+                shutdown_tasks, shutdown_results, strict=False
+            ):
                 if isinstance(result, Exception):
                     if isinstance(result, asyncio.TimeoutError):
                         _LOGGER.warning(
                             "%s shutdown timed out",
-                            manager_name.replace("_", " ").title()
+                            manager_name.replace("_", " ").title(),
                         )
                     else:
                         _LOGGER.warning(
                             "Error during %s shutdown: %s (%s)",
                             manager_name.replace("_", " "),
                             result,
-                            result.__class__.__name__
+                            result.__class__.__name__,
                         )
 
         # Clear coordinator references
@@ -816,7 +856,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             _LOGGER.warning("Error clearing coordinator references: %s", err)
 
         cleanup_duration = time.time() - cleanup_start
-        _LOGGER.debug("Runtime data cleanup completed in %.2f seconds", cleanup_duration)
+        _LOGGER.debug(
+            "Runtime data cleanup completed in %.2f seconds", cleanup_duration
+        )
 
     # Clear caches with size reporting
     cache_size = len(_PLATFORM_CACHE)
@@ -843,7 +885,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     _LOGGER.info(
         "PawControl unload completed in %.2f seconds: success=%s",
         unload_duration,
-        unload_ok
+        unload_ok,
     )
     return unload_ok
 

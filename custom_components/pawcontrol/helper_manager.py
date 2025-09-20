@@ -164,11 +164,7 @@ class PawControlHelperManager:
         self.entry_id = entry_id
 
         # Storage for tracking created helpers
-        self._store = Store(
-            hass,
-            STORAGE_VERSION,
-            f"{DOMAIN}_{entry_id}_helpers"
-        )
+        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_helpers")
 
         # Track created helpers
         self._created_helpers: dict[str, dict[str, Any]] = {}
@@ -183,7 +179,7 @@ class PawControlHelperManager:
 
                 _LOGGER.debug(
                     "Helper manager initialized with %d existing helpers",
-                    len(self._created_helpers)
+                    len(self._created_helpers),
                 )
 
             except Exception as err:
@@ -320,27 +316,34 @@ class PawControlHelperManager:
 
         # Add domain-specific configuration
         if domain == "input_datetime":
-            helper_config.update({
-                "has_date": template.get("has_date", False),
-                "has_time": template.get("has_time", True),
-            })
+            helper_config.update(
+                {
+                    "has_date": template.get("has_date", False),
+                    "has_time": template.get("has_time", True),
+                }
+            )
 
             # Set initial value if available
-            if module_name in DEFAULT_VALUES and helper_key in DEFAULT_VALUES[module_name]:
+            if (
+                module_name in DEFAULT_VALUES
+                and helper_key in DEFAULT_VALUES[module_name]
+            ):
                 helper_config["initial"] = DEFAULT_VALUES[module_name][helper_key]
 
         elif domain == "input_boolean":
             helper_config["initial"] = template.get("initial", False)
 
         elif domain == "input_number":
-            helper_config.update({
-                "min": template.get("min", 0),
-                "max": template.get("max", 100),
-                "step": template.get("step", 1),
-                "mode": template.get("mode", "box"),
-                "unit_of_measurement": template.get("unit"),
-                "initial": template.get("initial", 0),
-            })
+            helper_config.update(
+                {
+                    "min": template.get("min", 0),
+                    "max": template.get("max", 100),
+                    "step": template.get("step", 1),
+                    "mode": template.get("mode", "box"),
+                    "unit_of_measurement": template.get("unit"),
+                    "initial": template.get("initial", 0),
+                }
+            )
 
         # Create the helper
         try:
@@ -388,7 +391,8 @@ class PawControlHelperManager:
         async with self._lock:
             removed_count = 0
             helpers_to_remove = [
-                entity_id for entity_id, data in self._created_helpers.items()
+                entity_id
+                for entity_id, data in self._created_helpers.items()
                 if data.get("dog_id") == dog_id
             ]
 
@@ -444,7 +448,8 @@ class PawControlHelperManager:
 
             # Get current helpers for this dog
             current_helpers = {
-                entity_id: data for entity_id, data in self._created_helpers.items()
+                entity_id: data
+                for entity_id, data in self._created_helpers.items()
                 if data.get("dog_id") == dog_id
             }
 
@@ -459,7 +464,8 @@ class PawControlHelperManager:
             modules_to_remove = current_modules - required_modules
             for module_name in modules_to_remove:
                 module_helpers = [
-                    entity_id for entity_id, data in current_helpers.items()
+                    entity_id
+                    for entity_id, data in current_helpers.items()
                     if data["module_name"] == module_name
                 ]
                 for entity_id in module_helpers:
@@ -495,7 +501,9 @@ class PawControlHelperManager:
                         await self._update_helper_name(entity_id, data, new_dog_name)
                         result["updated"] += 1
                     except Exception as err:
-                        _LOGGER.error("Failed to update helper name %s: %s", entity_id, err)
+                        _LOGGER.error(
+                            "Failed to update helper name %s: %s", entity_id, err
+                        )
 
             # Save changes
             if sum(result.values()) > 0:
@@ -550,7 +558,10 @@ class PawControlHelperManager:
         module_name = helper_data["module_name"]
         helper_key = helper_data["helper_key"]
 
-        if module_name in HELPER_TEMPLATES and helper_key in HELPER_TEMPLATES[module_name]:
+        if (
+            module_name in HELPER_TEMPLATES
+            and helper_key in HELPER_TEMPLATES[module_name]
+        ):
             template = HELPER_TEMPLATES[module_name][helper_key]
             new_name = template["name"].format(dog_name=new_dog_name)
 
@@ -575,10 +586,12 @@ class PawControlHelperManager:
     async def _save_helper_data(self) -> None:
         """Save helper tracking data to storage."""
         try:
-            await self._store.async_save({
-                "helpers": self._created_helpers,
-                "last_updated": self.hass.helpers.utc_now().isoformat(),
-            })
+            await self._store.async_save(
+                {
+                    "helpers": self._created_helpers,
+                    "last_updated": self.hass.helpers.utc_now().isoformat(),
+                }
+            )
         except Exception as err:
             _LOGGER.error("Failed to save helper data: %s", err)
 
@@ -667,21 +680,25 @@ class PawControlHelperManager:
                         # Check if entity exists in state machine
                         state = self.hass.states.get(entity_id)
                         if state is None:
-                            missing_helpers.append({
-                                "entity_id": entity_id,
-                                "data": data,
-                            })
+                            missing_helpers.append(
+                                {
+                                    "entity_id": entity_id,
+                                    "data": data,
+                                }
+                            )
                         else:
                             valid_helpers.append(entity_id)
                     else:
                         valid_helpers.append(entity_id)
 
                 except Exception as err:
-                    invalid_helpers.append({
-                        "entity_id": entity_id,
-                        "error": str(err),
-                        "data": data,
-                    })
+                    invalid_helpers.append(
+                        {
+                            "entity_id": entity_id,
+                            "error": str(err),
+                            "data": data,
+                        }
+                    )
 
             return {
                 "valid": len(valid_helpers),

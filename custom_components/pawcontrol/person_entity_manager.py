@@ -93,7 +93,9 @@ class PersonEntityConfig:
     fallback_to_static: bool = True
     static_notification_targets: list[str] = field(default_factory=list)
     excluded_entities: list[str] = field(default_factory=list)
-    notification_mapping: dict[str, str] = field(default_factory=dict)  # entity_id -> service
+    notification_mapping: dict[str, str] = field(
+        default_factory=dict
+    )  # entity_id -> service
     priority_persons: list[str] = field(default_factory=list)  # High priority persons
 
 
@@ -146,12 +148,19 @@ class PersonEntityManager:
                     auto_discovery=config.get("auto_discovery", True),
                     discovery_interval=max(
                         MIN_DISCOVERY_INTERVAL,
-                        min(MAX_DISCOVERY_INTERVAL, config.get("discovery_interval", DEFAULT_DISCOVERY_INTERVAL))
+                        min(
+                            MAX_DISCOVERY_INTERVAL,
+                            config.get(
+                                "discovery_interval", DEFAULT_DISCOVERY_INTERVAL
+                            ),
+                        ),
                     ),
                     cache_ttl=config.get("cache_ttl", DEFAULT_CACHE_TTL),
                     include_away_persons=config.get("include_away_persons", False),
                     fallback_to_static=config.get("fallback_to_static", True),
-                    static_notification_targets=config.get("static_notification_targets", []),
+                    static_notification_targets=config.get(
+                        "static_notification_targets", []
+                    ),
                     excluded_entities=config.get("excluded_entities", []),
                     notification_mapping=config.get("notification_mapping", {}),
                     priority_persons=config.get("priority_persons", []),
@@ -173,7 +182,7 @@ class PersonEntityManager:
 
             _LOGGER.info(
                 "Person entity manager initialized: %d persons discovered",
-                len(self._persons)
+                len(self._persons),
             )
 
     async def _discover_person_entities(self) -> None:
@@ -184,7 +193,8 @@ class PersonEntityManager:
 
             # Get all person domain entities from registry
             person_entities = [
-                entry for entry in entity_registry.entities.values()
+                entry
+                for entry in entity_registry.entities.values()
                 if entry.domain == "person" and not entry.disabled_by
             ]
 
@@ -203,11 +213,15 @@ class PersonEntityManager:
                     continue
 
                 # Extract person information
-                friendly_name = state.attributes.get("friendly_name", entity_entry.name or entity_id)
+                friendly_name = state.attributes.get(
+                    "friendly_name", entity_entry.name or entity_id
+                )
                 name = entity_entry.name or friendly_name.replace(" ", "_").lower()
 
                 # Try to find associated mobile device
-                mobile_device_id = await self._find_mobile_device_for_person(entity_id, state)
+                mobile_device_id = await self._find_mobile_device_for_person(
+                    entity_id, state
+                )
                 notification_service = self._config.notification_mapping.get(entity_id)
 
                 # Create person info
@@ -239,16 +253,14 @@ class PersonEntityManager:
             _LOGGER.debug(
                 "Discovery completed: %d person entities found, %d home",
                 discovered_count,
-                len(self.get_home_persons())
+                len(self.get_home_persons()),
             )
 
         except Exception as err:
             _LOGGER.error("Failed to discover person entities: %s", err)
 
     async def _find_mobile_device_for_person(
-        self,
-        person_entity_id: str,
-        person_state: State
+        self, person_entity_id: str, person_state: State
     ) -> str | None:
         """Find mobile device associated with person entity.
 
@@ -288,7 +300,9 @@ class PersonEntityManager:
             return None
 
         except Exception as err:
-            _LOGGER.debug("Failed to find mobile device for %s: %s", person_entity_id, err)
+            _LOGGER.debug(
+                "Failed to find mobile device for %s: %s", person_entity_id, err
+            )
             return None
 
     async def _setup_state_tracking(self) -> None:
@@ -303,14 +317,14 @@ class PersonEntityManager:
 
         # Track state changes for all person entities
         listener = async_track_state_change_event(
-            self.hass,
-            person_entity_ids,
-            handle_person_state_change
+            self.hass, person_entity_ids, handle_person_state_change
         )
 
         self._state_listeners.append(listener)
 
-        _LOGGER.debug("Set up state tracking for %d person entities", len(person_entity_ids))
+        _LOGGER.debug(
+            "Set up state tracking for %d person entities", len(person_entity_ids)
+        )
 
     @callback
     async def _handle_person_state_change(self, event) -> None:
@@ -330,7 +344,7 @@ class PersonEntityManager:
         old_is_home = person_info.is_home
 
         person_info.state = new_state.state
-        person_info.is_home = (new_state.state == STATE_HOME)
+        person_info.is_home = new_state.state == STATE_HOME
         person_info.last_updated = new_state.last_updated
         person_info.attributes = dict(new_state.attributes)
 
@@ -343,7 +357,7 @@ class PersonEntityManager:
                 "Person %s status changed: %s -> %s",
                 person_info.friendly_name,
                 "home" if old_is_home else "away",
-                "home" if person_info.is_home else "away"
+                "home" if person_info.is_home else "away",
             )
 
     async def _start_discovery_task(self) -> None:
@@ -365,7 +379,7 @@ class PersonEntityManager:
 
         _LOGGER.debug(
             "Started discovery task with %d second interval",
-            self._config.discovery_interval
+            self._config.discovery_interval,
         )
 
     def get_home_persons(self) -> list[PersonEntityInfo]:
@@ -407,7 +421,7 @@ class PersonEntityManager:
         self,
         include_away: bool | None = None,
         priority_only: bool = False,
-        cache_key: str | None = None
+        cache_key: str | None = None,
     ) -> list[str]:
         """Get list of notification targets based on current person states.
 
@@ -431,7 +445,10 @@ class PersonEntityManager:
         now = dt_util.now()
         if cache_key in self._notification_targets_cache:
             cache_time = self._cache_timestamps.get(cache_key)
-            if cache_time and (now - cache_time).total_seconds() < self._config.cache_ttl:
+            if (
+                cache_time
+                and (now - cache_time).total_seconds() < self._config.cache_ttl
+            ):
                 self._stats["cache_hits"] += 1
                 return self._notification_targets_cache[cache_key]
 
@@ -445,7 +462,9 @@ class PersonEntityManager:
 
         # Filter by priority if requested
         if priority_only:
-            persons = [p for p in persons if p.entity_id in self._config.priority_persons]
+            persons = [
+                p for p in persons if p.entity_id in self._config.priority_persons
+            ]
 
         # Extract notification services
         for person in persons:
@@ -579,8 +598,9 @@ class PersonEntityManager:
             "cache": {
                 "cache_entries": len(self._notification_targets_cache),
                 "hit_rate": (
-                    self._stats["cache_hits"] /
-                    max(1, self._stats["cache_hits"] + self._stats["cache_misses"]) * 100
+                    self._stats["cache_hits"]
+                    / max(1, self._stats["cache_hits"] + self._stats["cache_misses"])
+                    * 100
                 ),
             },
         }
@@ -597,10 +617,15 @@ class PersonEntityManager:
         # Check if any persons were discovered
         if not self._persons:
             issues.append("No person entities discovered")
-            recommendations.append("Create person entities in Home Assistant for better targeting")
+            recommendations.append(
+                "Create person entities in Home Assistant for better targeting"
+            )
 
         # Check static fallback configuration
-        if self._config.fallback_to_static and not self._config.static_notification_targets:
+        if (
+            self._config.fallback_to_static
+            and not self._config.static_notification_targets
+        ):
             issues.append("Fallback to static enabled but no static targets configured")
             recommendations.append("Configure static notification targets as fallback")
 
@@ -611,7 +636,9 @@ class PersonEntityManager:
                 unmapped_persons.append(person.friendly_name)  # noqa: PERF401
 
         if unmapped_persons:
-            issues.append(f"Persons without notification mapping: {', '.join(unmapped_persons)}")
+            issues.append(
+                f"Persons without notification mapping: {', '.join(unmapped_persons)}"
+            )
             recommendations.append("Configure notification services for all persons")
 
         # Check excluded entities

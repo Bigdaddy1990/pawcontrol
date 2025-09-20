@@ -43,6 +43,7 @@ ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
 
+
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
 def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
     """Calculate dynamic cache TTL based on coordinator update interval."""
@@ -53,6 +54,7 @@ def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
     interval_seconds = int(coordinator.update_interval.total_seconds())
     cache_ttl = max(60, min(600, int(interval_seconds * 2.5)))
     return cache_ttl
+
 
 # Sensor mapping for profile-based creation
 SENSOR_MAPPING: dict[str, type[PawControlSensorBase]] = {}
@@ -199,18 +201,30 @@ async def _create_module_entities(
             "basic": [
                 ("last_walk", PawControlLastWalkSensor, 8),
                 ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 6), # NEW: Critical missing sensor
+                (
+                    "walk_distance_today",
+                    PawControlWalkDistanceTodaySensor,
+                    6,
+                ),  # NEW: Critical missing sensor
             ],
             "standard": [
                 ("last_walk", PawControlLastWalkSensor, 8),
                 ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 6), # NEW: Critical missing sensor
+                (
+                    "walk_distance_today",
+                    PawControlWalkDistanceTodaySensor,
+                    6,
+                ),  # NEW: Critical missing sensor
                 ("last_walk_duration", PawControlLastWalkDurationSensor, 5),
                 ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 4),
             ],
             "gps_focus": [
                 ("last_walk", PawControlLastWalkSensor, 8),
-                ("walk_distance_today", PawControlWalkDistanceTodaySensor, 7), # NEW: Higher priority for GPS
+                (
+                    "walk_distance_today",
+                    PawControlWalkDistanceTodaySensor,
+                    7,
+                ),  # NEW: Higher priority for GPS
                 ("walk_count_today", PawControlWalkCountTodaySensor, 6),
                 ("last_walk_distance", PawControlLastWalkDistanceSensor, 5),
                 ("average_walk_duration", PawControlAverageWalkDurationSensor, 4),
@@ -630,7 +644,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 # Log specific calculation errors for debugging
                 _LOGGER.debug(
                     "Activity score calculation error for %s module %s: %s",
-                    self._dog_id, module_name, err
+                    self._dog_id,
+                    module_name,
+                    err,
                 )
 
         return round(weighted_sum / total_weight, 1) if total_weight > 0 else None
@@ -1069,13 +1085,19 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
         walk_data = self._get_module_data("walk")
         if walk_data:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                attrs.update({
-                    "distance_km": round(float(walk_data.get("total_distance_today", 0)) / 1000, 2),
-                    "walks_today": int(walk_data.get("walks_today", 0)),
-                    "average_distance_per_walk": round(
-                        float(walk_data.get("total_distance_today", 0)) / max(1, int(walk_data.get("walks_today", 1))), 1
-                    ),
-                })
+                attrs.update(
+                    {
+                        "distance_km": round(
+                            float(walk_data.get("total_distance_today", 0)) / 1000, 2
+                        ),
+                        "walks_today": int(walk_data.get("walks_today", 0)),
+                        "average_distance_per_walk": round(
+                            float(walk_data.get("total_distance_today", 0))
+                            / max(1, int(walk_data.get("walks_today", 1))),
+                            1,
+                        ),
+                    }
+                )
 
         return attrs
 

@@ -96,10 +96,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise ValidationError(
                     "dogs_config",
                     type(self._dogs_config).__name__,
-                    "Must be a list of dog configurations"
+                    "Must be a list of dog configurations",
                 )
         except (KeyError, TypeError) as err:
-            raise ValidationError("dogs_config", None, f"Invalid dogs configuration: {err}") from err
+            raise ValidationError(
+                "dogs_config", None, f"Invalid dogs configuration: {err}"
+            ) from err
 
         self._use_external_api = bool(
             entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
@@ -182,7 +184,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.walk_manager = walk_manager
         self.notification_manager = notification_manager
         self.geofencing_manager = geofencing_manager
-        _LOGGER.debug("Runtime managers attached (geofencing: %s)", bool(geofencing_manager))
+        _LOGGER.debug(
+            "Runtime managers attached (geofencing: %s)", bool(geofencing_manager)
+        )
 
     def clear_runtime_managers(self) -> None:
         """Clear runtime manager references during unload."""
@@ -270,7 +274,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     last_error = err
                     _LOGGER.warning(
                         "Timeout fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
+                        dog_id,
+                        retry_count + 1,
+                        MAX_RETRY_ATTEMPTS,
+                        err,
                     )
                 except ConfigEntryAuthFailed:
                     # Authentication errors should not be retried
@@ -279,13 +286,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     last_error = err
                     _LOGGER.warning(
                         "Network error fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
+                        dog_id,
+                        retry_count + 1,
+                        MAX_RETRY_ATTEMPTS,
+                        err,
                     )
                 except RateLimitError as err:
                     last_error = err
                     _LOGGER.warning(
                         "Rate limit hit for dog %s, waiting %s seconds",
-                        dog_id, err.retry_after or 60
+                        dog_id,
+                        err.retry_after or 60,
                     )
                     if err.retry_after:
                         await asyncio.sleep(min(err.retry_after, 300))  # Max 5 min wait
@@ -299,20 +310,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     last_error = err
                     _LOGGER.warning(
                         "HA error fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
+                        dog_id,
+                        retry_count + 1,
+                        MAX_RETRY_ATTEMPTS,
+                        err,
                     )
 
                 retry_count += 1
                 if retry_count < MAX_RETRY_ATTEMPTS:
                     # Exponential backoff
-                    wait_time = min(2 ** retry_count * RETRY_BACKOFF_FACTOR, 30)
+                    wait_time = min(2**retry_count * RETRY_BACKOFF_FACTOR, 30)
                     await asyncio.sleep(wait_time)
 
             # All retries failed
             errors += 1
             _LOGGER.error(
                 "Failed to fetch data for dog %s after %d attempts, last error: %s",
-                dog_id, MAX_RETRY_ATTEMPTS, last_error
+                dog_id,
+                MAX_RETRY_ATTEMPTS,
+                last_error,
             )
             all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
 
@@ -342,7 +358,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._consecutive_errors += 1
             _LOGGER.warning(
                 "Low success rate: %d/%d dogs updated successfully",
-                total_dogs - errors, total_dogs
+                total_dogs - errors,
+                total_dogs,
             )
         else:
             self._consecutive_errors = 0  # Reset on good update
@@ -361,7 +378,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         total_cache_requests = self._cache_hits + self._cache_misses
         cache_hit_rate = (
             (self._cache_hits / total_cache_requests * 100)
-            if total_cache_requests > 0 else 0
+            if total_cache_requests > 0
+            else 0
         )
 
         return {
@@ -437,17 +455,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     # PLATINUM: Module-specific error handling
                     if isinstance(result, GPSUnavailableError):
                         _LOGGER.debug("GPS unavailable for %s: %s", dog_id, result)
-                        data[module_name] = {"status": "unavailable", "reason": str(result)}
+                        data[module_name] = {
+                            "status": "unavailable",
+                            "reason": str(result),
+                        }
                     elif isinstance(result, NetworkError):
                         _LOGGER.warning(
                             "Network error fetching %s data for %s: %s",
-                            module_name, dog_id, result
+                            module_name,
+                            dog_id,
+                            result,
                         )
                         data[module_name] = {"status": "network_error"}
                     else:
                         _LOGGER.warning(
                             "Failed to fetch %s data for %s: %s (%s)",
-                            module_name, dog_id, result, result.__class__.__name__
+                            module_name,
+                            dog_id,
+                            result,
+                            result.__class__.__name__,
                         )
                         data[module_name] = {"status": "error"}
                 else:
@@ -474,8 +500,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             if self._use_external_api:
                 async with self.session.get(
-                    f"/api/dogs/{dog_id}/feeding",
-                    timeout=ClientTimeout(total=10.0)
+                    f"/api/dogs/{dog_id}/feeding", timeout=ClientTimeout(total=10.0)
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -485,7 +510,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         retry_after = resp.headers.get("Retry-After")
                         raise RateLimitError(
                             "feeding_data",
-                            retry_after=int(retry_after) if retry_after else 60
+                            retry_after=int(retry_after) if retry_after else 60,
                         )
                     elif resp.status >= 400:
                         raise NetworkError(f"HTTP {resp.status}")
@@ -592,10 +617,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "status": "active" if current_zones else "outside_zones",
             "current_zones": current_zones,
             "last_location": {
-                "latitude": dog_state.last_location.latitude if dog_state.last_location else None,
-                "longitude": dog_state.last_location.longitude if dog_state.last_location else None,
-                "timestamp": dog_state.last_location.timestamp.isoformat() if dog_state.last_location else None,
-            } if dog_state.last_location else None,
+                "latitude": dog_state.last_location.latitude
+                if dog_state.last_location
+                else None,
+                "longitude": dog_state.last_location.longitude
+                if dog_state.last_location
+                else None,
+                "timestamp": dog_state.last_location.timestamp.isoformat()
+                if dog_state.last_location
+                else None,
+            }
+            if dog_state.last_location
+            else None,
             "total_zones": len(zones),
         }
 
@@ -795,14 +828,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Reset consecutive errors if we've been stable
         if self._consecutive_errors > 0 and self.last_update_success:
             hours_since_last_error = (
-                (now - (self.last_update_time or now)).total_seconds() / 3600
-            )
+                now - (self.last_update_time or now)
+            ).total_seconds() / 3600
             if hours_since_last_error > 1:  # 1 hour of stability
                 old_errors = self._consecutive_errors
                 self._consecutive_errors = 0
                 _LOGGER.info(
                     "Reset consecutive error count (%d) after %d hours of stability",
-                    old_errors, int(hours_since_last_error)
+                    old_errors,
+                    int(hours_since_last_error),
                 )
 
     async def async_shutdown(self) -> None:

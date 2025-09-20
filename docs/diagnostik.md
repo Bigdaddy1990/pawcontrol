@@ -318,63 +318,63 @@ Enthält ausschließlich Hinweise zum Einreichen von Logos im offiziellen Brands
 
 BRANDS\_PR\_TEMPLATE.md
 
-Ebenfalls nur Workflow-Anweisungen für einen Brands-PR, ohne funktionale Zusagen zur Integration. 
+Ebenfalls nur Workflow-Anweisungen für einen Brands-PR, ohne funktionale Zusagen zur Integration.
 
 
 
 QUALITY\_CHECKLIST.md
 
-Zutreffend: Es existiert ein Diagnostikmodul mit systematischer Schwärzung sensibler Daten, wie die Checkliste behauptet. 
+Zutreffend: Es existiert ein Diagnostikmodul mit systematischer Schwärzung sensibler Daten, wie die Checkliste behauptet.
 
 
 
-Nicht erfüllt: Die Checkliste setzt Services „validiert via ServiceValidationError“ sowie gesetzte PARALLEL\_UPDATES voraus. In services.py werden Services registriert, aber Ausnahmen werden als HomeAssistantError behandelt und ein ServiceValidationError taucht dort nicht auf; Konstanten PARALLEL\_UPDATES existieren in keinem Plattformmodul. 
+Nicht erfüllt: Die Checkliste setzt Services „validiert via ServiceValidationError“ sowie gesetzte PARALLEL\_UPDATES voraus. In services.py werden Services registriert, aber Ausnahmen werden als HomeAssistantError behandelt und ein ServiceValidationError taucht dort nicht auf; Konstanten PARALLEL\_UPDATES existieren in keinem Plattformmodul.
 
 
 
 README.md
 
-Viele Grundfunktionen (Walk-, Feeding-, Health-Sensoren) stimmen mit den vorhandenen Entitäten überein, aber konkrete Behauptungen wie „Routen-Export als GPX/GeoJSON“ oder vollautomatische Skripterzeugung setzen Services voraus, die im Code nicht existieren. In services.py sind nur add\_feeding, start\_walk, end\_walk, add\_gps\_point, update\_health, send\_notification, acknowledge\_notification, calculate\_portion, export\_data, analyze\_patterns, generate\_report und daily\_reset vorgesehen – ein Export der letzten Route als eigener Service fehlt. 
+Viele Grundfunktionen (Walk-, Feeding-, Health-Sensoren) stimmen mit den vorhandenen Entitäten überein, aber konkrete Behauptungen wie „Routen-Export als GPX/GeoJSON“ oder vollautomatische Skripterzeugung setzen Services voraus, die im Code nicht existieren. In services.py sind nur add\_feeding, start\_walk, end\_walk, add\_gps\_point, update\_health, send\_notification, acknowledge\_notification, calculate\_portion, export\_data, analyze\_patterns, generate\_report und daily\_reset vorgesehen – ein Export der letzten Route als eigener Service fehlt.
 
 
 
-Buttons wie der „Export Route“-Button versuchen zwar, export\_data aufzurufen, die eigentliche Service-Implementierung für GPS-Routen fehlt jedoch, wodurch der im README versprochene GPX-/GeoJSON-Export derzeit nicht funktioniert. 
+Buttons wie der „Export Route“-Button versuchen zwar, export\_data aufzurufen, die eigentliche Service-Implementierung für GPS-Routen fehlt jedoch, wodurch der im README versprochene GPX-/GeoJSON-Export derzeit nicht funktioniert.
 
 
 
 automations\_health\_feeding.md
 
-Das Dokument listet zahlreiche Automations-Beispiele, die Services wie pawcontrol.recalculate\_health\_portions, pawcontrol.adjust\_calories\_for\_activity, pawcontrol.activate\_diabetic\_feeding\_mode, pawcontrol.feed\_with\_medication, pawcontrol.generate\_weekly\_health\_report oder pawcontrol.start\_diet\_transition voraussetzen. Keiner dieser Services ist in services.py registriert, womit die Beispiele aktuell nicht umsetzbar sind. 
+Das Dokument listet zahlreiche Automations-Beispiele, die Services wie pawcontrol.recalculate\_health\_portions, pawcontrol.adjust\_calories\_for\_activity, pawcontrol.activate\_diabetic\_feeding\_mode, pawcontrol.feed\_with\_medication, pawcontrol.generate\_weekly\_health\_report oder pawcontrol.start\_diet\_transition voraussetzen. Keiner dieser Services ist in services.py registriert, womit die Beispiele aktuell nicht umsetzbar sind.
 
 
 
 comprehensive\_readme.md
 
-Einige beschriebene Plattformen (Sensoren, Buttons usw.) existieren, allerdings stimmen viele der dort aufgelisteten Entitätsnamen nicht mit den tatsächlich erzeugten Entitäten überein. Beispielsweise gibt es keine Sensoren sensor.<dog>\_walk\_distance\_today oder sensor.<dog>\_daily\_portions; die vorhandenen Sensoren heißen last\_walk, total\_walk\_time\_today, daily\_calories usw. 
+Einige beschriebene Plattformen (Sensoren, Buttons usw.) existieren, allerdings stimmen viele der dort aufgelisteten Entitätsnamen nicht mit den tatsächlich erzeugten Entitäten überein. Beispielsweise gibt es keine Sensoren sensor.<dog>\_walk\_distance\_today oder sensor.<dog>\_daily\_portions; die vorhandenen Sensoren heißen last\_walk, total\_walk\_time\_today, daily\_calories usw.
 
 
 
-Zusätze wie „Offline-Synchronisation für GPS-Daten“ oder „Pause Tracking“-Buttons werden nicht durch entsprechende Services oder Buttons gedeckt (es gibt keinen Button pause\_tracking). 
+Zusätze wie „Offline-Synchronisation für GPS-Daten“ oder „Pause Tracking“-Buttons werden nicht durch entsprechende Services oder Buttons gedeckt (es gibt keinen Button pause\_tracking).
 
 
 
 implementation\_guide.md
 
-Mehrere Anweisungen verweisen auf Dateien oder Klassen, die es nicht (mehr) gibt – z. B. das Ersetzen einer OptionsFlowHandler-Klasse oder das Aktualisieren einer schemas.py, obwohl die Integration PawControlOptionsFlow nutzt und kein schemas.py enthält. 
+Mehrere Anweisungen verweisen auf Dateien oder Klassen, die es nicht (mehr) gibt – z. B. das Ersetzen einer OptionsFlowHandler-Klasse oder das Aktualisieren einer schemas.py, obwohl die Integration PawControlOptionsFlow nutzt und kein schemas.py enthält.
 
 
 
-Die im Guide geforderten Ergänzungen (z. B. stark typisiertes PawControlRuntimeData, Speicherung ausschließlich über entry.runtime\_data) sind bereits umgesetzt, was das Dokument veraltet erscheinen lässt. 
+Die im Guide geforderten Ergänzungen (z. B. stark typisiertes PawControlRuntimeData, Speicherung ausschließlich über entry.runtime\_data) sind bereits umgesetzt, was das Dokument veraltet erscheinen lässt.
 
 
 
 improvement-plan.md
 
-Die dort aufgeführten „Day 1“-Aufgaben (dataclasses in types.py, py.typed, Websession-Injektion) sind im Code bereits erledigt; entsprechende Anpassungen wurden vorgenommen. 
+Die dort aufgeführten „Day 1“-Aufgaben (dataclasses in types.py, py.typed, Websession-Injektion) sind im Code bereits erledigt; entsprechende Anpassungen wurden vorgenommen.
 
 
 
-Weitere vorgeschlagene Arbeiten (Reauth-Flow) sind ebenfalls schon umgesetzt (async\_step\_reauth\* im Config-Flow). 
+Weitere vorgeschlagene Arbeiten (Reauth-Flow) sind ebenfalls schon umgesetzt (async\_step\_reauth\* im Config-Flow).
 
 
 
@@ -384,37 +384,37 @@ Positiv: Die Roadmap betont Leistungsthemen (Entity-Limits, Caching), die tatsä
 
 
 
-Falsch ist die Aussage, es gäbe „30+ Test-Dateien“ – im Repository befinden sich aktuell 19 Python-Testdateien. 
+Falsch ist die Aussage, es gäbe „30+ Test-Dateien“ – im Repository befinden sich aktuell 19 Python-Testdateien.
 
 
 
 options\_flow\_documentation.md
 
-Das Dokument beschreibt Geofence-Felder (geofence\_lat, geofence\_lon, geofence\_radius\_m), die im Options-Flow nicht existieren; async\_step\_gps\_settings bietet lediglich boolesche Aktivierung sowie Update-/Genauigkeits-Parameter. 
+Das Dokument beschreibt Geofence-Felder (geofence\_lat, geofence\_lon, geofence\_radius\_m), die im Options-Flow nicht existieren; async\_step\_gps\_settings bietet lediglich boolesche Aktivierung sowie Update-/Genauigkeits-Parameter.
 
 
 
-Richtig sind dagegen die Aussagen zu Menüstruktur und Hundeverwaltung (Add/Edit/Delete über async\_step\_manage\_dogs). 
+Richtig sind dagegen die Aussagen zu Menüstruktur und Hundeverwaltung (Add/Edit/Delete über async\_step\_manage\_dogs).
 
 
 
 production\_integration\_documentation.md
 
-Enthält viele Konfigurationsbeispiele mit Geofence-Koordinaten und erweiterten Optionen, die – wie beim Options-Flow – nicht bereitgestellt werden (keine geofence\_lat/route\_recording-Optionen). 
+Enthält viele Konfigurationsbeispiele mit Geofence-Koordinaten und erweiterten Optionen, die – wie beim Options-Flow – nicht bereitgestellt werden (keine geofence\_lat/route\_recording-Optionen).
 
 
 
-Allgemeine Installationsschritte (HACS, manuell) stimmen hingegen mit der Struktur des Repos überein. 
+Allgemeine Installationsschritte (HACS, manuell) stimmen hingegen mit der Struktur des Repos überein.
 
 
 
 diet\_validation\_guide.md
 
-Der Status-Sensor diet\_validation\_status ist vorhanden und liefert Warn-/Konfliktstatus. 
+Der Status-Sensor diet\_validation\_status ist vorhanden und liefert Warn-/Konfliktstatus.
 
 
 
-Die im Guide genannten zusätzlichen Sensoren (sensor.dog\_diet\_conflict\_count, sensor.dog\_diet\_warning\_count, sensor.dog\_vet\_consultation\_recommended) existieren jedoch nicht separat; der Statussensor stellt diese Informationen weder als eigene Entitäten noch als Attribute bereit. 
+Die im Guide genannten zusätzlichen Sensoren (sensor.dog\_diet\_conflict\_count, sensor.dog\_diet\_warning\_count, sensor.dog\_vet\_consultation\_recommended) existieren jedoch nicht separat; der Statussensor stellt diese Informationen weder als eigene Entitäten noch als Attribute bereit.
 
 
 
@@ -424,13 +424,13 @@ Richtig ist, dass die Mehrheit der Dateien produktiv genutzt wird, Diagnose- und
 
 
 
-Ungenau ist die Behauptung, es fehle „enhanced\_health\_calculator.py“ – weder erwartet der Code dieses Modul noch findet sich ein entsprechender Import; der Report suggeriert also einen nicht vorhandenen Pflichtbestandteil. 
+Ungenau ist die Behauptung, es fehle „enhanced\_health\_calculator.py“ – weder erwartet der Code dieses Modul noch findet sich ein entsprechender Import; der Report suggeriert also einen nicht vorhandenen Pflichtbestandteil.
 
 
 
 integration\_analysis\_report.md
 
-Mehrere „kritische Issues“ sind überholt: entry.runtime\_data wird korrekt verwendet und ist in aktuellen HA-Versionen vorgesehen; \_async\_setup() wird im Coordinator aufgerufen, und UpdateFailed wird nicht verwendet. Die Diagnose des Dokuments stimmt daher nicht mehr mit dem aktuellen Code überein. 
+Mehrere „kritische Issues“ sind überholt: entry.runtime\_data wird korrekt verwendet und ist in aktuellen HA-Versionen vorgesehen; \_async\_setup() wird im Coordinator aufgerufen, und UpdateFailed wird nicht verwendet. Die Diagnose des Dokuments stimmt daher nicht mehr mit dem aktuellen Code überein.
 
 
 
@@ -444,11 +444,10 @@ Installation und Grundkonfiguration werden korrekt beschrieben; Module wie Feedi
 
 
 
-Wiederholt werden jedoch Geofence-Optionen (geofence\_lat, route\_recording, route\_history\_days) dokumentiert, die in den verfügbaren Optionen nicht existieren – dieselbe Abweichung wie bei der Options-Flow-Dokumentation. 
+Wiederholt werden jedoch Geofence-Optionen (geofence\_lat, route\_recording, route\_history\_days) dokumentiert, die in den verfügbaren Optionen nicht existieren – dieselbe Abweichung wie bei der Options-Flow-Dokumentation.
 
 
 
 Fazit
 
 Große Teile der Dokumentation sind generisch oder veraltet und beschreiben Services, Optionen oder Entitäten, die im aktuellen Integrationscode nicht existieren. Besonders betroffen sind die Automations- und Options-Flow-Dokumente sowie große Teile der beiden umfangreichen READMEs. Aktuelle Implementierungen (z. B. diagnostische Redaktionen, modulare Options-Flows, Diet-Validation-Status) stimmen hingegen mit mehreren Aussagen überein.
-

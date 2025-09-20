@@ -45,6 +45,7 @@ EARTH_RADIUS_KM: Final[float] = 6371.0  # Earth radius in kilometers
 
 class GeofenceType(Enum):
     """Enumeration of supported geofence zone types."""
+
     SAFE_ZONE = "safe_zone"
     RESTRICTED_AREA = "restricted_area"
     POINT_OF_INTEREST = "point_of_interest"
@@ -53,6 +54,7 @@ class GeofenceType(Enum):
 
 class GeofenceEvent(Enum):
     """Enumeration of geofence events."""
+
     ENTERED = "entered"
     LEFT = "left"
     DWELL = "dwell"  # Remained in zone for extended time
@@ -76,6 +78,7 @@ class GeofenceZone:
         updated_at: When the zone was last modified
         metadata: Additional zone-specific data
     """
+
     id: str
     name: str
     type: GeofenceType
@@ -96,7 +99,9 @@ class GeofenceZone:
         if not (-180 <= self.longitude <= 180):
             raise ValueError(f"Invalid longitude: {self.longitude}")
         if not (MIN_GEOFENCE_RADIUS <= self.radius <= MAX_GEOFENCE_RADIUS):
-            raise ValueError(f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters")
+            raise ValueError(
+                f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters"
+            )
 
     def contains_location(self, location: GPSLocation, hysteresis: float = 1.0) -> bool:
         """Check if a location is within this geofence zone.
@@ -122,8 +127,7 @@ class GeofenceZone:
             Distance in meters
         """
         return calculate_distance(
-            self.latitude, self.longitude,
-            location.latitude, location.longitude
+            self.latitude, self.longitude, location.latitude, location.longitude
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -156,8 +160,10 @@ class GeofenceZone:
             enabled=data.get("enabled", True),
             alerts_enabled=data.get("alerts_enabled", True),
             description=data.get("description", ""),
-            created_at=dt_util.parse_datetime(data.get("created_at")) or dt_util.utcnow(),
-            updated_at=dt_util.parse_datetime(data.get("updated_at")) or dt_util.utcnow(),
+            created_at=dt_util.parse_datetime(data.get("created_at"))
+            or dt_util.utcnow(),
+            updated_at=dt_util.parse_datetime(data.get("updated_at"))
+            or dt_util.utcnow(),
             metadata=data.get("metadata", {}),
         )
 
@@ -174,6 +180,7 @@ class DogLocationState:
         location_history: Recent location history for trend analysis
         last_updated: When this state was last updated
     """
+
     dog_id: str
     last_location: GPSLocation | None = None
     current_zones: set[str] = field(default_factory=set)
@@ -254,7 +261,9 @@ class PawControlGeofencing:
                     try:
                         self._zones[zone_id] = GeofenceZone.from_dict(zone_data)
                     except Exception as err:
-                        _LOGGER.warning("Failed to load geofence zone %s: %s", zone_id, err)
+                        _LOGGER.warning(
+                            "Failed to load geofence zone %s: %s", zone_id, err
+                        )
 
                 # Initialize dog states
                 for dog_id in dogs:
@@ -321,14 +330,10 @@ class PawControlGeofencing:
             return
 
         # Start location checking task
-        self._update_task = self.hass.async_create_task(
-            self._monitoring_loop()
-        )
+        self._update_task = self.hass.async_create_task(self._monitoring_loop())
 
         # Start cleanup task
-        self._cleanup_task = self.hass.async_create_task(
-            self._cleanup_loop()
-        )
+        self._cleanup_task = self.hass.async_create_task(self._cleanup_loop())
 
         _LOGGER.debug("Started geofencing monitoring tasks")
 
@@ -411,19 +416,25 @@ class PawControlGeofencing:
             # Check for zone exit
             elif not currently_inside and was_inside:  # noqa: SIM102
                 # Use hysteresis to confirm exit
-                if not zone.contains_location(dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS):
+                if not zone.contains_location(
+                    dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS
+                ):
                     dog_state.current_zones.discard(zone_id)
                     dog_state.zone_entry_times.pop(zone_id, None)
                     newly_left_zones.add(zone_id)
 
         # Fire events for zone changes
         for zone_id in newly_entered_zones:
-            await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.ENTERED)
+            await self._fire_zone_event(
+                dog_state.dog_id, zone_id, GeofenceEvent.ENTERED
+            )
 
         for zone_id in newly_left_zones:
             await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.LEFT)
 
-    async def _fire_zone_event(self, dog_id: str, zone_id: str, event: GeofenceEvent) -> None:
+    async def _fire_zone_event(
+        self, dog_id: str, zone_id: str, event: GeofenceEvent
+    ) -> None:
         """Fire a geofence event.
 
         Args:
@@ -465,8 +476,7 @@ class PawControlGeofencing:
         for dog_state in self._dog_states.values():
             # Clean old location history
             dog_state.location_history = [
-                loc for loc in dog_state.location_history
-                if loc.timestamp > cutoff_time
+                loc for loc in dog_state.location_history if loc.timestamp > cutoff_time
             ]
 
             # Clean old zone entry times for zones no longer occupied
@@ -644,8 +654,7 @@ class PawControlGeofencing:
         try:
             data = {
                 "zones": {
-                    zone_id: zone.to_dict()
-                    for zone_id, zone in self._zones.items()
+                    zone_id: zone.to_dict() for zone_id, zone in self._zones.items()
                 },
                 "last_updated": dt_util.utcnow().isoformat(),
             }

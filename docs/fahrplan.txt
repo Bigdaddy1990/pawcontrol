@@ -48,5 +48,3 @@ Der Options-Flow ist modular aufgebaut und unterstützt zahlreiche Konfiguration
 - Umfassende Tests (Unit, Integration, UI-Flow) ergänzen, Automationsbeispiele als YAML-Beispiele verifizieren und diagnostische Checks erweitern.
 
 - Changelogs & Migrationshinweise bereitstellen, um Nutzer über neue/angepasste Funktionen zu informieren.
-
-

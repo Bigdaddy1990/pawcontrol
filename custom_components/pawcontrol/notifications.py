@@ -140,7 +140,9 @@ class NotificationEvent:
 
     # NEW: Person targeting metadata
     targeted_persons: list[str] = field(default_factory=list)  # Person entity IDs
-    notification_services: list[str] = field(default_factory=list)  # Actual services used
+    notification_services: list[str] = field(
+        default_factory=list
+    )  # Actual services used
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -243,7 +245,9 @@ class NotificationCache:
             self._access_order.remove(config_key)
         self._access_order.append(config_key)
 
-    def get_person_targeting_cache(self, cache_key: str, ttl_seconds: int = 180) -> list[str] | None:
+    def get_person_targeting_cache(
+        self, cache_key: str, ttl_seconds: int = 180
+    ) -> list[str] | None:
         """Get cached person targeting results.
 
         Args:
@@ -548,8 +552,12 @@ class PawControlNotificationManager:
                         batch_enabled=config_data.get("batch_enabled", True),
                         template_overrides=template_overrides,
                         # NEW: Person entity settings
-                        use_person_entities=config_data.get("use_person_entities", True),
-                        include_away_persons=config_data.get("include_away_persons", False),
+                        use_person_entities=config_data.get(
+                            "use_person_entities", True
+                        ),
+                        include_away_persons=config_data.get(
+                            "include_away_persons", False
+                        ),
                         fallback_to_static=config_data.get("fallback_to_static", True),
                     )
 
@@ -565,7 +573,9 @@ class PawControlNotificationManager:
         # Start background tasks
         await self._start_background_tasks()
 
-    async def _initialize_person_manager(self, config: dict[str, Any] | None = None) -> None:
+    async def _initialize_person_manager(
+        self, config: dict[str, Any] | None = None
+    ) -> None:
         """Initialize person entity manager for dynamic targeting.
 
         Args:
@@ -680,24 +690,31 @@ class PawControlNotificationManager:
                 and NotificationChannel.MOBILE in channels
             ):
                 # Use person entity targeting
-                person_targets = await self._get_person_notification_targets(config_key, config)
+                person_targets = await self._get_person_notification_targets(
+                    config_key, config
+                )
                 if person_targets:
                     notification_services.extend(person_targets)
                     targeted_persons = [
-                        person.entity_id for person in
-                        (self._person_manager.get_home_persons() if not config.include_away_persons
-                         else self._person_manager.get_all_persons())
+                        person.entity_id
+                        for person in (
+                            self._person_manager.get_home_persons()
+                            if not config.include_away_persons
+                            else self._person_manager.get_all_persons()
+                        )
                     ]
                     self._performance_metrics["person_targeted_notifications"] += 1
 
                     _LOGGER.debug(
                         "Person targeting: %d services for %d persons",
                         len(person_targets),
-                        len(targeted_persons)
+                        len(targeted_persons),
                     )
                 elif config.fallback_to_static:
                     # Fallback to static configuration
-                    notification_services.extend(config.custom_settings.get("mobile_services", ["mobile_app"]))
+                    notification_services.extend(
+                        config.custom_settings.get("mobile_services", ["mobile_app"])
+                    )
                     self._performance_metrics["static_fallback_notifications"] += 1
 
                     _LOGGER.debug("Using static fallback for mobile notifications")
@@ -728,7 +745,9 @@ class PawControlNotificationManager:
                 person_context = self._person_manager.get_notification_context()
                 template_data.update(person_context)
                 if person_context.get("home_person_names"):
-                    template_data["person_names"] = ", ".join(person_context["home_person_names"])
+                    template_data["person_names"] = ", ".join(
+                        person_context["home_person_names"]
+                    )
 
             formatted_title, formatted_message = self._apply_template(
                 notification_type, title, message, config, template_data
@@ -782,15 +801,15 @@ class PawControlNotificationManager:
                     notification_id,
                     formatted_title,
                     priority.value,
-                    len(notification_services) if notification_services else len(allowed_channels),
+                    len(notification_services)
+                    if notification_services
+                    else len(allowed_channels),
                 )
 
             return notification_id
 
     async def _get_person_notification_targets(
-        self,
-        config_key: str,
-        config: NotificationConfig
+        self, config_key: str, config: NotificationConfig
     ) -> list[str]:
         """Get notification targets based on person entities.
 
@@ -815,8 +834,7 @@ class PawControlNotificationManager:
 
         # Get targets from person manager
         targets = self._person_manager.get_notification_targets(
-            include_away=config.include_away_persons,
-            cache_key=cache_key
+            include_away=config.include_away_persons, cache_key=cache_key
         )
 
         # Cache the result
@@ -1103,7 +1121,7 @@ class PawControlNotificationManager:
             "Sent batch notification with %d individual notifications for %s [%d targets]",
             len(notifications),
             dog_name,
-            len(unique_services)
+            len(unique_services),
         )
 
     async def _send_to_channels(self, notification: NotificationEvent) -> None:
