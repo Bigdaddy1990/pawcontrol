@@ -135,10 +135,10 @@ async def async_get_or_create_dog_device_entry(
             device = device_registry.async_update_device(
                 device.id, suggested_area=suggested_area
             )
-        except Exception:  # pragma: no cover - defensive, HA guarantees API
-            _LOGGER.debug("Unable to set suggested area for %s (%s)", dog_name, dog_id)
-
-    return device
+        except Exception as err:  # pragma: no cover - defensive, HA guarantees API
+            _LOGGER.warning(
+                "Unable to set suggested area for %s (%s): %s", dog_name, dog_id, err
+            )
 
 
 class PawControlDeviceLinkMixin:
