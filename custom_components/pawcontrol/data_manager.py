@@ -1,8 +1,5 @@
 """Ultra-optimized data management for PawControl with adaptive caching.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.3+
-Python: 3.13+
 """
 
 from __future__ import annotations

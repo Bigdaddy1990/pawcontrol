@@ -174,7 +174,7 @@ class PawControlDateTimeBase(
         self._attr_unique_id = f"pawcontrol_{dog_id}_{datetime_type}"
         self._attr_name = f"{dog_name} {datetime_type.replace('_', ' ').title()}"
 
-        # Device info - HA 2025.8+ compatible with configuration_url
+        # Device info - uses configuration_url support available in HA 2024.12+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,

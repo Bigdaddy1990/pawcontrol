@@ -3,9 +3,6 @@
 Automatically discovers person.* entities and provides dynamic notification
 targeting based on home/away status for enhanced user experience.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.3+
-Python: 3.13+
 """
 
 from __future__ import annotations

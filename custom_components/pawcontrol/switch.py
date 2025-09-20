@@ -1,8 +1,5 @@
 """Ultra-optimized switch platform for PawControl with profile-based entity creation.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.0+
-Python: 3.13+
 
 This module implements profile-optimized switch entities that only create switches
 for enabled modules, significantly reducing entity count and improving performance.

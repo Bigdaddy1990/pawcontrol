@@ -7,9 +7,6 @@ with lazy loading, validation, and async operations.
 OPTIMIZED: Enhanced with batch processing, parallel card generation,
 advanced caching, and comprehensive type safety for maximum performance.
 
-Quality Scale: Platinum
-Home Assistant: 2025.9.3+
-Python: 3.13+
 """
 
 from __future__ import annotations

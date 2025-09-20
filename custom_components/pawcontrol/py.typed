@@ -3,6 +3,5 @@
 # This file indicates that the PawControl integration provides type information
 # and is compatible with static type checkers like mypy.
 #
-# Quality Scale: Platinum
-# Home Assistant: 2025.9.3+
-# Python: 3.13+
+# Development targets follow the official Home Assistant guidelines.
+# Tested with Home Assistant 2024.12 and Python 3.12.
