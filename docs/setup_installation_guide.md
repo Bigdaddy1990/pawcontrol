@@ -491,7 +491,7 @@ Nach der Einrichtung werden automatisch folgende Entitäten erstellt:
 ```yaml
 # Automatisch erstellte Garden Sensoren
 sensor.buddy_garden_time_today:           # Heutige Gartenzeit in Minuten
-sensor.buddy_garden_sessions_today:       # Anzahl Gartensessions heute  
+sensor.buddy_garden_sessions_today:       # Anzahl Gartensessions heute
 sensor.buddy_garden_poop_count_today:     # Poop-Events heute
 sensor.buddy_last_garden_session:         # Zeitpunkt der letzten Session
 sensor.buddy_garden_activities_count:     # Gesamtanzahl Gartenaktivitäten
@@ -1446,12 +1446,12 @@ automation:
 
 Mit dem Garden Tracking System haben Sie jetzt:
 
-✅ **Automatische Garden-Erkennung** über Türsensoren  
-✅ **Intelligente Poop-Rückfragen** nach 3 Minuten  
-✅ **Aktivitäts-Protokollierung** (Spielen, Schnüffeln, Graben, Ruhen)  
-✅ **Wetter-Integration** für optimale Garten-Sessions  
-✅ **Vollautomatisierte Benachrichtigungen** mit Actionable Buttons  
-✅ **Umfassende Statistiken** und Verlaufs-Tracking  
-✅ **Session-Management** mit Start/End-Automatik  
+✅ **Automatische Garden-Erkennung** über Türsensoren
+✅ **Intelligente Poop-Rückfragen** nach 3 Minuten
+✅ **Aktivitäts-Protokollierung** (Spielen, Schnüffeln, Graben, Ruhen)
+✅ **Wetter-Integration** für optimale Garten-Sessions
+✅ **Vollautomatisierte Benachrichtigungen** mit Actionable Buttons
+✅ **Umfassende Statistiken** und Verlaufs-Tracking
+✅ **Session-Management** mit Start/End-Automatik
 
 **🚀 Ihr Smart Home ist jetzt auch Smart Garden ready!**

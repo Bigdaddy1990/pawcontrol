@@ -1798,7 +1798,7 @@ class FeedingManager:
 
             # Build current health metrics
             health_metrics = config._build_health_metrics()
-            
+
             if not health_metrics.current_weight:
                 return {
                     "status": "insufficient_data",
@@ -1808,11 +1808,16 @@ class FeedingManager:
             # Calculate new portions for all meal types
             new_portions = {}
             total_daily_calculated = 0.0
-            
-            for meal_type in [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER, MealType.SNACK]:
+
+            for meal_type in [
+                MealType.BREAKFAST,
+                MealType.LUNCH,
+                MealType.DINNER,
+                MealType.SNACK,
+            ]:
                 portion = config.calculate_portion_size(meal_type)
                 new_portions[meal_type.value] = portion
-                
+
                 if meal_type != MealType.SNACK:  # Don't count snacks in daily total
                     total_daily_calculated += portion
 
@@ -1823,7 +1828,9 @@ class FeedingManager:
                     if schedule.meal_type in new_portions:
                         old_portion = schedule.portion_size
                         schedule.portion_size = new_portions[schedule.meal_type.value]
-                        if abs(old_portion - schedule.portion_size) > 1.0:  # Significant change
+                        if (
+                            abs(old_portion - schedule.portion_size) > 1.0
+                        ):  # Significant change
                             updated_schedules += 1
 
             # Invalidate caches
@@ -1838,9 +1845,15 @@ class FeedingManager:
                 "updated_schedules": updated_schedules,
                 "health_metrics_used": {
                     "weight": health_metrics.current_weight,
-                    "life_stage": health_metrics.life_stage.value if health_metrics.life_stage else None,
-                    "activity_level": health_metrics.activity_level.value if health_metrics.activity_level else None,
-                    "body_condition_score": health_metrics.body_condition_score.value if health_metrics.body_condition_score else None,
+                    "life_stage": health_metrics.life_stage.value
+                    if health_metrics.life_stage
+                    else None,
+                    "activity_level": health_metrics.activity_level.value
+                    if health_metrics.activity_level
+                    else None,
+                    "body_condition_score": health_metrics.body_condition_score.value
+                    if health_metrics.body_condition_score
+                    else None,
                 },
                 "recalculated_at": dt_util.now().isoformat(),
             }
@@ -1848,7 +1861,7 @@ class FeedingManager:
             _LOGGER.info(
                 "Recalculated health portions for %s: %s",
                 dog_id,
-                {k: v for k, v in new_portions.items() if k != "snack"}
+                {k: v for k, v in new_portions.items() if k != "snack"},
             )
 
             return result
@@ -1878,19 +1891,20 @@ class FeedingManager:
 
             try:
                 from .health_calculator import ActivityLevel
+
                 activity_enum = ActivityLevel(activity_level)
             except (ImportError, ValueError) as err:
                 raise ValueError(f"Invalid activity level '{activity_level}'") from err
 
             # Store original activity level if temporary
             original_activity = config.activity_level
-            
+
             # Update activity level
             config.activity_level = activity_level
 
             # Recalculate portions with new activity level
             health_metrics = config._build_health_metrics()
-            
+
             if not health_metrics.current_weight:
                 return {
                     "status": "insufficient_data",
@@ -1900,7 +1914,7 @@ class FeedingManager:
             # Calculate new daily calorie requirement
             try:
                 from .health_calculator import HealthCalculator, LifeStage
-                
+
                 new_daily_calories = HealthCalculator.calculate_daily_calories(
                     weight=health_metrics.current_weight,
                     life_stage=health_metrics.life_stage or LifeStage.ADULT,
@@ -1915,7 +1929,7 @@ class FeedingManager:
             # Convert calories to food amount
             calories_per_gram = config._estimate_calories_per_gram()
             new_daily_amount = new_daily_calories / calories_per_gram
-            
+
             # Update daily food amount
             old_daily_amount = config.daily_food_amount
             config.daily_food_amount = round(new_daily_amount, 1)
@@ -1932,7 +1946,11 @@ class FeedingManager:
                 "new_daily_calories": round(new_daily_calories, 0),
                 "old_daily_amount_g": old_daily_amount,
                 "new_daily_amount_g": config.daily_food_amount,
-                "adjustment_percent": round(((config.daily_food_amount - old_daily_amount) / old_daily_amount) * 100, 1),
+                "adjustment_percent": round(
+                    ((config.daily_food_amount - old_daily_amount) / old_daily_amount)
+                    * 100,
+                    1,
+                ),
                 "temporary": temporary,
                 "duration_hours": duration_hours,
                 "adjusted_at": dt_util.now().isoformat(),
@@ -1948,6 +1966,7 @@ class FeedingManager:
 
             # Schedule reversion if temporary
             if temporary and duration_hours and original_activity:
+
                 async def _revert_activity():
                     await asyncio.sleep(duration_hours * 3600)
                     try:
@@ -1963,8 +1982,8 @@ class FeedingManager:
                         _LOGGER.error(
                             "Failed to revert activity level for %s: %s", dog_id, err
                         )
-                
-                asyncio.create_task(_revert_activity())
+
+                asyncio.create_task(_revert_activity())  # noqa: RUF006
                 result["reversion_scheduled"] = True
 
             return result
@@ -2011,15 +2030,15 @@ class FeedingManager:
             # Update feeding configuration
             old_meals_per_day = config.meals_per_day
             config.meals_per_day = meal_frequency
-            
+
             # Create diabetic feeding schedule
             diabetic_schedules = self._create_diabetic_meal_schedule(
                 meal_frequency, config.daily_food_amount
             )
-            
+
             # Replace existing schedules with diabetic schedule
             config.meal_schedules = diabetic_schedules
-            
+
             # Enable strict scheduling for diabetes management
             config.schedule_type = FeedingScheduleType.STRICT
 
@@ -2042,8 +2061,7 @@ class FeedingManager:
                     for schedule in diabetic_schedules
                 ],
                 "portion_sizes": [
-                    round(schedule.portion_size, 1)
-                    for schedule in diabetic_schedules
+                    round(schedule.portion_size, 1) for schedule in diabetic_schedules
                 ],
                 "special_diet_updated": config.special_diet,
                 "activated_at": dt_util.now().isoformat(),
@@ -2058,7 +2076,9 @@ class FeedingManager:
 
             return result
 
-    def _create_diabetic_meal_schedule(self, meal_frequency: int, daily_amount: float) -> list[MealSchedule]:
+    def _create_diabetic_meal_schedule(
+        self, meal_frequency: int, daily_amount: float
+    ) -> list[MealSchedule]:
         """Create optimized meal schedule for diabetic dogs.
 
         Args:
@@ -2073,28 +2093,39 @@ class FeedingManager:
             3: [time(8, 0), time(14, 0), time(20, 0)],
             4: [time(7, 0), time(12, 0), time(17, 0), time(21, 0)],
             5: [time(7, 0), time(11, 0), time(15, 0), time(19, 0), time(22, 0)],
-            6: [time(7, 0), time(10, 30), time(14, 0), time(17, 30), time(21, 0), time(23, 0)],
+            6: [
+                time(7, 0),
+                time(10, 30),
+                time(14, 0),
+                time(17, 30),
+                time(21, 0),
+                time(23, 0),
+            ],
         }
-        
+
         times = meal_times.get(meal_frequency, meal_times[4])
         portion_size = daily_amount / meal_frequency
-        
+
         schedules = []
         for i, meal_time in enumerate(times):
-            meal_type = MealType.BREAKFAST if i == 0 else (
-                MealType.DINNER if i == len(times) - 1 else MealType.LUNCH
+            meal_type = (
+                MealType.BREAKFAST
+                if i == 0
+                else (MealType.DINNER if i == len(times) - 1 else MealType.LUNCH)
             )
-            
-            schedules.append(MealSchedule(
-                meal_type=meal_type,
-                scheduled_time=meal_time,
-                portion_size=round(portion_size, 1),
-                enabled=True,
-                reminder_enabled=True,
-                reminder_minutes_before=15,
-                auto_log=False,  # Manual logging for diabetes monitoring
-            ))
-        
+
+            schedules.append(
+                MealSchedule(
+                    meal_type=meal_type,
+                    scheduled_time=meal_time,
+                    portion_size=round(portion_size, 1),
+                    enabled=True,
+                    reminder_enabled=True,
+                    reminder_minutes_before=15,
+                    auto_log=False,  # Manual logging for diabetes monitoring
+                )
+            )
+
         return schedules
 
     async def async_activate_emergency_feeding_mode(
@@ -2123,10 +2154,17 @@ class FeedingManager:
             # Validate parameters
             if not 0.5 <= portion_adjustment <= 1.2:
                 raise ValueError("Portion adjustment must be between 0.5 and 1.2")
-            
-            valid_emergency_types = ["illness", "surgery_recovery", "digestive_upset", "medication_reaction"]
+
+            valid_emergency_types = [
+                "illness",
+                "surgery_recovery",
+                "digestive_upset",
+                "medication_reaction",
+            ]
             if emergency_type not in valid_emergency_types:
-                raise ValueError(f"Emergency type must be one of: {valid_emergency_types}")
+                raise ValueError(
+                    f"Emergency type must be one of: {valid_emergency_types}"
+                )
 
             # Store original configuration for restoration
             original_config = {
@@ -2167,7 +2205,9 @@ class FeedingManager:
                 "new_meals_per_day": config.meals_per_day,
                 "food_type_recommendation": config.food_type,
                 "original_config": original_config,
-                "expires_at": (dt_util.now() + timedelta(days=duration_days)).isoformat(),
+                "expires_at": (
+                    dt_util.now() + timedelta(days=duration_days)
+                ).isoformat(),
                 "activated_at": dt_util.now().isoformat(),
             }
 
@@ -2181,16 +2221,18 @@ class FeedingManager:
 
             # Schedule automatic restoration
             async def _restore_normal_feeding():
-                await asyncio.sleep(duration_days * 24 * 3600)  # Convert days to seconds
+                await asyncio.sleep(
+                    duration_days * 24 * 3600
+                )  # Convert days to seconds
                 try:
                     # Restore original configuration
                     config.daily_food_amount = original_config["daily_food_amount"]
                     config.meals_per_day = original_config["meals_per_day"]
                     config.schedule_type = original_config["schedule_type"]
                     config.food_type = original_config["food_type"]
-                    
+
                     self._invalidate_cache(dog_id)
-                    
+
                     _LOGGER.info(
                         "Restored normal feeding mode for %s after %d days",
                         dog_id,
@@ -2200,8 +2242,8 @@ class FeedingManager:
                     _LOGGER.error(
                         "Failed to restore normal feeding for %s: %s", dog_id, err
                     )
-            
-            asyncio.create_task(_restore_normal_feeding())
+
+            asyncio.create_task(_restore_normal_feeding())  # noqa: RUF006
             result["restoration_scheduled"] = True
 
             return result
@@ -2265,7 +2307,7 @@ class FeedingManager:
 
             # Store transition data (would normally be in a separate storage)
             # For now, we'll use a simple approach
-            if not hasattr(config, 'transition_data'):
+            if not hasattr(config, "transition_data"):
                 config.transition_data = {}
             config.transition_data = transition_data
 
@@ -2280,7 +2322,9 @@ class FeedingManager:
                 "transition_days": transition_days,
                 "gradual_increase_percent": gradual_increase_percent,
                 "transition_schedule": transition_schedule,
-                "expected_completion": (dt_util.now() + timedelta(days=transition_days)).date().isoformat(),
+                "expected_completion": (dt_util.now() + timedelta(days=transition_days))
+                .date()
+                .isoformat(),
                 "started_at": dt_util.now().isoformat(),
             }
 
@@ -2294,7 +2338,9 @@ class FeedingManager:
 
             return result
 
-    def _create_transition_schedule(self, transition_days: int, increase_percent: int) -> list[dict[str, Any]]:
+    def _create_transition_schedule(
+        self, transition_days: int, increase_percent: int
+    ) -> list[dict[str, Any]]:
         """Create day-by-day transition schedule.
 
         Args:
@@ -2305,7 +2351,7 @@ class FeedingManager:
             List of daily transition ratios
         """
         schedule = []
-        
+
         for day in range(1, transition_days + 1):
             if day == 1:
                 new_food_percent = increase_percent
@@ -2314,16 +2360,20 @@ class FeedingManager:
             else:
                 # Gradual increase each day
                 new_food_percent = min(100, day * increase_percent)
-            
+
             old_food_percent = 100 - new_food_percent
-            
-            schedule.append({
-                "day": day,
-                "old_food_percent": old_food_percent,
-                "new_food_percent": new_food_percent,
-                "date": (dt_util.now() + timedelta(days=day-1)).date().isoformat(),
-            })
-        
+
+            schedule.append(
+                {
+                    "day": day,
+                    "old_food_percent": old_food_percent,
+                    "new_food_percent": new_food_percent,
+                    "date": (dt_util.now() + timedelta(days=day - 1))
+                    .date()
+                    .isoformat(),
+                }
+            )
+
         return schedule
 
     async def async_check_feeding_compliance(
@@ -2357,8 +2407,7 @@ class FeedingManager:
             # Get recent feedings
             since = dt_util.now() - timedelta(days=days_to_check)
             recent_feedings = [
-                event for event in feedings 
-                if event.time > since and not event.skipped
+                event for event in feedings if event.time > since and not event.skipped
             ]
 
             if not recent_feedings:
@@ -2370,7 +2419,7 @@ class FeedingManager:
             # Analyze compliance
             compliance_issues = []
             daily_analysis = {}
-            
+
             # Group feedings by date
             for event in recent_feedings:
                 date_str = event.time.date().isoformat()
@@ -2382,7 +2431,7 @@ class FeedingManager:
                         "meal_types": set(),
                         "scheduled_feedings": 0,
                     }
-                
+
                 daily_analysis[date_str]["feedings"].append(event)
                 daily_analysis[date_str]["total_amount"] += event.amount
                 if event.meal_type:
@@ -2394,42 +2443,71 @@ class FeedingManager:
             expected_daily_amount = config.daily_food_amount
             expected_meals_per_day = config.meals_per_day
             tolerance_percent = config.portion_tolerance
-            
+
             for date_str, day_data in daily_analysis.items():
                 day_issues = []
-                
+
                 # Check daily amount
-                amount_deviation = abs(day_data["total_amount"] - expected_daily_amount) / expected_daily_amount * 100
+                amount_deviation = (
+                    abs(day_data["total_amount"] - expected_daily_amount)
+                    / expected_daily_amount
+                    * 100
+                )
                 if amount_deviation > tolerance_percent:
                     if day_data["total_amount"] < expected_daily_amount:
-                        day_issues.append(f"Underfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)")
+                        day_issues.append(
+                            f"Underfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)"
+                        )
                     else:
-                        day_issues.append(f"Overfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)")
-                
+                        day_issues.append(
+                            f"Overfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)"
+                        )
+
                 # Check meal frequency
                 actual_meals = len(day_data["feedings"])
                 if actual_meals < expected_meals_per_day:
-                    day_issues.append(f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}")
-                elif actual_meals > expected_meals_per_day + 2:  # Allow some flexibility
-                    day_issues.append(f"Too many meals: {actual_meals} vs expected {expected_meals_per_day}")
-                
+                    day_issues.append(
+                        f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}"
+                    )
+                elif (
+                    actual_meals > expected_meals_per_day + 2
+                ):  # Allow some flexibility
+                    day_issues.append(
+                        f"Too many meals: {actual_meals} vs expected {expected_meals_per_day}"
+                    )
+
                 # Check schedule adherence if strict scheduling
                 if config.schedule_type == FeedingScheduleType.STRICT:
-                    expected_scheduled = len([s for s in config.get_active_schedules() if s.is_due_today()])
+                    expected_scheduled = len(
+                        [s for s in config.get_active_schedules() if s.is_due_today()]
+                    )
                     if day_data["scheduled_feedings"] < expected_scheduled:
-                        day_issues.append(f"Missed scheduled feedings: {day_data['scheduled_feedings']} vs {expected_scheduled}")
-                
+                        day_issues.append(
+                            f"Missed scheduled feedings: {day_data['scheduled_feedings']} vs {expected_scheduled}"
+                        )
+
                 if day_issues:
-                    compliance_issues.append({
-                        "date": date_str,
-                        "issues": day_issues,
-                        "severity": "high" if any("Overfed" in issue or "Underfed" in issue for issue in day_issues) else "medium",
-                    })
+                    compliance_issues.append(
+                        {
+                            "date": date_str,
+                            "issues": day_issues,
+                            "severity": "high"
+                            if any(
+                                "Overfed" in issue or "Underfed" in issue
+                                for issue in day_issues
+                            )
+                            else "medium",
+                        }
+                    )
 
             # Calculate overall compliance score
             total_days = len(daily_analysis)
             days_with_issues = len(compliance_issues)
-            compliance_score = max(0, int(((total_days - days_with_issues) / total_days) * 100)) if total_days > 0 else 100
+            compliance_score = (
+                max(0, int(((total_days - days_with_issues) / total_days) * 100))
+                if total_days > 0
+                else 100
+            )
 
             # Generate recommendations
             recommendations = []
@@ -2448,11 +2526,24 @@ class FeedingManager:
                 "days_analyzed": total_days,
                 "days_with_issues": days_with_issues,
                 "compliance_issues": compliance_issues,
-                "daily_analysis": {k: {**v, "meal_types": list(v["meal_types"])} for k, v in daily_analysis.items()},
+                "daily_analysis": {
+                    k: {**v, "meal_types": list(v["meal_types"])}
+                    for k, v in daily_analysis.items()
+                },
                 "recommendations": recommendations,
                 "summary": {
-                    "average_daily_amount": sum(d["total_amount"] for d in daily_analysis.values()) / total_days if total_days > 0 else 0,
-                    "average_meals_per_day": sum(len(d["feedings"]) for d in daily_analysis.values()) / total_days if total_days > 0 else 0,
+                    "average_daily_amount": sum(
+                        d["total_amount"] for d in daily_analysis.values()
+                    )
+                    / total_days
+                    if total_days > 0
+                    else 0,
+                    "average_meals_per_day": sum(
+                        len(d["feedings"]) for d in daily_analysis.values()
+                    )
+                    / total_days
+                    if total_days > 0
+                    else 0,
                     "expected_daily_amount": expected_daily_amount,
                     "expected_meals_per_day": expected_meals_per_day,
                 },
@@ -2499,11 +2590,11 @@ class FeedingManager:
 
             # Store original amount for temporary adjustments
             original_amount = config.daily_food_amount
-            
+
             # Calculate new amount
             adjustment_factor = 1.0 + (adjustment_percent / 100.0)
             new_amount = round(original_amount * adjustment_factor, 1)
-            
+
             # Safety check - don't allow extremely small portions
             if new_amount < 50.0:  # Minimum 50g per day
                 raise ValueError("Adjustment would result in dangerously low portions")
@@ -2546,19 +2637,22 @@ class FeedingManager:
 
             # Schedule reversion if temporary
             if temporary and duration_days:
+
                 async def _revert_adjustment():
                     await asyncio.sleep(duration_days * 24 * 3600)  # Convert to seconds
                     try:
                         # Restore original amount
                         config.daily_food_amount = original_amount
-                        
+
                         # Restore meal schedules
                         revert_factor = 1.0 / adjustment_factor
                         for schedule in config.meal_schedules:
-                            schedule.portion_size = round(schedule.portion_size * revert_factor, 1)
-                        
+                            schedule.portion_size = round(
+                                schedule.portion_size * revert_factor, 1
+                            )
+
                         self._invalidate_cache(dog_id)
-                        
+
                         _LOGGER.info(
                             "Reverted portion adjustment for %s back to %.0fg after %d days",
                             dog_id,
@@ -2567,12 +2661,16 @@ class FeedingManager:
                         )
                     except Exception as err:
                         _LOGGER.error(
-                            "Failed to revert portion adjustment for %s: %s", dog_id, err
+                            "Failed to revert portion adjustment for %s: %s",
+                            dog_id,
+                            err,
                         )
-                
-                asyncio.create_task(_revert_adjustment())
+
+                asyncio.create_task(_revert_adjustment())  # noqa: RUF006
                 result["reversion_scheduled"] = True
-                result["reversion_date"] = (dt_util.now() + timedelta(days=duration_days)).isoformat()
+                result["reversion_date"] = (
+                    dt_util.now() + timedelta(days=duration_days)
+                ).isoformat()
 
             return result
 
@@ -2616,8 +2714,14 @@ class FeedingManager:
                     "immune": "Boosts immune system",
                     "calming": "Natural calming properties",
                 }
-                benefit_desc = benefit_descriptions.get(health_benefit, f"Health benefit: {health_benefit}")
-                enhanced_notes = f"{benefit_desc}. {enhanced_notes}" if enhanced_notes else benefit_desc
+                benefit_desc = benefit_descriptions.get(
+                    health_benefit, f"Health benefit: {health_benefit}"
+                )
+                enhanced_notes = (
+                    f"{benefit_desc}. {enhanced_notes}"
+                    if enhanced_notes
+                    else benefit_desc
+                )
 
             # Add as feeding event
             feeding_event = await self.async_add_feeding(

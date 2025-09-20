@@ -56,8 +56,8 @@ from .const import (
     DEFAULT_RESET_TIME,
     GPS_ACCURACY_FILTER_SELECTOR,
     GPS_UPDATE_INTERVAL_SELECTOR,
-    MIN_GEOFENCE_RADIUS,
     MAX_GEOFENCE_RADIUS,
+    MIN_GEOFENCE_RADIUS,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -143,7 +143,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure geofencing and zone settings.
-        
+
         NEW: Implements missing geofencing configuration per fahrplan.txt requirements.
         Provides geofence_lat, geofence_lon, geofence_radius, and alert configuration.
         """
@@ -160,23 +160,39 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 # Update geofencing settings in options
                 new_options = {**self._config_entry.options}
-                new_options.update({
-                    "geofence_settings": {
-                        "geofencing_enabled": user_input.get("geofencing_enabled", False),
-                        "geofence_lat": user_input.get("geofence_lat"),
-                        "geofence_lon": user_input.get("geofence_lon"), 
-                        "geofence_radius_m": radius,
-                        "geofence_alerts_enabled": user_input.get("geofence_alerts_enabled", True),
-                        "use_home_location": user_input.get("use_home_location", True),
-                        "safe_zone_alerts": user_input.get("safe_zone_alerts", True),
-                        "restricted_zone_alerts": user_input.get("restricted_zone_alerts", True),
-                        "zone_exit_notifications": user_input.get("zone_exit_notifications", True),
-                        "zone_entry_notifications": user_input.get("zone_entry_notifications", True),
+                new_options.update(
+                    {
+                        "geofence_settings": {
+                            "geofencing_enabled": user_input.get(
+                                "geofencing_enabled", False
+                            ),
+                            "geofence_lat": user_input.get("geofence_lat"),
+                            "geofence_lon": user_input.get("geofence_lon"),
+                            "geofence_radius_m": radius,
+                            "geofence_alerts_enabled": user_input.get(
+                                "geofence_alerts_enabled", True
+                            ),
+                            "use_home_location": user_input.get(
+                                "use_home_location", True
+                            ),
+                            "safe_zone_alerts": user_input.get(
+                                "safe_zone_alerts", True
+                            ),
+                            "restricted_zone_alerts": user_input.get(
+                                "restricted_zone_alerts", True
+                            ),
+                            "zone_exit_notifications": user_input.get(
+                                "zone_exit_notifications", True
+                            ),
+                            "zone_entry_notifications": user_input.get(
+                                "zone_entry_notifications", True
+                            ),
+                        }
                     }
-                })
+                )
 
                 return self.async_create_entry(title="", data=new_options)
-                
+
             except Exception as err:
                 _LOGGER.error("Error updating geofence settings: %s", err)
                 return self.async_show_form(
@@ -186,7 +202,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
         return self.async_show_form(
-            step_id="geofence_settings", 
+            step_id="geofence_settings",
             data_schema=self._get_geofence_settings_schema(),
             description_placeholders=self._get_geofence_description_placeholders(),
         )
@@ -203,138 +219,134 @@ class PawControlOptionsFlow(OptionsFlow):
         home_lat = self.hass.config.latitude
         home_lon = self.hass.config.longitude
 
-        return vol.Schema({
-            vol.Optional(
-                "geofencing_enabled",
-                default=current_values.get(
-                    "geofencing_enabled", 
-                    current_geofence.get("geofencing_enabled", False)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "use_home_location",
-                default=current_values.get(
+        return vol.Schema(
+            {
+                vol.Optional(
+                    "geofencing_enabled",
+                    default=current_values.get(
+                        "geofencing_enabled",
+                        current_geofence.get("geofencing_enabled", False),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "use_home_location",
-                    current_geofence.get("use_home_location", True)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "geofence_lat",
-                default=current_values.get(
+                    default=current_values.get(
+                        "use_home_location",
+                        current_geofence.get("use_home_location", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "geofence_lat",
-                    current_geofence.get("geofence_lat", home_lat)
+                    default=current_values.get(
+                        "geofence_lat", current_geofence.get("geofence_lat", home_lat)
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-90.0,
+                        max=90.0,
+                        step=0.000001,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
                 ),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=-90.0,
-                    max=90.0,
-                    step=0.000001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            
-            vol.Optional(
-                "geofence_lon", 
-                default=current_values.get(
+                vol.Optional(
                     "geofence_lon",
-                    current_geofence.get("geofence_lon", home_lon)
+                    default=current_values.get(
+                        "geofence_lon", current_geofence.get("geofence_lon", home_lon)
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-180.0,
+                        max=180.0,
+                        step=0.000001,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
                 ),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=-180.0,
-                    max=180.0,
-                    step=0.000001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            
-            vol.Optional(
-                "geofence_radius_m",
-                default=current_values.get(
+                vol.Optional(
                     "geofence_radius_m",
-                    current_geofence.get("geofence_radius_m", 50)
+                    default=current_values.get(
+                        "geofence_radius_m",
+                        current_geofence.get("geofence_radius_m", 50),
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=MIN_GEOFENCE_RADIUS,
+                        max=MAX_GEOFENCE_RADIUS,
+                        step=10,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="meters",
+                    )
                 ),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=MIN_GEOFENCE_RADIUS,
-                    max=MAX_GEOFENCE_RADIUS,
-                    step=10,
-                    mode=selector.NumberSelectorMode.BOX,
-                    unit_of_measurement="meters",
-                )
-            ),
-            
-            vol.Optional(
-                "geofence_alerts_enabled",
-                default=current_values.get(
+                vol.Optional(
                     "geofence_alerts_enabled",
-                    current_geofence.get("geofence_alerts_enabled", True)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "safe_zone_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "geofence_alerts_enabled",
+                        current_geofence.get("geofence_alerts_enabled", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "safe_zone_alerts",
-                    current_geofence.get("safe_zone_alerts", True)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "restricted_zone_alerts",
-                default=current_values.get(
-                    "restricted_zone_alerts", 
-                    current_geofence.get("restricted_zone_alerts", True)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "zone_entry_notifications",
-                default=current_values.get(
+                    default=current_values.get(
+                        "safe_zone_alerts",
+                        current_geofence.get("safe_zone_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "restricted_zone_alerts",
+                    default=current_values.get(
+                        "restricted_zone_alerts",
+                        current_geofence.get("restricted_zone_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "zone_entry_notifications",
-                    current_geofence.get("zone_entry_notifications", True)
-                ),
-            ): selector.BooleanSelector(),
-            
-            vol.Optional(
-                "zone_exit_notifications",
-                default=current_values.get(
+                    default=current_values.get(
+                        "zone_entry_notifications",
+                        current_geofence.get("zone_entry_notifications", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "zone_exit_notifications",
-                    current_geofence.get("zone_exit_notifications", True) 
-                ),
-            ): selector.BooleanSelector(),
-        })
+                    default=current_values.get(
+                        "zone_exit_notifications",
+                        current_geofence.get("zone_exit_notifications", True),
+                    ),
+                ): selector.BooleanSelector(),
+            }
+        )
 
     def _get_geofence_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for geofencing configuration."""
         current_options = self._config_entry.options
         current_geofence = current_options.get("geofence_settings", {})
-        
+
         # Get Home Assistant's home location
         home_lat = self.hass.config.latitude
         home_lon = self.hass.config.longitude
-        
+
         # Current configuration status
         geofencing_enabled = current_geofence.get("geofencing_enabled", False)
         current_lat = current_geofence.get("geofence_lat", home_lat)
         current_lon = current_geofence.get("geofence_lon", home_lon)
         current_radius = current_geofence.get("geofence_radius_m", 50)
-        
+
         status = "Enabled" if geofencing_enabled else "Disabled"
         location_desc = f"Lat: {current_lat:.6f}, Lon: {current_lon:.6f}"
-        
+
         return {
             "current_status": status,
             "current_location": location_desc,
             "current_radius": str(current_radius),
             "home_location": f"Lat: {home_lat:.6f}, Lon: {home_lon:.6f}",
             "radius_range": f"{MIN_GEOFENCE_RADIUS}-{MAX_GEOFENCE_RADIUS}",
-            "dogs_with_gps": str(len([
-                dog for dog in self._dogs 
-                if dog.get("modules", {}).get(MODULE_GPS, False)
-            ])),
+            "dogs_with_gps": str(
+                len(
+                    [
+                        dog
+                        for dog in self._dogs
+                        if dog.get("modules", {}).get(MODULE_GPS, False)
+                    ]
+                )
+            ),
         }
 
     async def async_step_entity_profiles(
@@ -1485,7 +1497,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "route_history_days", 
+                    "route_history_days",
                     default=current_values.get(
                         "route_history_days",
                         current_options.get("route_history_days", 30),

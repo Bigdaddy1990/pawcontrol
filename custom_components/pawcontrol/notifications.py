@@ -137,10 +137,12 @@ class NotificationEvent:
     grouped_with: list[str] = field(default_factory=list)  # For batched notifications
     template_used: str | None = None
     send_attempts: dict[str, int] = field(default_factory=dict)  # Per-channel attempts
-    
+
     # NEW: Person targeting metadata
     targeted_persons: list[str] = field(default_factory=list)  # Person entity IDs
-    notification_services: list[str] = field(default_factory=list)  # Actual services used
+    notification_services: list[str] = field(
+        default_factory=list
+    )  # Actual services used
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -243,13 +245,15 @@ class NotificationCache:
             self._access_order.remove(config_key)
         self._access_order.append(config_key)
 
-    def get_person_targeting_cache(self, cache_key: str, ttl_seconds: int = 180) -> list[str] | None:
+    def get_person_targeting_cache(
+        self, cache_key: str, ttl_seconds: int = 180
+    ) -> list[str] | None:
         """Get cached person targeting results.
-        
+
         Args:
             cache_key: Cache key for targeting
             ttl_seconds: Time to live in seconds
-            
+
         Returns:
             Cached targeting list or None
         """
@@ -261,7 +265,7 @@ class NotificationCache:
 
     def set_person_targeting_cache(self, cache_key: str, targets: list[str]) -> None:
         """Cache person targeting results.
-        
+
         Args:
             cache_key: Cache key
             targets: Target services list
@@ -494,7 +498,7 @@ class PawControlNotificationManager:
         return wrapped_handler
 
     async def async_initialize(
-        self, 
+        self,
         notification_configs: dict[str, dict[str, Any]] | None = None,
         person_entity_config: dict[str, Any] | None = None,
     ) -> None:
@@ -548,8 +552,12 @@ class PawControlNotificationManager:
                         batch_enabled=config_data.get("batch_enabled", True),
                         template_overrides=template_overrides,
                         # NEW: Person entity settings
-                        use_person_entities=config_data.get("use_person_entities", True),
-                        include_away_persons=config_data.get("include_away_persons", False),
+                        use_person_entities=config_data.get(
+                            "use_person_entities", True
+                        ),
+                        include_away_persons=config_data.get(
+                            "include_away_persons", False
+                        ),
                         fallback_to_static=config_data.get("fallback_to_static", True),
                     )
 
@@ -565,15 +573,17 @@ class PawControlNotificationManager:
         # Start background tasks
         await self._start_background_tasks()
 
-    async def _initialize_person_manager(self, config: dict[str, Any] | None = None) -> None:
+    async def _initialize_person_manager(
+        self, config: dict[str, Any] | None = None
+    ) -> None:
         """Initialize person entity manager for dynamic targeting.
-        
+
         Args:
             config: Person entity configuration
         """
         try:
             self._person_manager = PersonEntityManager(self._hass, self._entry_id)
-            
+
             # Use provided config or defaults
             person_config = config or {
                 "enabled": True,
@@ -582,11 +592,11 @@ class PawControlNotificationManager:
                 "include_away_persons": False,
                 "fallback_to_static": True,
             }
-            
+
             await self._person_manager.async_initialize(person_config)
-            
+
             _LOGGER.info("Person entity manager initialized for notification targeting")
-            
+
         except Exception as err:
             _LOGGER.error("Failed to initialize person entity manager: %s", err)
             self._person_manager = None
@@ -672,36 +682,43 @@ class PawControlNotificationManager:
             channels = force_channels if force_channels else config.channels
             targeted_persons = []
             notification_services = []
-            
+
             if (
-                not override_person_targeting 
-                and config.use_person_entities 
-                and self._person_manager 
+                not override_person_targeting
+                and config.use_person_entities
+                and self._person_manager
                 and NotificationChannel.MOBILE in channels
             ):
                 # Use person entity targeting
-                person_targets = await self._get_person_notification_targets(config_key, config)
+                person_targets = await self._get_person_notification_targets(
+                    config_key, config
+                )
                 if person_targets:
                     notification_services.extend(person_targets)
                     targeted_persons = [
-                        person.entity_id for person in 
-                        (self._person_manager.get_home_persons() if not config.include_away_persons 
-                         else self._person_manager.get_all_persons())
+                        person.entity_id
+                        for person in (
+                            self._person_manager.get_home_persons()
+                            if not config.include_away_persons
+                            else self._person_manager.get_all_persons()
+                        )
                     ]
                     self._performance_metrics["person_targeted_notifications"] += 1
-                    
+
                     _LOGGER.debug(
                         "Person targeting: %d services for %d persons",
                         len(person_targets),
-                        len(targeted_persons)
+                        len(targeted_persons),
                     )
                 elif config.fallback_to_static:
                     # Fallback to static configuration
-                    notification_services.extend(config.custom_settings.get("mobile_services", ["mobile_app"]))
+                    notification_services.extend(
+                        config.custom_settings.get("mobile_services", ["mobile_app"])
+                    )
                     self._performance_metrics["static_fallback_notifications"] += 1
-                    
+
                     _LOGGER.debug("Using static fallback for mobile notifications")
-            
+
             # OPTIMIZE: Check rate limits
             allowed_channels = []
             for channel in channels:
@@ -728,7 +745,9 @@ class PawControlNotificationManager:
                 person_context = self._person_manager.get_notification_context()
                 template_data.update(person_context)
                 if person_context.get("home_person_names"):
-                    template_data["person_names"] = ", ".join(person_context["home_person_names"])
+                    template_data["person_names"] = ", ".join(
+                        person_context["home_person_names"]
+                    )
 
             formatted_title, formatted_message = self._apply_template(
                 notification_type, title, message, config, template_data
@@ -782,46 +801,45 @@ class PawControlNotificationManager:
                     notification_id,
                     formatted_title,
                     priority.value,
-                    len(notification_services) if notification_services else len(allowed_channels),
+                    len(notification_services)
+                    if notification_services
+                    else len(allowed_channels),
                 )
 
             return notification_id
 
     async def _get_person_notification_targets(
-        self, 
-        config_key: str, 
-        config: NotificationConfig
+        self, config_key: str, config: NotificationConfig
     ) -> list[str]:
         """Get notification targets based on person entities.
-        
+
         Args:
             config_key: Configuration key for caching
             config: Notification configuration
-            
+
         Returns:
             List of notification service names
         """
         if not self._person_manager:
             return []
-        
+
         # Check cache first
         cache_key = f"person_targets_{config_key}_{config.include_away_persons}"
         cached_targets = self._cache.get_person_targeting_cache(cache_key)
         if cached_targets is not None:
             self._performance_metrics["cache_hits"] += 1
             return cached_targets
-        
+
         self._performance_metrics["cache_misses"] += 1
-        
+
         # Get targets from person manager
         targets = self._person_manager.get_notification_targets(
-            include_away=config.include_away_persons,
-            cache_key=cache_key
+            include_away=config.include_away_persons, cache_key=cache_key
         )
-        
+
         # Cache the result
         self._cache.set_person_targeting_cache(cache_key, targets)
-        
+
         return targets
 
     async def _get_config_cached(self, config_key: str) -> NotificationConfig:
@@ -1103,7 +1121,7 @@ class PawControlNotificationManager:
             "Sent batch notification with %d individual notifications for %s [%d targets]",
             len(notifications),
             dog_name,
-            len(unique_services)
+            len(unique_services),
         )
 
     async def _send_to_channels(self, notification: NotificationEvent) -> None:
@@ -1234,12 +1252,12 @@ class PawControlNotificationManager:
                         service_name,
                         service_data,
                     )
-                    
+
                     _LOGGER.debug("Sent mobile notification to %s", service_name)
-                    
+
                 except Exception as err:
                     _LOGGER.error("Failed to send to service %s: %s", service_name, err)
-                    
+
         else:
             # Fallback to original behavior
             config_key = notification.dog_id if notification.dog_id else "system"
@@ -1686,10 +1704,10 @@ class PawControlNotificationManager:
     # NEW: Person entity management methods
     async def async_update_person_entity_config(self, config: dict[str, Any]) -> bool:
         """Update person entity configuration.
-        
+
         Args:
             config: New person entity configuration
-            
+
         Returns:
             True if update was successful
         """
@@ -1699,7 +1717,7 @@ class PawControlNotificationManager:
 
     async def async_force_person_discovery(self) -> dict[str, Any]:
         """Force person entity discovery.
-        
+
         Returns:
             Discovery results
         """
@@ -1709,7 +1727,7 @@ class PawControlNotificationManager:
 
     def get_person_notification_context(self) -> dict[str, Any]:
         """Get current person notification context.
-        
+
         Returns:
             Person context for notifications
         """

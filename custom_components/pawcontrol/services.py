@@ -12,7 +12,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from collections.abc import Callable
 from contextlib import suppress
@@ -31,6 +30,8 @@ from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
+    MAX_GEOFENCE_RADIUS,
+    MIN_GEOFENCE_RADIUS,
     SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
     SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
     SERVICE_ADD_HEALTH_SNACK,
@@ -52,8 +53,6 @@ from .const import (
     SERVICE_START_DIET_TRANSITION,
     SERVICE_START_GROOMING,
     SERVICE_TOGGLE_VISITOR_MODE,
-    MIN_GEOFENCE_RADIUS,
-    MAX_GEOFENCE_RADIUS,
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
@@ -311,7 +310,9 @@ SERVICE_CALCULATE_PORTION_SCHEMA = vol.Schema(
 SERVICE_EXPORT_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("dog_id"): cv.string,
-        vol.Required("data_type"): vol.In(["feeding", "walks", "health", "medication", "routes", "all"]),
+        vol.Required("data_type"): vol.In(
+            ["feeding", "walks", "health", "medication", "routes", "all"]
+        ),
         vol.Optional("format"): vol.In(["json", "csv", "gpx"]),
         vol.Optional("days"): vol.Coerce(int),
         vol.Optional("date_from"): cv.date,
@@ -624,7 +625,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 **call.data,
                 "scheduled": False,
                 "with_medication": False,
-            }
+            },
         )
         await add_feeding_service(transformed_call)
 
@@ -790,7 +791,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         health_data["timestamp"] = dt_util.utcnow()
 
         try:
-            await data_manager.async_log_health_data(dog_id=dog_id, health_data=health_data)
+            await data_manager.async_log_health_data(
+                dog_id=dog_id, health_data=health_data
+            )
             await coordinator.async_request_refresh()
 
             _LOGGER.info("Logged health data for %s: %s", dog_id, health_data)
@@ -812,19 +815,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         medication_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
-        
+
         if "administration_time" not in medication_data:
             medication_data["administration_time"] = dt_util.utcnow()
 
         try:
-            await data_manager.async_log_medication(dog_id=dog_id, medication_data=medication_data)
+            await data_manager.async_log_medication(
+                dog_id=dog_id, medication_data=medication_data
+            )
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
-                "Logged medication for %s: %s %s", 
-                dog_id, 
-                medication_data.get("medication_name"), 
-                medication_data.get("dose")
+                "Logged medication for %s: %s %s",
+                dog_id,
+                medication_data.get("medication_name"),
+                medication_data.get("dose"),
             )
 
         except HomeAssistantError:
@@ -858,7 +863,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "timestamp": dt_util.utcnow(),
             }
 
-            await data_manager.async_set_visitor_mode(dog_id=dog_id, visitor_data=visitor_data)
+            await data_manager.async_set_visitor_mode(
+                dog_id=dog_id, visitor_data=visitor_data
+            )
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
@@ -975,7 +982,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             if success:
-                _LOGGER.debug("Posted GPS location for %s: %.6f,%.6f", dog_id, latitude, longitude)
+                _LOGGER.debug(
+                    "Posted GPS location for %s: %.6f,%.6f", dog_id, latitude, longitude
+                )
             else:
                 _LOGGER.warning("Failed to post GPS location for %s", dog_id)
 
@@ -1010,13 +1019,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     dog_id,
                     export_format,
                 )
-                
+
                 # Send notification with export result
                 notification_manager = coordinator.notification_manager
                 if notification_manager:
                     await notification_manager.async_send_notification(
                         notification_type="system_info",
-                        title=f"Route Export Complete",
+                        title="Route Export Complete",
                         message=f"Exported {last_n_walks} route(s) for {dog_id} in {export_format} format",
                         dog_id=dog_id,
                     )
@@ -1034,15 +1043,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     # NEW: Setup automatic GPS service - mentioned in info.md but was missing
     async def setup_automatic_gps_service(call: ServiceCall) -> None:
         """Handle setup automatic GPS service call.
-        
+
         NEW: Implements the setup_automatic_gps service mentioned in info.md
         with parameters like auto_start_walk, safe_zone_radius, and track_route.
         """
         coordinator = _get_coordinator()
         walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
-        
+
         # Get geofencing manager if available
-        geofencing_manager = getattr(coordinator, 'geofencing_manager', None)
+        geofencing_manager = getattr(coordinator, "geofencing_manager", None)
         if geofencing_manager is None:
             _LOGGER.warning("Geofencing manager not available for automatic GPS setup")
 
@@ -1072,14 +1081,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             }
 
             # Store GPS configuration
-            await walk_manager.async_configure_automatic_gps(dog_id=dog_id, config=gps_config)
+            await walk_manager.async_configure_automatic_gps(
+                dog_id=dog_id, config=gps_config
+            )
 
             # Setup geofencing if manager is available
             if geofencing_manager:
                 # Use Home Assistant's home location or coordinates
                 home_lat = hass.config.latitude
                 home_lon = hass.config.longitude
-                
+
                 await geofencing_manager.async_setup_safe_zone(
                     dog_id=dog_id,
                     center_lat=home_lat,
@@ -1087,10 +1098,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     radius_meters=safe_zone_radius,
                     notifications_enabled=geofence_notifications,
                 )
-                
+
                 _LOGGER.info(
                     "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%dm",
-                    dog_id, home_lat, home_lon, safe_zone_radius
+                    dog_id,
+                    home_lat,
+                    home_lon,
+                    safe_zone_radius,
                 )
 
             await coordinator.async_request_refresh()
@@ -1110,8 +1124,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     notification_type="system_info",
                     title=f"🛰️ GPS Setup Complete: {dog_id}",
                     message=f"Automatic GPS tracking configured for {dog_id}. "
-                           f"Safe zone: {safe_zone_radius}m radius. "
-                           f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}.",
+                    f"Safe zone: {safe_zone_radius}m radius. "
+                    f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}.",
                     dog_id=dog_id,
                 )
 
@@ -1225,7 +1239,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 override_health_data=override_health_data,
             )
 
-            _LOGGER.info("Calculated portion for %s %s: %s", dog_id, meal_type, portion_data)
+            _LOGGER.info(
+                "Calculated portion for %s %s: %s", dog_id, meal_type, portion_data
+            )
 
         except HomeAssistantError:
             raise
@@ -1248,7 +1264,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         date_to = call.data.get("date_to")
 
         try:
-            export_result = await data_manager.async_export_data(
+            await data_manager.async_export_data(
                 dog_id=dog_id,
                 data_type=data_type,
                 format=export_format,
@@ -1257,7 +1273,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 date_to=date_to,
             )
 
-            _LOGGER.info("Exported %s data for %s in %s format", data_type, dog_id, export_format)
+            _LOGGER.info(
+                "Exported %s data for %s in %s format", data_type, dog_id, export_format
+            )
 
         except HomeAssistantError:
             raise
@@ -1277,13 +1295,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         days = call.data.get("days", 30)
 
         try:
-            analysis_result = await data_manager.async_analyze_patterns(
+            await data_manager.async_analyze_patterns(
                 dog_id=dog_id,
                 analysis_type=analysis_type,
                 days=days,
             )
 
-            _LOGGER.info("Analyzed %s patterns for %s over %d days", analysis_type, dog_id, days)
+            _LOGGER.info(
+                "Analyzed %s patterns for %s over %d days", analysis_type, dog_id, days
+            )
 
         except HomeAssistantError:
             raise
@@ -1304,14 +1324,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         days = call.data.get("days", 30)
 
         try:
-            report_result = await data_manager.async_generate_report(
+            await data_manager.async_generate_report(
                 dog_id=dog_id,
                 report_type=report_type,
                 include_recommendations=include_recommendations,
                 days=days,
             )
 
-            _LOGGER.info("Generated %s report for %s over %d days", report_type, dog_id, days)
+            _LOGGER.info(
+                "Generated %s report for %s over %d days", report_type, dog_id, days
+            )
 
         except HomeAssistantError:
             raise
@@ -1362,14 +1384,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             await coordinator.async_request_refresh()
 
-            _LOGGER.info(
-                "Recalculated health portions for %s: %s", dog_id, result
-            )
+            _LOGGER.info("Recalculated health portions for %s: %s", dog_id, result)
 
         except HomeAssistantError:
             raise
         except Exception as err:
-            _LOGGER.error("Failed to recalculate health portions for %s: %s", dog_id, err)
+            _LOGGER.error(
+                "Failed to recalculate health portions for %s: %s", dog_id, err
+            )
             raise HomeAssistantError(
                 f"Failed to recalculate health portions for {dog_id}. Check the logs for details."
             ) from err
@@ -1387,7 +1409,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         temporary = call.data.get("temporary", True)
 
         try:
-            result = await feeding_manager.async_adjust_calories_for_activity(
+            await feeding_manager.async_adjust_calories_for_activity(
                 dog_id=dog_id,
                 activity_level=activity_level,
                 duration_hours=duration_hours,
@@ -1407,7 +1429,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except HomeAssistantError:
             raise
         except Exception as err:
-            _LOGGER.error("Failed to adjust calories for activity for %s: %s", dog_id, err)
+            _LOGGER.error(
+                "Failed to adjust calories for activity for %s: %s", dog_id, err
+            )
             raise HomeAssistantError(
                 f"Failed to adjust calories for activity for {dog_id}. Check the logs for details."
             ) from err
@@ -1425,7 +1449,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         monitor_blood_glucose = call.data.get("monitor_blood_glucose", True)
 
         try:
-            result = await feeding_manager.async_activate_diabetic_feeding_mode(
+            await feeding_manager.async_activate_diabetic_feeding_mode(
                 dog_id=dog_id,
                 meal_frequency=meal_frequency,
                 carb_limit_percent=carb_limit_percent,
@@ -1444,7 +1468,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except HomeAssistantError:
             raise
         except Exception as err:
-            _LOGGER.error("Failed to activate diabetic feeding mode for %s: %s", dog_id, err)
+            _LOGGER.error(
+                "Failed to activate diabetic feeding mode for %s: %s", dog_id, err
+            )
             raise HomeAssistantError(
                 f"Failed to activate diabetic feeding mode for {dog_id}. Check the logs for details."
             ) from err
@@ -1509,7 +1535,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         report_format = call.data.get("format", "pdf")
 
         try:
-            report_result = await data_manager.async_generate_weekly_health_report(
+            await data_manager.async_generate_weekly_health_report(
                 dog_id=dog_id,
                 include_recommendations=include_recommendations,
                 include_charts=include_charts,
@@ -1525,7 +1551,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except HomeAssistantError:
             raise
         except Exception as err:
-            _LOGGER.error("Failed to generate weekly health report for %s: %s", dog_id, err)
+            _LOGGER.error(
+                "Failed to generate weekly health report for %s: %s", dog_id, err
+            )
             raise HomeAssistantError(
                 f"Failed to generate weekly health report for {dog_id}. Check the logs for details."
             ) from err
@@ -1543,7 +1571,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         portion_adjustment = call.data.get("portion_adjustment", 0.8)
 
         try:
-            result = await feeding_manager.async_activate_emergency_feeding_mode(
+            await feeding_manager.async_activate_emergency_feeding_mode(
                 dog_id=dog_id,
                 emergency_type=emergency_type,
                 duration_days=duration_days,
@@ -1563,7 +1591,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except HomeAssistantError:
             raise
         except Exception as err:
-            _LOGGER.error("Failed to activate emergency feeding mode for %s: %s", dog_id, err)
+            _LOGGER.error(
+                "Failed to activate emergency feeding mode for %s: %s", dog_id, err
+            )
             raise HomeAssistantError(
                 f"Failed to activate emergency feeding mode for {dog_id}. Check the logs for details."
             ) from err
@@ -1581,7 +1611,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         gradual_increase_percent = call.data.get("gradual_increase_percent", 25)
 
         try:
-            result = await feeding_manager.async_start_diet_transition(
+            await feeding_manager.async_start_diet_transition(
                 dog_id=dog_id,
                 new_food_type=new_food_type,
                 transition_days=transition_days,
@@ -1652,7 +1682,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         duration_days = call.data.get("duration_days")
 
         try:
-            result = await feeding_manager.async_adjust_daily_portions(
+            await feeding_manager.async_adjust_daily_portions(
                 dog_id=dog_id,
                 adjustment_percent=adjustment_percent,
                 reason=reason,
@@ -1692,7 +1722,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
 
         try:
-            result = await feeding_manager.async_add_health_snack(
+            await feeding_manager.async_add_health_snack(
                 dog_id=dog_id,
                 snack_type=snack_type,
                 amount=amount,
@@ -1727,7 +1757,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         poop_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
-        
+
         if "timestamp" not in poop_data:
             poop_data["timestamp"] = dt_util.utcnow()
 
@@ -1736,7 +1766,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
-                "Logged poop data for %s: quality=%s, color=%s, size=%s", 
+                "Logged poop data for %s: quality=%s, color=%s, size=%s",
                 dog_id,
                 poop_data.get("quality", "not_specified"),
                 poop_data.get("color", "not_specified"),
@@ -1795,9 +1825,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 await notification_manager.async_send_notification(
                     notification_type="system_info",
                     title=f"🛁 Grooming started: {dog_id}",
-                    message=f"Started {grooming_type} for {dog_id}" + 
-                           (f" with {groomer}" if groomer else "") +
-                           (f" (est. {estimated_duration} min)" if estimated_duration else ""),
+                    message=f"Started {grooming_type} for {dog_id}"
+                    + (f" with {groomer}" if groomer else "")
+                    + (
+                        f" (est. {estimated_duration} min)"
+                        if estimated_duration
+                        else ""
+                    ),
                     dog_id=dog_id,
                 )
 
@@ -1814,7 +1848,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle start garden session service call."""
         coordinator = _get_coordinator()
         garden_manager = _require_manager(
-            getattr(coordinator, 'garden_manager', None), "garden manager"
+            getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
         dog_id = call.data["dog_id"]
@@ -1861,7 +1895,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle end garden session service call."""
         coordinator = _get_coordinator()
         garden_manager = _require_manager(
-            getattr(coordinator, 'garden_manager', None), "garden manager"
+            getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
         dog_id = call.data["dog_id"]
@@ -1900,7 +1934,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle add garden activity service call."""
         coordinator = _get_coordinator()
         garden_manager = _require_manager(
-            getattr(coordinator, 'garden_manager', None), "garden manager"
+            getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
         dog_id = call.data["dog_id"]
@@ -1945,7 +1979,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle confirm garden poop service call."""
         coordinator = _get_coordinator()
         garden_manager = _require_manager(
-            getattr(coordinator, 'garden_manager', None), "garden manager"
+            getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
         dog_id = call.data["dog_id"]
@@ -2246,7 +2280,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_CONFIRM_POOP_SCHEMA,
     )
 
-    _LOGGER.info("Registered PawControl services with enhanced automation, GPS setup, and garden tracking functionality")
+    _LOGGER.info(
+        "Registered PawControl services with enhanced automation, GPS setup, and garden tracking functionality"
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:

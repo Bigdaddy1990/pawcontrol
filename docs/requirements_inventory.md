@@ -90,4 +90,3 @@ Diese Aufstellung fasst alle in den zentralen Produktdokumenten zugesagten Funkt
 | Services & APIs | Service `pawcontrol.start_grooming` | docs/comprehensive_readme.md | Soll | Fehlt | Nicht registriert. |
 | Services & APIs | Service `pawcontrol.export_data` mit `date_from/date_to` | docs/comprehensive_readme.md | Soll | Fehlt | Schema unterstützt nur `days`. |
 | Services & APIs | Service `pawcontrol.generate_report` mit Format-Auswahl | docs/comprehensive_readme.md | Soll | Fehlt | Schema bietet nur `report_type/days`. |
-
