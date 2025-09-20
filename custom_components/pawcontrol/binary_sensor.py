@@ -39,7 +39,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import PawControlConfigEntry
-from .utils import create_device_info
+from .utils import create_device_info, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,17 +75,12 @@ class BinarySensorLogicMixin:
         if not timestamp_value:
             return default_if_none
 
-        try:
-            if isinstance(timestamp_value, str):
-                timestamp = datetime.fromisoformat(timestamp_value)
-            else:
-                timestamp = timestamp_value
-
-            time_diff = dt_util.utcnow() - timestamp
-            return time_diff < timedelta(hours=threshold_hours)
-
-        except (ValueError, TypeError):
+        timestamp = ensure_utc_datetime(timestamp_value)
+        if timestamp is None:
             return default_if_none
+
+        time_diff = dt_util.utcnow() - timestamp
+        return time_diff < timedelta(hours=threshold_hours)
 
     @staticmethod
     def _evaluate_threshold(
@@ -769,11 +764,11 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
         if not next_feeding_due:
             return False
 
-        try:
-            due_time = datetime.fromisoformat(next_feeding_due)
-            return dt_util.utcnow() >= due_time
-        except (ValueError, TypeError):
+        due_time = ensure_utc_datetime(next_feeding_due)
+        if due_time is None:
             return False
+
+        return dt_util.utcnow() >= due_time
 
 
 class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
@@ -1317,11 +1312,11 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
         if not next_checkup:
             return False
 
-        try:
-            checkup_date = datetime.fromisoformat(next_checkup)
-            return dt_util.utcnow().date() >= checkup_date.date()
-        except (ValueError, TypeError):
+        checkup_dt = ensure_utc_datetime(next_checkup)
+        if checkup_dt is None:
             return False
+
+        return dt_util.utcnow().date() >= dt_util.as_local(checkup_dt).date()
 
 
 class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):

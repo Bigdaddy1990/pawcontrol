@@ -41,6 +41,7 @@ from .const import (
     DOMAIN,
     MODULE_GPS,
 )
+from .utils import ensure_utc_datetime
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -557,20 +558,20 @@ class PawControlDeviceTracker(
         if not last_seen:
             return "unknown"
 
-        try:
-            last_seen_dt = datetime.fromisoformat(last_seen)
-            age = dt_util.utcnow() - last_seen_dt
-
-            if age < timedelta(minutes=1):
-                return "current"
-            elif age < timedelta(minutes=5):
-                return "recent"
-            elif age < timedelta(minutes=15):
-                return "stale"
-            else:
-                return "old"
-        except (ValueError, TypeError):
+        last_seen_dt = ensure_utc_datetime(last_seen)
+        if last_seen_dt is None:
             return "unknown"
+
+        age = dt_util.utcnow() - last_seen_dt
+
+        if age < timedelta(minutes=1):
+            return "current"
+        elif age < timedelta(minutes=5):
+            return "recent"
+        elif age < timedelta(minutes=15):
+            return "stale"
+        else:
+            return "old"
 
     def _get_tracking_status(self, gps_data: dict[str, Any]) -> str:
         """Get overall tracking status.
@@ -627,8 +628,8 @@ class PawControlDeviceTracker(
             # Check if GPS data is not too old
             last_seen = gps_data.get("last_seen")
             if last_seen:
-                with suppress(ValueError, TypeError):
-                    last_seen_dt = datetime.fromisoformat(last_seen)
+                last_seen_dt = ensure_utc_datetime(last_seen)
+                if last_seen_dt is not None:
                     age = dt_util.utcnow() - last_seen_dt
                     return age < MAX_GPS_AGE
 
@@ -830,11 +831,16 @@ class PawControlDeviceTracker(
         """
         cutoff_time = dt_util.utcnow() - timedelta(hours=hours)
 
-        return [
-            entry
-            for entry in self._location_history
-            if datetime.fromisoformat(entry["timestamp"]) >= cutoff_time
-        ]
+        recent_entries: list[dict[str, Any]] = []
+        for entry in self._location_history:
+            timestamp = ensure_utc_datetime(entry.get("timestamp"))
+            if timestamp is None:
+                continue
+
+            if timestamp >= cutoff_time:
+                recent_entries.append(entry)
+
+        return recent_entries
 
     def calculate_distance_traveled(self, hours: int = 24) -> float:
         """Calculate total distance traveled in the specified time period.

@@ -41,6 +41,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, DOMAIN
+from .utils import ensure_utc_datetime
 from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -490,13 +491,12 @@ class OptimizedEntityBase(CoordinatorEntity[PawControlCoordinator], RestoreEntit
 
         # Check for recent updates (within last 10 minutes)
         if last_update := dog_data.get("last_update"):
-            try:
-                last_update_dt = datetime.fromisoformat(last_update)
-                time_since_update = dt_util.utcnow() - last_update_dt
-                if time_since_update > timedelta(minutes=10):
-                    return False
-            except (ValueError, TypeError):
-                # Invalid timestamp format - treat as unavailable
+            last_update_dt = ensure_utc_datetime(last_update)
+            if last_update_dt is None:
+                return False
+
+            time_since_update = dt_util.utcnow() - last_update_dt
+            if time_since_update > timedelta(minutes=10):
                 return False
 
         return True
