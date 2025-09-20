@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable
 from datetime import datetime
@@ -25,7 +26,6 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    UPDATE_INTERVALS,
 )
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
@@ -48,7 +48,7 @@ def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
     """Calculate dynamic cache TTL based on coordinator update interval."""
     if not coordinator.update_interval:
         return 300  # Default 5 minutes
-    
+
     # Cache for 2.5x the update interval, minimum 60s, maximum 600s
     interval_seconds = int(coordinator.update_interval.total_seconds())
     cache_ttl = max(60, min(600, int(interval_seconds * 2.5)))
@@ -620,7 +620,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             module_data = dog_data.get(module_name, {})
             if not isinstance(module_data, dict):
                 continue
-                
+
             try:
                 score = calc_func(module_data)
                 if score is not None:
@@ -1030,7 +1030,7 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
 @register_sensor("walk_distance_today")
 class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     """Sensor for total walk distance today.
-    
+
     NEW: This sensor was identified as missing in requirements_inventory.md
     and marked as MUSS (must have) priority. Implements daily walk distance tracking.
     """
@@ -1068,7 +1068,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
 
         walk_data = self._get_module_data("walk")
         if walk_data:
-            try:
+            with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
                 attrs.update({
                     "distance_km": round(float(walk_data.get("total_distance_today", 0)) / 1000, 2),
                     "walks_today": int(walk_data.get("walks_today", 0)),
@@ -1076,8 +1076,6 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
                         float(walk_data.get("total_distance_today", 0)) / max(1, int(walk_data.get("walks_today", 1))), 1
                     ),
                 })
-            except (TypeError, ValueError, ZeroDivisionError):
-                pass
 
         return attrs
 

@@ -12,6 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import math
 from dataclasses import dataclass, field
@@ -19,8 +20,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Final
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -61,7 +61,7 @@ class GeofenceEvent(Enum):
 @dataclass
 class GeofenceZone:
     """Definition of a geofence zone with comprehensive metadata.
-    
+
     Attributes:
         id: Unique identifier for the zone
         name: Human-readable name for the zone
@@ -100,11 +100,11 @@ class GeofenceZone:
 
     def contains_location(self, location: GPSLocation, hysteresis: float = 1.0) -> bool:
         """Check if a location is within this geofence zone.
-        
+
         Args:
             location: GPS location to check
             hysteresis: Multiplier for radius to prevent flapping (default: 1.0)
-            
+
         Returns:
             True if location is within the zone boundary
         """
@@ -114,10 +114,10 @@ class GeofenceZone:
 
     def distance_to_location(self, location: GPSLocation) -> float:
         """Calculate distance from zone center to a location.
-        
+
         Args:
             location: GPS location to calculate distance to
-            
+
         Returns:
             Distance in meters
         """
@@ -165,7 +165,7 @@ class GeofenceZone:
 @dataclass
 class DogLocationState:
     """Tracks the location state for a specific dog.
-    
+
     Attributes:
         dog_id: Unique identifier for the dog
         last_location: Most recent GPS location
@@ -183,7 +183,7 @@ class DogLocationState:
 
     def add_location(self, location: GPSLocation, max_history: int = 50) -> None:
         """Add a new location to the state history.
-        
+
         Args:
             location: New GPS location
             max_history: Maximum number of locations to keep in history
@@ -191,7 +191,7 @@ class DogLocationState:
         self.last_location = location
         self.location_history.append(location)
         self.last_updated = dt_util.utcnow()
-        
+
         # Trim history to max size
         if len(self.location_history) > max_history:
             self.location_history = self.location_history[-max_history:]
@@ -202,17 +202,17 @@ class PawControlGeofencing:
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         """Initialize geofencing system.
-        
+
         Args:
             hass: Home Assistant instance
             entry_id: Configuration entry ID
         """
         self.hass = hass
         self.entry_id = entry_id
-        
+
         # Storage for zones and state
         self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_geofencing")
-        
+
         # Runtime state
         self._zones: dict[str, GeofenceZone] = {}
         self._dog_states: dict[str, DogLocationState] = {}
@@ -220,7 +220,7 @@ class PawControlGeofencing:
         self._check_interval = DEFAULT_CHECK_INTERVAL
         self._use_home_location = True
         self._home_zone_radius = DEFAULT_HOME_ZONE_RADIUS
-        
+
         # Background task management
         self._update_task: asyncio.Task | None = None
         self._cleanup_task: asyncio.Task | None = None
@@ -235,7 +235,7 @@ class PawControlGeofencing:
         check_interval: int = DEFAULT_CHECK_INTERVAL,
     ) -> None:
         """Initialize geofencing system with configuration.
-        
+
         Args:
             dogs: List of dog IDs to track
             enabled: Whether geofencing is enabled
@@ -247,7 +247,7 @@ class PawControlGeofencing:
             try:
                 # Load stored data
                 stored_data = await self._store.async_load() or {}
-                
+
                 # Load zones
                 zones_data = stored_data.get("zones", {})
                 for zone_id, zone_data in zones_data.items():
@@ -255,33 +255,33 @@ class PawControlGeofencing:
                         self._zones[zone_id] = GeofenceZone.from_dict(zone_data)
                     except Exception as err:
                         _LOGGER.warning("Failed to load geofence zone %s: %s", zone_id, err)
-                
+
                 # Initialize dog states
                 for dog_id in dogs:
                     if dog_id not in self._dog_states:
                         self._dog_states[dog_id] = DogLocationState(dog_id)
-                
+
                 # Update configuration
                 self._enabled = enabled
                 self._use_home_location = use_home_location
                 self._home_zone_radius = home_zone_radius
                 self._check_interval = check_interval
-                
+
                 # Create home zone if enabled and not exists
                 if use_home_location and "home" not in self._zones:
                     await self._create_home_zone()
-                
+
                 # Start monitoring if enabled
                 if enabled:
                     await self._start_monitoring()
-                
+
                 _LOGGER.info(
                     "Geofencing initialized: %d zones, %d dogs, enabled=%s",
                     len(self._zones),
                     len(self._dog_states),
                     enabled,
                 )
-                
+
             except Exception as err:
                 _LOGGER.error("Failed to initialize geofencing system: %s", err)
                 raise
@@ -301,17 +301,17 @@ class PawControlGeofencing:
                     description="Automatically created home zone",
                     metadata={"auto_created": True},
                 )
-                
+
                 self._zones["home"] = home_zone
                 await self._save_data()
-                
+
                 _LOGGER.info(
                     "Created home zone: %.6f,%.6f radius %dm",
                     home_zone.latitude,
                     home_zone.longitude,
                     home_zone.radius,
                 )
-                
+
         except Exception as err:
             _LOGGER.warning("Failed to create home zone: %s", err)
 
@@ -319,37 +319,33 @@ class PawControlGeofencing:
         """Start background monitoring tasks."""
         if self._update_task and not self._update_task.done():
             return
-        
+
         # Start location checking task
         self._update_task = self.hass.async_create_task(
             self._monitoring_loop()
         )
-        
+
         # Start cleanup task
         self._cleanup_task = self.hass.async_create_task(
             self._cleanup_loop()
         )
-        
+
         _LOGGER.debug("Started geofencing monitoring tasks")
 
     async def _stop_monitoring(self) -> None:
         """Stop background monitoring tasks."""
         if self._update_task:
             self._update_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._update_task
-            except asyncio.CancelledError:
-                pass
             self._update_task = None
-        
+
         if self._cleanup_task:
             self._cleanup_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._cleanup_task
-            except asyncio.CancelledError:
-                pass
             self._cleanup_task = None
-        
+
         _LOGGER.debug("Stopped geofencing monitoring tasks")
 
     async def _monitoring_loop(self) -> None:
@@ -384,26 +380,26 @@ class PawControlGeofencing:
 
     async def _check_dog_location(self, dog_state: DogLocationState) -> None:
         """Check a specific dog's location against all zones.
-        
+
         Args:
             dog_state: Current state for the dog
         """
         if not dog_state.last_location:
             return
-        
+
         current_time = dt_util.utcnow()
         newly_entered_zones = set()
         newly_left_zones = set()
-        
+
         # Check each zone
         for zone in self._zones.values():
             if not zone.enabled:
                 continue
-            
+
             zone_id = zone.id
             currently_inside = zone.contains_location(dog_state.last_location)
             was_inside = zone_id in dog_state.current_zones
-            
+
             # Check for zone entry
             if currently_inside and not was_inside:
                 # Use hysteresis to confirm entry
@@ -411,25 +407,25 @@ class PawControlGeofencing:
                     dog_state.current_zones.add(zone_id)
                     dog_state.zone_entry_times[zone_id] = current_time
                     newly_entered_zones.add(zone_id)
-            
+
             # Check for zone exit
-            elif not currently_inside and was_inside:
+            elif not currently_inside and was_inside:  # noqa: SIM102
                 # Use hysteresis to confirm exit
                 if not zone.contains_location(dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS):
                     dog_state.current_zones.discard(zone_id)
                     dog_state.zone_entry_times.pop(zone_id, None)
                     newly_left_zones.add(zone_id)
-        
+
         # Fire events for zone changes
         for zone_id in newly_entered_zones:
             await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.ENTERED)
-        
+
         for zone_id in newly_left_zones:
             await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.LEFT)
 
     async def _fire_zone_event(self, dog_id: str, zone_id: str, event: GeofenceEvent) -> None:
         """Fire a geofence event.
-        
+
         Args:
             dog_id: ID of the dog
             zone_id: ID of the zone
@@ -438,7 +434,7 @@ class PawControlGeofencing:
         zone = self._zones.get(zone_id)
         if not zone or not zone.alerts_enabled:
             return
-        
+
         event_data = {
             "dog_id": dog_id,
             "zone_id": zone_id,
@@ -447,13 +443,13 @@ class PawControlGeofencing:
             "event_type": event.value,
             "timestamp": dt_util.utcnow().isoformat(),
         }
-        
+
         # Fire Home Assistant event
         if event == GeofenceEvent.ENTERED:
             self.hass.bus.async_fire(EVENT_GEOFENCE_ENTERED, event_data)
         elif event == GeofenceEvent.LEFT:
             self.hass.bus.async_fire(EVENT_GEOFENCE_LEFT, event_data)
-        
+
         _LOGGER.info(
             "Geofence event: %s %s %s zone '%s'",
             dog_id,
@@ -465,26 +461,26 @@ class PawControlGeofencing:
     async def _cleanup_old_data(self) -> None:
         """Clean up old location history and zone entry times."""
         cutoff_time = dt_util.utcnow() - timedelta(hours=24)
-        
+
         for dog_state in self._dog_states.values():
             # Clean old location history
             dog_state.location_history = [
                 loc for loc in dog_state.location_history
                 if loc.timestamp > cutoff_time
             ]
-            
+
             # Clean old zone entry times for zones no longer occupied
             zones_to_clean = []
             for zone_id, entry_time in dog_state.zone_entry_times.items():
                 if zone_id not in dog_state.current_zones and entry_time < cutoff_time:
                     zones_to_clean.append(zone_id)
-            
+
             for zone_id in zones_to_clean:
                 dog_state.zone_entry_times.pop(zone_id, None)
 
     async def async_update_location(self, dog_id: str, location: GPSLocation) -> None:
         """Update location for a dog and check geofences.
-        
+
         Args:
             dog_id: Dog identifier
             location: New GPS location
@@ -492,29 +488,29 @@ class PawControlGeofencing:
         async with self._lock:
             if dog_id not in self._dog_states:
                 self._dog_states[dog_id] = DogLocationState(dog_id)
-            
+
             dog_state = self._dog_states[dog_id]
             dog_state.add_location(location)
-            
+
             if self._enabled:
                 await self._check_dog_location(dog_state)
 
     async def async_add_zone(self, zone: GeofenceZone) -> bool:
         """Add a new geofence zone.
-        
+
         Args:
             zone: Geofence zone to add
-            
+
         Returns:
             True if zone was added successfully
         """
         async with self._lock:
             if zone.id in self._zones:
                 return False
-            
+
             self._zones[zone.id] = zone
             await self._save_data()
-            
+
             _LOGGER.info(
                 "Added geofence zone '%s' (%s): %.6f,%.6f radius %dm",
                 zone.name,
@@ -523,76 +519,76 @@ class PawControlGeofencing:
                 zone.longitude,
                 zone.radius,
             )
-            
+
             return True
 
     async def async_update_zone(self, zone: GeofenceZone) -> bool:
         """Update an existing geofence zone.
-        
+
         Args:
             zone: Updated zone data
-            
+
         Returns:
             True if zone was updated successfully
         """
         async with self._lock:
             if zone.id not in self._zones:
                 return False
-            
+
             zone.updated_at = dt_util.utcnow()
             self._zones[zone.id] = zone
             await self._save_data()
-            
+
             _LOGGER.info("Updated geofence zone '%s'", zone.name)
             return True
 
     async def async_remove_zone(self, zone_id: str) -> bool:
         """Remove a geofence zone.
-        
+
         Args:
             zone_id: ID of zone to remove
-            
+
         Returns:
             True if zone was removed successfully
         """
         async with self._lock:
             if zone_id not in self._zones:
                 return False
-            
+
             zone = self._zones.pop(zone_id)
-            
+
             # Remove zone from all dog states
             for dog_state in self._dog_states.values():
                 dog_state.current_zones.discard(zone_id)
                 dog_state.zone_entry_times.pop(zone_id, None)
-            
+
             await self._save_data()
-            
+
             _LOGGER.info("Removed geofence zone '%s'", zone.name)
             return True
 
     async def async_enable_geofencing(self, enabled: bool) -> None:
         """Enable or disable geofencing system.
-        
+
         Args:
             enabled: Whether to enable geofencing
         """
         async with self._lock:
             if self._enabled == enabled:
                 return
-            
+
             self._enabled = enabled
-            
+
             if enabled:
                 await self._start_monitoring()
             else:
                 await self._stop_monitoring()
-            
+
             _LOGGER.info("Geofencing %s", "enabled" if enabled else "disabled")
 
     def get_zones(self) -> dict[str, GeofenceZone]:
         """Get all geofence zones.
-        
+
         Returns:
             Dictionary of zone ID to zone data
         """
@@ -600,10 +596,10 @@ class PawControlGeofencing:
 
     def get_zone(self, zone_id: str) -> GeofenceZone | None:
         """Get a specific geofence zone.
-        
+
         Args:
             zone_id: ID of zone to retrieve
-            
+
         Returns:
             Zone data or None if not found
         """
@@ -611,10 +607,10 @@ class PawControlGeofencing:
 
     def get_dog_state(self, dog_id: str) -> DogLocationState | None:
         """Get current state for a dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Current dog state or None if not found
         """
@@ -622,22 +618,22 @@ class PawControlGeofencing:
 
     def get_dogs_in_zone(self, zone_id: str) -> list[str]:
         """Get list of dogs currently in a zone.
-        
+
         Args:
             zone_id: Zone identifier
-            
+
         Returns:
             List of dog IDs currently in the zone
         """
         dogs_in_zone = []
         for dog_state in self._dog_states.values():
             if zone_id in dog_state.current_zones:
-                dogs_in_zone.append(dog_state.dog_id)
+                dogs_in_zone.append(dog_state.dog_id)  # noqa: PERF401
         return dogs_in_zone
 
     def is_enabled(self) -> bool:
         """Check if geofencing is enabled.
-        
+
         Returns:
             True if geofencing is enabled
         """
@@ -653,16 +649,16 @@ class PawControlGeofencing:
                 },
                 "last_updated": dt_util.utcnow().isoformat(),
             }
-            
+
             await self._store.async_save(data)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to save geofencing data: %s", err)
 
     async def async_cleanup(self) -> None:
         """Clean up geofencing system."""
         await self._stop_monitoring()
-        
+
         async with self._lock:
             self._zones.clear()
             self._dog_states.clear()
@@ -670,13 +666,13 @@ class PawControlGeofencing:
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance between two GPS coordinates using Haversine formula.
-    
+
     Args:
         lat1: First latitude
-        lon1: First longitude  
+        lon1: First longitude
         lat2: Second latitude
         lon2: Second longitude
-        
+
     Returns:
         Distance in meters
     """
@@ -685,17 +681,17 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     lon1_rad = math.radians(lon1)
     lat2_rad = math.radians(lat2)
     lon2_rad = math.radians(lon2)
-    
+
     # Haversine formula
     dlat = lat2_rad - lat1_rad
     dlon = lon2_rad - lon1_rad
-    
+
     a = (
         math.sin(dlat / 2) ** 2
         + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
+
     # Convert to meters
     distance_km = EARTH_RADIUS_KM * c
     return distance_km * 1000
@@ -703,11 +699,11 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 def validate_coordinates(latitude: float, longitude: float) -> bool:
     """Validate GPS coordinates.
-    
+
     Args:
         latitude: Latitude to validate
         longitude: Longitude to validate
-        
+
     Returns:
         True if coordinates are valid
     """
@@ -716,10 +712,10 @@ def validate_coordinates(latitude: float, longitude: float) -> bool:
 
 def validate_radius(radius: float) -> bool:
     """Validate geofence radius.
-    
+
     Args:
         radius: Radius to validate in meters
-        
+
     Returns:
         True if radius is valid
     """

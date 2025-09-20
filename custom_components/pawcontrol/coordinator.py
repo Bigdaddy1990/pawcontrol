@@ -19,7 +19,6 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
-    ConfigEntryNotReady,
     HomeAssistantError,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -42,7 +41,6 @@ from .exceptions import (
     GPSUnavailableError,
     NetworkError,
     RateLimitError,
-    StorageError,
     ValidationError,
 )
 from .types import DogConfigData, PawControlConfigEntry
@@ -90,14 +88,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         self.config_entry = entry
         self.session = session or async_get_clientsession(hass)
-        
+
         # PLATINUM: Enhanced configuration validation
         try:
             self._dogs_config: list[DogConfigData] = entry.data.get(CONF_DOGS, [])
             if not isinstance(self._dogs_config, list):
                 raise ValidationError(
-                    "dogs_config", 
-                    type(self._dogs_config).__name__, 
+                    "dogs_config",
+                    type(self._dogs_config).__name__,
                     "Must be a list of dog configurations"
                 )
         except (KeyError, TypeError) as err:
@@ -171,10 +169,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         geofencing_manager: PawControlGeofencing | None = None,
     ) -> None:
         """Attach runtime managers for service integration.
-        
+
         Args:
             data_manager: Data management service
-            feeding_manager: Feeding tracking service  
+            feeding_manager: Feeding tracking service
             walk_manager: Walk tracking service
             notification_manager: Notification service
             geofencing_manager: Geofencing service (optional)
@@ -196,10 +194,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _get_cache(self, key: str) -> Any | None:
         """Get item from cache if not expired.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if expired/missing
         """
@@ -218,7 +216,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _set_cache(self, key: str, data: Any) -> None:
         """Set item in cache with timestamp.
-        
+
         Args:
             key: Cache key
             data: Data to cache
@@ -268,10 +266,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         all_data[dog_id] = await self._fetch_dog_data(dog_id)
                     return  # Success, exit retry loop
 
-                except asyncio.TimeoutError as err:
+                except TimeoutError as err:
                     last_error = err
                     _LOGGER.warning(
-                        "Timeout fetching data for dog %s (attempt %d/%d): %s", 
+                        "Timeout fetching data for dog %s (attempt %d/%d): %s",
                         dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
                     )
                 except ConfigEntryAuthFailed:
@@ -280,13 +278,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except (ClientError, NetworkError) as err:
                     last_error = err
                     _LOGGER.warning(
-                        "Network error fetching data for dog %s (attempt %d/%d): %s", 
+                        "Network error fetching data for dog %s (attempt %d/%d): %s",
                         dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
                     )
                 except RateLimitError as err:
                     last_error = err
                     _LOGGER.warning(
-                        "Rate limit hit for dog %s, waiting %s seconds", 
+                        "Rate limit hit for dog %s, waiting %s seconds",
                         dog_id, err.retry_after or 60
                     )
                     if err.retry_after:
@@ -300,7 +298,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except HomeAssistantError as err:
                     last_error = err
                     _LOGGER.warning(
-                        "HA error fetching data for dog %s (attempt %d/%d): %s", 
+                        "HA error fetching data for dog %s (attempt %d/%d): %s",
                         dog_id, retry_count + 1, MAX_RETRY_ATTEMPTS, err
                     )
 
@@ -313,7 +311,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # All retries failed
             errors += 1
             _LOGGER.error(
-                "Failed to fetch data for dog %s after %d attempts, last error: %s", 
+                "Failed to fetch data for dog %s after %d attempts, last error: %s",
                 dog_id, MAX_RETRY_ATTEMPTS, last_error
             )
             all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
@@ -325,7 +323,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     task_group.create_task(fetch_and_store(dog_id))
         except* ConfigEntryAuthFailed as auth_error_group:
             # Re-raise authentication failures
-            raise auth_error_group.exceptions[0]
+            raise auth_error_group.exceptions[0]  # noqa: B904
         except* Exception as error_group:
             # Log other task group errors but continue
             for exc in error_group.exceptions:
@@ -339,11 +337,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._error_count += 1
             self._consecutive_errors += 1
             raise UpdateFailed(f"All {total_dogs} dogs failed to update")
-        
+
         if success_rate < 0.5:  # More than 50% failed
             self._consecutive_errors += 1
             _LOGGER.warning(
-                "Low success rate: %d/%d dogs updated successfully", 
+                "Low success rate: %d/%d dogs updated successfully",
                 total_dogs - errors, total_dogs
             )
         else:
@@ -354,7 +352,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_update_statistics(self) -> dict[str, Any]:
         """Return coordinator update metrics for diagnostics and system health.
-        
+
         Returns:
             Dictionary containing update statistics and performance metrics
         """
@@ -362,7 +360,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         cache_entries = len(self._cache)
         total_cache_requests = self._cache_hits + self._cache_misses
         cache_hit_rate = (
-            (self._cache_hits / total_cache_requests * 100) 
+            (self._cache_hits / total_cache_requests * 100)
             if total_cache_requests > 0 else 0
         )
 
@@ -459,13 +457,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _get_feeding_data(self, dog_id: str) -> dict[str, Any]:
         """Get feeding data for dog with caching and error handling.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Feeding data dictionary
-            
+
         Raises:
             NetworkError: If external API call fails
         """
@@ -476,7 +474,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             if self._use_external_api:
                 async with self.session.get(
-                    f"/api/dogs/{dog_id}/feeding", 
+                    f"/api/dogs/{dog_id}/feeding",
                     timeout=ClientTimeout(total=10.0)
                 ) as resp:
                     if resp.status == 200:
@@ -486,7 +484,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     elif resp.status == 429:
                         retry_after = resp.headers.get("Retry-After")
                         raise RateLimitError(
-                            "feeding_data", 
+                            "feeding_data",
                             retry_after=int(retry_after) if retry_after else 60
                         )
                     elif resp.status >= 400:
@@ -507,10 +505,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _get_walk_data(self, dog_id: str) -> dict[str, Any]:
         """Get walk data for dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Walk data dictionary
         """
@@ -524,13 +522,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
         """Get GPS data for dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             GPS data dictionary
-            
+
         Raises:
             GPSUnavailableError: If GPS data is not available
         """
@@ -548,10 +546,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
         """Get health data for dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Health data dictionary
         """
@@ -564,20 +562,20 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _get_geofencing_data(self, dog_id: str) -> dict[str, Any]:
         """Get geofencing data for dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Geofencing data dictionary
         """
         if not self.geofencing_manager:
             return {"status": "disabled", "zones": []}
-        
+
         dog_state = self.geofencing_manager.get_dog_state(dog_id)
         if not dog_state:
             return {"status": "no_location", "zones": []}
-        
+
         zones = self.geofencing_manager.get_zones()
         current_zones = [
             {
@@ -589,7 +587,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for zone_id in dog_state.current_zones
             if zone_id in zones
         ]
-        
+
         return {
             "status": "active" if current_zones else "outside_zones",
             "current_zones": current_zones,
@@ -603,7 +601,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
         """Get empty dog data structure.
-        
+
         Returns:
             Empty dog data dictionary
         """
@@ -619,10 +617,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _calculate_update_interval(self) -> int:
         """Calculate optimized update interval with validation.
-        
+
         Returns:
             Update interval in seconds
-            
+
         Raises:
             ValueError: If configuration is invalid
         """
@@ -659,10 +657,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_dog_config(self, dog_id: str) -> DogConfigData | None:
         """Get dog configuration by ID.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Dog configuration or None if not found
         """
@@ -673,10 +671,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
         """Get enabled modules for dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Set of enabled module names
         """
@@ -689,11 +687,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def is_module_enabled(self, dog_id: str, module: str) -> bool:
         """Check if module is enabled for dog.
-        
+
         Args:
             dog_id: Dog identifier
             module: Module name
-            
+
         Returns:
             True if module is enabled
         """
@@ -701,7 +699,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_dog_ids(self) -> list[str]:
         """Get all configured dog IDs.
-        
+
         Returns:
             List of dog identifiers
         """
@@ -713,10 +711,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get data for specific dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Dog data or None if not found
         """
@@ -724,11 +722,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
         """Get data for specific module.
-        
+
         Args:
             dog_id: Dog identifier
             module: Module name
-            
+
         Returns:
             Module data dictionary
         """
@@ -737,7 +735,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def available(self) -> bool:
         """Check if coordinator is available.
-        
+
         Returns:
             True if coordinator is available and healthy
         """
@@ -745,7 +743,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_statistics(self) -> dict[str, Any]:
         """Get coordinator statistics.
-        
+
         Returns:
             Statistics dictionary
         """
@@ -776,7 +774,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_maintenance(self, *_: Any) -> None:
         """Perform periodic maintenance with enhanced cache management.
-        
+
         Args:
             *_: Unused arguments from time tracking
         """
@@ -787,7 +785,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for key, (_, timestamp) in self._cache.items()
             if (now - timestamp).total_seconds() > CACHE_TTL_SECONDS
         ]
-        
+
         for key in expired_keys:
             del self._cache[key]
 
@@ -809,7 +807,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and cleanup resources.
-        
+
         Raises:
             Exception: If shutdown encounters critical errors
         """

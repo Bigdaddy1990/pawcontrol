@@ -1261,7 +1261,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                     await self._validate_reauth_entry_enhanced(self.reauth_entry)
-            except asyncio.TimeoutError as err:
+            except TimeoutError as err:
                 _LOGGER.error("Entry validation timeout during reauth: %s", err)
                 raise ConfigEntryAuthFailed("Entry validation timeout") from err
             except ValidationError as err:
@@ -1270,7 +1270,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
             return await self.async_step_reauth_confirm()
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             _LOGGER.error("Reauth step timeout: %s", err)
             raise ConfigEntryAuthFailed("Reauthentication timeout") from err
         except Exception as err:
@@ -1295,7 +1295,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         # Validate dogs configuration with graceful error handling
         dogs = entry.data.get(CONF_DOGS, [])
         invalid_dogs = []
-        
+
         for dog in dogs:
             try:
                 if not is_dog_config_valid(dog):
@@ -1309,7 +1309,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if invalid_dogs:
             _LOGGER.warning(
-                "Invalid dog configurations found during reauth: %s", 
+                "Invalid dog configurations found during reauth: %s",
                 ", ".join(invalid_dogs)
             )
             # Only fail if ALL dogs are invalid
@@ -1358,7 +1358,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                         try:
                             async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                                 config_health = await self._check_config_health_enhanced(self.reauth_entry)
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             _LOGGER.warning("Config health check timeout - proceeding with reauth")
                             config_health = {"healthy": True, "issues": ["Health check timeout"]}
                         except Exception as err:
@@ -1388,7 +1388,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                             },
                         )
 
-                except asyncio.TimeoutError as err:
+                except TimeoutError as err:
                     _LOGGER.error("Reauth confirmation timeout: %s", err)
                     errors["base"] = "reauth_timeout"
                 except ConfigEntryAuthFailed:
@@ -1508,7 +1508,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             async with asyncio.timeout(CONFIG_HEALTH_CHECK_TIMEOUT):
                 health = await self._check_config_health_enhanced(entry)
-                
+
             if health["healthy"]:
                 return f"Healthy ({health['valid_dogs']}/{health['dogs_count']} dogs, {health['profile']} profile)"
             else:
@@ -1520,8 +1520,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 if warning_count > 0:
                     status_parts.append(f"{warning_count} warnings")
                 return f"Issues: {', '.join(status_parts)}"
-                
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             return "Health check timeout"
         except Exception as err:
             _LOGGER.debug("Health status summary error: %s", err)

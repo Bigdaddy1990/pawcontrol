@@ -12,7 +12,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from collections.abc import Callable
 from contextlib import suppress
@@ -31,6 +30,8 @@ from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
+    MAX_GEOFENCE_RADIUS,
+    MIN_GEOFENCE_RADIUS,
     SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
     SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
     SERVICE_ADD_HEALTH_SNACK,
@@ -52,8 +53,6 @@ from .const import (
     SERVICE_START_DIET_TRANSITION,
     SERVICE_START_GROOMING,
     SERVICE_TOGGLE_VISITOR_MODE,
-    MIN_GEOFENCE_RADIUS,
-    MAX_GEOFENCE_RADIUS,
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
@@ -812,7 +811,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         medication_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
-        
+
         if "administration_time" not in medication_data:
             medication_data["administration_time"] = dt_util.utcnow()
 
@@ -821,9 +820,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
-                "Logged medication for %s: %s %s", 
-                dog_id, 
-                medication_data.get("medication_name"), 
+                "Logged medication for %s: %s %s",
+                dog_id,
+                medication_data.get("medication_name"),
                 medication_data.get("dose")
             )
 
@@ -1010,13 +1009,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     dog_id,
                     export_format,
                 )
-                
+
                 # Send notification with export result
                 notification_manager = coordinator.notification_manager
                 if notification_manager:
                     await notification_manager.async_send_notification(
                         notification_type="system_info",
-                        title=f"Route Export Complete",
+                        title="Route Export Complete",
                         message=f"Exported {last_n_walks} route(s) for {dog_id} in {export_format} format",
                         dog_id=dog_id,
                     )
@@ -1034,13 +1033,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     # NEW: Setup automatic GPS service - mentioned in info.md but was missing
     async def setup_automatic_gps_service(call: ServiceCall) -> None:
         """Handle setup automatic GPS service call.
-        
+
         NEW: Implements the setup_automatic_gps service mentioned in info.md
         with parameters like auto_start_walk, safe_zone_radius, and track_route.
         """
         coordinator = _get_coordinator()
         walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
-        
+
         # Get geofencing manager if available
         geofencing_manager = getattr(coordinator, 'geofencing_manager', None)
         if geofencing_manager is None:
@@ -1079,7 +1078,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 # Use Home Assistant's home location or coordinates
                 home_lat = hass.config.latitude
                 home_lon = hass.config.longitude
-                
+
                 await geofencing_manager.async_setup_safe_zone(
                     dog_id=dog_id,
                     center_lat=home_lat,
@@ -1087,7 +1086,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     radius_meters=safe_zone_radius,
                     notifications_enabled=geofence_notifications,
                 )
-                
+
                 _LOGGER.info(
                     "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%dm",
                     dog_id, home_lat, home_lon, safe_zone_radius
@@ -1248,7 +1247,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         date_to = call.data.get("date_to")
 
         try:
-            export_result = await data_manager.async_export_data(
+            await data_manager.async_export_data(
                 dog_id=dog_id,
                 data_type=data_type,
                 format=export_format,
@@ -1277,7 +1276,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         days = call.data.get("days", 30)
 
         try:
-            analysis_result = await data_manager.async_analyze_patterns(
+            await data_manager.async_analyze_patterns(
                 dog_id=dog_id,
                 analysis_type=analysis_type,
                 days=days,
@@ -1304,7 +1303,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         days = call.data.get("days", 30)
 
         try:
-            report_result = await data_manager.async_generate_report(
+            await data_manager.async_generate_report(
                 dog_id=dog_id,
                 report_type=report_type,
                 include_recommendations=include_recommendations,
@@ -1387,7 +1386,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         temporary = call.data.get("temporary", True)
 
         try:
-            result = await feeding_manager.async_adjust_calories_for_activity(
+            await feeding_manager.async_adjust_calories_for_activity(
                 dog_id=dog_id,
                 activity_level=activity_level,
                 duration_hours=duration_hours,
@@ -1425,7 +1424,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         monitor_blood_glucose = call.data.get("monitor_blood_glucose", True)
 
         try:
-            result = await feeding_manager.async_activate_diabetic_feeding_mode(
+            await feeding_manager.async_activate_diabetic_feeding_mode(
                 dog_id=dog_id,
                 meal_frequency=meal_frequency,
                 carb_limit_percent=carb_limit_percent,
@@ -1509,7 +1508,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         report_format = call.data.get("format", "pdf")
 
         try:
-            report_result = await data_manager.async_generate_weekly_health_report(
+            await data_manager.async_generate_weekly_health_report(
                 dog_id=dog_id,
                 include_recommendations=include_recommendations,
                 include_charts=include_charts,
@@ -1543,7 +1542,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         portion_adjustment = call.data.get("portion_adjustment", 0.8)
 
         try:
-            result = await feeding_manager.async_activate_emergency_feeding_mode(
+            await feeding_manager.async_activate_emergency_feeding_mode(
                 dog_id=dog_id,
                 emergency_type=emergency_type,
                 duration_days=duration_days,
@@ -1581,7 +1580,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         gradual_increase_percent = call.data.get("gradual_increase_percent", 25)
 
         try:
-            result = await feeding_manager.async_start_diet_transition(
+            await feeding_manager.async_start_diet_transition(
                 dog_id=dog_id,
                 new_food_type=new_food_type,
                 transition_days=transition_days,
@@ -1652,7 +1651,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         duration_days = call.data.get("duration_days")
 
         try:
-            result = await feeding_manager.async_adjust_daily_portions(
+            await feeding_manager.async_adjust_daily_portions(
                 dog_id=dog_id,
                 adjustment_percent=adjustment_percent,
                 reason=reason,
@@ -1692,7 +1691,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
 
         try:
-            result = await feeding_manager.async_add_health_snack(
+            await feeding_manager.async_add_health_snack(
                 dog_id=dog_id,
                 snack_type=snack_type,
                 amount=amount,
@@ -1727,7 +1726,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         poop_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
-        
+
         if "timestamp" not in poop_data:
             poop_data["timestamp"] = dt_util.utcnow()
 
@@ -1736,7 +1735,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             await coordinator.async_request_refresh()
 
             _LOGGER.info(
-                "Logged poop data for %s: quality=%s, color=%s, size=%s", 
+                "Logged poop data for %s: quality=%s, color=%s, size=%s",
                 dog_id,
                 poop_data.get("quality", "not_specified"),
                 poop_data.get("color", "not_specified"),
@@ -1795,7 +1794,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 await notification_manager.async_send_notification(
                     notification_type="system_info",
                     title=f"🛁 Grooming started: {dog_id}",
-                    message=f"Started {grooming_type} for {dog_id}" + 
+                    message=f"Started {grooming_type} for {dog_id}" +
                            (f" with {groomer}" if groomer else "") +
                            (f" (est. {estimated_duration} min)" if estimated_duration else ""),
                     dog_id=dog_id,

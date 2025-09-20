@@ -809,35 +809,35 @@ class PawControlDataManager:
         return dogs_data.copy()
 
     # NEW METHODS: Health and medication logging for services
-    
+
     async def async_log_health_data(self, dog_id: str, health_data: dict[str, Any]) -> None:
         """Log health data for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             health_data: Health data to log
         """
         try:
             health_namespace = await self._get_namespace_data("health")
-            
+
             if dog_id not in health_namespace:
                 health_namespace[dog_id] = []
-            
+
             # Add timestamp if not present
             if "timestamp" not in health_data:
                 health_data["timestamp"] = dt_util.utcnow().isoformat()
-            
+
             # Add entry
             health_namespace[dog_id].append(health_data.copy())
-            
+
             # Keep only last 1000 entries per dog to prevent unlimited growth
             if len(health_namespace[dog_id]) > 1000:
                 health_namespace[dog_id] = health_namespace[dog_id][-1000:]
-            
+
             await self._save_namespace("health", health_namespace)
-            
+
             _LOGGER.debug("Logged health data for %s: %s", dog_id, health_data)
-            
+
         except Exception as err:
             _LOGGER.error("Failed to log health data for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -845,32 +845,32 @@ class PawControlDataManager:
 
     async def async_log_medication(self, dog_id: str, medication_data: dict[str, Any]) -> None:
         """Log medication administration for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             medication_data: Medication data to log
         """
         try:
             medication_namespace = await self._get_namespace_data("medication")
-            
+
             if dog_id not in medication_namespace:
                 medication_namespace[dog_id] = []
-            
+
             # Add timestamp if not present
             if "administration_time" not in medication_data:
                 medication_data["administration_time"] = dt_util.utcnow().isoformat()
-            
+
             # Add entry
             medication_namespace[dog_id].append(medication_data.copy())
-            
+
             # Keep only last 500 entries per dog
             if len(medication_namespace[dog_id]) > 500:
                 medication_namespace[dog_id] = medication_namespace[dog_id][-500:]
-            
+
             await self._save_namespace("medication", medication_namespace)
-            
+
             _LOGGER.debug("Logged medication for %s: %s", dog_id, medication_data.get("medication_name"))
-            
+
         except Exception as err:
             _LOGGER.error("Failed to log medication for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -878,17 +878,17 @@ class PawControlDataManager:
 
     async def async_get_visitor_mode_status(self, dog_id: str) -> dict[str, Any]:
         """Get visitor mode status for a dog.
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Visitor mode status data
         """
         try:
             visitor_namespace = await self._get_namespace_data("visitor_mode")
             return visitor_namespace.get(dog_id, {"enabled": False})
-            
+
         except Exception as err:
             _LOGGER.error("Failed to get visitor mode status for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -896,7 +896,7 @@ class PawControlDataManager:
 
     async def async_set_visitor_mode(self, dog_id: str, visitor_data: dict[str, Any]) -> None:
         """Set visitor mode for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             visitor_data: Visitor mode configuration
@@ -904,11 +904,11 @@ class PawControlDataManager:
         try:
             visitor_namespace = await self._get_namespace_data("visitor_mode")
             visitor_namespace[dog_id] = visitor_data.copy()
-            
+
             await self._save_namespace("visitor_mode", visitor_namespace)
-            
+
             _LOGGER.debug("Set visitor mode for %s: %s", dog_id, visitor_data.get("enabled"))
-            
+
         except Exception as err:
             _LOGGER.error("Failed to set visitor mode for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -924,7 +924,7 @@ class PawControlDataManager:
         date_to: datetime | None = None,
     ) -> dict[str, Any]:
         """Export data for a dog in specified format.
-        
+
         Args:
             dog_id: Dog identifier
             data_type: Type of data to export (feeding, walks, health, medication, routes, all)
@@ -932,35 +932,32 @@ class PawControlDataManager:
             days: Number of days to export (from now backwards)
             date_from: Start date for export
             date_to: End date for export
-            
+
         Returns:
             Export result with data or file path
         """
         try:
             # Calculate date range
             end_date = date_to or dt_util.utcnow()
-            if days:
-                start_date = end_date - timedelta(days=days)
-            else:
-                start_date = date_from
-            
+            start_date = end_date - timedelta(days=days) if days else date_from
+
             export_data = {}
-            
+
             # Collect data based on type
             if data_type == "all":
                 data_types = ["feeding", "walks", "health", "medication", "gps"]
             else:
                 data_types = [data_type]
-            
+
             for dtype in data_types:
                 if dtype == "routes":
                     dtype = "gps"  # Map routes to gps data
-                
+
                 entries = await self.async_get_module_data(
                     dtype, dog_id, start_date=start_date, end_date=end_date
                 )
                 export_data[dtype] = entries
-            
+
             # Format data
             if format == "csv":
                 return await self._export_as_csv(dog_id, export_data, data_type)
@@ -978,7 +975,7 @@ class PawControlDataManager:
                     "data": export_data,
                     "total_entries": sum(len(entries) for entries in export_data.values()),
                 }
-            
+
         except Exception as err:
             _LOGGER.error("Failed to export data for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -986,38 +983,38 @@ class PawControlDataManager:
 
     async def _export_as_csv(self, dog_id: str, data: dict[str, Any], data_type: str) -> dict[str, Any]:
         """Export data as CSV format.
-        
+
         Args:
             dog_id: Dog identifier
             data: Data to export
             data_type: Type of data
-            
+
         Returns:
             CSV export result
         """
         try:
             csv_data = {}
-            
+
             for dtype, entries in data.items():
                 if not entries:
                     continue
-                
+
                 # Create CSV content
                 output = io.StringIO()
-                
+
                 if entries:
                     # Get all possible fields
                     fields = set()
                     for entry in entries:
                         fields.update(entry.keys())
-                    
+
                     writer = csv.DictWriter(output, fieldnames=sorted(fields))
                     writer.writeheader()
                     writer.writerows(entries)
-                
+
                 csv_data[dtype] = output.getvalue()
                 output.close()
-            
+
             return {
                 "format": "csv",
                 "dog_id": dog_id,
@@ -1025,18 +1022,18 @@ class PawControlDataManager:
                 "csv_data": csv_data,
                 "total_entries": sum(len(entries) for entries in data.values()),
             }
-            
+
         except Exception as err:
             _LOGGER.error("Failed to export CSV for %s: %s", dog_id, err)
             raise
 
     async def _export_as_gpx(self, dog_id: str, gps_entries: list[dict[str, Any]]) -> dict[str, Any]:
         """Export GPS data as GPX format.
-        
+
         Args:
             dog_id: Dog identifier
             gps_entries: GPS entries to export
-            
+
         Returns:
             GPX export result
         """
@@ -1048,43 +1045,43 @@ class PawControlDataManager:
                     "gpx_data": "",
                     "total_points": 0,
                 }
-            
+
             # Generate GPX content
             gpx_lines = [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<gpx version="1.1" creator="PawControl" xmlns="http://www.topografix.com/GPX/1/1">',
-                f'  <trk>',
+                '  <trk>',
                 f'    <name>{dog_id} Walk Track</name>',
-                f'    <trkseg>',
+                '    <trkseg>',
             ]
-            
+
             for entry in gps_entries:
                 lat = entry.get("latitude")
                 lon = entry.get("longitude")
                 timestamp = entry.get("timestamp")
-                
+
                 if lat is not None and lon is not None:
                     line = f'      <trkpt lat="{lat}" lon="{lon}">'
                     if timestamp:
                         line += f'<time>{timestamp}</time>'
                     line += '</trkpt>'
                     gpx_lines.append(line)
-            
+
             gpx_lines.extend([
                 '    </trkseg>',
                 '  </trk>',
                 '</gpx>',
             ])
-            
+
             gpx_content = '\n'.join(gpx_lines)
-            
+
             return {
                 "format": "gpx",
                 "dog_id": dog_id,
                 "gpx_data": gpx_content,
                 "total_points": len([e for e in gps_entries if e.get("latitude") and e.get("longitude")]),
             }
-            
+
         except Exception as err:
             _LOGGER.error("Failed to export GPX for %s: %s", dog_id, err)
             raise
@@ -1093,19 +1090,19 @@ class PawControlDataManager:
         self, dog_id: str, analysis_type: str, days: int = 30
     ) -> dict[str, Any]:
         """Analyze patterns in dog data.
-        
+
         Args:
             dog_id: Dog identifier
             analysis_type: Type of analysis (feeding, walking, health, comprehensive)
             days: Number of days to analyze
-            
+
         Returns:
             Analysis results
         """
         try:
             end_date = dt_util.utcnow()
             start_date = end_date - timedelta(days=days)
-            
+
             analysis = {
                 "dog_id": dog_id,
                 "analysis_type": analysis_type,
@@ -1116,27 +1113,27 @@ class PawControlDataManager:
                 },
                 "patterns": {},
             }
-            
+
             if analysis_type in ["feeding", "comprehensive"]:
                 feeding_data = await self.async_get_module_data(
                     "feeding", dog_id, start_date=start_date, end_date=end_date
                 )
                 analysis["patterns"]["feeding"] = await self._analyze_feeding_patterns(feeding_data)
-            
+
             if analysis_type in ["walking", "comprehensive"]:
                 walk_data = await self.async_get_module_data(
                     "walks", dog_id, start_date=start_date, end_date=end_date
                 )
                 analysis["patterns"]["walking"] = await self._analyze_walking_patterns(walk_data)
-            
+
             if analysis_type in ["health", "comprehensive"]:
                 health_data = await self.async_get_module_data(
                     "health", dog_id, start_date=start_date, end_date=end_date
                 )
                 analysis["patterns"]["health"] = await self._analyze_health_patterns(health_data)
-            
+
             return analysis
-            
+
         except Exception as err:
             _LOGGER.error("Failed to analyze patterns for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -1146,11 +1143,11 @@ class PawControlDataManager:
         """Analyze feeding patterns."""
         if not feeding_data:
             return {"meals_per_day": 0, "average_portion": 0, "patterns": []}
-        
+
         # Group by day
         daily_meals = {}
         total_portions = 0
-        
+
         for entry in feeding_data:
             timestamp = entry.get("timestamp", "")
             try:
@@ -1162,10 +1159,10 @@ class PawControlDataManager:
                     total_portions += float(entry.get("amount", 0))
             except (ValueError, TypeError):
                 continue
-        
+
         avg_meals_per_day = len(feeding_data) / len(daily_meals) if daily_meals else 0
         avg_portion = total_portions / len(feeding_data) if feeding_data else 0
-        
+
         return {
             "total_meals": len(feeding_data),
             "days_with_data": len(daily_meals),
@@ -1178,19 +1175,19 @@ class PawControlDataManager:
         """Analyze walking patterns."""
         if not walk_data:
             return {"walks_per_day": 0, "average_duration": 0, "patterns": []}
-        
+
         total_duration = 0
         total_distance = 0
-        
+
         for entry in walk_data:
             duration = float(entry.get("duration", 0))
             distance = float(entry.get("distance", 0))
             total_duration += duration
             total_distance += distance
-        
+
         avg_duration = total_duration / len(walk_data) if walk_data else 0
         avg_distance = total_distance / len(walk_data) if walk_data else 0
-        
+
         return {
             "total_walks": len(walk_data),
             "average_duration_minutes": round(avg_duration / 60, 1) if avg_duration else 0,
@@ -1203,25 +1200,23 @@ class PawControlDataManager:
         """Analyze health patterns."""
         if not health_data:
             return {"entries": 0, "trends": {}}
-        
+
         weights = []
         activity_levels = []
-        
+
         for entry in health_data:
-            if "weight" in entry and entry["weight"]:
-                try:
+            if entry.get("weight"):
+                with suppress(ValueError, TypeError):
                     weights.append(float(entry["weight"]))
-                except (ValueError, TypeError):
-                    pass
-            
+
             if "activity_level" in entry:
                 activity_levels.append(entry["activity_level"])
-        
+
         analysis = {
             "total_entries": len(health_data),
             "weight_entries": len(weights),
         }
-        
+
         if weights:
             analysis["weight"] = {
                 "current": weights[-1],
@@ -1230,7 +1225,7 @@ class PawControlDataManager:
                 "average": round(sum(weights) / len(weights), 1),
                 "trend": "stable",  # Simplified
             }
-        
+
         if activity_levels:
             from collections import Counter
             activity_counts = Counter(activity_levels)
@@ -1238,7 +1233,7 @@ class PawControlDataManager:
                 "most_common": activity_counts.most_common(1)[0][0],
                 "distribution": dict(activity_counts),
             }
-        
+
         return analysis
 
     async def async_generate_weekly_health_report(
@@ -1249,13 +1244,13 @@ class PawControlDataManager:
         format: str = "pdf",
     ) -> dict[str, Any]:
         """Generate comprehensive weekly health report for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             include_recommendations: Include AI-generated recommendations
             include_charts: Include visual charts and graphs
             format: Report format (pdf, json, markdown)
-            
+
         Returns:
             Comprehensive weekly health report
         """
@@ -1264,36 +1259,36 @@ class PawControlDataManager:
             dog_data = await self.async_get_dog_data(dog_id)
             if not dog_data:
                 raise ValueError(f"Dog {dog_id} not found")
-            
+
             # Get 7 days of health data
             end_date = dt_util.utcnow()
             start_date = end_date - timedelta(days=7)
-            
+
             # Collect health data
             health_data = await self.async_get_module_data(
                 "health", dog_id, start_date=start_date, end_date=end_date
             )
-            
-            # Collect feeding data  
+
+            # Collect feeding data
             feeding_data = await self.async_get_module_data(
                 "feeding", dog_id, start_date=start_date, end_date=end_date
             )
-            
+
             # Collect walk data
             walk_data = await self.async_get_module_data(
                 "walks", dog_id, start_date=start_date, end_date=end_date
             )
-            
+
             # Collect medication data
             medication_data = await self.async_get_module_data(
                 "medication", dog_id, start_date=start_date, end_date=end_date
             )
-            
+
             # Generate comprehensive analysis
             health_analysis = await self._analyze_weekly_health(
                 health_data, feeding_data, walk_data, medication_data
             )
-            
+
             # Create report structure
             report = {
                 "dog_id": dog_id,
@@ -1316,30 +1311,30 @@ class PawControlDataManager:
                 "summary": await self._generate_weekly_health_summary(health_analysis),
                 "metrics": await self._calculate_weekly_health_metrics(health_analysis),
             }
-            
+
             if include_recommendations:
                 report["recommendations"] = await self._generate_weekly_health_recommendations(
                     dog_data, health_analysis
                 )
-            
+
             if include_charts and format != "pdf":
                 # For non-PDF formats, include chart data
                 report["chart_data"] = await self._generate_weekly_chart_data(health_analysis)
-            
+
             # Format-specific processing
             if format == "pdf":
                 report["pdf_sections"] = await self._generate_pdf_sections(report)
             elif format == "markdown":
                 report["markdown_content"] = await self._generate_markdown_report(report)
-            
+
             _LOGGER.info(
                 "Generated weekly health report for %s in %s format",
                 dog_id,
                 format,
             )
-            
+
             return report
-            
+
         except Exception as err:
             _LOGGER.error("Failed to generate weekly health report for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -1348,18 +1343,18 @@ class PawControlDataManager:
     async def _analyze_weekly_health(
         self,
         health_data: list[dict[str, Any]],
-        feeding_data: list[dict[str, Any]], 
+        feeding_data: list[dict[str, Any]],
         walk_data: list[dict[str, Any]],
         medication_data: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Perform comprehensive weekly health analysis.
-        
+
         Args:
             health_data: Health log entries
             feeding_data: Feeding log entries
             walk_data: Walk log entries
             medication_data: Medication log entries
-            
+
         Returns:
             Comprehensive health analysis
         """
@@ -1376,155 +1371,151 @@ class PawControlDataManager:
             "medication_compliance": {},
             "alerts": [],
         }
-        
+
         # Analyze health trends
         if health_data:
             weights = []
             temperatures = []
             moods = []
-            
+
             for entry in health_data:
                 if entry.get("weight"):
-                    try:
+                    with suppress(ValueError, TypeError):
                         weights.append({
                             "value": float(entry["weight"]),
                             "timestamp": entry.get("timestamp"),
                         })
-                    except (ValueError, TypeError):
-                        pass
-                
+
                 if entry.get("temperature"):
-                    try:
+                    with suppress(ValueError, TypeError):
                         temperatures.append({
                             "value": float(entry["temperature"]),
                             "timestamp": entry.get("timestamp"),
                         })
-                    except (ValueError, TypeError):
-                        pass
-                        
+
                 if entry.get("mood"):
                     moods.append({
                         "value": entry["mood"],
                         "timestamp": entry.get("timestamp"),
                     })
-            
+
             analysis["health_trends"] = {
                 "weight": await self._analyze_weight_trend(weights),
                 "temperature": await self._analyze_temperature_trend(temperatures),
                 "mood": await self._analyze_mood_trend(moods),
             }
-        
+
         # Analyze feeding patterns
         if feeding_data:
             daily_amounts = {}
             meal_times = []
-            
+
             for entry in feeding_data:
                 timestamp = entry.get("timestamp")
                 amount = entry.get("amount", 0)
-                
+
                 if timestamp:
                     try:
                         date_key = timestamp[:10]
                         daily_amounts[date_key] = daily_amounts.get(date_key, 0) + float(amount)
-                        
+
                         # Extract hour for meal timing analysis
                         hour = int(timestamp[11:13])
                         meal_times.append(hour)
                     except (ValueError, TypeError, IndexError):
                         pass
-            
+
             analysis["feeding_analysis"] = {
                 "daily_amounts": daily_amounts,
                 "average_daily": sum(daily_amounts.values()) / max(len(daily_amounts), 1),
                 "feeding_regularity": await self._analyze_feeding_regularity(meal_times),
                 "portion_consistency": await self._analyze_portion_consistency(feeding_data),
             }
-        
+
         # Analyze activity patterns
         if walk_data:
             daily_exercise = {}
             durations = []
             distances = []
-            
+
             for entry in walk_data:
                 timestamp = entry.get("timestamp")
                 duration = entry.get("duration", 0)
                 distance = entry.get("distance", 0)
-                
+
                 if timestamp:
                     try:
                         date_key = timestamp[:10]
                         if date_key not in daily_exercise:
                             daily_exercise[date_key] = {"duration": 0, "distance": 0, "walks": 0}
-                        
+
                         daily_exercise[date_key]["duration"] += float(duration)
                         daily_exercise[date_key]["distance"] += float(distance)
                         daily_exercise[date_key]["walks"] += 1
-                        
+
                         if duration > 0:
                             durations.append(float(duration))
                         if distance > 0:
                             distances.append(float(distance))
-                            
+
                     except (ValueError, TypeError, IndexError):
                         pass
-            
+
             analysis["activity_analysis"] = {
                 "daily_exercise": daily_exercise,
                 "average_duration_minutes": sum(durations) / 60 / max(len(durations), 1),
                 "average_distance_km": sum(distances) / 1000 / max(len(distances), 1),
                 "consistency_score": await self._calculate_exercise_consistency(daily_exercise),
             }
-        
+
         # Analyze medication compliance
         if medication_data:
             medications = {}
             compliance_issues = []
-            
+
             for entry in medication_data:
                 med_name = entry.get("medication_name", "Unknown")
                 timestamp = entry.get("administration_time")
-                
+
                 if med_name not in medications:
                     medications[med_name] = []
-                
+
                 medications[med_name].append({
                     "timestamp": timestamp,
                     "dose": entry.get("dose"),
                     "with_meal": entry.get("with_meal", False),
                 })
-            
+
             analysis["medication_compliance"] = {
                 "medications": medications,
                 "total_administrations": len(medication_data),
                 "unique_medications": len(medications),
                 "compliance_issues": compliance_issues,  # Would analyze timing consistency
             }
-        
+
         return analysis
 
     async def _analyze_weight_trend(self, weights: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze weight trend over the week."""
         if not weights:
             return {"status": "no_data"}
-        
+
         # Sort by timestamp
         sorted_weights = sorted(weights, key=lambda x: x["timestamp"] or "")
         values = [w["value"] for w in sorted_weights]
-        
+
         if len(values) < 2:
             return {
                 "status": "insufficient_data",
                 "current_weight": values[0] if values else None,
             }
-        
+
         # Calculate trend
         first_weight = values[0]
         last_weight = values[-1]
         weight_change = last_weight - first_weight
         percent_change = (weight_change / first_weight) * 100
-        
+
         # Determine trend status
         if abs(percent_change) < 1:
             trend = "stable"
@@ -1532,7 +1523,7 @@ class PawControlDataManager:
             trend = "increasing"
         else:
             trend = "decreasing"
-        
+
         return {
             "status": "analyzed",
             "first_weight": first_weight,
@@ -1547,16 +1538,16 @@ class PawControlDataManager:
         """Analyze temperature trend."""
         if not temperatures:
             return {"status": "no_data"}
-        
+
         values = [t["value"] for t in temperatures]
         avg_temp = sum(values) / len(values)
-        
+
         # Normal dog temperature range: 101-102.5°F (38.3-39.2°C)
         alerts = []
         for temp in values:
             if temp < 38.0 or temp > 39.5:  # Assuming Celsius
-                alerts.append(f"Temperature {temp}°C outside normal range")
-        
+                alerts.append(f"Temperature {temp}°C outside normal range")  # noqa: PERF401
+
         return {
             "status": "analyzed",
             "average_temp": round(avg_temp, 1),
@@ -1570,11 +1561,11 @@ class PawControlDataManager:
         """Analyze mood trend."""
         if not moods:
             return {"status": "no_data"}
-        
+
         from collections import Counter
         mood_values = [m["value"] for m in moods]
         mood_counts = Counter(mood_values)
-        
+
         return {
             "status": "analyzed",
             "most_common_mood": mood_counts.most_common(1)[0][0],
@@ -1586,17 +1577,17 @@ class PawControlDataManager:
         """Analyze feeding time regularity."""
         if not meal_times:
             return {"score": 0, "status": "no_data"}
-        
+
         from collections import Counter
         time_counts = Counter(meal_times)
-        
+
         # Calculate regularity score based on consistency
         total_meals = len(meal_times)
         unique_hours = len(time_counts)
-        
+
         # More consistent timing = higher score
         regularity_score = max(0, 100 - (unique_hours / total_meals * 100))
-        
+
         return {
             "score": round(regularity_score, 1),
             "common_feeding_hours": time_counts.most_common(3),
@@ -1614,17 +1605,17 @@ class PawControlDataManager:
                     amounts.append(amount)
             except (ValueError, TypeError):
                 pass
-        
+
         if not amounts:
             return {"score": 0, "status": "no_data"}
-        
+
         avg_amount = sum(amounts) / len(amounts)
         variance = sum((x - avg_amount) ** 2 for x in amounts) / len(amounts)
         std_dev = variance ** 0.5
-        
+
         # Consistency score - lower variance = higher consistency
         consistency_score = max(0, 100 - (std_dev / avg_amount * 100))
-        
+
         return {
             "score": round(consistency_score, 1),
             "average_portion": round(avg_amount, 1),
@@ -1637,21 +1628,21 @@ class PawControlDataManager:
         """Calculate exercise consistency score."""
         if not daily_exercise:
             return 0.0
-        
+
         durations = [day["duration"] for day in daily_exercise.values()]
         if not durations:
             return 0.0
-        
+
         avg_duration = sum(durations) / len(durations)
         if avg_duration == 0:
             return 0.0
-        
+
         variance = sum((d - avg_duration) ** 2 for d in durations) / len(durations)
         coefficient_of_variation = (variance ** 0.5) / avg_duration
-        
+
         # Lower coefficient of variation = higher consistency
         consistency_score = max(0, 100 - (coefficient_of_variation * 100))
-        
+
         return round(consistency_score, 1)
 
     async def _generate_weekly_health_summary(self, health_analysis: dict[str, Any]) -> dict[str, Any]:
@@ -1663,18 +1654,18 @@ class PawControlDataManager:
             "positive_trends": [],
             "data_completeness": "good",  # Default
         }
-        
+
         # Assess data completeness
         availability = health_analysis.get("data_availability", {})
         total_entries = sum(availability.values())
-        
+
         if total_entries < 5:
             summary["data_completeness"] = "limited"
             summary["areas_of_concern"].append("Limited health data logged this week")
         elif total_entries > 20:
             summary["data_completeness"] = "excellent"
             summary["positive_trends"].append("Comprehensive health monitoring")
-        
+
         # Analyze weight trends
         weight_trend = health_analysis.get("health_trends", {}).get("weight", {})
         if weight_trend.get("status") == "analyzed":
@@ -1683,7 +1674,7 @@ class PawControlDataManager:
                 summary["areas_of_concern"].append(f"Significant weight change: {change:+.1f}%")
                 if summary["overall_status"] == "good":
                     summary["overall_status"] = "attention_needed"
-        
+
         # Analyze feeding patterns
         feeding_analysis = health_analysis.get("feeding_analysis", {})
         if feeding_analysis:
@@ -1692,61 +1683,61 @@ class PawControlDataManager:
                 summary["positive_trends"].append("Consistent feeding schedule")
             elif regularity < 50:
                 summary["areas_of_concern"].append("Irregular feeding times")
-        
+
         # Analyze activity levels
         activity_analysis = health_analysis.get("activity_analysis", {})
         if activity_analysis:
-            consistency = activity_analysis.get("consistency_score", 0)
+            activity_analysis.get("consistency_score", 0)
             avg_duration = activity_analysis.get("average_duration_minutes", 0)
-            
+
             if avg_duration < 30:
                 summary["areas_of_concern"].append("Below recommended exercise duration")
             elif avg_duration > 60:
                 summary["positive_trends"].append("Good exercise routine")
-        
+
         # Set overall status based on concerns
         if len(summary["areas_of_concern"]) > 2:
             summary["overall_status"] = "needs_attention"
         elif len(summary["areas_of_concern"]) == 0:
             summary["overall_status"] = "excellent"
-        
+
         return summary
 
     async def _calculate_weekly_health_metrics(self, health_analysis: dict[str, Any]) -> dict[str, Any]:
         """Calculate key weekly health metrics."""
         metrics = {}
-        
+
         # Health tracking score
         availability = health_analysis.get("data_availability", {})
         total_entries = sum(availability.values())
         metrics["health_tracking_score"] = min(100, (total_entries / 10) * 100)  # Target: 10+ entries
-        
+
         # Feeding consistency score
         feeding_analysis = health_analysis.get("feeding_analysis", {})
         regularity_score = feeding_analysis.get("feeding_regularity", {}).get("score", 0)
         portion_consistency = feeding_analysis.get("portion_consistency", {}).get("score", 0)
         metrics["feeding_consistency_score"] = (regularity_score + portion_consistency) / 2
-        
+
         # Activity score
         activity_analysis = health_analysis.get("activity_analysis", {})
         avg_duration = activity_analysis.get("average_duration_minutes", 0)
         consistency_score = activity_analysis.get("consistency_score", 0)
-        
+
         # Target: 45 minutes average exercise
         duration_score = min(100, (avg_duration / 45) * 100)
         metrics["activity_score"] = (duration_score + consistency_score) / 2
-        
+
         # Overall health score
         metrics["overall_health_score"] = (
             metrics["health_tracking_score"] * 0.3 +
             metrics["feeding_consistency_score"] * 0.4 +
             metrics["activity_score"] * 0.3
         )
-        
+
         # Round all scores
         for key, value in metrics.items():
             metrics[key] = round(value, 1)
-        
+
         return metrics
 
     async def _generate_weekly_health_recommendations(
@@ -1754,7 +1745,7 @@ class PawControlDataManager:
     ) -> list[dict[str, Any]]:
         """Generate personalized weekly health recommendations."""
         recommendations = []
-        
+
         # Data logging recommendations
         availability = health_analysis.get("data_availability", {})
         if availability.get("health_entries", 0) < 3:
@@ -1765,7 +1756,7 @@ class PawControlDataManager:
                 "description": "Log weight, mood, and general health status at least 3 times per week for better trend analysis.",
                 "action": "Set weekly reminders for health check-ins",
             })
-        
+
         # Weight management recommendations
         weight_trend = health_analysis.get("health_trends", {}).get("weight", {})
         if weight_trend.get("status") == "analyzed":
@@ -1786,11 +1777,11 @@ class PawControlDataManager:
                     "description": f"Dog has lost {abs(change):.1f}% weight this week. Monitor appetite and consult vet if trend continues.",
                     "action": "Schedule vet check-up if weight loss continues",
                 })
-        
+
         # Exercise recommendations
         activity_analysis = health_analysis.get("activity_analysis", {})
         avg_duration = activity_analysis.get("average_duration_minutes", 0)
-        
+
         if avg_duration < 30:
             recommendations.append({
                 "type": "exercise",
@@ -1799,11 +1790,11 @@ class PawControlDataManager:
                 "description": f"Current average walk time is {avg_duration:.0f} minutes. Most dogs need at least 30-60 minutes daily.",
                 "action": "Gradually increase walk duration by 5-10 minutes per week",
             })
-        
+
         # Feeding consistency recommendations
         feeding_analysis = health_analysis.get("feeding_analysis", {})
         regularity_score = feeding_analysis.get("feeding_regularity", {}).get("score", 0)
-        
+
         if regularity_score < 60:
             recommendations.append({
                 "type": "feeding",
@@ -1812,13 +1803,13 @@ class PawControlDataManager:
                 "description": "Inconsistent feeding times can affect digestion and behavior. Try to feed at the same times daily.",
                 "action": "Set feeding reminders for consistent meal times",
             })
-        
+
         return recommendations
 
     async def _generate_weekly_chart_data(self, health_analysis: dict[str, Any]) -> dict[str, Any]:
         """Generate chart data for visualization."""
         chart_data = {}
-        
+
         # Weight trend chart
         weight_trend = health_analysis.get("health_trends", {}).get("weight", {})
         if weight_trend.get("status") == "analyzed":
@@ -1831,7 +1822,7 @@ class PawControlDataManager:
                     "trend": weight_trend.get("trend"),
                 }
             }
-        
+
         # Daily feeding amounts
         feeding_analysis = health_analysis.get("feeding_analysis", {})
         daily_amounts = feeding_analysis.get("daily_amounts", {})
@@ -1841,7 +1832,7 @@ class PawControlDataManager:
                 "title": "Daily Food Intake (grams)",
                 "data": daily_amounts,
             }
-        
+
         # Exercise consistency
         activity_analysis = health_analysis.get("activity_analysis", {})
         daily_exercise = activity_analysis.get("daily_exercise", {})
@@ -1851,7 +1842,7 @@ class PawControlDataManager:
                 "title": "Daily Exercise (minutes)",
                 "data": {date: data["duration"] / 60 for date, data in daily_exercise.items()},
             }
-        
+
         return chart_data
 
     async def _generate_pdf_sections(self, report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1872,14 +1863,14 @@ class PawControlDataManager:
                 "content": report["metrics"],
             },
         ]
-        
+
         if "recommendations" in report:
             sections.append({
                 "type": "recommendations",
                 "title": "Health Recommendations",
                 "content": report["recommendations"],
             })
-        
+
         return sections
 
     async def _generate_markdown_report(self, report: dict[str, Any]) -> str:
@@ -1891,27 +1882,27 @@ class PawControlDataManager:
             "",
             "## Executive Summary",
         ]
-        
+
         summary = report["summary"]
         lines.append(f"**Overall Status:** {summary['overall_status'].replace('_', ' ').title()}")
-        
+
         if summary.get("positive_trends"):
             lines.append("\n**Positive Trends:**")
             for trend in summary["positive_trends"]:
-                lines.append(f"- {trend}")
-        
+                lines.append(f"- {trend}")  # noqa: PERF401
+
         if summary.get("areas_of_concern"):
             lines.append("\n**Areas of Concern:**")
             for concern in summary["areas_of_concern"]:
-                lines.append(f"- {concern}")
-        
+                lines.append(f"- {concern}")  # noqa: PERF401
+
         # Add metrics
         lines.append("\n## Key Metrics")
         metrics = report["metrics"]
         for metric, value in metrics.items():
             metric_name = metric.replace("_", " ").title()
             lines.append(f"- **{metric_name}:** {value}%")
-        
+
         # Add recommendations
         if "recommendations" in report:
             lines.append("\n## Recommendations")
@@ -1919,7 +1910,7 @@ class PawControlDataManager:
                 lines.append(f"\n### {rec['title']} ({rec['priority'].title()} Priority)")
                 lines.append(f"{rec['description']}")
                 lines.append(f"**Action:** {rec['action']}")
-        
+
         return "\n".join(lines)
 
     async def async_generate_report(
@@ -1930,13 +1921,13 @@ class PawControlDataManager:
         days: int = 30,
     ) -> dict[str, Any]:
         """Generate comprehensive report for a dog.
-        
+
         Args:
             dog_id: Dog identifier
             report_type: Type of report (health, activity, nutrition, comprehensive)
             include_recommendations: Include AI-generated recommendations
             days: Number of days to analyze
-            
+
         Returns:
             Comprehensive report
         """
@@ -1945,10 +1936,10 @@ class PawControlDataManager:
             dog_data = await self.async_get_dog_data(dog_id)
             if not dog_data:
                 raise ValueError(f"Dog {dog_id} not found")
-            
+
             # Generate analysis
             analysis = await self.async_analyze_patterns(dog_id, report_type, days)
-            
+
             # Create report
             report = {
                 "dog_id": dog_id,
@@ -1959,12 +1950,12 @@ class PawControlDataManager:
                 "analysis": analysis["patterns"],
                 "summary": await self._generate_report_summary(dog_data, analysis),
             }
-            
+
             if include_recommendations:
                 report["recommendations"] = await self._generate_recommendations(dog_data, analysis)
-            
+
             return report
-            
+
         except Exception as err:
             _LOGGER.error("Failed to generate report for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
@@ -1979,19 +1970,19 @@ class PawControlDataManager:
             "activity_level": "normal",
             "key_metrics": {},
         }
-        
+
         patterns = analysis.get("patterns", {})
-        
+
         if "feeding" in patterns:
             feeding = patterns["feeding"]
             summary["key_metrics"]["daily_meals"] = feeding.get("meals_per_day", 0)
             summary["key_metrics"]["avg_portion"] = feeding.get("average_portion", 0)
-        
+
         if "walking" in patterns:
             walking = patterns["walking"]
             summary["key_metrics"]["daily_exercise"] = walking.get("average_duration_minutes", 0)
             summary["key_metrics"]["distance_per_walk"] = walking.get("average_distance_km", 0)
-        
+
         return summary
 
     async def _generate_recommendations(
@@ -2000,12 +1991,12 @@ class PawControlDataManager:
         """Generate simple recommendations based on data."""
         recommendations = []
         patterns = analysis.get("patterns", {})
-        
+
         # Feeding recommendations
         if "feeding" in patterns:
             feeding = patterns["feeding"]
             meals_per_day = feeding.get("meals_per_day", 0)
-            
+
             if meals_per_day < 2:
                 recommendations.append({
                     "type": "feeding",
@@ -2013,12 +2004,12 @@ class PawControlDataManager:
                     "title": "Consider more frequent feeding",
                     "description": f"Currently averaging {meals_per_day} meals per day. Most dogs benefit from 2-3 meals daily.",
                 })
-        
+
         # Walking recommendations
         if "walking" in patterns:
             walking = patterns["walking"]
             avg_duration = walking.get("average_duration_minutes", 0)
-            
+
             if avg_duration < 30:
                 recommendations.append({
                     "type": "exercise",
@@ -2026,12 +2017,12 @@ class PawControlDataManager:
                     "title": "Increase exercise duration",
                     "description": f"Average walk duration is {avg_duration} minutes. Consider longer walks for better health.",
                 })
-        
+
         # Health recommendations
         if "health" in patterns:
             health = patterns["health"]
             entries = health.get("total_entries", 0)
-            
+
             if entries < 5:  # Less than 5 health entries in the period
                 recommendations.append({
                     "type": "health",
@@ -2039,5 +2030,5 @@ class PawControlDataManager:
                     "title": "Regular health monitoring",
                     "description": "Consider logging health data more regularly to track trends.",
                 })
-        
+
         return recommendations

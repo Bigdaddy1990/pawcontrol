@@ -2,7 +2,7 @@
 
 ADDITIONS:
 - Vaccination schedule tracking
-- Deworming schedule management  
+- Deworming schedule management
 - Medication reminders
 - Health record timeline
 - Veterinary appointment tracking
@@ -16,7 +16,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
 from homeassistant.util import dt as dt_util
 
@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class VaccinationType(Enum):
     """Core vaccination types for dogs."""
-    
+
     # Core vaccines (recommended for all dogs)
     RABIES = "rabies"
     DHPP = "dhpp"  # Distemper, Hepatitis, Parvovirus, Parainfluenza
@@ -33,7 +33,7 @@ class VaccinationType(Enum):
     PARVOVIRUS = "parvovirus"
     ADENOVIRUS = "adenovirus"
     PARAINFLUENZA = "parainfluenza"
-    
+
     # Non-core vaccines (based on risk factors)
     BORDETELLA = "bordetella"  # Kennel cough
     LYME_DISEASE = "lyme_disease"
@@ -44,7 +44,7 @@ class VaccinationType(Enum):
 
 class DewormingType(Enum):
     """Types of deworming treatments."""
-    
+
     BROAD_SPECTRUM = "broad_spectrum"
     ROUNDWORM = "roundworm"
     HOOKWORM = "hookworm"
@@ -56,7 +56,7 @@ class DewormingType(Enum):
 
 class HealthEventStatus(Enum):
     """Status of health events."""
-    
+
     OVERDUE = "overdue"
     DUE_SOON = "due_soon"  # Within 2 weeks
     SCHEDULED = "scheduled"
@@ -67,7 +67,7 @@ class HealthEventStatus(Enum):
 @dataclass
 class VaccinationRecord:
     """Complete vaccination record."""
-    
+
     vaccine_type: VaccinationType
     date_given: datetime | None = None
     next_due_date: datetime | None = None
@@ -76,13 +76,13 @@ class VaccinationRecord:
     status: HealthEventStatus = HealthEventStatus.DUE_SOON
     notes: str = ""
     reminders_sent: int = 0
-    
+
     def is_overdue(self) -> bool:
         """Check if vaccination is overdue."""
         if not self.next_due_date:
             return False
         return dt_util.now() > self.next_due_date
-    
+
     def days_until_due(self) -> int | None:
         """Calculate days until next vaccination is due."""
         if not self.next_due_date:
@@ -94,7 +94,7 @@ class VaccinationRecord:
 @dataclass
 class DewormingRecord:
     """Complete deworming treatment record."""
-    
+
     treatment_type: DewormingType
     date_given: datetime | None = None
     next_due_date: datetime | None = None
@@ -104,13 +104,13 @@ class DewormingRecord:
     status: HealthEventStatus = HealthEventStatus.DUE_SOON
     notes: str = ""
     reminders_sent: int = 0
-    
+
     def is_overdue(self) -> bool:
         """Check if deworming is overdue."""
         if not self.next_due_date:
             return False
         return dt_util.now() > self.next_due_date
-    
+
     def days_until_due(self) -> int | None:
         """Calculate days until next treatment is due."""
         if not self.next_due_date:
@@ -122,7 +122,7 @@ class DewormingRecord:
 @dataclass
 class VeterinaryAppointment:
     """Veterinary appointment tracking."""
-    
+
     appointment_date: datetime
     appointment_type: str  # "checkup", "vaccination", "illness", "surgery"
     veterinarian: str | None = None
@@ -137,87 +137,87 @@ class VeterinaryAppointment:
 @dataclass
 class EnhancedHealthProfile:
     """Enhanced health profile with comprehensive medical tracking."""
-    
+
     # Basic health metrics (from existing HealthMetrics)
     current_weight: float
     ideal_weight: float | None = None
     body_condition_score: int | None = None  # 1-9 scale
-    
+
     # NEW: Vaccination tracking
     vaccinations: list[VaccinationRecord] = field(default_factory=list)
     vaccination_schedule: dict[str, timedelta] = field(default_factory=dict)
-    
-    # NEW: Deworming tracking  
+
+    # NEW: Deworming tracking
     dewormings: list[DewormingRecord] = field(default_factory=list)
     deworming_schedule: dict[str, timedelta] = field(default_factory=dict)
-    
+
     # NEW: Veterinary care
     veterinary_appointments: list[VeterinaryAppointment] = field(default_factory=list)
     primary_veterinarian: str = ""
     emergency_contact: str = ""
-    
+
     # NEW: Medication tracking
     current_medications: list[dict[str, Any]] = field(default_factory=list)
     medication_allergies: list[str] = field(default_factory=list)
-    
+
     # NEW: Health conditions and history
     chronic_conditions: list[str] = field(default_factory=list)
     health_alerts: list[dict[str, Any]] = field(default_factory=list)
     last_checkup_date: datetime | None = None
-    
+
     def get_overdue_vaccinations(self) -> list[VaccinationRecord]:
         """Get all overdue vaccinations."""
         return [v for v in self.vaccinations if v.is_overdue()]
-    
+
     def get_due_soon_vaccinations(self, days_ahead: int = 14) -> list[VaccinationRecord]:
         """Get vaccinations due within specified days."""
         return [
-            v for v in self.vaccinations 
+            v for v in self.vaccinations
             if v.days_until_due() is not None and 0 <= v.days_until_due() <= days_ahead
         ]
-    
+
     def get_overdue_dewormings(self) -> list[DewormingRecord]:
         """Get all overdue deworming treatments."""
         return [d for d in self.dewormings if d.is_overdue()]
-    
+
     def get_due_soon_dewormings(self, days_ahead: int = 14) -> list[DewormingRecord]:
         """Get dewormings due within specified days."""
         return [
-            d for d in self.dewormings 
+            d for d in self.dewormings
             if d.days_until_due() is not None and 0 <= d.days_until_due() <= days_ahead
         ]
 
 
 class EnhancedHealthCalculator:
     """Enhanced health calculator with comprehensive medical tracking."""
-    
+
     # Standard vaccination schedules (in months)
-    PUPPY_VACCINATION_SCHEDULE = {
+    PUPPY_VACCINATION_SCHEDULE = {  # noqa: RUF012
         VaccinationType.DHPP: [6, 9, 12, 16],  # weeks for puppies
         VaccinationType.RABIES: [16, 68],  # 16 weeks initial, then yearly
         VaccinationType.BORDETELLA: [12, 16, 64],  # Optional but recommended
     }
-    
+
     # Adult vaccination schedules (in months)
-    ADULT_VACCINATION_SCHEDULE = {
+    ADULT_VACCINATION_SCHEDULE = {  # noqa: RUF012
         VaccinationType.DHPP: 36,  # Every 3 years after puppy series
         VaccinationType.RABIES: 12,  # Yearly or every 3 years depending on vaccine
         VaccinationType.BORDETELLA: 12,  # Yearly
         VaccinationType.LYME_DISEASE: 12,  # Yearly in endemic areas
     }
-    
+
     # Deworming schedules by age and risk
-    PUPPY_DEWORMING_SCHEDULE = {
+    PUPPY_DEWORMING_SCHEDULE = {  # noqa: RUF012
         DewormingType.BROAD_SPECTRUM: timedelta(weeks=2),  # Every 2 weeks until 6 months
         DewormingType.HEARTWORM_PREVENTION: timedelta(days=30),  # Monthly
     }
-    
-    ADULT_DEWORMING_SCHEDULE = {
+
+    ADULT_DEWORMING_SCHEDULE = {  # noqa: RUF012
         DewormingType.BROAD_SPECTRUM: timedelta(days=90),  # Every 3 months
         DewormingType.HEARTWORM_PREVENTION: timedelta(days=30),  # Monthly
         DewormingType.FLEA_TICK_PREVENTION: timedelta(days=30),  # Monthly
     }
-    
+
     @staticmethod
     def generate_vaccination_schedule(
         birth_date: datetime,
@@ -227,12 +227,12 @@ class EnhancedHealthCalculator:
         """Generate complete vaccination schedule for a dog."""
         if current_date is None:
             current_date = dt_util.now()
-            
+
         risk_factors = risk_factors or []
         age_weeks = (current_date - birth_date).days // 7
-        
+
         schedule = []
-        
+
         # Core vaccines for puppies
         if age_weeks < 52:  # Under 1 year
             for vaccine_type, week_schedule in EnhancedHealthCalculator.PUPPY_VACCINATION_SCHEDULE.items():
@@ -243,14 +243,14 @@ class EnhancedHealthCalculator:
                         else HealthEventStatus.DUE_SOON if due_date <= current_date + timedelta(days=14)
                         else HealthEventStatus.SCHEDULED
                     )
-                    
+
                     schedule.append(VaccinationRecord(
                         vaccine_type=vaccine_type,
                         next_due_date=due_date,
                         status=status,
                         notes=f"Puppy series - {week} weeks old"
                     ))
-        
+
         # Risk-based vaccines
         if "boarding" in risk_factors or "daycare" in risk_factors:
             # Bordetella more frequently
@@ -261,7 +261,7 @@ class EnhancedHealthCalculator:
                 status=HealthEventStatus.SCHEDULED,
                 notes="High-risk environment"
             ))
-            
+
         if "tick_area" in risk_factors:
             # Lyme disease vaccine
             next_lyme = current_date + timedelta(days=365)
@@ -271,9 +271,9 @@ class EnhancedHealthCalculator:
                 status=HealthEventStatus.SCHEDULED,
                 notes="Tick-endemic area"
             ))
-        
+
         return schedule
-    
+
     @staticmethod
     def generate_deworming_schedule(
         birth_date: datetime,
@@ -283,12 +283,12 @@ class EnhancedHealthCalculator:
         """Generate complete deworming schedule for a dog."""
         if current_date is None:
             current_date = dt_util.now()
-            
+
         lifestyle_factors = lifestyle_factors or []
         age_months = (current_date - birth_date).days // 30
-        
+
         schedule = []
-        
+
         # Puppy deworming (more frequent)
         if age_months < 6:
             # Every 2 weeks until 6 months
@@ -302,7 +302,7 @@ class EnhancedHealthCalculator:
                         status=HealthEventStatus.SCHEDULED,
                         notes="Puppy deworming schedule"
                     ))
-        
+
         # Adult deworming schedule
         else:
             # Every 3 months for broad spectrum
@@ -313,7 +313,7 @@ class EnhancedHealthCalculator:
                 status=HealthEventStatus.SCHEDULED,
                 notes="Adult maintenance deworming"
             ))
-        
+
         # Monthly heartworm prevention (all ages)
         next_heartworm = current_date + timedelta(days=30)
         schedule.append(DewormingRecord(
@@ -322,7 +322,7 @@ class EnhancedHealthCalculator:
             status=HealthEventStatus.SCHEDULED,
             notes="Monthly heartworm prevention"
         ))
-        
+
         # Lifestyle-based adjustments
         if "outdoor_frequent" in lifestyle_factors:
             # More frequent broad spectrum
@@ -334,14 +334,14 @@ class EnhancedHealthCalculator:
                     status=HealthEventStatus.SCHEDULED,
                     notes="High outdoor exposure"
                 ))
-        
+
         return schedule
-    
+
     @staticmethod
     def update_health_status(health_profile: EnhancedHealthProfile) -> dict[str, Any]:
         """Update overall health status with comprehensive analysis."""
         current_date = dt_util.now()
-        
+
         health_status = {
             "overall_score": 100,
             "priority_alerts": [],
@@ -349,11 +349,11 @@ class EnhancedHealthCalculator:
             "recommendations": [],
             "last_updated": current_date.isoformat(),
         }
-        
+
         # Check vaccination status
         overdue_vaccines = health_profile.get_overdue_vaccinations()
         due_soon_vaccines = health_profile.get_due_soon_vaccinations()
-        
+
         if overdue_vaccines:
             health_status["overall_score"] -= len(overdue_vaccines) * 10
             for vaccine in overdue_vaccines:
@@ -363,7 +363,7 @@ class EnhancedHealthCalculator:
                     "severity": "high",
                     "action_required": True
                 })
-        
+
         if due_soon_vaccines:
             for vaccine in due_soon_vaccines:
                 health_status["upcoming_care"].append({
@@ -372,11 +372,11 @@ class EnhancedHealthCalculator:
                     "due_date": vaccine.next_due_date.isoformat() if vaccine.next_due_date else None,
                     "priority": "high"
                 })
-        
+
         # Check deworming status
         overdue_dewormings = health_profile.get_overdue_dewormings()
         due_soon_dewormings = health_profile.get_due_soon_dewormings()
-        
+
         if overdue_dewormings:
             health_status["overall_score"] -= len(overdue_dewormings) * 5
             for deworming in overdue_dewormings:
@@ -386,7 +386,7 @@ class EnhancedHealthCalculator:
                     "severity": "medium",
                     "action_required": True
                 })
-        
+
         if due_soon_dewormings:
             for deworming in due_soon_dewormings:
                 health_status["upcoming_care"].append({
@@ -395,13 +395,13 @@ class EnhancedHealthCalculator:
                     "due_date": deworming.next_due_date.isoformat() if deworming.next_due_date else None,
                     "priority": "medium"
                 })
-        
+
         # Check for upcoming veterinary appointments
         upcoming_appointments = [
-            apt for apt in health_profile.veterinary_appointments 
+            apt for apt in health_profile.veterinary_appointments
             if not apt.completed and apt.appointment_date > current_date
         ]
-        
+
         for appointment in upcoming_appointments[:3]:  # Next 3 appointments
             days_until = (appointment.appointment_date - current_date).days
             health_status["upcoming_care"].append({
@@ -411,7 +411,7 @@ class EnhancedHealthCalculator:
                 "priority": "medium",
                 "details": appointment.purpose
             })
-        
+
         # Generate recommendations
         if health_profile.last_checkup_date:
             days_since_checkup = (current_date - health_profile.last_checkup_date).days
@@ -425,7 +425,7 @@ class EnhancedHealthCalculator:
                 "Schedule initial veterinary checkup to establish baseline health"
             )
             health_status["overall_score"] -= 10
-        
+
         # Medication reminders
         for medication in health_profile.current_medications:
             if medication.get("next_dose"):
@@ -437,12 +437,12 @@ class EnhancedHealthCalculator:
                         "severity": "high",
                         "action_required": True
                     })
-        
+
         # Final score adjustment
         health_status["overall_score"] = max(0, min(100, health_status["overall_score"]))
-        
+
         return health_status
-    
+
     @staticmethod
     def calculate_next_appointment_recommendation(
         health_profile: EnhancedHealthProfile,
@@ -450,7 +450,7 @@ class EnhancedHealthCalculator:
     ) -> dict[str, Any]:
         """Calculate when the next veterinary appointment should be scheduled."""
         current_date = dt_util.now()
-        
+
         # Base recommendation frequencies by age
         if dog_age_months < 12:  # Puppy
             base_interval = timedelta(days=30)  # Monthly for puppies
@@ -461,23 +461,23 @@ class EnhancedHealthCalculator:
         else:  # Senior
             base_interval = timedelta(days=180)  # Every 6 months for seniors
             appointment_type = "senior_checkup"
-        
+
         # Adjust based on health conditions
         if health_profile.chronic_conditions:
             if "diabetes" in health_profile.chronic_conditions:
                 base_interval = timedelta(days=90)  # Every 3 months
                 appointment_type = "diabetes_monitoring"
-            elif any(condition in ["heart_disease", "kidney_disease"] 
+            elif any(condition in ["heart_disease", "kidney_disease"]
                     for condition in health_profile.chronic_conditions):
                 base_interval = timedelta(days=120)  # Every 4 months
                 appointment_type = "condition_monitoring"
-        
+
         # Check last checkup
         if health_profile.last_checkup_date:
             next_recommended = health_profile.last_checkup_date + base_interval
         else:
             next_recommended = current_date + timedelta(days=7)  # Schedule soon if never seen
-        
+
         return {
             "next_appointment_date": next_recommended.isoformat(),
             "appointment_type": appointment_type,
