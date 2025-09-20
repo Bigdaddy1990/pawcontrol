@@ -347,13 +347,16 @@
         "name": "Current Location"
       },
       "distance_from_home": {
-        "name": "Distance from Home"
+        "name": "Distance from Home",
+        "unit_of_measurement": "m"
       },
       "gps_accuracy": {
-        "name": "GPS Accuracy"
+        "name": "GPS Accuracy",
+        "unit_of_measurement": "m"
       },
       "current_speed": {
-        "name": "Current Speed"
+        "name": "Current Speed",
+        "unit_of_measurement": "km/h"
       },
       "current_weight": {
         "name": "Current Weight"
@@ -369,6 +372,38 @@
       },
       "activity_level": {
         "name": "Activity Level"
+      },
+      "daily_calories": {
+        "name": "Daily Calorie Intake",
+        "unit_of_measurement": "kcal"
+      },
+      "health_aware_portion": {
+        "name": "Health-Aware Portion",
+        "unit_of_measurement": "g"
+      },
+      "walk_distance_today": {
+        "name": "Walk Distance Today",
+        "unit_of_measurement": "m"
+      },
+      "last_walk_duration": {
+        "name": "Last Walk Duration",
+        "unit_of_measurement": "min"
+      },
+      "last_walk_distance": {
+        "name": "Last Walk Distance",
+        "unit_of_measurement": "m"
+      },
+      "total_walk_time_today": {
+        "name": "Total Walk Time Today",
+        "unit_of_measurement": "min"
+      },
+      "average_walk_duration": {
+        "name": "Average Walk Duration",
+        "unit_of_measurement": "min"
+      },
+      "weight": {
+        "name": "Weight",
+        "unit_of_measurement": "kg"
       }
     },
     "binary_sensor": {
@@ -598,16 +633,19 @@
     },
     "number": {
       "weight": {
-        "name": "Weight"
+        "name": "Weight",
+        "unit_of_measurement": "kg"
       },
       "age": {
-        "name": "Age"
+        "name": "Age",
+        "unit_of_measurement": "y"
       },
       "activity_goal": {
         "name": "Activity Goal"
       },
       "daily_food_amount": {
-        "name": "Daily Food Amount"
+        "name": "Daily Food Amount",
+        "unit_of_measurement": "g"
       },
       "feeding_reminder_hours": {
         "name": "Feeding Reminder Hours"
@@ -616,10 +654,12 @@
         "name": "Meals Per Day"
       },
       "portion_size": {
-        "name": "Portion Size"
+        "name": "Portion Size",
+        "unit_of_measurement": "g"
       },
       "calorie_target": {
-        "name": "Calorie Target"
+        "name": "Calorie Target",
+        "unit_of_measurement": "kcal"
       },
       "daily_walk_target": {
         "name": "Daily Walk Target"
@@ -661,7 +701,8 @@
         "name": "Grooming Interval"
       },
       "vet_checkup_interval": {
-        "name": "Vet Checkup Interval"
+        "name": "Vet Checkup Interval",
+        "unit_of_measurement": "m"
       },
       "health_score_threshold": {
         "name": "Health Score Threshold"

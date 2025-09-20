@@ -14,7 +14,15 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, STATE_UNKNOWN
+from homeassistant.const import (
+    PERCENTAGE,
+    STATE_UNKNOWN,
+    UnitOfEnergy,
+    UnitOfLength,
+    UnitOfMass,
+    UnitOfSpeed,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -358,6 +366,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         unit_of_measurement: str | None = None,
         icon: str | None = None,
         entity_category: EntityCategory | None = None,
+        translation_key: str | None = None,
     ) -> None:
         """Initialize base sensor with performance optimizations."""
         super().__init__(coordinator)
@@ -366,6 +375,7 @@ class PawControlSensorBase(CoordinatorEntity[PawControlCoordinator], SensorEntit
         self._sensor_type = sensor_type
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
         self._attr_name = f"{dog_name} {sensor_type.replace('_', ' ').title()}"
+        self._attr_translation_key = translation_key
         self._attr_device_class = device_class
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit_of_measurement
@@ -769,8 +779,9 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
             dog_name,
             "daily_calories",
             state_class=SensorStateClass.TOTAL_INCREASING,
-            unit_of_measurement="kcal",
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
             icon="mdi:fire",
+            translation_key="daily_calories",
         )
 
     @property
@@ -858,8 +869,9 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             dog_name,
             "health_aware_portion",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement="g",
+            unit_of_measurement=UnitOfMass.GRAMS,
             icon="mdi:scale",
+            translation_key="health_aware_portion",
         )
 
     @property
@@ -1060,8 +1072,9 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
             dog_name,
             "walk_distance_today",
             state_class=SensorStateClass.TOTAL_INCREASING,
-            unit_of_measurement="m",
+            unit_of_measurement=UnitOfLength.METERS,
             icon="mdi:map-marker-path",
+            translation_key="walk_distance_today",
         )
 
     @property
@@ -1115,8 +1128,9 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
             dog_name,
             "last_walk_duration",
             device_class=SensorDeviceClass.DURATION,
-            unit_of_measurement="min",
+            unit_of_measurement=UnitOfTime.MINUTES,
             icon="mdi:timer",
+            translation_key="last_walk_duration",
         )
 
     @property
@@ -1146,8 +1160,9 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
             dog_name,
             "last_walk_distance",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement="m",
+            unit_of_measurement=UnitOfLength.METERS,
             icon="mdi:map-marker-path",
+            translation_key="last_walk_distance",
         )
 
     @property
@@ -1178,8 +1193,9 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
             "total_walk_time_today",
             state_class=SensorStateClass.TOTAL_INCREASING,
             device_class=SensorDeviceClass.DURATION,
-            unit_of_measurement="min",
+            unit_of_measurement=UnitOfTime.MINUTES,
             icon="mdi:timer-sand",
+            translation_key="total_walk_time_today",
         )
 
     @property
@@ -1209,8 +1225,9 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
             "average_walk_duration",
             state_class=SensorStateClass.MEASUREMENT,
             device_class=SensorDeviceClass.DURATION,
-            unit_of_measurement="min",
+            unit_of_measurement=UnitOfTime.MINUTES,
             icon="mdi:timer-outline",
+            translation_key="average_walk_duration",
         )
 
     @property
@@ -1262,8 +1279,9 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
             dog_name,
             "distance_from_home",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement="m",
+            unit_of_measurement=UnitOfLength.METERS,
             icon="mdi:map-marker-distance",
+            translation_key="distance_from_home",
         )
 
     @property
@@ -1293,8 +1311,9 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
             dog_name,
             "current_speed",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement="km/h",
+            unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
             icon="mdi:speedometer",
+            translation_key="current_speed",
         )
 
     @property
@@ -1324,8 +1343,9 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
             dog_name,
             "gps_accuracy",
             state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement="m",
+            unit_of_measurement=UnitOfLength.METERS,
             icon="mdi:crosshairs-gps",
+            translation_key="gps_accuracy",
         )
 
     @property
@@ -1416,8 +1436,9 @@ class PawControlWeightSensor(PawControlSensorBase):
             "weight",
             state_class=SensorStateClass.MEASUREMENT,
             device_class=SensorDeviceClass.WEIGHT,
-            unit_of_measurement="kg",
+            unit_of_measurement=UnitOfMass.KILOGRAMS,
             icon="mdi:scale-bathroom",
+            translation_key="weight",
         )
 
     @property
