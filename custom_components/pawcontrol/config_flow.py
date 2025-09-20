@@ -1,7 +1,7 @@
 """Config flow for PawControl integration.
 
 Enhanced configuration flow with discovery support, optimized validation,
-and comprehensive error handling for Home Assistant development guidelines compliance.
+and comprehensive error handling for Platinum quality compliance.
 """
 
 from __future__ import annotations

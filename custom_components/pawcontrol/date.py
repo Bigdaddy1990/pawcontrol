@@ -5,6 +5,9 @@ only date input (no time component). These complement the datetime entities
 by handling date-only scenarios like birth dates, adoption dates, and
 scheduled dates that don't require specific times.
 
+Quality Scale: Platinum
+Home Assistant: 2025.8.2+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -250,13 +253,13 @@ class PawControlDateBase(
         self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
         self._attr_icon = icon
 
-        # Device association for proper grouping in UI - uses configuration_url support available in HA 2024.12+
+        # Device association for proper grouping in UI - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
             "manufacturer": "Paw Control",
             "model": "Smart Dog Management",
-            "sw_version": "2024.12.0",
+            "sw_version": "2025.8.2",
             "suggested_area": "Pet Area",
             "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
         }

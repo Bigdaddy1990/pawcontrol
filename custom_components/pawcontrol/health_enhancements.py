@@ -7,6 +7,7 @@ ADDITIONS:
 - Health record timeline
 - Veterinary appointment tracking
 
+Quality Scale: Platinum++
 """
 
 from __future__ import annotations

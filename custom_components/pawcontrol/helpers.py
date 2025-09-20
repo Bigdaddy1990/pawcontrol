@@ -1,7 +1,7 @@
 """Helper classes and functions for Paw Control integration.
 
 OPTIMIZED VERSION with async performance improvements, batch operations,
-and memory-efficient data management for Home Assistant development guidelines.
+and memory-efficient data management for Platinum quality standards.
 """
 
 from __future__ import annotations

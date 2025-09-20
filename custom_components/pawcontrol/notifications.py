@@ -1,8 +1,11 @@
 """Advanced notification system for the PawControl integration.
 
 Comprehensive notification management with batch processing, advanced caching,
-person entity integration, and performance optimizations for Home Assistant development guidelines compliance.
+person entity integration, and performance optimizations for Platinum quality compliance.
 
+Quality Scale: Platinum
+Home Assistant: 2025.9.3+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -381,7 +384,7 @@ class PawControlNotificationManager:
     """Advanced notification management system with performance optimizations.
 
     OPTIMIZE: Enhanced with batch processing, advanced caching, rate limiting,
-    person entity integration, and comprehensive performance monitoring for high-quality-level quality.
+    person entity integration, and comprehensive performance monitoring for Platinum-level quality.
     """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:

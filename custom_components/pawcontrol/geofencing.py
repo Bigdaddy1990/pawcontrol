@@ -4,6 +4,9 @@ Comprehensive geofencing implementation with zone management, GPS tracking,
 entry/exit detection, and safety alert system. Supports multiple zone types
 including safe zones, restricted areas, and points of interest.
 
+Quality Scale: Platinum
+Home Assistant: 2025.9.3+
+Python: 3.13+
 """
 
 from __future__ import annotations

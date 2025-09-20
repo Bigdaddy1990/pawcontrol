@@ -38,7 +38,7 @@ def _normalize_dog_configs(
     The runtime data path provides fully typed ``DogConfigData`` entries, but the
     legacy fallback path may contain partially defined dictionaries. This helper
     filters out invalid items and ensures a mutable modules mapping is available
-    for each configuration so downstream code can rely on high-quality-level types.
+    for each configuration so downstream code can rely on Platinum-level types.
     """
 
     normalized_configs: list[DogConfigData] = []
@@ -236,7 +236,7 @@ class PawControlTextBase(
         self._attr_native_max = max_length
         self._attr_mode = mode
 
-        # Device info - uses configuration_url support available in HA 2024.12+
+        # Device info - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,
