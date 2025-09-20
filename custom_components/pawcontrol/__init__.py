@@ -720,16 +720,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             hass.config_entries.async_unload_platforms(entry, platforms),
             timeout=30,  # 30 seconds for platform unload
         )
-        platform_unload_duration = time.time() - platform_unload_start
-        _LOGGER.debug(
-            "Platform unload completed in %.2f seconds", platform_unload_duration
-        )
     except TimeoutError:
         platform_unload_duration = time.time() - platform_unload_start
         _LOGGER.error(
-            "Platform unload timed out after %.2f seconds", platform_unload_duration
+            "Platform unload timed out after %.2f seconds",
+            platform_unload_duration,
         )
-        unload_ok = False
+        return False
     except Exception as err:
         platform_unload_duration = time.time() - platform_unload_start
         _LOGGER.error(
@@ -737,7 +734,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             platform_unload_duration,
             err,
         )
-        unload_ok = False
+        return False
+
+    platform_unload_duration = time.time() - platform_unload_start
+    _LOGGER.debug(
+        "Platform unload completed in %.2f seconds", platform_unload_duration
+    )
+
+    if not unload_ok:
+        _LOGGER.error("One or more platforms failed to unload cleanly")
+        return False
 
     # Cleanup runtime data with enhanced error handling and timeouts
     if runtime_data:
@@ -869,17 +875,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # PLATINUM: Enhanced service manager cleanup
     domain_data = hass.data.get(DOMAIN, {})
     service_manager = domain_data.get("service_manager")
-    if service_manager and hasattr(service_manager, "_tracked_entries"):
-        service_manager._tracked_entries.discard(entry.entry_id)
-        if not service_manager._tracked_entries:
+    if service_manager:
+        if not hass.config_entries.async_loaded_entries(DOMAIN):
             try:
                 await asyncio.wait_for(service_manager.async_shutdown(), timeout=10)
             except TimeoutError:
                 _LOGGER.warning("Service manager shutdown timed out")
             except Exception as err:
                 _LOGGER.warning("Error shutting down service manager: %s", err)
-            finally:
-                domain_data.pop("service_manager", None)
 
     unload_duration = time.time() - unload_start_time
     _LOGGER.info(
@@ -900,7 +903,13 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     reload_start_time = time.time()
     _LOGGER.debug("Reloading PawControl integration entry: %s", entry.entry_id)
 
-    await async_unload_entry(hass, entry)
+    unload_ok = await async_unload_entry(hass, entry)
+    if not unload_ok:
+        _LOGGER.warning(
+            "Reload aborted because unload failed for entry %s", entry.entry_id
+        )
+        return
+
     await async_setup_entry(hass, entry)
 
     reload_duration = time.time() - reload_start_time
