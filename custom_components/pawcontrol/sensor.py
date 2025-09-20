@@ -508,7 +508,9 @@ class PawControlLastActionSensor(PawControlSensorBase):
                 if timestamp is not None:
                     timestamps.append(timestamp)
                 else:
-                    _LOGGER.debug("Invalid timestamp in %s: %s", module, timestamp_value)
+                    _LOGGER.debug(
+                        "Invalid timestamp in %s: %s", module, timestamp_value
+                    )
 
         return max(timestamps) if timestamps else None
 

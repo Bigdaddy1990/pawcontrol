@@ -41,8 +41,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, DOMAIN
-from .utils import ensure_utc_datetime
 from .coordinator import PawControlCoordinator
+from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 

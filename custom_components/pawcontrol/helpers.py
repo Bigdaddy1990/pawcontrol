@@ -40,8 +40,8 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
-from .utils import ensure_utc_datetime
 from .types import HealthEvent, WalkEvent
+from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -426,9 +426,7 @@ class PawControlDataStorage:
                 for entry in value:
                     if isinstance(entry, dict) and "timestamp" in entry:
                         entry_date = ensure_utc_datetime(entry.get("timestamp"))
-                        if entry_date is None:
-                            cleaned_list.append(entry)
-                        elif entry_date >= cutoff_date:
+                        if entry_date is None or entry_date >= cutoff_date:
                             cleaned_list.append(entry)
                     else:
                         # Keep non-timestamped entries

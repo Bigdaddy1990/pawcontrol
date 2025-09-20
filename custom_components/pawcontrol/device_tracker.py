@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -41,8 +40,8 @@ from .const import (
     DOMAIN,
     MODULE_GPS,
 )
-from .utils import ensure_utc_datetime
 from .coordinator import PawControlCoordinator
+from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
