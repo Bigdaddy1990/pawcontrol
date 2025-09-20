@@ -337,6 +337,8 @@ class OptimizedEntityBase(
         self._attr_icon = icon
         self._attr_has_entity_name = True
         self._attr_should_poll = False
+        # Default suggested area follows updated HA guidance using entity property
+        self._attr_suggested_area = f"Pet Area - {self._dog_name}"
 
     def _device_link_details(self) -> dict[str, Any]:
         """Extend base device metadata with dynamic dog information."""
@@ -428,7 +430,57 @@ class OptimizedEntityBase(
         # Base implementation - subclasses can override for specific logic
         pass
 
+    @property
+    def device_info(self) -> DeviceInfo | None:
+        """Return optimized device information with caching.
 
+        Returns:
+            DeviceInfo dictionary for proper device grouping
+        """
+        cache_key = f"device_{self._dog_id}"
+        now = dt_util.utcnow().timestamp()
+
+        # Check cache first
+        if cache_key in _DEVICE_INFO_CACHE:
+            cached_info, cache_time = _DEVICE_INFO_CACHE[cache_key]
+            if now - cache_time < CACHE_TTL_SECONDS["device_info"]:
+                self._performance_tracker.record_cache_hit()
+                return cached_info
+
+        # Generate device info
+        device_info: DeviceInfo = {
+            "identifiers": {(DOMAIN, self._dog_id)},
+            "name": self._dog_name,
+            "manufacturer": "PawControl",
+            "model": "Smart Dog Monitoring System",
+            "sw_version": "2.1.0",
+            "configuration_url": f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{self._dog_id}",
+        }
+
+        # Add additional info if available
+        dog_data = self._get_dog_data_cached()
+        suggested_area: str | None = None
+
+        if dog_data and "dog_info" in dog_data:
+            dog_info = dog_data["dog_info"]
+            if dog_breed := dog_info.get("dog_breed"):
+                device_info["model"] = f"Smart Dog Monitoring - {dog_breed}"
+            if dog_age := dog_info.get("dog_age"):
+                suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
+
+        if (
+            suggested_area
+            and getattr(self, "_attr_suggested_area", None) != suggested_area
+        ):
+            self._attr_suggested_area = suggested_area
+
+        # Cache the result
+        _DEVICE_INFO_CACHE[cache_key] = (device_info, now)
+        self._performance_tracker.record_cache_miss()
+
+        return device_info
+
+      
     @property
     def available(self) -> bool:
         """Enhanced availability check with caching and error handling.

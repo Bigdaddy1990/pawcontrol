@@ -257,13 +257,15 @@ class PawControlDateBase(
         self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
         self._attr_icon = icon
 
-        # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
-            model="Smart Dog Management",
-            sw_version="2025.8.2",
-            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
-            suggested_area="Pet Area",
-        )
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, dog_id)},
+            "name": dog_name,
+            "manufacturer": "Paw Control",
+            "model": "Smart Dog Management",
+            "sw_version": "2025.8.2",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+        }
+        self._attr_suggested_area = f"Pet Area - {dog_name}"
 
     @property
     def native_value(self) -> date | None:

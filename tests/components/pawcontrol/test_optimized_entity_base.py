@@ -234,6 +234,15 @@ class TestOptimizedEntityBase:
         assert device_info["model"] == "Smart Dog Monitoring System - Test Breed"
         assert ("pawcontrol", "test_dog") in device_info["identifiers"]
 
+    def test_suggested_area_updates(self, test_entity: TestEntityBase) -> None:
+        """Test suggested area is provided via entity property."""
+        # Default suggestion is available before device info access
+        assert test_entity.suggested_area == "Pet Area - Test Dog"
+
+        # Accessing device info with age data should refine the suggestion
+        _ = test_entity.device_info
+        assert test_entity.suggested_area == "Pet Area - Test Dog (5yo)"
+
     def test_device_info_caching(self, test_entity: TestEntityBase) -> None:
         """Test that device info is cached properly."""
         # First call should miss cache
