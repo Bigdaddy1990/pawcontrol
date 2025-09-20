@@ -14,12 +14,14 @@ import asyncio
 import hashlib
 import logging
 import re
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
 from typing import Any, ParamSpec, TypedDict, TypeVar, cast
 
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -85,6 +87,131 @@ def create_device_info(dog_id: str, dog_name: str, **kwargs: Any) -> DeviceInfo:
         device_info["configuration_url"] = kwargs["configuration_url"]
 
     return device_info
+
+
+async def async_get_or_create_dog_device_entry(
+    hass: HomeAssistant,
+    *,
+    config_entry_id: str,
+    dog_id: str,
+    dog_name: str,
+    manufacturer: str = "Paw Control",
+    model: str = "Smart Dog Monitoring",
+    sw_version: str | None = None,
+    configuration_url: str | None = None,
+    breed: str | None = None,
+    microchip_id: str | None = None,
+    suggested_area: str | None = None,
+    extra_identifiers: Iterable[tuple[str, str]] | None = None,
+) -> DeviceEntry:
+    """Link a dog to a device registry entry and return it."""
+
+    sanitized_id = sanitize_dog_id(dog_id)
+    identifiers: set[tuple[str, str]] = {(DOMAIN, sanitized_id)}
+
+    if extra_identifiers:
+        identifiers.update(extra_identifiers)
+
+    if microchip_id:
+        sanitized_microchip = sanitize_microchip_id(str(microchip_id))
+        if sanitized_microchip:
+            identifiers.add(("microchip", sanitized_microchip))
+
+    computed_model = f"{model} ({breed})" if breed else model
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=config_entry_id,
+        identifiers=identifiers,
+        manufacturer=manufacturer,
+        model=computed_model,
+        name=dog_name,
+        sw_version=sw_version,
+        configuration_url=configuration_url,
+    )
+
+    if suggested_area:
+        try:
+            device = device_registry.async_update_device(
+                device.id, suggested_area=suggested_area
+            )
+        except Exception:  # pragma: no cover - defensive, HA guarantees API
+            _LOGGER.debug(
+                "Unable to set suggested area for %s (%s)", dog_name, dog_id
+            )
+
+    return device
+
+
+class PawControlDeviceLinkMixin:
+    """Mixin providing device registry linking for PawControl entities."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Set up default device link metadata."""
+
+        super().__init__(*args, **kwargs)
+        self._device_link_defaults: dict[str, Any] = {
+            "manufacturer": "Paw Control",
+            "model": "Smart Dog Monitoring",
+            "sw_version": "1.0.0",
+            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+        }
+        self._linked_device_entry: DeviceEntry | None = None
+        self._device_link_initialized = False
+
+    def _set_device_link_info(self, **info: Any) -> None:
+        """Update device link metadata used when creating the device entry."""
+
+        self._device_link_defaults.update(info)
+
+    def _device_link_details(self) -> dict[str, Any]:
+        """Return a copy of the device metadata for linking."""
+
+        return dict(self._device_link_defaults)
+
+    async def async_added_to_hass(self) -> None:  # type: ignore[override]
+        """Link entity to device entry after regular setup."""
+
+        await super().async_added_to_hass()  # type: ignore[misc]
+        await self._async_link_device_entry()
+
+    async def _async_link_device_entry(self) -> None:
+        """Create or fetch the device entry and attach it to the entity."""
+
+        if self._device_link_initialized:
+            return
+
+        hass: HomeAssistant | None = getattr(self, "hass", None)
+        coordinator = getattr(self, "coordinator", None)
+        if hass is None or coordinator is None:
+            return
+
+        config_entry = getattr(coordinator, "config_entry", None)
+        dog_id = getattr(self, "_dog_id", None)
+        dog_name = getattr(self, "_dog_name", None)
+
+        if config_entry is None or dog_id is None or dog_name is None:
+            return
+
+        try:
+            device = await async_get_or_create_dog_device_entry(
+                hass,
+                config_entry_id=config_entry.entry_id,
+                dog_id=dog_id,
+                dog_name=dog_name,
+                **self._device_link_details(),
+            )
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to link PawControl entity %s to device: %s",
+                getattr(self, "entity_id", f"pawcontrol_{dog_id}"),
+                err,
+            )
+            return
+
+        self.device_entry = device
+        self._linked_device_entry = device
+        self._device_link_initialized = True
 
 
 def deep_merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:

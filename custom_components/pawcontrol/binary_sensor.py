@@ -39,7 +39,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import PawControlConfigEntry
-from .utils import create_device_info
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -309,7 +309,10 @@ def _create_health_binary_sensors(
 
 
 class PawControlBinarySensorBase(
-    CoordinatorEntity[PawControlCoordinator], BinarySensorEntity, BinarySensorLogicMixin
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    BinarySensorEntity,
+    BinarySensorLogicMixin,
 ):
     """Base class for all Paw Control binary sensor entities.
 
@@ -343,8 +346,8 @@ class PawControlBinarySensorBase(
         self._attr_device_class = device_class
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping
-        self._attr_device_info = create_device_info(dog_id, dog_name)
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching
         self._data_cache: dict[str, Any] = {}

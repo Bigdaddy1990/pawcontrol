@@ -39,6 +39,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .utils import PawControlDeviceLinkMixin
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 
@@ -217,7 +218,10 @@ async def async_setup_entry(
 
 
 class PawControlDateBase(
-    CoordinatorEntity[PawControlCoordinator], DateEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    DateEntity,
+    RestoreEntity,
 ):
     """Base class for Paw Control date entities.
 
@@ -253,16 +257,13 @@ class PawControlDateBase(
         self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
         self._attr_icon = icon
 
-        # Device association for proper grouping in UI - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Management",
-            "sw_version": "2025.8.2",
-            "suggested_area": "Pet Area",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog Management",
+            sw_version="2025.8.2",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+            suggested_area="Pet Area",
+        )
 
     @property
     def native_value(self) -> date | None:

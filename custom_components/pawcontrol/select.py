@@ -44,6 +44,7 @@ from .const import (
     PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -312,7 +313,10 @@ def _create_health_selects(
 
 
 class PawControlSelectBase(
-    CoordinatorEntity[PawControlCoordinator], SelectEntity, RestoreEntity
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    SelectEntity,
+    RestoreEntity,
 ):
     """Base class for all Paw Control select entities.
 
@@ -359,15 +363,12 @@ class PawControlSelectBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Monitoring",
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
+        # Link entity to PawControl device entry for the dog
+        self._set_device_link_info(
+            model="Smart Dog Monitoring",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+        )
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
