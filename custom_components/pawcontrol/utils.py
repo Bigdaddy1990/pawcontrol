@@ -136,9 +136,7 @@ async def async_get_or_create_dog_device_entry(
                 device.id, suggested_area=suggested_area
             )
         except Exception:  # pragma: no cover - defensive, HA guarantees API
-            _LOGGER.debug(
-                "Unable to set suggested area for %s (%s)", dog_name, dog_id
-            )
+            _LOGGER.debug("Unable to set suggested area for %s (%s)", dog_name, dog_id)
 
     return device
 

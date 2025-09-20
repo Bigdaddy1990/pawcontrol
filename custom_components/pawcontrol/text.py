@@ -25,8 +25,8 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 

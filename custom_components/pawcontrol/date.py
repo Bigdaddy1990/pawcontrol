@@ -39,9 +39,9 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 

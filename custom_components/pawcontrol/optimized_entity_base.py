@@ -348,12 +348,12 @@ class OptimizedEntityBase(
 
         if dog_data and (dog_info := dog_data.get("dog_info")):
             if dog_breed := dog_info.get("dog_breed"):
-                info["model"] = f"{info.get('model', 'Smart Dog Monitoring')} - {dog_breed}"
+                info["model"] = (
+                    f"{info.get('model', 'Smart Dog Monitoring')} - {dog_breed}"
+                )
                 info["breed"] = dog_breed
             if dog_age := dog_info.get("dog_age"):
-                info["suggested_area"] = (
-                    f"Pet Area - {self._dog_name} ({dog_age}yo)"
-                )
+                info["suggested_area"] = f"Pet Area - {self._dog_name} ({dog_age}yo)"
 
         return info
 
@@ -480,7 +480,6 @@ class OptimizedEntityBase(
 
         return device_info
 
-      
     @property
     def available(self) -> bool:
         """Enhanced availability check with caching and error handling.
