@@ -81,17 +81,12 @@ class PawControlOptionsFlow(OptionsFlow):
     ENHANCED: GPS and Geofencing configuration per requirements
     """
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize the options flow with enhanced state management.
-
-        Args:
-            config_entry: Configuration entry to modify
-        """
-        self._config_entry = config_entry
+    def __init__(self) -> None:
+        """Initialize the options flow with enhanced state management."""
+        super().__init__()
+        self._config_entry: ConfigEntry | None = None
         self._current_dog: DogConfigData | None = None
-        self._dogs: list[DogConfigData] = [
-            d.copy() for d in self._config_entry.data.get(CONF_DOGS, [])
-        ]
+        self._dogs: list[DogConfigData] = []
         self._navigation_stack: list[str] = []
         self._unsaved_changes: dict[str, Any] = {}
 
@@ -99,6 +94,22 @@ class PawControlOptionsFlow(OptionsFlow):
         self._entity_factory = EntityFactory(None)
         self._profile_cache: dict[str, dict[str, Any]] = {}
         self._entity_estimates_cache: dict[str, dict[str, Any]] = {}
+
+    @property
+    def _entry(self) -> ConfigEntry:
+        """Return the config entry for this options flow."""
+
+        if self._config_entry is None:
+            raise RuntimeError(
+                "Options flow accessed before being initialized with a config entry"
+            )
+        return self._config_entry
+
+    def initialize_from_config_entry(self, config_entry: ConfigEntry) -> None:
+        """Attach the originating config entry to this options flow."""
+
+        self._config_entry = config_entry
+        self._dogs = [d.copy() for d in config_entry.data.get(CONF_DOGS, [])]
 
     def _invalidate_profile_caches(self) -> None:
         """Clear cached profile data when configuration changes."""
@@ -159,7 +170,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
 
                 # Update geofencing settings in options
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         "geofence_settings": {
@@ -211,7 +222,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get geofencing settings schema with current values."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_geofence = current_options.get("geofence_settings", {})
         current_values = user_input or {}
 
@@ -316,7 +327,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _get_geofence_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for geofencing configuration."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_geofence = current_options.get("geofence_settings", {})
 
         # Get Home Assistant's home location
@@ -369,7 +380,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
 
                 # Save the profile selection
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options["entity_profile"] = current_profile
 
                 self._invalidate_profile_caches()
@@ -401,7 +412,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get entity profiles schema with current values."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_values = user_input or {}
         current_profile = current_values.get(
             "entity_profile",
@@ -432,8 +443,8 @@ class PawControlOptionsFlow(OptionsFlow):
     def _get_profile_description_placeholders_cached(self) -> dict[str, str]:
         """Get description placeholders with caching for better performance."""
 
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
-        current_profile = self._config_entry.options.get(
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
+        current_profile = self._entry.options.get(
             "entity_profile", DEFAULT_PROFILE
         )
         cache_key = (
@@ -514,7 +525,7 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> dict[str, Any]:
         """Calculate profile preview with optimized performance."""
 
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
         cache_key = (
             f"{profile}_{len(current_dogs)}_"
             f"{hash(json.dumps(current_dogs, sort_keys=True))}"
@@ -557,7 +568,7 @@ class PawControlOptionsFlow(OptionsFlow):
             elif utilization > 60:
                 performance_score -= 5
 
-        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_profile = self._entry.options.get("entity_profile", "standard")
         if profile == current_profile:
             current_total = total_entities
         else:
@@ -638,7 +649,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             if user_input.get("apply_profile"):
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options["entity_profile"] = profile
                 self._invalidate_profile_caches()
                 return self.async_create_entry(title="", data=new_options)
@@ -710,7 +721,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         if user_input is not None:
             try:
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         "entity_profile": user_input.get("entity_profile", "standard"),
@@ -742,7 +753,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get performance settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_values = user_input or {}
 
         # Profile options
@@ -848,7 +859,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 return await self.async_step_init()
 
         # Show dog management menu
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         return self.async_show_form(
             step_id="manage_dogs",
@@ -891,7 +902,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         NEW: Allows per-dog module configuration
         """
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         if not current_dogs:
             return await self.async_step_manage_dogs()
@@ -947,7 +958,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Update the dog's modules in the config entry
-                current_dogs = list(self._config_entry.data.get(CONF_DOGS, []))
+                current_dogs = list(self._entry.data.get(CONF_DOGS, []))
                 dog_index = next(
                     (
                         i
@@ -975,11 +986,11 @@ class PawControlOptionsFlow(OptionsFlow):
                     current_dogs[dog_index]["modules"] = updated_modules
 
                     # Update config entry
-                    new_data = {**self._config_entry.data}
+                    new_data = {**self._entry.data}
                     new_data[CONF_DOGS] = current_dogs
 
                     self.hass.config_entries.async_update_entry(
-                        self._config_entry, data=new_data
+                        self._entry, data=new_data
                     )
 
                 return await self.async_step_manage_dogs()
@@ -1055,7 +1066,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if not self._current_dog:
             return {}
 
-        current_profile = self._config_entry.options.get("entity_profile", "standard")
+        current_profile = self._entry.options.get("entity_profile", "standard")
         current_modules = self._current_dog.get("modules", {})
 
         # Calculate current entity count
@@ -1128,15 +1139,15 @@ class PawControlOptionsFlow(OptionsFlow):
                 }
 
                 # Add to existing dogs
-                current_dogs = list(self._config_entry.data.get(CONF_DOGS, []))
+                current_dogs = list(self._entry.data.get(CONF_DOGS, []))
                 current_dogs.append(new_dog)
 
                 # Update the config entry data
-                new_data = {**self._config_entry.data}
+                new_data = {**self._entry.data}
                 new_data[CONF_DOGS] = current_dogs
 
                 self.hass.config_entries.async_update_entry(
-                    self._config_entry, data=new_data
+                    self._entry, data=new_data
                 )
 
                 return await self.async_step_init()
@@ -1202,7 +1213,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Select which dog to edit."""
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         if not current_dogs:
             return await self.async_step_init()
@@ -1255,7 +1266,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Update the dog in the config entry
-                current_dogs = list(self._config_entry.data.get(CONF_DOGS, []))
+                current_dogs = list(self._entry.data.get(CONF_DOGS, []))
                 dog_index = next(
                     (
                         i
@@ -1272,11 +1283,11 @@ class PawControlOptionsFlow(OptionsFlow):
                     current_dogs[dog_index] = updated_dog
 
                     # Update config entry
-                    new_data = {**self._config_entry.data}
+                    new_data = {**self._entry.data}
                     new_data[CONF_DOGS] = current_dogs
 
                     self.hass.config_entries.async_update_entry(
-                        self._config_entry, data=new_data
+                        self._entry, data=new_data
                     )
 
                 return await self.async_step_init()
@@ -1346,7 +1357,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Select which dog to remove."""
-        current_dogs = self._config_entry.data.get(CONF_DOGS, [])
+        current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         if not current_dogs:
             return await self.async_step_init()
@@ -1362,11 +1373,11 @@ class PawControlOptionsFlow(OptionsFlow):
                 ]
 
                 # Update config entry
-                new_data = {**self._config_entry.data}
+                new_data = {**self._entry.data}
                 new_data[CONF_DOGS] = updated_dogs
 
                 self.hass.config_entries.async_update_entry(
-                    self._config_entry, data=new_data
+                    self._entry, data=new_data
                 )
 
             return await self.async_step_init()
@@ -1408,7 +1419,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Update GPS settings in options
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         CONF_GPS_UPDATE_INTERVAL: user_input.get(
@@ -1443,7 +1454,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get GPS settings schema with current values and enhanced route options."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_values = user_input or {}
 
         return vol.Schema(
@@ -1531,7 +1542,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Update notification settings
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         CONF_NOTIFICATIONS: {
@@ -1567,7 +1578,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get notifications settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_notifications = current_options.get(CONF_NOTIFICATIONS, {})
         current_values = user_input or {}
 
@@ -1633,7 +1644,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure feeding and nutrition settings."""
         if user_input is not None:
             try:
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         "feeding_settings": {
@@ -1667,7 +1678,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get feeding settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_feeding = current_options.get("feeding_settings", {})
         current_values = user_input or {}
 
@@ -1719,7 +1730,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure health monitoring settings."""
         if user_input is not None:
             try:
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         "health_settings": {
@@ -1751,7 +1762,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get health settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_health = current_options.get("health_settings", {})
         current_values = user_input or {}
 
@@ -1798,7 +1809,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure system and performance settings."""
         if user_input is not None:
             try:
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         CONF_RESET_TIME: user_input.get(
@@ -1831,7 +1842,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get system settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_system = current_options.get("system_settings", {})
         current_values = user_input or {}
 
@@ -1899,7 +1910,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure dashboard and display settings."""
         if user_input is not None:
             try:
-                new_options = {**self._config_entry.options}
+                new_options = {**self._entry.options}
                 new_options.update(
                     {
                         CONF_DASHBOARD_MODE: user_input.get("dashboard_mode", "full"),
@@ -1928,7 +1939,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get dashboard settings schema."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_dashboard = current_options.get("dashboard_settings", {})
         current_values = user_input or {}
 
@@ -2021,7 +2032,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get schema for advanced settings form."""
-        current_options = self._config_entry.options
+        current_options = self._entry.options
         current_values = user_input or {}
 
         return vol.Schema(
@@ -2120,7 +2131,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         try:
             # Merge unsaved changes with existing options
-            new_options = {**self._config_entry.options, **self._unsaved_changes}
+            new_options = {**self._entry.options, **self._unsaved_changes}
 
             # Clear unsaved changes
             self._unsaved_changes.clear()
