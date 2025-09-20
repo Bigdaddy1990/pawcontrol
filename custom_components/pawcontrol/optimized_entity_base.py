@@ -469,13 +469,12 @@ class OptimizedEntityBase(
 
         # Check for recent updates (within last 10 minutes)
         if last_update := dog_data.get("last_update"):
-            try:
-                last_update_dt = datetime.fromisoformat(last_update)
-                time_since_update = dt_util.utcnow() - last_update_dt
-                if time_since_update > timedelta(minutes=10):
-                    return False
-            except (ValueError, TypeError):
-                # Invalid timestamp format - treat as unavailable
+            last_update_dt = ensure_utc_datetime(last_update)
+            if last_update_dt is None:
+                return False
+
+            time_since_update = dt_util.utcnow() - last_update_dt
+            if time_since_update > timedelta(minutes=10):
                 return False
 
         return True

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import suppress
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -206,10 +205,7 @@ class PawControlDateTimeBase(
         # Restore previous value
         if (last_state := await self.async_get_last_state()) is not None:  # noqa: SIM102
             if last_state.state not in ("unknown", "unavailable"):
-                try:
-                    self._current_value = dt_util.parse_datetime(last_state.state)
-                except (ValueError, TypeError):
-                    self._current_value = None
+                self._current_value = ensure_utc_datetime(last_state.state)
 
     async def async_set_value(self, value: datetime) -> None:
         """Set new datetime value."""
@@ -322,8 +318,9 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
 
         last_feeding = dog_data["feeding"].get("last_feeding")
         if last_feeding:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_datetime(last_feeding)
+            timestamp = ensure_utc_datetime(last_feeding)
+            if timestamp is not None:
+                return timestamp
 
         return self._current_value
 
@@ -379,8 +376,9 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
 
         last_visit = dog_data["health"].get("last_vet_visit")
         if last_visit:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_datetime(last_visit)
+            timestamp = ensure_utc_datetime(last_visit)
+            if timestamp is not None:
+                return timestamp
 
         return self._current_value
 
@@ -438,8 +436,9 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
 
         last_grooming = dog_data["health"].get("last_grooming")
         if last_grooming:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_datetime(last_grooming)
+            timestamp = ensure_utc_datetime(last_grooming)
+            if timestamp is not None:
+                return timestamp
 
         return self._current_value
 
@@ -535,8 +534,9 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
 
         last_walk = dog_data["walk"].get("last_walk")
         if last_walk:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_datetime(last_walk)
+            timestamp = ensure_utc_datetime(last_walk)
+            if timestamp is not None:
+                return timestamp
 
         return self._current_value
 

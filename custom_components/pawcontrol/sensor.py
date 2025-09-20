@@ -516,13 +516,13 @@ class PawControlLastActionSensor(PawControlSensorBase):
             timestamp_value = module_data.get(timestamp_key)
 
             if timestamp_value:
-                try:
-                    if isinstance(timestamp_value, str):
-                        timestamps.append(datetime.fromisoformat(timestamp_value))
-                    elif isinstance(timestamp_value, datetime):
-                        timestamps.append(timestamp_value)
-                except (ValueError, TypeError) as err:
-                    _LOGGER.debug("Invalid timestamp in %s: %s", module, err)
+                timestamp = ensure_utc_datetime(timestamp_value)
+                if timestamp is not None:
+                    timestamps.append(timestamp)
+                else:
+                    _LOGGER.debug(
+                        "Invalid timestamp in %s: %s", module, timestamp_value
+                    )
 
         return max(timestamps) if timestamps else None
 
@@ -757,13 +757,11 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
         if not last_feeding:
             return None
 
-        try:
-            if isinstance(last_feeding, str):
-                return datetime.fromisoformat(last_feeding)
-            elif isinstance(last_feeding, datetime):
-                return last_feeding
-        except (ValueError, TypeError) as err:
-            _LOGGER.debug("Invalid last_feeding timestamp: %s", err)
+        timestamp = ensure_utc_datetime(last_feeding)
+        if timestamp is not None:
+            return timestamp
+
+        _LOGGER.debug("Invalid last_feeding timestamp: %s", last_feeding)
 
         return None
 
@@ -1016,13 +1014,11 @@ class PawControlLastWalkSensor(PawControlSensorBase):
         if not last_walk:
             return None
 
-        try:
-            if isinstance(last_walk, str):
-                return datetime.fromisoformat(last_walk)
-            elif isinstance(last_walk, datetime):
-                return last_walk
-        except (ValueError, TypeError) as err:
-            _LOGGER.debug("Invalid last_walk timestamp: %s", err)
+        timestamp = ensure_utc_datetime(last_walk)
+        if timestamp is not None:
+            return timestamp
+
+        _LOGGER.debug("Invalid last_walk timestamp: %s", last_walk)
 
         return None
 
@@ -1539,12 +1535,10 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
         if not last_visit:
             return None
 
-        try:
-            if isinstance(last_visit, str):
-                return datetime.fromisoformat(last_visit)
-            elif isinstance(last_visit, datetime):
-                return last_visit
-        except (ValueError, TypeError) as err:
-            _LOGGER.debug("Invalid last_vet_visit timestamp: %s", err)
+        timestamp = ensure_utc_datetime(last_visit)
+        if timestamp is not None:
+            return timestamp
+
+        _LOGGER.debug("Invalid last_vet_visit timestamp: %s", last_visit)
 
         return None

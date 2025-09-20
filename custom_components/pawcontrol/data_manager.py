@@ -24,7 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, STORAGE_VERSION
 from .exceptions import StorageError
-from .utils import deep_merge_dicts
+from .utils import deep_merge_dicts, ensure_utc_datetime
 
 if TYPE_CHECKING:
     pass
@@ -317,9 +317,8 @@ class OptimizedStorage:
                 for entry in entries:
                     try:
                         timestamp = entry.get("timestamp")
-                        if isinstance(timestamp, str):
-                            entry_time = datetime.fromisoformat(timestamp)
-                        else:
+                        entry_time = ensure_utc_datetime(timestamp)
+                        if entry_time is None:
                             new_entries.append(entry)
                             continue
 
@@ -747,11 +746,8 @@ class PawControlDataManager:
                     filtered.append(entry)
                     continue
 
-                if isinstance(timestamp, str):
-                    entry_time = datetime.fromisoformat(timestamp)
-                elif isinstance(timestamp, datetime):
-                    entry_time = timestamp
-                else:
+                entry_time = ensure_utc_datetime(timestamp)
+                if entry_time is None:
                     filtered.append(entry)
                     continue
 
