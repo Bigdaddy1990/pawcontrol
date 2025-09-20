@@ -1,7 +1,7 @@
 """Advanced notification system for the PawControl integration.
 
 Comprehensive notification management with batch processing, advanced caching,
-and performance optimizations for Platinum quality compliance.
+person entity integration, and performance optimizations for Platinum quality compliance.
 
 Quality Scale: Platinum
 Home Assistant: 2025.9.3+
@@ -21,6 +21,8 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
+from .person_entity_manager import PersonEntityManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,6 +107,10 @@ class NotificationConfig:
     template_overrides: dict[str, str] = field(
         default_factory=dict
     )  # OPTIMIZE: Custom templates
+    # NEW: Person entity targeting
+    use_person_entities: bool = True  # Dynamic person targeting
+    include_away_persons: bool = False  # Send to away persons
+    fallback_to_static: bool = True  # Fallback if no persons found
 
 
 @dataclass
@@ -131,6 +137,10 @@ class NotificationEvent:
     grouped_with: list[str] = field(default_factory=list)  # For batched notifications
     template_used: str | None = None
     send_attempts: dict[str, int] = field(default_factory=dict)  # Per-channel attempts
+    
+    # NEW: Person targeting metadata
+    targeted_persons: list[str] = field(default_factory=list)  # Person entity IDs
+    notification_services: list[str] = field(default_factory=list)  # Actual services used
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -155,6 +165,8 @@ class NotificationEvent:
             "grouped_with": self.grouped_with,
             "template_used": self.template_used,
             "send_attempts": self.send_attempts,
+            "targeted_persons": self.targeted_persons,
+            "notification_services": self.notification_services,
         }
 
     def can_be_batched_with(self, other: NotificationEvent) -> bool:
@@ -187,6 +199,7 @@ class NotificationCache:
         self._config_cache: dict[str, tuple[NotificationConfig, datetime]] = {}
         self._quiet_time_cache: dict[str, tuple[bool, datetime]] = {}
         self._rate_limit_cache: dict[str, dict[str, datetime]] = {}
+        self._person_targeting_cache: dict[str, tuple[list[str], datetime]] = {}  # NEW
         self._max_size = max_size
         self._access_order: deque[str] = deque()
 
@@ -229,6 +242,31 @@ class NotificationCache:
         if config_key in self._access_order:
             self._access_order.remove(config_key)
         self._access_order.append(config_key)
+
+    def get_person_targeting_cache(self, cache_key: str, ttl_seconds: int = 180) -> list[str] | None:
+        """Get cached person targeting results.
+        
+        Args:
+            cache_key: Cache key for targeting
+            ttl_seconds: Time to live in seconds
+            
+        Returns:
+            Cached targeting list or None
+        """
+        if cache_key in self._person_targeting_cache:
+            targets, timestamp = self._person_targeting_cache[cache_key]
+            if (dt_util.now() - timestamp).total_seconds() < ttl_seconds:
+                return targets
+        return None
+
+    def set_person_targeting_cache(self, cache_key: str, targets: list[str]) -> None:
+        """Cache person targeting results.
+        
+        Args:
+            cache_key: Cache key
+            targets: Target services list
+        """
+        self._person_targeting_cache[cache_key] = (targets, dt_util.now())
 
     def is_quiet_time_cached(self, config_key: str) -> tuple[bool, bool]:
         """Check if quiet time status is cached.
@@ -302,6 +340,16 @@ class NotificationCache:
             del self._quiet_time_cache[key]
             cleaned += 1
 
+        # Clean person targeting cache (5 minute TTL)
+        expired_person_keys = [
+            key
+            for key, (_, cache_time) in self._person_targeting_cache.items()
+            if (now - cache_time).total_seconds() > 300
+        ]
+        for key in expired_person_keys:
+            del self._person_targeting_cache[key]
+            cleaned += 1
+
         # Clean rate limit cache (older than 24 hours)
         for channels in self._rate_limit_cache.values():
             expired_channels = [
@@ -323,6 +371,7 @@ class NotificationCache:
             "rate_limit_entries": sum(
                 len(channels) for channels in self._rate_limit_cache.values()
             ),
+            "person_targeting_entries": len(self._person_targeting_cache),
             "cache_utilization": len(self._config_cache) / self._max_size * 100,
         }
 
@@ -331,7 +380,7 @@ class PawControlNotificationManager:
     """Advanced notification management system with performance optimizations.
 
     OPTIMIZE: Enhanced with batch processing, advanced caching, rate limiting,
-    and comprehensive performance monitoring for Platinum-level quality.
+    person entity integration, and comprehensive performance monitoring for Platinum-level quality.
     """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -347,6 +396,9 @@ class PawControlNotificationManager:
         self._configs: dict[str, NotificationConfig] = {}
         self._handlers: dict[NotificationChannel, Callable] = {}
         self._lock = asyncio.Lock()
+
+        # NEW: Person entity manager for dynamic targeting
+        self._person_manager: PersonEntityManager | None = None
 
         # OPTIMIZE: Enhanced background tasks
         self._retry_task: asyncio.Task | None = None
@@ -367,6 +419,8 @@ class PawControlNotificationManager:
             "cache_misses": 0,
             "rate_limit_blocks": 0,
             "average_delivery_time_ms": 0.0,
+            "person_targeted_notifications": 0,  # NEW
+            "static_fallback_notifications": 0,  # NEW
         }
 
         # OPTIMIZE: Template system for customizable notifications
@@ -375,6 +429,7 @@ class PawControlNotificationManager:
             "walk_reminder": "🚶 {title}\n{message}",
             "health_alert": "⚕️ {title}\n{message}",
             "batch_summary": "📋 {count} notifications for {dog_name}:\n{summary}",
+            "person_targeted": "👤 {title} (Targeted: {person_names})\n{message}",  # NEW
         }
 
         # Setup default handlers
@@ -439,12 +494,15 @@ class PawControlNotificationManager:
         return wrapped_handler
 
     async def async_initialize(
-        self, notification_configs: dict[str, dict[str, Any]] | None = None
+        self, 
+        notification_configs: dict[str, dict[str, Any]] | None = None,
+        person_entity_config: dict[str, Any] | None = None,
     ) -> None:
         """Initialize notification configurations with enhanced validation.
 
         Args:
             notification_configs: Configuration for each dog/system
+            person_entity_config: Configuration for person entity integration
         """
         async with self._lock:
             configs = notification_configs or {}
@@ -489,6 +547,10 @@ class PawControlNotificationManager:
                         rate_limit=rate_limit,
                         batch_enabled=config_data.get("batch_enabled", True),
                         template_overrides=template_overrides,
+                        # NEW: Person entity settings
+                        use_person_entities=config_data.get("use_person_entities", True),
+                        include_away_persons=config_data.get("include_away_persons", False),
+                        fallback_to_static=config_data.get("fallback_to_static", True),
                     )
 
                     self._configs[config_id] = config
@@ -497,8 +559,37 @@ class PawControlNotificationManager:
                 except Exception as err:
                     _LOGGER.error("Failed to parse config for %s: %s", config_id, err)
 
+        # NEW: Initialize person entity manager
+        await self._initialize_person_manager(person_entity_config)
+
         # Start background tasks
         await self._start_background_tasks()
+
+    async def _initialize_person_manager(self, config: dict[str, Any] | None = None) -> None:
+        """Initialize person entity manager for dynamic targeting.
+        
+        Args:
+            config: Person entity configuration
+        """
+        try:
+            self._person_manager = PersonEntityManager(self._hass, self._entry_id)
+            
+            # Use provided config or defaults
+            person_config = config or {
+                "enabled": True,
+                "auto_discovery": True,
+                "discovery_interval": 300,
+                "include_away_persons": False,
+                "fallback_to_static": True,
+            }
+            
+            await self._person_manager.async_initialize(person_config)
+            
+            _LOGGER.info("Person entity manager initialized for notification targeting")
+            
+        except Exception as err:
+            _LOGGER.error("Failed to initialize person entity manager: %s", err)
+            self._person_manager = None
 
     async def _start_background_tasks(self) -> None:
         """Start background processing tasks."""
@@ -527,10 +618,11 @@ class PawControlNotificationManager:
         expires_in: timedelta | None = None,
         force_channels: list[NotificationChannel] | None = None,
         allow_batching: bool = True,
+        override_person_targeting: bool = False,
     ) -> str:
         """Send a notification with advanced processing.
 
-        OPTIMIZE: Enhanced with batching, caching, rate limiting, and templates.
+        OPTIMIZE: Enhanced with batching, caching, rate limiting, templates, and person targeting.
 
         Args:
             notification_type: Type of notification
@@ -542,6 +634,7 @@ class PawControlNotificationManager:
             expires_in: Optional expiration time
             force_channels: Optional forced channels (bypasses config)
             allow_batching: Whether this notification can be batched
+            override_person_targeting: Skip person targeting and use static config
 
         Returns:
             Notification ID
@@ -575,8 +668,41 @@ class PawControlNotificationManager:
                 _LOGGER.debug("Notification suppressed due to quiet hours")
                 return notification_id
 
-            # OPTIMIZE: Check rate limits
+            # NEW: Determine notification targets using person entities
             channels = force_channels if force_channels else config.channels
+            targeted_persons = []
+            notification_services = []
+            
+            if (
+                not override_person_targeting 
+                and config.use_person_entities 
+                and self._person_manager 
+                and NotificationChannel.MOBILE in channels
+            ):
+                # Use person entity targeting
+                person_targets = await self._get_person_notification_targets(config_key, config)
+                if person_targets:
+                    notification_services.extend(person_targets)
+                    targeted_persons = [
+                        person.entity_id for person in 
+                        (self._person_manager.get_home_persons() if not config.include_away_persons 
+                         else self._person_manager.get_all_persons())
+                    ]
+                    self._performance_metrics["person_targeted_notifications"] += 1
+                    
+                    _LOGGER.debug(
+                        "Person targeting: %d services for %d persons",
+                        len(person_targets),
+                        len(targeted_persons)
+                    )
+                elif config.fallback_to_static:
+                    # Fallback to static configuration
+                    notification_services.extend(config.custom_settings.get("mobile_services", ["mobile_app"]))
+                    self._performance_metrics["static_fallback_notifications"] += 1
+                    
+                    _LOGGER.debug("Using static fallback for mobile notifications")
+            
+            # OPTIMIZE: Check rate limits
             allowed_channels = []
             for channel in channels:
                 rate_limit_key = f"{channel.value}_limit_minutes"
@@ -596,9 +722,16 @@ class PawControlNotificationManager:
                 _LOGGER.warning("All channels rate limited for %s", config_key)
                 return notification_id
 
-            # Apply template if available
+            # Apply template if available with person context
+            template_data = data or {}
+            if targeted_persons and self._person_manager:
+                person_context = self._person_manager.get_notification_context()
+                template_data.update(person_context)
+                if person_context.get("home_person_names"):
+                    template_data["person_names"] = ", ".join(person_context["home_person_names"])
+
             formatted_title, formatted_message = self._apply_template(
-                notification_type, title, message, config, data or {}
+                notification_type, title, message, config, template_data
             )
 
             # Calculate expiration
@@ -624,8 +757,10 @@ class PawControlNotificationManager:
                 created_at=dt_util.now(),
                 expires_at=expires_at,
                 channels=allowed_channels,
-                data=data or {},
+                data=template_data,
                 template_used=self._get_template_name(notification_type),
+                targeted_persons=targeted_persons,
+                notification_services=notification_services,
             )
 
             # Store notification
@@ -643,13 +778,51 @@ class PawControlNotificationManager:
                 # Send immediately
                 await self._send_to_channels(notification)
                 _LOGGER.info(
-                    "Sent notification %s: %s (%s)",
+                    "Sent notification %s: %s (%s) [%d targets]",
                     notification_id,
                     formatted_title,
                     priority.value,
+                    len(notification_services) if notification_services else len(allowed_channels),
                 )
 
             return notification_id
+
+    async def _get_person_notification_targets(
+        self, 
+        config_key: str, 
+        config: NotificationConfig
+    ) -> list[str]:
+        """Get notification targets based on person entities.
+        
+        Args:
+            config_key: Configuration key for caching
+            config: Notification configuration
+            
+        Returns:
+            List of notification service names
+        """
+        if not self._person_manager:
+            return []
+        
+        # Check cache first
+        cache_key = f"person_targets_{config_key}_{config.include_away_persons}"
+        cached_targets = self._cache.get_person_targeting_cache(cache_key)
+        if cached_targets is not None:
+            self._performance_metrics["cache_hits"] += 1
+            return cached_targets
+        
+        self._performance_metrics["cache_misses"] += 1
+        
+        # Get targets from person manager
+        targets = self._person_manager.get_notification_targets(
+            include_away=config.include_away_persons,
+            cache_key=cache_key
+        )
+        
+        # Cache the result
+        self._cache.set_person_targeting_cache(cache_key, targets)
+        
+        return targets
 
     async def _get_config_cached(self, config_key: str) -> NotificationConfig:
         """Get configuration with caching.
@@ -889,6 +1062,17 @@ class PawControlNotificationManager:
                 await self._send_to_channels(notification)
             return
 
+        # Merge targeted persons and services
+        all_targeted_persons = []
+        all_notification_services = []
+        for notification in notifications:
+            all_targeted_persons.extend(notification.targeted_persons)
+            all_notification_services.extend(notification.notification_services)
+
+        # Remove duplicates while preserving order
+        unique_persons = list(dict.fromkeys(all_targeted_persons))
+        unique_services = list(dict.fromkeys(all_notification_services))
+
         # Create batch notification event
         batch_id = f"batch_{int(dt_util.now().timestamp())}"
         batch_notification = NotificationEvent(
@@ -904,6 +1088,8 @@ class PawControlNotificationManager:
                 "batch_count": len(notifications),
                 "individual_ids": [n.id for n in notifications],
             },
+            targeted_persons=unique_persons,
+            notification_services=unique_services,
         )
 
         # Mark individual notifications as grouped
@@ -914,9 +1100,10 @@ class PawControlNotificationManager:
         await self._send_to_channels(batch_notification)
 
         _LOGGER.info(
-            "Sent batch notification with %d individual notifications for %s",
+            "Sent batch notification with %d individual notifications for %s [%d targets]",
             len(notifications),
             dog_name,
+            len(unique_services)
         )
 
     async def _send_to_channels(self, notification: NotificationEvent) -> None:
@@ -1005,48 +1192,97 @@ class PawControlNotificationManager:
         )
 
     async def _send_mobile_notification(self, notification: NotificationEvent) -> None:
-        """Send mobile app notification with enhanced features."""
-        config_key = notification.dog_id if notification.dog_id else "system"
-        config = await self._get_config_cached(config_key)
+        """Send mobile app notification with enhanced features and person targeting."""
+        # NEW: Use person-targeted services if available
+        if notification.notification_services:
+            # Send to each targeted service
+            for service_name in notification.notification_services:
+                try:
+                    service_data = {
+                        "title": notification.title,
+                        "message": notification.message,
+                        "data": {
+                            "notification_id": notification.id,
+                            "priority": notification.priority.value,
+                            "dog_id": notification.dog_id,
+                            "entry_id": self._entry_id,
+                            **notification.data,
+                        },
+                    }
 
-        mobile_service = config.custom_settings.get("mobile_service", "mobile_app")
+                    # Add actions for interactive notifications
+                    if notification.notification_type in [
+                        NotificationType.FEEDING_REMINDER,
+                        NotificationType.WALK_REMINDER,
+                        NotificationType.MEDICATION_REMINDER,
+                    ]:
+                        service_data["data"]["actions"] = [
+                            {
+                                "action": f"acknowledge_{notification.id}",
+                                "title": "Mark as Done",
+                                "icon": "sli:check",
+                            },
+                            {
+                                "action": f"snooze_{notification.id}",
+                                "title": "Snooze 15min",
+                                "icon": "sli:clock",
+                            },
+                        ]
 
-        service_data = {
-            "title": notification.title,
-            "message": notification.message,
-            "data": {
-                "notification_id": notification.id,
-                "priority": notification.priority.value,
-                "dog_id": notification.dog_id,
-                "entry_id": self._entry_id,
-                **notification.data,
-            },
-        }
+                    await self._hass.services.async_call(
+                        "notify",
+                        service_name,
+                        service_data,
+                    )
+                    
+                    _LOGGER.debug("Sent mobile notification to %s", service_name)
+                    
+                except Exception as err:
+                    _LOGGER.error("Failed to send to service %s: %s", service_name, err)
+                    
+        else:
+            # Fallback to original behavior
+            config_key = notification.dog_id if notification.dog_id else "system"
+            config = await self._get_config_cached(config_key)
 
-        # Add actions for interactive notifications
-        if notification.notification_type in [
-            NotificationType.FEEDING_REMINDER,
-            NotificationType.WALK_REMINDER,
-            NotificationType.MEDICATION_REMINDER,
-        ]:
-            service_data["data"]["actions"] = [
-                {
-                    "action": f"acknowledge_{notification.id}",
-                    "title": "Mark as Done",
-                    "icon": "sli:check",
+            mobile_service = config.custom_settings.get("mobile_service", "mobile_app")
+
+            service_data = {
+                "title": notification.title,
+                "message": notification.message,
+                "data": {
+                    "notification_id": notification.id,
+                    "priority": notification.priority.value,
+                    "dog_id": notification.dog_id,
+                    "entry_id": self._entry_id,
+                    **notification.data,
                 },
-                {
-                    "action": f"snooze_{notification.id}",
-                    "title": "Snooze 15min",
-                    "icon": "sli:clock",
-                },
-            ]
+            }
 
-        await self._hass.services.async_call(
-            "notify",
-            mobile_service,
-            service_data,
-        )
+            # Add actions for interactive notifications
+            if notification.notification_type in [
+                NotificationType.FEEDING_REMINDER,
+                NotificationType.WALK_REMINDER,
+                NotificationType.MEDICATION_REMINDER,
+            ]:
+                service_data["data"]["actions"] = [
+                    {
+                        "action": f"acknowledge_{notification.id}",
+                        "title": "Mark as Done",
+                        "icon": "sli:check",
+                    },
+                    {
+                        "action": f"snooze_{notification.id}",
+                        "title": "Snooze 15min",
+                        "icon": "sli:clock",
+                    },
+                ]
+
+            await self._hass.services.async_call(
+                "notify",
+                mobile_service,
+                service_data,
+            )
 
     async def _send_tts_notification(self, notification: NotificationEvent) -> None:
         """Send text-to-speech notification."""
@@ -1277,6 +1513,11 @@ class PawControlNotificationManager:
                 priority = notification.priority.value
                 priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
+            # NEW: Person targeting statistics
+            person_stats = {}
+            if self._person_manager:
+                person_stats = self._person_manager.get_statistics()
+
             return {
                 # Basic stats
                 "total_notifications": total_notifications,
@@ -1292,6 +1533,8 @@ class PawControlNotificationManager:
                 # Handler stats
                 "available_channels": [channel.value for channel in self._handlers],
                 "handlers_registered": len(self._handlers),
+                # NEW: Person targeting stats
+                "person_entity_stats": person_stats,
             }
 
     async def async_shutdown(self) -> None:
@@ -1309,6 +1552,10 @@ class PawControlNotificationManager:
 
         # Wait for tasks to complete
         await asyncio.gather(*[t for t in tasks_to_cancel if t], return_exceptions=True)
+
+        # Shutdown person manager
+        if self._person_manager:
+            await self._person_manager.async_shutdown()
 
         # Process any remaining batches
         async with self._lock:
@@ -1435,3 +1682,37 @@ class PawControlNotificationManager:
             priority=priority,
             data={"alert_type": alert_type, "details": details},
         )
+
+    # NEW: Person entity management methods
+    async def async_update_person_entity_config(self, config: dict[str, Any]) -> bool:
+        """Update person entity configuration.
+        
+        Args:
+            config: New person entity configuration
+            
+        Returns:
+            True if update was successful
+        """
+        if self._person_manager:
+            return await self._person_manager.async_update_config(config)
+        return False
+
+    async def async_force_person_discovery(self) -> dict[str, Any]:
+        """Force person entity discovery.
+        
+        Returns:
+            Discovery results
+        """
+        if self._person_manager:
+            return await self._person_manager.async_force_discovery()
+        return {"error": "Person manager not available"}
+
+    def get_person_notification_context(self) -> dict[str, Any]:
+        """Get current person notification context.
+        
+        Returns:
+            Person context for notifications
+        """
+        if self._person_manager:
+            return self._person_manager.get_notification_context()
+        return {"persons_home": 0, "persons_away": 0, "has_anyone_home": False}

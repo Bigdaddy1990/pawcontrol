@@ -47,9 +47,13 @@ from .const import (
     SERVICE_GPS_START_WALK,
     SERVICE_LOG_HEALTH,
     SERVICE_LOG_MEDICATION,
+    SERVICE_LOG_POOP,
     SERVICE_RECALCULATE_HEALTH_PORTIONS,
     SERVICE_START_DIET_TRANSITION,
+    SERVICE_START_GROOMING,
     SERVICE_TOGGLE_VISITOR_MODE,
+    MIN_GEOFENCE_RADIUS,
+    MAX_GEOFENCE_RADIUS,
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
@@ -68,6 +72,13 @@ SERVICE_CALCULATE_PORTION = "calculate_portion"
 SERVICE_EXPORT_DATA = "export_data"
 SERVICE_ANALYZE_PATTERNS = "analyze_patterns"
 SERVICE_GENERATE_REPORT = "generate_report"
+SERVICE_SETUP_AUTOMATIC_GPS = "setup_automatic_gps"  # NEW: Missing service from info.md
+
+# NEW: Garden tracking services
+SERVICE_START_GARDEN = "start_garden_session"
+SERVICE_END_GARDEN = "end_garden_session"
+SERVICE_ADD_GARDEN_ACTIVITY = "add_garden_activity"
+SERVICE_CONFIRM_POOP = "confirm_garden_poop"
 
 _ManagerT = TypeVar("_ManagerT")
 
@@ -217,6 +228,23 @@ SERVICE_GPS_EXPORT_ROUTE_SCHEMA = vol.Schema(
         vol.Required("dog_id"): cv.string,
         vol.Optional("format", default="gpx"): vol.In(["gpx", "json", "csv"]),
         vol.Optional("last_n_walks", default=1): vol.Coerce(int),
+    }
+)
+
+# NEW: Setup automatic GPS service schema - mentioned in info.md but missing
+SERVICE_SETUP_AUTOMATIC_GPS_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("auto_start_walk", default=True): cv.boolean,
+        vol.Optional("safe_zone_radius", default=50): vol.Range(
+            min=MIN_GEOFENCE_RADIUS, max=MAX_GEOFENCE_RADIUS
+        ),
+        vol.Optional("track_route", default=True): cv.boolean,
+        vol.Optional("safety_alerts", default=True): cv.boolean,
+        vol.Optional("geofence_notifications", default=True): cv.boolean,
+        vol.Optional("auto_detect_home", default=True): cv.boolean,
+        vol.Optional("gps_accuracy_threshold", default=50): vol.Range(min=5, max=500),
+        vol.Optional("update_interval_seconds", default=60): vol.Range(min=30, max=600),
     }
 )
 
@@ -411,6 +439,92 @@ SERVICE_ADD_HEALTH_SNACK_SCHEMA = vol.Schema(
             ["digestive", "dental", "joint", "skin_coat", "immune", "calming"]
         ),
         vol.Optional("notes"): cv.string,
+    }
+)
+
+SERVICE_LOG_POOP_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("quality"): vol.In(
+            ["excellent", "good", "normal", "soft", "loose", "watery"]
+        ),
+        vol.Optional("color"): vol.In(
+            ["brown", "dark_brown", "light_brown", "yellow", "green", "black", "red"]
+        ),
+        vol.Optional("size"): vol.In(["small", "normal", "large"]),
+        vol.Optional("location"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("timestamp"): cv.datetime,
+    }
+)
+
+SERVICE_START_GROOMING_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("grooming_type"): vol.In(
+            ["full_groom", "bath", "nail_trim", "brush", "ear_clean", "teeth_clean"]
+        ),
+        vol.Optional("groomer"): cv.string,
+        vol.Optional("location"): cv.string,
+        vol.Optional("estimated_duration_minutes"): vol.Coerce(int),
+        vol.Optional("notes"): cv.string,
+    }
+)
+
+# NEW: Garden tracking service schemas
+SERVICE_START_GARDEN_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("detection_method", default="manual"): vol.In(
+            ["manual", "door_sensor", "auto"]
+        ),
+        vol.Optional("weather_conditions"): cv.string,
+        vol.Optional("temperature"): vol.Coerce(float),
+    }
+)
+
+SERVICE_END_GARDEN_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("activities"): [
+            vol.Schema(
+                {
+                    vol.Required("type"): vol.In(
+                        ["general", "poop", "play", "sniffing", "digging", "resting"]
+                    ),
+                    vol.Optional("duration_seconds"): vol.Coerce(int),
+                    vol.Optional("location"): cv.string,
+                    vol.Optional("notes"): cv.string,
+                    vol.Optional("confirmed", default=True): cv.boolean,
+                }
+            )
+        ],
+    }
+)
+
+SERVICE_ADD_GARDEN_ACTIVITY_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("activity_type"): vol.In(
+            ["general", "poop", "play", "sniffing", "digging", "resting"]
+        ),
+        vol.Optional("duration_seconds"): vol.Coerce(int),
+        vol.Optional("location"): cv.string,
+        vol.Optional("notes"): cv.string,
+        vol.Optional("confirmed", default=True): cv.boolean,
+    }
+)
+
+SERVICE_CONFIRM_POOP_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Required("confirmed"): cv.boolean,
+        vol.Optional("quality"): vol.In(
+            ["excellent", "good", "normal", "soft", "loose", "watery"]
+        ),
+        vol.Optional("size"): vol.In(["small", "normal", "large"]),
+        vol.Optional("location"): cv.string,
     }
 )
 
@@ -915,6 +1029,98 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Failed to export routes for %s: %s", dog_id, err)
             raise HomeAssistantError(
                 f"Failed to export routes for {dog_id}. Check the logs for details."
+            ) from err
+
+    # NEW: Setup automatic GPS service - mentioned in info.md but was missing
+    async def setup_automatic_gps_service(call: ServiceCall) -> None:
+        """Handle setup automatic GPS service call.
+        
+        NEW: Implements the setup_automatic_gps service mentioned in info.md
+        with parameters like auto_start_walk, safe_zone_radius, and track_route.
+        """
+        coordinator = _get_coordinator()
+        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        
+        # Get geofencing manager if available
+        geofencing_manager = getattr(coordinator, 'geofencing_manager', None)
+        if geofencing_manager is None:
+            _LOGGER.warning("Geofencing manager not available for automatic GPS setup")
+
+        dog_id = call.data["dog_id"]
+        auto_start_walk = call.data.get("auto_start_walk", True)
+        safe_zone_radius = call.data.get("safe_zone_radius", 50)
+        track_route = call.data.get("track_route", True)
+        safety_alerts = call.data.get("safety_alerts", True)
+        geofence_notifications = call.data.get("geofence_notifications", True)
+        auto_detect_home = call.data.get("auto_detect_home", True)
+        gps_accuracy_threshold = call.data.get("gps_accuracy_threshold", 50)
+        update_interval_seconds = call.data.get("update_interval_seconds", 60)
+
+        try:
+            # Configure automatic GPS settings for the dog
+            gps_config = {
+                "auto_start_walk": auto_start_walk,
+                "safe_zone_radius": safe_zone_radius,
+                "track_route": track_route,
+                "safety_alerts": safety_alerts,
+                "geofence_notifications": geofence_notifications,
+                "auto_detect_home": auto_detect_home,
+                "gps_accuracy_threshold": gps_accuracy_threshold,
+                "update_interval_seconds": update_interval_seconds,
+                "enabled": True,
+                "configured_at": dt_util.utcnow(),
+            }
+
+            # Store GPS configuration
+            await walk_manager.async_configure_automatic_gps(dog_id=dog_id, config=gps_config)
+
+            # Setup geofencing if manager is available
+            if geofencing_manager:
+                # Use Home Assistant's home location or coordinates
+                home_lat = hass.config.latitude
+                home_lon = hass.config.longitude
+                
+                await geofencing_manager.async_setup_safe_zone(
+                    dog_id=dog_id,
+                    center_lat=home_lat,
+                    center_lon=home_lon,
+                    radius_meters=safe_zone_radius,
+                    notifications_enabled=geofence_notifications,
+                )
+                
+                _LOGGER.info(
+                    "Setup geofencing safe zone for %s: center=%.6f,%.6f radius=%dm",
+                    dog_id, home_lat, home_lon, safe_zone_radius
+                )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Setup automatic GPS for %s: auto_walk=%s, safe_zone=%dm, tracking=%s",
+                dog_id,
+                auto_start_walk,
+                safe_zone_radius,
+                track_route,
+            )
+
+            # Send notification about GPS setup
+            notification_manager = coordinator.notification_manager
+            if notification_manager:
+                await notification_manager.async_send_notification(
+                    notification_type="system_info",
+                    title=f"🛰️ GPS Setup Complete: {dog_id}",
+                    message=f"Automatic GPS tracking configured for {dog_id}. "
+                           f"Safe zone: {safe_zone_radius}m radius. "
+                           f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}.",
+                    dog_id=dog_id,
+                )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to setup automatic GPS for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to setup automatic GPS for {dog_id}. Check the logs for details."
             ) from err
 
     async def send_notification_service(call: ServiceCall) -> None:
@@ -1512,6 +1718,267 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 f"Failed to add health snack for {dog_id}. Check the logs for details."
             ) from err
 
+    async def log_poop_service(call: ServiceCall) -> None:
+        """Handle log poop service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        poop_data = {
+            k: v for k, v in call.data.items() if k != "dog_id" and v is not None
+        }
+        
+        if "timestamp" not in poop_data:
+            poop_data["timestamp"] = dt_util.utcnow()
+
+        try:
+            await data_manager.async_log_poop_data(dog_id=dog_id, poop_data=poop_data)
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Logged poop data for %s: quality=%s, color=%s, size=%s", 
+                dog_id,
+                poop_data.get("quality", "not_specified"),
+                poop_data.get("color", "not_specified"),
+                poop_data.get("size", "not_specified"),
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to log poop data for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to log poop data for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def start_grooming_service(call: ServiceCall) -> None:
+        """Handle start grooming service call."""
+        coordinator = _get_coordinator()
+        data_manager = _require_manager(coordinator.data_manager, "data manager")
+
+        dog_id = call.data["dog_id"]
+        grooming_type = call.data["grooming_type"]
+        groomer = call.data.get("groomer")
+        location = call.data.get("location")
+        estimated_duration = call.data.get("estimated_duration_minutes")
+        notes = call.data.get("notes")
+
+        try:
+            grooming_data = {
+                "grooming_type": grooming_type,
+                "groomer": groomer,
+                "location": location,
+                "estimated_duration_minutes": estimated_duration,
+                "notes": notes,
+                "start_time": dt_util.utcnow(),
+                "status": "in_progress",
+            }
+
+            session_id = await data_manager.async_start_grooming_session(
+                dog_id=dog_id,
+                grooming_data=grooming_data,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Started grooming session for %s: %s (session: %s, groomer: %s)",
+                dog_id,
+                grooming_type,
+                session_id,
+                groomer or "unknown",
+            )
+
+            # Send notification about grooming start
+            notification_manager = coordinator.notification_manager
+            if notification_manager:
+                await notification_manager.async_send_notification(
+                    notification_type="system_info",
+                    title=f"🛁 Grooming started: {dog_id}",
+                    message=f"Started {grooming_type} for {dog_id}" + 
+                           (f" with {groomer}" if groomer else "") +
+                           (f" (est. {estimated_duration} min)" if estimated_duration else ""),
+                    dog_id=dog_id,
+                )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to start grooming for {dog_id}. Check the logs for details."
+            ) from err
+
+    # NEW: Garden tracking service handlers
+    async def start_garden_session_service(call: ServiceCall) -> None:
+        """Handle start garden session service call."""
+        coordinator = _get_coordinator()
+        garden_manager = _require_manager(
+            getattr(coordinator, 'garden_manager', None), "garden manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        detection_method = call.data.get("detection_method", "manual")
+        weather_conditions = call.data.get("weather_conditions")
+        temperature = call.data.get("temperature")
+
+        # Get dog name from coordinator
+        dog_name = dog_id  # Fallback
+        try:
+            dogs_data = coordinator.data.get("dogs", {})
+            dog_info = dogs_data.get(dog_id, {})
+            dog_name = dog_info.get("name", dog_id)
+        except Exception:
+            pass
+
+        try:
+            session_id = await garden_manager.async_start_garden_session(
+                dog_id=dog_id,
+                dog_name=dog_name,
+                detection_method=detection_method,
+                weather_conditions=weather_conditions,
+                temperature=temperature,
+            )
+
+            await coordinator.async_request_refresh()
+
+            _LOGGER.info(
+                "Started garden session for %s (session: %s, method: %s)",
+                dog_name,
+                session_id,
+                detection_method,
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to start garden session for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to start garden session for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def end_garden_session_service(call: ServiceCall) -> None:
+        """Handle end garden session service call."""
+        coordinator = _get_coordinator()
+        garden_manager = _require_manager(
+            getattr(coordinator, 'garden_manager', None), "garden manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        notes = call.data.get("notes")
+        activities = call.data.get("activities")
+
+        try:
+            session = await garden_manager.async_end_garden_session(
+                dog_id=dog_id,
+                notes=notes,
+                activities=activities,
+            )
+
+            if session:
+                await coordinator.async_request_refresh()
+
+                _LOGGER.info(
+                    "Ended garden session for %s: %.1f minutes, %d activities, %d poop events",
+                    session.dog_name,
+                    session.duration_minutes,
+                    len(session.activities),
+                    session.poop_count,
+                )
+            else:
+                _LOGGER.warning("No active garden session found for %s", dog_id)
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to end garden session for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to end garden session for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def add_garden_activity_service(call: ServiceCall) -> None:
+        """Handle add garden activity service call."""
+        coordinator = _get_coordinator()
+        garden_manager = _require_manager(
+            getattr(coordinator, 'garden_manager', None), "garden manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        activity_type = call.data["activity_type"]
+        duration_seconds = call.data.get("duration_seconds")
+        location = call.data.get("location")
+        notes = call.data.get("notes")
+        confirmed = call.data.get("confirmed", True)
+
+        try:
+            success = await garden_manager.async_add_activity(
+                dog_id=dog_id,
+                activity_type=activity_type,
+                duration_seconds=duration_seconds,
+                location=location,
+                notes=notes,
+                confirmed=confirmed,
+            )
+
+            if success:
+                _LOGGER.info(
+                    "Added garden activity for %s: %s (location: %s)",
+                    dog_id,
+                    activity_type,
+                    location or "unspecified",
+                )
+            else:
+                _LOGGER.warning(
+                    "Failed to add garden activity for %s: no active session",
+                    dog_id,
+                )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to add garden activity for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to add garden activity for {dog_id}. Check the logs for details."
+            ) from err
+
+    async def confirm_garden_poop_service(call: ServiceCall) -> None:
+        """Handle confirm garden poop service call."""
+        coordinator = _get_coordinator()
+        garden_manager = _require_manager(
+            getattr(coordinator, 'garden_manager', None), "garden manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        confirmed = call.data["confirmed"]
+        quality = call.data.get("quality")
+        size = call.data.get("size")
+        location = call.data.get("location")
+
+        try:
+            await garden_manager.async_handle_poop_confirmation(
+                dog_id=dog_id,
+                confirmed=confirmed,
+                quality=quality,
+                size=size,
+                location=location,
+            )
+
+            _LOGGER.info(
+                "Processed poop confirmation for %s: %s (quality: %s, size: %s)",
+                dog_id,
+                "confirmed" if confirmed else "denied",
+                quality or "not_specified",
+                size or "not_specified",
+            )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to confirm garden poop for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to confirm garden poop for {dog_id}. Check the logs for details."
+            ) from err
+
     # Register all services
     hass.services.async_register(
         DOMAIN,
@@ -1605,6 +2072,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_GPS_EXPORT_ROUTE,
         gps_export_route_service,
         schema=SERVICE_GPS_EXPORT_ROUTE_SCHEMA,
+    )
+
+    # NEW: Register the missing setup_automatic_gps service
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SETUP_AUTOMATIC_GPS,
+        setup_automatic_gps_service,
+        schema=SERVICE_SETUP_AUTOMATIC_GPS_SCHEMA,
     )
 
     hass.services.async_register(
@@ -1727,7 +2202,51 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_ADD_HEALTH_SNACK_SCHEMA,
     )
 
-    _LOGGER.info("Registered PawControl services with enhanced automation functionality")
+    # Register missing services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LOG_POOP,
+        log_poop_service,
+        schema=SERVICE_LOG_POOP_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_GROOMING,
+        start_grooming_service,
+        schema=SERVICE_START_GROOMING_SCHEMA,
+    )
+
+    # NEW: Register garden tracking services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_GARDEN,
+        start_garden_session_service,
+        schema=SERVICE_START_GARDEN_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_END_GARDEN,
+        end_garden_session_service,
+        schema=SERVICE_END_GARDEN_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_GARDEN_ACTIVITY,
+        add_garden_activity_service,
+        schema=SERVICE_ADD_GARDEN_ACTIVITY_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CONFIRM_POOP,
+        confirm_garden_poop_service,
+        schema=SERVICE_CONFIRM_POOP_SCHEMA,
+    )
+
+    _LOGGER.info("Registered PawControl services with enhanced automation, GPS setup, and garden tracking functionality")
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -1745,11 +2264,14 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_UPDATE_HEALTH,
         SERVICE_LOG_HEALTH,
         SERVICE_LOG_MEDICATION,
+        SERVICE_LOG_POOP,
+        SERVICE_START_GROOMING,
         SERVICE_TOGGLE_VISITOR_MODE,
         SERVICE_GPS_START_WALK,
         SERVICE_GPS_END_WALK,
         SERVICE_GPS_POST_LOCATION,
         SERVICE_GPS_EXPORT_ROUTE,
+        SERVICE_SETUP_AUTOMATIC_GPS,  # NEW: Include the new service
         SERVICE_SEND_NOTIFICATION,
         SERVICE_ACKNOWLEDGE_NOTIFICATION,
         SERVICE_CALCULATE_PORTION,
@@ -1768,6 +2290,11 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_CHECK_FEEDING_COMPLIANCE,
         SERVICE_ADJUST_DAILY_PORTIONS,
         SERVICE_ADD_HEALTH_SNACK,
+        # NEW: Garden tracking services
+        SERVICE_START_GARDEN,
+        SERVICE_END_GARDEN,
+        SERVICE_ADD_GARDEN_ACTIVITY,
+        SERVICE_CONFIRM_POOP,
     ]
 
     for service in services_to_remove:

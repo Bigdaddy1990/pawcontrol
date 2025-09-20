@@ -347,6 +347,8 @@ EVENT_FEEDING_LOGGED: Final[str] = "pawcontrol_feeding_logged"
 EVENT_HEALTH_LOGGED: Final[str] = "pawcontrol_health_logged"
 EVENT_GEOFENCE_ENTERED: Final[str] = "pawcontrol_geofence_entered"
 EVENT_GEOFENCE_LEFT: Final[str] = "pawcontrol_geofence_left"
+EVENT_GARDEN_ENTERED: Final[str] = "pawcontrol_garden_entered"
+EVENT_GARDEN_LEFT: Final[str] = "pawcontrol_garden_left"
 
 # OPTIMIZED: State attributes - grouped by category
 ATTR_DOG_ID: Final[str] = "dog_id"
