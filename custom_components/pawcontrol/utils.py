@@ -20,7 +20,8 @@ from functools import wraps
 from typing import Any, ParamSpec, TypedDict, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
 from homeassistant.util import dt as dt_util
 
@@ -181,11 +182,12 @@ async def async_get_or_create_dog_device_entry(
     if hw_version := device_info.get("hw_version"):
         update_kwargs["hw_version"] = hw_version
 
-    if update_kwargs:
-        if updated_device := device_registry.async_update_device(
+    if update_kwargs and (
+        updated_device := device_registry.async_update_device(
             device.id, **update_kwargs
-        ):
-            device = updated_device
+        )
+    ):
+        device = updated_device
 
     return device
 
