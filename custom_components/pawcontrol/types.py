@@ -5,13 +5,16 @@ functions for the PawControl Home Assistant integration. It implements strict ty
 performance-optimized validation, and comprehensive data modeling for all aspects
 of dog care management.
 
-The module is designed for high-quality-level quality with:
+The module is designed for Platinum-level quality with:
 - Comprehensive type definitions using TypedDict and dataclasses
 - Performance-optimized validation with frozenset lookups
 - Extensive error handling and data validation
 - Memory-efficient data structures using __slots__ where appropriate
 - Complete documentation for all public APIs
 
+Quality Scale: Platinum
+Home Assistant: 2025.9.3+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -240,7 +243,7 @@ class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
 
     This dataclass contains all runtime components needed by the integration
-    for high-quality-level type safety with ConfigEntry[PawControlRuntimeData].
+    for Platinum-level type safety with ConfigEntry[PawControlRuntimeData].
     Enhanced with performance monitoring, error tracking, and comprehensive
     component lifecycle management.
 
@@ -277,7 +280,7 @@ class PawControlRuntimeData:
     helper_manager: PawControlHelperManager | None = None
     geofencing_manager: PawControlGeofencing | None = None
 
-    # Enhanced runtime tracking for high-quality-level monitoring
+    # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
     # PLATINUM: Optional unsubscribe callback for daily reset scheduler
@@ -343,13 +346,13 @@ class PawControlRuntimeData:
         return getattr(self, key, default)
 
 
-# PLATINUM: Custom ConfigEntry type for type safety and high-quality compliance
+# PLATINUM: Custom ConfigEntry type for type safety and Platinum compliance
 type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 """Type alias for PawControl-specific config entries with runtime data typing.
 
 This type provides complete type safety for config entry operations throughout
 the integration while ensuring proper runtime data structure validation.
-Essential for high-quality-level type compliance and development experience.
+Essential for Platinum-level type compliance and development experience.
 
 Usage:
     async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:

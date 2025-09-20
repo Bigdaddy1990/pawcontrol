@@ -38,7 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 SensorValue = str | int | float | datetime | None
 AttributeDict = dict[str, Any]
 
-# OPTIMIZED: Performance constants for high-quality profiles
+# OPTIMIZED: Performance constants for Platinum profiles
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
@@ -83,7 +83,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control sensor platform with profile optimization."""
 
-    # OPTIMIZED: Consistent runtime_data usage for high-quality compliance
+    # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
     runtime_data = entry.runtime_data
     coordinator = runtime_data.coordinator
     dogs = runtime_data.dogs

@@ -3,7 +3,7 @@
 This module provides comprehensive diagnostic information for troubleshooting
 and support purposes. It collects system information, configuration details,
 and operational data while ensuring sensitive information is properly redacted.
-Designed to meet Home Assistant development guidelines.
+Designed to meet Home Assistant's Platinum quality standards.
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ async def async_get_config_entry_diagnostics(
     """
     _LOGGER.debug("Generating diagnostics for Paw Control entry: %s", entry.entry_id)
 
-    # Get runtime data using high-quality-compliant approach
+    # Get runtime data using Platinum-compliant approach
     runtime_data = getattr(entry, "runtime_data", None)
     coordinator = runtime_data.coordinator if runtime_data else None
 
@@ -488,6 +488,7 @@ async def _get_debug_information(
     return {
         "debug_logging_enabled": _LOGGER.isEnabledFor(logging.DEBUG),
         "integration_version": "1.0.0",
+        "quality_scale": "platinum",
         "supported_features": [
             "config_flow",
             "options_flow",

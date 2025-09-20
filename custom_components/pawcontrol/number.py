@@ -2,7 +2,7 @@
 
 This module provides comprehensive number entities for dog monitoring configuration
 including weight settings, timing controls, thresholds, and system parameters.
-All number entities are designed to meet Home Assistant development guidelines
+All number entities are designed to meet Home Assistant's Platinum quality standards
 with full type annotations, async operations, and robust validation.
 """
 
@@ -344,7 +344,7 @@ class PawControlNumberBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping - uses configuration_url support available in HA 2024.12+
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,

@@ -1,7 +1,8 @@
 # 🐶🐕 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.12%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Niveau-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)

@@ -3,6 +3,7 @@
 Tests the complete integration setup, platform forwarding, service registration,
 entity creation, and lifecycle management for Platinum quality assurance.
 
+Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """

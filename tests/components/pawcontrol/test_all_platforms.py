@@ -3,6 +3,7 @@
 Tests all platform implementations including sensors, binary sensors, switches,
 buttons, and other entity types for complete coverage and quality assurance.
 
+Quality Scale: Platinum
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """

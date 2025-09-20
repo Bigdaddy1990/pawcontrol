@@ -2,7 +2,7 @@
 
 This module provides comprehensive select entities for dog monitoring configuration
 including mode selections, option choices, and status settings. All select entities
-are designed to meet Home Assistant development guidelines with full type
+are designed to meet Home Assistant's Platinum quality standards with full type
 annotations, async operations, and robust validation.
 """
 
@@ -359,7 +359,7 @@ class PawControlSelectBase(
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
-        # Device info for proper grouping - uses configuration_url support available in HA 2024.12+
+        # Device info for proper grouping - HA 2025.8+ compatible with configuration_url
         self._attr_device_info = {
             "identifiers": {(DOMAIN, dog_id)},
             "name": dog_name,

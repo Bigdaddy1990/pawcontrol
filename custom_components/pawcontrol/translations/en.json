@@ -155,7 +155,7 @@
       },
       "configure_external_entities": {
         "title": "Configure External Entities",
-        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step ensures the integration follows Home Assistant development guidelines.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n\n⚠️ If no entities are available, you can configure them manually later.",
+        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality compliance.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n\n⚠️ If no entities are available, you can configure them manually later.",
         "data": {
           "gps_source": "GPS Source (Required for GPS tracking)",
           "door_sensor": "Door Sensor (Optional for visitor mode)",

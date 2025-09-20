@@ -8,6 +8,9 @@ UPDATED: Adds entity profile selection for performance optimization
 Integrates with EntityFactory for intelligent entity management
 ENHANCED: GPS and Geofencing functionality per fahrplan.txt requirements
 
+Quality Scale: Platinum
+Home Assistant: 2025.9.3+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -67,7 +70,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PawControlOptionsFlow(OptionsFlow):
-    """Handle options flow for Paw Control integration with high-quality UX.
+    """Handle options flow for Paw Control integration with Platinum UX.
 
     This comprehensive options flow allows users to modify all aspects
     of their Paw Control configuration after initial setup. It provides
