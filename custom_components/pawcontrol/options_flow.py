@@ -48,9 +48,7 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
-    CONF_WEATHER_ALERTS,
     CONF_WEATHER_ENTITY,
-    CONF_WEATHER_HEALTH_MONITORING,
     DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
@@ -1545,7 +1543,7 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure weather-based health monitoring settings.
 
         NEW: Comprehensive weather configuration including entity selection,
-        health monitoring toggles, and alert preferences for weather-based 
+        health monitoring toggles, and alert preferences for weather-based
         health recommendations.
         """
         if user_input is not None:
@@ -1561,7 +1559,7 @@ class PawControlOptionsFlow(OptionsFlow):
                             data_schema=self._get_weather_settings_schema(user_input),
                             errors={"weather_entity": "weather_entity_not_found"},
                         )
-                    
+
                     # Check if it's a weather entity
                     if not weather_entity.startswith("weather."):
                         return self.async_show_form(
@@ -1572,39 +1570,44 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 # Update weather settings in options
                 new_options = {**self._entry.options}
-                new_options.update({
-                    "weather_settings": {
-                        CONF_WEATHER_ENTITY: weather_entity if weather_entity != "none" else None,
-                        "weather_health_monitoring": user_input.get(
-                            "weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING
-                        ),
-                        "weather_alerts": user_input.get(
-                            "weather_alerts", DEFAULT_WEATHER_ALERTS
-                        ),
-                        "weather_update_interval": user_input.get(
-                            "weather_update_interval", 60
-                        ),
-                        "temperature_alerts": user_input.get(
-                            "temperature_alerts", True
-                        ),
-                        "uv_alerts": user_input.get("uv_alerts", True),
-                        "humidity_alerts": user_input.get("humidity_alerts", True),
-                        "wind_alerts": user_input.get("wind_alerts", False),
-                        "storm_alerts": user_input.get("storm_alerts", True),
-                        "breed_specific_recommendations": user_input.get(
-                            "breed_specific_recommendations", True
-                        ),
-                        "health_condition_adjustments": user_input.get(
-                            "health_condition_adjustments", True
-                        ),
-                        "auto_activity_adjustments": user_input.get(
-                            "auto_activity_adjustments", False
-                        ),
-                        "notification_threshold": user_input.get(
-                            "notification_threshold", "moderate"
-                        ),
+                new_options.update(
+                    {
+                        "weather_settings": {
+                            CONF_WEATHER_ENTITY: weather_entity
+                            if weather_entity != "none"
+                            else None,
+                            "weather_health_monitoring": user_input.get(
+                                "weather_health_monitoring",
+                                DEFAULT_WEATHER_HEALTH_MONITORING,
+                            ),
+                            "weather_alerts": user_input.get(
+                                "weather_alerts", DEFAULT_WEATHER_ALERTS
+                            ),
+                            "weather_update_interval": user_input.get(
+                                "weather_update_interval", 60
+                            ),
+                            "temperature_alerts": user_input.get(
+                                "temperature_alerts", True
+                            ),
+                            "uv_alerts": user_input.get("uv_alerts", True),
+                            "humidity_alerts": user_input.get("humidity_alerts", True),
+                            "wind_alerts": user_input.get("wind_alerts", False),
+                            "storm_alerts": user_input.get("storm_alerts", True),
+                            "breed_specific_recommendations": user_input.get(
+                                "breed_specific_recommendations", True
+                            ),
+                            "health_condition_adjustments": user_input.get(
+                                "health_condition_adjustments", True
+                            ),
+                            "auto_activity_adjustments": user_input.get(
+                                "auto_activity_adjustments", False
+                            ),
+                            "notification_threshold": user_input.get(
+                                "notification_threshold", "moderate"
+                            ),
+                        }
                     }
-                })
+                )
 
                 return self.async_create_entry(title="", data=new_options)
 
@@ -1634,143 +1637,156 @@ class PawControlOptionsFlow(OptionsFlow):
         weather_entities = [
             {"value": "none", "label": "No weather entity (disable weather features)"}
         ]
-        
+
         for entity_id in self.hass.states.async_entity_ids("weather"):
             entity_state = self.hass.states.get(entity_id)
             if entity_state:
                 friendly_name = entity_state.attributes.get("friendly_name", entity_id)
-                weather_entities.append({
-                    "value": entity_id,
-                    "label": f"{friendly_name} ({entity_id})"
-                })
+                weather_entities.append(
+                    {"value": entity_id, "label": f"{friendly_name} ({entity_id})"}
+                )
 
-        return vol.Schema({
-            vol.Optional(
-                "weather_entity",
-                default=current_values.get(
+        return vol.Schema(
+            {
+                vol.Optional(
                     "weather_entity",
-                    current_weather.get(CONF_WEATHER_ENTITY, "none")
+                    default=current_values.get(
+                        "weather_entity",
+                        current_weather.get(CONF_WEATHER_ENTITY, "none"),
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=weather_entities,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 ),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=weather_entities,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Optional(
-                "weather_health_monitoring",
-                default=current_values.get(
+                vol.Optional(
                     "weather_health_monitoring",
-                    current_weather.get("weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "weather_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "weather_health_monitoring",
+                        current_weather.get(
+                            "weather_health_monitoring",
+                            DEFAULT_WEATHER_HEALTH_MONITORING,
+                        ),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "weather_alerts",
-                    current_weather.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "weather_update_interval",
-                default=current_values.get(
+                    default=current_values.get(
+                        "weather_alerts",
+                        current_weather.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "weather_update_interval",
-                    current_weather.get("weather_update_interval", 60),
+                    default=current_values.get(
+                        "weather_update_interval",
+                        current_weather.get("weather_update_interval", 60),
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=15,
+                        max=1440,
+                        step=15,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="minutes",
+                    )
                 ),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=15,
-                    max=1440,
-                    step=15,
-                    mode=selector.NumberSelectorMode.BOX,
-                    unit_of_measurement="minutes",
-                )
-            ),
-            vol.Optional(
-                "temperature_alerts",
-                default=current_values.get(
+                vol.Optional(
                     "temperature_alerts",
-                    current_weather.get("temperature_alerts", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "uv_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "temperature_alerts",
+                        current_weather.get("temperature_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "uv_alerts",
-                    current_weather.get("uv_alerts", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "humidity_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "uv_alerts",
+                        current_weather.get("uv_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "humidity_alerts",
-                    current_weather.get("humidity_alerts", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "wind_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "humidity_alerts",
+                        current_weather.get("humidity_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "wind_alerts",
-                    current_weather.get("wind_alerts", False),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "storm_alerts",
-                default=current_values.get(
+                    default=current_values.get(
+                        "wind_alerts",
+                        current_weather.get("wind_alerts", False),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "storm_alerts",
-                    current_weather.get("storm_alerts", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "breed_specific_recommendations",
-                default=current_values.get(
+                    default=current_values.get(
+                        "storm_alerts",
+                        current_weather.get("storm_alerts", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "breed_specific_recommendations",
-                    current_weather.get("breed_specific_recommendations", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "health_condition_adjustments",
-                default=current_values.get(
+                    default=current_values.get(
+                        "breed_specific_recommendations",
+                        current_weather.get("breed_specific_recommendations", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "health_condition_adjustments",
-                    current_weather.get("health_condition_adjustments", True),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "auto_activity_adjustments",
-                default=current_values.get(
+                    default=current_values.get(
+                        "health_condition_adjustments",
+                        current_weather.get("health_condition_adjustments", True),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "auto_activity_adjustments",
-                    current_weather.get("auto_activity_adjustments", False),
-                ),
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                "notification_threshold",
-                default=current_values.get(
+                    default=current_values.get(
+                        "auto_activity_adjustments",
+                        current_weather.get("auto_activity_adjustments", False),
+                    ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "notification_threshold",
-                    current_weather.get("notification_threshold", "moderate"),
+                    default=current_values.get(
+                        "notification_threshold",
+                        current_weather.get("notification_threshold", "moderate"),
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {
+                                "value": "low",
+                                "label": "Low - Only extreme weather warnings",
+                            },
+                            {
+                                "value": "moderate",
+                                "label": "Moderate - Important weather alerts",
+                            },
+                            {
+                                "value": "high",
+                                "label": "High - All weather recommendations",
+                            },
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 ),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "low", "label": "Low - Only extreme weather warnings"},
-                        {"value": "moderate", "label": "Moderate - Important weather alerts"},
-                        {"value": "high", "label": "High - All weather recommendations"},
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-        })
+            }
+        )
 
     def _get_weather_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for weather configuration."""
         current_options = self._entry.options
-        current_weather = current_weather_settings = current_options.get("weather_settings", {})
+        current_weather = current_options.get("weather_settings", {})
         current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         # Current weather entity status
         weather_entity = current_weather.get(CONF_WEATHER_ENTITY)
         weather_status = "Not configured"
         weather_info = "No weather entity selected"
-        
+
         if weather_entity:
             weather_state = self.hass.states.get(weather_entity)
             if weather_state:
@@ -1807,8 +1823,12 @@ class PawControlOptionsFlow(OptionsFlow):
         alerts_summary = ", ".join(enabled_alerts) if enabled_alerts else "None"
 
         # Feature status
-        weather_monitoring = current_weather.get("weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING)
-        breed_recommendations = current_weather.get("breed_specific_recommendations", True)
+        weather_monitoring = current_weather.get(
+            "weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING
+        )
+        breed_recommendations = current_weather.get(
+            "breed_specific_recommendations", True
+        )
         health_adjustments = current_weather.get("health_condition_adjustments", True)
 
         return {
@@ -1819,11 +1839,19 @@ class PawControlOptionsFlow(OptionsFlow):
             "dogs_with_breeds": str(dogs_with_breeds),
             "monitoring_status": "Enabled" if weather_monitoring else "Disabled",
             "alerts_enabled": alerts_summary,
-            "breed_recommendations_status": "Enabled" if breed_recommendations else "Disabled",
-            "health_adjustments_status": "Enabled" if health_adjustments else "Disabled",
+            "breed_recommendations_status": "Enabled"
+            if breed_recommendations
+            else "Disabled",
+            "health_adjustments_status": "Enabled"
+            if health_adjustments
+            else "Disabled",
             "update_interval": str(current_weather.get("weather_update_interval", 60)),
-            "notification_threshold": current_weather.get("notification_threshold", "moderate").title(),
-            "available_weather_entities": str(len([e for e in self.hass.states.async_entity_ids("weather")])),
+            "notification_threshold": current_weather.get(
+                "notification_threshold", "moderate"
+            ).title(),
+            "available_weather_entities": str(
+                len([e for e in self.hass.states.async_entity_ids("weather")])
+            ),
         }
 
     # All other existing methods remain unchanged...

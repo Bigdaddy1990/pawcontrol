@@ -1338,7 +1338,7 @@ class FeedingManager:
 
         if portion_adjustment is not None:
             data["portion_adjustment_factor"] = portion_adjustment
-
+            
         if config and config.diet_validation:
             data["diet_validation_summary"] = config._get_diet_validation_summary()
         else:
@@ -1377,8 +1377,8 @@ class FeedingManager:
         if config and health_summary:
             current_weight = health_summary.get("current_weight")
             ideal_weight = health_summary.get("ideal_weight")
-            if isinstance(current_weight, (int, float)) and isinstance(
-                ideal_weight, (int, float)
+            if isinstance(current_weight, int | float) and isinstance(
+                ideal_weight, int | float
             ):
                 try:
                     if config.weight_goal == "lose":
@@ -1475,6 +1475,7 @@ class FeedingManager:
             "health_emergency": False,
             "emergency_mode": None,
             "diet_validation_summary": None,
+
         }
 
         if calories_per_gram is not None:
@@ -2568,8 +2569,8 @@ class FeedingManager:
                         self._active_emergencies[dog_id] = emergency_details
                 finally:
                     self._emergency_restore_tasks.pop(dog_id, None)
-
-            restore_task = asyncio.create_task(_restore_wrapper())  # noqa: RUF006
+                    
+            restore_task = asyncio.create_task(_restore_wrapper())
             self._emergency_restore_tasks[dog_id] = restore_task
             result["restoration_scheduled"] = True
 

@@ -489,6 +489,7 @@ __all__ = (
     "MIN_DOG_WEIGHT",
     "MODULE_DASHBOARD",
     "MODULE_FEEDING",
+    "MODULE_GARDEN",
     # Module identifiers
     "MODULE_GPS",
     "MODULE_HEALTH",
@@ -498,6 +499,9 @@ __all__ = (
     "MODULE_WALK",
     "PERFORMANCE_THRESHOLDS",
     "PLATFORMS",
+    "SERVICE_ADD_GARDEN_ACTIVITY",
+    "SERVICE_CONFIRM_GARDEN_POOP",
+    "SERVICE_END_GARDEN_SESSION",
     # Service identifiers
     "SERVICE_FEED_DOG",
     "SERVICE_LOG_HEALTH",
