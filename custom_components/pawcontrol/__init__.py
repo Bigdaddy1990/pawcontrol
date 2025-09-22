@@ -11,6 +11,7 @@ from typing import Any, Final
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -47,6 +48,9 @@ from .walk_manager import WalkManager
 _LOGGER = logging.getLogger(__name__)
 
 ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
+
+# PawControl is configured exclusively via the UI/config entries
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # OPTIMIZED: Enhanced platform determination cache with TTL and monitoring
 type PlatformCacheKey = tuple[int, str, frozenset[str]]
