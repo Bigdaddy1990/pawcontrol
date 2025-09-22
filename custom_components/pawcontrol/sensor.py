@@ -241,6 +241,15 @@ async def _create_module_entities(
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 4),
                 ("daily_calories", PawControlDailyCaloriesSensor, 3),
                 ("daily_portions", PawControlDailyPortionsSensor, 2),
+                ("health_aware_portion", PawControlHealthAwarePortionSensor, 8),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 7),
+                ("daily_calories", PawControlDailyCaloriesSensor, 6),
+                ("daily_portions", PawControlDailyPortionsSensor, 5),
+                (
+                    "last_feeding_hours",
+                    PawControlLastFeedingHoursSensor,
+                    4,
+                ),  # NEW: Critical missing sensor
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
@@ -2189,6 +2198,23 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
         with contextlib.suppress(TypeError, ValueError):
             return round(float(factor), 2)
         return None
+        try:
+            calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+            calorie_target = float(
+                feeding_data.get(
+                    "daily_calorie_target",
+                    feeding_data.get("target_calories_per_day", 1000.0),
+                )
+            )
+
+            if calorie_target <= 0:
+                return 0.0
+
+            progress = (calories_consumed / calorie_target) * 100
+            return round(min(progress, 150.0), 1)  # Cap at 150% to show overfeeding
+
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.0
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -2200,6 +2226,40 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
                 "health_conditions": feeding_data.get("health_conditions", []),
             }
         )
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calorie_target = float(
+                    feeding_data.get(
+                        "daily_calorie_target",
+                        feeding_data.get("target_calories_per_day", 1000.0),
+                    )
+                )
+
+                attrs.update(
+                    {
+                        "calories_consumed": calories_consumed,
+                        "calorie_target": calorie_target,
+                        "calories_remaining": max(
+                            0, calorie_target - calories_consumed
+                        ),
+                        "over_target": calories_consumed > calorie_target,
+                        "over_target_amount": max(
+                            0, calories_consumed - calorie_target
+                        ),
+                        "target_met": calories_consumed >= calorie_target,
+                        "progress_status": (
+                            "over_target"
+                            if calories_consumed > calorie_target * 1.1
+                            else "on_target"
+                            if calories_consumed >= calorie_target * 0.9
+                            else "under_target"
+                        ),
+                    }
+                )
+
         return attrs
 
 
