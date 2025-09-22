@@ -11,11 +11,13 @@ import pytest
 from custom_components.pawcontrol import services as services_module
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.services import (
+    SERVICE_CONFIRM_POOP,
     SERVICE_END_WALK,
     SERVICE_START_WALK,
 )
 from custom_components.pawcontrol.walk_manager import WeatherCondition
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ServiceValidationError
 
 
 @pytest.fixture
@@ -27,6 +29,10 @@ def coordinator_mock() -> SimpleNamespace:
         async_request_refresh=AsyncMock(),
         feeding_manager=None,
         data_manager=None,
+        garden_manager=None,
+        get_dog_config=lambda dog_id: {"dog_name": "Doggo"} if dog_id == "doggo" else None,
+        get_configured_dog_ids=lambda: ["doggo"],
+        get_configured_dog_name=lambda dog_id: "Doggo" if dog_id == "doggo" else None,
     )
 
 
@@ -132,3 +138,52 @@ async def test_end_walk_service_updates_stats(
     assert any("Ended walk for doggo" in message for message in caplog.messages), (
         "Expected summary log message was not emitted"
     )
+
+
+@pytest.mark.asyncio
+async def test_service_rejects_unknown_dog(
+    hass: HomeAssistant,
+    coordinator_mock: SimpleNamespace,
+) -> None:
+    """Ensure handlers raise ServiceValidationError for unknown dog ids."""
+
+    handlers = await _register_services(hass, coordinator_mock)
+    handler = handlers[(DOMAIN, SERVICE_START_WALK)]
+
+    with pytest.raises(ServiceValidationError):
+        await handler(
+            ServiceCall(
+                hass,
+                DOMAIN,
+                SERVICE_START_WALK,
+                {"dog_id": "unknown"},
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_confirm_garden_poop_requires_pending_confirmation(
+    hass: HomeAssistant,
+    coordinator_mock: SimpleNamespace,
+) -> None:
+    """Ensure poop confirmation service validates pending state."""
+
+    coordinator_mock.garden_manager = SimpleNamespace(
+        has_pending_confirmation=lambda dog_id: False,
+        async_handle_poop_confirmation=AsyncMock(),
+    )
+
+    handlers = await _register_services(hass, coordinator_mock)
+    handler = handlers[(DOMAIN, SERVICE_CONFIRM_POOP)]
+
+    with pytest.raises(ServiceValidationError):
+        await handler(
+            ServiceCall(
+                hass,
+                DOMAIN,
+                SERVICE_CONFIRM_POOP,
+                {"dog_id": "doggo", "confirmed": True},
+            )
+        )
+
+    coordinator_mock.garden_manager.async_handle_poop_confirmation.assert_not_awaited()

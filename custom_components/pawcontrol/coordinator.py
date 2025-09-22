@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
@@ -984,6 +985,36 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Module data dictionary
         """
         return self._data.get(dog_id, {}).get(module, {})
+
+    def get_dog_config(self, dog_id: str) -> DogConfigData | None:
+        """Return the configured data for the provided dog identifier."""
+
+        for config in self._dogs_config:
+            if config.get(CONF_DOG_ID) == dog_id:
+                return config
+        return None
+
+    def get_configured_dog_ids(self) -> list[str]:
+        """Return a list of configured dog identifiers."""
+
+        dog_ids: list[str] = []
+        for config in self._dogs_config:
+            dog_id = config.get(CONF_DOG_ID)
+            if isinstance(dog_id, str) and dog_id.strip():
+                dog_ids.append(dog_id.strip())
+        return dog_ids
+
+    def get_configured_dog_name(self, dog_id: str) -> str | None:
+        """Return the configured display name for a dog if available."""
+
+        config = self.get_dog_config(dog_id)
+        if not config:
+            return None
+
+        dog_name = config.get(CONF_DOG_NAME)
+        if isinstance(dog_name, str) and dog_name.strip():
+            return dog_name
+        return None
 
     @property
     def available(self) -> bool:
