@@ -27,6 +27,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_DOG_NAME,
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
@@ -58,6 +59,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .types import DogConfigData
 from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
@@ -612,7 +614,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     def _resolve_dog(
         coordinator: PawControlCoordinator, raw_dog_id: str
-    ) -> tuple[str, dict[str, Any]]:
+    ) -> tuple[str, DogConfigData]:
         """Validate and normalize a dog identifier for service handling."""
 
         if not isinstance(raw_dog_id, str):
@@ -1960,7 +1962,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         weather_conditions = call.data.get("weather_conditions")
         temperature = call.data.get("temperature")
 
-        dog_name = str(dog_config.get("dog_name", dog_id))
+        dog_name = dog_config.get(CONF_DOG_NAME) or dog_id
 
         try:
             session_id = await garden_manager.async_start_garden_session(
