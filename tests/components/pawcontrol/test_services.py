@@ -30,7 +30,9 @@ def coordinator_mock() -> SimpleNamespace:
         feeding_manager=None,
         data_manager=None,
         garden_manager=None,
-        get_dog_config=lambda dog_id: {"dog_name": "Doggo"} if dog_id == "doggo" else None,
+        get_dog_config=lambda dog_id: {"dog_name": "Doggo"}
+        if dog_id == "doggo"
+        else None,
         get_configured_dog_ids=lambda: ["doggo"],
         get_configured_dog_name=lambda dog_id: "Doggo" if dog_id == "doggo" else None,
     )

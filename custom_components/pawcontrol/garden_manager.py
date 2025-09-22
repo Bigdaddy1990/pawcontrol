@@ -1033,7 +1033,10 @@ class GardenManager:
 
         # Calculate today's aggregates including active session
         sessions_to_process = list(todays_sessions)
-        if active_session and dt_util.as_local(active_session.start_time) >= start_of_day:
+        if (
+            active_session
+            and dt_util.as_local(active_session.start_time) >= start_of_day
+        ):
             if not any(
                 session.session_id == active_session.session_id
                 for session in sessions_to_process
