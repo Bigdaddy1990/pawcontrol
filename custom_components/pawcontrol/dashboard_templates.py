@@ -1264,14 +1264,14 @@ class DashboardTemplates:
         if theme == "modern":
             card_mod_style = """
                 ha-card {
-                    background: linear-gradient(135deg, 
+                    background: linear-gradient(135deg,
                         {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
                             rgba(244, 67, 54, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%
                         {% else %}
                             rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%
                         {% endif %}
                     );
-                    border-left: 4px solid 
+                    border-left: 4px solid
                         {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
                             #FF5722
                         {% else %}
@@ -1351,7 +1351,7 @@ class DashboardTemplates:
 • Keep hydration available
 {{%- endif -%}}
 
-{'### 🐕 Breed-Specific Advice for ' + breed if include_breed_specific else ''}
+{"### 🐕 Breed-Specific Advice for " + breed if include_breed_specific else ""}
 {{%- if include_breed_specific -%}}
 {{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
 {{%- endif -%}}
@@ -1412,7 +1412,7 @@ class DashboardTemplates:
             Weather chart template
         """
         theme_styles = self._get_theme_styles(theme)
-        
+
         hours_map = {
             "24h": 24,
             "7d": 168,
@@ -1543,7 +1543,7 @@ class DashboardTemplates:
 ### ❄️ Cold Weather Precautions
 {{ breed_advice.cold_weather_advice | default('Monitor for signs of cold stress') }}
 {{%- elif current_temp > breed_comfort_max -%}}
-### 🔥 Hot Weather Precautions  
+### 🔥 Hot Weather Precautions
 {{ breed_advice.hot_weather_advice | default('Provide shade and fresh water') }}
 {{%- else -%}}
 ### ✅ Perfect Weather for {{ breed }}s
@@ -1564,9 +1564,10 @@ class DashboardTemplates:
 
         # Breed-specific styling
         if theme == "modern":
-            card_style = """
+            card_style = (
+                """
                 ha-card {
-                    background: linear-gradient(135deg, 
+                    background: linear-gradient(135deg,
                         {% if states('sensor.{dog_id}_outdoor_temperature') | float < breed_comfort_min %}
                             rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.1) 100%
                         {% elif states('sensor.{dog_id}_outdoor_temperature') | float > breed_comfort_max %}
@@ -1575,7 +1576,7 @@ class DashboardTemplates:
                             rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%
                         {% endif %}
                     );
-                    border-left: 6px solid 
+                    border-left: 6px solid
                         {% if states('sensor.{dog_id}_outdoor_temperature') | float < breed_comfort_min %}
                             #2196F3
                         {% elif states('sensor.{dog_id}_outdoor_temperature') | float > breed_comfort_max %}
@@ -1584,7 +1585,16 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """.replace("{dog_id}", dog_id).replace("breed_comfort_min", str(breed_advice.get("comfort_range", {}).get("min", 10))).replace("breed_comfort_max", str(breed_advice.get("comfort_range", {}).get("max", 25)))
+            """.replace("{dog_id}", dog_id)
+                .replace(
+                    "breed_comfort_min",
+                    str(breed_advice.get("comfort_range", {}).get("min", 10)),
+                )
+                .replace(
+                    "breed_comfort_max",
+                    str(breed_advice.get("comfort_range", {}).get("max", 25)),
+                )
+            )
         else:
             card_style = theme_styles.get("card_mod", {}).get("style", "")
 

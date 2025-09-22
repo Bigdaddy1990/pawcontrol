@@ -1010,9 +1010,7 @@ class GardenManager:
             snapshot["active_session"] = {
                 "session_id": active_session.session_id,
                 "start_time": active_session.start_time.isoformat(),
-                "duration_minutes": round(
-                    active_session.calculate_duration() / 60, 2
-                ),
+                "duration_minutes": round(active_session.calculate_duration() / 60, 2),
                 "activity_count": len(active_session.activities),
                 "poop_count": active_session.poop_count,
             }
@@ -1092,9 +1090,7 @@ class GardenManager:
                 "end_time": last_session.end_time.isoformat()
                 if last_session.end_time
                 else None,
-                "duration_minutes": round(
-                    last_session.calculate_duration() / 60, 2
-                ),
+                "duration_minutes": round(last_session.calculate_duration() / 60, 2),
                 "activity_count": len(last_session.activities),
                 "poop_count": last_session.poop_count,
                 "status": last_session.status.value,

@@ -33,8 +33,8 @@ if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .entity_factory import EntityFactory
     from .feeding_manager import FeedingManager
-    from .geofencing import PawControlGeofencing
     from .garden_manager import GardenManager
+    from .geofencing import PawControlGeofencing
     from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
