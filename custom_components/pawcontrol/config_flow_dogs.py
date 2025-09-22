@@ -52,6 +52,7 @@ from custom_components.pawcontrol.const import (
     MIN_DOG_WEIGHT,
     MODULE_DASHBOARD,
     MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_GROOMING,
     MODULE_HEALTH,
@@ -209,6 +210,7 @@ class DogManagementMixin:
                 MODULE_WALK: user_input.get("enable_walk", False),
                 MODULE_HEALTH: user_input.get("enable_health", False),
                 MODULE_GPS: user_input.get("enable_gps", False),
+                MODULE_GARDEN: user_input.get("enable_garden", False),
                 MODULE_NOTIFICATIONS: user_input.get("enable_notifications", False),
                 MODULE_DASHBOARD: user_input.get("enable_dashboard", False),
                 MODULE_VISITOR: user_input.get("enable_visitor", False),
@@ -252,6 +254,9 @@ class DogManagementMixin:
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "enable_gps", default=suggested_gps
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_garden", default=False
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "enable_notifications", default=False

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .entity_factory import EntityFactory
     from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
     from .geofencing import PawControlGeofencing
     from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
@@ -279,6 +280,7 @@ class PawControlRuntimeData:
     dogs: list[DogConfigData]
     helper_manager: PawControlHelperManager | None = None
     geofencing_manager: PawControlGeofencing | None = None
+    garden_manager: GardenManager | None = None
 
     # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
@@ -309,6 +311,7 @@ class PawControlRuntimeData:
             "error_history": self.error_history,
             "helper_manager": self.helper_manager,
             "geofencing_manager": self.geofencing_manager,
+            "garden_manager": self.garden_manager,
         }
 
     def __getitem__(self, key: str) -> Any:

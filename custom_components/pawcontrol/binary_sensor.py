@@ -33,6 +33,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
@@ -212,6 +213,11 @@ async def async_setup_entry(
                 _create_health_binary_sensors(coordinator, dog_id, dog_name)
             )
 
+        if modules.get(MODULE_GARDEN, False):
+            entities.extend(
+                _create_garden_binary_sensors(coordinator, dog_id, dog_name)
+            )
+
     # OPTIMIZED: Smart batching based on entity count
     if len(entities) <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once for better performance
@@ -300,6 +306,18 @@ def _create_health_binary_sensors(
         PawControlVetCheckupDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlGroomingDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlActivityLevelConcernBinarySensor(coordinator, dog_id, dog_name),
+    ]
+
+
+def _create_garden_binary_sensors(
+    coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+) -> list[PawControlBinarySensorBase]:
+    """Create garden-related binary sensors for a dog."""
+
+    return [
+        PawControlGardenSessionActiveBinarySensor(coordinator, dog_id, dog_name),
+        PawControlInGardenBinarySensor(coordinator, dog_id, dog_name),
+        PawControlGardenPoopPendingBinarySensor(coordinator, dog_id, dog_name),
     ]
 
 
@@ -469,6 +487,45 @@ class PawControlBinarySensorBase(
     def available(self) -> bool:
         """Return if the binary sensor is available."""
         return self.coordinator.available and self._get_dog_data_cached() is not None
+
+
+# Garden-specific binary sensor base
+
+
+class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
+    """Base class for garden binary sensors."""
+
+    def _get_garden_data(self) -> dict[str, Any]:
+        """Return garden snapshot data for the dog."""
+
+        dog_data = self._get_dog_data_cached() or {}
+        module_data = dog_data.get("garden")
+        if isinstance(module_data, dict) and module_data:
+            return module_data
+
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            try:
+                return garden_manager.build_garden_snapshot(self._dog_id)
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.debug(
+                    "Garden snapshot fallback failed for %s: %s", self._dog_id, err
+                )
+
+        return {}
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        data = self._get_garden_data()
+        attrs.update(
+            {
+                "garden_status": data.get("status"),
+                "sessions_today": data.get("sessions_today"),
+                "pending_confirmations": data.get("pending_confirmations"),
+            }
+        )
+        return attrs
 
 
 # Base binary sensors
@@ -1410,3 +1467,86 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
             return "Monitor for signs of distress or illness"
         else:
             return "Continue normal monitoring"
+
+
+class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating an active garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_session_active",
+            icon_on="mdi:flower",
+            icon_off="mdi:flower-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        data = self._get_garden_data()
+        if data.get("status") == "active":
+            return True
+
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.is_dog_in_garden(self._dog_id)
+
+        return False
+
+
+class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating whether the dog is currently in the garden."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "in_garden",
+            icon_on="mdi:pine-tree",
+            icon_off="mdi:pine-tree-variant-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.is_dog_in_garden(self._dog_id)
+
+        data = self._get_garden_data()
+        return data.get("status") == "active"
+
+
+class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating pending garden poop confirmation."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_poop_pending",
+            icon_on="mdi:emoticon-poop",
+            icon_off="mdi:check-circle-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.has_pending_confirmation(self._dog_id)
+
+        data = self._get_garden_data()
+        pending = data.get("pending_confirmations")
+        return bool(pending)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        pending = self._get_garden_data().get("pending_confirmations") or []
+        attrs["pending_confirmation_count"] = len(pending)
+        return attrs

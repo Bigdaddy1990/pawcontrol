@@ -185,7 +185,9 @@ class GardenStats:
     total_poop_count: int = 0
     average_session_duration: float = 0.0
     most_active_time_of_day: str | None = None
-    favorite_activities: list[str] = field(default_factory=list)
+    favorite_activities: list[dict[str, Any]] = field(default_factory=list)
+    total_activities: int = 0
+    weekly_summary: dict[str, Any] = field(default_factory=dict)
     last_garden_visit: datetime | None = None
 
 
@@ -315,6 +317,8 @@ class GardenManager:
                         "average_session_duration": stats.average_session_duration,
                         "most_active_time_of_day": stats.most_active_time_of_day,
                         "favorite_activities": stats.favorite_activities,
+                        "total_activities": stats.total_activities,
+                        "weekly_summary": stats.weekly_summary,
                         "last_garden_visit": stats.last_garden_visit.isoformat()
                         if stats.last_garden_visit
                         else None,
@@ -824,10 +828,13 @@ class GardenManager:
 
         # Calculate statistics
         stats.total_sessions = len(dog_sessions)
-        stats.total_time_minutes = sum(s.duration_minutes for s in dog_sessions)
+        stats.total_time_minutes = sum(
+            s.calculate_duration() / 60 for s in dog_sessions
+        )
         stats.total_poop_count = sum(s.poop_count for s in dog_sessions)
         stats.average_session_duration = stats.total_time_minutes / stats.total_sessions
         stats.last_garden_visit = max(s.end_time or s.start_time for s in dog_sessions)
+        stats.total_activities = sum(len(s.activities) for s in dog_sessions)
 
         # Find most active time of day (simplified)
         hour_counts = {}
@@ -855,9 +862,35 @@ class GardenManager:
                     activity_counts.get(activity_type, 0) + 1
                 )
 
-        stats.favorite_activities = sorted(
-            activity_counts.items(), key=lambda x: x[1], reverse=True
-        )[:3]
+        stats.favorite_activities = [
+            {"activity": activity_type, "count": count}
+            for activity_type, count in sorted(
+                activity_counts.items(), key=lambda item: item[1], reverse=True
+            )[:3]
+        ]
+
+        # Weekly summary (last 7 days)
+        now_utc = dt_util.utcnow()
+        week_start = now_utc - timedelta(days=7)
+        weekly_sessions = [
+            session
+            for session in dog_sessions
+            if (session.end_time or session.start_time) >= week_start
+        ]
+
+        if weekly_sessions:
+            total_week_minutes = sum(
+                session.calculate_duration() / 60 for session in weekly_sessions
+            )
+            stats.weekly_summary = {
+                "session_count": len(weekly_sessions),
+                "total_time_minutes": total_week_minutes,
+                "poop_events": sum(session.poop_count for session in weekly_sessions),
+                "average_duration": total_week_minutes / len(weekly_sessions),
+                "updated": now_utc.isoformat(),
+            }
+        else:
+            stats.weekly_summary = {}
 
     async def _update_all_statistics(self) -> None:
         """Update statistics for all dogs."""
@@ -907,6 +940,173 @@ class GardenManager:
         sessions.sort(key=lambda s: s.start_time, reverse=True)
 
         return sessions[:limit]
+
+    def has_pending_confirmation(self, dog_id: str) -> bool:
+        """Return True if a poop confirmation is pending for the dog."""
+
+        return any(
+            confirmation.get("dog_id") == dog_id
+            and confirmation.get("type") == "poop_confirmation"
+            for confirmation in self._pending_confirmations.values()
+        )
+
+    def get_pending_confirmations(self, dog_id: str) -> list[dict[str, Any]]:
+        """Return pending confirmation requests for a dog."""
+
+        confirmations: list[dict[str, Any]] = []
+        for confirmation in self._pending_confirmations.values():
+            if (
+                confirmation.get("dog_id") != dog_id
+                or confirmation.get("type") != "poop_confirmation"
+            ):
+                continue
+
+            timestamp = confirmation.get("timestamp")
+            timeout = confirmation.get("timeout")
+            confirmations.append(
+                {
+                    "session_id": confirmation.get("session_id"),
+                    "created": timestamp.isoformat() if timestamp else None,
+                    "expires": timeout.isoformat() if timeout else None,
+                }
+            )
+
+        return confirmations
+
+    def build_garden_snapshot(
+        self, dog_id: str, *, recent_limit: int = 50
+    ) -> dict[str, Any]:
+        """Build a snapshot of garden activity for sensors and diagnostics."""
+
+        snapshot: dict[str, Any] = {
+            "status": "idle",
+            "sessions_today": 0,
+            "time_today_minutes": 0.0,
+            "poop_today": 0,
+            "activities_today": 0,
+            "activities_total": 0,
+            "active_session": None,
+            "last_session": None,
+            "hours_since_last_session": None,
+            "stats": {},
+            "pending_confirmations": self.get_pending_confirmations(dog_id),
+            "weather_summary": None,
+        }
+
+        now_local = dt_util.now()
+        start_of_day = dt_util.start_of_local_day(now_local)
+
+        sessions = self.get_recent_sessions(dog_id, limit=recent_limit)
+        todays_sessions: list[GardenSession] = []
+
+        for session in sessions:
+            session_start_local = dt_util.as_local(session.start_time)
+            if session_start_local >= start_of_day:
+                todays_sessions.append(session)
+
+        active_session = self.get_active_session(dog_id)
+        if active_session:
+            snapshot["status"] = "active"
+            snapshot["active_session"] = {
+                "session_id": active_session.session_id,
+                "start_time": active_session.start_time.isoformat(),
+                "duration_minutes": round(active_session.calculate_duration() / 60, 2),
+                "activity_count": len(active_session.activities),
+                "poop_count": active_session.poop_count,
+            }
+
+        stats = self.get_dog_statistics(dog_id)
+        if stats:
+            snapshot["stats"] = {
+                "total_sessions": stats.total_sessions,
+                "total_time_minutes": stats.total_time_minutes,
+                "total_poop_count": stats.total_poop_count,
+                "average_session_duration": stats.average_session_duration,
+                "most_active_time_of_day": stats.most_active_time_of_day,
+                "favorite_activities": stats.favorite_activities,
+                "weekly_summary": stats.weekly_summary,
+                "last_garden_visit": stats.last_garden_visit.isoformat()
+                if stats.last_garden_visit
+                else None,
+            }
+            snapshot["activities_total"] = stats.total_activities
+
+        # Calculate today's aggregates including active session
+        total_seconds_today = 0
+        total_poop_today = 0
+        total_activities_today = 0
+        weather_conditions: list[str] = []
+        temperatures: list[float] = []
+
+        for session in todays_sessions:
+            duration = session.calculate_duration()
+            total_seconds_today += duration
+            total_poop_today += session.poop_count
+            total_activities_today += len(session.activities)
+            if session.weather_conditions:
+                weather_conditions.append(session.weather_conditions)
+            if session.temperature is not None:
+                temperatures.append(session.temperature)
+
+        active_started_today = False
+        if active_session:
+            active_started_today = (
+                dt_util.as_local(active_session.start_time) >= start_of_day
+            )
+
+        if active_session and active_started_today:
+            duration = active_session.calculate_duration()
+            total_seconds_today += duration
+            total_poop_today += active_session.poop_count
+            total_activities_today += len(active_session.activities)
+            if active_session.weather_conditions:
+                weather_conditions.append(active_session.weather_conditions)
+            if active_session.temperature is not None:
+                temperatures.append(active_session.temperature)
+
+        todays_session_count = len(todays_sessions)
+        if active_started_today:
+            todays_session_count += 1
+
+        snapshot["sessions_today"] = todays_session_count
+        snapshot["time_today_minutes"] = round(total_seconds_today / 60, 2)
+        snapshot["poop_today"] = total_poop_today
+        snapshot["activities_today"] = total_activities_today
+
+        if weather_conditions or temperatures:
+            average_temperature = (
+                sum(temperatures) / len(temperatures) if temperatures else None
+            )
+            snapshot["weather_summary"] = {
+                "conditions": weather_conditions,
+                "average_temperature": average_temperature,
+            }
+
+        if sessions:
+            last_session = sessions[0]
+            snapshot["last_session"] = {
+                "session_id": last_session.session_id,
+                "start_time": last_session.start_time.isoformat(),
+                "end_time": last_session.end_time.isoformat()
+                if last_session.end_time
+                else None,
+                "duration_minutes": round(last_session.calculate_duration() / 60, 2),
+                "activity_count": len(last_session.activities),
+                "poop_count": last_session.poop_count,
+                "status": last_session.status.value,
+                "weather_conditions": last_session.weather_conditions,
+                "temperature": last_session.temperature,
+                "notes": last_session.notes,
+            }
+
+            reference_time = last_session.end_time or last_session.start_time
+            if reference_time:
+                snapshot["hours_since_last_session"] = round(
+                    (dt_util.utcnow() - reference_time).total_seconds() / 3600,
+                    2,
+                )
+
+        return snapshot
 
     def is_dog_in_garden(self, dog_id: str) -> bool:
         """Check if dog is currently in garden.
