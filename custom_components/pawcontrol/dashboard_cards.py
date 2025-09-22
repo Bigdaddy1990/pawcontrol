@@ -1539,16 +1539,16 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}
-{% if score >= 80 %}
+{{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}}
+{{% if score >= 80 %}}
 **🌟 Excellent conditions** - Perfect for all activities
-{% elif score >= 60 %}
+{{% elif score >= 60 %}}
 **✅ Good conditions** - Normal activities with basic precautions
-{% elif score >= 40 %}
+{{% elif score >= 40 %}}
 **⚠️ Caution needed** - Modified activities and close monitoring
-{% else %}
+{{% else %}}
 **🚨 Dangerous conditions** - Indoor activities only, emergency precautions
-{% endif %}
+{{% endif %}}
 
 *Last updated: {{{{ states.sensor.{dog_id}_weather_health_score.last_updated.strftime('%H:%M') }}}}*
                     """,
@@ -1656,18 +1656,18 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}
-{% if recommendations and recommendations != 'unknown' %}
-{% set rec_list = recommendations.split(';') %}
-{% for rec in rec_list[:5] %}
-• {{ rec.strip() }}
-{% endfor %}
-{% if rec_list|length > 5 %}
-*... and {{ rec_list|length - 5 }} more recommendations*
-{% endif %}
-{% else %}
+{{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}}
+{{% if recommendations and recommendations != 'unknown' %}}
+{{% set rec_list = recommendations.split(';') %}}
+{{% for rec in rec_list[:5] %}}
+• {{{{ rec.strip() }}}}
+{{% endfor %}}
+{{% if rec_list|length > 5 %}}
+*... and {{{{ rec_list|length - 5 }}}} more recommendations*
+{{% endif %}}
+{{% else %}}
 *No specific recommendations at this time*
-{% endif %}
+{{% endif %}}
 
 *Updated: {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}*
                     """,
@@ -1774,16 +1774,16 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}
-{% if breed_advice and breed_advice != 'unknown' %}
+{{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}}
+{{% if breed_advice and breed_advice != 'unknown' %}}
 **Breed Characteristics:**
-{% set advice_parts = breed_advice.split('|') %}
-{% for part in advice_parts %}
-• {{ part.strip() }}
-{% endfor %}
-{% else %}
+{{% set advice_parts = breed_advice.split('|') %}}
+{{% for part in advice_parts %}}
+• {{{{ part.strip() }}}}
+{{% endfor %}}
+{{% else %}}
 *Breed-specific advice not available*
-{% endif %}
+{{% endif %}}
 
 **General {dog_breed} Considerations:**
 • Check current weather score above
@@ -1814,13 +1814,13 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}
-{% if forecast_data and forecast_data != 'unknown' %}
+{{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}}
+{{% if forecast_data and forecast_data != 'unknown' %}}
 **Next 24 Hours:**
-{{ forecast_data }}
-{% else %}
+{{{{ forecast_data }}}}
+{{% else %}}
 *Weather forecast data not available*
-{% endif %}
+{{% endif %}}
 
 **Planning Tips:**
 • Schedule walks during optimal times

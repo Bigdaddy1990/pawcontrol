@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol import services as services_module
@@ -171,7 +171,7 @@ async def test_confirm_garden_poop_requires_pending_confirmation(
     """Ensure poop confirmation service validates pending state."""
 
     coordinator_mock.garden_manager = SimpleNamespace(
-        has_pending_confirmation=lambda dog_id: False,
+        has_pending_confirmation=MagicMock(return_value=False),
         async_handle_poop_confirmation=AsyncMock(),
     )
 
@@ -188,4 +188,7 @@ async def test_confirm_garden_poop_requires_pending_confirmation(
             )
         )
 
+    coordinator_mock.garden_manager.has_pending_confirmation.assert_called_once_with(
+        "doggo"
+    )
     coordinator_mock.garden_manager.async_handle_poop_confirmation.assert_not_awaited()
