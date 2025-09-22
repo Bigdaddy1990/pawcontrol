@@ -36,7 +36,6 @@ from .const import (
     MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
-    MODULE_GARDEN,
     MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -728,7 +727,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
         return health_data
-      
+
     async def _get_weather_data(self, dog_id: str) -> dict[str, Any]:
         """Get weather health data for dog.
 

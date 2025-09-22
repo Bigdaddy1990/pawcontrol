@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from .feeding_manager import FeedingManager
     from .garden_manager import GardenManager
     from .geofencing import PawControlGeofencing
-    from .garden_manager import GardenManager
     from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager

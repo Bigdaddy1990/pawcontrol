@@ -255,7 +255,9 @@ class DogManagementMixin:
                 vol.Optional(
                     "enable_gps", default=suggested_gps
                 ): selector.BooleanSelector(),
-                vol.Optional("enable_garden", default=False): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_garden", default=False
+                ): selector.BooleanSelector(),
                 vol.Optional(
                     "enable_garden", default=False
                 ): selector.BooleanSelector(),

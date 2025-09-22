@@ -277,13 +277,17 @@ async def _create_module_entities(
                 ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 8),
                 ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 7),
                 (
-                    "portion_adjustment_factor", PawControlPortionAdjustmentFactorSensor, 6,
+                    "portion_adjustment_factor",
+                    PawControlPortionAdjustmentFactorSensor,
+                    6,
                 ),
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 1),
                 ("daily_calories", PawControlDailyCaloriesSensor, 1),
                 ("daily_portions", PawControlDailyPortionsSensor, 1),
                 (
-                    "feeding_schedule_adherence", PawControlFeedingScheduleAdherenceSensor, 0,
+                    "feeding_schedule_adherence",
+                    PawControlFeedingScheduleAdherenceSensor,
+                    0,
                 ),
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 4),
                 ("daily_calories", PawControlDailyCaloriesSensor, 3),
@@ -293,10 +297,14 @@ async def _create_module_entities(
                 ("daily_calories", PawControlDailyCaloriesSensor, 6),
                 ("daily_portions", PawControlDailyPortionsSensor, 5),
                 (
-                    "last_feeding_hours", PawControlLastFeedingHoursSensor, 4,
+                    "last_feeding_hours",
+                    PawControlLastFeedingHoursSensor,
+                    4,
                 ),  # NEW: Critical missing sensor
                 (
-                    "feeding_schedule_adherence", PawControlFeedingScheduleAdherenceSensor, 1,
+                    "feeding_schedule_adherence",
+                    PawControlFeedingScheduleAdherenceSensor,
+                    1,
                 ),
                 ("diet_validation_status", PawControlDietValidationStatusSensor, 0),
             ],
@@ -1280,6 +1288,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
 # Garden Sensors
 
+
 @register_sensor("garden_time_today")
 class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
     """Sensor for tracking garden time today."""
@@ -1302,7 +1311,7 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         data = self._get_garden_data()
         value = data.get("time_today_minutes")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return round(float(value), 2)
         return None
 
@@ -1328,7 +1337,7 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("sessions_today")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         return None
 
@@ -1354,7 +1363,7 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("poop_today")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         return None
 
@@ -1407,7 +1416,7 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("activities_total")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         return None
 
@@ -1434,7 +1443,7 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         stats = self._get_garden_data().get("stats") or {}
         value = stats.get("average_session_duration")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return round(float(value), 2)
         return None
 
@@ -1484,8 +1493,8 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> str | None:
-        favorites = self._get_garden_data().get("stats", {}).get(
-            "favorite_activities", []
+        favorites = (
+            self._get_garden_data().get("stats", {}).get("favorite_activities", [])
         )
         if not favorites:
             return None
@@ -1519,7 +1528,7 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
             return None
 
         duration = last_session.get("duration_minutes")
-        if isinstance(duration, (int, float)):
+        if isinstance(duration, int | float):
             return round(float(duration), 2)
         return None
 
@@ -1547,7 +1556,7 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
             return None
 
         activity_count = last_session.get("activity_count")
-        if isinstance(activity_count, (int, float)):
+        if isinstance(activity_count, int | float):
             return int(activity_count)
         return None
 
@@ -1572,7 +1581,7 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("activities_today")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return int(value)
         return None
 
@@ -1599,7 +1608,7 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         data = self._get_garden_data()
         value = data.get("hours_since_last_session")
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return round(float(value), 2)
         return None
 
@@ -2455,9 +2464,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
 
 
 @register_sensor("diet_compatibility_score")
-class PawControlDietCompatibilityScoreSensor(
-    PawControlDietValidationSensorBase
-):
+class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase):
     """Sensor showing the overall diet compatibility score."""
 
     def __init__(

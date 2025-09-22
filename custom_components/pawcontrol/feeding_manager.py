@@ -353,9 +353,11 @@ class FeedingConfig:
         )
 
         try:
-            validation_adjustment = HealthCalculator.calculate_diet_validation_adjustment(
-                self.diet_validation,
-                self.special_diet,
+            validation_adjustment = (
+                HealthCalculator.calculate_diet_validation_adjustment(
+                    self.diet_validation,
+                    self.special_diet,
+                )
             )
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.debug(
@@ -430,7 +432,9 @@ class FeedingConfig:
             "conflict_count": conflict_count,
             "warning_count": warning_count,
             "vet_consultation_recommended": vet_recommended,
-            "vet_consultation_state": "recommended" if vet_recommended else "not_needed",
+            "vet_consultation_state": "recommended"
+            if vet_recommended
+            else "not_needed",
             "consultation_urgency": consultation_urgency,
             "total_diets": total_diets,
             "diet_validation_adjustment": round(validation_adjustment, 3),
@@ -1324,10 +1328,12 @@ class FeedingManager:
             try:
                 health_metrics = config._build_health_metrics()
                 feeding_goals = {"weight_goal": config.weight_goal}
-                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
-                    health_metrics,
-                    feeding_goals if config.weight_goal else None,
-                    config.diet_validation,
+                portion_adjustment = (
+                    HealthCalculator.calculate_portion_adjustment_factor(
+                        health_metrics,
+                        feeding_goals if config.weight_goal else None,
+                        config.diet_validation,
+                    )
                 )
             except Exception as err:
                 _LOGGER.debug(
@@ -1338,7 +1344,7 @@ class FeedingManager:
 
         if portion_adjustment is not None:
             data["portion_adjustment_factor"] = portion_adjustment
-            
+
         if config and config.diet_validation:
             data["diet_validation_summary"] = config._get_diet_validation_summary()
         else:
@@ -1445,9 +1451,7 @@ class FeedingManager:
         Returns:
             Empty data dictionary
         """
-        calories_per_gram = (
-            config._estimate_calories_per_gram() if config else None
-        )
+        calories_per_gram = config._estimate_calories_per_gram() if config else None
 
         data: dict[str, Any] = {
             "last_feeding": None,
@@ -1475,7 +1479,6 @@ class FeedingManager:
             "health_emergency": False,
             "emergency_mode": None,
             "diet_validation_summary": None,
-
         }
 
         if calories_per_gram is not None:
@@ -2569,7 +2572,7 @@ class FeedingManager:
                         self._active_emergencies[dog_id] = emergency_details
                 finally:
                     self._emergency_restore_tasks.pop(dog_id, None)
-                    
+
             restore_task = asyncio.create_task(_restore_wrapper())
             self._emergency_restore_tasks[dog_id] = restore_task
             result["restoration_scheduled"] = True
