@@ -3,7 +3,6 @@
 import ast
 
 import pytest
-
 from script.hassfest.dependencies import ImportCollector
 
 

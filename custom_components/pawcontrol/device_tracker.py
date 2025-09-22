@@ -13,7 +13,6 @@ Python: 3.13+
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -42,7 +41,6 @@ from .const import (
     MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
-from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
 from .utils import PawControlDeviceLinkMixin
 
@@ -70,7 +68,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up PawControl device tracker platform.
-    
+
     NEW: Implements missing device tracker functionality per requirements_inventory.md
     """
     runtime_data = entry.runtime_data
@@ -85,8 +83,7 @@ async def async_setup_entry(
 
     # Filter dogs with GPS module enabled
     gps_enabled_dogs = [
-        dog for dog in dogs 
-        if dog.get("modules", {}).get(MODULE_GPS, False)
+        dog for dog in dogs if dog.get("modules", {}).get(MODULE_GPS, False)
     ]
 
     if not gps_enabled_dogs:
@@ -129,7 +126,7 @@ class PawControlGPSTracker(
     TrackerEntity,
 ):
     """GPS device tracker for dogs with route recording capabilities.
-    
+
     NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md
     with route tracking, geofencing, and location history.
     """
@@ -166,10 +163,7 @@ class PawControlGPSTracker(
     @property
     def available(self) -> bool:
         """Return True if GPS data is available."""
-        return (
-            self.coordinator.available
-            and self._get_gps_data() is not None
-        )
+        return self.coordinator.available and self._get_gps_data() is not None
 
     @property
     def source_type(self) -> SourceType:
@@ -265,46 +259,54 @@ class PawControlGPSTracker(
         gps_data = self._get_gps_data()
         if gps_data:
             # Basic GPS info
-            attrs.update({
-                "altitude": gps_data.get("altitude"),
-                "speed": gps_data.get("speed"),
-                "heading": gps_data.get("heading"),
-                "satellites": gps_data.get("satellites"),
-                "location_source": gps_data.get("source", "unknown"),
-                "last_seen": gps_data.get("last_seen"),
-                "distance_from_home": gps_data.get("distance_from_home"),
-            })
+            attrs.update(
+                {
+                    "altitude": gps_data.get("altitude"),
+                    "speed": gps_data.get("speed"),
+                    "heading": gps_data.get("heading"),
+                    "satellites": gps_data.get("satellites"),
+                    "location_source": gps_data.get("source", "unknown"),
+                    "last_seen": gps_data.get("last_seen"),
+                    "distance_from_home": gps_data.get("distance_from_home"),
+                }
+            )
 
             # Route information
             current_route = gps_data.get("current_route")
             if current_route:
-                attrs.update({
-                    "route_active": True,
-                    "route_points": len(current_route.get("points", [])),
-                    "route_distance": current_route.get("distance"),
-                    "route_duration": current_route.get("duration"),
-                    "route_start_time": current_route.get("start_time"),
-                })
+                attrs.update(
+                    {
+                        "route_active": True,
+                        "route_points": len(current_route.get("points", [])),
+                        "route_distance": current_route.get("distance"),
+                        "route_duration": current_route.get("duration"),
+                        "route_start_time": current_route.get("start_time"),
+                    }
+                )
             else:
                 attrs["route_active"] = False
 
             # Geofencing info
             geofence_status = gps_data.get("geofence_status")
             if geofence_status:
-                attrs.update({
-                    "in_safe_zone": geofence_status.get("in_safe_zone", False),
-                    "zone_name": geofence_status.get("zone_name"),
-                    "zone_distance": geofence_status.get("distance_to_boundary"),
-                })
+                attrs.update(
+                    {
+                        "in_safe_zone": geofence_status.get("in_safe_zone", False),
+                        "zone_name": geofence_status.get("zone_name"),
+                        "zone_distance": geofence_status.get("distance_to_boundary"),
+                    }
+                )
 
             # Walk integration
             walk_info = gps_data.get("walk_info")
             if walk_info:
-                attrs.update({
-                    "walk_active": walk_info.get("active", False),
-                    "walk_id": walk_info.get("walk_id"),
-                    "walk_start_time": walk_info.get("start_time"),
-                })
+                attrs.update(
+                    {
+                        "walk_active": walk_info.get("active", False),
+                        "walk_id": walk_info.get("walk_id"),
+                        "walk_start_time": walk_info.get("start_time"),
+                    }
+                )
 
         return attrs
 
@@ -332,10 +334,10 @@ class PawControlGPSTracker(
         timestamp: datetime | None = None,
     ) -> None:
         """Update GPS location with validation and route tracking.
-        
+
         Args:
             latitude: GPS latitude
-            longitude: GPS longitude  
+            longitude: GPS longitude
             accuracy: Location accuracy in meters
             altitude: Altitude in meters
             speed: Speed in km/h
@@ -360,7 +362,8 @@ class PawControlGPSTracker(
             # Check minimum update interval to prevent spam
             if (
                 self._last_update
-                and (timestamp - self._last_update).total_seconds() < MIN_LOCATION_UPDATE_INTERVAL
+                and (timestamp - self._last_update).total_seconds()
+                < MIN_LOCATION_UPDATE_INTERVAL
             ):
                 _LOGGER.debug(
                     "GPS update too frequent for %s, skipping",
@@ -381,10 +384,9 @@ class PawControlGPSTracker(
             }
 
             # Update location if this source has higher priority
-            if (
-                not self._last_location
-                or location_data["priority"] >= self._last_location.get("priority", 0)
-            ):
+            if not self._last_location or location_data[
+                "priority"
+            ] >= self._last_location.get("priority", 0):
                 self._last_location = location_data
                 self._last_update = timestamp
 
@@ -440,7 +442,8 @@ class PawControlGPSTracker(
             # Cleanup old route points
             cutoff_time = dt_util.utcnow() - ROUTE_POINT_MAX_AGE
             self._route_points = [
-                point for point in self._route_points
+                point
+                for point in self._route_points
                 if point["timestamp"] > cutoff_time
             ]
 
@@ -471,26 +474,30 @@ class PawControlGPSTracker(
 
             # Update GPS section
             gps_data = dog_data.get("gps", {})
-            gps_data.update({
-                "latitude": location_data[ATTR_LATITUDE],
-                "longitude": location_data[ATTR_LONGITUDE],
-                "accuracy": location_data["accuracy"],
-                "altitude": location_data.get("altitude"),
-                "speed": location_data.get("speed"),
-                "heading": location_data.get("heading"),
-                "last_seen": location_data["timestamp"],
-                "source": location_data["source"],
-            })
+            gps_data.update(
+                {
+                    "latitude": location_data[ATTR_LATITUDE],
+                    "longitude": location_data[ATTR_LONGITUDE],
+                    "accuracy": location_data["accuracy"],
+                    "altitude": location_data.get("altitude"),
+                    "speed": location_data.get("speed"),
+                    "heading": location_data.get("heading"),
+                    "last_seen": location_data["timestamp"],
+                    "source": location_data["source"],
+                }
+            )
 
             # Update route points if tracking
             current_route = gps_data.get("current_route")
             if current_route and current_route.get("active", False):
-                current_route["points"] = self._route_points[-100:]  # Keep last 100 points
+                current_route["points"] = self._route_points[
+                    -100:
+                ]  # Keep last 100 points
                 current_route["last_point_time"] = location_data["timestamp"]
 
             # This would normally update the coordinator data
             # The actual implementation would depend on the coordinator's update mechanism
-            
+
             _LOGGER.debug(
                 "Updated coordinator GPS data for %s",
                 self._dog_name,
@@ -503,14 +510,12 @@ class PawControlGPSTracker(
                 err,
             )
 
-    async def async_start_route_recording(
-        self, route_name: str | None = None
-    ) -> str:
+    async def async_start_route_recording(self, route_name: str | None = None) -> str:
         """Start recording a new GPS route.
-        
+
         Args:
             route_name: Optional name for the route
-            
+
         Returns:
             Route ID
         """
@@ -553,10 +558,10 @@ class PawControlGPSTracker(
         self, save_route: bool = True
     ) -> dict[str, Any] | None:
         """Stop recording the current GPS route.
-        
+
         Args:
             save_route: Whether to save the completed route
-            
+
         Returns:
             Route data if saved, None otherwise
         """
@@ -572,11 +577,8 @@ class PawControlGPSTracker(
 
             end_time = dt_util.utcnow()
             start_time = current_route.get("start_time")
-            
-            if start_time:
-                duration = (end_time - start_time).total_seconds()
-            else:
-                duration = 0
+
+            duration = (end_time - start_time).total_seconds() if start_time else 0
 
             # Calculate route distance (simplified)
             distance = self._calculate_route_distance(self._route_points)
@@ -624,10 +626,10 @@ class PawControlGPSTracker(
 
     def _calculate_route_distance(self, points: list[dict[str, Any]]) -> float:
         """Calculate total distance of route points in meters.
-        
+
         Args:
             points: List of GPS points with latitude/longitude
-            
+
         Returns:
             Total distance in meters
         """
@@ -635,24 +637,24 @@ class PawControlGPSTracker(
             return 0.0
 
         total_distance = 0.0
-        
+
         try:
-            from math import radians, sin, cos, sqrt, atan2
+            from math import atan2, cos, radians, sin, sqrt
 
             # Earth's radius in meters
             R = 6371000
 
             for i in range(1, len(points)):
-                lat1 = radians(points[i-1]["latitude"])
-                lon1 = radians(points[i-1]["longitude"])
+                lat1 = radians(points[i - 1]["latitude"])
+                lon1 = radians(points[i - 1]["longitude"])
                 lat2 = radians(points[i]["latitude"])
                 lon2 = radians(points[i]["longitude"])
 
                 dlat = lat2 - lat1
                 dlon = lon2 - lon1
 
-                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+                c = 2 * atan2(sqrt(a), sqrt(1 - a))
                 distance = R * c
 
                 total_distance += distance
@@ -667,16 +669,18 @@ class PawControlGPSTracker(
         self, format_type: str = "gpx"
     ) -> dict[str, Any] | None:
         """Export current or last route in specified format.
-        
+
         Args:
             format_type: Export format (gpx, json, csv)
-            
+
         Returns:
             Export data or None if no route available
         """
         try:
             if not self._route_points:
-                _LOGGER.warning("No route points available for export for %s", self._dog_name)
+                _LOGGER.warning(
+                    "No route points available for export for %s", self._dog_name
+                )
                 return None
 
             if format_type == "gpx":
@@ -728,7 +732,7 @@ class PawControlGPSTracker(
         """Export route as CSV format."""
         csv_header = "timestamp,latitude,longitude,altitude,accuracy,speed,heading\n"
         csv_rows = []
-        
+
         for point in self._route_points:
             row = f"{point['timestamp']},{point['latitude']},{point['longitude']},"
             row += f"{point.get('altitude', '')},"

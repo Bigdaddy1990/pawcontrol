@@ -49,7 +49,9 @@ LOCATION_ANALYSIS_BATCH_SIZE = 10
 GPX_VERSION = "1.1"
 GPX_CREATOR = "PawControl Home Assistant Integration v2.0"
 GPX_NAMESPACE = "http://www.topografix.com/GPX/1/1"
-GPX_SCHEMA_LOCATION = "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+GPX_SCHEMA_LOCATION = (
+    "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+)
 
 
 class GPSCache:
@@ -1214,9 +1216,11 @@ class WalkManager:
                 # Get recent walks with routes - validate data
                 recent_walks = []
                 for walk in self._walk_history[dog_id][-last_n_walks:]:
-                    if (walk.get("path") and 
-                        walk.get("status") == "completed" and
-                        len(walk["path"]) >= 2):  # At least 2 points for valid route
+                    if (
+                        walk.get("path")
+                        and walk.get("status") == "completed"
+                        and len(walk["path"]) >= 2
+                    ):  # At least 2 points for valid route
                         # Validate route data integrity
                         valid_path = self._validate_route_data(walk["path"])
                         if valid_path:
@@ -1247,33 +1251,39 @@ class WalkManager:
                         "version": GPX_VERSION,
                         "generated_by": "PawControl WalkManager",
                         "bounds": self._calculate_route_bounds(recent_walks),
-                    }
+                    },
                 }
 
                 # Generate format-specific data with enhanced error handling
                 if format == "gpx":
                     try:
-                        export_data["gpx_data"] = self._generate_enhanced_gpx_data(recent_walks, dog_id)
+                        export_data["gpx_data"] = self._generate_enhanced_gpx_data(
+                            recent_walks, dog_id
+                        )
                         export_data["file_extension"] = ".gpx"
                         export_data["mime_type"] = "application/gpx+xml"
                     except Exception as err:
                         _LOGGER.error("GPX generation failed for %s: %s", dog_id, err)
                         self._performance_metrics["export_errors"] += 1
                         return None
-                        
+
                 elif format == "json":
                     try:
-                        export_data["json_data"] = json.dumps(recent_walks, indent=2, ensure_ascii=False)
+                        export_data["json_data"] = json.dumps(
+                            recent_walks, indent=2, ensure_ascii=False
+                        )
                         export_data["file_extension"] = ".json"
                         export_data["mime_type"] = "application/json"
                     except Exception as err:
                         _LOGGER.error("JSON generation failed for %s: %s", dog_id, err)
                         self._performance_metrics["export_errors"] += 1
                         return None
-                        
+
                 elif format == "csv":
                     try:
-                        export_data["csv_data"] = self._generate_enhanced_csv_data(recent_walks)
+                        export_data["csv_data"] = self._generate_enhanced_csv_data(
+                            recent_walks
+                        )
                         export_data["file_extension"] = ".csv"
                         export_data["mime_type"] = "text/csv"
                     except Exception as err:
@@ -1303,7 +1313,9 @@ class WalkManager:
             self._performance_metrics["export_errors"] += 1
             return None
 
-    def _validate_route_data(self, path: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+    def _validate_route_data(
+        self, path: list[dict[str, Any]]
+    ) -> list[dict[str, Any]] | None:
         """Validate and clean route data for export.
 
         Args:
@@ -1316,15 +1328,20 @@ class WalkManager:
             return None
 
         validated_path = []
-        
+
         for point in path:
             # Validate required GPS data
             lat = point.get("latitude")
             lon = point.get("longitude")
             timestamp = point.get("timestamp")
 
-            if (lat is None or lon is None or timestamp is None or 
-                not (-90 <= lat <= 90) or not (-180 <= lon <= 180)):
+            if (
+                lat is None
+                or lon is None
+                or timestamp is None
+                or not (-90 <= lat <= 90)
+                or not (-180 <= lon <= 180)
+            ):
                 continue  # Skip invalid points
 
             # Create validated point with standardized fields
@@ -1336,7 +1353,7 @@ class WalkManager:
                 "speed": point.get("speed"),
                 "altitude": point.get("altitude"),
             }
-            
+
             validated_path.append(validated_point)
 
         # Return None if too few valid points remain
@@ -1375,7 +1392,9 @@ class WalkManager:
             "max_lon": max(all_lons),
         }
 
-    def _generate_enhanced_gpx_data(self, walks: list[dict[str, Any]], dog_id: str) -> str:
+    def _generate_enhanced_gpx_data(
+        self, walks: list[dict[str, Any]], dog_id: str
+    ) -> str:
         """Generate GPX 1.1 compliant data with full metadata.
 
         OPTIMIZED: Full GPX 1.1 standard compliance with proper namespaces,
@@ -1399,17 +1418,17 @@ class WalkManager:
 
             # Add metadata
             metadata = ET.SubElement(root, "metadata")
-            
+
             name_elem = ET.SubElement(metadata, "name")
             name_elem.text = f"PawControl Routes - {dog_id}"
-            
+
             desc_elem = ET.SubElement(metadata, "desc")
             desc_elem.text = f"GPS tracks for {dog_id} exported from PawControl"
-            
+
             author_elem = ET.SubElement(metadata, "author")
             author_name = ET.SubElement(author_elem, "name")
             author_name.text = "PawControl"
-            
+
             time_elem = ET.SubElement(metadata, "time")
             time_elem.text = dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -1426,45 +1445,61 @@ class WalkManager:
             for i, walk in enumerate(walks, 1):
                 start_location = walk.get("start_location")
                 end_location = walk.get("end_location")
-                
-                if start_location and start_location.get("latitude") and start_location.get("longitude"):
+
+                if (
+                    start_location
+                    and start_location.get("latitude")
+                    and start_location.get("longitude")
+                ):
                     wpt = ET.SubElement(root, "wpt")
                     wpt.set("lat", f"{start_location['latitude']:.6f}")
                     wpt.set("lon", f"{start_location['longitude']:.6f}")
-                    
+
                     name_elem = ET.SubElement(wpt, "name")
                     name_elem.text = f"Walk {i} Start"
-                    
+
                     desc_elem = ET.SubElement(wpt, "desc")
-                    desc_elem.text = f"Start of walk {walk.get('walk_id', i)} for {dog_id}"
-                    
+                    desc_elem.text = (
+                        f"Start of walk {walk.get('walk_id', i)} for {dog_id}"
+                    )
+
                     if start_location.get("timestamp"):
                         time_elem = ET.SubElement(wpt, "time")
-                        time_elem.text = self._format_gpx_timestamp(start_location["timestamp"])
+                        time_elem.text = self._format_gpx_timestamp(
+                            start_location["timestamp"]
+                        )
 
-                if end_location and end_location.get("latitude") and end_location.get("longitude"):
+                if (
+                    end_location
+                    and end_location.get("latitude")
+                    and end_location.get("longitude")
+                ):
                     wpt = ET.SubElement(root, "wpt")
                     wpt.set("lat", f"{end_location['latitude']:.6f}")
                     wpt.set("lon", f"{end_location['longitude']:.6f}")
-                    
+
                     name_elem = ET.SubElement(wpt, "name")
                     name_elem.text = f"Walk {i} End"
-                    
+
                     desc_elem = ET.SubElement(wpt, "desc")
-                    desc_elem.text = f"End of walk {walk.get('walk_id', i)} for {dog_id}"
-                    
+                    desc_elem.text = (
+                        f"End of walk {walk.get('walk_id', i)} for {dog_id}"
+                    )
+
                     if end_location.get("timestamp"):
                         time_elem = ET.SubElement(wpt, "time")
-                        time_elem.text = self._format_gpx_timestamp(end_location["timestamp"])
+                        time_elem.text = self._format_gpx_timestamp(
+                            end_location["timestamp"]
+                        )
 
             # Add tracks with enhanced metadata
             for i, walk in enumerate(walks, 1):
                 track = ET.SubElement(root, "trk")
-                
+
                 # Track metadata
                 name_elem = ET.SubElement(track, "name")
                 name_elem.text = f"{dog_id} - Walk {i}"
-                
+
                 desc_elem = ET.SubElement(track, "desc")
                 walk_info = []
                 if walk.get("distance"):
@@ -1475,7 +1510,9 @@ class WalkManager:
                     walk_info.append(f"Walker: {walk['walker']}")
                 if walk.get("weather"):
                     walk_info.append(f"Weather: {walk['weather']}")
-                desc_elem.text = " | ".join(walk_info) if walk_info else f"Walk for {dog_id}"
+                desc_elem.text = (
+                    " | ".join(walk_info) if walk_info else f"Walk for {dog_id}"
+                )
 
                 # Track type
                 type_elem = ET.SubElement(track, "type")
@@ -1488,7 +1525,7 @@ class WalkManager:
                 for point in walk.get("path", []):
                     lat = point.get("latitude")
                     lon = point.get("longitude")
-                    
+
                     if lat is not None and lon is not None:
                         trkpt = ET.SubElement(trkseg, "trkpt")
                         trkpt.set("lat", f"{lat:.6f}")
@@ -1520,7 +1557,9 @@ class WalkManager:
 
             # Convert to string with proper formatting
             ET.indent(root, space="  ", level=0)
-            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding='unicode')
+            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(
+                root, encoding="unicode"
+            )
 
         except Exception as err:
             _LOGGER.error("Enhanced GPX generation failed: %s", err)
@@ -1540,13 +1579,13 @@ class WalkManager:
             dt = dt_util.parse_datetime(timestamp)
             if dt is None:
                 return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-            
+
             # Convert to UTC if not already
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=dt_util.UTC)
             elif dt.tzinfo != dt_util.UTC:
                 dt = dt.astimezone(dt_util.UTC)
-            
+
             return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         except (ValueError, TypeError):
             # Fallback to current time if parsing fails
@@ -1567,15 +1606,17 @@ class WalkManager:
             f"# Total Walks: {len(walks)}",
             f"# Creator: {GPX_CREATOR}",
             "#",
-            "walk_id,walk_number,timestamp,latitude,longitude,altitude,accuracy,speed,duration_from_start,distance_from_start,weather,walker,notes"
+            "walk_id,walk_number,timestamp,latitude,longitude,altitude,accuracy,speed,duration_from_start,distance_from_start,weather,walker,notes",
         ]
 
         for walk_num, walk in enumerate(walks, 1):
             walk_id = walk.get("walk_id", f"walk_{walk_num}")
             weather = walk.get("weather", "")
             walker = walk.get("walker", "")
-            notes = walk.get("notes", "").replace(",", ";").replace("\n", " ")  # CSV safe
-            
+            notes = (
+                walk.get("notes", "").replace(",", ";").replace("\n", " ")
+            )  # CSV safe
+
             start_time = None
             if walk.get("start_time"):
                 start_time = dt_util.parse_datetime(walk["start_time"])
@@ -1597,7 +1638,9 @@ class WalkManager:
                     try:
                         point_time = dt_util.parse_datetime(timestamp)
                         if point_time:
-                            duration_from_start = (point_time - start_time).total_seconds()
+                            duration_from_start = (
+                                point_time - start_time
+                            ).total_seconds()
                     except (ValueError, TypeError):
                         pass
 
@@ -1633,23 +1676,29 @@ class WalkManager:
         try:
             async with self._data_lock:
                 if dog_id not in self._gps_data:
-                    _LOGGER.warning("Dog %s not initialized for GPS configuration", dog_id)
+                    _LOGGER.warning(
+                        "Dog %s not initialized for GPS configuration", dog_id
+                    )
                     return False
 
                 # Store GPS configuration
                 self._gps_data[dog_id]["automatic_config"] = config.copy()
-                
+
                 # Update detection parameters based on config
                 if config.get("gps_accuracy_threshold"):
-                    self._gps_data[dog_id]["accuracy_threshold"] = config["gps_accuracy_threshold"]
-                
+                    self._gps_data[dog_id]["accuracy_threshold"] = config[
+                        "gps_accuracy_threshold"
+                    ]
+
                 if config.get("update_interval_seconds"):
-                    self._gps_data[dog_id]["update_interval"] = config["update_interval_seconds"]
+                    self._gps_data[dog_id]["update_interval"] = config[
+                        "update_interval_seconds"
+                    ]
 
                 _LOGGER.info(
                     "Configured automatic GPS for %s: %s",
                     dog_id,
-                    {k: v for k, v in config.items() if k not in ["safe_zone_radius"]}
+                    {k: v for k, v in config.items() if k not in ["safe_zone_radius"]},
                 )
                 return True
 

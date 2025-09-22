@@ -1235,10 +1235,12 @@ class FeedingManager:
             try:
                 health_metrics = config._build_health_metrics()
                 feeding_goals = {"weight_goal": config.weight_goal}
-                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
-                    health_metrics,
-                    feeding_goals if config.weight_goal else None,
-                    config.diet_validation,
+                portion_adjustment = (
+                    HealthCalculator.calculate_portion_adjustment_factor(
+                        health_metrics,
+                        feeding_goals if config.weight_goal else None,
+                        config.diet_validation,
+                    )
                 )
             except Exception as err:
                 _LOGGER.debug(
@@ -1283,8 +1285,8 @@ class FeedingManager:
         if config and health_summary:
             current_weight = health_summary.get("current_weight")
             ideal_weight = health_summary.get("ideal_weight")
-            if isinstance(current_weight, (int, float)) and isinstance(
-                ideal_weight, (int, float)
+            if isinstance(current_weight, int | float) and isinstance(
+                ideal_weight, int | float
             ):
                 try:
                     if config.weight_goal == "lose":
@@ -1351,9 +1353,7 @@ class FeedingManager:
         Returns:
             Empty data dictionary
         """
-        calories_per_gram = (
-            config._estimate_calories_per_gram() if config else None
-        )
+        calories_per_gram = config._estimate_calories_per_gram() if config else None
 
         data: dict[str, Any] = {
             "last_feeding": None,
@@ -2474,7 +2474,7 @@ class FeedingManager:
                 finally:
                     self._emergency_restore_tasks.pop(dog_id, None)
 
-            restore_task = asyncio.create_task(_restore_wrapper())  # noqa: RUF006
+            restore_task = asyncio.create_task(_restore_wrapper())
             self._emergency_restore_tasks[dog_id] = restore_task
             result["restoration_scheduled"] = True
 
