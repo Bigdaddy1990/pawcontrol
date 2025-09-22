@@ -1962,7 +1962,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         weather_conditions = call.data.get("weather_conditions")
         temperature = call.data.get("temperature")
 
-        dog_name = dog_config.get(CONF_DOG_NAME) or dog_id
+        dog_name = coordinator.get_configured_dog_name(dog_id) or dog_id
 
         try:
             session_id = await garden_manager.async_start_garden_session(
@@ -2066,7 +2066,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 )
             else:
                 raise ServiceValidationError(
-                    f"Cannot add garden activity for {dog_id} without an active session."
+                    f"No active garden session is currently running for {dog_id}. "
+                    "Start a garden session before adding activities."
                 )
 
         except HomeAssistantError:
@@ -2093,7 +2094,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         if not garden_manager.has_pending_confirmation(dog_id):
             raise ServiceValidationError(
-                f"No pending garden poop confirmation found for {dog_id}."
+                f"No pending garden poop confirmation found for {dog_id}. "
+                "Start a garden session and wait for detection first."
             )
 
         try:
@@ -2243,17 +2245,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         raw_dog_id = call.data["dog_id"]
-        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
+        dog_id, dog_config = _resolve_dog(coordinator, raw_dog_id)
         include_breed_specific = call.data.get("include_breed_specific", True)
         include_health_conditions = call.data.get("include_health_conditions", True)
         max_recommendations = call.data.get("max_recommendations", 5)
 
         try:
-            # Get dog configuration
-            dog_config = coordinator.get_dog_config(dog_id)
-            if not dog_config:
-                raise HomeAssistantError(f"Dog {dog_id} not found")
-
             # Get recommendations
             dog_breed = dog_config.get("breed") if include_breed_specific else None
             dog_age_months = dog_config.get("age_months")

@@ -1539,16 +1539,16 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}
-{% if score >= 80 %}
+{{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}}
+{{% if score >= 80 %}}
 **🌟 Excellent conditions** - Perfect for all activities
-{% elif score >= 60 %}
+{{% elif score >= 60 %}}
 **✅ Good conditions** - Normal activities with basic precautions
-{% elif score >= 40 %}
+{{% elif score >= 40 %}}
 **⚠️ Caution needed** - Modified activities and close monitoring
-{% else %}
+{{% else %}}
 **🚨 Dangerous conditions** - Indoor activities only, emergency precautions
-{% endif %}
+{{% endif %}}
 
 *Last updated: {{{{ states.sensor.{dog_id}_weather_health_score.last_updated.strftime('%H:%M') }}}}*
                     """,
