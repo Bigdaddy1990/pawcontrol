@@ -2559,14 +2559,6 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
         return attrs
 
 
-
-
-
-
-
-
-
-
 @register_sensor("food_consumption")
 class PawControlFoodConsumptionSensor(PawControlSensorBase):
     """Sensor for food consumption tracking."""
@@ -3532,10 +3524,6 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
         return None
 
 
-
-
-
-
 @register_sensor("health_conditions")
 class PawControlHealthConditionsSensor(PawControlSensorBase):
     """Sensor exposing tracked health conditions."""
@@ -3661,15 +3649,3 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
             }
         )
         return attrs
-
-
-
-
-
-
-
-
-
-
-
-

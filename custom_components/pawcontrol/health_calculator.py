@@ -1086,10 +1086,7 @@ class HealthCalculator:
             elif temp < -10:  # Extreme cold
                 if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
                     adjusted_level = ActivityLevel.MODERATE
-            elif (
-                temp < 0
-                and adjusted_level == ActivityLevel.VERY_HIGH
-            ):  # High cold
+            elif temp < 0 and adjusted_level == ActivityLevel.VERY_HIGH:  # High cold
                 adjusted_level = ActivityLevel.HIGH
 
         # Breed-specific weather adjustments
