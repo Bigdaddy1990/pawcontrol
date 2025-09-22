@@ -33,7 +33,8 @@
           "enable_visitor": "Besuchermodus",
           "enable_grooming": "Pflege-Erinnerungen",
           "enable_medication": "Medikamenten-Verfolgung",
-          "enable_training": "Trainingsfortschritt"
+          "enable_training": "Trainingsfortschritt",
+          "enable_weather": "Wetter-Gesundheitsüberwachung"
         }
       },
       "dog_gps": {
@@ -138,7 +139,8 @@
           "performance_mode": "Leistungsmodus",
           "data_retention_days": "Datenaufbewahrung (Tage)",
           "auto_backup": "Automatische Backups",
-          "debug_logging": "Debug-Protokollierung"
+          "debug_logging": "Debug-Protokollierung",
+          "enable_weather": "Wetter-Gesundheitsüberwachung"
         }
       },
       "configure_dashboard": {
@@ -155,11 +157,12 @@
       },
       "configure_external_entities": {
         "title": "Externe Entitäten konfigurieren",
-        "description": "🔗 **Konfiguration externer Entitäten**\n\nPaw Control muss sich mit vorhandenen Home Assistant-Entitäten verbinden, um voll funktionsfähig zu sein. Dieser Schritt ist für die Platinum-Qualitätseinhaltung erforderlich.\n\n**Erforderlich für GPS-Tracking:** Device Tracker oder Person-Entität\n**Optional für Besuchererkennung:** Türsensor\n**Optional für Benachrichtigungen:** Benutzerdefinierter Benachrichtigungsdienst\n\n⚠️ Falls keine Entitäten verfügbar sind, kannst du sie später manuell konfigurieren.",
+        "description": "🔗 **Konfiguration externer Entitäten**\n\nPaw Control muss sich mit vorhandenen Home Assistant-Entitäten verbinden, um voll funktionsfähig zu sein. Dieser Schritt ist für die Platinum-Qualitätseinhaltung erforderlich.\n\n**Erforderlich für GPS-Tracking:** Device Tracker oder Person-Entität\n**Optional für Besuchererkennung:** Türsensor\n**Optional für Benachrichtigungen:** Benutzerdefinierter Benachrichtigungsdienst\n**Optional für Wetter-Gesundheit:** Wetter-Entität\n\n⚠️ Falls keine Entitäten verfügbar sind, kannst du sie später manuell konfigurieren.",
         "data": {
           "gps_source": "GPS-Quelle (Erforderlich für GPS-Tracking)",
           "door_sensor": "Türsensor (Optional für Besuchermodus)",
-          "notify_fallback": "Benachrichtigungsdienst (Optional)"
+          "notify_fallback": "Benachrichtigungsdienst (Optional)",
+          "weather_entity": "Wetter-Entität (Optional für Gesundheitswarnungen)"
         }
       },
       "final_setup": {
@@ -200,7 +203,9 @@
       "notification_service_not_found": "Der ausgewählte Benachrichtigungsdienst wurde nicht gefunden",
       "invalid_notification_service": "Das Format des Benachrichtigungsdienstes ist ungültig",
       "invalid_profile": "Du musst ein gültiges Profil auswählen",
-      "external_entity_validation_failed": "Validierung externer Entitäten fehlgeschlagen"
+      "external_entity_validation_failed": "Validierung externer Entitäten fehlgeschlagen",
+      "weather_entity_not_found": "Die ausgewählte Wetter-Entität wurde nicht gefunden",
+      "weather_entity_unavailable": "Die ausgewählte Wetter-Entität ist derzeit nicht verfügbar"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",
@@ -219,7 +224,8 @@
           "feeding_settings": "Fütterungseinstellungen",
           "health_settings": "Gesundheitseinstellungen",
           "system_settings": "Systemeinstellungen",
-          "dashboard_settings": "Dashboard-Einstellungen"
+          "dashboard_settings": "Dashboard-Einstellungen",
+          "weather_settings": "Wetter-Gesundheitseinstellungen"
         }
       },
       "manage_dogs": {
@@ -249,7 +255,8 @@
           "quiet_end": "Ruhezeiten Ende",
           "reminder_repeat_min": "Erinnerungs-Wiederholungsintervall (Minuten)",
           "priority_notifications": "Prioritäts-Benachrichtigungen",
-          "summary_notifications": "Tägliche Zusammenfassungs-Benachrichtigungen"
+          "summary_notifications": "Tägliche Zusammenfassungs-Benachrichtigungen",
+          "weather_alerts": "Wetter-Gesundheitswarnungen"
         }
       },
       "feeding_settings": {
@@ -274,7 +281,8 @@
           "weight_tracking": "Gewichtsverfolgung",
           "medication_reminders": "Medikamenten-Erinnerungen",
           "vet_reminders": "Tierarzt-Erinnerungen",
-          "grooming_interval": "Pflege-Intervall (Tage)"
+          "grooming_interval": "Pflege-Intervall (Tage)",
+          "weather_health_monitoring": "Wetter-Gesundheitsüberwachung"
         }
       },
       "system_settings": {
@@ -296,13 +304,30 @@
           "dashboard_name": "Dashboard-Name",
           "include_charts": "Diagramme einbeziehen"
         }
+      },
+      "weather_settings": {
+        "title": "Wetter-Gesundheitseinstellungen",
+        "description": "Konfiguriere wetterbasierte Gesundheitswarnungen und -empfehlungen für deine Hunde.",
+        "data": {
+          "weather_entity": "Wetter-Entität",
+          "enable_weather_alerts": "Wetter-Warnungen aktivieren",
+          "enable_weather_recommendations": "Wetter-Empfehlungen aktivieren",
+          "weather_update_interval": "Wetter-Update-Intervall (Minuten)",
+          "temperature_alerts": "Temperatur-Warnungen",
+          "uv_alerts": "UV-Index-Warnungen",
+          "humidity_alerts": "Luftfeuchtigkeits-Warnungen",
+          "wind_alerts": "Wind-Warnungen",
+          "storm_alerts": "Sturm-Warnungen"
+        }
       }
     },
     "error": {
       "dog_id_already_exists": "Ein Hund mit dieser ID existiert bereits",
       "invalid_dog_name_length": "Der Hundename muss zwischen 2 und 30 Zeichen lang sein",
       "invalid_time_format": "Ungültiges Zeitformat",
-      "invalid_configuration": "Ungültige Konfiguration"
+      "invalid_configuration": "Ungültige Konfiguration",
+      "weather_entity_not_found": "Wetter-Entität nicht gefunden",
+      "invalid_weather_entity": "Ungültige Wetter-Entität ausgewählt"
     }
   },
   "entity": {
@@ -417,6 +442,24 @@
           "dental_care": "Zahnpflege",
           "joint_support": "Gelenkunterstützung"
         }
+      },
+      "weather_health_score": {
+        "name": "Wetter-Gesundheitsbewertung"
+      },
+      "weather_temperature": {
+        "name": "Wetter-Temperatur"
+      },
+      "weather_humidity": {
+        "name": "Wetter-Luftfeuchtigkeit"
+      },
+      "weather_uv_index": {
+        "name": "Wetter-UV-Index"
+      },
+      "weather_condition": {
+        "name": "Wetter-Bedingungen"
+      },
+      "active_weather_alerts": {
+        "name": "Aktive Wetter-Warnungen"
       }
     },
     "binary_sensor": {
@@ -458,6 +501,21 @@
       },
       "visitor_mode": {
         "name": "Besuchermodus"
+      },
+      "weather_alert_active": {
+        "name": "Wetter-Warnung aktiv"
+      },
+      "extreme_heat_warning": {
+        "name": "Extreme Hitzewarnung"
+      },
+      "extreme_cold_warning": {
+        "name": "Extreme Kältewarnung"
+      },
+      "high_uv_warning": {
+        "name": "Hohe UV-Warnung"
+      },
+      "storm_warning": {
+        "name": "Sturmwarnung"
       }
     },
     "button": {
@@ -511,6 +569,15 @@
       },
       "emergency": {
         "name": "Notfall"
+      },
+      "update_weather": {
+        "name": "Wetter aktualisieren"
+      },
+      "get_weather_alerts": {
+        "name": "Wetter-Warnungen abrufen"
+      },
+      "get_weather_recommendations": {
+        "name": "Wetter-Empfehlungen abrufen"
       }
     },
     "switch": {
@@ -531,6 +598,9 @@
       },
       "module_visitor": {
         "name": "Besuchermodus-Modul"
+      },
+      "module_weather": {
+        "name": "Wetter-Gesundheitsmodul"
       },
       "notifications_enabled": {
         "name": "Benachrichtigungen aktiviert"
@@ -585,6 +655,24 @@
       },
       "auto_backup": {
         "name": "Automatisches Backup"
+      },
+      "weather_alerts": {
+        "name": "Wetter-Warnungen"
+      },
+      "weather_recommendations": {
+        "name": "Wetter-Empfehlungen"
+      },
+      "temperature_alerts": {
+        "name": "Temperatur-Warnungen"
+      },
+      "uv_alerts": {
+        "name": "UV-Warnungen"
+      },
+      "humidity_alerts": {
+        "name": "Luftfeuchtigkeits-Warnungen"
+      },
+      "storm_alerts": {
+        "name": "Sturm-Warnungen"
       }
     },
     "select": {
@@ -627,6 +715,15 @@
           "angry": "Verärgert",
           "anxious": "Ängstlich",
           "tired": "Müde"
+        }
+      },
+      "weather_severity": {
+        "name": "Wetter-Schweregrad",
+        "state": {
+          "low": "Niedrig",
+          "moderate": "Mäßig",
+          "high": "Hoch",
+          "extreme": "Extrem"
         }
       }
     }
@@ -675,6 +772,204 @@
     "daily_reset": {
       "name": "Täglicher Reset",
       "description": "Täglichen Reset der Zähler für alle Hunde durchführen"
+    },
+    "update_weather_data": {
+      "name": "Wetterdaten aktualisieren", 
+      "description": "Aktualisiert die Wetterdaten für die Gesundheitsüberwachung"
+    },
+    "get_weather_alerts": {
+      "name": "Wetter-Warnungen abrufen",
+      "description": "Ruft aktive wetterbasierte Gesundheitswarnungen ab"
+    },
+    "get_weather_recommendations": {
+      "name": "Wetter-Empfehlungen abrufen",
+      "description": "Ruft personalisierte Wetter-Empfehlungen für einen Hund ab"
+    },
+    "setup_automatic_gps": {
+      "name": "Automatisches GPS einrichten",
+      "description": "Richtet automatische GPS-Verfolgung mit Sicherheitszonen ein"
+    },
+    "recalculate_health_portions": {
+      "name": "Gesundheitsportionen neu berechnen",
+      "description": "Berechnet Futterportionen basierend auf aktuellen Gesundheitsdaten neu"
+    },
+    "adjust_calories_for_activity": {
+      "name": "Kalorien für Aktivität anpassen",
+      "description": "Passt die Kalorienzufuhr basierend auf dem Aktivitätslevel an"
+    },
+    "activate_diabetic_feeding_mode": {
+      "name": "Diabetiker-Fütterungsmodus aktivieren",
+      "description": "Aktiviert speziellen Fütterungsplan für diabetische Hunde"
+    },
+    "feed_with_medication": {
+      "name": "Mit Medikation füttern",
+      "description": "Protokolliert eine Fütterung zusammen mit Medikamentengabe"
+    },
+    "generate_weekly_health_report": {
+      "name": "Wöchentlichen Gesundheitsbericht erstellen",
+      "description": "Erstellt einen umfassenden wöchentlichen Gesundheitsbericht"
+    },
+    "activate_emergency_feeding_mode": {
+      "name": "Notfall-Fütterungsmodus aktivieren",
+      "description": "Aktiviert Notfall-Fütterungsplan für kranke oder verletzte Hunde"
+    },
+    "start_diet_transition": {
+      "name": "Diätumstellung starten",
+      "description": "Startet graduelle Umstellung auf neues Futter"
+    },
+    "check_feeding_compliance": {
+      "name": "Fütterungseinhaltung prüfen",
+      "description": "Überprüft die Einhaltung des Fütterungsplans"
+    },
+    "adjust_daily_portions": {
+      "name": "Tägliche Portionen anpassen",
+      "description": "Passt die täglichen Futterportionen an"
+    },
+    "add_health_snack": {
+      "name": "Gesundheitssnack hinzufügen",
+      "description": "Fügt einen gesundheitsfördernden Snack hinzu"
+    },
+    "log_poop": {
+      "name": "Kot protokollieren",
+      "description": "Protokolliert Kotgang-Informationen für Gesundheitsüberwachung"
+    }
+  },
+  "weather": {
+    "alerts": {
+      "extreme_heat_warning": {
+        "title": "🔥 Extreme Hitzewarnung",
+        "message": "Temperatur {temperature}°C (gefühlt {feels_like}°C) stellt extremes Hitzerisiko für Hunde dar"
+      },
+      "high_heat_advisory": {
+        "title": "🌡️ Hohe Hitzewarnung",
+        "message": "Temperatur {temperature}°C erfordert Hitzeschutzmaßnahmen für Hunde"
+      },
+      "warm_weather_caution": {
+        "title": "☀️ Warmes Wetter Vorsicht",
+        "message": "Temperatur {temperature}°C erfordert grundlegende Hitzeschutzmaßnahmen"
+      },
+      "extreme_cold_warning": {
+        "title": "🥶 Extreme Kältewarnung",
+        "message": "Temperatur {temperature}°C (gefühlt {feels_like}°C) stellt extremes Kälterisiko dar"
+      },
+      "high_cold_advisory": {
+        "title": "❄️ Hohe Kältewarnung",
+        "message": "Temperatur {temperature}°C erfordert Kälteschutzmaßnahmen"
+      },
+      "extreme_uv_warning": {
+        "title": "☢️ Extreme UV-Warnung",
+        "message": "UV-Index {uv_index} stellt extremes UV-Risiko für Hunde dar"
+      },
+      "high_uv_advisory": {
+        "title": "🌞 Hohe UV-Warnung",
+        "message": "UV-Index {uv_index} erfordert UV-Schutz für Hunde"
+      },
+      "high_humidity_alert": {
+        "title": "💨 Hohe Luftfeuchtigkeitswarnung",
+        "message": "Luftfeuchtigkeit {humidity}% kann Atemprobleme verursachen"
+      },
+      "wet_weather_advisory": {
+        "title": "🌧️ Regenwetter-Hinweis",
+        "message": "Regenbedingungen erfordern Pfotenpflege-Vorsichtsmaßnahmen"
+      },
+      "storm_warning": {
+        "title": "⛈️ Sturmwarnung",
+        "message": "Stürme können Angst und Sicherheitsrisiken für Hunde verursachen"
+      },
+      "snow_ice_alert": {
+        "title": "🌨️ Schnee/Eis-Warnung",
+        "message": "Eisige Bedingungen erfordern Pfotenschutz"
+      }
+    },
+    "recommendations": {
+      "avoid_peak_hours": "Vermeide Aktivitäten im Freien während der Spitzenzeiten",
+      "provide_water": "Stelle ständig Zugang zu kühlem Wasser sicher",
+      "keep_indoors": "Halte den Hund drinnen mit Klimaanlage",
+      "watch_heat_signs": "Achte auf Anzeichen von Hitzeerschöpfung: starkes Hecheln, Sabbern, Lethargie",
+      "use_cooling_aids": "Erwäge Kühlmatten oder -westen",
+      "never_leave_in_car": "Lass den Hund niemals im Auto oder in direkter Sonne",
+      "limit_outdoor_time": "Begrenze Aktivitäten im Freien auf frühen Morgen oder Abend",
+      "ensure_shade": "Stelle Schatten während der Zeit im Freien sicher",
+      "monitor_overheating": "Überwache auf Anzeichen von Überhitzung",
+      "cooler_surfaces": "Erwäge kürzere Spaziergänge auf kühleren Oberflächen",
+      "extra_water": "Stelle zusätzliches Wasser während Aktivitäten im Freien bereit",
+      "cooler_day_parts": "Plane Spaziergänge für kühlere Tageszeiten",
+      "watch_heat_stress": "Achte auf frühe Anzeichen von Hitzestress",
+      "essential_only": "Begrenze Aufenthalt im Freien nur auf das Nötigste",
+      "protective_clothing": "Verwende Schutzkleidung für kurzhaarige Rassen",
+      "protect_paws": "Schütze Pfoten vor Eis und Salz",
+      "warm_shelter": "Stelle warmen, zugfreien Schlafplatz bereit",
+      "watch_hypothermia": "Achte auf Anzeichen von Unterkühlung: Zittern, Lethargie, Schwäche",
+      "postpone_activities": "Erwäge Verschiebung nicht wesentlicher Aktivitäten im Freien",
+      "shorten_activities": "Verkürze Aktivitäten im Freien",
+      "consider_clothing": "Erwäge Schutzkleidung für empfindliche Rassen",
+      "cold_surface_protection": "Schütze Pfoten vor kalten Oberflächen",
+      "warm_shelter_available": "Stelle sicher, dass warmer Unterschlupf verfügbar ist",
+      "avoid_peak_uv": "Vermeide Aktivitäten im Freien während Spitzen-UV-Zeiten (10-16 Uhr)",
+      "provide_shade_always": "Stelle Schatten für die gesamte Zeit im Freien bereit",
+      "uv_protective_clothing": "Erwäge UV-Schutzkleidung für hellhaarige Hunde",
+      "protect_nose_ears": "Schütze Nase und Ohrenspitzen vor UV-Exposition",
+      "pet_sunscreen": "Verwende haustiersichere Sonnencreme auf exponierten Bereichen",
+      "shade_during_activities": "Stelle Schatten während Aktivitäten im Freien bereit",
+      "limit_peak_exposure": "Begrenze Exposition während Spitzenzeiten",
+      "monitor_skin_irritation": "Überwache hellhaarige Hunde auf Hautirritationen",
+      "reduce_exercise_intensity": "Reduziere Trainingsintensität und -dauer",
+      "good_air_circulation": "Stelle gute Luftzirkulation drinnen sicher",
+      "monitor_breathing": "Überwache brachyzephale Rassen genau",
+      "cool_ventilated_areas": "Stelle kühle, gut belüftete Ruhebereiche bereit",
+      "dry_paws_thoroughly": "Trockne Pfoten gründlich nach Aktivitäten im Freien",
+      "check_toe_irritation": "Prüfe auf Irritationen zwischen den Zehen",
+      "use_paw_balm": "Verwende Pfotenbalsam bei Bedarf",
+      "waterproof_protection": "Erwäge wasserdichten Schutz für empfindliche Pfoten",
+      "keep_indoors_storm": "Halte den Hund während des Sturms drinnen",
+      "comfort_anxious": "Biete Komfort für ängstliche Hunde",
+      "secure_id_tags": "Stelle sicher, dass Identifikationsmarken vor dem Sturm sicher befestigt sind",
+      "avoid_until_passes": "Vermeide Aktivitäten im Freien bis der Sturm vorbei ist",
+      "use_paw_protection": "Verwende Pfotenschutz oder Stiefel",
+      "watch_ice_buildup": "Achte auf Eisansammlung zwischen den Zehen",
+      "rinse_salt_chemicals": "Spüle Pfoten nach Spaziergängen ab, um Salz/Chemikalien zu entfernen",
+      "provide_traction": "Biete Traktion auf rutschigen Oberflächen",
+      "breed_specific_caution": "Zusätzliche Vorsicht für {breed}-Rasse während {alert_type}",
+      "puppy_extra_monitoring": "Welpen sind verletzlicher - überwache genau",
+      "senior_extra_protection": "Seniorenhunde brauchen zusätzlichen Schutz",
+      "respiratory_monitoring": "Atemwegserkrankung erfordert zusätzliche Überwachung", 
+      "heart_avoid_strenuous": "Herzerkrankung - vermeide anstrengende Aktivitäten"
+    },
+    "severity": {
+      "low": "Niedrig",
+      "moderate": "Mäßig", 
+      "high": "Hoch",
+      "extreme": "Extrem"
+    },
+    "health_impacts": {
+      "heat_stress": "Hitzestress",
+      "cold_stress": "Kältestress",
+      "uv_exposure": "UV-Exposition",
+      "air_quality": "Luftqualität",
+      "exercise_limitation": "Bewegungseinschränkung",
+      "hydration_risk": "Dehydrierungsrisiko",
+      "paw_protection": "Pfotenschutz",
+      "respiratory_risk": "Atemwegsrisiko"
+    },
+    "conditions": {
+      "clear": "Klar",
+      "cloudy": "Bewölkt",
+      "rainy": "Regnerisch",
+      "snowy": "Schnee",
+      "stormy": "Stürmisch",
+      "foggy": "Neblig",
+      "windy": "Windig",
+      "hot": "Heiß",
+      "cold": "Kalt",
+      "humid": "Feucht",
+      "dry": "Trocken"
+    },
+    "notifications": {
+      "weather_update_complete": "🌤️ Wetterdaten aktualisiert: {temperature}°C, {condition}, Gesundheitsbewertung: {score}",
+      "weather_alerts_found": "🌡️ Wetter-Warnungen für {dog_id}",
+      "weather_recommendations_generated": "🐕 Wetter-Tipps: {dog_id}",
+      "gps_setup_complete": "🛰️ GPS-Setup abgeschlossen: {dog_id}",
+      "automatic_gps_configured": "Automatische GPS-Verfolgung für {dog_id} konfiguriert. Sicherheitszone: {radius}m Radius. Auto-Spaziergang-Erkennung: {auto_walk_status}."
     }
   }
 }

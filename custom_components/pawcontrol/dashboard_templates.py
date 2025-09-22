@@ -26,6 +26,48 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Weather dashboard constants
+WEATHER_THEMES: Final[dict[str, dict[str, Any]]] = {
+    "modern": {
+        "primary_color": "#2196F3",
+        "accent_color": "#FF5722",
+        "success_color": "#4CAF50",
+        "warning_color": "#FF9800",
+        "danger_color": "#F44336",
+    },
+    "playful": {
+        "primary_color": "#FF6B6B",
+        "accent_color": "#4ECDC4",
+        "success_color": "#95E1D3",
+        "warning_color": "#FFE66D",
+        "danger_color": "#FF8B94",
+    },
+    "minimal": {
+        "primary_color": "#000000",
+        "accent_color": "#666666",
+        "success_color": "#333333",
+        "warning_color": "#999999",
+        "danger_color": "#CCCCCC",
+    },
+    "dark": {
+        "primary_color": "#0F3460",
+        "accent_color": "#E94560",
+        "success_color": "#16213E",
+        "warning_color": "#0F4C75",
+        "danger_color": "#3282B8",
+    },
+}
+
+WEATHER_CARD_TYPES: Final[list[str]] = [
+    "weather_status",
+    "weather_alerts",
+    "weather_recommendations",
+    "weather_chart",
+    "weather_breed_advisory",
+    "weather_action_buttons",
+    "weather_dashboard_layout",
+]
+
 # Cache configuration
 TEMPLATE_CACHE_SIZE: Final[int] = 128
 TEMPLATE_TTL_SECONDS: Final[int] = 300  # 5 minutes
@@ -1071,6 +1113,669 @@ class DashboardTemplates:
 
         return template
 
+    async def get_weather_status_card_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        theme: str = "modern",
+        compact: bool = False,
+    ) -> dict[str, Any]:
+        """Get weather status card template for dog health monitoring.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog display name
+            theme: Visual theme to apply
+            compact: Whether to use compact layout
+
+        Returns:
+            Weather status card template with health indicators
+        """
+        cache_key = f"weather_status_{dog_id}_{theme}_{compact}"
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        theme_styles = self._get_theme_styles(theme)
+        weather_icon = self._get_weather_icon(theme)
+
+        if compact:
+            # Compact card for mobile/small spaces
+            template = {
+                "type": "custom:mushroom-entity",
+                "entity": f"sensor.{dog_id}_weather_health_score",
+                "name": f"{weather_icon} Weather Health",
+                "icon": "mdi:weather-partly-cloudy",
+                "icon_color": self._get_weather_color_by_score(theme),
+                "secondary_info": "state",
+                "tap_action": {
+                    "action": "more-info",
+                },
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+        else:
+            # Full weather status card
+            entities = [
+                {
+                    "entity": f"sensor.{dog_id}_weather_health_score",
+                    "name": "Health Score",
+                    "icon": "mdi:heart-pulse",
+                },
+                {
+                    "entity": f"sensor.{dog_id}_weather_temperature_risk",
+                    "name": "Temperature Risk",
+                    "icon": "mdi:thermometer-alert",
+                },
+                {
+                    "entity": f"sensor.{dog_id}_weather_activity_recommendation",
+                    "name": "Activity Level",
+                    "icon": "mdi:run",
+                },
+                {
+                    "entity": f"binary_sensor.{dog_id}_weather_safe_for_walks",
+                    "name": "Walk Safety",
+                    "icon": "mdi:walk",
+                },
+            ]
+
+            template = {
+                "type": "entities",
+                "title": f"{weather_icon} {dog_name} Weather Health",
+                "entities": entities,
+                "state_color": True,
+                "show_header_toggle": False,
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+
+            # Add theme-specific styling
+            if theme == "modern":
+                template["card_mod"]["style"] += """
+                    .card-header {
+                        background: linear-gradient(90deg, #2196F3, #21CBF3);
+                        color: white;
+                        border-radius: 16px 16px 0 0;
+                    }
+                """
+            elif theme == "playful":
+                template["card_mod"]["style"] += """
+                    .card-header {
+                        background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #FFE66D);
+                        background-size: 300% 300%;
+                        animation: gradient 3s ease infinite;
+                        color: white;
+                    }
+                    @keyframes gradient {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                """
+
+        await self._cache.set(cache_key, template)
+        return template
+
+    async def get_weather_alerts_card_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        theme: str = "modern",
+        max_alerts: int = 3,
+    ) -> dict[str, Any]:
+        """Get weather alerts card template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog display name
+            theme: Visual theme
+            max_alerts: Maximum number of alerts to display
+
+        Returns:
+            Weather alerts card template
+        """
+        theme_styles = self._get_theme_styles(theme)
+        alert_icon = "⚠️" if theme == "playful" else "mdi:weather-lightning"
+
+        # Dynamic content based on current alerts
+        alerts_content = f"""
+## {alert_icon} Weather Alerts for {dog_name}
+
+{{%- set alerts = states.sensor.{dog_id}_weather_alerts.attributes.active_alerts | default([]) -%}}
+{{%- if alerts | length > 0 -%}}
+{{%- for alert in alerts[:3] -%}}
+### {{ alert.severity | title }} Alert: {{ alert.title }}
+{{ alert.message }}
+
+**Impact:** {{ alert.impact }}
+**Recommendation:** {{ alert.recommendation }}
+
+---
+{{%- endfor -%}}
+{{%- else -%}}
+### ✅ No Weather Alerts
+{dog_name} can enjoy normal outdoor activities today!
+
+**Current Conditions:** Perfect for walks and outdoor play.
+{{%- endif -%}}
+
+**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
+"""
+
+        # Conditional styling based on alert severity
+        if theme == "modern":
+            card_mod_style = """
+                ha-card {
+                    background: linear-gradient(135deg, 
+                        {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
+                            rgba(244, 67, 54, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%
+                        {% else %}
+                            rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%
+                        {% endif %}
+                    );
+                    border-left: 4px solid 
+                        {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
+                            #FF5722
+                        {% else %}
+                            #4CAF50
+                        {% endif %};
+                }
+            """.replace("{dog_id}", dog_id)
+        elif theme == "playful":
+            card_mod_style = """
+                ha-card {
+                    background: {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
+                        linear-gradient(45deg, #FF6B6B, #FF8E53)
+                    {% else %}
+                        linear-gradient(45deg, #4ECDC4, #44A08D)
+                    {% endif %};
+                    color: white;
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                    100% { transform: scale(1); }
+                }
+            """.replace("{dog_id}", dog_id)
+        else:
+            card_mod_style = theme_styles.get("card_mod", {}).get("style", "")
+
+        template = {
+            "type": "markdown",
+            "content": alerts_content,
+            "card_mod": {
+                "style": card_mod_style,
+            },
+        }
+
+        return template
+
+    async def get_weather_recommendations_card_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        theme: str = "modern",
+        include_breed_specific: bool = True,
+    ) -> dict[str, Any]:
+        """Get weather recommendations card template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog display name
+            theme: Visual theme
+            include_breed_specific: Whether to include breed-specific advice
+
+        Returns:
+            Weather recommendations card template
+        """
+        theme_styles = self._get_theme_styles(theme)
+        rec_icon = "💡" if theme == "playful" else "mdi:lightbulb-on"
+
+        recommendations_content = f"""
+## {rec_icon} Weather Recommendations for {dog_name}
+
+{{%- set recommendations = states.sensor.{dog_id}_weather_recommendations.attributes.recommendations | default([]) -%}}
+{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}
+
+### 🌡️ Temperature Guidance
+**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C
+**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}
+
+### 🚶 Activity Suggestions
+{{%- if recommendations | length > 0 -%}}
+{{%- for rec in recommendations[:4] -%}}
+• {{ rec }}
+{{%- endfor -%}}
+{{%- else -%}}
+• Perfect weather for normal activities!
+• Maintain regular exercise schedule
+• Keep hydration available
+{{%- endif -%}}
+
+{'### 🐕 Breed-Specific Advice for ' + breed if include_breed_specific else ''}
+{{%- if include_breed_specific -%}}
+{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
+{{%- endif -%}}
+
+### ⏰ Best Activity Times
+**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}
+**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}
+
+**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
+"""
+
+        template = {
+            "type": "markdown",
+            "content": recommendations_content,
+            "card_mod": theme_styles.get("card_mod", {}),
+        }
+
+        # Add interactive buttons for weather services
+        if theme == "modern":
+            # Add action buttons at the bottom
+            template["card_mod"]["style"] += """
+                .card-content {
+                    padding-bottom: 60px;
+                }
+                .card-content::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 10px;
+                    left: 10px;
+                    right: 10px;
+                    height: 40px;
+                    background: linear-gradient(90deg, #2196F3, #21CBF3);
+                    border-radius: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+            """
+
+        return template
+
+    async def get_weather_chart_template(
+        self,
+        dog_id: str,
+        chart_type: str = "health_score",
+        theme: str = "modern",
+        time_range: str = "24h",
+    ) -> dict[str, Any]:
+        """Get weather impact chart template.
+
+        Args:
+            dog_id: Dog identifier
+            chart_type: Type of chart (health_score, temperature, activity)
+            theme: Visual theme
+            time_range: Time range (24h, 7d, 30d)
+
+        Returns:
+            Weather chart template
+        """
+        theme_styles = self._get_theme_styles(theme)
+        
+        hours_map = {
+            "24h": 24,
+            "7d": 168,
+            "30d": 720,
+        }
+        hours_to_show = hours_map.get(time_range, 24)
+
+        if chart_type == "health_score":
+            entities = [
+                {
+                    "entity": f"sensor.{dog_id}_weather_health_score",
+                    "name": "Weather Health Score",
+                    "color": theme_styles["colors"]["primary"],
+                },
+                {
+                    "entity": f"sensor.{dog_id}_outdoor_temperature",
+                    "name": "Temperature",
+                    "color": theme_styles["colors"]["accent"],
+                    "y_axis": "secondary",
+                },
+            ]
+            chart_title = "Weather Health Impact"
+        elif chart_type == "temperature":
+            entities = [
+                {
+                    "entity": f"sensor.{dog_id}_outdoor_temperature",
+                    "name": "Temperature",
+                    "color": "#FF5722",
+                },
+                {
+                    "entity": f"sensor.{dog_id}_feels_like_temperature",
+                    "name": "Feels Like",
+                    "color": "#FF9800",
+                },
+                {
+                    "entity": f"sensor.{dog_id}_temperature_comfort_zone",
+                    "name": "Comfort Zone",
+                    "color": "#4CAF50",
+                    "show_fill": True,
+                },
+            ]
+            chart_title = "Temperature Trends"
+        else:  # activity
+            entities = [
+                {
+                    "entity": f"sensor.{dog_id}_weather_activity_level",
+                    "name": "Recommended Activity",
+                    "color": theme_styles["colors"]["primary"],
+                },
+                {
+                    "entity": f"sensor.{dog_id}_actual_activity_level",
+                    "name": "Actual Activity",
+                    "color": theme_styles["colors"]["accent"],
+                },
+            ]
+            chart_title = "Activity vs Weather"
+
+        if theme in ["modern", "dark"]:
+            template = {
+                "type": "custom:mini-graph-card",
+                "name": chart_title,
+                "entities": entities,
+                "hours_to_show": hours_to_show,
+                "points_per_hour": 2 if hours_to_show <= 24 else 1,
+                "line_width": 3,
+                "animate": True,
+                "show": {
+                    "labels": True,
+                    "points": True,
+                    "legend": True,
+                    "average": True,
+                    "extrema": True,
+                    "fill": "fade",
+                },
+                "color_thresholds": [
+                    {"value": 30, "color": "#4CAF50"},
+                    {"value": 60, "color": "#FF9800"},
+                    {"value": 80, "color": "#F44336"},
+                ],
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+        else:
+            # Fallback to simple history graph
+            template = {
+                "type": "history-graph",
+                "title": chart_title,
+                "entities": [entity["entity"] for entity in entities],
+                "hours_to_show": hours_to_show,
+                "card_mod": theme_styles.get("card_mod", {}),
+            }
+
+        return template
+
+    async def get_weather_breed_advisory_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        breed: str,
+        theme: str = "modern",
+    ) -> dict[str, Any]:
+        """Get breed-specific weather advisory template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog display name
+            breed: Dog breed
+            theme: Visual theme
+
+        Returns:
+            Breed-specific weather advisory template
+        """
+        theme_styles = self._get_theme_styles(theme)
+        breed_icon = self._get_breed_emoji(breed, theme)
+
+        advisory_content = f"""
+## {breed_icon} {breed} Weather Advisory for {dog_name}
+
+{{%- set breed_advice = states.sensor.{dog_id}_breed_weather_advice.attributes -%}}
+{{%- set current_temp = states('sensor.{dog_id}_outdoor_temperature') | float -%}}
+{{%- set breed_comfort_min = breed_advice.comfort_range.min | default(10) -%}}
+{{%- set breed_comfort_max = breed_advice.comfort_range.max | default(25) -%}}
+
+### 🌡️ Breed Comfort Zone
+**Optimal Range:** {{ breed_comfort_min }}°C - {{ breed_comfort_max }}°C
+**Current:** {{ current_temp }}°C
+
+{{%- if current_temp < breed_comfort_min -%}}
+### ❄️ Cold Weather Precautions
+{{ breed_advice.cold_weather_advice | default('Monitor for signs of cold stress') }}
+{{%- elif current_temp > breed_comfort_max -%}}
+### 🔥 Hot Weather Precautions  
+{{ breed_advice.hot_weather_advice | default('Provide shade and fresh water') }}
+{{%- else -%}}
+### ✅ Perfect Weather for {{ breed }}s
+{{ breed_advice.optimal_weather_advice | default('Great conditions for normal activities') }}
+{{%- endif -%}}
+
+### 🔍 Breed-Specific Monitoring
+{{%- for warning in breed_advice.breed_warnings | default([]) -%}}
+• {{ warning }}
+{{%- endfor -%}}
+
+### 💡 Activity Adjustments
+**Exercise Modifications:** {{ breed_advice.exercise_modifications | default('No modifications needed') }}
+**Special Considerations:** {{ breed_advice.special_considerations | default('Standard care applies') }}
+
+**Breed Profile Last Updated:** {{{{ states('sensor.{dog_id}_breed_profile_updated') }}}}
+"""
+
+        # Breed-specific styling
+        if theme == "modern":
+            card_style = """
+                ha-card {
+                    background: linear-gradient(135deg, 
+                        {% if states('sensor.{dog_id}_outdoor_temperature') | float < breed_comfort_min %}
+                            rgba(33, 150, 243, 0.1) 0%, rgba(3, 169, 244, 0.1) 100%
+                        {% elif states('sensor.{dog_id}_outdoor_temperature') | float > breed_comfort_max %}
+                            rgba(255, 87, 34, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%
+                        {% else %}
+                            rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%
+                        {% endif %}
+                    );
+                    border-left: 6px solid 
+                        {% if states('sensor.{dog_id}_outdoor_temperature') | float < breed_comfort_min %}
+                            #2196F3
+                        {% elif states('sensor.{dog_id}_outdoor_temperature') | float > breed_comfort_max %}
+                            #FF5722
+                        {% else %}
+                            #4CAF50
+                        {% endif %};
+                }
+            """.replace("{dog_id}", dog_id).replace("breed_comfort_min", str(breed_advice.get("comfort_range", {}).get("min", 10))).replace("breed_comfort_max", str(breed_advice.get("comfort_range", {}).get("max", 25)))
+        else:
+            card_style = theme_styles.get("card_mod", {}).get("style", "")
+
+        template = {
+            "type": "markdown",
+            "content": advisory_content,
+            "card_mod": {
+                "style": card_style,
+            },
+        }
+
+        return template
+
+    async def get_weather_action_buttons_template(
+        self,
+        dog_id: str,
+        theme: str = "modern",
+        layout: str = "horizontal",
+    ) -> dict[str, Any]:
+        """Get weather action buttons template.
+
+        Args:
+            dog_id: Dog identifier
+            theme: Visual theme
+            layout: Button layout (horizontal, vertical, grid)
+
+        Returns:
+            Weather action buttons template
+        """
+        base_button = self._get_base_card_template("button")
+        theme_styles = self._get_theme_styles(theme)
+
+        # Weather update button
+        update_button = {
+            **base_button,
+            "name": "Update Weather",
+            "icon": "mdi:weather-cloudy-arrow-right",
+            "icon_color": theme_styles["colors"]["primary"],
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.update_weather",
+                "service_data": {"force_update": True},
+            },
+        }
+
+        # Get weather alerts button
+        alerts_button = {
+            **base_button,
+            "name": "Check Alerts",
+            "icon": "mdi:weather-lightning",
+            "icon_color": "orange",
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.get_weather_alerts",
+                "service_data": {"dog_id": dog_id},
+            },
+        }
+
+        # Get recommendations button
+        recommendations_button = {
+            **base_button,
+            "name": "Get Advice",
+            "icon": "mdi:lightbulb-on",
+            "icon_color": theme_styles["colors"]["accent"],
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.get_weather_recommendations",
+                "service_data": {
+                    "dog_id": dog_id,
+                    "include_breed_specific": True,
+                },
+            },
+        }
+
+        buttons = [update_button, alerts_button, recommendations_button]
+
+        # Apply theme styling to buttons
+        if theme == "modern":
+            for i, button in enumerate(buttons):
+                colors = ["#2196F3", "#FF9800", "#4CAF50"]
+                button["card_mod"] = {
+                    "style": f"""
+                        ha-card {{
+                            background: linear-gradient(135deg, {colors[i]}, {colors[i]}CC);
+                            color: white;
+                            border-radius: 12px;
+                            transition: all 0.3s ease;
+                        }}
+                        ha-card:hover {{
+                            transform: translateY(-2px);
+                            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                        }}
+                    """
+                }
+        elif theme == "playful":
+            for button in buttons:
+                button["card_mod"] = {
+                    "style": """
+                        ha-card {
+                            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+                            color: white;
+                            border-radius: 50px;
+                            animation: wiggle 2s ease-in-out infinite;
+                        }
+                        @keyframes wiggle {
+                            0%, 100% { transform: rotate(0deg); }
+                            25% { transform: rotate(-1deg); }
+                            75% { transform: rotate(1deg); }
+                        }
+                    """
+                }
+
+        # Layout buttons according to specified layout
+        if layout == "vertical":
+            return {
+                "type": "vertical-stack",
+                "cards": buttons,
+            }
+        elif layout == "grid":
+            return {
+                "type": "grid",
+                "columns": 3,
+                "cards": buttons,
+            }
+        else:  # horizontal (default)
+            return {
+                "type": "horizontal-stack",
+                "cards": buttons,
+            }
+
+    def _get_weather_icon(self, theme: str) -> str:
+        """Get theme-appropriate weather icon.
+
+        Args:
+            theme: Theme name
+
+        Returns:
+            Weather icon for the theme
+        """
+        icons = {
+            "modern": "🌤️",
+            "playful": "☀️",
+            "minimal": "○",
+            "dark": "🌙",
+        }
+        return icons.get(theme, "🌤️")
+
+    def _get_weather_color_by_score(self, theme: str) -> str:
+        """Get weather health score color by theme.
+
+        Args:
+            theme: Theme name
+
+        Returns:
+            Color for weather health score
+        """
+        theme_styles = self._get_theme_styles(theme)
+        return theme_styles["colors"]["primary"]
+
+    def _get_breed_emoji(self, breed: str, theme: str) -> str:
+        """Get breed-specific emoji.
+
+        Args:
+            breed: Dog breed name
+            theme: Theme name
+
+        Returns:
+            Breed-appropriate emoji
+        """
+        if theme != "playful":
+            return "🐕"
+
+        # Breed-specific emojis for playful theme
+        breed_emojis = {
+            "husky": "🐺",
+            "golden retriever": "🦮",
+            "bulldog": "🐶",
+            "poodle": "🐩",
+            "german shepherd": "🦮",
+            "labrador": "🦮",
+            "chihuahua": "🐕‍🦺",
+            "beagle": "🐕",
+        }
+
+        breed_lower = breed.lower().strip()
+        for breed_key, emoji in breed_emojis.items():
+            if breed_key in breed_lower:
+                return emoji
+
+        return "🐶"  # Default playful dog emoji
+
     async def get_history_graph_template(
         self,
         entities: list[str],
@@ -1133,6 +1838,114 @@ class DashboardTemplates:
         """Clean up template cache and resources."""
         await self._cache.clear()
         self._weak_refs.clear()
+
+    async def get_weather_dashboard_layout_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        breed: str,
+        theme: str = "modern",
+        layout: str = "full",
+    ) -> dict[str, Any]:
+        """Get complete weather dashboard layout template.
+
+        Args:
+            dog_id: Dog identifier
+            dog_name: Dog display name
+            breed: Dog breed
+            theme: Visual theme
+            layout: Layout type (full, compact, mobile)
+
+        Returns:
+            Complete weather dashboard layout
+        """
+        if layout == "compact":
+            # Compact layout for smaller screens
+            cards = [
+                await self.get_weather_status_card_template(
+                    dog_id, dog_name, theme, compact=True
+                ),
+                await self.get_weather_alerts_card_template(
+                    dog_id, dog_name, theme, max_alerts=1
+                ),
+                await self.get_weather_action_buttons_template(
+                    dog_id, theme, layout="horizontal"
+                ),
+            ]
+
+            return {
+                "type": "vertical-stack",
+                "cards": cards,
+            }
+
+        elif layout == "mobile":
+            # Mobile-optimized layout
+            cards = [
+                await self.get_weather_status_card_template(
+                    dog_id, dog_name, theme, compact=True
+                ),
+                await self.get_weather_chart_template(
+                    dog_id, "health_score", theme, "24h"
+                ),
+                await self.get_weather_action_buttons_template(
+                    dog_id, theme, layout="grid"
+                ),
+            ]
+
+            return {
+                "type": "vertical-stack",
+                "cards": cards,
+            }
+
+        else:  # full layout
+            # Full desktop layout with all weather components
+            cards = [
+                # Top row: Status and alerts
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        await self.get_weather_status_card_template(
+                            dog_id, dog_name, theme
+                        ),
+                        await self.get_weather_alerts_card_template(
+                            dog_id, dog_name, theme
+                        ),
+                    ],
+                },
+                # Second row: Charts
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        await self.get_weather_chart_template(
+                            dog_id, "health_score", theme, "24h"
+                        ),
+                        await self.get_weather_chart_template(
+                            dog_id, "temperature", theme, "24h"
+                        ),
+                    ],
+                },
+                # Third row: Recommendations and breed advice
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        await self.get_weather_recommendations_card_template(
+                            dog_id, dog_name, theme
+                        ),
+                        await self.get_weather_breed_advisory_template(
+                            dog_id, dog_name, breed, theme
+                        ),
+                    ],
+                },
+                # Bottom row: Action buttons
+                await self.get_weather_action_buttons_template(
+                    dog_id, theme, layout="horizontal"
+                ),
+            ]
+
+            return {
+                "type": "vertical-stack",
+                "cards": cards,
+            }
 
     @callback
     def get_cache_stats(self) -> dict[str, Any]:

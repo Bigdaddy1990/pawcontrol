@@ -15,6 +15,7 @@ import contextlib
 import json
 import logging
 import math
+import xml.etree.ElementTree as ET
 from collections import deque
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -43,6 +44,12 @@ PATH_POINT_LIMIT = 500  # Limit path points to prevent memory leaks
 STATISTICS_CACHE_TTL = 300  # 5 minutes cache for statistics
 DISTANCE_CALCULATION_CACHE_SIZE = 100
 LOCATION_ANALYSIS_BATCH_SIZE = 10
+
+# GPX Export constants
+GPX_VERSION = "1.1"
+GPX_CREATOR = "PawControl Home Assistant Integration v2.0"
+GPX_NAMESPACE = "http://www.topografix.com/GPX/1/1"
+GPX_SCHEMA_LOCATION = "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
 
 
 class GPSCache:
@@ -207,6 +214,8 @@ class WalkManager:
             "cache_hits": 0,
             "cache_misses": 0,
             "memory_cleanups": 0,
+            "gpx_exports": 0,
+            "export_errors": 0,
         }
 
         # OPTIMIZE: Batch processing for location analysis
@@ -1184,7 +1193,9 @@ class WalkManager:
         format: str = "gpx",
         last_n_walks: int = 1,
     ) -> dict[str, Any] | None:
-        """Export walk routes in specified format.
+        """Export walk routes in specified format with enhanced validation.
+
+        OPTIMIZED: Full GPX 1.1 compliance, robust error handling, comprehensive metadata.
 
         Args:
             dog_id: Dog identifier
@@ -1192,115 +1203,459 @@ class WalkManager:
             last_n_walks: Number of recent walks to export
 
         Returns:
-            Export data or None if no walks found
+            Export data with file paths and metadata, or None if no walks found
         """
-        async with self._data_lock:
-            if dog_id not in self._walk_history:
-                _LOGGER.warning("No walk history found for %s", dog_id)
-                return None
+        try:
+            async with self._data_lock:
+                if dog_id not in self._walk_history:
+                    _LOGGER.warning("No walk history found for %s", dog_id)
+                    return None
 
-            # Get recent walks with routes
-            recent_walks = []
-            for walk in self._walk_history[dog_id][-last_n_walks:]:
-                if walk.get("path") and walk.get("status") == "completed":
-                    recent_walks.append(walk)  # noqa: PERF401
+                # Get recent walks with routes - validate data
+                recent_walks = []
+                for walk in self._walk_history[dog_id][-last_n_walks:]:
+                    if (walk.get("path") and 
+                        walk.get("status") == "completed" and
+                        len(walk["path"]) >= 2):  # At least 2 points for valid route
+                        # Validate route data integrity
+                        valid_path = self._validate_route_data(walk["path"])
+                        if valid_path:
+                            walk_copy = walk.copy()
+                            walk_copy["path"] = valid_path
+                            recent_walks.append(walk_copy)
 
-            if not recent_walks:
-                _LOGGER.warning("No walks with routes found for %s", dog_id)
-                return None
+                if not recent_walks:
+                    _LOGGER.warning("No valid walks with routes found for %s", dog_id)
+                    return None
 
-            export_data = {
-                "dog_id": dog_id,
-                "export_timestamp": dt_util.now().isoformat(),
-                "format": format,
-                "walks_count": len(recent_walks),
-                "walks": recent_walks,
+                # Calculate route statistics
+                total_distance = sum(walk.get("distance", 0) for walk in recent_walks)
+                total_duration = sum(walk.get("duration", 0) for walk in recent_walks)
+                total_points = sum(len(walk.get("path", [])) for walk in recent_walks)
+
+                export_data = {
+                    "dog_id": dog_id,
+                    "export_timestamp": dt_util.now().isoformat(),
+                    "format": format,
+                    "walks_count": len(recent_walks),
+                    "total_distance_meters": round(total_distance, 2),
+                    "total_duration_seconds": round(total_duration, 2),
+                    "total_gps_points": total_points,
+                    "walks": recent_walks,
+                    "export_metadata": {
+                        "creator": GPX_CREATOR,
+                        "version": GPX_VERSION,
+                        "generated_by": "PawControl WalkManager",
+                        "bounds": self._calculate_route_bounds(recent_walks),
+                    }
+                }
+
+                # Generate format-specific data with enhanced error handling
+                if format == "gpx":
+                    try:
+                        export_data["gpx_data"] = self._generate_enhanced_gpx_data(recent_walks, dog_id)
+                        export_data["file_extension"] = ".gpx"
+                        export_data["mime_type"] = "application/gpx+xml"
+                    except Exception as err:
+                        _LOGGER.error("GPX generation failed for %s: %s", dog_id, err)
+                        self._performance_metrics["export_errors"] += 1
+                        return None
+                        
+                elif format == "json":
+                    try:
+                        export_data["json_data"] = json.dumps(recent_walks, indent=2, ensure_ascii=False)
+                        export_data["file_extension"] = ".json"
+                        export_data["mime_type"] = "application/json"
+                    except Exception as err:
+                        _LOGGER.error("JSON generation failed for %s: %s", dog_id, err)
+                        self._performance_metrics["export_errors"] += 1
+                        return None
+                        
+                elif format == "csv":
+                    try:
+                        export_data["csv_data"] = self._generate_enhanced_csv_data(recent_walks)
+                        export_data["file_extension"] = ".csv"
+                        export_data["mime_type"] = "text/csv"
+                    except Exception as err:
+                        _LOGGER.error("CSV generation failed for %s: %s", dog_id, err)
+                        self._performance_metrics["export_errors"] += 1
+                        return None
+                else:
+                    _LOGGER.error("Unsupported export format: %s", format)
+                    return None
+
+                # Update performance metrics
+                self._performance_metrics["gpx_exports"] += 1
+
+                _LOGGER.info(
+                    "Successfully exported %d route(s) for %s in %s format (%.1fm, %d points)",
+                    len(recent_walks),
+                    dog_id,
+                    format,
+                    total_distance,
+                    total_points,
+                )
+
+                return export_data
+
+        except Exception as err:
+            _LOGGER.error("Route export failed for %s: %s", dog_id, err)
+            self._performance_metrics["export_errors"] += 1
+            return None
+
+    def _validate_route_data(self, path: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+        """Validate and clean route data for export.
+
+        Args:
+            path: Raw GPS path data
+
+        Returns:
+            Validated path data or None if invalid
+        """
+        if not path or len(path) < 2:
+            return None
+
+        validated_path = []
+        
+        for point in path:
+            # Validate required GPS data
+            lat = point.get("latitude")
+            lon = point.get("longitude")
+            timestamp = point.get("timestamp")
+
+            if (lat is None or lon is None or timestamp is None or 
+                not (-90 <= lat <= 90) or not (-180 <= lon <= 180)):
+                continue  # Skip invalid points
+
+            # Create validated point with standardized fields
+            validated_point = {
+                "latitude": float(lat),
+                "longitude": float(lon),
+                "timestamp": timestamp,
+                "accuracy": point.get("accuracy"),
+                "speed": point.get("speed"),
+                "altitude": point.get("altitude"),
             }
+            
+            validated_path.append(validated_point)
 
-            if format == "gpx":
-                export_data["gpx_data"] = self._generate_gpx_data(recent_walks)
-            elif format == "json":
-                export_data["json_data"] = json.dumps(recent_walks, indent=2)
-            elif format == "csv":
-                export_data["csv_data"] = self._generate_csv_data(recent_walks)
+        # Return None if too few valid points remain
+        return validated_path if len(validated_path) >= 2 else None
 
-            _LOGGER.info(
-                "Exported %d route(s) for %s in %s format",
-                len(recent_walks),
-                dog_id,
-                format,
-            )
-
-            return export_data
-
-    def _generate_gpx_data(self, walks: list[dict[str, Any]]) -> str:
-        """Generate GPX format data from walks.
+    def _calculate_route_bounds(self, walks: list[dict[str, Any]]) -> dict[str, float]:
+        """Calculate geographic bounds for all routes.
 
         Args:
             walks: List of walk data with paths
 
         Returns:
-            GPX formatted string
+            Bounding box coordinates
         """
-        gpx_lines = [
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            '<gpx version="1.1" creator="PawControl">',
-        ]
+        if not walks:
+            return {"min_lat": 0, "max_lat": 0, "min_lon": 0, "max_lon": 0}
+
+        all_lats = []
+        all_lons = []
 
         for walk in walks:
-            walk_id = walk.get("walk_id", "unknown")
-            start_time = walk.get("start_time", "")
+            for point in walk.get("path", []):
+                lat = point.get("latitude")
+                lon = point.get("longitude")
+                if lat is not None and lon is not None:
+                    all_lats.append(lat)
+                    all_lons.append(lon)
 
-            gpx_lines.append(f'  <trk name="{walk_id}">')
-            gpx_lines.append(f"    <time>{start_time}</time>")
-            gpx_lines.append("    <trkseg>")
+        if not all_lats or not all_lons:
+            return {"min_lat": 0, "max_lat": 0, "min_lon": 0, "max_lon": 0}
+
+        return {
+            "min_lat": min(all_lats),
+            "max_lat": max(all_lats),
+            "min_lon": min(all_lons),
+            "max_lon": max(all_lons),
+        }
+
+    def _generate_enhanced_gpx_data(self, walks: list[dict[str, Any]], dog_id: str) -> str:
+        """Generate GPX 1.1 compliant data with full metadata.
+
+        OPTIMIZED: Full GPX 1.1 standard compliance with proper namespaces,
+        metadata, bounds, waypoints, and track segments.
+
+        Args:
+            walks: List of walk data with validated paths
+            dog_id: Dog identifier for metadata
+
+        Returns:
+            GPX 1.1 compliant XML string
+        """
+        try:
+            # Create root GPX element with proper namespaces
+            root = ET.Element("gpx")
+            root.set("version", GPX_VERSION)
+            root.set("creator", GPX_CREATOR)
+            root.set("xmlns", GPX_NAMESPACE)
+            root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            root.set("xsi:schemaLocation", GPX_SCHEMA_LOCATION)
+
+            # Add metadata
+            metadata = ET.SubElement(root, "metadata")
+            
+            name_elem = ET.SubElement(metadata, "name")
+            name_elem.text = f"PawControl Routes - {dog_id}"
+            
+            desc_elem = ET.SubElement(metadata, "desc")
+            desc_elem.text = f"GPS tracks for {dog_id} exported from PawControl"
+            
+            author_elem = ET.SubElement(metadata, "author")
+            author_name = ET.SubElement(author_elem, "name")
+            author_name.text = "PawControl"
+            
+            time_elem = ET.SubElement(metadata, "time")
+            time_elem.text = dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            # Calculate and add bounds
+            bounds_data = self._calculate_route_bounds(walks)
+            if any(bounds_data.values()):
+                bounds = ET.SubElement(metadata, "bounds")
+                bounds.set("minlat", f"{bounds_data['min_lat']:.6f}")
+                bounds.set("minlon", f"{bounds_data['min_lon']:.6f}")
+                bounds.set("maxlat", f"{bounds_data['max_lat']:.6f}")
+                bounds.set("maxlon", f"{bounds_data['max_lon']:.6f}")
+
+            # Add waypoints for start/end locations
+            for i, walk in enumerate(walks, 1):
+                start_location = walk.get("start_location")
+                end_location = walk.get("end_location")
+                
+                if start_location and start_location.get("latitude") and start_location.get("longitude"):
+                    wpt = ET.SubElement(root, "wpt")
+                    wpt.set("lat", f"{start_location['latitude']:.6f}")
+                    wpt.set("lon", f"{start_location['longitude']:.6f}")
+                    
+                    name_elem = ET.SubElement(wpt, "name")
+                    name_elem.text = f"Walk {i} Start"
+                    
+                    desc_elem = ET.SubElement(wpt, "desc")
+                    desc_elem.text = f"Start of walk {walk.get('walk_id', i)} for {dog_id}"
+                    
+                    if start_location.get("timestamp"):
+                        time_elem = ET.SubElement(wpt, "time")
+                        time_elem.text = self._format_gpx_timestamp(start_location["timestamp"])
+
+                if end_location and end_location.get("latitude") and end_location.get("longitude"):
+                    wpt = ET.SubElement(root, "wpt")
+                    wpt.set("lat", f"{end_location['latitude']:.6f}")
+                    wpt.set("lon", f"{end_location['longitude']:.6f}")
+                    
+                    name_elem = ET.SubElement(wpt, "name")
+                    name_elem.text = f"Walk {i} End"
+                    
+                    desc_elem = ET.SubElement(wpt, "desc")
+                    desc_elem.text = f"End of walk {walk.get('walk_id', i)} for {dog_id}"
+                    
+                    if end_location.get("timestamp"):
+                        time_elem = ET.SubElement(wpt, "time")
+                        time_elem.text = self._format_gpx_timestamp(end_location["timestamp"])
+
+            # Add tracks with enhanced metadata
+            for i, walk in enumerate(walks, 1):
+                track = ET.SubElement(root, "trk")
+                
+                # Track metadata
+                name_elem = ET.SubElement(track, "name")
+                name_elem.text = f"{dog_id} - Walk {i}"
+                
+                desc_elem = ET.SubElement(track, "desc")
+                walk_info = []
+                if walk.get("distance"):
+                    walk_info.append(f"Distance: {walk['distance']:.1f}m")
+                if walk.get("duration"):
+                    walk_info.append(f"Duration: {walk['duration']:.0f}s")
+                if walk.get("walker"):
+                    walk_info.append(f"Walker: {walk['walker']}")
+                if walk.get("weather"):
+                    walk_info.append(f"Weather: {walk['weather']}")
+                desc_elem.text = " | ".join(walk_info) if walk_info else f"Walk for {dog_id}"
+
+                # Track type
+                type_elem = ET.SubElement(track, "type")
+                type_elem.text = walk.get("walk_type", "walk")
+
+                # Track segment
+                trkseg = ET.SubElement(track, "trkseg")
+
+                # Add track points with full data
+                for point in walk.get("path", []):
+                    lat = point.get("latitude")
+                    lon = point.get("longitude")
+                    
+                    if lat is not None and lon is not None:
+                        trkpt = ET.SubElement(trkseg, "trkpt")
+                        trkpt.set("lat", f"{lat:.6f}")
+                        trkpt.set("lon", f"{lon:.6f}")
+
+                        # Add elevation if available
+                        altitude = point.get("altitude")
+                        if altitude is not None:
+                            ele_elem = ET.SubElement(trkpt, "ele")
+                            ele_elem.text = f"{altitude:.1f}"
+
+                        # Add timestamp
+                        timestamp = point.get("timestamp")
+                        if timestamp:
+                            time_elem = ET.SubElement(trkpt, "time")
+                            time_elem.text = self._format_gpx_timestamp(timestamp)
+
+                        # Add speed if available
+                        speed = point.get("speed")
+                        if speed is not None:
+                            speed_elem = ET.SubElement(trkpt, "speed")
+                            speed_elem.text = f"{speed:.2f}"
+
+                        # Add accuracy as horizontal dilution of precision
+                        accuracy = point.get("accuracy")
+                        if accuracy is not None:
+                            hdop_elem = ET.SubElement(trkpt, "hdop")
+                            hdop_elem.text = f"{accuracy:.1f}"
+
+            # Convert to string with proper formatting
+            ET.indent(root, space="  ", level=0)
+            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding='unicode')
+
+        except Exception as err:
+            _LOGGER.error("Enhanced GPX generation failed: %s", err)
+            raise
+
+    def _format_gpx_timestamp(self, timestamp: str) -> str:
+        """Format timestamp for GPX compliance.
+
+        Args:
+            timestamp: ISO timestamp string
+
+        Returns:
+            GPX-compliant timestamp string
+        """
+        try:
+            # Parse the timestamp and ensure UTC format
+            dt = dt_util.parse_datetime(timestamp)
+            if dt is None:
+                return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+            
+            # Convert to UTC if not already
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=dt_util.UTC)
+            elif dt.tzinfo != dt_util.UTC:
+                dt = dt.astimezone(dt_util.UTC)
+            
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except (ValueError, TypeError):
+            # Fallback to current time if parsing fails
+            return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def _generate_enhanced_csv_data(self, walks: list[dict[str, Any]]) -> str:
+        """Generate enhanced CSV format data with comprehensive metadata.
+
+        Args:
+            walks: List of walk data with paths
+
+        Returns:
+            Enhanced CSV formatted string with headers and metadata
+        """
+        csv_lines = [
+            "# PawControl Route Export",
+            f"# Generated: {dt_util.now().isoformat()}",
+            f"# Total Walks: {len(walks)}",
+            f"# Creator: {GPX_CREATOR}",
+            "#",
+            "walk_id,walk_number,timestamp,latitude,longitude,altitude,accuracy,speed,duration_from_start,distance_from_start,weather,walker,notes"
+        ]
+
+        for walk_num, walk in enumerate(walks, 1):
+            walk_id = walk.get("walk_id", f"walk_{walk_num}")
+            weather = walk.get("weather", "")
+            walker = walk.get("walker", "")
+            notes = walk.get("notes", "").replace(",", ";").replace("\n", " ")  # CSV safe
+            
+            start_time = None
+            if walk.get("start_time"):
+                start_time = dt_util.parse_datetime(walk["start_time"])
+
+            cumulative_distance = 0.0
+            last_point = None
 
             for point in walk.get("path", []):
                 lat = point.get("latitude")
                 lon = point.get("longitude")
-                alt = point.get("altitude")
-                timestamp = point.get("timestamp", "")
-
-                if lat is not None and lon is not None:
-                    ele_attr = f' ele="{alt}"' if alt is not None else ""
-                    gpx_lines.append(f'      <trkpt lat="{lat}" lon="{lon}"{ele_attr}>')
-                    if timestamp:
-                        gpx_lines.append(f"        <time>{timestamp}</time>")
-                    gpx_lines.append("      </trkpt>")
-
-            gpx_lines.append("    </trkseg>")
-            gpx_lines.append("  </trk>")
-
-        gpx_lines.append("</gpx>")
-        return "\n".join(gpx_lines)
-
-    def _generate_csv_data(self, walks: list[dict[str, Any]]) -> str:
-        """Generate CSV format data from walks.
-
-        Args:
-            walks: List of walk data with paths
-
-        Returns:
-            CSV formatted string
-        """
-        csv_lines = ["walk_id,timestamp,latitude,longitude,altitude,accuracy,speed"]
-
-        for walk in walks:
-            walk_id = walk.get("walk_id", "unknown")
-
-            for point in walk.get("path", []):
-                lat = point.get("latitude", "")
-                lon = point.get("longitude", "")
                 alt = point.get("altitude", "")
                 acc = point.get("accuracy", "")
                 speed = point.get("speed", "")
                 timestamp = point.get("timestamp", "")
 
+                # Calculate duration from start
+                duration_from_start = ""
+                if timestamp and start_time:
+                    try:
+                        point_time = dt_util.parse_datetime(timestamp)
+                        if point_time:
+                            duration_from_start = (point_time - start_time).total_seconds()
+                    except (ValueError, TypeError):
+                        pass
+
+                # Calculate cumulative distance
+                if last_point and lat is not None and lon is not None:
+                    last_lat, last_lon = last_point
+                    point_distance = self._gps_cache.calculate_distance_cached(
+                        (last_lat, last_lon), (lat, lon)
+                    )
+                    cumulative_distance += point_distance
+
                 csv_lines.append(
-                    f"{walk_id},{timestamp},{lat},{lon},{alt},{acc},{speed}"
+                    f"{walk_id},{walk_num},{timestamp},{lat},{lon},{alt},{acc},{speed},{duration_from_start},{cumulative_distance:.1f},{weather},{walker},{notes}"
                 )
 
+                if lat is not None and lon is not None:
+                    last_point = (lat, lon)
+
         return "\n".join(csv_lines)
+
+    async def async_configure_automatic_gps(
+        self, dog_id: str, config: dict[str, Any]
+    ) -> bool:
+        """Configure automatic GPS settings for a dog.
+
+        Args:
+            dog_id: Dog identifier
+            config: GPS configuration dictionary
+
+        Returns:
+            True if configuration successful
+        """
+        try:
+            async with self._data_lock:
+                if dog_id not in self._gps_data:
+                    _LOGGER.warning("Dog %s not initialized for GPS configuration", dog_id)
+                    return False
+
+                # Store GPS configuration
+                self._gps_data[dog_id]["automatic_config"] = config.copy()
+                
+                # Update detection parameters based on config
+                if config.get("gps_accuracy_threshold"):
+                    self._gps_data[dog_id]["accuracy_threshold"] = config["gps_accuracy_threshold"]
+                
+                if config.get("update_interval_seconds"):
+                    self._gps_data[dog_id]["update_interval"] = config["update_interval_seconds"]
+
+                _LOGGER.info(
+                    "Configured automatic GPS for %s: %s",
+                    dog_id,
+                    {k: v for k, v in config.items() if k not in ["safe_zone_radius"]}
+                )
+                return True
+
+        except Exception as err:
+            _LOGGER.error("Failed to configure automatic GPS for %s: %s", dog_id, err)
+            return False
 
     async def async_shutdown(self) -> None:
         """Enhanced shutdown method."""

@@ -31,10 +31,14 @@ from .const import (
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_WEATHER_ENTITY,
+    CONF_WEATHER_HEALTH_MONITORING,
+    DEFAULT_WEATHER_HEALTH_MONITORING,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
+    MODULE_WEATHER,
     UPDATE_INTERVALS,
 )
 from .exceptions import (
@@ -48,9 +52,10 @@ from .types import DogConfigData, PawControlConfigEntry
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
-    from .geofencing import PawControlGeofencing
+    from .gps_manager import GPSGeofenceManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
+    from .weather_manager import WeatherHealthManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,7 +147,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.feeding_manager: FeedingManager | None = None
         self.walk_manager: WalkManager | None = None
         self.notification_manager: PawControlNotificationManager | None = None
-        self.geofencing_manager: PawControlGeofencing | None = None
+        self.gps_geofence_manager: GPSGeofenceManager | None = None
+        self.weather_health_manager: WeatherHealthManager | None = None
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -168,7 +174,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         feeding_manager: FeedingManager,
         walk_manager: WalkManager,
         notification_manager: PawControlNotificationManager,
-        geofencing_manager: PawControlGeofencing | None = None,
+        gps_geofence_manager: GPSGeofenceManager | None = None,
+        weather_health_manager: WeatherHealthManager | None = None,
     ) -> None:
         """Attach runtime managers for service integration.
 
@@ -177,15 +184,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             feeding_manager: Feeding tracking service
             walk_manager: Walk tracking service
             notification_manager: Notification service
-            geofencing_manager: Geofencing service (optional)
+            gps_geofence_manager: GPS and geofencing service (optional)
+            weather_health_manager: Weather health service (optional)
         """
         self.data_manager = data_manager
         self.feeding_manager = feeding_manager
         self.walk_manager = walk_manager
         self.notification_manager = notification_manager
-        self.geofencing_manager = geofencing_manager
+        self.gps_geofence_manager = gps_geofence_manager
+        self.weather_health_manager = weather_health_manager
         _LOGGER.debug(
-            "Runtime managers attached (geofencing: %s)", bool(geofencing_manager)
+            "Runtime managers attached (gps_geofence: %s, weather: %s)", 
+            bool(gps_geofence_manager), bool(weather_health_manager)
         )
 
     def clear_runtime_managers(self) -> None:
@@ -194,7 +204,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.feeding_manager = None
         self.walk_manager = None
         self.notification_manager = None
-        self.geofencing_manager = None
+        self.gps_geofence_manager = None
+        self.weather_health_manager = None
 
     def _get_cache(self, key: str) -> Any | None:
         """Get item from cache if not expired.
@@ -438,11 +449,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             module_tasks.append(("walk", self._get_walk_data(dog_id)))
         if modules.get(MODULE_GPS):
             module_tasks.append(("gps", self._get_gps_data(dog_id)))
-            # Include geofencing data if geofencing manager is available and GPS is enabled
-            if self.geofencing_manager and self.geofencing_manager.is_enabled():
+            # Include geofencing data if GPS manager is available and GPS is enabled
+            if self.gps_geofence_manager:
                 module_tasks.append(("geofencing", self._get_geofencing_data(dog_id)))
         if modules.get(MODULE_HEALTH):
             module_tasks.append(("health", self._get_health_data(dog_id)))
+        if modules.get(MODULE_WEATHER):
+            module_tasks.append(("weather", self._get_weather_data(dog_id)))
 
         # Execute module tasks concurrently with enhanced error handling
         if module_tasks:
@@ -557,17 +570,34 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             GPSUnavailableError: If GPS data is not available
         """
-        # Simulate GPS unavailability for demonstration
-        if not self._use_external_api:
-            raise GPSUnavailableError(dog_id, "External API disabled")
-
-        return {
-            "latitude": None,
-            "longitude": None,
-            "accuracy": None,
-            "last_update": None,
-            "status": "unknown",
-        }
+        if not self.gps_geofence_manager:
+            raise GPSUnavailableError(dog_id, "GPS manager not available")
+            
+        try:
+            # Get current location
+            current_location = await self.gps_geofence_manager.async_get_current_location(dog_id)
+            
+            # Get active route if any
+            active_route = await self.gps_geofence_manager.async_get_active_route(dog_id)
+            
+            return {
+                "latitude": current_location.latitude if current_location else None,
+                "longitude": current_location.longitude if current_location else None,
+                "accuracy": current_location.accuracy if current_location else None,
+                "last_update": current_location.timestamp.isoformat() if current_location else None,
+                "source": current_location.source.value if current_location else None,
+                "status": "tracking" if active_route and active_route.is_active else "ready",
+                "active_route": {
+                    "start_time": active_route.start_time.isoformat(),
+                    "duration_minutes": active_route.duration_minutes,
+                    "distance_km": active_route.distance_km,
+                    "points_count": len(active_route.gps_points),
+                } if active_route and active_route.is_active else None,
+            }
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to get GPS data for %s: %s", dog_id, err)
+            raise GPSUnavailableError(dog_id, str(err)) from err
 
     async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
         """Get health data for dog.
@@ -584,6 +614,61 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "medications": [],
             "status": "healthy",
         }
+        
+    async def _get_weather_data(self, dog_id: str) -> dict[str, Any]:
+        """Get weather health data for dog.
+
+        Args:
+            dog_id: Dog identifier
+
+        Returns:
+            Weather health data dictionary
+        """
+        if not self.weather_health_manager:
+            return {"status": "disabled", "health_score": None, "alerts": []}
+            
+        try:
+            # Update weather data from configured entity
+            weather_entity = self.config_entry.options.get(CONF_WEATHER_ENTITY)
+            if weather_entity:
+                await self.weather_health_manager.async_update_weather_data(weather_entity)
+            
+            # Get weather health information
+            weather_conditions = self.weather_health_manager.get_current_conditions()
+            weather_score = self.weather_health_manager.get_weather_health_score()
+            active_alerts = self.weather_health_manager.get_active_alerts()
+            
+            # Get dog-specific recommendations
+            dog_config = self.get_dog_config(dog_id)
+            recommendations = []
+            if dog_config:
+                recommendations = self.weather_health_manager.get_recommendations_for_dog(
+                    dog_breed=dog_config.get("breed"),
+                    dog_age_months=dog_config.get("age_months"),
+                    health_conditions=dog_config.get("health_conditions", []),
+                )
+            
+            return {
+                "status": "active" if weather_conditions and weather_conditions.is_valid else "no_data",
+                "health_score": weather_score,
+                "temperature_c": weather_conditions.temperature_c if weather_conditions else None,
+                "condition": weather_conditions.condition if weather_conditions else None,
+                "alerts": [
+                    {
+                        "type": alert.alert_type.value,
+                        "severity": alert.severity.value,
+                        "title": alert.title,
+                        "message": alert.message,
+                    }
+                    for alert in active_alerts[:3]  # Limit to 3 most important
+                ],
+                "recommendations": recommendations[:5],  # Limit to 5 recommendations
+                "last_updated": weather_conditions.last_updated.isoformat() if weather_conditions else None,
+            }
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to get weather data for %s: %s", dog_id, err)
+            return {"status": "error", "error": str(err)}
 
     async def _get_geofencing_data(self, dog_id: str) -> dict[str, Any]:
         """Get geofencing data for dog.
@@ -594,43 +679,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Geofencing data dictionary
         """
-        if not self.geofencing_manager:
+        if not self.gps_geofence_manager:
             return {"status": "disabled", "zones": []}
 
-        dog_state = self.geofencing_manager.get_dog_state(dog_id)
-        if not dog_state:
-            return {"status": "no_location", "zones": []}
-
-        zones = self.geofencing_manager.get_zones()
-        current_zones = [
-            {
-                "id": zone_id,
-                "name": zones[zone_id].name,
-                "type": zones[zone_id].type.value,
-                "entry_time": dog_state.zone_entry_times.get(zone_id),
+        try:
+            # Get geofence status from GPS manager
+            geofence_status = await self.gps_geofence_manager.async_get_geofence_status(dog_id)
+            
+            return {
+                "status": "active" if geofence_status.get("current_location") else "no_location",
+                "zones_configured": geofence_status.get("zones_configured", 0),
+                "safe_zone_breaches": geofence_status.get("safe_zone_breaches", 0),
+                "current_location": geofence_status.get("current_location"),
+                "zone_status": geofence_status.get("zone_status", {}),
+                "last_update": geofence_status.get("last_update"),
             }
-            for zone_id in dog_state.current_zones
-            if zone_id in zones
-        ]
-
-        return {
-            "status": "active" if current_zones else "outside_zones",
-            "current_zones": current_zones,
-            "last_location": {
-                "latitude": dog_state.last_location.latitude
-                if dog_state.last_location
-                else None,
-                "longitude": dog_state.last_location.longitude
-                if dog_state.last_location
-                else None,
-                "timestamp": dog_state.last_location.timestamp.isoformat()
-                if dog_state.last_location
-                else None,
-            }
-            if dog_state.last_location
-            else None,
-            "total_zones": len(zones),
-        }
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to get geofencing data for %s: %s", dog_id, err)
+            return {"status": "error", "error": str(err)}
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
         """Get empty dog data structure.
@@ -672,6 +739,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not isinstance(gps_interval, int) or gps_interval <= 0:
                 raise ValueError(f"Invalid GPS update interval: {gps_interval}")
             return gps_interval
+
+        # Check for weather module - needs frequent updates for accurate health alerts
+        has_weather = any(
+            dog.get("modules", {}).get(MODULE_WEATHER, False) for dog in self._dogs_config
+        )
+        
+        if has_weather:
+            return UPDATE_INTERVALS.get("frequent", 60)
 
         # Calculate based on enabled modules
         total_modules = sum(

@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -151,6 +151,7 @@ def _create_core_entities(
         PawControlDogStatusSensor(coordinator, dog_id, dog_name),
         PawControlLastActionSensor(coordinator, dog_id, dog_name),
         PawControlActivityScoreSensor(coordinator, dog_id, dog_name),
+        PawControlActivityLevelSensor(coordinator, dog_id, dog_name),  # NEW: Critical missing sensor
     ]
 
 
@@ -171,38 +172,51 @@ async def _create_module_entities(
             "basic": [
                 ("last_feeding", PawControlLastFeedingSensor, 8),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
+                ("daily_portions", PawControlDailyPortionsSensor, 6),
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 5),  # NEW: Critical missing sensor
             ],
             "standard": [
                 ("last_feeding", PawControlLastFeedingSensor, 8),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
+                ("daily_portions", PawControlDailyPortionsSensor, 6),
+                ("food_consumption", PawControlFoodConsumptionSensor, 5),
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 5),  # NEW: Critical missing sensor
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    6,
+                    4,
                 ),
-                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 5),
+                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 3),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 2),
             ],
             "advanced": [
                 ("last_feeding", PawControlLastFeedingSensor, 8),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
+                ("daily_portions", PawControlDailyPortionsSensor, 6),
+                ("food_consumption", PawControlFoodConsumptionSensor, 5),
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 5),  # NEW: Critical missing sensor
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    6,
+                    4,
                 ),
-                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 5),
-                ("health_aware_portion", PawControlHealthAwarePortionSensor, 4),
-                ("feeding_recommendation", PawControlFeedingRecommendationSensor, 3),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 3),
+                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 2),
+                ("health_aware_portion", PawControlHealthAwarePortionSensor, 1),
+                ("feeding_recommendation", PawControlFeedingRecommendationSensor, 0),
             ],
             "health_focus": [
                 ("health_aware_portion", PawControlHealthAwarePortionSensor, 8),
-                ("daily_calories", PawControlDailyCaloriesSensor, 7),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 7),
+                ("daily_calories", PawControlDailyCaloriesSensor, 6),
+                ("daily_portions", PawControlDailyPortionsSensor, 5),
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 4),  # NEW: Critical missing sensor
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    6,
+                    3,
                 ),
-                ("diet_validation_status", PawControlDietValidationStatusSensor, 5),
+                ("diet_validation_status", PawControlDietValidationStatusSensor, 2),
             ],
         },
         "walk": {
@@ -213,7 +227,8 @@ async def _create_module_entities(
                     "walk_distance_today",
                     PawControlWalkDistanceTodaySensor,
                     6,
-                ),  # NEW: Critical missing sensor
+                ),
+                ("calories_burned_today", PawControlCaloriesBurnedTodaySensor, 5),  # NEW: Critical missing sensor
             ],
             "standard": [
                 ("last_walk", PawControlLastWalkSensor, 8),
@@ -222,9 +237,12 @@ async def _create_module_entities(
                     "walk_distance_today",
                     PawControlWalkDistanceTodaySensor,
                     6,
-                ),  # NEW: Critical missing sensor
-                ("last_walk_duration", PawControlLastWalkDurationSensor, 5),
-                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 4),
+                ),
+                ("calories_burned_today", PawControlCaloriesBurnedTodaySensor, 5),  # NEW: Critical missing sensor
+                ("last_walk_duration", PawControlLastWalkDurationSensor, 4),
+                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 3),
+                ("total_walk_distance", PawControlTotalWalkDistanceSensor, 2),  # NEW: Critical missing sensor
+                ("walks_this_week", PawControlWalksThisWeekSensor, 1),  # NEW: Critical missing sensor
             ],
             "gps_focus": [
                 ("last_walk", PawControlLastWalkSensor, 8),
@@ -232,10 +250,13 @@ async def _create_module_entities(
                     "walk_distance_today",
                     PawControlWalkDistanceTodaySensor,
                     7,
-                ),  # NEW: Higher priority for GPS
-                ("walk_count_today", PawControlWalkCountTodaySensor, 6),
-                ("last_walk_distance", PawControlLastWalkDistanceSensor, 5),
-                ("average_walk_duration", PawControlAverageWalkDurationSensor, 4),
+                ),
+                ("total_walk_distance", PawControlTotalWalkDistanceSensor, 6),  # NEW: Higher priority for GPS
+                ("walk_count_today", PawControlWalkCountTodaySensor, 5),
+                ("walks_this_week", PawControlWalksThisWeekSensor, 4),  # NEW: Critical missing sensor
+                ("calories_burned_today", PawControlCaloriesBurnedTodaySensor, 3),  # NEW: Critical missing sensor
+                ("last_walk_distance", PawControlLastWalkDistanceSensor, 2),
+                ("average_walk_duration", PawControlAverageWalkDurationSensor, 1),
             ],
         },
         "gps": {
@@ -727,6 +748,117 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             return None
 
 
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("activity_level")
+class PawControlActivityLevelSensor(PawControlSensorBase):
+    """Sensor for current activity level classification.
+
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as critical. Provides categorical activity level (low/medium/high).
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "activity_level",
+            icon="mdi:speedometer",
+            translation_key="activity_level",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return current activity level classification."""
+        dog_data = self._get_dog_data()
+        if not dog_data:
+            return STATE_UNKNOWN
+
+        try:
+            # Get current activity metrics
+            walk_data = dog_data.get("walk", {})
+            gps_data = dog_data.get("gps", {})
+
+            # Check if currently walking
+            if walk_data.get("walk_in_progress", False):
+                current_speed = float(gps_data.get("current_speed", 0))
+                if current_speed > 8:  # km/h - running
+                    return "high"
+                elif current_speed > 3:  # km/h - fast walk
+                    return "medium"
+                else:
+                    return "low"
+
+            # Calculate based on recent activity (today)
+            walks_today = int(walk_data.get("walks_today", 0))
+            total_duration = float(walk_data.get("total_duration_today", 0))
+            total_distance = float(walk_data.get("total_distance_today", 0))
+
+            # Calculate activity intensity score
+            if walks_today == 0:
+                return "inactive"
+
+            # Weighted scoring: walks * duration * distance
+            activity_score = (walks_today * 0.3) + (total_duration / 60 * 0.4) + (total_distance / 1000 * 0.3)
+
+            if activity_score >= 3:
+                return "high"
+            elif activity_score >= 1.5:
+                return "medium"
+            elif activity_score > 0:
+                return "low"
+            else:
+                return "inactive"
+
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Error calculating activity level for %s: %s", self._dog_id, err)
+            return STATE_UNKNOWN
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for activity level sensor."""
+        attrs = super().extra_state_attributes
+
+        dog_data = self._get_dog_data()
+        if dog_data:
+            walk_data = dog_data.get("walk", {})
+            gps_data = dog_data.get("gps", {})
+
+            with contextlib.suppress(TypeError, ValueError):
+                attrs.update(
+                    {
+                        "walk_in_progress": bool(walk_data.get("walk_in_progress", False)),
+                        "current_speed_kmh": float(gps_data.get("current_speed", 0)),
+                        "walks_today": int(walk_data.get("walks_today", 0)),
+                        "total_duration_minutes": float(walk_data.get("total_duration_today", 0)),
+                        "total_distance_meters": float(walk_data.get("total_distance_today", 0)),
+                        "activity_recommendation": self._get_activity_recommendation(walk_data),
+                    }
+                )
+
+        return attrs
+
+    def _get_activity_recommendation(self, walk_data: dict[str, Any]) -> str:
+        """Get activity recommendation based on current level."""
+        try:
+            walks_today = int(walk_data.get("walks_today", 0))
+            total_duration = float(walk_data.get("total_duration_today", 0))
+
+            if walks_today == 0:
+                return "schedule_first_walk"
+            elif walks_today < 2:
+                return "needs_more_walks"
+            elif total_duration < 30:
+                return "extend_walk_duration"
+            else:
+                return "activity_goals_met"
+
+        except (TypeError, ValueError):
+            return "unable_to_assess"
+
+
 # Feeding Sensors
 
 
@@ -764,6 +896,110 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
         _LOGGER.debug("Invalid last_feeding timestamp: %s", last_feeding)
 
         return None
+
+
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("last_feeding_hours")
+class PawControlLastFeedingHoursSensor(PawControlSensorBase):
+    """Sensor for hours since last feeding.
+
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as critical for automation purposes.
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_feeding_hours",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.HOURS,
+            icon="mdi:clock-outline",
+            translation_key="last_feeding_hours",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return hours since last feeding."""
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        last_feeding = feeding_data.get("last_feeding")
+        if not last_feeding:
+            return None
+
+        try:
+            last_feeding_dt = ensure_utc_datetime(last_feeding)
+            if last_feeding_dt is None:
+                return None
+
+            now = dt_util.utcnow()
+            time_delta = now - last_feeding_dt
+            hours_since = time_delta.total_seconds() / 3600
+
+            return round(hours_since, 1)
+
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Error calculating hours since last feeding for %s: %s", self._dog_id, err)
+            return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for hours since feeding sensor."""
+        attrs = super().extra_state_attributes
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError):
+                last_feeding = feeding_data.get("last_feeding")
+                if last_feeding:
+                    last_feeding_dt = ensure_utc_datetime(last_feeding)
+                    if last_feeding_dt:
+                        now = dt_util.utcnow()
+                        time_delta = now - last_feeding_dt
+                        
+                        attrs.update(
+                            {
+                                "last_feeding_timestamp": last_feeding_dt.isoformat(),
+                                "minutes_since_feeding": round(time_delta.total_seconds() / 60, 1),
+                                "feeding_status": self._get_feeding_status(time_delta),
+                                "next_feeding_due": self._calculate_next_feeding_due(feeding_data, last_feeding_dt),
+                            }
+                        )
+
+        return attrs
+
+    def _get_feeding_status(self, time_delta: timedelta) -> str:
+        """Get feeding status based on time since last feeding."""
+        hours_since = time_delta.total_seconds() / 3600
+        
+        if hours_since < 2:
+            return "recently_fed"
+        elif hours_since < 6:
+            return "normal_interval"
+        elif hours_since < 12:
+            return "getting_hungry"
+        else:
+            return "overdue"
+
+    def _calculate_next_feeding_due(self, feeding_data: dict[str, Any], last_feeding: datetime) -> str | None:
+        """Calculate when next feeding is due."""
+        try:
+            meals_per_day = int(feeding_data.get("config", {}).get("meals_per_day", 2))
+            if meals_per_day <= 0:
+                return None
+            
+            hours_between_meals = 24 / meals_per_day
+            next_feeding = last_feeding + timedelta(hours=hours_between_meals)
+            
+            return next_feeding.isoformat()
+
+        except (TypeError, ValueError, KeyError):
+            return None
 
 
 @register_sensor("daily_calories")
@@ -984,6 +1220,210 @@ class PawControlDietValidationStatusSensor(PawControlSensorBase):
             return "validation_error"
 
 
+@register_sensor("daily_portions")
+class PawControlDailyPortionsSensor(PawControlSensorBase):
+    """Sensor for daily portions count."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "daily_portions",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon="mdi:counter",
+            translation_key="daily_portions",
+        )
+
+    @property
+    def native_value(self) -> int:
+        """Return number of portions given today."""
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return 0
+
+        try:
+            # Use total feedings as portions count
+            portions = feeding_data.get("total_portions_today", 
+                                       feeding_data.get("total_feedings_today", 0))
+            return int(portions)
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for portions sensor."""
+        attrs = super().extra_state_attributes
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError):
+                attrs.update(
+                    {
+                        "target_portions": int(feeding_data.get("target_portions_per_day", 2)),
+                        "remaining_portions": max(0, 
+                                                 int(feeding_data.get("target_portions_per_day", 2)) - 
+                                                 int(feeding_data.get("total_portions_today", 0))),
+                        "last_portion_time": feeding_data.get("last_feeding"),
+                        "portion_schedule_adherence": float(feeding_data.get("feeding_schedule_adherence", 100.0)),
+                    }
+                )
+
+        return attrs
+
+
+@register_sensor("calorie_goal_progress")
+class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
+    """Sensor for calorie goal progress percentage."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "calorie_goal_progress",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=PERCENTAGE,
+            icon="mdi:progress-check",
+            translation_key="calorie_goal_progress",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return percentage progress towards daily calorie goal."""
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return 0.0
+
+        try:
+            calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+            calorie_target = float(feeding_data.get("daily_calorie_target", 
+                                                   feeding_data.get("target_calories_per_day", 1000.0)))
+            
+            if calorie_target <= 0:
+                return 0.0
+            
+            progress = (calories_consumed / calorie_target) * 100
+            return round(min(progress, 150.0), 1)  # Cap at 150% to show overfeeding
+            
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for calorie progress sensor."""
+        attrs = super().extra_state_attributes
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calorie_target = float(feeding_data.get("daily_calorie_target", 
+                                                       feeding_data.get("target_calories_per_day", 1000.0)))
+                
+                attrs.update(
+                    {
+                        "calories_consumed": calories_consumed,
+                        "calorie_target": calorie_target,
+                        "calories_remaining": max(0, calorie_target - calories_consumed),
+                        "over_target": calories_consumed > calorie_target,
+                        "over_target_amount": max(0, calories_consumed - calorie_target),
+                        "target_met": calories_consumed >= calorie_target,
+                        "progress_status": (
+                            "over_target" if calories_consumed > calorie_target * 1.1 else
+                            "on_target" if calories_consumed >= calorie_target * 0.9 else
+                            "under_target"
+                        ),
+                    }
+                )
+
+        return attrs
+
+
+@register_sensor("food_consumption")
+class PawControlFoodConsumptionSensor(PawControlSensorBase):
+    """Sensor for food consumption tracking."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "food_consumption",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit_of_measurement=UnitOfMass.GRAMS,
+            icon="mdi:food-drumstick",
+            translation_key="food_consumption",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return total food consumption today in grams."""
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return 0.0
+
+        try:
+            # Sum up actual food amounts consumed
+            total_consumption = float(feeding_data.get("total_food_consumed_today", 0.0))
+            
+            # Fallback calculation from feedings if total not available
+            if total_consumption == 0.0:
+                feedings_today = feeding_data.get("feedings_today", [])
+                if isinstance(feedings_today, list):
+                    for feeding in feedings_today:
+                        if isinstance(feeding, dict):
+                            amount = float(feeding.get("amount", 0.0))
+                            total_consumption += amount
+            
+            return round(total_consumption, 1)
+            
+        except (TypeError, ValueError):
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for food consumption sensor."""
+        attrs = super().extra_state_attributes
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError):
+                feedings = feeding_data.get("feedings_today", [])
+                food_types = set()
+                meal_types = set()
+                
+                for feeding in feedings if isinstance(feedings, list) else []:
+                    if isinstance(feeding, dict):
+                        if feeding.get("food_type"):
+                            food_types.add(feeding["food_type"])
+                        if feeding.get("meal_type"):
+                            meal_types.add(feeding["meal_type"])
+                
+                target_daily = float(feeding_data.get("daily_amount_target", 500.0))
+                consumed = float(feeding_data.get("total_food_consumed_today", 0.0))
+                
+                attrs.update(
+                    {
+                        "target_daily_grams": target_daily,
+                        "remaining_grams": max(0, target_daily - consumed),
+                        "consumption_percentage": round((consumed / target_daily) * 100, 1) if target_daily > 0 else 0,
+                        "food_types_today": sorted(list(food_types)),
+                        "meal_types_today": sorted(list(meal_types)),
+                        "feedings_count": len(feedings) if isinstance(feedings, list) else 0,
+                        "average_portion_size": round(consumed / max(1, len(feedings)), 1) if isinstance(feedings, list) and feedings else 0,
+                    }
+                )
+
+        return attrs
+
+
 # Walk Sensors
 
 
@@ -1052,14 +1492,9 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
             return 0
 
 
-# NEW: Critical missing sensor per requirements inventory
 @register_sensor("walk_distance_today")
 class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
-    """Sensor for total walk distance today.
-
-    NEW: This sensor was identified as missing in requirements_inventory.md
-    and marked as MUSS (must have) priority. Implements daily walk distance tracking.
-    """
+    """Sensor for total walk distance today."""
 
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
@@ -1107,6 +1542,297 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
                             / max(1, int(walk_data.get("walks_today", 1))),
                             1,
                         ),
+                    }
+                )
+
+        return attrs
+
+
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("calories_burned_today")
+class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
+    """Sensor for calories burned today through activity.
+
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as critical for health tracking and automation purposes.
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "calories_burned_today",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            icon="mdi:fire",
+            translation_key="calories_burned_today",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return total calories burned today through activity."""
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0.0
+
+        try:
+            # Direct value if available
+            calories_burned = walk_data.get("calories_burned_today")
+            if calories_burned is not None:
+                return round(float(calories_burned), 1)
+
+            # Calculate based on walk activity
+            return self._calculate_calories_from_activity(walk_data)
+
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Error calculating calories burned for %s: %s", self._dog_id, err)
+            return 0.0
+
+    def _calculate_calories_from_activity(self, walk_data: dict[str, Any]) -> float:
+        """Calculate calories burned from walk activity data."""
+        try:
+            # Get dog weight for calculation
+            dog_data = self._get_dog_data()
+            if not dog_data:
+                return 0.0
+
+            dog_weight = float(dog_data.get("dog_info", {}).get("dog_weight", 25))  # Default 25kg
+            
+            # Get walk metrics
+            total_duration_minutes = float(walk_data.get("total_duration_today", 0))
+            total_distance_meters = float(walk_data.get("total_distance_today", 0))
+            
+            if total_duration_minutes == 0:
+                return 0.0
+
+            # Basic calorie calculation for dogs:
+            # Approximately 0.8 calories per kg per minute of moderate activity
+            # Adjusted by distance (more distance = higher intensity)
+            
+            base_calories = dog_weight * total_duration_minutes * 0.8
+            
+            # Distance adjustment (higher speed = more calories)
+            if total_distance_meters > 0:
+                speed_kmh = (total_distance_meters / 1000) / (total_duration_minutes / 60)
+                intensity_factor = 1.0
+                
+                if speed_kmh > 8:  # Running
+                    intensity_factor = 1.8
+                elif speed_kmh > 5:  # Fast walking
+                    intensity_factor = 1.4
+                elif speed_kmh > 3:  # Normal walking
+                    intensity_factor = 1.0
+                else:  # Slow walking
+                    intensity_factor = 0.8
+                
+                base_calories *= intensity_factor
+
+            return round(base_calories, 1)
+
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for calories burned sensor."""
+        attrs = super().extra_state_attributes
+
+        walk_data = self._get_module_data("walk")
+        if walk_data:
+            with contextlib.suppress(TypeError, ValueError):
+                dog_data = self._get_dog_data()
+                dog_weight = float(dog_data.get("dog_info", {}).get("dog_weight", 25)) if dog_data else 25
+                
+                total_duration = float(walk_data.get("total_duration_today", 0))
+                total_distance = float(walk_data.get("total_distance_today", 0))
+                
+                attrs.update(
+                    {
+                        "dog_weight_kg": dog_weight,
+                        "activity_duration_minutes": total_duration,
+                        "activity_distance_meters": total_distance,
+                        "average_intensity": (
+                            "high" if total_distance / max(1, total_duration) * 60 > 5000 else
+                            "medium" if total_distance / max(1, total_duration) * 60 > 3000 else
+                            "low"
+                        ),
+                        "calories_per_hour": round(
+                            (self.native_value or 0) / max(0.1, total_duration / 60), 1
+                        ) if total_duration > 0 else 0,
+                    }
+                )
+
+        return attrs
+
+
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("total_walk_distance")
+class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
+    """Sensor for total cumulative walk distance.
+
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as critical. Tracks total distance over all recorded walks.
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "total_walk_distance",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            unit_of_measurement=UnitOfLength.KILOMETERS,
+            icon="mdi:map-marker-path",
+            translation_key="total_walk_distance",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return total cumulative walk distance in kilometers."""
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0.0
+
+        try:
+            # Check for direct total distance value
+            total_distance = walk_data.get("total_distance_all_time")
+            if total_distance is not None:
+                return round(float(total_distance) / 1000, 2)  # Convert to km
+
+            # Fallback: use cumulative calculation
+            cumulative_distance = walk_data.get("cumulative_distance_meters", 0)
+            return round(float(cumulative_distance) / 1000, 2)  # Convert to km
+
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Error calculating total walk distance for %s: %s", self._dog_id, err)
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for total walk distance sensor."""
+        attrs = super().extra_state_attributes
+
+        walk_data = self._get_module_data("walk")
+        if walk_data:
+            with contextlib.suppress(TypeError, ValueError):
+                total_distance_m = float(walk_data.get("cumulative_distance_meters", 0))
+                total_walks = int(walk_data.get("total_walks_recorded", 0))
+                
+                attrs.update(
+                    {
+                        "total_distance_meters": total_distance_m,
+                        "total_walks_recorded": total_walks,
+                        "average_distance_per_walk_km": round(
+                            (total_distance_m / 1000) / max(1, total_walks), 2
+                        ) if total_walks > 0 else 0,
+                        "distance_this_week_km": round(
+                            float(walk_data.get("total_distance_this_week", 0)) / 1000, 2
+                        ),
+                        "distance_this_month_km": round(
+                            float(walk_data.get("total_distance_this_month", 0)) / 1000, 2
+                        ),
+                    }
+                )
+
+        return attrs
+
+
+# NEW: Critical missing sensor per requirements inventory
+@register_sensor("walks_this_week")
+class PawControlWalksThisWeekSensor(PawControlSensorBase):
+    """Sensor for walks this week count.
+
+    NEW: This sensor was identified as missing in requirements_inventory.md
+    and marked as critical for weekly activity tracking and automation.
+    """
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "walks_this_week",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon="mdi:calendar-week",
+            translation_key="walks_this_week",
+        )
+
+    @property
+    def native_value(self) -> int:
+        """Return number of walks recorded this week."""
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0
+
+        try:
+            walks_this_week = walk_data.get("walks_this_week")
+            if walks_this_week is not None:
+                return int(walks_this_week)
+
+            # Fallback: calculate from daily data if available
+            return self._calculate_walks_this_week(walk_data)
+
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Error calculating walks this week for %s: %s", self._dog_id, err)
+            return 0
+
+    def _calculate_walks_this_week(self, walk_data: dict[str, Any]) -> int:
+        """Calculate walks this week from available data."""
+        try:
+            # Get current walks today and try to estimate week total
+            walks_today = int(walk_data.get("walks_today", 0))
+            
+            # If we have daily walk history, sum it up
+            daily_walks = walk_data.get("daily_walk_counts", {})
+            if isinstance(daily_walks, dict):
+                now = dt_util.utcnow()
+                week_start = now - timedelta(days=now.weekday())  # Monday start
+                
+                total_walks = 0
+                for i in range(7):  # 7 days in a week
+                    day = week_start + timedelta(days=i)
+                    day_key = day.strftime("%Y-%m-%d")
+                    total_walks += int(daily_walks.get(day_key, 0))
+                
+                return total_walks
+
+            # Fallback: just return today's count (limited info)
+            return walks_today
+
+        except (TypeError, ValueError, KeyError):
+            return 0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return additional state attributes for walks this week sensor."""
+        attrs = super().extra_state_attributes
+
+        walk_data = self._get_module_data("walk")
+        if walk_data:
+            with contextlib.suppress(TypeError, ValueError):
+                now = dt_util.utcnow()
+                week_start = now - timedelta(days=now.weekday())
+                
+                attrs.update(
+                    {
+                        "week_start_date": week_start.strftime("%Y-%m-%d"),
+                        "walks_today": int(walk_data.get("walks_today", 0)),
+                        "walks_yesterday": int(walk_data.get("walks_yesterday", 0)),
+                        "average_walks_per_day": round(
+                            (self.native_value or 0) / 7, 1
+                        ),
+                        "weekly_walk_goal": int(walk_data.get("weekly_walk_target", 14)),  # 2 per day default
+                        "weekly_goal_progress": round(
+                            (self.native_value or 0) / max(1, int(walk_data.get("weekly_walk_target", 14))) * 100, 1
+                        ),
+                        "total_walk_time_this_week_minutes": float(walk_data.get("total_duration_this_week", 0)),
                     }
                 )
 

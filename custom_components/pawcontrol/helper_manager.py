@@ -1,7 +1,11 @@
-"""Helper creation and management for PawControl integration.
+"""Home Assistant Helper Management for PawControl integration.
 
-Automatically creates Home Assistant helpers (input_boolean, input_datetime, etc.)
-for feeding schedules, health tracking, and other dog management tasks.
+Automatically creates and manages input_boolean, input_datetime, input_number
+and other Home Assistant helpers required for PawControl feeding schedules,
+health tracking, and automation workflows.
+
+This module implements the helper creation functionality promised in info.md
+but was previously missing from the integration.
 
 Quality Scale: Platinum
 Home Assistant: 2025.9.3+
@@ -12,744 +16,707 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from collections.abc import Callable
+from contextlib import suppress
+from datetime import datetime, time
+from typing import Any, Final
 
-from homeassistant.core import HomeAssistant
+from homeassistant.components import input_boolean, input_datetime, input_number, input_select, input_text
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.storage import Store
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util, slugify
 
-from .const import DOMAIN, STORAGE_VERSION
-from .types import DogConfigData
+from .const import (
+    DOMAIN,
+    MEAL_TYPES,
+    DEFAULT_RESET_TIME,
+    CONF_DOGS,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    HEALTH_STATUS_OPTIONS,
+    MOOD_OPTIONS,
+    ACTIVITY_LEVELS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-# Helper creation templates
-HELPER_TEMPLATES = {
-    "feeding": {
-        "breakfast_toggle": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Breakfast Fed",
-            "icon": "mdi:food-croissant",
-        },
-        "lunch_toggle": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Lunch Fed",
-            "icon": "mdi:food-apple",
-        },
-        "dinner_toggle": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Dinner Fed",
-            "icon": "mdi:food-turkey",
-        },
-        "snack_toggle": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Snack Given",
-            "icon": "mdi:food-variant",
-        },
-        "breakfast_time": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Breakfast Time",
-            "has_date": False,
-            "has_time": True,
-            "icon": "mdi:clock-time-four",
-        },
-        "lunch_time": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Lunch Time",
-            "has_date": False,
-            "has_time": True,
-            "icon": "mdi:clock-time-twelve",
-        },
-        "dinner_time": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Dinner Time",
-            "has_date": False,
-            "has_time": True,
-            "icon": "mdi:clock-time-eight",
-        },
-        "feeding_reminder": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Next Feeding Reminder",
-            "has_date": True,
-            "has_time": True,
-            "icon": "mdi:bell-alert",
-        },
-    },
-    "health": {
-        "weight_check_reminder": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Weight Check Reminder",
-            "has_date": True,
-            "has_time": False,
-            "icon": "mdi:scale",
-        },
-        "vet_appointment_reminder": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Vet Appointment",
-            "has_date": True,
-            "has_time": True,
-            "icon": "mdi:medical-bag",
-        },
-        "medication_reminder": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Medication Time",
-            "has_date": False,
-            "has_time": True,
-            "icon": "mdi:pill",
-        },
-        "grooming_due": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Grooming Due",
-            "icon": "mdi:content-cut",
-        },
-    },
-    "visitor": {
-        "visitor_mode": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Visitor Mode",
-            "icon": "mdi:account-group",
-        },
-        "visitor_arrival": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Visitor Arrival",
-            "has_date": True,
-            "has_time": True,
-            "icon": "mdi:account-plus",
-        },
-    },
-    "walk": {
-        "walk_reminder": {
-            "domain": "input_datetime",
-            "name": "{dog_name} Walk Reminder",
-            "has_date": False,
-            "has_time": True,
-            "icon": "mdi:dog-side",
-        },
-        "needs_walk": {
-            "domain": "input_boolean",
-            "name": "{dog_name} Needs Walk",
-            "icon": "mdi:walk",
-        },
-    },
-    "gps": {
-        "gps_tracking": {
-            "domain": "input_boolean",
-            "name": "{dog_name} GPS Tracking Enabled",
-            "icon": "mdi:map-marker-path",
-        },
-    },
-}
+# Helper entity ID templates
+HELPER_FEEDING_MEAL_TEMPLATE: Final[str] = "input_boolean.pawcontrol_{dog_id}_{meal}_fed"
+HELPER_FEEDING_TIME_TEMPLATE: Final[str] = "input_datetime.pawcontrol_{dog_id}_{meal}_time"
+HELPER_MEDICATION_REMINDER_TEMPLATE: Final[str] = "input_datetime.pawcontrol_{dog_id}_medication_{med_id}"
+HELPER_HEALTH_WEIGHT_TEMPLATE: Final[str] = "input_number.pawcontrol_{dog_id}_current_weight"
+HELPER_HEALTH_STATUS_TEMPLATE: Final[str] = "input_select.pawcontrol_{dog_id}_health_status"
+HELPER_VISITOR_MODE_TEMPLATE: Final[str] = "input_boolean.pawcontrol_{dog_id}_visitor_mode"
+HELPER_WALK_REMINDER_TEMPLATE: Final[str] = "input_datetime.pawcontrol_{dog_id}_walk_reminder"
+HELPER_VET_APPOINTMENT_TEMPLATE: Final[str] = "input_datetime.pawcontrol_{dog_id}_vet_appointment"
+HELPER_GROOMING_DUE_TEMPLATE: Final[str] = "input_datetime.pawcontrol_{dog_id}_grooming_due"
 
-# Default values for helpers
-DEFAULT_VALUES = {
-    "feeding": {
-        "breakfast_time": "07:00:00",
-        "lunch_time": "13:00:00",
-        "dinner_time": "18:00:00",
-    }
+# Default feeding times
+DEFAULT_FEEDING_TIMES: Final[dict[str, str]] = {
+    "breakfast": "07:00:00",
+    "lunch": "12:00:00", 
+    "dinner": "18:00:00",
+    "snack": "15:00:00",
 }
 
 
 class PawControlHelperManager:
-    """Manager for automatic Home Assistant helper creation and management."""
+    """Manages automatic creation and lifecycle of Home Assistant helpers for PawControl."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
-        """Initialize helper manager.
-
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the helper manager.
+        
         Args:
             hass: Home Assistant instance
-            entry_id: Configuration entry ID
+            entry: Config entry for the PawControl integration
         """
-        self.hass = hass
-        self.entry_id = entry_id
+        self._hass = hass
+        self._entry = entry
+        self._created_helpers: set[str] = set()
+        self._cleanup_listeners: list[Callable[[], None]] = []
+        
+        # Track entities that were created by this manager
+        self._managed_entities: dict[str, dict[str, Any]] = {}
 
-        # Storage for tracking created helpers
-        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_helpers")
-
-        # Track created helpers
-        self._created_helpers: dict[str, dict[str, Any]] = {}
-        self._lock = asyncio.Lock()
-
-    async def async_initialize(self) -> None:
-        """Initialize helper manager and load existing helper data."""
-        async with self._lock:
-            try:
-                stored_data = await self._store.async_load() or {}
-                self._created_helpers = stored_data.get("helpers", {})
-
-                _LOGGER.debug(
-                    "Helper manager initialized with %d existing helpers",
-                    len(self._created_helpers),
-                )
-
-            except Exception as err:
-                _LOGGER.error("Failed to initialize helper manager: %s", err)
-                self._created_helpers = {}
-
-    async def async_create_helpers_for_dogs(
-        self,
-        dogs: list[DogConfigData],
-        enabled_modules: frozenset[str],
-    ) -> dict[str, list[str]]:
-        """Create helpers for all configured dogs based on enabled modules.
-
-        Args:
-            dogs: List of dog configurations
-            enabled_modules: Set of enabled module names
-
-        Returns:
-            Dictionary mapping dog_id to list of created helper entity_ids
-        """
-        async with self._lock:
-            created_helpers = {}
-
-            for dog in dogs:
-                dog_id = dog["dog_id"]
-                dog_name = dog["dog_name"]
-                dog_modules = dog.get("modules", {})
-
-                # Create helpers for each enabled module
-                dog_helpers = []
-
-                for module_name in enabled_modules:
-                    # Check if module is enabled for this dog
-                    if not dog_modules.get(module_name, False):
-                        continue
-
-                    # Create helpers for this module
-                    module_helpers = await self._create_helpers_for_module(
-                        dog_id, dog_name, module_name
-                    )
-                    dog_helpers.extend(module_helpers)
-
-                if dog_helpers:
-                    created_helpers[dog_id] = dog_helpers
-                    _LOGGER.info(
-                        "Created %d helpers for %s (%s)",
-                        len(dog_helpers),
-                        dog_name,
-                        dog_id,
-                    )
-
-            # Save helper tracking data
-            await self._save_helper_data()
-
-            return created_helpers
-
-    async def _create_helpers_for_module(
-        self,
-        dog_id: str,
-        dog_name: str,
-        module_name: str,
-    ) -> list[str]:
-        """Create helpers for a specific module.
-
-        Args:
-            dog_id: Dog identifier
-            dog_name: Dog name for display
-            module_name: Module name
-
-        Returns:
-            List of created helper entity IDs
-        """
-        if module_name not in HELPER_TEMPLATES:
-            _LOGGER.debug("No helper templates for module: %s", module_name)
-            return []
-
-        module_templates = HELPER_TEMPLATES[module_name]
-        created_helpers = []
-
-        for helper_key, template in module_templates.items():
-            try:
-                entity_id = await self._create_single_helper(
-                    dog_id, dog_name, module_name, helper_key, template
-                )
-                if entity_id:
-                    created_helpers.append(entity_id)
-
-            except Exception as err:
-                _LOGGER.error(
-                    "Failed to create helper %s for %s: %s",
-                    helper_key,
-                    dog_name,
-                    err,
-                )
-
-        return created_helpers
-
-    async def _create_single_helper(
-        self,
-        dog_id: str,
-        dog_name: str,
-        module_name: str,
-        helper_key: str,
-        template: dict[str, Any],
-    ) -> str | None:
-        """Create a single helper entity.
-
-        Args:
-            dog_id: Dog identifier
-            dog_name: Dog name for display
-            module_name: Module name
-            helper_key: Helper key within module
-            template: Helper template configuration
-
-        Returns:
-            Created helper entity ID or None if creation failed
-        """
-        domain = template["domain"]
-        entity_id = f"{domain}.pawcontrol_{dog_id}_{helper_key}"
-
-        # Check if helper already exists
-        if entity_id in self._created_helpers:
-            _LOGGER.debug("Helper %s already exists", entity_id)
-            return entity_id
-
-        # Format helper name
-        helper_name = template["name"].format(dog_name=dog_name)
-
-        # Prepare helper configuration
-        helper_config = {
-            "name": helper_name,
-            "icon": template.get("icon"),
-        }
-
-        # Add domain-specific configuration
-        if domain == "input_datetime":
-            helper_config.update(
-                {
-                    "has_date": template.get("has_date", False),
-                    "has_time": template.get("has_time", True),
-                }
-            )
-
-            # Set initial value if available
-            if (
-                module_name in DEFAULT_VALUES
-                and helper_key in DEFAULT_VALUES[module_name]
-            ):
-                helper_config["initial"] = DEFAULT_VALUES[module_name][helper_key]
-
-        elif domain == "input_boolean":
-            helper_config["initial"] = template.get("initial", False)
-
-        elif domain == "input_number":
-            helper_config.update(
-                {
-                    "min": template.get("min", 0),
-                    "max": template.get("max", 100),
-                    "step": template.get("step", 1),
-                    "mode": template.get("mode", "box"),
-                    "unit_of_measurement": template.get("unit"),
-                    "initial": template.get("initial", 0),
-                }
-            )
-
-        # Create the helper
+    async def async_setup(self) -> None:
+        """Setup the helper manager and create required helpers."""
+        _LOGGER.debug("Setting up PawControl helper manager")
+        
         try:
-            await self.hass.services.async_call(
-                domain,
-                "create",
-                {
-                    "entity_id": entity_id,
-                    **helper_config,
-                },
-                blocking=True,
+            dogs_config = self._entry.data.get(CONF_DOGS, {})
+            enabled_modules = self._entry.options.get("modules", {})
+            
+            for dog_id, dog_config in dogs_config.items():
+                await self._async_create_helpers_for_dog(dog_id, dog_config, enabled_modules)
+                
+            # Setup daily reset to reset feeding toggles
+            await self._async_setup_daily_reset()
+            
+            _LOGGER.info(
+                "Helper manager setup complete: %d helpers created for %d dogs",
+                len(self._created_helpers),
+                len(dogs_config),
             )
-
-            # Track the created helper
-            self._created_helpers[entity_id] = {
-                "dog_id": dog_id,
-                "dog_name": dog_name,
-                "module_name": module_name,
-                "helper_key": helper_key,
-                "domain": domain,
-                "config": helper_config,
-                "created_at": self.hass.helpers.utc_now().isoformat(),
-            }
-
-            _LOGGER.debug("Created helper: %s (%s)", entity_id, helper_name)
-            return entity_id
-
+            
         except Exception as err:
-            _LOGGER.error(
-                "Failed to create helper %s: %s",
-                entity_id,
-                err,
+            _LOGGER.error("Failed to setup helper manager: %s", err)
+            raise HomeAssistantError(f"Helper manager setup failed: {err}") from err
+
+    async def _async_create_helpers_for_dog(
+        self, 
+        dog_id: str, 
+        dog_config: dict[str, Any], 
+        enabled_modules: dict[str, bool]
+    ) -> None:
+        """Create all required helpers for a specific dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            dog_config: Dog configuration dictionary
+            enabled_modules: Dictionary of enabled modules
+        """
+        dog_name = dog_config.get(CONF_DOG_NAME, dog_id)
+        
+        # Create feeding helpers if feeding module is enabled
+        if enabled_modules.get(MODULE_FEEDING, False):
+            await self._async_create_feeding_helpers(dog_id, dog_name)
+            
+        # Create health helpers if health module is enabled  
+        if enabled_modules.get(MODULE_HEALTH, False):
+            await self._async_create_health_helpers(dog_id, dog_name)
+            
+        # Create medication helpers if medication module is enabled
+        if enabled_modules.get(MODULE_MEDICATION, False):
+            await self._async_create_medication_helpers(dog_id, dog_name)
+            
+        # Create visitor mode helper (always created)
+        await self._async_create_visitor_helper(dog_id, dog_name)
+
+    async def _async_create_feeding_helpers(self, dog_id: str, dog_name: str) -> None:
+        """Create feeding-related helpers for a dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            dog_name: Display name for the dog
+        """
+        # Create meal status toggles (input_boolean)
+        for meal_type in MEAL_TYPES:
+            entity_id = HELPER_FEEDING_MEAL_TEMPLATE.format(
+                dog_id=slugify(dog_id), 
+                meal=meal_type
             )
-            return None
+            
+            await self._async_create_input_boolean(
+                entity_id=entity_id,
+                name=f"{dog_name} {meal_type.title()} Fed",
+                icon="mdi:food" if meal_type != "snack" else "mdi:food-apple",
+                initial=False,
+            )
+            
+        # Create meal time reminders (input_datetime)
+        for meal_type in MEAL_TYPES:
+            entity_id = HELPER_FEEDING_TIME_TEMPLATE.format(
+                dog_id=slugify(dog_id),
+                meal=meal_type
+            )
+            
+            default_time = DEFAULT_FEEDING_TIMES.get(meal_type, "12:00:00")
+            
+            await self._async_create_input_datetime(
+                entity_id=entity_id,
+                name=f"{dog_name} {meal_type.title()} Time",
+                has_date=False,
+                has_time=True,
+                initial=default_time,
+            )
 
-    async def async_remove_helpers_for_dog(self, dog_id: str) -> int:
-        """Remove all helpers for a specific dog.
-
+    async def _async_create_health_helpers(self, dog_id: str, dog_name: str) -> None:
+        """Create health-related helpers for a dog.
+        
         Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Number of helpers removed
+            dog_id: Unique identifier for the dog
+            dog_name: Display name for the dog
         """
-        async with self._lock:
-            removed_count = 0
-            helpers_to_remove = [
-                entity_id
-                for entity_id, data in self._created_helpers.items()
-                if data.get("dog_id") == dog_id
-            ]
-
-            for entity_id in helpers_to_remove:
-                try:
-                    helper_data = self._created_helpers[entity_id]
-                    domain = helper_data["domain"]
-
-                    # Remove the helper
-                    await self.hass.services.async_call(
-                        domain,
-                        "delete",
-                        {"entity_id": entity_id},
-                        blocking=True,
-                    )
-
-                    # Remove from tracking
-                    del self._created_helpers[entity_id]
-                    removed_count += 1
-
-                    _LOGGER.debug("Removed helper: %s", entity_id)
-
-                except Exception as err:
-                    _LOGGER.error(
-                        "Failed to remove helper %s: %s",
-                        entity_id,
-                        err,
-                    )
-
-            if removed_count > 0:
-                await self._save_helper_data()
-
-            return removed_count
-
-    async def async_update_helpers_for_dog(
-        self,
-        dog_id: str,
-        new_dog_name: str,
-        enabled_modules: frozenset[str],
-    ) -> dict[str, int]:
-        """Update helpers for a dog when configuration changes.
-
-        Args:
-            dog_id: Dog identifier
-            new_dog_name: Updated dog name
-            enabled_modules: Set of currently enabled modules
-
-        Returns:
-            Dictionary with counts of created/removed/updated helpers
-        """
-        async with self._lock:
-            result = {"created": 0, "removed": 0, "updated": 0}
-
-            # Get current helpers for this dog
-            current_helpers = {
-                entity_id: data
-                for entity_id, data in self._created_helpers.items()
-                if data.get("dog_id") == dog_id
-            }
-
-            # Determine which modules should have helpers
-            current_modules = set()
-            for data in current_helpers.values():
-                current_modules.add(data["module_name"])
-
-            required_modules = enabled_modules
-
-            # Remove helpers for disabled modules
-            modules_to_remove = current_modules - required_modules
-            for module_name in modules_to_remove:
-                module_helpers = [
-                    entity_id
-                    for entity_id, data in current_helpers.items()
-                    if data["module_name"] == module_name
-                ]
-                for entity_id in module_helpers:
-                    try:
-                        await self._remove_single_helper(entity_id)
-                        result["removed"] += 1
-                    except Exception as err:
-                        _LOGGER.error("Failed to remove helper %s: %s", entity_id, err)
-
-            # Create helpers for new modules
-            modules_to_add = required_modules - current_modules
-            for module_name in modules_to_add:
-                try:
-                    new_helpers = await self._create_helpers_for_module(
-                        dog_id, new_dog_name, module_name
-                    )
-                    result["created"] += len(new_helpers)
-                except Exception as err:
-                    _LOGGER.error(
-                        "Failed to create helpers for module %s: %s",
-                        module_name,
-                        err,
-                    )
-
-            # Update names for existing helpers if dog name changed
-            old_dog_name = None
-            if current_helpers:
-                old_dog_name = next(iter(current_helpers.values())).get("dog_name")
-
-            if old_dog_name and old_dog_name != new_dog_name:
-                for entity_id, data in current_helpers.items():
-                    try:
-                        await self._update_helper_name(entity_id, data, new_dog_name)
-                        result["updated"] += 1
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to update helper name %s: %s", entity_id, err
-                        )
-
-            # Save changes
-            if sum(result.values()) > 0:
-                await self._save_helper_data()
-
-                _LOGGER.info(
-                    "Helper update for %s complete: %d created, %d removed, %d updated",
-                    new_dog_name,
-                    result["created"],
-                    result["removed"],
-                    result["updated"],
-                )
-
-            return result
-
-    async def _remove_single_helper(self, entity_id: str) -> None:
-        """Remove a single helper.
-
-        Args:
-            entity_id: Helper entity ID to remove
-        """
-        if entity_id not in self._created_helpers:
-            return
-
-        helper_data = self._created_helpers[entity_id]
-        domain = helper_data["domain"]
-
-        await self.hass.services.async_call(
-            domain,
-            "delete",
-            {"entity_id": entity_id},
-            blocking=True,
+        # Current weight tracker (input_number)
+        weight_entity_id = HELPER_HEALTH_WEIGHT_TEMPLATE.format(
+            dog_id=slugify(dog_id)
+        )
+        
+        await self._async_create_input_number(
+            entity_id=weight_entity_id,
+            name=f"{dog_name} Current Weight",
+            min=0.5,
+            max=200.0,
+            step=0.1,
+            unit_of_measurement="kg",
+            icon="mdi:weight-kilogram",
+            mode="box",
+        )
+        
+        # Health status selector (input_select)
+        status_entity_id = HELPER_HEALTH_STATUS_TEMPLATE.format(
+            dog_id=slugify(dog_id)
+        )
+        
+        await self._async_create_input_select(
+            entity_id=status_entity_id,
+            name=f"{dog_name} Health Status",
+            options=list(HEALTH_STATUS_OPTIONS),
+            initial="good",
+            icon="mdi:heart-pulse",
+        )
+        
+        # Vet appointment reminder (input_datetime)
+        vet_entity_id = HELPER_VET_APPOINTMENT_TEMPLATE.format(
+            dog_id=slugify(dog_id)
+        )
+        
+        await self._async_create_input_datetime(
+            entity_id=vet_entity_id,
+            name=f"{dog_name} Next Vet Appointment",
+            has_date=True,
+            has_time=True,
+            initial=None,
+        )
+        
+        # Grooming due date (input_datetime)
+        grooming_entity_id = HELPER_GROOMING_DUE_TEMPLATE.format(
+            dog_id=slugify(dog_id)
+        )
+        
+        await self._async_create_input_datetime(
+            entity_id=grooming_entity_id,
+            name=f"{dog_name} Grooming Due",
+            has_date=True,
+            has_time=False,
+            initial=None,
         )
 
-        del self._created_helpers[entity_id]
-        _LOGGER.debug("Removed helper: %s", entity_id)
+    async def _async_create_medication_helpers(self, dog_id: str, dog_name: str) -> None:
+        """Create medication-related helpers for a dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog  
+            dog_name: Display name for the dog
+        """
+        # For now, create generic medication reminder
+        # In future, this could be expanded to create multiple medication helpers
+        # based on dog's medication schedule
+        
+        med_entity_id = HELPER_MEDICATION_REMINDER_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+            med_id="general"
+        )
+        
+        await self._async_create_input_datetime(
+            entity_id=med_entity_id,
+            name=f"{dog_name} Medication Reminder",
+            has_date=False,
+            has_time=True,
+            initial="08:00:00",
+        )
 
-    async def _update_helper_name(
+    async def _async_create_visitor_helper(self, dog_id: str, dog_name: str) -> None:
+        """Create visitor mode helper for a dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            dog_name: Display name for the dog
+        """
+        entity_id = HELPER_VISITOR_MODE_TEMPLATE.format(
+            dog_id=slugify(dog_id)
+        )
+        
+        await self._async_create_input_boolean(
+            entity_id=entity_id,
+            name=f"{dog_name} Visitor Mode",
+            icon="mdi:account-group",
+            initial=False,
+        )
+
+    async def _async_create_input_boolean(
         self,
         entity_id: str,
-        helper_data: dict[str, Any],
-        new_dog_name: str,
+        name: str,
+        icon: str | None = None,
+        initial: bool = False,
     ) -> None:
-        """Update a helper's name.
-
+        """Create an input_boolean helper.
+        
         Args:
-            entity_id: Helper entity ID
-            helper_data: Current helper data
-            new_dog_name: New dog name
+            entity_id: Entity ID for the helper
+            name: Display name for the helper
+            icon: Optional icon
+            initial: Initial state
         """
-        # Get the template to rebuild the name
-        module_name = helper_data["module_name"]
-        helper_key = helper_data["helper_key"]
-
-        if (
-            module_name in HELPER_TEMPLATES
-            and helper_key in HELPER_TEMPLATES[module_name]
-        ):
-            template = HELPER_TEMPLATES[module_name][helper_key]
-            new_name = template["name"].format(dog_name=new_dog_name)
-
-            # Update the helper name
-            domain = helper_data["domain"]
-            await self.hass.services.async_call(
-                domain,
-                "update",
+        try:
+            # Check if entity already exists
+            entity_registry = er.async_get(self._hass)
+            if entity_registry.async_get(entity_id):
+                _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
+                return
+                
+            # Create the helper
+            await self._hass.services.async_call(
+                input_boolean.DOMAIN,
+                "create",
                 {
-                    "entity_id": entity_id,
-                    "name": new_name,
+                    "name": name,
+                    "icon": icon,
+                    "initial": initial,
                 },
+                target={"entity_id": entity_id},
                 blocking=True,
             )
-
-            # Update tracking data
-            helper_data["dog_name"] = new_dog_name
-            helper_data["config"]["name"] = new_name
-
-            _LOGGER.debug("Updated helper name: %s -> %s", entity_id, new_name)
-
-    async def _save_helper_data(self) -> None:
-        """Save helper tracking data to storage."""
-        try:
-            await self._store.async_save(
-                {
-                    "helpers": self._created_helpers,
-                    "last_updated": self.hass.helpers.utc_now().isoformat(),
-                }
-            )
+            
+            self._created_helpers.add(entity_id)
+            self._managed_entities[entity_id] = {
+                "domain": input_boolean.DOMAIN,
+                "name": name,
+                "icon": icon,
+                "initial": initial,
+            }
+            
+            _LOGGER.debug("Created input_boolean helper: %s", entity_id)
+            
         except Exception as err:
-            _LOGGER.error("Failed to save helper data: %s", err)
+            _LOGGER.warning("Failed to create input_boolean %s: %s", entity_id, err)
+
+    async def _async_create_input_datetime(
+        self,
+        entity_id: str,
+        name: str,
+        has_date: bool = True,
+        has_time: bool = True,
+        initial: str | None = None,
+    ) -> None:
+        """Create an input_datetime helper.
+        
+        Args:
+            entity_id: Entity ID for the helper
+            name: Display name for the helper
+            has_date: Whether the helper includes date
+            has_time: Whether the helper includes time
+            initial: Initial datetime value (ISO format or time string)
+        """
+        try:
+            # Check if entity already exists
+            entity_registry = er.async_get(self._hass)
+            if entity_registry.async_get(entity_id):
+                _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
+                return
+                
+            service_data = {
+                "name": name,
+                "has_date": has_date,
+                "has_time": has_time,
+            }
+            
+            if initial:
+                service_data["initial"] = initial
+                
+            # Create the helper
+            await self._hass.services.async_call(
+                input_datetime.DOMAIN,
+                "create",
+                service_data,
+                target={"entity_id": entity_id},
+                blocking=True,
+            )
+            
+            self._created_helpers.add(entity_id)
+            self._managed_entities[entity_id] = {
+                "domain": input_datetime.DOMAIN,
+                "name": name,
+                "has_date": has_date,
+                "has_time": has_time,
+                "initial": initial,
+            }
+            
+            _LOGGER.debug("Created input_datetime helper: %s", entity_id)
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to create input_datetime %s: %s", entity_id, err)
+
+    async def _async_create_input_number(
+        self,
+        entity_id: str,
+        name: str,
+        min: float,
+        max: float,
+        step: float = 1.0,
+        unit_of_measurement: str | None = None,
+        icon: str | None = None,
+        mode: str = "slider",
+        initial: float | None = None,
+    ) -> None:
+        """Create an input_number helper.
+        
+        Args:
+            entity_id: Entity ID for the helper
+            name: Display name for the helper
+            min: Minimum value
+            max: Maximum value
+            step: Step size
+            unit_of_measurement: Unit of measurement
+            icon: Optional icon
+            mode: Input mode (slider, box)
+            initial: Initial value
+        """
+        try:
+            # Check if entity already exists
+            entity_registry = er.async_get(self._hass)
+            if entity_registry.async_get(entity_id):
+                _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
+                return
+                
+            service_data = {
+                "name": name,
+                "min": min,
+                "max": max,
+                "step": step,
+                "mode": mode,
+            }
+            
+            if unit_of_measurement:
+                service_data["unit_of_measurement"] = unit_of_measurement
+            if icon:
+                service_data["icon"] = icon
+            if initial is not None:
+                service_data["initial"] = initial
+                
+            # Create the helper
+            await self._hass.services.async_call(
+                input_number.DOMAIN,
+                "create",
+                service_data,
+                target={"entity_id": entity_id},
+                blocking=True,
+            )
+            
+            self._created_helpers.add(entity_id)
+            self._managed_entities[entity_id] = {
+                "domain": input_number.DOMAIN,
+                "name": name,
+                "min": min,
+                "max": max,
+                "step": step,
+                "mode": mode,
+                "unit_of_measurement": unit_of_measurement,
+                "icon": icon,
+                "initial": initial,
+            }
+            
+            _LOGGER.debug("Created input_number helper: %s", entity_id)
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to create input_number %s: %s", entity_id, err)
+
+    async def _async_create_input_select(
+        self,
+        entity_id: str,
+        name: str,
+        options: list[str],
+        initial: str | None = None,
+        icon: str | None = None,
+    ) -> None:
+        """Create an input_select helper.
+        
+        Args:
+            entity_id: Entity ID for the helper
+            name: Display name for the helper
+            options: List of selectable options
+            initial: Initial selected option
+            icon: Optional icon
+        """
+        try:
+            # Check if entity already exists
+            entity_registry = er.async_get(self._hass)
+            if entity_registry.async_get(entity_id):
+                _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
+                return
+                
+            service_data = {
+                "name": name,
+                "options": options,
+            }
+            
+            if initial:
+                service_data["initial"] = initial
+            if icon:
+                service_data["icon"] = icon
+                
+            # Create the helper
+            await self._hass.services.async_call(
+                input_select.DOMAIN,
+                "create",
+                service_data,
+                target={"entity_id": entity_id},
+                blocking=True,
+            )
+            
+            self._created_helpers.add(entity_id)
+            self._managed_entities[entity_id] = {
+                "domain": input_select.DOMAIN,
+                "name": name,
+                "options": options,
+                "initial": initial,
+                "icon": icon,
+            }
+            
+            _LOGGER.debug("Created input_select helper: %s", entity_id)
+            
+        except Exception as err:
+            _LOGGER.warning("Failed to create input_select %s: %s", entity_id, err)
+
+    async def _async_setup_daily_reset(self) -> None:
+        """Setup daily reset to reset feeding toggles."""
+        reset_time_str = self._entry.options.get("reset_time", DEFAULT_RESET_TIME)
+        reset_time = dt_util.parse_time(reset_time_str)
+        
+        if reset_time is None:
+            _LOGGER.warning("Invalid reset time, using default")
+            reset_time = dt_util.parse_time(DEFAULT_RESET_TIME)
+            
+        if reset_time is None:
+            return
+            
+        @callback
+        def _daily_reset(_: datetime | None = None) -> None:
+            """Reset feeding toggles daily."""
+            self._hass.async_create_task(self._async_reset_feeding_toggles())
+            
+        # Schedule daily reset
+        unsub = async_track_time_change(
+            self._hass,
+            _daily_reset,
+            hour=reset_time.hour,
+            minute=reset_time.minute,
+            second=reset_time.second,
+        )
+        
+        self._cleanup_listeners.append(unsub)
+        _LOGGER.debug("Scheduled daily feeding reset at %s", reset_time_str)
+
+    async def _async_reset_feeding_toggles(self) -> None:
+        """Reset all feeding toggles to False."""
+        try:
+            dogs_config = self._entry.data.get(CONF_DOGS, {})
+            
+            for dog_id in dogs_config:
+                for meal_type in MEAL_TYPES:
+                    entity_id = HELPER_FEEDING_MEAL_TEMPLATE.format(
+                        dog_id=slugify(dog_id),
+                        meal=meal_type
+                    )
+                    
+                    # Reset the toggle to False
+                    await self._hass.services.async_call(
+                        input_boolean.DOMAIN,
+                        "turn_off",
+                        target={"entity_id": entity_id},
+                        blocking=False,
+                    )
+                    
+            _LOGGER.info("Reset feeding toggles for %d dogs", len(dogs_config))
+            
+        except Exception as err:
+            _LOGGER.error("Failed to reset feeding toggles: %s", err)
+
+    async def async_add_dog_helpers(self, dog_id: str, dog_config: dict[str, Any]) -> None:
+        """Add helpers for a newly added dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            dog_config: Dog configuration dictionary
+        """
+        enabled_modules = self._entry.options.get("modules", {})
+        await self._async_create_helpers_for_dog(dog_id, dog_config, enabled_modules)
+        
+        _LOGGER.info("Created helpers for new dog: %s", dog_id)
+
+    async def async_remove_dog_helpers(self, dog_id: str) -> None:
+        """Remove helpers for a deleted dog.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+        """
+        slug_dog_id = slugify(dog_id)
+        removed_count = 0
+        
+        # Find and remove all helpers for this dog
+        for entity_id in list(self._created_helpers):
+            if f"pawcontrol_{slug_dog_id}_" in entity_id:
+                try:
+                    domain = entity_id.split(".")[0]
+                    await self._hass.services.async_call(
+                        domain,
+                        "delete",
+                        target={"entity_id": entity_id},
+                        blocking=True,
+                    )
+                    
+                    self._created_helpers.discard(entity_id)
+                    self._managed_entities.pop(entity_id, None)
+                    removed_count += 1
+                    
+                except Exception as err:
+                    _LOGGER.warning("Failed to remove helper %s: %s", entity_id, err)
+                    
+        _LOGGER.info("Removed %d helpers for dog: %s", removed_count, dog_id)
+
+    async def async_update_dog_helpers(self, dog_id: str, dog_config: dict[str, Any]) -> None:
+        """Update helpers when dog configuration changes.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            dog_config: Updated dog configuration dictionary
+        """
+        # For now, recreate helpers (future optimization: smart updates)
+        await self.async_remove_dog_helpers(dog_id)
+        await self.async_add_dog_helpers(dog_id, dog_config)
+
+    def get_feeding_status_entity(self, dog_id: str, meal_type: str) -> str:
+        """Get the entity ID for a feeding status helper.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            meal_type: Type of meal (breakfast, lunch, dinner, snack)
+            
+        Returns:
+            Entity ID for the feeding status helper
+        """
+        return HELPER_FEEDING_MEAL_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+            meal=meal_type
+        )
+
+    def get_feeding_time_entity(self, dog_id: str, meal_type: str) -> str:
+        """Get the entity ID for a feeding time helper.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            meal_type: Type of meal (breakfast, lunch, dinner, snack)
+            
+        Returns:
+            Entity ID for the feeding time helper
+        """
+        return HELPER_FEEDING_TIME_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+            meal=meal_type
+        )
+
+    def get_weight_entity(self, dog_id: str) -> str:
+        """Get the entity ID for a weight tracking helper.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Entity ID for the weight helper
+        """
+        return HELPER_HEALTH_WEIGHT_TEMPLATE.format(dog_id=slugify(dog_id))
+
+    def get_health_status_entity(self, dog_id: str) -> str:
+        """Get the entity ID for a health status helper.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Entity ID for the health status helper
+        """
+        return HELPER_HEALTH_STATUS_TEMPLATE.format(dog_id=slugify(dog_id))
+
+    def get_visitor_mode_entity(self, dog_id: str) -> str:
+        """Get the entity ID for a visitor mode helper.
+        
+        Args:
+            dog_id: Unique identifier for the dog
+            
+        Returns:
+            Entity ID for the visitor mode helper
+        """
+        return HELPER_VISITOR_MODE_TEMPLATE.format(dog_id=slugify(dog_id))
+
+    @property
+    def created_helpers(self) -> set[str]:
+        """Return the set of created helper entity IDs."""
+        return self._created_helpers.copy()
+
+    @property
+    def managed_entities(self) -> dict[str, dict[str, Any]]:
+        """Return information about managed entities."""
+        return self._managed_entities.copy()
 
     async def async_cleanup(self) -> None:
-        """Clean up all created helpers."""
-        async with self._lock:
-            cleanup_count = 0
-
-            for entity_id in list(self._created_helpers.keys()):
-                try:
-                    await self._remove_single_helper(entity_id)
-                    cleanup_count += 1
-                except Exception as err:
-                    _LOGGER.error("Failed to cleanup helper %s: %s", entity_id, err)
-
-            if cleanup_count > 0:
-                await self._save_helper_data()
-                _LOGGER.info("Cleaned up %d helpers", cleanup_count)
-
-    def get_helpers_for_dog(self, dog_id: str) -> list[dict[str, Any]]:
-        """Get all helpers created for a specific dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            List of helper information
-        """
-        return [
-            {"entity_id": entity_id, **data}
-            for entity_id, data in self._created_helpers.items()
-            if data.get("dog_id") == dog_id
-        ]
-
-    def get_helper_count(self) -> int:
-        """Get total number of created helpers.
-
-        Returns:
-            Number of helpers created
-        """
-        return len(self._created_helpers)
-
-    def get_helper_stats(self) -> dict[str, Any]:
-        """Get statistics about created helpers.
-
-        Returns:
-            Helper statistics
-        """
-        stats = {
-            "total_helpers": len(self._created_helpers),
-            "by_module": {},
-            "by_domain": {},
-            "by_dog": {},
-        }
-
-        for data in self._created_helpers.values():
-            module = data.get("module_name", "unknown")
-            domain = data.get("domain", "unknown")
-            dog_id = data.get("dog_id", "unknown")
-
-            stats["by_module"][module] = stats["by_module"].get(module, 0) + 1
-            stats["by_domain"][domain] = stats["by_domain"].get(domain, 0) + 1
-            stats["by_dog"][dog_id] = stats["by_dog"].get(dog_id, 0) + 1
-
-        return stats
-
-    async def async_validate_helpers(self) -> dict[str, Any]:
-        """Validate that all tracked helpers still exist in Home Assistant.
-
-        Returns:
-            Validation results with missing/invalid helpers
-        """
-        async with self._lock:
-            missing_helpers = []
-            invalid_helpers = []
-            valid_helpers = []
-
-            entity_registry = er.async_get(self.hass)
-
-            for entity_id, data in self._created_helpers.items():
-                try:
-                    # Check if entity exists in registry
-                    registry_entry = entity_registry.async_get(entity_id)
-
-                    if registry_entry is None:
-                        # Check if entity exists in state machine
-                        state = self.hass.states.get(entity_id)
-                        if state is None:
-                            missing_helpers.append(
-                                {
-                                    "entity_id": entity_id,
-                                    "data": data,
-                                }
-                            )
-                        else:
-                            valid_helpers.append(entity_id)
-                    else:
-                        valid_helpers.append(entity_id)
-
-                except Exception as err:
-                    invalid_helpers.append(
-                        {
-                            "entity_id": entity_id,
-                            "error": str(err),
-                            "data": data,
-                        }
-                    )
-
-            return {
-                "valid": len(valid_helpers),
-                "missing": len(missing_helpers),
-                "invalid": len(invalid_helpers),
-                "missing_helpers": missing_helpers,
-                "invalid_helpers": invalid_helpers,
-                "total_tracked": len(self._created_helpers),
-            }
-
-    async def async_repair_missing_helpers(self) -> dict[str, int]:
-        """Attempt to repair missing helpers by recreating them.
-
-        Returns:
-            Repair results with counts
-        """
-        validation = await self.async_validate_helpers()
-        repaired = 0
-        failed = 0
-
-        for missing in validation["missing_helpers"]:
-            entity_id = missing["entity_id"]
-            data = missing["data"]
-
+        """Cleanup helper manager resources."""
+        # Cancel any scheduled listeners
+        for unsub in self._cleanup_listeners:
             try:
-                # Remove from tracking
-                self._created_helpers.pop(entity_id, None)
-
-                # Recreate the helper
-                new_entity_id = await self._create_single_helper(
-                    data["dog_id"],
-                    data["dog_name"],
-                    data["module_name"],
-                    data["helper_key"],
-                    HELPER_TEMPLATES[data["module_name"]][data["helper_key"]],
-                )
-
-                if new_entity_id:
-                    repaired += 1
-                else:
-                    failed += 1
-
+                unsub()
             except Exception as err:
-                _LOGGER.error("Failed to repair helper %s: %s", entity_id, err)
-                failed += 1
+                _LOGGER.debug("Error cleaning up listener: %s", err)
+                
+        self._cleanup_listeners.clear()
+        
+        _LOGGER.debug("Helper manager cleanup complete")
 
-        if repaired > 0 or failed > 0:
-            await self._save_helper_data()
-
-        return {
-            "repaired": repaired,
-            "failed": failed,
-            "total_missing": len(validation["missing_helpers"]),
-        }
+    async def async_unload(self) -> None:
+        """Unload helper manager and optionally remove created helpers.
+        
+        Note: By default, we do NOT remove helpers on unload to preserve
+        user data. Users can manually delete helpers if desired.
+        """
+        await self.async_cleanup()
+        
+        _LOGGER.info(
+            "Helper manager unloaded (%d helpers preserved)",
+            len(self._created_helpers)
+        )

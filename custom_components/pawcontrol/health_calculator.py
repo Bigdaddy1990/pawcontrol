@@ -10,11 +10,15 @@ import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from homeassistant.util import dt as dt_util
 
 from .utils import ensure_local_datetime
+
+# TYPE_CHECKING import for weather integration
+if TYPE_CHECKING:
+    from .weather_manager import WeatherConditions, WeatherHealthManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,6 +102,10 @@ class HealthMetrics:
     daily_calorie_requirement: float | None = None
     portion_adjustment_factor: float = 1.0
     weight_goal: str | None = None  # "maintain", "lose", "gain"
+    
+    # NEW: Weather-related adjustments
+    weather_conditions: dict[str, Any] | None = None
+    weather_health_score: int | None = None
 
 
 class HealthCalculator:
@@ -813,7 +821,11 @@ class HealthCalculator:
         return (10.0, 30.0)  # Default medium dog range
 
     @staticmethod
-    def generate_health_report(health_metrics: HealthMetrics) -> dict[str, Any]:
+    def generate_health_report(
+        health_metrics: HealthMetrics,
+        weather_conditions: WeatherConditions | None = None,
+        weather_health_manager: WeatherHealthManager | None = None,
+    ) -> dict[str, Any]:
         """Generate a detailed health report with recommendations."""
         report = {
             "timestamp": dt_util.now().isoformat(),
@@ -829,6 +841,13 @@ class HealthCalculator:
         HealthCalculator._assess_health_conditions(health_metrics, report)
         HealthCalculator._assess_age(health_metrics, report)
         HealthCalculator._assess_activity(health_metrics, report)
+        
+        # NEW: Weather-based health assessment
+        if weather_conditions and weather_health_manager:
+            HealthCalculator._assess_weather_impact(
+                health_metrics, weather_conditions, weather_health_manager, report
+            )
+        
         HealthCalculator._finalize_status(report)
 
         return report
@@ -927,6 +946,231 @@ class HealthCalculator:
             report["overall_status"] = "needs_attention"
         else:
             report["overall_status"] = "concerning"
+
+    @staticmethod
+    def _assess_weather_impact(
+        health_metrics: HealthMetrics,
+        weather_conditions: WeatherConditions,
+        weather_health_manager: WeatherHealthManager,
+        report: dict[str, Any],
+    ) -> None:
+        """Assess weather impact on dog health and update report.
+        
+        Args:
+            health_metrics: Dog health metrics
+            weather_conditions: Current weather conditions
+            weather_health_manager: Weather health manager instance
+            report: Health report to update
+        """
+        # Get weather health score
+        weather_score = weather_health_manager.get_weather_health_score()
+        
+        # Get active weather alerts
+        active_alerts = weather_health_manager.get_active_alerts()
+        
+        # Assess overall weather impact
+        if weather_score < 30:
+            report["areas_of_concern"].append("dangerous_weather_conditions")
+            report["health_score"] -= 25
+            report["recommendations"].append(
+                "Dangerous weather conditions - avoid outdoor activities"
+            )
+        elif weather_score < 50:
+            report["areas_of_concern"].append("poor_weather_conditions")
+            report["health_score"] -= 15
+            report["recommendations"].append(
+                "Poor weather conditions - limit outdoor exposure"
+            )
+        elif weather_score < 70:
+            report["recommendations"].append(
+                "Moderate weather concerns - take basic precautions"
+            )
+            report["health_score"] -= 5
+        else:
+            report["positive_indicators"].append("favorable_weather_conditions")
+            
+        # Add weather-specific recommendations
+        if health_metrics.breed:
+            weather_recommendations = weather_health_manager.get_recommendations_for_dog(
+                dog_breed=health_metrics.breed,
+                dog_age_months=health_metrics.age_months,
+                health_conditions=health_metrics.health_conditions,
+            )
+            report["recommendations"].extend(weather_recommendations[:3])  # Limit to 3 most important
+            
+        # Add alert-specific concerns
+        for alert in active_alerts:
+            if alert.severity.value in ["high", "extreme"]:
+                report["areas_of_concern"].append(f"weather_{alert.alert_type.value}")
+                
+        # Temperature-specific assessments for health conditions
+        if weather_conditions.temperature_c is not None:
+            temp = weather_conditions.temperature_c
+            
+            # Heat concerns for specific health conditions
+            if temp > 25 and "heart_disease" in health_metrics.health_conditions:
+                report["recommendations"].append(
+                    "Heart condition + hot weather: Avoid strenuous activity"
+                )
+                report["health_score"] -= 10
+                
+            # Cold concerns for arthritis
+            if temp < 10 and "arthritis" in health_metrics.health_conditions:
+                report["recommendations"].append(
+                    "Arthritis + cold weather: Ensure warm environment"
+                )
+                report["health_score"] -= 5
+                
+            # Respiratory concerns with humidity
+            if (weather_conditions.humidity_percent and 
+                weather_conditions.humidity_percent > 80 and 
+                any(condition in health_metrics.health_conditions 
+                    for condition in ["respiratory", "breathing", "asthma"])):
+                report["recommendations"].append(
+                    "Respiratory condition + high humidity: Monitor breathing closely"
+                )
+                report["health_score"] -= 10
+
+    @staticmethod
+    def calculate_weather_adjusted_activity_level(
+        base_activity_level: ActivityLevel,
+        weather_conditions: WeatherConditions | None = None,
+        dog_breed: str | None = None,
+        health_conditions: list[str] | None = None,
+    ) -> ActivityLevel:
+        """Calculate weather-adjusted activity level for more accurate calorie calculation.
+        
+        Args:
+            base_activity_level: Base activity level without weather consideration
+            weather_conditions: Current weather conditions
+            dog_breed: Dog breed for breed-specific adjustments
+            health_conditions: List of health conditions
+            
+        Returns:
+            Weather-adjusted activity level
+        """
+        if not weather_conditions or not weather_conditions.is_valid:
+            return base_activity_level
+            
+        # Start with base level
+        adjusted_level = base_activity_level
+        
+        # Temperature-based adjustments
+        if weather_conditions.temperature_c is not None:
+            temp = weather_conditions.temperature_c
+            
+            # Hot weather reductions
+            if temp > 35:  # Extreme heat
+                if adjusted_level == ActivityLevel.VERY_HIGH:
+                    adjusted_level = ActivityLevel.LOW
+                elif adjusted_level == ActivityLevel.HIGH:
+                    adjusted_level = ActivityLevel.VERY_LOW
+                elif adjusted_level == ActivityLevel.MODERATE:
+                    adjusted_level = ActivityLevel.VERY_LOW
+            elif temp > 30:  # High heat
+                if adjusted_level == ActivityLevel.VERY_HIGH:
+                    adjusted_level = ActivityLevel.MODERATE
+                elif adjusted_level == ActivityLevel.HIGH:
+                    adjusted_level = ActivityLevel.LOW
+                    
+            # Cold weather considerations
+            elif temp < -10:  # Extreme cold
+                if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
+                    adjusted_level = ActivityLevel.MODERATE
+            elif temp < 0:  # High cold
+                if adjusted_level == ActivityLevel.VERY_HIGH:
+                    adjusted_level = ActivityLevel.HIGH
+                    
+        # Breed-specific weather adjustments
+        if dog_breed:
+            breed_lower = dog_breed.lower()
+            
+            # Brachycephalic breeds more sensitive to heat/humidity
+            if any(breed in breed_lower for breed in ["bulldog", "pug", "boxer", "boston"]):
+                if (weather_conditions.temperature_c and weather_conditions.temperature_c > 25) or \
+                   (weather_conditions.humidity_percent and weather_conditions.humidity_percent > 70):
+                    # Reduce activity by one level
+                    if adjusted_level == ActivityLevel.VERY_HIGH:
+                        adjusted_level = ActivityLevel.HIGH
+                    elif adjusted_level == ActivityLevel.HIGH:
+                        adjusted_level = ActivityLevel.MODERATE
+                    elif adjusted_level == ActivityLevel.MODERATE:
+                        adjusted_level = ActivityLevel.LOW
+                        
+            # Cold-sensitive breeds
+            if any(breed in breed_lower for breed in ["chihuahua", "greyhound", "whippet"]):
+                if weather_conditions.temperature_c and weather_conditions.temperature_c < 5:
+                    if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
+                        adjusted_level = ActivityLevel.MODERATE
+                        
+        # Health condition adjustments
+        if health_conditions:
+            for condition in health_conditions:
+                condition_lower = condition.lower()
+                
+                # Heart conditions + heat
+                if "heart" in condition_lower and \
+                   weather_conditions.temperature_c and weather_conditions.temperature_c > 25:
+                    if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
+                        adjusted_level = ActivityLevel.MODERATE
+                        
+                # Respiratory conditions + humidity
+                if any(resp in condition_lower for resp in ["respiratory", "breathing", "asthma"]) and \
+                   weather_conditions.humidity_percent and weather_conditions.humidity_percent > 80:
+                    if adjusted_level == ActivityLevel.VERY_HIGH:
+                        adjusted_level = ActivityLevel.HIGH
+                    elif adjusted_level == ActivityLevel.HIGH:
+                        adjusted_level = ActivityLevel.MODERATE
+                        
+        return adjusted_level
+
+    @staticmethod
+    def calculate_weather_adjusted_portions(
+        base_portion: float,
+        weather_conditions: WeatherConditions | None = None,
+        dog_breed: str | None = None,
+        activity_level: ActivityLevel | None = None,
+    ) -> float:
+        """Calculate weather-adjusted portion sizes.
+        
+        Args:
+            base_portion: Base portion size
+            weather_conditions: Current weather conditions
+            dog_breed: Dog breed
+            activity_level: Current activity level
+            
+        Returns:
+            Weather-adjusted portion size
+        """
+        if not weather_conditions or not weather_conditions.is_valid:
+            return base_portion
+            
+        adjustment_factor = 1.0
+        
+        # Temperature-based adjustments
+        if weather_conditions.temperature_c is not None:
+            temp = weather_conditions.temperature_c
+            
+            # Hot weather - dogs may eat less
+            if temp > 30:
+                adjustment_factor *= 0.9  # 10% reduction in hot weather
+            elif temp > 35:
+                adjustment_factor *= 0.85  # 15% reduction in extreme heat
+                
+            # Cold weather - dogs may need more calories
+            elif temp < 5:
+                adjustment_factor *= 1.05  # 5% increase in cold weather
+            elif temp < -5:
+                adjustment_factor *= 1.1  # 10% increase in extreme cold
+                
+        # Activity level adjustments based on weather limitations
+        if activity_level in [ActivityLevel.VERY_LOW, ActivityLevel.LOW]:
+            # If activity is reduced due to weather, slightly reduce portions
+            if weather_conditions.temperature_c:
+                if weather_conditions.temperature_c > 30 or weather_conditions.temperature_c < 0:
+                    adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
+                    
+        return round(base_portion * adjustment_factor, 1)
 
     @staticmethod
     def activity_score(steps: int, age: int) -> float:

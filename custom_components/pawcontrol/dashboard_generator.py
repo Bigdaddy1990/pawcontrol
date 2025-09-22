@@ -24,8 +24,9 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN
+from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN, MODULE_WEATHER
 from .dashboard_renderer import DashboardRenderer
+from .dashboard_templates import DashboardTemplates, WEATHER_CARD_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +71,9 @@ class PawControlDashboardGenerator:
 
         # OPTIMIZED: Renderer with resource pooling
         self._renderer = DashboardRenderer(hass)
+        
+        # Weather dashboard templates
+        self._dashboard_templates = DashboardTemplates(hass)
 
         # Dashboard registry with performance metadata
         self._dashboards: dict[str, dict[str, Any]] = {}
@@ -106,13 +110,14 @@ class PawControlDashboardGenerator:
                 return
 
             try:
-                # OPTIMIZED: Parallel initialization of renderer and storage
+                # OPTIMIZED: Parallel initialization of renderer, templates, and storage
                 renderer_task = asyncio.create_task(self._renderer.async_initialize())
+                templates_task = asyncio.create_task(self._dashboard_templates.async_initialize())
                 storage_task = asyncio.create_task(self._load_stored_data())
 
-                # Wait for both with timeout
+                # Wait for all with timeout
                 await asyncio.wait_for(
-                    asyncio.gather(renderer_task, storage_task),
+                    asyncio.gather(renderer_task, templates_task, storage_task),
                     timeout=DASHBOARD_GENERATION_TIMEOUT,
                 )
 
@@ -438,8 +443,15 @@ class PawControlDashboardGenerator:
             try:
                 # OPTIMIZED: Async config generation
                 if dashboard_info["type"] == "main":
-                    dashboard_config = await self._renderer.render_main_dashboard(
-                        dogs_config, options or dashboard_info.get("options", {})
+                    options_merged = {**(options or {}), **dashboard_info.get("options", {})}
+                dashboard_config = await self._renderer.render_main_dashboard(
+                    dogs_config, options_merged
+                )
+                
+                # Add weather components if weather module is enabled
+                if self._has_weather_module(dogs_config):
+                    await self._add_weather_components_to_dashboard(
+                        dashboard_config, dogs_config, options_merged
                     )
                 else:
                     dog_id = dashboard_info.get("dog_id")
@@ -450,9 +462,16 @@ class PawControlDashboardGenerator:
                         _LOGGER.warning("Dog %s not found for update", dog_id)
                         return False
 
+                    options_merged = {**(options or {}), **dashboard_info.get("options", {})}
                     dashboard_config = await self._renderer.render_dog_dashboard(
-                        dog_config, options or dashboard_info.get("options", {})
+                        dog_config, options_merged
                     )
+                    
+                    # Add weather components if weather module is enabled for this dog
+                    if self._has_weather_module([dog_config]):
+                        await self._add_weather_components_to_dog_dashboard(
+                            dashboard_config, dog_config, options_merged
+                        )
 
                 # OPTIMIZED: Async file update
                 dashboard_path = Path(dashboard_info["path"])
@@ -681,9 +700,19 @@ class PawControlDashboardGenerator:
 
             self._dashboards.clear()
 
-        # Clean up renderer
+        # Clean up renderer and templates
         if hasattr(self, "_renderer"):
             await self._renderer.cleanup()
+            
+        if hasattr(self, "_dashboard_templates"):
+            await self._dashboard_templates.cleanup()
+
+    async def _dashboard_templates_async_initialize(self) -> None:
+        """Async initialize dashboard templates if method exists."""
+        # Handle case where dashboard templates might not have async_initialize
+        if hasattr(self._dashboard_templates, 'async_initialize'):
+            await self._dashboard_templates.async_initialize()
+        # Templates are ready to use immediately
 
         _LOGGER.info("Dashboard generator cleanup completed")
 
@@ -826,3 +855,381 @@ class PawControlDashboardGenerator:
             )
             * 100,
         }
+
+    async def async_create_weather_dashboard(
+        self,
+        dog_config: dict[str, Any],
+        options: dict[str, Any] | None = None,
+    ) -> str:
+        """Create dedicated weather dashboard for a dog.
+
+        Args:
+            dog_config: Dog configuration
+            options: Dashboard options
+
+        Returns:
+            Dashboard URL path
+
+        Raises:
+            ValueError: If dog config is invalid
+            HomeAssistantError: If dashboard creation fails
+        """
+        if not self._initialized:
+            await self.async_initialize()
+
+        dog_id = dog_config.get(CONF_DOG_ID)
+        dog_name = dog_config.get(CONF_DOG_NAME)
+        breed = dog_config.get("breed", "Mixed")
+
+        if not dog_id or not dog_name:
+            raise ValueError("Dog ID and name are required")
+
+        # Check if weather module is enabled
+        modules = dog_config.get("modules", {})
+        if not modules.get(MODULE_WEATHER, False):
+            raise ValueError(f"Weather module not enabled for {dog_name}")
+
+        options = options or {}
+        start_time = asyncio.get_event_loop().time()
+
+        async with self._operation_semaphore:
+            try:
+                # Generate weather dashboard configuration
+                theme = options.get("theme", "modern")
+                layout = options.get("layout", "full")
+
+                weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(
+                    dog_id, dog_name, breed, theme, layout
+                )
+
+                # Create dashboard structure
+                dashboard_config = {
+                    "views": [
+                        {
+                            "title": f"🌤️ {dog_name} Weather",
+                            "icon": "mdi:weather-partly-cloudy",
+                            "path": "weather",
+                            "type": "panel",
+                            "cards": [weather_config],
+                        }
+                    ]
+                }
+
+                # Generate unique URL
+                dashboard_url = f"paw-weather-{slugify(dog_id)}"
+                dashboard_title = f"🌤️ {dog_name} Weather"
+
+                # Create dashboard file
+                dashboard_path = await self._create_dashboard_file_async(
+                    dashboard_url,
+                    dashboard_title,
+                    dashboard_config,
+                    "mdi:weather-partly-cloudy",
+                    options.get("show_in_sidebar", False),
+                )
+
+                # Store metadata
+                async with self._lock:
+                    self._dashboards[dashboard_url] = {
+                        "url": dashboard_url,
+                        "title": dashboard_title,
+                        "path": str(dashboard_path),
+                        "created": dt_util.utcnow().isoformat(),
+                        "type": "weather",
+                        "dog_id": dog_id,
+                        "dog_name": dog_name,
+                        "breed": breed,
+                        "theme": theme,
+                        "layout": layout,
+                        "options": options,
+                        "entry_id": self.entry.entry_id,
+                        "version": DASHBOARD_STORAGE_VERSION,
+                        "weather_features": {
+                            "health_monitoring": True,
+                            "breed_specific": True,
+                            "interactive_charts": True,
+                            "recommendations": True,
+                        },
+                    }
+
+                    await self._save_dashboard_metadata_async()
+
+                generation_time = asyncio.get_event_loop().time() - start_time
+                await self._update_performance_metrics("weather_generation", generation_time)
+
+                _LOGGER.info(
+                    "Created weather dashboard for '%s' at /%s (theme: %s, layout: %s)",
+                    dog_name,
+                    dashboard_url,
+                    theme,
+                    layout,
+                )
+
+                return f"/{dashboard_url}"
+
+            except Exception as err:
+                self._performance_metrics["errors"] += 1
+                _LOGGER.error(
+                    "Weather dashboard creation failed for %s: %s",
+                    dog_name,
+                    err,
+                    exc_info=True,
+                )
+                raise HomeAssistantError(
+                    f"Weather dashboard creation failed: {err}"
+                ) from err
+
+    def _has_weather_module(self, dogs_config: list[dict[str, Any]]) -> bool:
+        """Check if any dog has weather module enabled.
+
+        Args:
+            dogs_config: List of dog configurations
+
+        Returns:
+            True if weather module is enabled for any dog
+        """
+        for dog in dogs_config:
+            modules = dog.get("modules", {})
+            if modules.get(MODULE_WEATHER, False):
+                return True
+        return False
+
+    async def _add_weather_components_to_dashboard(
+        self,
+        dashboard_config: dict[str, Any],
+        dogs_config: list[dict[str, Any]],
+        options: dict[str, Any],
+    ) -> None:
+        """Add weather components to main dashboard.
+
+        Args:
+            dashboard_config: Dashboard configuration to modify
+            dogs_config: List of dog configurations
+            options: Dashboard options
+        """
+        theme = options.get("theme", "modern")
+        views = dashboard_config.setdefault("views", [])
+
+        # Create weather overview view for all dogs with weather enabled
+        weather_dogs = [
+            dog for dog in dogs_config 
+            if dog.get("modules", {}).get(MODULE_WEATHER, False)
+        ]
+
+        if not weather_dogs:
+            return
+
+        # Weather overview cards
+        weather_cards = []
+
+        for dog in weather_dogs:
+            dog_id = dog.get(CONF_DOG_ID)
+            dog_name = dog.get(CONF_DOG_NAME)
+
+            if not dog_id or not dog_name:
+                continue
+
+            # Add compact weather status card for each dog
+            weather_status = await self._dashboard_templates.get_weather_status_card_template(
+                dog_id, dog_name, theme, compact=True
+            )
+            weather_cards.append(weather_status)
+
+        # Group weather cards
+        if weather_cards:
+            if len(weather_cards) == 1:
+                weather_view_cards = weather_cards
+            elif len(weather_cards) <= 4:
+                # Horizontal layout for 2-4 dogs
+                weather_view_cards = [
+                    {
+                        "type": "horizontal-stack",
+                        "cards": weather_cards,
+                    }
+                ]
+            else:
+                # Grid layout for 5+ dogs
+                weather_view_cards = [
+                    {
+                        "type": "grid",
+                        "columns": 3,
+                        "cards": weather_cards,
+                    }
+                ]
+
+            # Add weather overview view
+            weather_view = {
+                "title": "🌤️ Weather Overview",
+                "icon": "mdi:weather-partly-cloudy",
+                "path": "weather-overview",
+                "cards": weather_view_cards,
+            }
+
+            views.append(weather_view)
+
+            _LOGGER.debug(
+                "Added weather overview to main dashboard with %d dogs",
+                len(weather_dogs),
+            )
+
+    async def _add_weather_components_to_dog_dashboard(
+        self,
+        dashboard_config: dict[str, Any],
+        dog_config: dict[str, Any],
+        options: dict[str, Any],
+    ) -> None:
+        """Add weather components to individual dog dashboard.
+
+        Args:
+            dashboard_config: Dashboard configuration to modify
+            dog_config: Dog configuration
+            options: Dashboard options
+        """
+        dog_id = dog_config.get(CONF_DOG_ID)
+        dog_name = dog_config.get(CONF_DOG_NAME)
+        breed = dog_config.get("breed", "Mixed")
+        theme = options.get("theme", "modern")
+
+        if not dog_id or not dog_name:
+            return
+
+        views = dashboard_config.setdefault("views", [])
+
+        # Create comprehensive weather view for this dog
+        weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(
+            dog_id, dog_name, breed, theme, "compact"
+        )
+
+        weather_view = {
+            "title": "🌤️ Weather",
+            "icon": "mdi:weather-partly-cloudy",
+            "path": "weather",
+            "cards": [weather_layout],
+        }
+
+        views.append(weather_view)
+
+        # Also add weather status to overview if it exists
+        overview_view = next(
+            (view for view in views if view.get("path") == "overview"), None
+        )
+        
+        if overview_view:
+            overview_cards = overview_view.setdefault("cards", [])
+            
+            # Add weather status card to overview
+            weather_status = await self._dashboard_templates.get_weather_status_card_template(
+                dog_id, dog_name, theme, compact=True
+            )
+            
+            # Insert weather card after existing status cards
+            insert_index = min(2, len(overview_cards))  # Insert at position 2 or end
+            overview_cards.insert(insert_index, weather_status)
+
+        _LOGGER.debug(
+            "Added weather components to %s dashboard (breed: %s, theme: %s)",
+            dog_name,
+            breed,
+            theme,
+        )
+
+    async def async_batch_create_weather_dashboards(
+        self,
+        dogs_config: list[dict[str, Any]],
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        """Create weather dashboards for multiple dogs in batch.
+
+        Args:
+            dogs_config: List of dog configurations
+            options: Dashboard options
+
+        Returns:
+            Dictionary mapping dog_id to dashboard URL
+        """
+        if not self._initialized:
+            await self.async_initialize()
+
+        # Filter dogs with weather module enabled
+        weather_dogs = [
+            dog for dog in dogs_config 
+            if dog.get("modules", {}).get(MODULE_WEATHER, False)
+        ]
+
+        if not weather_dogs:
+            _LOGGER.info("No dogs with weather module enabled")
+            return {}
+
+        options = options or {}
+        results = {}
+        start_time = asyncio.get_event_loop().time()
+
+        # Process in batches to avoid overwhelming the system
+        batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
+        for i in range(0, len(weather_dogs), batch_size):
+            batch = weather_dogs[i : i + batch_size]
+
+            # Create batch tasks
+            batch_tasks = [
+                asyncio.create_task(
+                    self.async_create_weather_dashboard(dog, options)
+                )
+                for dog in batch
+            ]
+
+            # Execute batch
+            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+
+            # Process results
+            for dog, result in zip(batch, batch_results, strict=False):
+                dog_id = dog.get(CONF_DOG_ID)
+                if dog_id:
+                    if isinstance(result, Exception):
+                        _LOGGER.error(
+                            "Weather dashboard creation failed for %s: %s",
+                            dog_id,
+                            result,
+                        )
+                        results[dog_id] = f"Error: {result}"
+                    else:
+                        results[dog_id] = result
+
+        batch_time = asyncio.get_event_loop().time() - start_time
+        _LOGGER.info(
+            "Batch created %d weather dashboards in %.2fs",
+            len([r for r in results.values() if not r.startswith("Error:")]),
+            batch_time,
+        )
+
+        return results
+
+    @callback
+    def get_weather_dashboards(self) -> dict[str, dict[str, Any]]:
+        """Get all weather dashboards.
+
+        Returns:
+            Dictionary of weather dashboard information
+        """
+        return {
+            url: info
+            for url, info in self._dashboards.items()
+            if info.get("type") == "weather"
+        }
+
+    @callback
+    def has_weather_dashboard(self, dog_id: str) -> bool:
+        """Check if weather dashboard exists for dog.
+
+        Args:
+            dog_id: Dog identifier
+
+        Returns:
+            True if weather dashboard exists
+        """
+        for dashboard_info in self._dashboards.values():
+            if (
+                dashboard_info.get("type") == "weather"
+                and dashboard_info.get("dog_id") == dog_id
+            ):
+                return True
+        return False

@@ -33,7 +33,8 @@
           "enable_visitor": "Visitor Mode",
           "enable_grooming": "Grooming Reminders",
           "enable_medication": "Medication Tracking",
-          "enable_training": "Training Progress"
+          "enable_training": "Training Progress",
+          "enable_weather": "Weather Health Monitoring"
         }
       },
       "dog_gps": {
@@ -138,7 +139,8 @@
           "performance_mode": "Performance Mode",
           "data_retention_days": "Data Retention (days)",
           "auto_backup": "Automatic Backups",
-          "debug_logging": "Debug Logging"
+          "debug_logging": "Debug Logging",
+          "enable_weather": "Weather Health Monitoring"
         }
       },
       "configure_dashboard": {
@@ -155,11 +157,12 @@
       },
       "configure_external_entities": {
         "title": "Configure External Entities",
-        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality compliance.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n\n⚠️ If no entities are available, you can configure them manually later.",
+        "description": "🔗 **External Entity Configuration**\n\nPaw Control needs to connect to existing Home Assistant entities for full functionality. This step is required for Platinum quality compliance.\n\n**Required for GPS tracking:** Device tracker or Person entity\n**Optional for visitor detection:** Door sensor\n**Optional for notifications:** Custom notification service\n**Optional for weather health:** Weather entity\n\n⚠️ If no entities are available, you can configure them manually later.",
         "data": {
           "gps_source": "GPS Source (Required for GPS tracking)",
           "door_sensor": "Door Sensor (Optional for visitor mode)",
-          "notify_fallback": "Notification Service (Optional)"
+          "notify_fallback": "Notification Service (Optional)",
+          "weather_entity": "Weather Entity (Optional for health alerts)"
         }
       },
       "final_setup": {
@@ -200,7 +203,9 @@
       "notification_service_not_found": "The selected notification service was not found",
       "invalid_notification_service": "The notification service format is invalid",
       "invalid_profile": "You need to select a valid profile",
-      "external_entity_validation_failed": "External entity validation failed"
+      "external_entity_validation_failed": "External entity validation failed",
+      "weather_entity_not_found": "The selected weather entity was not found",
+      "weather_entity_unavailable": "The selected weather entity is currently unavailable"
     },
     "abort": {
       "already_configured": "Device is already configured",
@@ -219,7 +224,8 @@
           "feeding_settings": "Feeding Settings",
           "health_settings": "Health Settings",
           "system_settings": "System Settings",
-          "dashboard_settings": "Dashboard Settings"
+          "dashboard_settings": "Dashboard Settings",
+          "weather_settings": "Weather Health Settings"
         }
       },
       "manage_dogs": {
@@ -249,7 +255,8 @@
           "quiet_end": "Quiet Hours End",
           "reminder_repeat_min": "Reminder Repeat Interval (minutes)",
           "priority_notifications": "Priority Notifications",
-          "summary_notifications": "Daily Summary Notifications"
+          "summary_notifications": "Daily Summary Notifications",
+          "weather_alerts": "Weather Health Alerts"
         }
       },
       "feeding_settings": {
@@ -274,7 +281,8 @@
           "weight_tracking": "Weight Tracking",
           "medication_reminders": "Medication Reminders",
           "vet_reminders": "Vet Reminders",
-          "grooming_interval": "Grooming Interval (days)"
+          "grooming_interval": "Grooming Interval (days)",
+          "weather_health_monitoring": "Weather Health Monitoring"
         }
       },
       "system_settings": {
@@ -296,17 +304,126 @@
           "dashboard_name": "Dashboard Name",
           "include_charts": "Include Charts"
         }
+      },
+      "weather_settings": {
+        "title": "Weather Health Settings",
+        "description": "Configure weather-based health alerts and recommendations for your dogs.",
+        "data": {
+          "weather_entity": "Weather Entity",
+          "enable_weather_alerts": "Enable Weather Alerts",
+          "enable_weather_recommendations": "Enable Weather Recommendations", 
+          "weather_update_interval": "Weather Update Interval (minutes)",
+          "temperature_alerts": "Temperature Alerts",
+          "uv_alerts": "UV Index Alerts",
+          "humidity_alerts": "Humidity Alerts",
+          "wind_alerts": "Wind Alerts",
+          "storm_alerts": "Storm Alerts"
+        }
       }
     },
     "error": {
       "dog_id_already_exists": "A dog with this ID already exists",
       "invalid_dog_name_length": "Dog name must be between 2 and 30 characters",
       "invalid_time_format": "Invalid time format",
-      "invalid_configuration": "Invalid configuration"
+      "invalid_configuration": "Invalid configuration",
+      "weather_entity_not_found": "Weather entity not found",
+      "invalid_weather_entity": "Invalid weather entity selected"
     }
   },
   "entity": {
     "sensor": {
+      "last_action": {
+        "name": "Last Action"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline",
+          "unknown": "Unknown"
+        }
+      },
+      "last_feeding": {
+        "name": "Last Feeding"
+      },
+      "last_feeding_hours": {
+        "name": "Hours Since Last Feeding"
+      },
+      "feeding_count_today_breakfast": {
+        "name": "Breakfast Count Today"
+      },
+      "feeding_count_today_lunch": {
+        "name": "Lunch Count Today"
+      },
+      "feeding_count_today_dinner": {
+        "name": "Dinner Count Today"
+      },
+      "feeding_count_today_snack": {
+        "name": "Snack Count Today"
+      },
+      "total_feedings_today": {
+        "name": "Total Feedings Today"
+      },
+      "last_walk": {
+        "name": "Last Walk"
+      },
+      "last_walk_hours": {
+        "name": "Hours Since Last Walk"
+      },
+      "last_walk_duration": {
+        "name": "Last Walk Duration"
+      },
+      "walk_count_today": {
+        "name": "Walk Count Today"
+      },
+      "total_walk_time_today": {
+        "name": "Total Walk Time Today"
+      },
+      "current_speed": {
+        "name": "Current Speed"
+      },
+      "distance_from_home": {
+        "name": "Distance From Home"
+      },
+      "gps_accuracy": {
+        "name": "GPS Accuracy"
+      },
+      "last_walk_distance": {
+        "name": "Last Walk Distance"
+      },
+      "total_distance_today": {
+        "name": "Total Distance Today"
+      },
+      "weight": {
+        "name": "Weight"
+      },
+      "activity_level": {
+        "name": "Activity Level",
+        "state": {
+          "very_low": "Very Low",
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High",
+          "very_high": "Very High"
+        }
+      },
+      "last_vet_visit": {
+        "name": "Last Vet Visit"
+      },
+      "days_since_grooming": {
+        "name": "Days Since Grooming"
+      },
+      "health_status": {
+        "name": "Health Status",
+        "state": {
+          "excellent": "Excellent",
+          "very_good": "Very Good",
+          "good": "Good",
+          "normal": "Normal",
+          "unwell": "Unwell",
+          "sick": "Sick"
+        }
+      },
       "special_diet": {
         "name": "Special Diet Requirements",
         "state": {
@@ -324,6 +441,289 @@
           "raw_diet": "Raw Diet",
           "dental_care": "Dental Care",
           "joint_support": "Joint Support"
+        }
+      },
+      "weather_health_score": {
+        "name": "Weather Health Score"
+      },
+      "weather_temperature": {
+        "name": "Weather Temperature"
+      },
+      "weather_humidity": {
+        "name": "Weather Humidity"
+      },
+      "weather_uv_index": {
+        "name": "Weather UV Index"
+      },
+      "weather_condition": {
+        "name": "Weather Condition"
+      },
+      "active_weather_alerts": {
+        "name": "Active Weather Alerts"
+      }
+    },
+    "binary_sensor": {
+      "walk_in_progress": {
+        "name": "Walk In Progress"
+      },
+      "needs_walk": {
+        "name": "Needs Walk"
+      },
+      "is_hungry": {
+        "name": "Is Hungry"
+      },
+      "feeding_overdue": {
+        "name": "Feeding Overdue"
+      },
+      "is_home": {
+        "name": "Is Home"
+      },
+      "in_safe_zone": {
+        "name": "In Safe Zone"
+      },
+      "gps_signal": {
+        "name": "GPS Signal"
+      },
+      "weight_alert": {
+        "name": "Weight Alert"
+      },
+      "medication_due": {
+        "name": "Medication Due"
+      },
+      "vet_checkup_due": {
+        "name": "Vet Checkup Due"
+      },
+      "needs_grooming": {
+        "name": "Needs Grooming"
+      },
+      "online": {
+        "name": "Online"
+      },
+      "visitor_mode": {
+        "name": "Visitor Mode"
+      },
+      "weather_alert_active": {
+        "name": "Weather Alert Active"
+      },
+      "extreme_heat_warning": {
+        "name": "Extreme Heat Warning"
+      },
+      "extreme_cold_warning": {
+        "name": "Extreme Cold Warning"
+      },
+      "high_uv_warning": {
+        "name": "High UV Warning"
+      },
+      "storm_warning": {
+        "name": "Storm Warning"
+      }
+    },
+    "button": {
+      "start_walk": {
+        "name": "Start Walk"
+      },
+      "end_walk": {
+        "name": "End Walk"
+      },
+      "gps_start_walk": {
+        "name": "GPS Start Walk"
+      },
+      "gps_end_walk": {
+        "name": "GPS End Walk"
+      },
+      "mark_fed_breakfast": {
+        "name": "Mark Fed (Breakfast)"
+      },
+      "mark_fed_lunch": {
+        "name": "Mark Fed (Lunch)"
+      },
+      "mark_fed_dinner": {
+        "name": "Mark Fed (Dinner)"
+      },
+      "mark_fed_snack": {
+        "name": "Mark Fed (Snack)"
+      },
+      "log_poop": {
+        "name": "Log Poop"
+      },
+      "log_health": {
+        "name": "Log Health"
+      },
+      "log_medication": {
+        "name": "Log Medication"
+      },
+      "start_grooming": {
+        "name": "Start Grooming"
+      },
+      "notify_test": {
+        "name": "Test Notification"
+      },
+      "toggle_visitor_mode": {
+        "name": "Toggle Visitor Mode"
+      },
+      "daily_reset": {
+        "name": "Daily Reset"
+      },
+      "export_data": {
+        "name": "Export Data"
+      },
+      "emergency": {
+        "name": "Emergency"
+      },
+      "update_weather": {
+        "name": "Update Weather"
+      },
+      "get_weather_alerts": {
+        "name": "Get Weather Alerts"
+      },
+      "get_weather_recommendations": {
+        "name": "Get Weather Recommendations"
+      }
+    },
+    "switch": {
+      "module_feeding": {
+        "name": "Feeding Module"
+      },
+      "module_walk": {
+        "name": "Walk Module"
+      },
+      "module_gps": {
+        "name": "GPS Module"
+      },
+      "module_health": {
+        "name": "Health Module"
+      },
+      "module_notifications": {
+        "name": "Notification Module"
+      },
+      "module_visitor": {
+        "name": "Visitor Mode Module"
+      },
+      "module_weather": {
+        "name": "Weather Health Module"
+      },
+      "notifications_enabled": {
+        "name": "Notifications Enabled"
+      },
+      "quiet_hours": {
+        "name": "Quiet Hours"
+      },
+      "feeding_reminders": {
+        "name": "Feeding Reminders"
+      },
+      "walk_reminders": {
+        "name": "Walk Reminders"
+      },
+      "gps_tracking": {
+        "name": "GPS Tracking"
+      },
+      "auto_walk_detection": {
+        "name": "Auto Walk Detection"
+      },
+      "geofence_alerts": {
+        "name": "Geofence Alerts"
+      },
+      "health_tracking": {
+        "name": "Health Tracking"
+      },
+      "medication_reminders": {
+        "name": "Medication Reminders"
+      },
+      "weight_alerts": {
+        "name": "Weight Alerts"
+      },
+      "breakfast_enabled": {
+        "name": "Breakfast Enabled"
+      },
+      "lunch_enabled": {
+        "name": "Lunch Enabled"
+      },
+      "dinner_enabled": {
+        "name": "Dinner Enabled"
+      },
+      "snacks_enabled": {
+        "name": "Snacks Enabled"
+      },
+      "visitor_mode": {
+        "name": "Visitor Mode"
+      },
+      "data_collection": {
+        "name": "Data Collection"
+      },
+      "system_enabled": {
+        "name": "System Enabled"
+      },
+      "auto_backup": {
+        "name": "Auto Backup"
+      },
+      "weather_alerts": {
+        "name": "Weather Alerts"
+      },
+      "weather_recommendations": {
+        "name": "Weather Recommendations"
+      },
+      "temperature_alerts": {
+        "name": "Temperature Alerts"
+      },
+      "uv_alerts": {
+        "name": "UV Alerts"
+      },
+      "humidity_alerts": {
+        "name": "Humidity Alerts"
+      },
+      "storm_alerts": {
+        "name": "Storm Alerts"
+      }
+    },
+    "select": {
+      "size": {
+        "name": "Size",
+        "state": {
+          "toy": "Toy",
+          "small": "Small",
+          "medium": "Medium",
+          "large": "Large",
+          "giant": "Giant"
+        }
+      },
+      "activity_level": {
+        "name": "Activity Level",
+        "state": {
+          "very_low": "Very Low",
+          "low": "Low",
+          "normal": "Normal",
+          "high": "High",
+          "very_high": "Very High"
+        }
+      },
+      "food_type": {
+        "name": "Food Type",
+        "state": {
+          "dry_food": "Dry Food",
+          "wet_food": "Wet Food",
+          "barf": "BARF",
+          "home_cooked": "Home Cooked",
+          "mixed": "Mixed"
+        }
+      },
+      "mood": {
+        "name": "Mood",
+        "state": {
+          "happy": "Happy",
+          "neutral": "Neutral",
+          "sad": "Sad",
+          "angry": "Angry",
+          "anxious": "Anxious",
+          "tired": "Tired"
+        }
+      },
+      "weather_severity": {
+        "name": "Weather Severity",
+        "state": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "extreme": "Extreme"
         }
       }
     }
@@ -372,6 +772,204 @@
     "daily_reset": {
       "name": "Daily Reset",
       "description": "Perform daily reset of counters for all dogs"
+    },
+    "update_weather_data": {
+      "name": "Update Weather Data",
+      "description": "Updates weather data for health monitoring"
+    },
+    "get_weather_alerts": {
+      "name": "Get Weather Alerts",
+      "description": "Retrieves active weather-based health alerts"
+    },
+    "get_weather_recommendations": {
+      "name": "Get Weather Recommendations",
+      "description": "Retrieves personalized weather recommendations for a dog"
+    },
+    "setup_automatic_gps": {
+      "name": "Setup Automatic GPS",
+      "description": "Sets up automatic GPS tracking with safety zones"
+    },
+    "recalculate_health_portions": {
+      "name": "Recalculate Health Portions",
+      "description": "Recalculates food portions based on current health data"
+    },
+    "adjust_calories_for_activity": {
+      "name": "Adjust Calories for Activity",
+      "description": "Adjusts calorie intake based on activity level"
+    },
+    "activate_diabetic_feeding_mode": {
+      "name": "Activate Diabetic Feeding Mode",
+      "description": "Activates special feeding schedule for diabetic dogs"
+    },
+    "feed_with_medication": {
+      "name": "Feed with Medication",
+      "description": "Logs a feeding along with medication administration"
+    },
+    "generate_weekly_health_report": {
+      "name": "Generate Weekly Health Report",
+      "description": "Generates a comprehensive weekly health report"
+    },
+    "activate_emergency_feeding_mode": {
+      "name": "Activate Emergency Feeding Mode",
+      "description": "Activates emergency feeding schedule for sick or injured dogs"
+    },
+    "start_diet_transition": {
+      "name": "Start Diet Transition",
+      "description": "Starts gradual transition to new food"
+    },
+    "check_feeding_compliance": {
+      "name": "Check Feeding Compliance",
+      "description": "Checks compliance with feeding schedule"
+    },
+    "adjust_daily_portions": {
+      "name": "Adjust Daily Portions",
+      "description": "Adjusts daily food portions"
+    },
+    "add_health_snack": {
+      "name": "Add Health Snack",
+      "description": "Adds a health-promoting snack"
+    },
+    "log_poop": {
+      "name": "Log Poop",
+      "description": "Logs bowel movement information for health monitoring"
+    }
+  },
+  "weather": {
+    "alerts": {
+      "extreme_heat_warning": {
+        "title": "🔥 Extreme Heat Warning",
+        "message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme heat risk for dogs"
+      },
+      "high_heat_advisory": {
+        "title": "🌡️ High Heat Advisory",
+        "message": "Temperature {temperature}°C requires heat protection measures for dogs"
+      },
+      "warm_weather_caution": {
+        "title": "☀️ Warm Weather Caution",
+        "message": "Temperature {temperature}°C requires basic heat protection measures"
+      },
+      "extreme_cold_warning": {
+        "title": "🥶 Extreme Cold Warning",
+        "message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme cold risk"
+      },
+      "high_cold_advisory": {
+        "title": "❄️ High Cold Advisory",
+        "message": "Temperature {temperature}°C requires cold protection measures"
+      },
+      "extreme_uv_warning": {
+        "title": "☢️ Extreme UV Warning",
+        "message": "UV index {uv_index} poses extreme UV risk for dogs"
+      },
+      "high_uv_advisory": {
+        "title": "🌞 High UV Advisory",
+        "message": "UV index {uv_index} requires UV protection for dogs"
+      },
+      "high_humidity_alert": {
+        "title": "💨 High Humidity Alert",
+        "message": "Humidity {humidity}% may cause breathing difficulties"
+      },
+      "wet_weather_advisory": {
+        "title": "🌧️ Wet Weather Advisory",
+        "message": "Rain conditions require paw care precautions"
+      },
+      "storm_warning": {
+        "title": "⛈️ Storm Warning",
+        "message": "Storms may cause anxiety and safety risks for dogs"
+      },
+      "snow_ice_alert": {
+        "title": "🌨️ Snow/Ice Alert",
+        "message": "Icy conditions require paw protection"
+      }
+    },
+    "recommendations": {
+      "avoid_peak_hours": "Avoid outdoor activities during peak hours",
+      "provide_water": "Ensure constant access to cool water",
+      "keep_indoors": "Keep dog indoors with air conditioning",
+      "watch_heat_signs": "Watch for signs of heat exhaustion: excessive panting, drooling, lethargy",
+      "use_cooling_aids": "Consider cooling mats or vests",
+      "never_leave_in_car": "Never leave dog in car or direct sunlight",
+      "limit_outdoor_time": "Limit outdoor activities to early morning or evening",
+      "ensure_shade": "Ensure shade during outdoor time",
+      "monitor_overheating": "Monitor for signs of overheating",
+      "cooler_surfaces": "Consider shorter walks on cooler surfaces",
+      "extra_water": "Provide extra water during outdoor activities",
+      "cooler_day_parts": "Schedule walks for cooler parts of the day",
+      "watch_heat_stress": "Watch for early signs of heat stress",
+      "essential_only": "Limit outdoor time to essential only",
+      "protective_clothing": "Use protective clothing for short-haired breeds",
+      "protect_paws": "Protect paws from ice and salt",
+      "warm_shelter": "Provide warm, draft-free sleeping area",
+      "watch_hypothermia": "Watch for signs of hypothermia: shivering, lethargy, weakness",
+      "postpone_activities": "Consider postponing non-essential outdoor activities",
+      "shorten_activities": "Shorten outdoor activities",
+      "consider_clothing": "Consider protective clothing for sensitive breeds",
+      "cold_surface_protection": "Protect paws from cold surfaces",
+      "warm_shelter_available": "Ensure warm shelter is available",
+      "avoid_peak_uv": "Avoid outdoor activities during peak UV hours (10am-4pm)",
+      "provide_shade_always": "Provide shade for entire outdoor time",
+      "uv_protective_clothing": "Consider UV protective clothing for light-haired dogs",
+      "protect_nose_ears": "Protect nose and ear tips from UV exposure",
+      "pet_sunscreen": "Use pet-safe sunscreen on exposed areas",
+      "shade_during_activities": "Provide shade during outdoor activities",
+      "limit_peak_exposure": "Limit exposure during peak hours",
+      "monitor_skin_irritation": "Monitor light-haired dogs for skin irritation",
+      "reduce_exercise_intensity": "Reduce exercise intensity and duration",
+      "good_air_circulation": "Ensure good air circulation indoors",
+      "monitor_breathing": "Monitor brachycephalic breeds closely",
+      "cool_ventilated_areas": "Provide cool, well-ventilated rest areas",
+      "dry_paws_thoroughly": "Dry paws thoroughly after outdoor activities",
+      "check_toe_irritation": "Check for irritation between toes",
+      "use_paw_balm": "Use paw balm as needed",
+      "waterproof_protection": "Consider waterproof protection for sensitive paws",
+      "keep_indoors_storm": "Keep dog indoors during storm",
+      "comfort_anxious": "Provide comfort for anxious dogs",
+      "secure_id_tags": "Ensure ID tags are secure before storm",
+      "avoid_until_passes": "Avoid outdoor activities until storm passes",
+      "use_paw_protection": "Use paw protection or boots",
+      "watch_ice_buildup": "Watch for ice buildup between toes",
+      "rinse_salt_chemicals": "Rinse paws after walks to remove salt/chemicals",
+      "provide_traction": "Provide traction on slippery surfaces",
+      "breed_specific_caution": "Extra caution for {breed} breed during {alert_type}",
+      "puppy_extra_monitoring": "Puppies are more vulnerable - monitor closely",
+      "senior_extra_protection": "Senior dogs need extra protection",
+      "respiratory_monitoring": "Respiratory condition requires additional monitoring",
+      "heart_avoid_strenuous": "Heart condition - avoid strenuous activities"
+    },
+    "severity": {
+      "low": "Low",
+      "moderate": "Moderate",
+      "high": "High",
+      "extreme": "Extreme"
+    },
+    "health_impacts": {
+      "heat_stress": "Heat Stress",
+      "cold_stress": "Cold Stress",
+      "uv_exposure": "UV Exposure",
+      "air_quality": "Air Quality",
+      "exercise_limitation": "Exercise Limitation",
+      "hydration_risk": "Dehydration Risk",
+      "paw_protection": "Paw Protection",
+      "respiratory_risk": "Respiratory Risk"
+    },
+    "conditions": {
+      "clear": "Clear",
+      "cloudy": "Cloudy",
+      "rainy": "Rainy",
+      "snowy": "Snowy",
+      "stormy": "Stormy",
+      "foggy": "Foggy",
+      "windy": "Windy",
+      "hot": "Hot",
+      "cold": "Cold",
+      "humid": "Humid",
+      "dry": "Dry"
+    },
+    "notifications": {
+      "weather_update_complete": "🌤️ Weather data updated: {temperature}°C, {condition}, health score: {score}",
+      "weather_alerts_found": "🌡️ Weather alerts for {dog_id}",
+      "weather_recommendations_generated": "🐕 Weather recommendations: {dog_id}",
+      "gps_setup_complete": "🛰️ GPS setup complete: {dog_id}",
+      "automatic_gps_configured": "Automatic GPS tracking configured for {dog_id}. Safety zone: {radius}m radius. Auto-walk detection: {auto_walk_status}."
     }
   }
 }

@@ -42,6 +42,8 @@ from .const import (
     SERVICE_FEED_DOG,
     SERVICE_FEED_WITH_MEDICATION,
     SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
+    SERVICE_GET_WEATHER_ALERTS,
+    SERVICE_GET_WEATHER_RECOMMENDATIONS,
     SERVICE_GPS_END_WALK,
     SERVICE_GPS_EXPORT_ROUTE,
     SERVICE_GPS_POST_LOCATION,
@@ -53,6 +55,7 @@ from .const import (
     SERVICE_START_DIET_TRANSITION,
     SERVICE_START_GROOMING,
     SERVICE_TOGGLE_VISITOR_MODE,
+    SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
 from .walk_manager import WeatherCondition
@@ -313,10 +316,12 @@ SERVICE_EXPORT_DATA_SCHEMA = vol.Schema(
         vol.Required("data_type"): vol.In(
             ["feeding", "walks", "health", "medication", "routes", "all"]
         ),
-        vol.Optional("format"): vol.In(["json", "csv", "gpx"]),
+        vol.Optional("format", default="json"): vol.In(["json", "csv", "gpx", "pdf"]),
         vol.Optional("days"): vol.Coerce(int),
-        vol.Optional("date_from"): cv.date,
-        vol.Optional("date_to"): cv.date,
+        vol.Optional("date_from"): cv.date,  # NEW: Missing parameter from comprehensive_readme.md
+        vol.Optional("date_to"): cv.date,    # NEW: Missing parameter from comprehensive_readme.md
+        vol.Optional("include_summary", default=True): cv.boolean,
+        vol.Optional("compress", default=False): cv.boolean,
     }
 )
 
@@ -526,6 +531,34 @@ SERVICE_CONFIRM_POOP_SCHEMA = vol.Schema(
         ),
         vol.Optional("size"): vol.In(["small", "normal", "large"]),
         vol.Optional("location"): cv.string,
+    }
+)
+
+# NEW: Weather service schemas
+SERVICE_UPDATE_WEATHER_SCHEMA = vol.Schema(
+    {
+        vol.Optional("weather_entity_id"): cv.string,
+        vol.Optional("force_update", default=False): cv.boolean,
+    }
+)
+
+SERVICE_GET_WEATHER_ALERTS_SCHEMA = vol.Schema(
+    {
+        vol.Optional("dog_id"): cv.string,
+        vol.Optional("severity_filter"): vol.In(["low", "moderate", "high", "extreme"]),
+        vol.Optional("impact_filter"): vol.In([
+            "heat_stress", "cold_stress", "uv_exposure", "air_quality",
+            "exercise_limitation", "hydration_risk", "paw_protection", "respiratory_risk"
+        ]),
+    }
+)
+
+SERVICE_GET_WEATHER_RECOMMENDATIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required("dog_id"): cv.string,
+        vol.Optional("include_breed_specific", default=True): cv.boolean,
+        vol.Optional("include_health_conditions", default=True): cv.boolean,
+        vol.Optional("max_recommendations", default=5): vol.Range(min=1, max=10),
     }
 )
 
@@ -887,7 +920,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def gps_start_walk_service(call: ServiceCall) -> None:
         """Handle GPS start walk service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        gps_manager = _require_manager(coordinator.gps_geofence_manager, "GPS geofence manager")
 
         dog_id = call.data["dog_id"]
         walker = call.data.get("walker")
@@ -895,13 +928,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         safety_alerts = call.data.get("safety_alerts", True)
 
         try:
-            session_id = await walk_manager.async_start_walk(
+            session_id = await gps_manager.async_start_gps_tracking(
                 dog_id=dog_id,
-                walk_type="gps",
                 walker=walker,
                 track_route=track_route,
                 safety_alerts=safety_alerts,
             )
+
+            await coordinator.async_request_refresh()
 
             _LOGGER.info(
                 "Started GPS walk for %s (session: %s, tracking: %s, alerts: %s)",
@@ -922,30 +956,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def gps_end_walk_service(call: ServiceCall) -> None:
         """Handle GPS end walk service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        gps_manager = _require_manager(coordinator.gps_geofence_manager, "GPS geofence manager")
 
         dog_id = call.data["dog_id"]
         save_route = call.data.get("save_route", True)
         notes = call.data.get("notes")
 
         try:
-            walk_event = await walk_manager.async_end_walk(
+            walk_route = await gps_manager.async_end_gps_tracking(
                 dog_id=dog_id,
-                notes=notes,
                 save_route=save_route,
+                notes=notes,
             )
 
-            if walk_event:
+            if walk_route:
                 await coordinator.async_request_refresh()
-
-                distance_km = float(walk_event.get("distance") or 0.0) / 1000
-                duration_minutes = float(walk_event.get("duration") or 0.0) / 60
 
                 _LOGGER.info(
                     "Ended GPS walk for %s: %.2f km in %.0f minutes (route %s)",
                     dog_id,
-                    distance_km,
-                    duration_minutes,
+                    walk_route.distance_km,
+                    walk_route.duration_minutes,
                     "saved" if save_route else "discarded",
                 )
             else:
@@ -962,7 +993,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def gps_post_location_service(call: ServiceCall) -> None:
         """Handle GPS post location service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        gps_manager = _require_manager(coordinator.gps_geofence_manager, "GPS geofence manager")
 
         dog_id = call.data["dog_id"]
         latitude = call.data["latitude"]
@@ -972,13 +1003,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         timestamp = call.data.get("timestamp", dt_util.utcnow())
 
         try:
-            success = await walk_manager.async_add_gps_point(
+            from .gps_manager import LocationSource
+            
+            success = await gps_manager.async_add_gps_point(
                 dog_id=dog_id,
                 latitude=latitude,
                 longitude=longitude,
                 altitude=altitude,
                 accuracy=accuracy,
                 timestamp=timestamp,
+                source=LocationSource.EXTERNAL_API,
             )
 
             if success:
@@ -999,23 +1033,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def gps_export_route_service(call: ServiceCall) -> None:
         """Handle GPS export route service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        gps_manager = _require_manager(coordinator.gps_geofence_manager, "GPS geofence manager")
 
         dog_id = call.data["dog_id"]
         export_format = call.data.get("format", "gpx")
         last_n_walks = call.data.get("last_n_walks", 1)
 
         try:
-            export_data = await walk_manager.async_export_routes(
+            export_data = await gps_manager.async_export_routes(
                 dog_id=dog_id,
-                format=export_format,
-                last_n_walks=last_n_walks,
+                export_format=export_format,
+                last_n_routes=last_n_walks,
             )
 
             if export_data:
                 _LOGGER.info(
                     "Exported %d route(s) for %s in %s format",
-                    last_n_walks,
+                    export_data.get("routes_count", 0),
                     dog_id,
                     export_format,
                 )
@@ -1026,7 +1060,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     await notification_manager.async_send_notification(
                         notification_type="system_info",
                         title="Route Export Complete",
-                        message=f"Exported {last_n_walks} route(s) for {dog_id} in {export_format} format",
+                        message=f"Exported {export_data.get('routes_count', 0)} route(s) for {dog_id} in {export_format} format",
                         dog_id=dog_id,
                     )
             else:
@@ -1048,12 +1082,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         with parameters like auto_start_walk, safe_zone_radius, and track_route.
         """
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
-
-        # Get geofencing manager if available
-        geofencing_manager = getattr(coordinator, "geofencing_manager", None)
-        if geofencing_manager is None:
-            _LOGGER.warning("Geofencing manager not available for automatic GPS setup")
+        gps_manager = _require_manager(coordinator.gps_geofence_manager, "GPS geofence manager")
 
         dog_id = call.data["dog_id"]
         auto_start_walk = call.data.get("auto_start_walk", True)
@@ -1068,30 +1097,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         try:
             # Configure automatic GPS settings for the dog
             gps_config = {
+                "enabled": True,
                 "auto_start_walk": auto_start_walk,
-                "safe_zone_radius": safe_zone_radius,
                 "track_route": track_route,
                 "safety_alerts": safety_alerts,
                 "geofence_notifications": geofence_notifications,
                 "auto_detect_home": auto_detect_home,
                 "gps_accuracy_threshold": gps_accuracy_threshold,
                 "update_interval_seconds": update_interval_seconds,
-                "enabled": True,
                 "configured_at": dt_util.utcnow(),
             }
 
-            # Store GPS configuration
-            await walk_manager.async_configure_automatic_gps(
-                dog_id=dog_id, config=gps_config
-            )
+            # Configure GPS tracking for the dog
+            await gps_manager.async_configure_dog_gps(dog_id=dog_id, config=gps_config)
 
-            # Setup geofencing if manager is available
-            if geofencing_manager:
-                # Use Home Assistant's home location or coordinates
+            # Setup geofencing safe zone
+            if auto_detect_home:
+                # Use Home Assistant's home location
                 home_lat = hass.config.latitude
                 home_lon = hass.config.longitude
 
-                await geofencing_manager.async_setup_safe_zone(
+                await gps_manager.async_setup_safe_zone(
                     dog_id=dog_id,
                     center_lat=home_lat,
                     center_lon=home_lon,
@@ -2012,6 +2038,179 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError(
                 f"Failed to confirm garden poop for {dog_id}. Check the logs for details."
             ) from err
+            
+    # NEW: Weather service handlers
+    async def update_weather_service(call: ServiceCall) -> None:
+        """Handle update weather service call."""
+        coordinator = _get_coordinator()
+        weather_manager = _require_manager(
+            coordinator.weather_health_manager, "weather health manager"
+        )
+
+        weather_entity_id = call.data.get("weather_entity_id")
+        force_update = call.data.get("force_update", False)
+
+        try:
+            # Update weather data
+            weather_conditions = await weather_manager.async_update_weather_data(
+                weather_entity_id
+            )
+            
+            if weather_conditions and weather_conditions.is_valid:
+                await coordinator.async_request_refresh()
+                
+                _LOGGER.info(
+                    "Updated weather data: %.1f°C, %s, health score: %d",
+                    weather_conditions.temperature_c or 0,
+                    weather_conditions.condition or "unknown",
+                    weather_manager.get_weather_health_score(),
+                )
+                
+                # Send notification about weather update if there are alerts
+                active_alerts = weather_manager.get_active_alerts()
+                if active_alerts and coordinator.notification_manager:
+                    high_severity_alerts = [
+                        alert for alert in active_alerts 
+                        if alert.severity.value in ["high", "extreme"]
+                    ]
+                    
+                    if high_severity_alerts:
+                        alert = high_severity_alerts[0]  # Most severe
+                        await coordinator.notification_manager.async_send_notification(
+                            notification_type="health_alert",
+                            title=f"🌡️ Weather Alert: {alert.title}",
+                            message=alert.message,
+                            priority="high" if alert.severity.value == "extreme" else "normal",
+                        )
+            else:
+                _LOGGER.warning("Weather update failed or returned invalid data")
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to update weather data: %s", err)
+            raise HomeAssistantError(
+                "Failed to update weather data. Check the logs for details."
+            ) from err
+
+    async def get_weather_alerts_service(call: ServiceCall) -> None:
+        """Handle get weather alerts service call."""
+        coordinator = _get_coordinator()
+        weather_manager = _require_manager(
+            coordinator.weather_health_manager, "weather health manager"
+        )
+
+        dog_id = call.data.get("dog_id")
+        severity_filter = call.data.get("severity_filter")
+        impact_filter = call.data.get("impact_filter")
+
+        try:
+            from .weather_manager import WeatherHealthImpact, WeatherSeverity
+            
+            # Convert string filters to enums
+            severity_enum = None
+            if severity_filter:
+                severity_enum = WeatherSeverity(severity_filter)
+                
+            impact_enum = None
+            if impact_filter:
+                impact_enum = WeatherHealthImpact(impact_filter)
+            
+            # Get filtered alerts
+            alerts = weather_manager.get_active_alerts(
+                severity_filter=severity_enum,
+                impact_filter=impact_enum,
+            )
+            
+            _LOGGER.info(
+                "Retrieved %d weather alerts (severity: %s, impact: %s)",
+                len(alerts),
+                severity_filter or "all",
+                impact_filter or "all",
+            )
+            
+            # Send notification with alert summary if requested for specific dog
+            if dog_id and alerts and coordinator.notification_manager:
+                alert_summary = f"Found {len(alerts)} weather alerts:\n"
+                for alert in alerts[:3]:  # Limit to 3 for notification
+                    alert_summary += f"• {alert.title}\n"
+                    
+                await coordinator.notification_manager.async_send_notification(
+                    notification_type="system_info",
+                    title=f"🌤️ Weather Alerts for {dog_id}",
+                    message=alert_summary.strip(),
+                    dog_id=dog_id,
+                )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to get weather alerts: %s", err)
+            raise HomeAssistantError(
+                "Failed to get weather alerts. Check the logs for details."
+            ) from err
+
+    async def get_weather_recommendations_service(call: ServiceCall) -> None:
+        """Handle get weather recommendations service call."""
+        coordinator = _get_coordinator()
+        weather_manager = _require_manager(
+            coordinator.weather_health_manager, "weather health manager"
+        )
+
+        dog_id = call.data["dog_id"]
+        include_breed_specific = call.data.get("include_breed_specific", True)
+        include_health_conditions = call.data.get("include_health_conditions", True)
+        max_recommendations = call.data.get("max_recommendations", 5)
+
+        try:
+            # Get dog configuration
+            dog_config = coordinator.get_dog_config(dog_id)
+            if not dog_config:
+                raise HomeAssistantError(f"Dog {dog_id} not found")
+            
+            # Get recommendations
+            dog_breed = dog_config.get("breed") if include_breed_specific else None
+            dog_age_months = dog_config.get("age_months")
+            health_conditions = (
+                dog_config.get("health_conditions", []) 
+                if include_health_conditions else None
+            )
+            
+            recommendations = weather_manager.get_recommendations_for_dog(
+                dog_breed=dog_breed,
+                dog_age_months=dog_age_months,
+                health_conditions=health_conditions,
+            )
+            
+            # Limit recommendations
+            recommendations = recommendations[:max_recommendations]
+            
+            _LOGGER.info(
+                "Generated %d weather recommendations for %s",
+                len(recommendations),
+                dog_id,
+            )
+            
+            # Send notification with recommendations
+            if recommendations and coordinator.notification_manager:
+                rec_message = f"Weather recommendations for {dog_id}:\n"
+                for i, rec in enumerate(recommendations[:3], 1):  # Limit to 3 for notification
+                    rec_message += f"{i}. {rec}\n"
+                    
+                await coordinator.notification_manager.async_send_notification(
+                    notification_type="system_info",
+                    title=f"🐕 Weather Tips: {dog_id}",
+                    message=rec_message.strip(),
+                    dog_id=dog_id,
+                )
+
+        except HomeAssistantError:
+            raise
+        except Exception as err:
+            _LOGGER.error("Failed to get weather recommendations for %s: %s", dog_id, err)
+            raise HomeAssistantError(
+                f"Failed to get weather recommendations for {dog_id}. Check the logs for details."
+            ) from err
 
     # Register all services
     hass.services.async_register(
@@ -2279,9 +2478,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         confirm_garden_poop_service,
         schema=SERVICE_CONFIRM_POOP_SCHEMA,
     )
+    
+    # NEW: Register weather services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_WEATHER,
+        update_weather_service,
+        schema=SERVICE_UPDATE_WEATHER_SCHEMA,
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_WEATHER_ALERTS,
+        get_weather_alerts_service,
+        schema=SERVICE_GET_WEATHER_ALERTS_SCHEMA,
+    )
+    
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_WEATHER_RECOMMENDATIONS,
+        get_weather_recommendations_service,
+        schema=SERVICE_GET_WEATHER_RECOMMENDATIONS_SCHEMA,
+    )
 
     _LOGGER.info(
-        "Registered PawControl services with enhanced automation, GPS setup, and garden tracking functionality"
+        "Registered PawControl services with enhanced automation, GPS setup, garden tracking, and weather health functionality"
     )
 
 
@@ -2331,6 +2552,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_END_GARDEN,
         SERVICE_ADD_GARDEN_ACTIVITY,
         SERVICE_CONFIRM_POOP,
+        # NEW: Weather services
+        SERVICE_UPDATE_WEATHER,
+        SERVICE_GET_WEATHER_ALERTS,
+        SERVICE_GET_WEATHER_RECOMMENDATIONS,
     ]
 
     for service in services_to_remove:

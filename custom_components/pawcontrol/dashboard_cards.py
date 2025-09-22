@@ -1420,6 +1420,534 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
 
+class WeatherCardGenerator(BaseCardGenerator):
+    """Generator for weather integration dashboard cards with advanced UI components.
+    
+    OPTIMIZED: Enhanced with weather health visualization, breed-specific recommendations,
+    real-time alerts, forecast display, and interactive weather controls.
+    
+    Quality Scale: Platinum
+    Weather Integration: v1.0.0
+    """
+
+    async def generate_weather_overview_cards(
+        self,
+        dog_config: DogConfigType,
+        options: OptionsConfigType,
+    ) -> list[CardConfigType]:
+        """Generate comprehensive weather overview cards for dog health monitoring.
+        
+        Args:
+            dog_config: Dog configuration including breed and health data
+            options: Display options for weather cards
+            
+        Returns:
+            List of weather overview cards
+        """
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
+        modules = dog_config.get("modules", {})
+        
+        # Check if weather module is enabled
+        if not modules.get("weather"):
+            return []
+            
+        start_time = asyncio.get_event_loop().time()
+        cards: list[CardConfigType] = []
+        
+        # OPTIMIZED: Generate weather cards concurrently
+        weather_card_tasks = [
+            ("health_score", self._generate_weather_health_score_card(dog_id, dog_name, options)),
+            ("active_alerts", self._generate_active_weather_alerts_card(dog_id, dog_name, options)),
+            ("recommendations", self._generate_weather_recommendations_card(dog_id, dog_name, options)),
+            ("current_conditions", self._generate_current_weather_conditions_card(dog_id, dog_name, options)),
+        ]
+        
+        # Add breed-specific and forecast cards based on options
+        if options.get("show_breed_advice", True):
+            weather_card_tasks.append(("breed_advice", self._generate_breed_weather_advice_card(dog_config, options)))
+            
+        if options.get("show_weather_forecast", True):
+            weather_card_tasks.append(("forecast", self._generate_weather_forecast_card(dog_id, dog_name, options)))
+            
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(
+                    *(task for _, task in weather_card_tasks), return_exceptions=True
+                ),
+                timeout=CARD_GENERATION_TIMEOUT,
+            )
+            
+            # Process results with error handling
+            for (card_type, _), result in zip(weather_card_tasks, results, strict=False):
+                if isinstance(result, Exception):
+                    _LOGGER.warning(
+                        "Weather card %s generation failed for %s: %s",
+                        card_type, dog_name, result
+                    )
+                    self._performance_stats["errors_handled"] += 1
+                elif result is not None:
+                    cards.append(result)
+                    
+        except TimeoutError:
+            _LOGGER.error("Weather cards generation timeout for %s", dog_name)
+            self._performance_stats["errors_handled"] += 1
+            # Return minimal weather card on timeout
+            return [{
+                "type": "markdown",
+                "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh."
+            }]
+            
+        generation_time = asyncio.get_event_loop().time() - start_time
+        self._performance_stats["generation_time_total"] += generation_time
+        
+        if generation_time > 1.5:
+            _LOGGER.info(
+                "Slow weather card generation: %.2fs for %s", generation_time, dog_name
+            )
+            
+        return cards
+        
+    async def _generate_weather_health_score_card(
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate weather health score card with gauge visualization."""
+        score_entity = f"sensor.{dog_id}_weather_health_score"
+        
+        # OPTIMIZED: Use cached entity validation
+        if not await self._entity_exists_cached(score_entity):
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "gauge",
+                    "entity": score_entity,
+                    "name": f"🌤️ {dog_name} Weather Safety",
+                    "min": 0,
+                    "max": 100,
+                    "unit": "/100",
+                    "needle": True,
+                    "severity": {
+                        "green": 80,
+                        "yellow": 60,
+                        "orange": 40,
+                        "red": 0
+                    },
+                },
+                {
+                    "type": "markdown",
+                    "content": f"""
+{% set score = states('sensor.{dog_id}_weather_health_score') | int(0) %}
+{% if score >= 80 %}
+**🌟 Excellent conditions** - Perfect for all activities
+{% elif score >= 60 %}
+**✅ Good conditions** - Normal activities with basic precautions
+{% elif score >= 40 %}
+**⚠️ Caution needed** - Modified activities and close monitoring
+{% else %}
+**🚨 Dangerous conditions** - Indoor activities only, emergency precautions
+{% endif %}
+
+*Last updated: {{{{ states.sensor.{dog_id}_weather_health_score.last_updated.strftime('%H:%M') }}}}*
+                    """,
+                },
+            ],
+        }
+        
+    async def _generate_active_weather_alerts_card(
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate active weather alerts card with alert chips."""
+        # OPTIMIZED: Batch validate all alert entities
+        alert_entities = [
+            f"binary_sensor.{dog_id}_heat_stress_alert",
+            f"binary_sensor.{dog_id}_cold_stress_alert", 
+            f"binary_sensor.{dog_id}_uv_exposure_alert",
+            f"binary_sensor.{dog_id}_humidity_warning",
+            f"binary_sensor.{dog_id}_storm_warning",
+            f"binary_sensor.{dog_id}_paw_protection_needed",
+        ]
+        
+        valid_alerts = await self._validate_entities_batch(alert_entities)
+        if not valid_alerts:
+            return None
+            
+        # Create conditional alert chips
+        alert_chips = []
+        alert_configs = [
+            ("heat_stress_alert", "🔥", "Heat Stress", "red"),
+            ("cold_stress_alert", "🥶", "Cold Stress", "blue"),
+            ("uv_exposure_alert", "☀️", "UV Risk", "orange"),
+            ("humidity_warning", "💨", "Humidity", "purple"),
+            ("storm_warning", "⛈️", "Storm", "dark"),
+            ("paw_protection_needed", "🐾", "Paw Protection", "brown"),
+        ]
+        
+        for alert_type, icon, name, color in alert_configs:
+            entity_id = f"binary_sensor.{dog_id}_{alert_type}"
+            if entity_id in valid_alerts:
+                alert_chips.append({
+                    "type": "conditional",
+                    "conditions": [{"entity": entity_id, "state": "on"}],
+                    "chip": {
+                        "type": "entity",
+                        "entity": entity_id,
+                        "name": f"{icon} {name}",
+                        "icon_color": color,
+                        "content_info": "none",
+                        "tap_action": {
+                            "action": "more-info",
+                            "entity": entity_id,
+                        },
+                    },
+                })
+                
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": f"⚠️ {dog_name} Weather Alerts",
+                    "subtitle": "Active weather health warnings",
+                },
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {"entity": f"binary_sensor.{dog_id}_weather_alerts_active", "state": "on"}
+                    ],
+                    "card": {
+                        "type": "custom:mushroom-chips-card",
+                        "chips": alert_chips,
+                        "alignment": "justify",
+                    },
+                },
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {"entity": f"binary_sensor.{dog_id}_weather_alerts_active", "state": "off"}
+                    ],
+                    "card": {
+                        "type": "markdown",
+                        "content": "✅ **No active weather alerts** - Conditions are safe for normal activities.",
+                    },
+                },
+            ],
+        }
+        
+    async def _generate_weather_recommendations_card(
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate weather recommendations card with actionable advice."""
+        recommendations_entity = f"sensor.{dog_id}_weather_recommendations"
+        
+        if not await self._entity_exists_cached(recommendations_entity):
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": f"💡 {dog_name} Weather Advice",
+                    "subtitle": "Personalized recommendations based on current conditions",
+                },
+                {
+                    "type": "markdown",
+                    "content": f"""
+{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}
+{% if recommendations and recommendations != 'unknown' %}
+{% set rec_list = recommendations.split(';') %}
+{% for rec in rec_list[:5] %}
+• {{ rec.strip() }}
+{% endfor %}
+{% if rec_list|length > 5 %}
+*... and {{ rec_list|length - 5 }} more recommendations*
+{% endif %}
+{% else %}
+*No specific recommendations at this time*
+{% endif %}
+
+*Updated: {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}*
+                    """,
+                },
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"button.{dog_id}_update_weather_data",
+                            "name": "Update Weather",
+                            "icon": "mdi:weather-cloudy-clock",
+                            "icon_color": "blue",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": "pawcontrol.update_weather_data",
+                                "service_data": {"dog_id": dog_id},
+                            },
+                        },
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"button.{dog_id}_get_weather_recommendations",
+                            "name": "Get Advice",
+                            "icon": "mdi:lightbulb-on",
+                            "icon_color": "amber",
+                            "tap_action": {
+                                "action": "call-service",
+                                "service": "pawcontrol.get_weather_recommendations",
+                                "service_data": {
+                                    "dog_id": dog_id,
+                                    "include_breed_specific": True,
+                                    "include_health_conditions": True,
+                                },
+                            },
+                        },
+                    ],
+                },
+            ],
+        }
+        
+    async def _generate_current_weather_conditions_card(
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate current weather conditions card with impact analysis."""
+        # OPTIMIZED: Batch validate weather condition entities
+        weather_entities = [
+            f"sensor.{dog_id}_temperature_impact",
+            f"sensor.{dog_id}_humidity_impact",
+            f"sensor.{dog_id}_uv_exposure_level",
+            f"sensor.{dog_id}_wind_impact",
+        ]
+        
+        valid_entities = await self._validate_entities_batch(weather_entities)
+        if not valid_entities:
+            return None
+            
+        # Create entities list for display
+        entity_configs = []
+        
+        entity_mappings = [
+            (f"sensor.{dog_id}_temperature_impact", "Temperature Impact", "mdi:thermometer"),
+            (f"sensor.{dog_id}_humidity_impact", "Humidity Impact", "mdi:water-percent"),
+            (f"sensor.{dog_id}_uv_exposure_level", "UV Exposure Level", "mdi:weather-sunny"),
+            (f"sensor.{dog_id}_wind_impact", "Wind Impact", "mdi:weather-windy"),
+        ]
+        
+        for entity_id, name, icon in entity_mappings:
+            if entity_id in valid_entities:
+                entity_configs.append({
+                    "entity": entity_id,
+                    "name": name,
+                    "icon": icon,
+                })
+                
+        return {
+            "type": "entities",
+            "title": f"🌡️ {dog_name} Weather Impact",
+            "entities": entity_configs,
+            "state_color": True,
+            "show_header_toggle": False,
+        }
+        
+    async def _generate_breed_weather_advice_card(
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate breed-specific weather advice card."""
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
+        dog_breed = dog_config.get("breed", "Mixed Breed")
+        
+        breed_advice_entity = f"sensor.{dog_id}_breed_weather_advice"
+        
+        if not await self._entity_exists_cached(breed_advice_entity):
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": f"🐕 {dog_breed} Weather Guide",
+                    "subtitle": f"Breed-specific advice for {dog_name}",
+                },
+                {
+                    "type": "markdown",
+                    "content": f"""
+{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}
+{% if breed_advice and breed_advice != 'unknown' %}
+**Breed Characteristics:**
+{% set advice_parts = breed_advice.split('|') %}
+{% for part in advice_parts %}
+• {{ part.strip() }}
+{% endfor %}
+{% else %}
+*Breed-specific advice not available*
+{% endif %}
+
+**General {dog_breed} Considerations:**
+• Check current weather score above
+• Monitor for breed-specific symptoms
+• Adjust exercise intensity accordingly
+                    """,
+                },
+            ],
+        }
+        
+    async def _generate_weather_forecast_card(
+        self, dog_id: str, dog_name: str, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate weather forecast card with health predictions."""
+        forecast_entity = f"sensor.{dog_id}_weather_forecast_health"
+        
+        if not await self._entity_exists_cached(forecast_entity):
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": f"🔮 {dog_name} Weather Forecast",
+                    "subtitle": "Upcoming weather health predictions",
+                },
+                {
+                    "type": "markdown",
+                    "content": f"""
+{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}
+{% if forecast_data and forecast_data != 'unknown' %}
+**Next 24 Hours:**
+{{ forecast_data }}
+{% else %}
+*Weather forecast data not available*
+{% endif %}
+
+**Planning Tips:**
+• Schedule walks during optimal times
+• Prepare weather protection gear
+• Monitor conditions throughout the day
+                    """,
+                },
+                {
+                    "type": "horizontal-stack",
+                    "cards": [
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"sensor.{dog_id}_next_optimal_walk_time",
+                            "name": "Next Good Walk Time",
+                            "icon": "mdi:clock-check",
+                            "icon_color": "green",
+                        },
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"sensor.{dog_id}_weather_trend",
+                            "name": "Weather Trend",
+                            "icon": "mdi:trending-up",
+                            "icon_color": "blue",
+                        },
+                    ],
+                },
+            ],
+        }
+        
+    async def generate_weather_controls_card(
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate weather control buttons and settings card."""
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
+        
+        # OPTIMIZED: Check if weather controls are enabled
+        weather_switch = f"switch.{dog_id}_weather_monitoring"
+        if not await self._entity_exists_cached(weather_switch):
+            return None
+            
+        return {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": f"⚙️ {dog_name} Weather Settings",
+                    "subtitle": "Control weather monitoring and alerts",
+                },
+                {
+                    "type": "entities",
+                    "entities": [
+                        {
+                            "entity": f"switch.{dog_id}_weather_monitoring",
+                            "name": "Weather Monitoring",
+                            "icon": "mdi:weather-partly-cloudy",
+                        },
+                        {
+                            "entity": f"switch.{dog_id}_heat_alerts",
+                            "name": "Heat Stress Alerts",
+                            "icon": "mdi:thermometer-high",
+                        },
+                        {
+                            "entity": f"switch.{dog_id}_cold_alerts",
+                            "name": "Cold Stress Alerts",
+                            "icon": "mdi:snowflake",
+                        },
+                        {
+                            "entity": f"switch.{dog_id}_uv_alerts",
+                            "name": "UV Protection Alerts",
+                            "icon": "mdi:weather-sunny-alert",
+                        },
+                    ],
+                    "show_header_toggle": False,
+                    "state_color": True,
+                },
+                {
+                    "type": "grid",
+                    "columns": 2,
+                    "cards": [
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"number.{dog_id}_heat_threshold",
+                            "name": "Heat Threshold",
+                            "icon": "mdi:temperature-celsius",
+                            "icon_color": "red",
+                        },
+                        {
+                            "type": "custom:mushroom-entity-card",
+                            "entity": f"number.{dog_id}_cold_threshold",
+                            "name": "Cold Threshold",
+                            "icon": "mdi:temperature-celsius",
+                            "icon_color": "blue",
+                        },
+                    ],
+                },
+            ],
+        }
+        
+    async def generate_weather_history_card(
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> CardConfigType | None:
+        """Generate weather history and trends card."""
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
+        
+        # OPTIMIZED: Batch validate history entities
+        history_entities = [
+            f"sensor.{dog_id}_weather_health_score",
+            f"sensor.{dog_id}_temperature_impact",
+            f"sensor.{dog_id}_daily_weather_alerts_count",
+        ]
+        
+        valid_entities = await self._validate_entities_batch(history_entities)
+        if not valid_entities:
+            return None
+            
+        return {
+            "type": "history-graph",
+            "title": f"📈 {dog_name} Weather History (7 days)",
+            "entities": valid_entities,
+            "hours_to_show": 168,  # 7 days
+            "refresh_interval": 0,
+            "logarithmic_scale": False,
+        }
+
+
 class StatisticsCardGenerator(BaseCardGenerator):
     """Generator for statistics dashboard cards with performance optimization."""
 

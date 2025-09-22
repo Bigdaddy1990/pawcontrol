@@ -78,6 +78,8 @@ MODULE_GROOMING: Final[str] = "grooming"
 MODULE_MEDICATION: Final[str] = "medication"
 MODULE_TRAINING: Final[str] = "training"
 
+MODULE_WEATHER: Final[str] = "weather"
+
 # OPTIMIZED: All modules as frozenset for O(1) membership testing
 ALL_MODULES: Final[frozenset[str]] = frozenset(
     [
@@ -91,6 +93,7 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
         MODULE_GROOMING,
         MODULE_MEDICATION,
         MODULE_TRAINING,
+        MODULE_WEATHER,
     ]
 )
 
@@ -102,6 +105,9 @@ CONF_DEVICE_TRACKERS: Final[str] = "device_trackers"
 CONF_NOTIFY_FALLBACK: Final[str] = "notify_fallback"
 CONF_CALENDAR: Final[str] = "calendar"
 CONF_WEATHER: Final[str] = "weather"
+CONF_WEATHER_ENTITY: Final[str] = "weather_entity"
+CONF_WEATHER_HEALTH_MONITORING: Final[str] = "weather_health_monitoring"
+CONF_WEATHER_ALERTS: Final[str] = "weather_alerts"
 
 # OPTIMIZED: GPS configuration constants
 CONF_GPS_SOURCE: Final[str] = "gps_source"
@@ -149,6 +155,10 @@ CONF_DASHBOARD_MODE: Final[str] = "dashboard_mode"
 CONF_DATA_RETENTION_DAYS: Final[str] = "data_retention_days"
 CONF_AUTO_BACKUP: Final[str] = "auto_backup"
 CONF_EXTERNAL_INTEGRATIONS: Final[str] = "external_integrations"
+
+# NEW: Weather defaults
+DEFAULT_WEATHER_HEALTH_MONITORING: Final[bool] = True
+DEFAULT_WEATHER_ALERTS: Final[bool] = True
 
 # OPTIMIZED: Default values as immutable constants
 DEFAULT_RESET_TIME: Final[str] = "23:59:00"
@@ -298,6 +308,11 @@ DEFAULT_DASHBOARD_MODE: Final[str] = "full"
 
 # OPTIMIZED: Performance modes as tuple
 PERFORMANCE_MODES: Final[tuple[str, ...]] = ("minimal", "standard", "full")
+
+# NEW: Weather services
+SERVICE_UPDATE_WEATHER: Final[str] = "update_weather_data"
+SERVICE_GET_WEATHER_ALERTS: Final[str] = "get_weather_alerts"
+SERVICE_GET_WEATHER_RECOMMENDATIONS: Final[str] = "get_weather_recommendations"
 
 # OPTIMIZED: Service names - grouped by functionality
 SERVICE_FEED_DOG: Final[str] = "feed_dog"

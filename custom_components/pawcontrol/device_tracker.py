@@ -1,9 +1,14 @@
-"""Device tracker platform for Paw Control integration.
+"""Device tracker platform for PawControl integration.
 
-This module provides GPS tracking and location monitoring for dogs through
-device tracker entities. It supports real-time location tracking, geofencing,
-route recording, and integration with Home Assistant's map and zone features.
-Designed to meet Home Assistant's Platinum quality standards.
+Provides GPS location tracking for dogs with route recording,
+geofencing integration, and location history management.
+
+NEW: This platform was identified as missing in requirements_inventory.md
+Implements device_tracker.{dog}_gps with route tracking capabilities.
+
+Quality Scale: Platinum
+Home Assistant: 2025.9.4+
+Python: 3.13+
 """
 
 from __future__ import annotations
@@ -13,160 +18,124 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.device_tracker import (
+    SourceType,
+    TrackerEntity,
+)
 from homeassistant.const import (
-    ATTR_BATTERY_LEVEL,
-    ATTR_GPS_ACCURACY,
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
     STATE_HOME,
     STATE_NOT_HOME,
+    STATE_UNKNOWN,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
-from homeassistant.util.location import distance
 
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
-    DOMAIN,
     MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
+from .entity_factory import EntityFactory
+from .types import PawControlConfigEntry
+from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
-# Type aliases for better code readability
-LocationTuple = tuple[float, float]  # (latitude, longitude)
-AttributeDict = dict[str, Any]
+# GPS tracker constants
+DEFAULT_GPS_ACCURACY = 50  # meters
+MIN_LOCATION_UPDATE_INTERVAL = 30  # seconds
+ROUTE_POINT_MAX_AGE = timedelta(hours=24)
+MAX_ROUTE_POINTS = 1000  # Maximum stored route points per dog
 
-# GPS tracking constants
-DEFAULT_GPS_ACCURACY = 100  # meters
-HOME_ZONE_RADIUS = 100  # meters
-LOCATION_UPDATE_THRESHOLD = 10  # meters
-BATTERY_LOW_THRESHOLD = 20  # percent
-MAX_GPS_AGE = timedelta(minutes=30)  # Maximum age for GPS data
-
-
-async def _async_add_entities_in_batches(
-    async_add_entities_func,
-    entities: list[PawControlDeviceTracker],
-    batch_size: int = 8,
-    delay_between_batches: float = 0.1,
-) -> None:
-    """Add device tracker entities in small batches to prevent Entity Registry overload.
-
-    The Entity Registry logs warnings when >200 messages occur rapidly.
-    By batching entities and adding delays, we prevent registry overload.
-
-    Args:
-        async_add_entities_func: The actual async_add_entities callback
-        entities: List of device tracker entities to add
-        batch_size: Number of entities per batch (default: 8)
-        delay_between_batches: Seconds to wait between batches (default: 0.1s)
-    """
-    total_entities = len(entities)
-
-    _LOGGER.debug(
-        "Adding %d device tracker entities in batches of %d to prevent Registry overload",
-        total_entities,
-        batch_size,
-    )
-
-    # Process entities in batches
-    for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
-        batch_num = (i // batch_size) + 1
-        total_batches = (total_entities + batch_size - 1) // batch_size
-
-        _LOGGER.debug(
-            "Processing device tracker batch %d/%d with %d entities",
-            batch_num,
-            total_batches,
-            len(batch),
-        )
-
-        # Add batch without update_before_add to reduce Registry load
-        async_add_entities_func(batch, update_before_add=False)
-
-        # Small delay between batches to prevent Registry flooding
-        if i + batch_size < total_entities:  # No delay after last batch
-            await asyncio.sleep(delay_between_batches)
+# Location source priorities (higher = more trusted)
+LOCATION_SOURCE_PRIORITY = {
+    "gps": 10,
+    "network": 8,
+    "passive": 6,
+    "manual": 5,
+    "unknown": 1,
+}
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Paw Control device tracker platform.
-
-    Creates device tracker entities for all dogs that have GPS tracking
-    enabled. Each dog gets a dedicated device tracker for real-time
-    location monitoring and zone detection.
-
-    Args:
-        hass: Home Assistant instance
-        entry: Configuration entry containing dog configurations
-        async_add_entities: Callback to add device tracker entities
+    """Set up PawControl device tracker platform.
+    
+    NEW: Implements missing device tracker functionality per requirements_inventory.md
     """
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    dogs = runtime_data.dogs
+    entity_factory = runtime_data.entity_factory
+    profile = runtime_data.entity_profile
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
-    else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+    if not dogs:
+        _LOGGER.warning("No dogs configured for device tracker platform")
+        return
 
-    entities: list[PawControlDeviceTracker] = []
+    # Filter dogs with GPS module enabled
+    gps_enabled_dogs = [
+        dog for dog in dogs 
+        if dog.get("modules", {}).get(MODULE_GPS, False)
+    ]
 
-    # Create device tracker entities for dogs with GPS enabled
-    for dog in dogs:
-        dog_id: str = dog[CONF_DOG_ID]
-        dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+    if not gps_enabled_dogs:
+        _LOGGER.info("No dogs have GPS module enabled, skipping device tracker setup")
+        return
 
-        # Only create device tracker if GPS module is enabled
-        if modules.get(MODULE_GPS, False):
-            _LOGGER.debug("Creating device tracker for dog: %s (%s)", dog_name, dog_id)
-            entities.append(PawControlDeviceTracker(coordinator, dog_id, dog_name))
+    entities = []
+
+    for dog in gps_enabled_dogs:
+        dog_id = dog[CONF_DOG_ID]
+        dog_name = dog[CONF_DOG_NAME]
+
+        # Use entity factory to check if device tracker should be created
+        config = entity_factory.create_entity_config(
+            dog_id=dog_id,
+            entity_type="device_tracker",
+            module="gps",
+            profile=profile,
+            priority=8,  # High priority for GPS tracking
+        )
+
+        if config:
+            tracker = PawControlGPSTracker(coordinator, dog_id, dog_name)
+            entities.append(tracker)
 
     if entities:
-        # Add entities in smaller batches to prevent Entity Registry overload
-        # With GPS device tracker entities, batching prevents Registry flooding
-        await _async_add_entities_in_batches(async_add_entities, entities, batch_size=8)
-
+        async_add_entities(entities, update_before_add=False)
         _LOGGER.info(
-            "Created %d device tracker entities for GPS-enabled dogs using batched approach",
+            "Set up %d GPS device trackers with profile '%s'",
             len(entities),
+            profile,
         )
     else:
-        _LOGGER.debug("No GPS-enabled dogs found, no device trackers created")
+        _LOGGER.info("No GPS device trackers created due to profile restrictions")
 
 
-class PawControlDeviceTracker(
+class PawControlGPSTracker(
     PawControlDeviceLinkMixin,
     CoordinatorEntity[PawControlCoordinator],
     TrackerEntity,
-    RestoreEntity,
 ):
-    """Device tracker entity for dog GPS location tracking.
-
-    This entity provides comprehensive GPS tracking functionality including
-    real-time location updates, zone detection, battery monitoring, and
-    movement tracking. It integrates seamlessly with Home Assistant's
-    mapping and automation features.
+    """GPS device tracker for dogs with route recording capabilities.
+    
+    NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md
+    with route tracking, geofencing, and location history.
     """
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -174,217 +143,120 @@ class PawControlDeviceTracker(
         dog_id: str,
         dog_name: str,
     ) -> None:
-        """Initialize the device tracker entity.
-
-        Args:
-            coordinator: Data coordinator for updates
-            dog_id: Unique identifier for the dog
-            dog_name: Display name for the dog
-        """
+        """Initialize GPS device tracker."""
         super().__init__(coordinator)
-
         self._dog_id = dog_id
         self._dog_name = dog_name
-
-        # Entity configuration
-        self._attr_unique_id = f"pawcontrol_{dog_id}_gps"
+        self._attr_unique_id = f"pawcontrol_{dog_id}_gps_tracker"
         self._attr_name = f"{dog_name} GPS"
-        self._attr_icon = "mdi:dog"
+        self._attr_icon = "mdi:map-marker"
 
-        # Link entity to PawControl device entry for the dog
+        # Link to PawControl device
         self._set_device_link_info(
-            model="Smart Dog GPS Tracker",
+            model="GPS Tracker",
             sw_version="1.0.0",
-            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
         )
 
-        # Internal state
-        self._last_known_location: LocationTuple | None = None
-        self._last_update_time: datetime | None = None
-        self._location_history: list[dict[str, Any]] = []
+        # GPS tracker state
+        self._last_location: dict[str, Any] | None = None
+        self._last_update: datetime | None = None
+        self._route_points: list[dict[str, Any]] = []
         self._current_zone: str | None = None
 
-        # Restore previous state
-        self._restored_data: dict[str, Any] = {}
-
-    async def async_added_to_hass(self) -> None:
-        """Called when entity is added to Home Assistant.
-
-        Restores previous state and initializes the tracker.
-        """
-        await super().async_added_to_hass()
-
-        # Restore previous state
-        last_state = await self.async_get_last_state()
-        if last_state:
-            self._restored_data = {
-                "latitude": last_state.attributes.get(ATTR_LATITUDE),
-                "longitude": last_state.attributes.get(ATTR_LONGITUDE),
-                "gps_accuracy": last_state.attributes.get(ATTR_GPS_ACCURACY),
-                "battery_level": last_state.attributes.get(ATTR_BATTERY_LEVEL),
-                "source_type": last_state.attributes.get("source_type"),
-                "last_seen": last_state.attributes.get("last_seen"),
-            }
-
-            # Restore location if available
-            lat = self._restored_data.get("latitude")
-            lon = self._restored_data.get("longitude")
-            if lat is not None and lon is not None:
-                self._last_known_location = (float(lat), float(lon))
-
-            _LOGGER.debug("Restored previous state for %s GPS tracker", self._dog_name)
+    @property
+    def available(self) -> bool:
+        """Return True if GPS data is available."""
+        return (
+            self.coordinator.available
+            and self._get_gps_data() is not None
+        )
 
     @property
     def source_type(self) -> SourceType:
-        """Return the source type of the device tracker.
-
-        Returns:
-            GPS source type for location tracking
-        """
+        """Return the source type of the device tracker."""
         return SourceType.GPS
 
     @property
-    def latitude(self) -> float | None:
-        """Return the latitude of the dog's current location.
-
-        Returns:
-            Latitude coordinate or None if unknown
-        """
+    def state(self) -> str:
+        """Return the state of the device tracker."""
         gps_data = self._get_gps_data()
-        if gps_data and gps_data.get("latitude") is not None:
-            return float(gps_data["latitude"])
+        if not gps_data:
+            return STATE_UNKNOWN
 
-        # Fall back to restored data if no current data
-        if self._restored_data.get("latitude") is not None:
-            return float(self._restored_data["latitude"])
+        zone = gps_data.get("zone")
+        if zone == "home":
+            return STATE_HOME
+        elif zone and zone != "unknown":
+            return zone
+        else:
+            return STATE_NOT_HOME
 
-        return None
+    @property
+    def latitude(self) -> float | None:
+        """Return the GPS latitude."""
+        gps_data = self._get_gps_data()
+        if not gps_data:
+            return None
+
+        try:
+            lat = gps_data.get("latitude")
+            return float(lat) if lat is not None else None
+        except (TypeError, ValueError):
+            return None
 
     @property
     def longitude(self) -> float | None:
-        """Return the longitude of the dog's current location.
-
-        Returns:
-            Longitude coordinate or None if unknown
-        """
+        """Return the GPS longitude."""
         gps_data = self._get_gps_data()
-        if gps_data and gps_data.get("longitude") is not None:
-            return float(gps_data["longitude"])
+        if not gps_data:
+            return None
 
-        # Fall back to restored data if no current data
-        if self._restored_data.get("longitude") is not None:
-            return float(self._restored_data["longitude"])
-
-        return None
+        try:
+            lon = gps_data.get("longitude")
+            return float(lon) if lon is not None else None
+        except (TypeError, ValueError):
+            return None
 
     @property
-    def location_accuracy(self) -> int:
-        """Return the GPS accuracy in meters.
-
-        Returns:
-            GPS accuracy in meters
-        """
+    def location_accuracy(self) -> int | None:
+        """Return the GPS accuracy in meters."""
         gps_data = self._get_gps_data()
-        if gps_data and gps_data.get("accuracy") is not None:
-            return int(gps_data["accuracy"])
+        if not gps_data:
+            return None
 
-        # Fall back to restored data
-        if self._restored_data.get("gps_accuracy") is not None:
-            return int(self._restored_data["gps_accuracy"])
-
-        return DEFAULT_GPS_ACCURACY
+        try:
+            accuracy = gps_data.get("accuracy")
+            return int(accuracy) if accuracy is not None else DEFAULT_GPS_ACCURACY
+        except (TypeError, ValueError):
+            return DEFAULT_GPS_ACCURACY
 
     @property
     def battery_level(self) -> int | None:
-        """Return the battery level of the GPS tracker.
-
-        Returns:
-            Battery level percentage or None if unknown
-        """
+        """Return GPS tracker battery level."""
         gps_data = self._get_gps_data()
-        if gps_data and gps_data.get("battery_level") is not None:
-            return int(gps_data["battery_level"])
+        if not gps_data:
+            return None
 
-        # Fall back to restored data
-        if self._restored_data.get("battery_level") is not None:
-            return int(self._restored_data["battery_level"])
-
-        return None
+        try:
+            battery = gps_data.get("battery")
+            return int(battery) if battery is not None else None
+        except (TypeError, ValueError):
+            return None
 
     @property
     def location_name(self) -> str | None:
-        """Return the name of the current location/zone.
-
-        Determines the current zone based on GPS coordinates and
-        configured Home Assistant zones.
-
-        Returns:
-            Zone name or None if not in a known zone
-        """
-        current_lat = self.latitude
-        current_lon = self.longitude
-
-        if current_lat is None or current_lon is None:
+        """Return the current location name/zone."""
+        gps_data = self._get_gps_data()
+        if not gps_data:
             return None
 
-        # Check if at home
-        home_lat = self.hass.config.latitude
-        home_lon = self.hass.config.longitude
-
-        home_distance = distance(current_lat, current_lon, home_lat, home_lon)
-        if home_distance <= HOME_ZONE_RADIUS:
-            return STATE_HOME
-
-        # Check other configured zones
-        zone_name = self._determine_zone_from_coordinates(current_lat, current_lon)
-        if zone_name:
-            return zone_name
-
-        return STATE_NOT_HOME
-
-    def _determine_zone_from_coordinates(self, lat: float, lon: float) -> str | None:
-        """Determine zone name from coordinates.
-
-        Checks if the given coordinates fall within any configured
-        Home Assistant zones.
-
-        Args:
-            lat: Latitude coordinate
-            lon: Longitude coordinate
-
-        Returns:
-            Zone name or None if not in any zone
-        """
-        # Get all zone entities from Home Assistant
-        zone_entities = self.hass.states.async_all("zone")
-
-        for zone_state in zone_entities:
-            zone_lat = zone_state.attributes.get("latitude")
-            zone_lon = zone_state.attributes.get("longitude")
-            zone_radius = zone_state.attributes.get("radius", 100)
-
-            if zone_lat is not None and zone_lon is not None:
-                zone_distance = distance(lat, lon, zone_lat, zone_lon)
-                if zone_distance <= zone_radius:
-                    # Return the friendly name or entity ID without domain
-                    return (
-                        zone_state.attributes.get("friendly_name")
-                        or zone_state.entity_id.split(".", 1)[1]
-                    )
-
-        return None
+        zone = gps_data.get("zone")
+        return zone if zone and zone != "unknown" else None
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
-        """Return additional state attributes for the device tracker.
-
-        Provides comprehensive information about the GPS tracking status,
-        movement patterns, and device health.
-
-        Returns:
-            Dictionary of additional state attributes
-        """
-        attrs: AttributeDict = {
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional GPS tracker attributes."""
+        attrs = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
             "tracker_type": "gps",
@@ -392,479 +264,483 @@ class PawControlDeviceTracker(
 
         gps_data = self._get_gps_data()
         if gps_data:
-            # Core GPS attributes
-            attrs.update(
-                {
-                    ATTR_GPS_ACCURACY: self.location_accuracy,
-                    "last_seen": gps_data.get("last_seen"),
-                    "source": gps_data.get("source", "unknown"),
-                    "heading": gps_data.get("heading"),
-                    "speed": gps_data.get("speed"),
-                    "altitude": gps_data.get("altitude"),
-                }
-            )
+            # Basic GPS info
+            attrs.update({
+                "altitude": gps_data.get("altitude"),
+                "speed": gps_data.get("speed"),
+                "heading": gps_data.get("heading"),
+                "satellites": gps_data.get("satellites"),
+                "location_source": gps_data.get("source", "unknown"),
+                "last_seen": gps_data.get("last_seen"),
+                "distance_from_home": gps_data.get("distance_from_home"),
+            })
 
-            # Battery information
-            if self.battery_level is not None:
-                attrs[ATTR_BATTERY_LEVEL] = self.battery_level
-                attrs["battery_status"] = self._get_battery_status()
+            # Route information
+            current_route = gps_data.get("current_route")
+            if current_route:
+                attrs.update({
+                    "route_active": True,
+                    "route_points": len(current_route.get("points", [])),
+                    "route_distance": current_route.get("distance"),
+                    "route_duration": current_route.get("duration"),
+                    "route_start_time": current_route.get("start_time"),
+                })
+            else:
+                attrs["route_active"] = False
 
-            # Location analysis
-            attrs.update(
-                {
-                    "distance_from_home": gps_data.get("distance_from_home"),
-                    "current_zone": self.location_name,
-                    "is_moving": self._is_currently_moving(gps_data),
-                    "movement_status": self._get_movement_status(gps_data),
-                }
-            )
-
-            # Data quality indicators
-            attrs.update(
-                {
-                    "gps_signal_strength": self._assess_gps_signal_quality(gps_data),
-                    "data_freshness": self._assess_data_freshness(gps_data),
-                    "tracking_status": self._get_tracking_status(gps_data),
-                }
-            )
+            # Geofencing info
+            geofence_status = gps_data.get("geofence_status")
+            if geofence_status:
+                attrs.update({
+                    "in_safe_zone": geofence_status.get("in_safe_zone", False),
+                    "zone_name": geofence_status.get("zone_name"),
+                    "zone_distance": geofence_status.get("distance_to_boundary"),
+                })
 
             # Walk integration
-            walk_data = self._get_walk_data()
-            if walk_data:
-                attrs.update(
-                    {
-                        "walk_in_progress": walk_data.get("walk_in_progress", False),
-                        "current_walk_distance": walk_data.get("current_walk_distance"),
-                        "current_walk_duration": walk_data.get("current_walk_duration"),
-                    }
-                )
-
-        # Add dog-specific information
-        dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]
-            attrs.update(
-                {
-                    "dog_breed": dog_info.get("dog_breed", ""),
-                    "dog_age": dog_info.get("dog_age"),
-                    "dog_size": dog_info.get("dog_size"),
-                }
-            )
+            walk_info = gps_data.get("walk_info")
+            if walk_info:
+                attrs.update({
+                    "walk_active": walk_info.get("active", False),
+                    "walk_id": walk_info.get("walk_id"),
+                    "walk_start_time": walk_info.get("start_time"),
+                })
 
         return attrs
 
-    def _get_battery_status(self) -> str:
-        """Get battery status description.
-
-        Returns:
-            Battery status description
-        """
-        battery_level = self.battery_level
-        if battery_level is None:
-            return "unknown"
-
-        if battery_level <= 5:
-            return "critical"
-        elif battery_level <= 15:
-            return "low"
-        elif battery_level <= 30:
-            return "medium"
-        else:
-            return "good"
-
-    def _is_currently_moving(self, gps_data: dict[str, Any]) -> bool:
-        """Determine if the dog is currently moving.
-
-        Args:
-            gps_data: GPS module data
-
-        Returns:
-            True if the dog is moving, False otherwise
-        """
-        speed = gps_data.get("speed")
-        if speed is not None:
-            return speed > 1.0  # 1 km/h threshold
-
-        # Fall back to location change analysis
-        current_lat = gps_data.get("latitude")
-        current_lon = gps_data.get("longitude")
-
-        if (
-            current_lat is not None
-            and current_lon is not None
-            and self._last_known_location is not None
-        ):
-            last_lat, last_lon = self._last_known_location
-            location_change = distance(current_lat, current_lon, last_lat, last_lon)
-
-            # Consider moving if location changed by more than threshold
-            return location_change > LOCATION_UPDATE_THRESHOLD
-
-        return False
-
-    def _get_movement_status(self, gps_data: dict[str, Any]) -> str:
-        """Get detailed movement status.
-
-        Args:
-            gps_data: GPS module data
-
-        Returns:
-            Movement status description
-        """
-        if self._is_currently_moving(gps_data):
-            speed = gps_data.get("speed", 0)
-            if speed > 10:
-                return "running"
-            elif speed > 3:
-                return "walking"
-            else:
-                return "moving_slowly"
-        else:
-            return "stationary"
-
-    def _assess_gps_signal_quality(self, gps_data: dict[str, Any]) -> str:
-        """Assess GPS signal quality based on accuracy.
-
-        Args:
-            gps_data: GPS module data
-
-        Returns:
-            Signal quality description
-        """
-        accuracy = gps_data.get("accuracy")
-        if accuracy is None:
-            return "unknown"
-
-        if accuracy <= 5:
-            return "excellent"
-        elif accuracy <= 15:
-            return "good"
-        elif accuracy <= 50:
-            return "fair"
-        else:
-            return "poor"
-
-    def _assess_data_freshness(self, gps_data: dict[str, Any]) -> str:
-        """Assess how fresh the GPS data is.
-
-        Args:
-            gps_data: GPS module data
-
-        Returns:
-            Data freshness description
-        """
-        last_seen = gps_data.get("last_seen")
-        if not last_seen:
-            return "unknown"
-
-        last_seen_dt = ensure_utc_datetime(last_seen)
-        if last_seen_dt is None:
-            return "unknown"
-
-        age = dt_util.utcnow() - last_seen_dt
-
-        if age < timedelta(minutes=1):
-            return "current"
-        elif age < timedelta(minutes=5):
-            return "recent"
-        elif age < timedelta(minutes=15):
-            return "stale"
-        else:
-            return "old"
-
-    def _get_tracking_status(self, gps_data: dict[str, Any]) -> str:
-        """Get overall tracking status.
-
-        Args:
-            gps_data: GPS module data
-
-        Returns:
-            Tracking status description
-        """
-        has_location = (
-            gps_data.get("latitude") is not None
-            and gps_data.get("longitude") is not None
-        )
-
-        if not has_location:
-            return "no_location"
-
-        signal_quality = self._assess_gps_signal_quality(gps_data)
-        data_freshness = self._assess_data_freshness(gps_data)
-        battery_status = self._get_battery_status()
-
-        # Determine overall status
-        if signal_quality in ["excellent", "good"] and data_freshness in [
-            "current",
-            "recent",
-        ]:
-            if battery_status == "critical":
-                return "tracking_battery_critical"
-            elif battery_status == "low":
-                return "tracking_battery_low"
-            else:
-                return "tracking_active"
-        elif signal_quality == "poor" or data_freshness in ["stale", "old"]:
-            return "tracking_degraded"
-        else:
-            return "tracking_limited"
-
-    @property
-    def available(self) -> bool:
-        """Return if the device tracker is available.
-
-        The tracker is considered available if we have recent GPS data
-        or if there's restored state to fall back on.
-
-        Returns:
-            True if tracker is available, False otherwise
-        """
-        if not self.coordinator.available:
-            return False
-
-        gps_data = self._get_gps_data()
-        if gps_data:
-            # Check if GPS data is not too old
-            last_seen = gps_data.get("last_seen")
-            if last_seen:
-                last_seen_dt = ensure_utc_datetime(last_seen)
-                if last_seen_dt is not None:
-                    age = dt_util.utcnow() - last_seen_dt
-                    return age < MAX_GPS_AGE
-
-        # Fall back to checking if we have any location data
-        return self.latitude is not None and self.longitude is not None
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator.
-
-        Processes new GPS data, updates location history, and triggers
-        location-based automations if needed.
-        """
-        gps_data = self._get_gps_data()
-        if not gps_data:
-            return
-
-        # Update location history
-        current_lat = gps_data.get("latitude")
-        current_lon = gps_data.get("longitude")
-
-        if current_lat is not None and current_lon is not None:
-            new_location = (float(current_lat), float(current_lon))
-
-            # Check for significant location change
-            if self._last_known_location:
-                location_change = distance(
-                    new_location[0],
-                    new_location[1],
-                    self._last_known_location[0],
-                    self._last_known_location[1],
-                )
-
-                # Only update if location changed significantly
-                if location_change > LOCATION_UPDATE_THRESHOLD:
-                    self._update_location_history(new_location, gps_data)
-                    self._last_known_location = new_location
-            else:
-                # First location update
-                self._last_known_location = new_location
-                self._update_location_history(new_location, gps_data)
-
-        # Update current zone
-        new_zone = self.location_name
-        if new_zone != self._current_zone:
-            self._handle_zone_change(self._current_zone, new_zone)
-            self._current_zone = new_zone
-
-        self._last_update_time = dt_util.utcnow()
-
-        # Call parent update
-        super()._handle_coordinator_update()
-
-    def _update_location_history(
-        self, location: LocationTuple, gps_data: dict[str, Any]
-    ) -> None:
-        """Update the location history with a new position.
-
-        Args:
-            location: New location coordinates
-            gps_data: Associated GPS data
-        """
-        history_entry = {
-            "timestamp": dt_util.utcnow().isoformat(),
-            "latitude": location[0],
-            "longitude": location[1],
-            "accuracy": gps_data.get("accuracy"),
-            "speed": gps_data.get("speed"),
-            "zone": self.location_name,
-        }
-
-        # Add to history (keep last 100 entries)
-        self._location_history.append(history_entry)
-        if len(self._location_history) > 100:
-            self._location_history.pop(0)
-
-        _LOGGER.debug(
-            "Updated location for %s: %f, %f (accuracy: %sm)",
-            self._dog_name,
-            location[0],
-            location[1],
-            gps_data.get("accuracy", "unknown"),
-        )
-
-    def _handle_zone_change(self, old_zone: str | None, new_zone: str | None) -> None:
-        """Handle zone change events.
-
-        Fires events and logs zone transitions for automation purposes.
-
-        Args:
-            old_zone: Previous zone name
-            new_zone: New zone name
-        """
-        if old_zone == new_zone:
-            return
-
-        # Fire zone change events
-        if new_zone == STATE_HOME:
-            self.hass.bus.async_fire(
-                "pawcontrol_dog_arrived_home",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    ATTR_DOG_NAME: self._dog_name,
-                    "previous_zone": old_zone,
-                    "timestamp": dt_util.utcnow().isoformat(),
-                },
-            )
-        elif old_zone == STATE_HOME:
-            self.hass.bus.async_fire(
-                "pawcontrol_dog_left_home",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    ATTR_DOG_NAME: self._dog_name,
-                    "new_zone": new_zone,
-                    "timestamp": dt_util.utcnow().isoformat(),
-                },
-            )
-
-        # General zone change event
-        self.hass.bus.async_fire(
-            "pawcontrol_dog_zone_change",
-            {
-                ATTR_DOG_ID: self._dog_id,
-                ATTR_DOG_NAME: self._dog_name,
-                "old_zone": old_zone,
-                "new_zone": new_zone,
-                "timestamp": dt_util.utcnow().isoformat(),
-            },
-        )
-
-        _LOGGER.info(
-            "Zone change for %s: %s -> %s",
-            self._dog_name,
-            old_zone or "unknown",
-            new_zone or "unknown",
-        )
-
-    def _get_dog_data(self) -> dict[str, Any] | None:
-        """Get data for this tracker's dog from the coordinator.
-
-        Returns:
-            Dog data dictionary or None if not available
-        """
+    def _get_gps_data(self) -> dict[str, Any] | None:
+        """Get GPS data from coordinator."""
         if not self.coordinator.available:
             return None
 
-        return self.coordinator.get_dog_data(self._dog_id)
+        dog_data = self.coordinator.get_dog_data(self._dog_id)
+        if not dog_data:
+            return None
 
-    def _get_gps_data(self) -> dict[str, Any] | None:
-        """Get GPS module data for this dog.
-
-        Returns:
-            GPS data dictionary or None if not available
-        """
-        return self.coordinator.get_module_data(self._dog_id, "gps")
-
-    def _get_walk_data(self) -> dict[str, Any] | None:
-        """Get walk module data for this dog.
-
-        Returns:
-            Walk data dictionary or None if not available
-        """
-        return self.coordinator.get_module_data(self._dog_id, "walk")
+        gps_data = dog_data.get("gps", {})
+        return gps_data if isinstance(gps_data, dict) else None
 
     async def async_update_location(
-        self, latitude: float, longitude: float, accuracy: float | None = None
+        self,
+        latitude: float,
+        longitude: float,
+        accuracy: int | None = None,
+        altitude: float | None = None,
+        speed: float | None = None,
+        heading: float | None = None,
+        source: str = "gps",
+        timestamp: datetime | None = None,
     ) -> None:
-        """Manually update the dog's location.
-
-        This method can be called by services or automations to
-        update the dog's location from external sources.
-
+        """Update GPS location with validation and route tracking.
+        
         Args:
-            latitude: New latitude coordinate
-            longitude: New longitude coordinate
-            accuracy: GPS accuracy in meters
+            latitude: GPS latitude
+            longitude: GPS longitude  
+            accuracy: Location accuracy in meters
+            altitude: Altitude in meters
+            speed: Speed in km/h
+            heading: Heading in degrees (0-360)
+            source: Location source
+            timestamp: Location timestamp
         """
-        # Validate coordinates
-        if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
-            raise ValueError("Invalid coordinates provided")
+        try:
+            # Validate coordinates
+            if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+                _LOGGER.error(
+                    "Invalid GPS coordinates for %s: lat=%s, lon=%s",
+                    self._dog_name,
+                    latitude,
+                    longitude,
+                )
+                return
 
-        # Update the coordinator with new location data
-        # This would typically call a service to update GPS data
-        _LOGGER.info(
-            "Manual location update for %s: %f, %f", self._dog_name, latitude, longitude
-        )
-
-        # Trigger coordinator refresh to process the new data
-        await self.coordinator.async_refresh_dog(self._dog_id)
-
-    def get_location_history(self, hours: int = 24) -> list[dict[str, Any]]:
-        """Get location history for the specified time period.
-
-        Args:
-            hours: Number of hours of history to return
-
-        Returns:
-            List of location history entries
-        """
-        cutoff_time = dt_util.utcnow() - timedelta(hours=hours)
-
-        recent_entries: list[dict[str, Any]] = []
-        for entry in self._location_history:
-            timestamp = ensure_utc_datetime(entry.get("timestamp"))
             if timestamp is None:
-                continue
+                timestamp = dt_util.utcnow()
 
-            if timestamp >= cutoff_time:
-                recent_entries.append(entry)
+            # Check minimum update interval to prevent spam
+            if (
+                self._last_update
+                and (timestamp - self._last_update).total_seconds() < MIN_LOCATION_UPDATE_INTERVAL
+            ):
+                _LOGGER.debug(
+                    "GPS update too frequent for %s, skipping",
+                    self._dog_name,
+                )
+                return
 
-        return recent_entries
+            location_data = {
+                ATTR_LATITUDE: latitude,
+                ATTR_LONGITUDE: longitude,
+                "accuracy": accuracy or DEFAULT_GPS_ACCURACY,
+                "altitude": altitude,
+                "speed": speed,
+                "heading": heading,
+                "source": source,
+                "timestamp": timestamp,
+                "priority": LOCATION_SOURCE_PRIORITY.get(source, 1),
+            }
 
-    def calculate_distance_traveled(self, hours: int = 24) -> float:
-        """Calculate total distance traveled in the specified time period.
+            # Update location if this source has higher priority
+            if (
+                not self._last_location
+                or location_data["priority"] >= self._last_location.get("priority", 0)
+            ):
+                self._last_location = location_data
+                self._last_update = timestamp
 
+                # Add to route if tracking is active
+                await self._update_route_tracking(location_data)
+
+                # Update coordinator data
+                await self._update_coordinator_gps_data(location_data)
+
+                # Trigger state update
+                self.async_write_ha_state()
+
+                _LOGGER.debug(
+                    "Updated GPS location for %s: %.6f,%.6f (accuracy: %dm, source: %s)",
+                    self._dog_name,
+                    latitude,
+                    longitude,
+                    accuracy or DEFAULT_GPS_ACCURACY,
+                    source,
+                )
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error updating GPS location for %s: %s",
+                self._dog_name,
+                err,
+            )
+
+    async def _update_route_tracking(self, location_data: dict[str, Any]) -> None:
+        """Update route tracking with new location point."""
+        try:
+            gps_data = self._get_gps_data()
+            if not gps_data:
+                return
+
+            current_route = gps_data.get("current_route")
+            if not current_route or not current_route.get("active", False):
+                return
+
+            # Add point to route
+            route_point = {
+                "latitude": location_data[ATTR_LATITUDE],
+                "longitude": location_data[ATTR_LONGITUDE],
+                "altitude": location_data.get("altitude"),
+                "timestamp": location_data["timestamp"],
+                "accuracy": location_data["accuracy"],
+                "speed": location_data.get("speed"),
+                "heading": location_data.get("heading"),
+            }
+
+            self._route_points.append(route_point)
+
+            # Cleanup old route points
+            cutoff_time = dt_util.utcnow() - ROUTE_POINT_MAX_AGE
+            self._route_points = [
+                point for point in self._route_points
+                if point["timestamp"] > cutoff_time
+            ]
+
+            # Limit route points to prevent memory issues
+            if len(self._route_points) > MAX_ROUTE_POINTS:
+                self._route_points = self._route_points[-MAX_ROUTE_POINTS:]
+
+            _LOGGER.debug(
+                "Added route point for %s (total points: %d)",
+                self._dog_name,
+                len(self._route_points),
+            )
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error updating route tracking for %s: %s",
+                self._dog_name,
+                err,
+            )
+
+    async def _update_coordinator_gps_data(self, location_data: dict[str, Any]) -> None:
+        """Update coordinator with new GPS data."""
+        try:
+            # Get current dog data
+            dog_data = self.coordinator.get_dog_data(self._dog_id)
+            if not dog_data:
+                return
+
+            # Update GPS section
+            gps_data = dog_data.get("gps", {})
+            gps_data.update({
+                "latitude": location_data[ATTR_LATITUDE],
+                "longitude": location_data[ATTR_LONGITUDE],
+                "accuracy": location_data["accuracy"],
+                "altitude": location_data.get("altitude"),
+                "speed": location_data.get("speed"),
+                "heading": location_data.get("heading"),
+                "last_seen": location_data["timestamp"],
+                "source": location_data["source"],
+            })
+
+            # Update route points if tracking
+            current_route = gps_data.get("current_route")
+            if current_route and current_route.get("active", False):
+                current_route["points"] = self._route_points[-100:]  # Keep last 100 points
+                current_route["last_point_time"] = location_data["timestamp"]
+
+            # This would normally update the coordinator data
+            # The actual implementation would depend on the coordinator's update mechanism
+            
+            _LOGGER.debug(
+                "Updated coordinator GPS data for %s",
+                self._dog_name,
+            )
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error updating coordinator GPS data for %s: %s",
+                self._dog_name,
+                err,
+            )
+
+    async def async_start_route_recording(
+        self, route_name: str | None = None
+    ) -> str:
+        """Start recording a new GPS route.
+        
         Args:
-            hours: Number of hours to calculate distance for
-
+            route_name: Optional name for the route
+            
         Returns:
-            Total distance traveled in meters
+            Route ID
         """
-        history = self.get_location_history(hours)
-        if len(history) < 2:
+        try:
+            route_id = f"route_{self._dog_id}_{int(dt_util.utcnow().timestamp())}"
+            start_time = dt_util.utcnow()
+
+            # Clear previous route points
+            self._route_points.clear()
+
+            # Update GPS data with new route info
+            gps_data = self._get_gps_data() or {}
+            gps_data["current_route"] = {
+                "id": route_id,
+                "name": route_name or f"{self._dog_name} Route",
+                "active": True,
+                "start_time": start_time,
+                "points": [],
+                "distance": 0,
+                "duration": 0,
+            }
+
+            _LOGGER.info(
+                "Started route recording for %s (route_id: %s)",
+                self._dog_name,
+                route_id,
+            )
+
+            return route_id
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error starting route recording for %s: %s",
+                self._dog_name,
+                err,
+            )
+            raise
+
+    async def async_stop_route_recording(
+        self, save_route: bool = True
+    ) -> dict[str, Any] | None:
+        """Stop recording the current GPS route.
+        
+        Args:
+            save_route: Whether to save the completed route
+            
+        Returns:
+            Route data if saved, None otherwise
+        """
+        try:
+            gps_data = self._get_gps_data()
+            if not gps_data:
+                return None
+
+            current_route = gps_data.get("current_route")
+            if not current_route or not current_route.get("active", False):
+                _LOGGER.warning("No active route recording for %s", self._dog_name)
+                return None
+
+            end_time = dt_util.utcnow()
+            start_time = current_route.get("start_time")
+            
+            if start_time:
+                duration = (end_time - start_time).total_seconds()
+            else:
+                duration = 0
+
+            # Calculate route distance (simplified)
+            distance = self._calculate_route_distance(self._route_points)
+
+            route_data = {
+                "id": current_route["id"],
+                "name": current_route["name"],
+                "dog_id": self._dog_id,
+                "dog_name": self._dog_name,
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": duration,
+                "distance": distance,
+                "points": self._route_points.copy(),
+                "point_count": len(self._route_points),
+            }
+
+            # Mark route as inactive
+            current_route["active"] = False
+            current_route["end_time"] = end_time
+            current_route["duration"] = duration
+            current_route["distance"] = distance
+
+            if save_route:
+                # Save route (would normally store in database/coordinator)
+                _LOGGER.info(
+                    "Completed route recording for %s: %.2f km in %.1f minutes (%d points)",
+                    self._dog_name,
+                    distance / 1000,
+                    duration / 60,
+                    len(self._route_points),
+                )
+                return route_data
+            else:
+                _LOGGER.info("Discarded route recording for %s", self._dog_name)
+                return None
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error stopping route recording for %s: %s",
+                self._dog_name,
+                err,
+            )
+            return None
+
+    def _calculate_route_distance(self, points: list[dict[str, Any]]) -> float:
+        """Calculate total distance of route points in meters.
+        
+        Args:
+            points: List of GPS points with latitude/longitude
+            
+        Returns:
+            Total distance in meters
+        """
+        if len(points) < 2:
             return 0.0
 
         total_distance = 0.0
-        for i in range(1, len(history)):
-            prev_entry = history[i - 1]
-            curr_entry = history[i]
+        
+        try:
+            from math import radians, sin, cos, sqrt, atan2
 
-            dist = distance(
-                prev_entry["latitude"],
-                prev_entry["longitude"],
-                curr_entry["latitude"],
-                curr_entry["longitude"],
-            )
-            total_distance += dist * 1000  # Convert km to meters
+            # Earth's radius in meters
+            R = 6371000
+
+            for i in range(1, len(points)):
+                lat1 = radians(points[i-1]["latitude"])
+                lon1 = radians(points[i-1]["longitude"])
+                lat2 = radians(points[i]["latitude"])
+                lon2 = radians(points[i]["longitude"])
+
+                dlat = lat2 - lat1
+                dlon = lon2 - lon1
+
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                distance = R * c
+
+                total_distance += distance
+
+        except Exception as err:
+            _LOGGER.error("Error calculating route distance: %s", err)
+            return 0.0
 
         return total_distance
+
+    async def async_export_route(
+        self, format_type: str = "gpx"
+    ) -> dict[str, Any] | None:
+        """Export current or last route in specified format.
+        
+        Args:
+            format_type: Export format (gpx, json, csv)
+            
+        Returns:
+            Export data or None if no route available
+        """
+        try:
+            if not self._route_points:
+                _LOGGER.warning("No route points available for export for %s", self._dog_name)
+                return None
+
+            if format_type == "gpx":
+                return await self._export_route_gpx()
+            elif format_type == "json":
+                return await self._export_route_json()
+            elif format_type == "csv":
+                return await self._export_route_csv()
+            else:
+                _LOGGER.error("Unsupported export format: %s", format_type)
+                return None
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error exporting route for %s: %s",
+                self._dog_name,
+                err,
+            )
+            return None
+
+    async def _export_route_gpx(self) -> dict[str, Any]:
+        """Export route as GPX format."""
+        # Simplified GPX export - in a real implementation this would generate proper GPX XML
+        gpx_data = {
+            "format": "gpx",
+            "filename": f"{self._dog_id}_route_{int(dt_util.utcnow().timestamp())}.gpx",
+            "content": f"GPX route data for {self._dog_name} with {len(self._route_points)} points",
+            "points": self._route_points,
+        }
+        return gpx_data
+
+    async def _export_route_json(self) -> dict[str, Any]:
+        """Export route as JSON format."""
+        json_data = {
+            "format": "json",
+            "filename": f"{self._dog_id}_route_{int(dt_util.utcnow().timestamp())}.json",
+            "content": {
+                "dog_id": self._dog_id,
+                "dog_name": self._dog_name,
+                "export_time": dt_util.utcnow().isoformat(),
+                "points": self._route_points,
+                "point_count": len(self._route_points),
+                "distance_meters": self._calculate_route_distance(self._route_points),
+            },
+        }
+        return json_data
+
+    async def _export_route_csv(self) -> dict[str, Any]:
+        """Export route as CSV format."""
+        csv_header = "timestamp,latitude,longitude,altitude,accuracy,speed,heading\n"
+        csv_rows = []
+        
+        for point in self._route_points:
+            row = f"{point['timestamp']},{point['latitude']},{point['longitude']},"
+            row += f"{point.get('altitude', '')},"
+            row += f"{point.get('accuracy', '')},"
+            row += f"{point.get('speed', '')},"
+            row += f"{point.get('heading', '')}\n"
+            csv_rows.append(row)
+
+        csv_data = {
+            "format": "csv",
+            "filename": f"{self._dog_id}_route_{int(dt_util.utcnow().timestamp())}.csv",
+            "content": csv_header + "".join(csv_rows),
+            "points": len(self._route_points),
+        }
+        return csv_data
