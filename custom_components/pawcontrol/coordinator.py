@@ -37,6 +37,7 @@ from .const import (
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_GARDEN,
     MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -52,6 +53,7 @@ from .types import DogConfigData, PawControlConfigEntry
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
     from .gps_manager import GPSGeofenceManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
@@ -149,6 +151,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager: PawControlNotificationManager | None = None
         self.gps_geofence_manager: GPSGeofenceManager | None = None
         self.weather_health_manager: WeatherHealthManager | None = None
+        self.garden_manager: GardenManager | None = None
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -176,6 +179,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         notification_manager: PawControlNotificationManager,
         gps_geofence_manager: GPSGeofenceManager | None = None,
         weather_health_manager: WeatherHealthManager | None = None,
+        garden_manager: GardenManager | None = None,
     ) -> None:
         """Attach runtime managers for service integration.
 
@@ -193,6 +197,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager = notification_manager
         self.gps_geofence_manager = gps_geofence_manager
         self.weather_health_manager = weather_health_manager
+        self.garden_manager = garden_manager
         _LOGGER.debug(
             "Runtime managers attached (gps_geofence: %s, weather: %s)", 
             bool(gps_geofence_manager), bool(weather_health_manager)
@@ -206,6 +211,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager = None
         self.gps_geofence_manager = None
         self.weather_health_manager = None
+        self.garden_manager = None
 
     def _get_cache(self, key: str) -> Any | None:
         """Get item from cache if not expired.
@@ -456,6 +462,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             module_tasks.append(("health", self._get_health_data(dog_id)))
         if modules.get(MODULE_WEATHER):
             module_tasks.append(("weather", self._get_weather_data(dog_id)))
+        if modules.get(MODULE_GARDEN):
+            module_tasks.append(("garden", self._get_garden_data(dog_id)))
 
         # Execute module tasks concurrently with enhanced error handling
         if module_tasks:
@@ -510,6 +518,19 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if (cached := self._get_cache(cache_key)) is not None:
             return cached
 
+        # Prefer local feeding manager data for Platinum compliance
+        if self.feeding_manager:
+            try:
+                data = await self.feeding_manager.async_get_feeding_data(dog_id)
+                feeding_data = dict(data)
+                feeding_data.setdefault("status", "ready")
+                self._set_cache(cache_key, feeding_data)
+                return feeding_data
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.debug(
+                    "Feeding manager data unavailable for %s: %s", dog_id, err
+                )
+
         try:
             if self._use_external_api:
                 async with self.session.get(
@@ -533,10 +554,24 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Default data
         default_data = {
             "last_feeding": None,
-            "next_feeding": None,
+            "feedings_today": {},
+            "total_feedings_today": 0,
+            "daily_amount_consumed": 0.0,
             "daily_portions": 0,
             "feeding_schedule": [],
             "status": "ready",
+            "daily_calorie_target": None,
+            "total_calories_today": 0.0,
+            "portion_adjustment_factor": None,
+            "health_feeding_status": "insufficient_data",
+            "medication_with_meals": False,
+            "health_aware_feeding": False,
+            "health_conditions": [],
+            "daily_activity_level": None,
+            "weight_goal": None,
+            "weight_goal_progress": None,
+            "health_emergency": False,
+            "emergency_mode": None,
         }
         self._set_cache(cache_key, default_data)
         return default_data
@@ -608,12 +643,75 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Health data dictionary
         """
-        return {
+        health_data: dict[str, Any] = {
             "weight": None,
+            "ideal_weight": None,
             "last_vet_visit": None,
             "medications": [],
+            "health_alerts": [],
             "status": "healthy",
         }
+
+        feeding_context: dict[str, Any] = {}
+        if self.feeding_manager:
+            try:
+                feeding_context = await self.feeding_manager.async_get_feeding_data(dog_id)
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.debug("Failed to gather feeding context for %s: %s", dog_id, err)
+
+        if feeding_context:
+            summary = feeding_context.get("health_summary", {})
+            if summary:
+                health_data.update(
+                    {
+                        "weight": summary.get("current_weight"),
+                        "ideal_weight": summary.get("ideal_weight"),
+                        "life_stage": summary.get("life_stage"),
+                        "activity_level": summary.get("activity_level"),
+                        "body_condition_score": summary.get("body_condition_score"),
+                        "health_conditions": summary.get("health_conditions", []),
+                    }
+                )
+
+            if "health_conditions" not in health_data and feeding_context.get(
+                "health_conditions"
+            ):
+                health_data["health_conditions"] = feeding_context.get("health_conditions")
+
+            if feeding_context.get("health_emergency"):
+                emergency = feeding_context.get("emergency_mode") or {}
+                health_data["status"] = "attention"
+                health_data["emergency"] = emergency
+                health_data.setdefault("health_alerts", []).append(
+                    {
+                        "type": "emergency_feeding",
+                        "severity": "critical",
+                        "details": emergency,
+                    }
+                )
+
+            if feeding_context.get("medication_with_meals"):
+                health_data.setdefault("medications", []).append("meal_medication")
+
+            health_data["health_status"] = feeding_context.get(
+                "health_feeding_status", "healthy"
+            )
+            health_data["daily_calorie_target"] = feeding_context.get(
+                "daily_calorie_target"
+            )
+            health_data["total_calories_today"] = feeding_context.get(
+                "total_calories_today"
+            )
+            health_data["weight_goal_progress"] = feeding_context.get(
+                "weight_goal_progress"
+            )
+            health_data["weight_goal"] = feeding_context.get("weight_goal")
+            if feeding_context.get("daily_activity_level"):
+                health_data["activity_level"] = feeding_context.get(
+                    "daily_activity_level"
+                )
+
+        return health_data
         
     async def _get_weather_data(self, dog_id: str) -> dict[str, Any]:
         """Get weather health data for dog.
@@ -698,6 +796,23 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.warning("Failed to get geofencing data for %s: %s", dog_id, err)
             return {"status": "error", "error": str(err)}
+
+    async def _get_garden_data(self, dog_id: str) -> dict[str, Any]:
+        """Get garden tracking data for a dog."""
+
+        if not self.garden_manager:
+            return {"status": "disabled"}
+
+        try:
+            snapshot = self.garden_manager.build_garden_snapshot(dog_id)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to build garden snapshot for %s: %s", dog_id, err
+            )
+            return {"status": "error", "message": str(err)}
+
+        snapshot.setdefault("status", "idle")
+        return snapshot
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
         """Get empty dog data structure.

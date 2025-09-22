@@ -29,7 +29,8 @@
           "enable_health": "Health Monitoring",
           "enable_visitor_mode": "Visitor Mode",
           "enable_dashboard": "Dashboard",
-          "enable_advanced_features": "Advanced Features"
+          "enable_advanced_features": "Advanced Features",
+          "enable_garden": "Garden Tracking"
         }
       },
       "configure_dashboard": {
@@ -149,7 +150,8 @@
           "walk": "Walk Monitoring",
           "health": "Health Monitoring",
           "gps": "GPS Location Tracking",
-          "notifications": "Smart Notifications"
+          "notifications": "Smart Notifications",
+          "module_garden": "Garden Tracking"
         }
       },
       "add_another": {
@@ -273,7 +275,8 @@
           "module_walk": "Walk Monitoring",
           "module_gps": "GPS Location Tracking",
           "module_health": "Health Monitoring",
-          "module_notifications": "Smart Notifications"
+          "module_notifications": "Smart Notifications",
+          "module_garden": "Garden Tracking"
         }
       },
       "notifications": {
@@ -404,6 +407,63 @@
       "weight": {
         "name": "Weight",
         "unit_of_measurement": "kg"
+      },
+      "garden_time_today": {
+        "name": "Garden Time Today"
+      },
+      "garden_sessions_today": {
+        "name": "Garden Sessions Today"
+      },
+      "garden_poop_count_today": {
+        "name": "Garden Poops Today"
+      },
+      "last_garden_session": {
+        "name": "Last Garden Session"
+      },
+      "garden_activities_count": {
+        "name": "Garden Activities Count"
+      },
+      "avg_garden_duration": {
+        "name": "Average Garden Duration"
+      },
+      "garden_stats_weekly": {
+        "name": "Weekly Garden Summary"
+      },
+      "favorite_garden_activities": {
+        "name": "Favorite Garden Activities"
+      },
+      "last_garden_duration": {
+        "name": "Last Garden Session Duration"
+      },
+      "garden_activities_last_session": {
+        "name": "Garden Activities Last Session"
+      },
+      "garden_activities_today": {
+        "name": "Garden Activities Today"
+      },
+      "last_garden_session_hours": {
+        "name": "Hours Since Last Garden Session"
+      },
+      "health_feeding_status": {
+        "name": "Health Feeding Status"
+      },
+      "daily_calorie_target": {
+        "name": "Daily Calorie Target"
+      },
+      "calories_consumed_today": {
+        "name": "Calories Consumed Today"
+      },
+      "portion_adjustment_factor": {
+        "name": "Portion Adjustment Factor"
+      },
+      "health_conditions": {
+        "name": "Health Conditions"
+      },
+      "weight_goal_progress": {
+        "name": "Weight Goal Progress"
+      },
+      "daily_activity_level": {
+        "name": "Daily Activity Level"
       }
     },
     "binary_sensor": {
@@ -475,6 +535,24 @@
       },
       "activity_level_concern": {
         "name": "Activity Level Concern"
+      },
+      "garden_session_active": {
+        "name": "Garden Session Active"
+      },
+      "in_garden": {
+        "name": "In Garden"
+      },
+      "garden_poop_pending": {
+        "name": "Garden Poop Confirmation Pending"
+      },
+      "health_aware_feeding": {
+        "name": "Health-Aware Feeding"
+      },
+      "medication_with_meals": {
+        "name": "Medication With Meals"
+      },
+      "health_emergency": {
+        "name": "Health Emergency"
       }
     },
     "button": {
@@ -543,6 +621,18 @@
       },
       "health_check": {
         "name": "Health Check"
+      },
+      "start_garden_session": {
+        "name": "Start Garden Session"
+      },
+      "end_garden_session": {
+        "name": "End Garden Session"
+      },
+      "log_garden_activity": {
+        "name": "Log Garden Activity"
+      },
+      "confirm_garden_poop": {
+        "name": "Confirm Garden Poop"
       }
     },
     "switch": {
@@ -629,6 +719,9 @@
       },
       "sound_alerts": {
         "name": "Sound Alerts"
+      },
+      "module_garden": {
+        "name": "Garden Module"
       }
     },
     "number": {

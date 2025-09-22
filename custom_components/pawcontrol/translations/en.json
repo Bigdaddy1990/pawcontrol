@@ -34,7 +34,8 @@
           "enable_grooming": "Grooming Reminders",
           "enable_medication": "Medication Tracking",
           "enable_training": "Training Progress",
-          "enable_weather": "Weather Health Monitoring"
+          "enable_weather": "Weather Health Monitoring",
+          "enable_garden": "Garden Tracking"
         }
       },
       "dog_gps": {
@@ -311,7 +312,7 @@
         "data": {
           "weather_entity": "Weather Entity",
           "enable_weather_alerts": "Enable Weather Alerts",
-          "enable_weather_recommendations": "Enable Weather Recommendations", 
+          "enable_weather_recommendations": "Enable Weather Recommendations",
           "weather_update_interval": "Weather Update Interval (minutes)",
           "temperature_alerts": "Temperature Alerts",
           "uv_alerts": "UV Index Alerts",
@@ -460,6 +461,63 @@
       },
       "active_weather_alerts": {
         "name": "Active Weather Alerts"
+      },
+      "garden_time_today": {
+        "name": "Garden Time Today"
+      },
+      "garden_sessions_today": {
+        "name": "Garden Sessions Today"
+      },
+      "garden_poop_count_today": {
+        "name": "Garden Poops Today"
+      },
+      "last_garden_session": {
+        "name": "Last Garden Session"
+      },
+      "garden_activities_count": {
+        "name": "Garden Activities Count"
+      },
+      "avg_garden_duration": {
+        "name": "Average Garden Duration"
+      },
+      "garden_stats_weekly": {
+        "name": "Weekly Garden Summary"
+      },
+      "favorite_garden_activities": {
+        "name": "Favorite Garden Activities"
+      },
+      "last_garden_duration": {
+        "name": "Last Garden Session Duration"
+      },
+      "garden_activities_last_session": {
+        "name": "Garden Activities Last Session"
+      },
+      "garden_activities_today": {
+        "name": "Garden Activities Today"
+      },
+      "last_garden_session_hours": {
+        "name": "Hours Since Last Garden Session"
+      },
+      "health_feeding_status": {
+        "name": "Health Feeding Status"
+      },
+      "daily_calorie_target": {
+        "name": "Daily Calorie Target"
+      },
+      "calories_consumed_today": {
+        "name": "Calories Consumed Today"
+      },
+      "portion_adjustment_factor": {
+        "name": "Portion Adjustment Factor"
+      },
+      "health_conditions": {
+        "name": "Health Conditions"
+      },
+      "weight_goal_progress": {
+        "name": "Weight Goal Progress"
+      },
+      "daily_activity_level": {
+        "name": "Daily Activity Level"
       }
     },
     "binary_sensor": {
@@ -516,6 +574,24 @@
       },
       "storm_warning": {
         "name": "Storm Warning"
+      },
+      "garden_session_active": {
+        "name": "Garden Session Active"
+      },
+      "in_garden": {
+        "name": "In Garden"
+      },
+      "garden_poop_pending": {
+        "name": "Garden Poop Confirmation Pending"
+      },
+      "health_aware_feeding": {
+        "name": "Health-Aware Feeding"
+      },
+      "medication_with_meals": {
+        "name": "Medication With Meals"
+      },
+      "health_emergency": {
+        "name": "Health Emergency"
       }
     },
     "button": {
@@ -578,6 +654,18 @@
       },
       "get_weather_recommendations": {
         "name": "Get Weather Recommendations"
+      },
+      "start_garden_session": {
+        "name": "Start Garden Session"
+      },
+      "end_garden_session": {
+        "name": "End Garden Session"
+      },
+      "log_garden_activity": {
+        "name": "Log Garden Activity"
+      },
+      "confirm_garden_poop": {
+        "name": "Confirm Garden Poop"
       }
     },
     "switch": {
@@ -673,6 +761,9 @@
       },
       "storm_alerts": {
         "name": "Storm Alerts"
+      },
+      "module_garden": {
+        "name": "Garden Module"
       }
     },
     "select": {
