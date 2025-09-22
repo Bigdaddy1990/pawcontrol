@@ -16,7 +16,7 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Any, TypeVar, cast
+from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
