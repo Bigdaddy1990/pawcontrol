@@ -8,13 +8,14 @@ module first and then load the actual distribution from site-packages.
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import pathlib
 import sys
 import types
 import uuid
 
 _PACKAGE_NAME = __name__
+_SHIM_PARENT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _ensure_uuid_compatibility() -> None:
@@ -40,30 +41,40 @@ def _ensure_uuid_compatibility() -> None:
         uuid._UuidCreate = types.SimpleNamespace  # type: ignore[attr-defined]
 
 
+def _is_shim_path(entry: str) -> bool:
+    """Return ``True`` if a ``sys.path`` entry points to this shim package."""
+
+    path = pathlib.Path(entry or ".")
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError):
+        return False
+    return resolved == _SHIM_PARENT
+
+
 def _load_real_package() -> types.ModuleType:
     """Load the real distribution from site-packages.
 
-    We temporarily skip the project root (the first entry on ``sys.path``)
-    so that the import machinery can locate the installed package instead
-    of this shim module.
+    We temporarily remove the shim's parent directory from ``sys.path`` so the
+    import machinery locates the installed package instead of this compatibility
+    module.
     """
 
-    for base in sys.path[1:]:
-        candidate = pathlib.Path(base) / _PACKAGE_NAME / "__init__.py"
-        if candidate.exists():
-            spec = importlib.util.spec_from_file_location(
-                f"{_PACKAGE_NAME}.__real__",
-                candidate,
-                submodule_search_locations=[str(candidate.parent)],
-            )
-            if spec and spec.loader:
-                module = importlib.util.module_from_spec(spec)
-                sys.modules.setdefault(spec.name, module)
-                spec.loader.exec_module(module)
-                return module
-    raise ModuleNotFoundError(
-        f"Could not locate the real {_PACKAGE_NAME} distribution for compatibility shim"
-    )
+    shim_module = sys.modules[_PACKAGE_NAME]
+    original_sys_path = list(sys.path)
+    filtered_path = [entry for entry in sys.path if not _is_shim_path(entry)]
+
+    sys.modules.pop(_PACKAGE_NAME, None)
+    try:
+        sys.path[:] = filtered_path
+        return importlib.import_module(_PACKAGE_NAME)
+    except ModuleNotFoundError as err:  # pragma: no cover - exercised in CI
+        raise ModuleNotFoundError(
+            f"Could not locate the real {_PACKAGE_NAME} distribution for compatibility shim"
+        ) from err
+    finally:
+        sys.path[:] = original_sys_path
+        sys.modules[_PACKAGE_NAME] = shim_module
 
 
 _ensure_uuid_compatibility()
