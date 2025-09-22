@@ -669,6 +669,10 @@ class FeedingManager:
         self._active_emergencies: dict[str, dict[str, Any]] = {}
         self._emergency_restore_tasks: dict[str, asyncio.Task] = {}
 
+        # Track scheduled reversion tasks so we can cancel or clean them up
+        self._activity_reversion_tasks: dict[str, asyncio.Task] = {}
+        self._portion_reversion_tasks: dict[str, asyncio.Task] = {}
+
         # OPTIMIZATION: Feeding data cache
         self._data_cache: dict[str, dict] = {}
         self._cache_time: dict[str, datetime] = {}
@@ -2261,23 +2265,32 @@ class FeedingManager:
             # Schedule reversion if temporary
             if temporary and duration_hours and original_activity:
 
-                async def _revert_activity():
-                    await asyncio.sleep(duration_hours * 3600)
-                    try:
-                        await self.async_adjust_calories_for_activity(
-                            dog_id, original_activity, None, False
-                        )
-                        _LOGGER.info(
-                            "Reverted activity level for %s back to %s",
-                            dog_id,
-                            original_activity,
-                        )
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to revert activity level for %s: %s", dog_id, err
-                        )
+                if existing_task := self._activity_reversion_tasks.pop(dog_id, None):
+                    existing_task.cancel()
 
-                asyncio.create_task(_revert_activity())  # noqa: RUF006
+                async def _revert_activity() -> None:
+                    try:
+                        await asyncio.sleep(duration_hours * 3600)
+                        try:
+                            await self.async_adjust_calories_for_activity(
+                                dog_id, original_activity, None, False
+                            )
+                            _LOGGER.info(
+                                "Reverted activity level for %s back to %s",
+                                dog_id,
+                                original_activity,
+                            )
+                        except Exception as err:  # pragma: no cover - logging only
+                            _LOGGER.error(
+                                "Failed to revert activity level for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                    finally:
+                        self._activity_reversion_tasks.pop(dog_id, None)
+
+                revert_task = asyncio.create_task(_revert_activity())
+                self._activity_reversion_tasks[dog_id] = revert_task
                 result["reversion_scheduled"] = True
 
             return result
@@ -2969,35 +2982,42 @@ class FeedingManager:
             # Schedule reversion if temporary
             if temporary and duration_days:
 
-                async def _revert_adjustment():
-                    await asyncio.sleep(duration_days * 24 * 3600)  # Convert to seconds
+                if existing_task := self._portion_reversion_tasks.pop(dog_id, None):
+                    existing_task.cancel()
+
+                async def _revert_adjustment() -> None:
                     try:
-                        # Restore original amount
-                        config.daily_food_amount = original_amount
+                        await asyncio.sleep(duration_days * 24 * 3600)
+                        try:
+                            # Restore original amount
+                            config.daily_food_amount = original_amount
 
-                        # Restore meal schedules
-                        revert_factor = 1.0 / adjustment_factor
-                        for schedule in config.meal_schedules:
-                            schedule.portion_size = round(
-                                schedule.portion_size * revert_factor, 1
+                            # Restore meal schedules
+                            revert_factor = 1.0 / adjustment_factor
+                            for schedule in config.meal_schedules:
+                                schedule.portion_size = round(
+                                    schedule.portion_size * revert_factor, 1
+                                )
+
+                            self._invalidate_cache(dog_id)
+
+                            _LOGGER.info(
+                                "Reverted portion adjustment for %s back to %.0fg after %d days",
+                                dog_id,
+                                original_amount,
+                                duration_days,
                             )
+                        except Exception as err:  # pragma: no cover - logging only
+                            _LOGGER.error(
+                                "Failed to revert portion adjustment for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                    finally:
+                        self._portion_reversion_tasks.pop(dog_id, None)
 
-                        self._invalidate_cache(dog_id)
-
-                        _LOGGER.info(
-                            "Reverted portion adjustment for %s back to %.0fg after %d days",
-                            dog_id,
-                            original_amount,
-                            duration_days,
-                        )
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to revert portion adjustment for %s: %s",
-                            dog_id,
-                            err,
-                        )
-
-                asyncio.create_task(_revert_adjustment())  # noqa: RUF006
+                revert_task = asyncio.create_task(_revert_adjustment())
+                self._portion_reversion_tasks[dog_id] = revert_task
                 result["reversion_scheduled"] = True
                 result["reversion_date"] = (
                     dt_util.now() + timedelta(days=duration_days)
