@@ -321,16 +321,60 @@ class FeedingConfig:
         return round(portion, 1)
 
     def _get_diet_validation_summary(self) -> dict[str, Any]:
-        """Get summary of diet validation adjustments.
+        """Get summary of diet validation adjustments."""
 
-        Returns:
-            Dictionary with validation adjustment information
-        """
+        total_diets = len(self.special_diet or [])
+
         if not self.diet_validation:
-            return {"has_adjustments": False, "adjustment_info": "No validation data"}
+            return {
+                "has_adjustments": False,
+                "adjustment_info": "No validation data",
+                "conflict_count": 0,
+                "warning_count": 0,
+                "vet_consultation_recommended": False,
+                "vet_consultation_state": "not_needed",
+                "consultation_urgency": "none",
+                "total_diets": total_diets,
+                "diet_validation_adjustment": 1.0,
+                "percentage_adjustment": 0.0,
+                "adjustment_direction": "none",
+                "safety_factor": "normal",
+                "compatibility_score": 100,
+                "compatibility_level": "excellent",
+                "conflicts": [],
+                "warnings": [],
+            }
 
         conflicts = self.diet_validation.get("conflicts", [])
         warnings = self.diet_validation.get("warnings", [])
+        total_diets = max(
+            total_diets,
+            int(self.diet_validation.get("total_diets", total_diets) or total_diets),
+        )
+
+        try:
+            validation_adjustment = HealthCalculator.calculate_diet_validation_adjustment(
+                self.diet_validation,
+                self.special_diet,
+            )
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.debug(
+                "Failed to calculate diet validation adjustment for %s: %s",
+                self.dog_id,
+                err,
+            )
+            validation_adjustment = 1.0
+
+        percentage_adjustment = round((validation_adjustment - 1.0) * 100.0, 1)
+
+        if percentage_adjustment > 0.5:
+            adjustment_direction = "increase"
+        elif percentage_adjustment < -0.5:
+            adjustment_direction = "decrease"
+        else:
+            adjustment_direction = "none"
+
+        safety_factor = "conservative" if validation_adjustment < 1.0 else "normal"
 
         adjustments = []
         if conflicts:
@@ -342,16 +386,61 @@ class FeedingConfig:
                 [f"Warning: {w.get('type', 'unknown')}" for w in warnings]
             )
 
+        conflict_count = len(conflicts)
+        warning_count = len(warnings)
+
+        compatibility_score = 100
+        compatibility_score -= conflict_count * 25
+        compatibility_score -= min(warning_count * 10, 40)
+        compatibility_score -= max(0, total_diets - 3) * 5
+        compatibility_score = max(0, min(100, compatibility_score))
+
+        if compatibility_score >= 85:
+            compatibility_level = "excellent"
+        elif compatibility_score >= 70:
+            compatibility_level = "good"
+        elif compatibility_score >= 55:
+            compatibility_level = "acceptable"
+        elif compatibility_score >= 40:
+            compatibility_level = "concerning"
+        else:
+            compatibility_level = "poor"
+
+        vet_recommended = bool(
+            self.diet_validation.get("recommended_vet_consultation", False)
+            or conflict_count > 0
+        )
+
+        if conflict_count > 0:
+            consultation_urgency = "high"
+        elif warning_count >= 2 or total_diets >= 5:
+            consultation_urgency = "medium"
+        elif warning_count > 0 or total_diets >= 4:
+            consultation_urgency = "low"
+        else:
+            consultation_urgency = "none"
+
+        has_adjustments = bool(adjustments) or abs(validation_adjustment - 1.0) > 0.005
+
         return {
-            "has_adjustments": bool(adjustments),
+            "has_adjustments": has_adjustments,
             "adjustment_info": "; ".join(adjustments)
             if adjustments
             else "No adjustments",
-            "conflict_count": len(conflicts),
-            "warning_count": len(warnings),
-            "vet_consultation_recommended": self.diet_validation.get(
-                "recommended_vet_consultation", False
-            ),
+            "conflict_count": conflict_count,
+            "warning_count": warning_count,
+            "vet_consultation_recommended": vet_recommended,
+            "vet_consultation_state": "recommended" if vet_recommended else "not_needed",
+            "consultation_urgency": consultation_urgency,
+            "total_diets": total_diets,
+            "diet_validation_adjustment": round(validation_adjustment, 3),
+            "percentage_adjustment": percentage_adjustment,
+            "adjustment_direction": adjustment_direction,
+            "safety_factor": safety_factor,
+            "compatibility_score": compatibility_score,
+            "compatibility_level": compatibility_level,
+            "conflicts": conflicts,
+            "warnings": warnings,
         }
 
     def update_diet_validation(self, validation_data: dict[str, Any]) -> None:
@@ -571,6 +660,10 @@ class FeedingManager:
         self._reminder_events: dict[str, asyncio.Event] = {}
         self._reminder_tasks: dict[str, asyncio.Task] = {}
         self._next_reminders: dict[str, datetime] = {}
+
+        # Track emergency feeding modes for health-aware entities
+        self._active_emergencies: dict[str, dict[str, Any]] = {}
+        self._emergency_restore_tasks: dict[str, asyncio.Task] = {}
 
         # OPTIMIZATION: Feeding data cache
         self._data_cache: dict[str, dict] = {}
@@ -1061,6 +1154,20 @@ class FeedingManager:
 
             return data
 
+    def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:
+        """Return feeding configuration for a dog if available."""
+
+        return self._configs.get(dog_id)
+
+    def get_active_emergency(self, dog_id: str) -> dict[str, Any] | None:
+        """Return active or most recent emergency feeding state for a dog."""
+
+        emergency = self._active_emergencies.get(dog_id)
+        if not emergency:
+            return None
+
+        return dict(emergency)
+
     async def _calculate_feeding_data(self, dog_id: str) -> dict[str, Any]:
         """Calculate feeding data without cache.
 
@@ -1145,7 +1252,7 @@ class FeedingManager:
                     next_feeding = next_time
                     next_type = schedule.meal_type.value
 
-        return {
+        data: dict[str, Any] = {
             "last_feeding": last_feeding.time.isoformat() if last_feeding else None,
             "last_feeding_type": (
                 last_feeding.meal_type.value
@@ -1167,14 +1274,167 @@ class FeedingManager:
             "next_feeding": next_feeding.isoformat() if next_feeding else None,
             "next_feeding_type": next_type,
             "missed_feedings": missed_feedings,
-            "config": {
-                "meals_per_day": config.meals_per_day if config else 2,
-                "food_type": config.food_type if config else "dry_food",
-                "schedule_type": (config.schedule_type.value if config else "flexible"),
-            }
-            if config
-            else None,
+            "status": "ready" if feedings else "no_data",
         }
+
+        if config:
+            data["config"] = {
+                "meals_per_day": config.meals_per_day,
+                "food_type": config.food_type,
+                "schedule_type": config.schedule_type.value,
+            }
+
+        health_summary: dict[str, Any] = {}
+        calories_per_gram: float | None = None
+        if config:
+            health_summary = config.get_health_summary()
+            calories_per_gram = health_summary.get("calories_per_gram")
+            if calories_per_gram is None:
+                calories_per_gram = config._estimate_calories_per_gram()
+
+        if calories_per_gram is not None:
+            data["calories_per_gram"] = round(float(calories_per_gram), 2)
+
+        daily_calorie_target: float | None = None
+        if health_summary:
+            daily_calorie_target = health_summary.get("daily_calorie_requirement")
+
+        if daily_calorie_target is None and config and calories_per_gram is not None:
+            daily_calorie_target = round(
+                float(config.daily_food_amount) * float(calories_per_gram), 1
+            )
+
+        if daily_calorie_target is not None:
+            data["daily_calorie_target"] = daily_calorie_target
+
+        total_calories_today: float | None = None
+        if calories_per_gram is not None and daily_amount:
+            total_calories_today = round(daily_amount * float(calories_per_gram), 1)
+            data["total_calories_today"] = total_calories_today
+
+        if total_calories_today is not None and daily_calorie_target:
+            try:
+                progress = (total_calories_today / daily_calorie_target) * 100
+                data["calorie_goal_progress"] = round(min(progress, 150.0), 1)
+            except (TypeError, ZeroDivisionError):
+                data["calorie_goal_progress"] = 0.0
+
+        portion_adjustment: float | None = None
+        if config:
+            try:
+                health_metrics = config._build_health_metrics()
+                feeding_goals = {"weight_goal": config.weight_goal}
+                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
+                    health_metrics,
+                    feeding_goals if config.weight_goal else None,
+                    config.diet_validation,
+                )
+            except Exception as err:
+                _LOGGER.debug(
+                    "Failed to calculate portion adjustment factor for %s: %s",
+                    dog_id,
+                    err,
+                )
+
+        if portion_adjustment is not None:
+            data["portion_adjustment_factor"] = portion_adjustment
+
+        if config and config.diet_validation:
+            data["diet_validation_summary"] = config._get_diet_validation_summary()
+        else:
+            data["diet_validation_summary"] = None
+
+        health_conditions: list[str] = []
+        if health_summary:
+            health_conditions = list(health_summary.get("health_conditions", []))
+
+        if config and config.health_conditions:
+            # Ensure unique conditions preserving order
+            seen: set[str] = set(health_conditions)
+            for condition in config.health_conditions:
+                if condition not in seen:
+                    health_conditions.append(condition)
+                    seen.add(condition)
+
+        if health_conditions:
+            data["health_conditions"] = health_conditions
+
+        if health_summary and health_summary.get("activity_level"):
+            data["daily_activity_level"] = health_summary.get("activity_level")
+
+        if portion_adjustment is not None or data.get("daily_activity_level"):
+            data["health_summary"] = health_summary
+
+        data["medication_with_meals"] = bool(
+            config.medication_with_meals if config else False
+        )
+        data["health_aware_feeding"] = bool(
+            config.health_aware_portions if config else False
+        )
+        data["weight_goal"] = config.weight_goal if config else None
+
+        weight_goal_progress: float | None = None
+        if config and health_summary:
+            current_weight = health_summary.get("current_weight")
+            ideal_weight = health_summary.get("ideal_weight")
+            if isinstance(current_weight, (int, float)) and isinstance(
+                ideal_weight, (int, float)
+            ):
+                try:
+                    if config.weight_goal == "lose":
+                        ratio = ideal_weight / current_weight if current_weight else 0
+                        weight_goal_progress = max(0.0, min(ratio * 100, 100.0))
+                    elif config.weight_goal == "gain":
+                        ratio = current_weight / ideal_weight if ideal_weight else 0
+                        weight_goal_progress = max(0.0, min(ratio * 100, 100.0))
+                    else:
+                        diff = abs(current_weight - ideal_weight)
+                        weight_goal_progress = max(
+                            0.0,
+                            min(100.0, 100.0 - (diff / max(ideal_weight, 1)) * 100.0),
+                        )
+                except (TypeError, ZeroDivisionError):
+                    weight_goal_progress = None
+
+        if weight_goal_progress is not None:
+            data["weight_goal_progress"] = round(weight_goal_progress, 1)
+
+        emergency_state = self._active_emergencies.get(dog_id)
+        if emergency_state:
+            emergency_copy = dict(emergency_state)
+            expires_at = emergency_copy.get("expires_at")
+            if expires_at:
+                expires_dt = dt_util.parse_datetime(expires_at)
+                if expires_dt and expires_dt < dt_util.utcnow():
+                    emergency_copy["active"] = False
+                    emergency_copy["status"] = emergency_copy.get("status", "resolved")
+            data["emergency_mode"] = emergency_copy
+            data["health_emergency"] = bool(emergency_copy.get("active", True))
+        else:
+            data["emergency_mode"] = None
+            data["health_emergency"] = False
+
+        # Derive overall health feeding status
+        status = "insufficient_data"
+        if data.get("health_emergency"):
+            status = "emergency"
+        elif total_calories_today is not None and daily_calorie_target:
+            try:
+                ratio = total_calories_today / daily_calorie_target
+                if ratio < 0.85:
+                    status = "underfed"
+                elif ratio > 1.15:
+                    status = "overfed"
+                else:
+                    status = "on_track"
+            except (TypeError, ZeroDivisionError):
+                status = "unknown"
+        elif portion_adjustment is not None:
+            status = "monitoring"
+
+        data["health_feeding_status"] = status
+
+        return data
 
     def _empty_feeding_data(self, config: FeedingConfig | None) -> dict[str, Any]:
         """Generate empty feeding data structure.
@@ -1185,16 +1445,46 @@ class FeedingManager:
         Returns:
             Empty data dictionary
         """
-        return {
+        calories_per_gram = (
+            config._estimate_calories_per_gram() if config else None
+        )
+
+        data: dict[str, Any] = {
             "last_feeding": None,
             "feedings_today": {},
             "total_feedings_today": 0,
-            "daily_amount_consumed": 0,
+            "daily_amount_consumed": 0.0,
             "daily_amount_target": config.daily_food_amount if config else 500,
             "schedule_adherence": 100,
             "next_feeding": None,
             "missed_feedings": [],
+            "status": "no_data",
+            "health_feeding_status": "insufficient_data",
+            "medication_with_meals": bool(
+                config.medication_with_meals if config else False
+            ),
+            "health_aware_feeding": bool(
+                config.health_aware_portions if config else False
+            ),
+            "weight_goal": config.weight_goal if config else None,
+            "weight_goal_progress": None,
+            "health_conditions": list(config.health_conditions)
+            if config and config.health_conditions
+            else [],
+            "daily_activity_level": None,
+            "health_emergency": False,
+            "emergency_mode": None,
+            "diet_validation_summary": None,
         }
+
+        if calories_per_gram is not None:
+            data["calories_per_gram"] = round(float(calories_per_gram), 2)
+            data["daily_calorie_target"] = round(
+                float(data["daily_amount_target"]) * float(calories_per_gram), 1
+            )
+            data["total_calories_today"] = 0.0
+
+        return data
 
     def _invalidate_cache(self, dog_id: str) -> None:
         """Invalidate caches for a dog.
@@ -2166,6 +2456,11 @@ class FeedingManager:
                     f"Emergency type must be one of: {valid_emergency_types}"
                 )
 
+            # Cancel any existing restoration for this dog
+            if dog_id in self._emergency_restore_tasks:
+                self._emergency_restore_tasks[dog_id].cancel()
+                self._emergency_restore_tasks.pop(dog_id, None)
+
             # Store original configuration for restoration
             original_config = {
                 "daily_food_amount": config.daily_food_amount,
@@ -2211,6 +2506,20 @@ class FeedingManager:
                 "activated_at": dt_util.now().isoformat(),
             }
 
+            emergency_state = {
+                "active": True,
+                "status": "active",
+                "emergency_type": emergency_type,
+                "portion_adjustment": portion_adjustment,
+                "duration_days": duration_days,
+                "activated_at": result["activated_at"],
+                "expires_at": result["expires_at"],
+                "food_type_recommendation": config.food_type,
+            }
+
+            self._active_emergencies[dog_id] = emergency_state
+            result["emergency_state"] = dict(emergency_state)
+
             _LOGGER.info(
                 "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
                 dog_id,
@@ -2243,7 +2552,25 @@ class FeedingManager:
                         "Failed to restore normal feeding for %s: %s", dog_id, err
                     )
 
-            asyncio.create_task(_restore_normal_feeding())  # noqa: RUF006
+            async def _restore_wrapper() -> None:
+                try:
+                    await _restore_normal_feeding()
+                    emergency_details = self._active_emergencies.get(dog_id)
+                    if emergency_details:
+                        emergency_details = dict(emergency_details)
+                        emergency_details.update(
+                            {
+                                "active": False,
+                                "status": "resolved",
+                                "resolved_at": dt_util.utcnow().isoformat(),
+                            }
+                        )
+                        self._active_emergencies[dog_id] = emergency_details
+                finally:
+                    self._emergency_restore_tasks.pop(dog_id, None)
+
+            restore_task = asyncio.create_task(_restore_wrapper())  # noqa: RUF006
+            self._emergency_restore_tasks[dog_id] = restore_task
             result["restoration_scheduled"] = True
 
             return result

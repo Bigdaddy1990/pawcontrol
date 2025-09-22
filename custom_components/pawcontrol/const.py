@@ -71,6 +71,7 @@ MODULE_GPS: Final[str] = "gps"
 MODULE_FEEDING: Final[str] = "feeding"
 MODULE_HEALTH: Final[str] = "health"
 MODULE_WALK: Final[str] = "walk"
+MODULE_GARDEN: Final[str] = "garden"
 MODULE_NOTIFICATIONS: Final[str] = "notifications"
 MODULE_DASHBOARD: Final[str] = "dashboard"
 MODULE_VISITOR: Final[str] = "visitor"
@@ -87,6 +88,7 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
         MODULE_FEEDING,
         MODULE_HEALTH,
         MODULE_WALK,
+        MODULE_GARDEN,
         MODULE_NOTIFICATIONS,
         MODULE_DASHBOARD,
         MODULE_VISITOR,
@@ -322,6 +324,10 @@ SERVICE_LOG_POOP: Final[str] = "log_poop"
 SERVICE_LOG_HEALTH: Final[str] = "log_health_data"
 SERVICE_LOG_MEDICATION: Final[str] = "log_medication"
 SERVICE_START_GROOMING: Final[str] = "start_grooming"
+SERVICE_START_GARDEN_SESSION: Final[str] = "start_garden_session"
+SERVICE_END_GARDEN_SESSION: Final[str] = "end_garden_session"
+SERVICE_ADD_GARDEN_ACTIVITY: Final[str] = "add_garden_activity"
+SERVICE_CONFIRM_GARDEN_POOP: Final[str] = "confirm_garden_poop"
 SERVICE_TOGGLE_VISITOR_MODE: Final[str] = "toggle_visitor_mode"
 SERVICE_NOTIFY_TEST: Final[str] = "notify_test"
 SERVICE_DAILY_RESET: Final[str] = "daily_reset"
@@ -351,6 +357,8 @@ CORE_SERVICES: Final[frozenset[str]] = frozenset(
         SERVICE_END_WALK,
         SERVICE_LOG_HEALTH,
         SERVICE_NOTIFY_TEST,
+        SERVICE_START_GARDEN_SESSION,
+        SERVICE_END_GARDEN_SESSION,
     ]
 )
 
@@ -484,6 +492,7 @@ __all__ = (
     # Module identifiers
     "MODULE_GPS",
     "MODULE_HEALTH",
+    "MODULE_GARDEN",
     "MODULE_NOTIFICATIONS",
     "MODULE_VISITOR",
     "MODULE_WALK",
@@ -492,6 +501,10 @@ __all__ = (
     # Service identifiers
     "SERVICE_FEED_DOG",
     "SERVICE_LOG_HEALTH",
+    "SERVICE_START_GARDEN_SESSION",
+    "SERVICE_END_GARDEN_SESSION",
+    "SERVICE_ADD_GARDEN_ACTIVITY",
+    "SERVICE_CONFIRM_GARDEN_POOP",
     "SERVICE_START_WALK",
     # Performance constants
     "UPDATE_INTERVALS",

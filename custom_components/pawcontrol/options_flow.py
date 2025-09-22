@@ -64,6 +64,7 @@ from .const import (
     MAX_GEOFENCE_RADIUS,
     MIN_GEOFENCE_RADIUS,
     MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
@@ -978,6 +979,7 @@ class PawControlOptionsFlow(OptionsFlow):
                         MODULE_FEEDING: user_input.get("module_feeding", True),
                         MODULE_WALK: user_input.get("module_walk", True),
                         MODULE_GPS: user_input.get("module_gps", False),
+                        MODULE_GARDEN: user_input.get("module_garden", False),
                         MODULE_HEALTH: user_input.get("module_health", True),
                         "notifications": user_input.get("module_notifications", True),
                         "dashboard": user_input.get("module_dashboard", True),
@@ -1033,6 +1035,10 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "module_gps",
                     default=current_modules.get(MODULE_GPS, False),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "module_garden",
+                    default=current_modules.get(MODULE_GARDEN, False),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "module_health",

@@ -33,6 +33,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
@@ -212,6 +213,11 @@ async def async_setup_entry(
                 _create_health_binary_sensors(coordinator, dog_id, dog_name)
             )
 
+        if modules.get(MODULE_GARDEN, False):
+            entities.extend(
+                _create_garden_binary_sensors(coordinator, dog_id, dog_name)
+            )
+
     # OPTIMIZED: Smart batching based on entity count
     if len(entities) <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once for better performance
@@ -300,6 +306,21 @@ def _create_health_binary_sensors(
         PawControlVetCheckupDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlGroomingDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlActivityLevelConcernBinarySensor(coordinator, dog_id, dog_name),
+        PawControlHealthAwareFeedingBinarySensor(coordinator, dog_id, dog_name),
+        PawControlMedicationWithMealsBinarySensor(coordinator, dog_id, dog_name),
+        PawControlHealthEmergencyBinarySensor(coordinator, dog_id, dog_name),
+    ]
+
+
+def _create_garden_binary_sensors(
+    coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+) -> list[PawControlBinarySensorBase]:
+    """Create garden-related binary sensors for a dog."""
+
+    return [
+        PawControlGardenSessionActiveBinarySensor(coordinator, dog_id, dog_name),
+        PawControlInGardenBinarySensor(coordinator, dog_id, dog_name),
+        PawControlGardenPoopPendingBinarySensor(coordinator, dog_id, dog_name),
     ]
 
 
@@ -469,6 +490,45 @@ class PawControlBinarySensorBase(
     def available(self) -> bool:
         """Return if the binary sensor is available."""
         return self.coordinator.available and self._get_dog_data_cached() is not None
+
+
+# Garden-specific binary sensor base
+
+
+class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
+    """Base class for garden binary sensors."""
+
+    def _get_garden_data(self) -> dict[str, Any]:
+        """Return garden snapshot data for the dog."""
+
+        dog_data = self._get_dog_data_cached() or {}
+        module_data = dog_data.get("garden")
+        if isinstance(module_data, dict) and module_data:
+            return module_data
+
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            try:
+                return garden_manager.build_garden_snapshot(self._dog_id)
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.debug(
+                    "Garden snapshot fallback failed for %s: %s", self._dog_id, err
+                )
+
+        return {}
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        data = self._get_garden_data()
+        attrs.update(
+            {
+                "garden_status": data.get("status"),
+                "sessions_today": data.get("sessions_today"),
+                "pending_confirmations": data.get("pending_confirmations"),
+            }
+        )
+        return attrs
 
 
 # Base binary sensors
@@ -1410,3 +1470,194 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
             return "Monitor for signs of distress or illness"
         else:
             return "Continue normal monitoring"
+
+
+class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor showing if health-aware feeding mode is active."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_aware_feeding",
+            icon_on="mdi:heart-cog",
+            icon_off="mdi:heart-outline",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+    def _get_is_on_state(self) -> bool:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return False
+        return bool(feeding_data.get("health_aware_feeding", False))
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "portion_adjustment_factor": feeding_data.get(
+                    "portion_adjustment_factor"
+                ),
+                "health_conditions": feeding_data.get("health_conditions", []),
+            }
+        )
+        return attrs
+
+
+class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor indicating if medication should be given with meals."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "medication_with_meals",
+            icon_on="mdi:pill-multiple",
+            icon_off="mdi:pill",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+    def _get_is_on_state(self) -> bool:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return False
+        return bool(feeding_data.get("medication_with_meals", False))
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs["health_conditions"] = feeding_data.get("health_conditions", [])
+        return attrs
+
+
+class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
+    """Binary sensor indicating an active health emergency."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_emergency",
+            device_class=BinarySensorDeviceClass.PROBLEM,
+            icon_on="mdi:alert-decagram",
+            icon_off="mdi:check-decagram",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return False
+
+        return bool(feeding_data.get("health_emergency", False))
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        emergency = feeding_data.get("emergency_mode") or {}
+
+        attrs.update(
+            {
+                "emergency_type": emergency.get("emergency_type"),
+                "portion_adjustment": emergency.get("portion_adjustment"),
+                "activated_at": emergency.get("activated_at"),
+                "expires_at": emergency.get("expires_at"),
+                "status": emergency.get("status"),
+            }
+        )
+        return attrs
+
+
+class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating an active garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_session_active",
+            icon_on="mdi:flower",
+            icon_off="mdi:flower-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        data = self._get_garden_data()
+        if data.get("status") == "active":
+            return True
+
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.is_dog_in_garden(self._dog_id)
+
+        return False
+
+
+class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating whether the dog is currently in the garden."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "in_garden",
+            icon_on="mdi:pine-tree",
+            icon_off="mdi:pine-tree-variant-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.is_dog_in_garden(self._dog_id)
+
+        data = self._get_garden_data()
+        return data.get("status") == "active"
+
+
+class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
+    """Binary sensor indicating pending garden poop confirmation."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_poop_pending",
+            icon_on="mdi:emoticon-poop",
+            icon_off="mdi:check-circle-outline",
+        )
+
+    def _get_is_on_state(self) -> bool:
+        garden_manager = getattr(self.coordinator, "garden_manager", None)
+        if garden_manager:
+            return garden_manager.has_pending_confirmation(self._dog_id)
+
+        data = self._get_garden_data()
+        pending = data.get("pending_confirmations")
+        return bool(pending)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        pending = self._get_garden_data().get("pending_confirmations") or []
+        attrs["pending_confirmation_count"] = len(pending)
+        return attrs

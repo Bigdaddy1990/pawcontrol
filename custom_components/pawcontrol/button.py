@@ -31,14 +31,19 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
     SERVICE_END_WALK,
+    SERVICE_END_GARDEN_SESSION,
+    SERVICE_ADD_GARDEN_ACTIVITY,
     SERVICE_FEED_DOG,
+    SERVICE_CONFIRM_GARDEN_POOP,
     SERVICE_LOG_HEALTH,
     SERVICE_NOTIFY_TEST,
     SERVICE_START_GROOMING,
+    SERVICE_START_GARDEN_SESSION,
     SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
@@ -66,6 +71,8 @@ BUTTON_PRIORITIES = {
     "mark_fed": 2,
     "start_walk": 2,
     "end_walk": 2,
+    "start_garden_session": 2,
+    "end_garden_session": 2,
     "refresh_location": 2,
     "log_weight": 2,
     # Advanced module buttons
@@ -74,6 +81,7 @@ BUTTON_PRIORITIES = {
     "quick_walk": 3,
     "log_medication": 3,
     "start_grooming": 3,
+    "log_garden_activity": 3,
     "center_map": 3,
     # Detailed buttons (lowest priority)
     "feed_lunch": 4,
@@ -81,6 +89,7 @@ BUTTON_PRIORITIES = {
     "log_walk_manually": 4,
     "toggle_visitor_mode": 2,
     "log_custom_feeding": 2,
+    "confirm_garden_poop": 3,
     "export_route": 4,
     "call_dog": 4,
     "schedule_vet": 4,
@@ -124,6 +133,7 @@ class ProfileAwareButtonFactory:
             MODULE_WALK: self._get_walk_button_rules(),
             MODULE_GPS: self._get_gps_button_rules(),
             MODULE_HEALTH: self._get_health_button_rules(),
+            MODULE_GARDEN: self._get_garden_button_rules(),
         }
 
     def _get_feeding_button_rules(self) -> list[dict[str, Any]]:
@@ -304,6 +314,58 @@ class ProfileAwareButtonFactory:
                     "type": "health_check",
                     "priority": BUTTON_PRIORITIES["health_check"],
                     "profiles": ["advanced"],
+                }
+            )
+
+        return [rule for rule in rules if self.profile in rule["profiles"]]
+
+    def _get_garden_button_rules(self) -> list[dict[str, Any]]:
+        """Get garden button creation rules based on profile."""
+
+        rules = [
+            {
+                "class": PawControlStartGardenSessionButton,
+                "type": "start_garden_session",
+                "priority": BUTTON_PRIORITIES["start_garden_session"],
+                "profiles": [
+                    "basic",
+                    "standard",
+                    "advanced",
+                    "gps_focus",
+                    "health_focus",
+                ],
+            },
+            {
+                "class": PawControlEndGardenSessionButton,
+                "type": "end_garden_session",
+                "priority": BUTTON_PRIORITIES["end_garden_session"],
+                "profiles": [
+                    "basic",
+                    "standard",
+                    "advanced",
+                    "gps_focus",
+                    "health_focus",
+                ],
+            },
+        ]
+
+        if self.profile in ["standard", "advanced", "gps_focus", "health_focus"]:
+            rules.append(
+                {
+                    "class": PawControlLogGardenActivityButton,
+                    "type": "log_garden_activity",
+                    "priority": BUTTON_PRIORITIES["log_garden_activity"],
+                    "profiles": ["standard", "advanced", "gps_focus", "health_focus"],
+                }
+            )
+
+        if self.profile in ["advanced", "health_focus"]:
+            rules.append(
+                {
+                    "class": PawControlConfirmGardenPoopButton,
+                    "type": "confirm_garden_poop",
+                    "priority": BUTTON_PRIORITIES["confirm_garden_poop"],
+                    "profiles": ["advanced", "health_focus"],
                 }
             )
 
@@ -1340,3 +1402,182 @@ class PawControlHealthCheckButton(PawControlButtonBase):
                 status,
                 len(alerts),
             )
+
+
+class PawControlStartGardenSessionButton(PawControlButtonBase):
+    """Button to start a garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "start_garden_session",
+            icon="mdi:flower",
+            action_description="Start a garden session",
+        )
+
+    async def async_press(self) -> None:
+        await super().async_press()
+
+        garden_data = self._get_module_data("garden") or {}
+        if garden_data.get("status") == "active":
+            raise HomeAssistantError("Garden session is already active")
+
+        try:
+            await self.hass.services.async_call(
+                "pawcontrol",
+                SERVICE_START_GARDEN_SESSION,
+                {ATTR_DOG_ID: self._dog_id, "detection_method": "manual"},
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to start garden session: %s", err)
+            raise HomeAssistantError(f"Failed to start garden session: {err}") from err
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        garden_data = self._get_module_data("garden") or {}
+        return garden_data.get("status") != "active"
+
+
+class PawControlEndGardenSessionButton(PawControlButtonBase):
+    """Button to end a garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "end_garden_session",
+            icon="mdi:flower-off",
+            action_description="End the active garden session",
+        )
+
+    async def async_press(self) -> None:
+        await super().async_press()
+
+        garden_data = self._get_module_data("garden") or {}
+        if garden_data.get("status") != "active":
+            raise HomeAssistantError("No active garden session to end")
+
+        try:
+            await self.hass.services.async_call(
+                "pawcontrol",
+                SERVICE_END_GARDEN_SESSION,
+                {ATTR_DOG_ID: self._dog_id},
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to end garden session: %s", err)
+            raise HomeAssistantError(f"Failed to end garden session: {err}") from err
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        garden_data = self._get_module_data("garden") or {}
+        return garden_data.get("status") == "active"
+
+
+class PawControlLogGardenActivityButton(PawControlButtonBase):
+    """Button to log a general garden activity."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "log_garden_activity",
+            icon="mdi:leaf",
+            action_description="Log garden activity",
+        )
+
+    async def async_press(self) -> None:
+        await super().async_press()
+
+        garden_data = self._get_module_data("garden") or {}
+        if garden_data.get("status") != "active":
+            raise HomeAssistantError("Start a garden session before logging activity")
+
+        try:
+            await self.hass.services.async_call(
+                "pawcontrol",
+                SERVICE_ADD_GARDEN_ACTIVITY,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "activity_type": "general",
+                    "notes": "Logged via garden activity button",
+                    "confirmed": True,
+                },
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to log garden activity: %s", err)
+            raise HomeAssistantError(f"Failed to log garden activity: {err}") from err
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        garden_data = self._get_module_data("garden") or {}
+        return garden_data.get("status") == "active"
+
+
+class PawControlConfirmGardenPoopButton(PawControlButtonBase):
+    """Button to confirm a garden poop event."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "confirm_garden_poop",
+            icon="mdi:emoticon-poop",
+            action_description="Confirm garden poop",
+        )
+
+    async def async_press(self) -> None:
+        await super().async_press()
+
+        try:
+            await self.hass.services.async_call(
+                "pawcontrol",
+                SERVICE_CONFIRM_GARDEN_POOP,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "confirmed": True,
+                    "quality": "normal",
+                    "size": "normal",
+                },
+                blocking=False,
+            )
+        except ServiceValidationError as err:
+            raise HomeAssistantError(str(err)) from err
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error("Failed to confirm garden poop: %s", err)
+            raise HomeAssistantError(f"Failed to confirm garden poop: {err}") from err
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        garden_data = self._get_module_data("garden") or {}
+        pending = garden_data.get("pending_confirmations") or []
+        return bool(pending)
