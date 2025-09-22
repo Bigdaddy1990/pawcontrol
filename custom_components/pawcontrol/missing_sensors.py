@@ -3,10 +3,14 @@
 
 import contextlib
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
 from homeassistant.util import dt as dt_util
+
+from .coordinator import PawControlCoordinator
+from .sensor import PawControlSensorBase, register_sensor
 
 
 @register_sensor("activity_level")

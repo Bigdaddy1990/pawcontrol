@@ -236,7 +236,7 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
         Distance in meters
     """
     # Earth's radius in meters
-    R = 6371000
+    earth_radius_m = 6_371_000
 
     # Convert to radians
     lat1_rad = math.radians(lat1)
@@ -255,7 +255,7 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    return R * c
+    return earth_radius_m * c
 
 
 def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -1172,19 +1172,23 @@ class GPSGeofenceManager:
             "timestamp,latitude,longitude,altitude,accuracy,route_id,distance_km,duration_min"
         ]
 
-        for i, route in enumerate(routes):
-            route_id = f"route_{i + 1}"
-            for point in route.gps_points:
-                csv_lines.append(
-                    f"{point.timestamp.isoformat()},"
-                    f"{point.latitude},"
-                    f"{point.longitude},"
-                    f"{point.altitude or ''},"
-                    f"{point.accuracy or ''},"
-                    f"{route_id},"
-                    f"{route.distance_km},"
-                    f"{route.duration_minutes}"
+        for index, route in enumerate(routes, start=1):
+            route_id = f"route_{index}"
+            csv_lines.extend(
+                ",".join(
+                    [
+                        point.timestamp.isoformat(),
+                        str(point.latitude),
+                        str(point.longitude),
+                        str(point.altitude if point.altitude is not None else ""),
+                        str(point.accuracy if point.accuracy is not None else ""),
+                        route_id,
+                        str(route.distance_km),
+                        str(route.duration_minutes),
+                    ]
                 )
+                for point in route.gps_points
+            )
 
         csv_content = "\n".join(csv_lines)
 
