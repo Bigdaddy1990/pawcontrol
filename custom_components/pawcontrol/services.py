@@ -27,7 +27,6 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_DOG_NAME,
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
