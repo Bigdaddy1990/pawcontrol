@@ -324,18 +324,6 @@ def _create_garden_binary_sensors(
     ]
 
 
-def _create_garden_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str
-) -> list[PawControlBinarySensorBase]:
-    """Create garden-related binary sensors for a dog."""
-
-    return [
-        PawControlGardenSessionActiveBinarySensor(coordinator, dog_id, dog_name),
-        PawControlInGardenBinarySensor(coordinator, dog_id, dog_name),
-        PawControlGardenPoopPendingBinarySensor(coordinator, dog_id, dog_name),
-    ]
-
-
 class PawControlBinarySensorBase(
     PawControlDeviceLinkMixin,
     CoordinatorEntity[PawControlCoordinator],

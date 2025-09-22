@@ -425,6 +425,35 @@
           "sick": "Sick"
         }
       },
+      "diet_validation_status": {
+        "name": "Diet Validation Status",
+        "state": {
+          "validated_safe": "Validated Safe",
+          "warnings_present": "Warnings Present",
+          "conflicts_detected": "Conflicts Detected",
+          "no_data": "No Data",
+          "validation_error": "Validation Error"
+        }
+      },
+      "diet_conflict_count": {
+        "name": "Diet Conflict Count"
+      },
+      "diet_warning_count": {
+        "name": "Diet Warning Count"
+      },
+      "diet_vet_consultation": {
+        "name": "Diet Vet Consultation",
+        "state": {
+          "not_needed": "Not Needed",
+          "recommended": "Recommended"
+        }
+      },
+      "diet_validation_adjustment": {
+        "name": "Diet Validation Adjustment"
+      },
+      "diet_compatibility_score": {
+        "name": "Diet Compatibility Score"
+      },
       "special_diet": {
         "name": "Special Diet Requirements",
         "state": {

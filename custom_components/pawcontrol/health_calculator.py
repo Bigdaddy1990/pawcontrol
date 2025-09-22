@@ -1097,32 +1097,37 @@ class HealthCalculator:
             # Brachycephalic breeds more sensitive to heat/humidity
             if any(
                 breed in breed_lower for breed in ["bulldog", "pug", "boxer", "boston"]
-            ):
-                if (
+            ) and (
+                (
                     weather_conditions.temperature_c
                     and weather_conditions.temperature_c > 25
-                ) or (
+                )
+                or (
                     weather_conditions.humidity_percent
                     and weather_conditions.humidity_percent > 70
-                ):
-                    # Reduce activity by one level
-                    if adjusted_level == ActivityLevel.VERY_HIGH:
-                        adjusted_level = ActivityLevel.HIGH
-                    elif adjusted_level == ActivityLevel.HIGH:
-                        adjusted_level = ActivityLevel.MODERATE
-                    elif adjusted_level == ActivityLevel.MODERATE:
-                        adjusted_level = ActivityLevel.LOW
+                )
+            ):
+                # Reduce activity by one level
+                if adjusted_level == ActivityLevel.VERY_HIGH:
+                    adjusted_level = ActivityLevel.HIGH
+                elif adjusted_level == ActivityLevel.HIGH:
+                    adjusted_level = ActivityLevel.MODERATE
+                elif adjusted_level == ActivityLevel.MODERATE:
+                    adjusted_level = ActivityLevel.LOW
 
             # Cold-sensitive breeds
-            if any(
-                breed in breed_lower for breed in ["chihuahua", "greyhound", "whippet"]
-            ):
-                if (
+            if (
+                any(
+                    breed in breed_lower
+                    for breed in ["chihuahua", "greyhound", "whippet"]
+                )
+                and (
                     weather_conditions.temperature_c
                     and weather_conditions.temperature_c < 5
-                ):
-                    if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
-                        adjusted_level = ActivityLevel.MODERATE
+                )
+                and adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]
+            ):
+                adjusted_level = ActivityLevel.MODERATE
 
         # Health condition adjustments
         if health_conditions:
@@ -1134,9 +1139,8 @@ class HealthCalculator:
                     "heart" in condition_lower
                     and weather_conditions.temperature_c
                     and weather_conditions.temperature_c > 25
-                ):
-                    if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
-                        adjusted_level = ActivityLevel.MODERATE
+                ) and adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
+                    adjusted_level = ActivityLevel.MODERATE
 
                 # Respiratory conditions + humidity
                 if (
@@ -1196,14 +1200,11 @@ class HealthCalculator:
         # Activity level adjustments based on weather limitations
         if activity_level in [ActivityLevel.VERY_LOW, ActivityLevel.LOW]:
             # If activity is reduced due to weather, slightly reduce portions
-            if weather_conditions.temperature_c:
-                if (
-                    weather_conditions.temperature_c > 30
-                    or weather_conditions.temperature_c < 0
-                ):
-                    adjustment_factor *= (
-                        0.95  # 5% reduction for weather-limited activity
-                    )
+            if weather_conditions.temperature_c and (
+                weather_conditions.temperature_c > 30
+                or weather_conditions.temperature_c < 0
+            ):
+                adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
 
         return round(base_portion * adjustment_factor, 1)
 

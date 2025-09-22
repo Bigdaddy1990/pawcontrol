@@ -259,6 +259,9 @@ class DogManagementMixin:
                     "enable_garden", default=False
                 ): selector.BooleanSelector(),
                 vol.Optional(
+                    "enable_garden", default=False
+                ): selector.BooleanSelector(),
+                vol.Optional(
                     "enable_notifications", default=False
                 ): selector.BooleanSelector(),
                 vol.Optional(

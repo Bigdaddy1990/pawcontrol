@@ -1032,13 +1032,21 @@ class GardenManager:
             snapshot["activities_total"] = stats.total_activities
 
         # Calculate today's aggregates including active session
+        sessions_to_process = list(todays_sessions)
+        if active_session and dt_util.as_local(active_session.start_time) >= start_of_day:
+            if not any(
+                session.session_id == active_session.session_id
+                for session in sessions_to_process
+            ):
+                sessions_to_process.append(active_session)
+
         total_seconds_today = 0
         total_poop_today = 0
         total_activities_today = 0
         weather_conditions: list[str] = []
         temperatures: list[float] = []
 
-        for session in todays_sessions:
+        for session in sessions_to_process:
             duration = session.calculate_duration()
             total_seconds_today += duration
             total_poop_today += session.poop_count
@@ -1048,27 +1056,7 @@ class GardenManager:
             if session.temperature is not None:
                 temperatures.append(session.temperature)
 
-        active_started_today = False
-        if active_session:
-            active_started_today = (
-                dt_util.as_local(active_session.start_time) >= start_of_day
-            )
-
-        if active_session and active_started_today:
-            duration = active_session.calculate_duration()
-            total_seconds_today += duration
-            total_poop_today += active_session.poop_count
-            total_activities_today += len(active_session.activities)
-            if active_session.weather_conditions:
-                weather_conditions.append(active_session.weather_conditions)
-            if active_session.temperature is not None:
-                temperatures.append(active_session.temperature)
-
-        todays_session_count = len(todays_sessions)
-        if active_started_today:
-            todays_session_count += 1
-
-        snapshot["sessions_today"] = todays_session_count
+        snapshot["sessions_today"] = len(sessions_to_process)
         snapshot["time_today_minutes"] = round(total_seconds_today / 60, 2)
         snapshot["poop_today"] = total_poop_today
         snapshot["activities_today"] = total_activities_today

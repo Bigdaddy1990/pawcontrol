@@ -200,6 +200,28 @@ async def _create_module_entities(
                 ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 3),
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 2),
                 ("health_feeding_status", PawControlHealthFeedingStatusSensor, 1),
+                (
+                    "diet_validation_status",
+                    PawControlDietValidationStatusSensor,
+                    1,
+                ),
+                ("diet_conflict_count", PawControlDietConflictCountSensor, 0),
+                ("diet_warning_count", PawControlDietWarningCountSensor, 0),
+                (
+                    "diet_vet_consultation",
+                    PawControlDietVetConsultationSensor,
+                    0,
+                ),
+                (
+                    "diet_validation_adjustment",
+                    PawControlDietValidationAdjustmentSensor,
+                    0,
+                ),
+                (
+                    "diet_compatibility_score",
+                    PawControlDietCompatibilityScoreSensor,
+                    0,
+                ),
             ],
             "advanced": [
                 ("last_feeding", PawControlLastFeedingSensor, 8),
@@ -227,6 +249,28 @@ async def _create_module_entities(
                     0,
                 ),
                 ("feeding_recommendation", PawControlFeedingRecommendationSensor, 0),
+                (
+                    "diet_validation_status",
+                    PawControlDietValidationStatusSensor,
+                    0,
+                ),
+                ("diet_conflict_count", PawControlDietConflictCountSensor, 0),
+                ("diet_warning_count", PawControlDietWarningCountSensor, 0),
+                (
+                    "diet_vet_consultation",
+                    PawControlDietVetConsultationSensor,
+                    0,
+                ),
+                (
+                    "diet_validation_adjustment",
+                    PawControlDietValidationAdjustmentSensor,
+                    0,
+                ),
+                (
+                    "diet_compatibility_score",
+                    PawControlDietCompatibilityScoreSensor,
+                    0,
+                ),
             ],
             "health_focus": [
                 ("health_feeding_status", PawControlHealthFeedingStatusSensor, 9),
@@ -238,24 +282,37 @@ async def _create_module_entities(
                     6,
                 ),
                 ("health_aware_portion", PawControlHealthAwarePortionSensor, 5),
-                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 4),
-                ("daily_calories", PawControlDailyCaloriesSensor, 3),
-                ("daily_portions", PawControlDailyPortionsSensor, 2),
-                ("health_aware_portion", PawControlHealthAwarePortionSensor, 8),
-                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 7),
-                ("daily_calories", PawControlDailyCaloriesSensor, 6),
-                ("daily_portions", PawControlDailyPortionsSensor, 5),
+                ("daily_calories", PawControlDailyCaloriesSensor, 4),
+                ("daily_portions", PawControlDailyPortionsSensor, 3),
                 (
                     "last_feeding_hours",
                     PawControlLastFeedingHoursSensor,
-                    4,
-                ),  # NEW: Critical missing sensor
+                    2,
+                ),
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
                     1,
                 ),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 1),
                 ("diet_validation_status", PawControlDietValidationStatusSensor, 0),
+                ("diet_conflict_count", PawControlDietConflictCountSensor, 0),
+                ("diet_warning_count", PawControlDietWarningCountSensor, 0),
+                (
+                    "diet_vet_consultation",
+                    PawControlDietVetConsultationSensor,
+                    0,
+                ),
+                (
+                    "diet_validation_adjustment",
+                    PawControlDietValidationAdjustmentSensor,
+                    0,
+                ),
+                (
+                    "diet_compatibility_score",
+                    PawControlDietCompatibilityScoreSensor,
+                    0,
+                ),
             ],
         },
         "walk": {
@@ -807,6 +864,55 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         attrs = super().extra_state_attributes
         attrs.update(self._garden_attributes())
+        return attrs
+
+
+class PawControlDietValidationSensorBase(PawControlSensorBase):
+    """Base class for diet validation sensors."""
+
+    _module_name = "feeding"
+
+    def _get_validation_summary(self) -> dict[str, Any] | None:
+        """Return diet validation summary for the current dog."""
+
+        module_data = self._get_module_data(self._module_name)
+        if not module_data:
+            return None
+
+        summary = module_data.get("diet_validation_summary")
+        if isinstance(summary, dict):
+            return summary
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary:
+            attrs.update(
+                {
+                    "diet_validation_available": True,
+                    "diet_conflict_count": summary.get("conflict_count", 0),
+                    "diet_warning_count": summary.get("warning_count", 0),
+                    "diet_total_special_requirements": summary.get("total_diets", 0),
+                    "diet_compatibility_score": summary.get("compatibility_score"),
+                    "diet_compatibility_level": summary.get("compatibility_level"),
+                    "diet_validation_adjustment": summary.get(
+                        "diet_validation_adjustment", 1.0
+                    ),
+                    "diet_adjustment_direction": summary.get("adjustment_direction"),
+                    "diet_adjustment_safety_factor": summary.get("safety_factor"),
+                    "diet_vet_consultation": summary.get(
+                        "vet_consultation_state", "not_needed"
+                    ),
+                    "diet_consultation_urgency": summary.get(
+                        "consultation_urgency", "none"
+                    ),
+                }
+            )
+        else:
+            attrs["diet_validation_available"] = False
+
         return attrs
 
 
@@ -1516,6 +1622,333 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
 # Feeding Sensors
 
 
+@register_sensor("garden_time_today")
+class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
+    """Sensor for tracking garden time today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_time_today",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            icon="mdi:timer-sand",
+            translation_key="garden_time_today",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        data = self._get_garden_data()
+        value = data.get("time_today_minutes")
+        if isinstance(value, int | float):
+            return round(float(value), 2)
+        return None
+
+
+@register_sensor("garden_sessions_today")
+class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
+    """Sensor for counting garden sessions today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_sessions_today",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:flower",
+            translation_key="garden_sessions_today",
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        data = self._get_garden_data()
+        value = data.get("sessions_today")
+        if isinstance(value, int | float):
+            return int(value)
+        return None
+
+
+@register_sensor("garden_poop_count_today")
+class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
+    """Sensor for poop events recorded in the garden today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_poop_count_today",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:emoticon-poop",
+            translation_key="garden_poop_count_today",
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        data = self._get_garden_data()
+        value = data.get("poop_today")
+        if isinstance(value, int | float):
+            return int(value)
+        return None
+
+
+@register_sensor("last_garden_session")
+class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
+    """Sensor reporting the end of the last garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_garden_session",
+            device_class=SensorDeviceClass.TIMESTAMP,
+            icon="mdi:calendar-clock",
+            translation_key="last_garden_session",
+        )
+
+    @property
+    def native_value(self) -> datetime | None:
+        data = self._get_garden_data()
+        last_session = data.get("last_session")
+        if not last_session:
+            return None
+
+        timestamp = last_session.get("end_time") or last_session.get("start_time")
+        return ensure_utc_datetime(timestamp)
+
+
+@register_sensor("garden_activities_count")
+class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
+    """Sensor tracking the total number of garden activities."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_activities_count",
+            icon="mdi:counter",
+            translation_key="garden_activities_count",
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        data = self._get_garden_data()
+        value = data.get("activities_total")
+        if isinstance(value, int | float):
+            return int(value)
+        return None
+
+
+@register_sensor("avg_garden_duration")
+class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
+    """Sensor reporting the average garden session duration."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "avg_garden_duration",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            icon="mdi:chart-arc",
+            translation_key="avg_garden_duration",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        stats = self._get_garden_data().get("stats") or {}
+        value = stats.get("average_session_duration")
+        if isinstance(value, int | float):
+            return round(float(value), 2)
+        return None
+
+
+@register_sensor("garden_stats_weekly")
+class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
+    """Sensor summarizing weekly garden statistics."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_stats_weekly",
+            icon="mdi:calendar-week",
+            translation_key="garden_stats_weekly",
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        summary = self._get_garden_data().get("stats", {}).get("weekly_summary")
+        if not summary or not summary.get("session_count"):
+            return None
+
+        session_count = summary.get("session_count", 0)
+        total_time = summary.get("total_time_minutes", 0)
+        return f"{session_count} sessions / {total_time:.1f} min"
+
+
+@register_sensor("favorite_garden_activities")
+class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
+    """Sensor listing favorite garden activities."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "favorite_garden_activities",
+            icon="mdi:format-list-bulleted",
+            translation_key="favorite_garden_activities",
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        favorites = (
+            self._get_garden_data().get("stats", {}).get("favorite_activities", [])
+        )
+        if not favorites:
+            return None
+
+        names = [item.get("activity", "unknown") for item in favorites]
+        return ", ".join(names)
+
+
+@register_sensor("last_garden_duration")
+class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
+    """Sensor reporting the duration of the last garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_garden_duration",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            icon="mdi:timer",
+            translation_key="last_garden_duration",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        last_session = self._get_garden_data().get("last_session")
+        if not last_session:
+            return None
+
+        duration = last_session.get("duration_minutes")
+        if isinstance(duration, int | float):
+            return round(float(duration), 2)
+        return None
+
+
+@register_sensor("garden_activities_last_session")
+class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
+    """Sensor counting activities recorded in the last session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_activities_last_session",
+            icon="mdi:chart-bubble",
+            translation_key="garden_activities_last_session",
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        last_session = self._get_garden_data().get("last_session")
+        if not last_session:
+            return None
+
+        activity_count = last_session.get("activity_count")
+        if isinstance(activity_count, int | float):
+            return int(activity_count)
+        return None
+
+
+@register_sensor("garden_activities_today")
+class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
+    """Sensor tracking garden activities for the current day."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "garden_activities_today",
+            icon="mdi:paw",
+            translation_key="garden_activities_today",
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        data = self._get_garden_data()
+        value = data.get("activities_today")
+        if isinstance(value, int | float):
+            return int(value)
+        return None
+
+
+@register_sensor("last_garden_session_hours")
+class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
+    """Sensor reporting hours since the last garden session."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_garden_session_hours",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.HOURS,
+            icon="mdi:timer-sand-complete",
+            translation_key="last_garden_session_hours",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        data = self._get_garden_data()
+        value = data.get("hours_since_last_session")
+        if isinstance(value, int | float):
+            return round(float(value), 2)
+        return None
+
+
+# Feeding Sensors
+
+
 @register_sensor("last_feeding")
 class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
@@ -1844,7 +2277,7 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
 
 
 @register_sensor("diet_validation_status")
-class PawControlDietValidationStatusSensor(PawControlSensorBase):
+class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
     """Sensor for overall diet validation status."""
 
     def __init__(
@@ -1856,32 +2289,222 @@ class PawControlDietValidationStatusSensor(PawControlSensorBase):
             dog_name,
             "diet_validation_status",
             icon="mdi:food-apple",
+            translation_key="diet_validation_status",
         )
 
     @property
     def native_value(self) -> str:
         """Return diet validation status."""
-        feeding_data = self._get_module_data("feeding")
-        if not feeding_data:
+        summary = self._get_validation_summary()
+        if not summary:
             return "no_data"
 
         try:
-            diet_validation = feeding_data.get("diet_validation_summary")
-            if not diet_validation or not isinstance(diet_validation, dict):
-                return "no_validation"
-
-            conflict_count = int(diet_validation.get("conflict_count", 0))
-            warning_count = int(diet_validation.get("warning_count", 0))
+            conflict_count = int(summary.get("conflict_count", 0))
+            warning_count = int(summary.get("warning_count", 0))
 
             if conflict_count > 0:
                 return "conflicts_detected"
-            elif warning_count > 0:
+            if warning_count > 0:
                 return "warnings_present"
-            else:
-                return "validated_safe"
+            return "validated_safe"
 
         except (TypeError, ValueError):
             return "validation_error"
+
+
+@register_sensor("diet_conflict_count")
+class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
+    """Sensor tracking the number of diet conflicts detected."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "diet_conflict_count",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:alert-circle",
+            translation_key="diet_conflict_count",
+        )
+
+    @property
+    def native_value(self) -> int:
+        summary = self._get_validation_summary()
+        if not summary:
+            return 0
+        try:
+            return int(summary.get("conflict_count", 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary and summary.get("conflicts"):
+            attrs["conflicts"] = summary.get("conflicts")
+        return attrs
+
+
+@register_sensor("diet_warning_count")
+class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
+    """Sensor tracking warning count for diet combinations."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "diet_warning_count",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:alert",
+            translation_key="diet_warning_count",
+        )
+
+    @property
+    def native_value(self) -> int:
+        summary = self._get_validation_summary()
+        if not summary:
+            return 0
+        try:
+            return int(summary.get("warning_count", 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary and summary.get("warnings"):
+            attrs["warnings"] = summary.get("warnings")
+        return attrs
+
+
+@register_sensor("diet_vet_consultation")
+class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
+    """Sensor indicating if veterinary consultation is recommended."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "diet_vet_consultation",
+            icon="mdi:stethoscope",
+            translation_key="diet_vet_consultation",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+    @property
+    def native_value(self) -> str:
+        summary = self._get_validation_summary()
+        if not summary:
+            return "not_needed"
+        return str(summary.get("vet_consultation_state", "not_needed"))
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary:
+            attrs.update(
+                {
+                    "vet_consultation_recommended": summary.get(
+                        "vet_consultation_recommended", False
+                    ),
+                    "consultation_urgency": summary.get("consultation_urgency"),
+                    "has_conflicts": summary.get("conflict_count", 0) > 0,
+                }
+            )
+        return attrs
+
+
+@register_sensor("diet_validation_adjustment")
+class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBase):
+    """Sensor reporting the diet validation adjustment factor."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "diet_validation_adjustment",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:scale-balance",
+            translation_key="diet_validation_adjustment",
+        )
+
+    @property
+    def native_value(self) -> float:
+        summary = self._get_validation_summary()
+        if not summary:
+            return 1.0
+        try:
+            value = float(summary.get("diet_validation_adjustment", 1.0))
+            return round(value, 3)
+        except (TypeError, ValueError):
+            return 1.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary:
+            attrs.update(
+                {
+                    "percentage_adjustment": summary.get("percentage_adjustment"),
+                    "adjustment_info": summary.get("adjustment_info"),
+                    "has_adjustments": summary.get("has_adjustments", False),
+                }
+            )
+        return attrs
+
+
+@register_sensor("diet_compatibility_score")
+class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase):
+    """Sensor showing the overall diet compatibility score."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "diet_compatibility_score",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=PERCENTAGE,
+            icon="mdi:heart-pulse",
+            translation_key="diet_compatibility_score",
+        )
+
+    @property
+    def native_value(self) -> float:
+        summary = self._get_validation_summary()
+        if not summary:
+            return 100.0
+        try:
+            score = float(summary.get("compatibility_score", 100.0))
+            return round(score, 1)
+        except (TypeError, ValueError):
+            return 100.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        summary = self._get_validation_summary()
+        if summary:
+            attrs["compatibility_level"] = summary.get("compatibility_level")
+        return attrs
 
 
 @register_sensor("daily_portions")
@@ -2260,6 +2883,189 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
                     }
                 )
 
+        return attrs
+
+
+@register_sensor("health_feeding_status")
+class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
+    """Sensor reflecting overall health-aware feeding status."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_feeding_status",
+            icon="mdi:heart-pulse",
+            translation_key="health_feeding_status",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return current health feeding status."""
+
+        feeding_data = self._get_module_data("feeding")
+        status = feeding_data.get("health_feeding_status") if feeding_data else None
+        if not status:
+            return "unknown"
+        return str(status)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return diagnostic attributes for the health feeding status."""
+
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
+                "total_calories_today": feeding_data.get("total_calories_today"),
+                "portion_adjustment_factor": feeding_data.get(
+                    "portion_adjustment_factor"
+                ),
+                "weight_goal": feeding_data.get("weight_goal"),
+                "emergency_active": feeding_data.get("health_emergency", False),
+            }
+        )
+        if feeding_data.get("emergency_mode"):
+            attrs["emergency_details"] = feeding_data["emergency_mode"]
+        return attrs
+
+
+@register_sensor("daily_calorie_target")
+class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
+    """Sensor reporting the calculated daily calorie target."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "daily_calorie_target",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            icon="mdi:fire",
+            translation_key="daily_calorie_target",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current calorie target in kcal."""
+
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        value = feeding_data.get("daily_calorie_target")
+        if value is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(value), 1)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "calories_per_gram": feeding_data.get("calories_per_gram"),
+                "health_source": feeding_data.get("health_summary", {}).get(
+                    "life_stage"
+                ),
+            }
+        )
+        return attrs
+
+
+@register_sensor("calories_consumed_today")
+class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
+    """Sensor for calories consumed today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "calories_consumed_today",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            icon="mdi:food-drumstick",
+            translation_key="calories_consumed_today",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        value = feeding_data.get("total_calories_today")
+        if value is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(value), 1)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
+                "calorie_goal_progress": feeding_data.get("calorie_goal_progress"),
+            }
+        )
+        return attrs
+
+
+@register_sensor("portion_adjustment_factor")
+class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
+    """Sensor exposing the calculated portion adjustment factor."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "portion_adjustment_factor",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:scale-balance",
+            translation_key="portion_adjustment_factor",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        factor = feeding_data.get("portion_adjustment_factor")
+        if factor is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(factor), 2)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "weight_goal": feeding_data.get("weight_goal"),
+                "health_conditions": feeding_data.get("health_conditions", []),
+            }
+        )
         return attrs
 
 
@@ -3467,6 +4273,133 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 }
             )
 
+        return attrs
+
+
+@register_sensor("health_conditions")
+class PawControlHealthConditionsSensor(PawControlSensorBase):
+    """Sensor exposing tracked health conditions."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_conditions",
+            icon="mdi:clipboard-pulse",
+            translation_key="health_conditions",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return comma separated list of health conditions."""
+
+        conditions = self._get_module_data("health") or {}
+        condition_list = conditions.get("health_conditions")
+        if not condition_list:
+            return "none"
+        if isinstance(condition_list, list):
+            return ", ".join(str(cond) for cond in condition_list)
+        return str(condition_list)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        conditions = self._get_module_data("health") or {}
+        attrs["conditions"] = conditions.get("health_conditions", [])
+        return attrs
+
+
+@register_sensor("weight_goal_progress")
+class PawControlWeightGoalProgressSensor(PawControlSensorBase):
+    """Sensor for weight goal progress percentage."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "weight_goal_progress",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=PERCENTAGE,
+            icon="mdi:bullseye-arrow",
+            translation_key="weight_goal_progress",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return percentage progress toward weight goal."""
+
+        health_data = self._get_module_data("health")
+        if not health_data:
+            return None
+
+        try:
+            progress = health_data.get("weight_goal_progress")
+            return float(progress) if progress is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        health_data = self._get_module_data("health") or {}
+        attrs.update(
+            {
+                "weight_goal": health_data.get("weight_goal"),
+                "current_weight": health_data.get("weight"),
+                "ideal_weight": health_data.get("ideal_weight"),
+            }
+        )
+        return attrs
+
+
+@register_sensor("daily_activity_level")
+class PawControlDailyActivityLevelSensor(PawControlSensorBase):
+    """Sensor summarizing the daily health activity level."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "daily_activity_level",
+            icon="mdi:run",
+            translation_key="daily_activity_level",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return the activity level for today."""
+
+        health_data = self._get_module_data("health")
+        if not health_data:
+            return "unknown"
+
+        level = health_data.get("activity_level") or health_data.get(
+            "daily_activity_level"
+        )
+        if not level:
+            return "unknown"
+        return str(level)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        health_data = self._get_module_data("health") or {}
+        attrs.update(
+            {
+                "calorie_target": health_data.get("daily_calorie_target"),
+                "calories_consumed": health_data.get("total_calories_today"),
+            }
+        )
         return attrs
 
 

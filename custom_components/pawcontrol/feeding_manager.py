@@ -321,16 +321,62 @@ class FeedingConfig:
         return round(portion, 1)
 
     def _get_diet_validation_summary(self) -> dict[str, Any]:
-        """Get summary of diet validation adjustments.
+        """Get summary of diet validation adjustments."""
 
-        Returns:
-            Dictionary with validation adjustment information
-        """
+        total_diets = len(self.special_diet or [])
+
         if not self.diet_validation:
-            return {"has_adjustments": False, "adjustment_info": "No validation data"}
+            return {
+                "has_adjustments": False,
+                "adjustment_info": "No validation data",
+                "conflict_count": 0,
+                "warning_count": 0,
+                "vet_consultation_recommended": False,
+                "vet_consultation_state": "not_needed",
+                "consultation_urgency": "none",
+                "total_diets": total_diets,
+                "diet_validation_adjustment": 1.0,
+                "percentage_adjustment": 0.0,
+                "adjustment_direction": "none",
+                "safety_factor": "normal",
+                "compatibility_score": 100,
+                "compatibility_level": "excellent",
+                "conflicts": [],
+                "warnings": [],
+            }
 
         conflicts = self.diet_validation.get("conflicts", [])
         warnings = self.diet_validation.get("warnings", [])
+        total_diets = max(
+            total_diets,
+            int(self.diet_validation.get("total_diets", total_diets) or total_diets),
+        )
+
+        try:
+            validation_adjustment = (
+                HealthCalculator.calculate_diet_validation_adjustment(
+                    self.diet_validation,
+                    self.special_diet,
+                )
+            )
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.debug(
+                "Failed to calculate diet validation adjustment for %s: %s",
+                self.dog_id,
+                err,
+            )
+            validation_adjustment = 1.0
+
+        percentage_adjustment = round((validation_adjustment - 1.0) * 100.0, 1)
+
+        if percentage_adjustment > 0.5:
+            adjustment_direction = "increase"
+        elif percentage_adjustment < -0.5:
+            adjustment_direction = "decrease"
+        else:
+            adjustment_direction = "none"
+
+        safety_factor = "conservative" if validation_adjustment < 1.0 else "normal"
 
         adjustments = []
         if conflicts:
@@ -342,16 +388,63 @@ class FeedingConfig:
                 [f"Warning: {w.get('type', 'unknown')}" for w in warnings]
             )
 
+        conflict_count = len(conflicts)
+        warning_count = len(warnings)
+
+        compatibility_score = 100
+        compatibility_score -= conflict_count * 25
+        compatibility_score -= min(warning_count * 10, 40)
+        compatibility_score -= max(0, total_diets - 3) * 5
+        compatibility_score = max(0, min(100, compatibility_score))
+
+        if compatibility_score >= 85:
+            compatibility_level = "excellent"
+        elif compatibility_score >= 70:
+            compatibility_level = "good"
+        elif compatibility_score >= 55:
+            compatibility_level = "acceptable"
+        elif compatibility_score >= 40:
+            compatibility_level = "concerning"
+        else:
+            compatibility_level = "poor"
+
+        vet_recommended = bool(
+            self.diet_validation.get("recommended_vet_consultation", False)
+            or conflict_count > 0
+        )
+
+        if conflict_count > 0:
+            consultation_urgency = "high"
+        elif warning_count >= 2 or total_diets >= 5:
+            consultation_urgency = "medium"
+        elif warning_count > 0 or total_diets >= 4:
+            consultation_urgency = "low"
+        else:
+            consultation_urgency = "none"
+
+        has_adjustments = bool(adjustments) or abs(validation_adjustment - 1.0) > 0.005
+
         return {
-            "has_adjustments": bool(adjustments),
+            "has_adjustments": has_adjustments,
             "adjustment_info": "; ".join(adjustments)
             if adjustments
             else "No adjustments",
-            "conflict_count": len(conflicts),
-            "warning_count": len(warnings),
-            "vet_consultation_recommended": self.diet_validation.get(
-                "recommended_vet_consultation", False
-            ),
+            "conflict_count": conflict_count,
+            "warning_count": warning_count,
+            "vet_consultation_recommended": vet_recommended,
+            "vet_consultation_state": "recommended"
+            if vet_recommended
+            else "not_needed",
+            "consultation_urgency": consultation_urgency,
+            "total_diets": total_diets,
+            "diet_validation_adjustment": round(validation_adjustment, 3),
+            "percentage_adjustment": percentage_adjustment,
+            "adjustment_direction": adjustment_direction,
+            "safety_factor": safety_factor,
+            "compatibility_score": compatibility_score,
+            "compatibility_level": compatibility_level,
+            "conflicts": conflicts,
+            "warnings": warnings,
         }
 
     def update_diet_validation(self, validation_data: dict[str, Any]) -> None:
@@ -575,6 +668,10 @@ class FeedingManager:
         # Track emergency feeding modes for health-aware entities
         self._active_emergencies: dict[str, dict[str, Any]] = {}
         self._emergency_restore_tasks: dict[str, asyncio.Task] = {}
+
+        # Track scheduled reversion tasks so we can cancel or clean them up
+        self._activity_reversion_tasks: dict[str, asyncio.Task] = {}
+        self._portion_reversion_tasks: dict[str, asyncio.Task] = {}
 
         # OPTIMIZATION: Feeding data cache
         self._data_cache: dict[str, dict] = {}
@@ -1252,6 +1349,11 @@ class FeedingManager:
         if portion_adjustment is not None:
             data["portion_adjustment_factor"] = portion_adjustment
 
+        if config and config.diet_validation:
+            data["diet_validation_summary"] = config._get_diet_validation_summary()
+        else:
+            data["diet_validation_summary"] = None
+
         health_conditions: list[str] = []
         if health_summary:
             health_conditions = list(health_summary.get("health_conditions", []))
@@ -1380,6 +1482,7 @@ class FeedingManager:
             "daily_activity_level": None,
             "health_emergency": False,
             "emergency_mode": None,
+            "diet_validation_summary": None,
         }
 
         if calories_per_gram is not None:
@@ -2162,23 +2265,32 @@ class FeedingManager:
             # Schedule reversion if temporary
             if temporary and duration_hours and original_activity:
 
-                async def _revert_activity():
-                    await asyncio.sleep(duration_hours * 3600)
-                    try:
-                        await self.async_adjust_calories_for_activity(
-                            dog_id, original_activity, None, False
-                        )
-                        _LOGGER.info(
-                            "Reverted activity level for %s back to %s",
-                            dog_id,
-                            original_activity,
-                        )
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to revert activity level for %s: %s", dog_id, err
-                        )
+                if existing_task := self._activity_reversion_tasks.pop(dog_id, None):
+                    existing_task.cancel()
 
-                asyncio.create_task(_revert_activity())  # noqa: RUF006
+                async def _revert_activity() -> None:
+                    try:
+                        await asyncio.sleep(duration_hours * 3600)
+                        try:
+                            await self.async_adjust_calories_for_activity(
+                                dog_id, original_activity, None, False
+                            )
+                            _LOGGER.info(
+                                "Reverted activity level for %s back to %s",
+                                dog_id,
+                                original_activity,
+                            )
+                        except Exception as err:  # pragma: no cover - logging only
+                            _LOGGER.error(
+                                "Failed to revert activity level for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                    finally:
+                        self._activity_reversion_tasks.pop(dog_id, None)
+
+                revert_task = asyncio.create_task(_revert_activity())
+                self._activity_reversion_tasks[dog_id] = revert_task
                 result["reversion_scheduled"] = True
 
             return result
@@ -2870,35 +2982,42 @@ class FeedingManager:
             # Schedule reversion if temporary
             if temporary and duration_days:
 
-                async def _revert_adjustment():
-                    await asyncio.sleep(duration_days * 24 * 3600)  # Convert to seconds
+                if existing_task := self._portion_reversion_tasks.pop(dog_id, None):
+                    existing_task.cancel()
+
+                async def _revert_adjustment() -> None:
                     try:
-                        # Restore original amount
-                        config.daily_food_amount = original_amount
+                        await asyncio.sleep(duration_days * 24 * 3600)
+                        try:
+                            # Restore original amount
+                            config.daily_food_amount = original_amount
 
-                        # Restore meal schedules
-                        revert_factor = 1.0 / adjustment_factor
-                        for schedule in config.meal_schedules:
-                            schedule.portion_size = round(
-                                schedule.portion_size * revert_factor, 1
+                            # Restore meal schedules
+                            revert_factor = 1.0 / adjustment_factor
+                            for schedule in config.meal_schedules:
+                                schedule.portion_size = round(
+                                    schedule.portion_size * revert_factor, 1
+                                )
+
+                            self._invalidate_cache(dog_id)
+
+                            _LOGGER.info(
+                                "Reverted portion adjustment for %s back to %.0fg after %d days",
+                                dog_id,
+                                original_amount,
+                                duration_days,
                             )
+                        except Exception as err:  # pragma: no cover - logging only
+                            _LOGGER.error(
+                                "Failed to revert portion adjustment for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                    finally:
+                        self._portion_reversion_tasks.pop(dog_id, None)
 
-                        self._invalidate_cache(dog_id)
-
-                        _LOGGER.info(
-                            "Reverted portion adjustment for %s back to %.0fg after %d days",
-                            dog_id,
-                            original_amount,
-                            duration_days,
-                        )
-                    except Exception as err:
-                        _LOGGER.error(
-                            "Failed to revert portion adjustment for %s: %s",
-                            dog_id,
-                            err,
-                        )
-
-                asyncio.create_task(_revert_adjustment())  # noqa: RUF006
+                revert_task = asyncio.create_task(_revert_adjustment())
+                self._portion_reversion_tasks[dog_id] = revert_task
                 result["reversion_scheduled"] = True
                 result["reversion_date"] = (
                     dt_util.now() + timedelta(days=duration_days)

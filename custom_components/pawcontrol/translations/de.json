@@ -425,6 +425,35 @@
           "sick": "Krank"
         }
       },
+      "diet_validation_status": {
+        "name": "Diätvalidierungsstatus",
+        "state": {
+          "validated_safe": "Validiert (sicher)",
+          "warnings_present": "Warnungen vorhanden",
+          "conflicts_detected": "Konflikte erkannt",
+          "no_data": "Keine Daten",
+          "validation_error": "Validierungsfehler"
+        }
+      },
+      "diet_conflict_count": {
+        "name": "Anzahl Diätkonflikte"
+      },
+      "diet_warning_count": {
+        "name": "Anzahl Diätwarnungen"
+      },
+      "diet_vet_consultation": {
+        "name": "Tierarztkonsultation (Diät)",
+        "state": {
+          "not_needed": "Nicht erforderlich",
+          "recommended": "Empfohlen"
+        }
+      },
+      "diet_validation_adjustment": {
+        "name": "Diätvalidierungsanpassung"
+      },
+      "diet_compatibility_score": {
+        "name": "Diätkompatibilitätswert"
+      },
       "special_diet": {
         "name": "Spezielle Diät-Anforderungen",
         "state": {
