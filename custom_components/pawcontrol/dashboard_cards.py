@@ -1457,18 +1457,42 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate weather cards concurrently
         weather_card_tasks = [
-            ("health_score", self._generate_weather_health_score_card(dog_id, dog_name, options)),
-            ("active_alerts", self._generate_active_weather_alerts_card(dog_id, dog_name, options)),
-            ("recommendations", self._generate_weather_recommendations_card(dog_id, dog_name, options)),
-            ("current_conditions", self._generate_current_weather_conditions_card(dog_id, dog_name, options)),
+            (
+                "health_score",
+                self._generate_weather_health_score_card(dog_id, dog_name, options),
+            ),
+            (
+                "active_alerts",
+                self._generate_active_weather_alerts_card(dog_id, dog_name, options),
+            ),
+            (
+                "recommendations",
+                self._generate_weather_recommendations_card(dog_id, dog_name, options),
+            ),
+            (
+                "current_conditions",
+                self._generate_current_weather_conditions_card(
+                    dog_id, dog_name, options
+                ),
+            ),
         ]
 
         # Add breed-specific and forecast cards based on options
         if options.get("show_breed_advice", True):
-            weather_card_tasks.append(("breed_advice", self._generate_breed_weather_advice_card(dog_config, options)))
+            weather_card_tasks.append(
+                (
+                    "breed_advice",
+                    self._generate_breed_weather_advice_card(dog_config, options),
+                )
+            )
 
         if options.get("show_weather_forecast", True):
-            weather_card_tasks.append(("forecast", self._generate_weather_forecast_card(dog_id, dog_name, options)))
+            weather_card_tasks.append(
+                (
+                    "forecast",
+                    self._generate_weather_forecast_card(dog_id, dog_name, options),
+                )
+            )
 
         try:
             results = await asyncio.wait_for(
@@ -1479,11 +1503,15 @@ class WeatherCardGenerator(BaseCardGenerator):
             )
 
             # Process results with error handling
-            for (card_type, _), result in zip(weather_card_tasks, results, strict=False):
+            for (card_type, _), result in zip(
+                weather_card_tasks, results, strict=False
+            ):
                 if isinstance(result, Exception):
                     _LOGGER.warning(
                         "Weather card %s generation failed for %s: %s",
-                        card_type, dog_name, result
+                        card_type,
+                        dog_name,
+                        result,
                     )
                     self._performance_stats["errors_handled"] += 1
                 elif result is not None:
@@ -1493,10 +1521,12 @@ class WeatherCardGenerator(BaseCardGenerator):
             _LOGGER.error("Weather cards generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             # Return minimal weather card on timeout
-            return [{
-                "type": "markdown",
-                "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh."
-            }]
+            return [
+                {
+                    "type": "markdown",
+                    "content": f"## 🌤️ {dog_name} Weather\n\nTimeout generating weather cards. Please refresh.",
+                }
+            ]
 
         generation_time = asyncio.get_event_loop().time() - start_time
         self._performance_stats["generation_time_total"] += generation_time
@@ -1529,12 +1559,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                     "max": 100,
                     "unit": "/100",
                     "needle": True,
-                    "severity": {
-                        "green": 80,
-                        "yellow": 60,
-                        "orange": 40,
-                        "red": 0
-                    },
+                    "severity": {"green": 80, "yellow": 60, "orange": 40, "red": 0},
                 },
                 {
                     "type": "markdown",
@@ -1588,21 +1613,23 @@ class WeatherCardGenerator(BaseCardGenerator):
         for alert_type, icon, name, color in alert_configs:
             entity_id = f"binary_sensor.{dog_id}_{alert_type}"
             if entity_id in valid_alerts:
-                alert_chips.append({
-                    "type": "conditional",
-                    "conditions": [{"entity": entity_id, "state": "on"}],
-                    "chip": {
-                        "type": "entity",
-                        "entity": entity_id,
-                        "name": f"{icon} {name}",
-                        "icon_color": color,
-                        "content_info": "none",
-                        "tap_action": {
-                            "action": "more-info",
+                alert_chips.append(
+                    {
+                        "type": "conditional",
+                        "conditions": [{"entity": entity_id, "state": "on"}],
+                        "chip": {
+                            "type": "entity",
                             "entity": entity_id,
+                            "name": f"{icon} {name}",
+                            "icon_color": color,
+                            "content_info": "none",
+                            "tap_action": {
+                                "action": "more-info",
+                                "entity": entity_id,
+                            },
                         },
-                    },
-                })
+                    }
+                )
 
         return {
             "type": "vertical-stack",
@@ -1615,7 +1642,10 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "conditional",
                     "conditions": [
-                        {"entity": f"binary_sensor.{dog_id}_weather_alerts_active", "state": "on"}
+                        {
+                            "entity": f"binary_sensor.{dog_id}_weather_alerts_active",
+                            "state": "on",
+                        }
                     ],
                     "card": {
                         "type": "custom:mushroom-chips-card",
@@ -1626,7 +1656,10 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "conditional",
                     "conditions": [
-                        {"entity": f"binary_sensor.{dog_id}_weather_alerts_active", "state": "off"}
+                        {
+                            "entity": f"binary_sensor.{dog_id}_weather_alerts_active",
+                            "state": "off",
+                        }
                     ],
                     "card": {
                         "type": "markdown",
@@ -1656,18 +1689,18 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}
-{% if recommendations and recommendations != 'unknown' %}
-{% set rec_list = recommendations.split(';') %}
-{% for rec in rec_list[:5] %}
-• {{ rec.strip() }}
-{% endfor %}
-{% if rec_list|length > 5 %}
-*... and {{ rec_list|length - 5 }} more recommendations*
-{% endif %}
-{% else %}
+{{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}}
+{{% if recommendations and recommendations != 'unknown' %}}
+{{% set rec_list = recommendations.split(';') %}}
+{{% for rec in rec_list[:5] %}}
+• {{{{ rec.strip() }}}}
+{{% endfor %}}
+{{% if rec_list|length > 5 %}}
+*... and {{{{ rec_list|length - 5 }}}} more recommendations*
+{{% endif %}}
+{{% else %}}
 *No specific recommendations at this time*
-{% endif %}
+{{% endif %}}
 
 *Updated: {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}*
                     """,
@@ -1728,19 +1761,33 @@ class WeatherCardGenerator(BaseCardGenerator):
         entity_configs = []
 
         entity_mappings = [
-            (f"sensor.{dog_id}_temperature_impact", "Temperature Impact", "mdi:thermometer"),
-            (f"sensor.{dog_id}_humidity_impact", "Humidity Impact", "mdi:water-percent"),
-            (f"sensor.{dog_id}_uv_exposure_level", "UV Exposure Level", "mdi:weather-sunny"),
+            (
+                f"sensor.{dog_id}_temperature_impact",
+                "Temperature Impact",
+                "mdi:thermometer",
+            ),
+            (
+                f"sensor.{dog_id}_humidity_impact",
+                "Humidity Impact",
+                "mdi:water-percent",
+            ),
+            (
+                f"sensor.{dog_id}_uv_exposure_level",
+                "UV Exposure Level",
+                "mdi:weather-sunny",
+            ),
             (f"sensor.{dog_id}_wind_impact", "Wind Impact", "mdi:weather-windy"),
         ]
 
         for entity_id, name, icon in entity_mappings:
             if entity_id in valid_entities:
-                entity_configs.append({
-                    "entity": entity_id,
-                    "name": name,
-                    "icon": icon,
-                })
+                entity_configs.append(
+                    {
+                        "entity": entity_id,
+                        "name": name,
+                        "icon": icon,
+                    }
+                )
 
         return {
             "type": "entities",
@@ -1774,16 +1821,16 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}
-{% if breed_advice and breed_advice != 'unknown' %}
+{{% set breed_advice = states('sensor.{dog_id}_breed_weather_advice') %}}
+{{% if breed_advice and breed_advice != 'unknown' %}}
 **Breed Characteristics:**
-{% set advice_parts = breed_advice.split('|') %}
-{% for part in advice_parts %}
-• {{ part.strip() }}
-{% endfor %}
-{% else %}
+{{% set advice_parts = breed_advice.split('|') %}}
+{{% for part in advice_parts %}}
+• {{{{ part.strip() }}}}
+{{% endfor %}}
+{{% else %}}
 *Breed-specific advice not available*
-{% endif %}
+{{% endif %}}
 
 **General {dog_breed} Considerations:**
 • Check current weather score above
@@ -1814,13 +1861,13 @@ class WeatherCardGenerator(BaseCardGenerator):
                 {
                     "type": "markdown",
                     "content": f"""
-{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}
-{% if forecast_data and forecast_data != 'unknown' %}
+{{% set forecast_data = states('sensor.{dog_id}_weather_forecast_health') %}}
+{{% if forecast_data and forecast_data != 'unknown' %}}
 **Next 24 Hours:**
-{{ forecast_data }}
-{% else %}
+{{{{ forecast_data }}}}
+{{% else %}}
 *Weather forecast data not available*
-{% endif %}
+{{% endif %}}
 
 **Planning Tips:**
 • Schedule walks during optimal times
