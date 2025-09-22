@@ -37,6 +37,7 @@ from .const import (
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_GARDEN,
     MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -52,6 +53,7 @@ from .types import DogConfigData, PawControlConfigEntry
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
     from .gps_manager import GPSGeofenceManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
@@ -149,6 +151,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager: PawControlNotificationManager | None = None
         self.gps_geofence_manager: GPSGeofenceManager | None = None
         self.weather_health_manager: WeatherHealthManager | None = None
+        self.garden_manager: GardenManager | None = None
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -176,6 +179,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         notification_manager: PawControlNotificationManager,
         gps_geofence_manager: GPSGeofenceManager | None = None,
         weather_health_manager: WeatherHealthManager | None = None,
+        garden_manager: GardenManager | None = None,
     ) -> None:
         """Attach runtime managers for service integration.
 
@@ -193,6 +197,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager = notification_manager
         self.gps_geofence_manager = gps_geofence_manager
         self.weather_health_manager = weather_health_manager
+        self.garden_manager = garden_manager
         _LOGGER.debug(
             "Runtime managers attached (gps_geofence: %s, weather: %s)", 
             bool(gps_geofence_manager), bool(weather_health_manager)
@@ -206,6 +211,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.notification_manager = None
         self.gps_geofence_manager = None
         self.weather_health_manager = None
+        self.garden_manager = None
 
     def _get_cache(self, key: str) -> Any | None:
         """Get item from cache if not expired.
@@ -456,6 +462,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             module_tasks.append(("health", self._get_health_data(dog_id)))
         if modules.get(MODULE_WEATHER):
             module_tasks.append(("weather", self._get_weather_data(dog_id)))
+        if modules.get(MODULE_GARDEN):
+            module_tasks.append(("garden", self._get_garden_data(dog_id)))
 
         # Execute module tasks concurrently with enhanced error handling
         if module_tasks:
@@ -698,6 +706,23 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.warning("Failed to get geofencing data for %s: %s", dog_id, err)
             return {"status": "error", "error": str(err)}
+
+    async def _get_garden_data(self, dog_id: str) -> dict[str, Any]:
+        """Get garden tracking data for a dog."""
+
+        if not self.garden_manager:
+            return {"status": "disabled"}
+
+        try:
+            snapshot = self.garden_manager.build_garden_snapshot(dog_id)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning(
+                "Failed to build garden snapshot for %s: %s", dog_id, err
+            )
+            return {"status": "error", "message": str(err)}
+
+        snapshot.setdefault("status", "idle")
+        return snapshot
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
         """Get empty dog data structure.

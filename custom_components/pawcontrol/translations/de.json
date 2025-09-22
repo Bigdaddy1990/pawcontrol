@@ -34,7 +34,8 @@
           "enable_grooming": "Pflege-Erinnerungen",
           "enable_medication": "Medikamenten-Verfolgung",
           "enable_training": "Trainingsfortschritt",
-          "enable_weather": "Wetter-Gesundheitsüberwachung"
+          "enable_weather": "Wetter-Gesundheitsüberwachung",
+          "enable_garden": "Garten-Tracking"
         }
       },
       "dog_gps": {
@@ -460,6 +461,42 @@
       },
       "active_weather_alerts": {
         "name": "Aktive Wetter-Warnungen"
+      },
+      "garden_time_today": {
+        "name": "Gartenzeit heute"
+      },
+      "garden_sessions_today": {
+        "name": "Gartensitzungen heute"
+      },
+      "garden_poop_count_today": {
+        "name": "Garten-Kotereignisse heute"
+      },
+      "last_garden_session": {
+        "name": "Letzte Gartensitzung"
+      },
+      "garden_activities_count": {
+        "name": "Anzahl Gartenaktivitäten"
+      },
+      "avg_garden_duration": {
+        "name": "Durchschnittliche Gartendauer"
+      },
+      "garden_stats_weekly": {
+        "name": "Wöchentliche Gartenübersicht"
+      },
+      "favorite_garden_activities": {
+        "name": "Beliebteste Gartenaktivitäten"
+      },
+      "last_garden_duration": {
+        "name": "Dauer der letzten Gartensitzung"
+      },
+      "garden_activities_last_session": {
+        "name": "Gartenaktivitäten letzte Sitzung"
+      },
+      "garden_activities_today": {
+        "name": "Gartenaktivitäten heute"
+      },
+      "last_garden_session_hours": {
+        "name": "Stunden seit letzter Gartensitzung"
       }
     },
     "binary_sensor": {
@@ -516,6 +553,15 @@
       },
       "storm_warning": {
         "name": "Sturmwarnung"
+      },
+      "garden_session_active": {
+        "name": "Gartensitzung aktiv"
+      },
+      "in_garden": {
+        "name": "Im Garten"
+      },
+      "garden_poop_pending": {
+        "name": "Offene Garten-Kotbestätigung"
       }
     },
     "button": {
@@ -578,6 +624,18 @@
       },
       "get_weather_recommendations": {
         "name": "Wetter-Empfehlungen abrufen"
+      },
+      "start_garden_session": {
+        "name": "Gartensitzung starten"
+      },
+      "end_garden_session": {
+        "name": "Gartensitzung beenden"
+      },
+      "log_garden_activity": {
+        "name": "Gartenaktivität protokollieren"
+      },
+      "confirm_garden_poop": {
+        "name": "Garten-Kot bestätigen"
       }
     },
     "switch": {
@@ -673,6 +731,9 @@
       },
       "storm_alerts": {
         "name": "Sturm-Warnungen"
+      },
+      "module_garden": {
+        "name": "Gartenmodul"
       }
     },
     "select": {
@@ -774,7 +835,7 @@
       "description": "Täglichen Reset der Zähler für alle Hunde durchführen"
     },
     "update_weather_data": {
-      "name": "Wetterdaten aktualisieren", 
+      "name": "Wetterdaten aktualisieren",
       "description": "Aktualisiert die Wetterdaten für die Gesundheitsüberwachung"
     },
     "get_weather_alerts": {
@@ -932,12 +993,12 @@
       "breed_specific_caution": "Zusätzliche Vorsicht für {breed}-Rasse während {alert_type}",
       "puppy_extra_monitoring": "Welpen sind verletzlicher - überwache genau",
       "senior_extra_protection": "Seniorenhunde brauchen zusätzlichen Schutz",
-      "respiratory_monitoring": "Atemwegserkrankung erfordert zusätzliche Überwachung", 
+      "respiratory_monitoring": "Atemwegserkrankung erfordert zusätzliche Überwachung",
       "heart_avoid_strenuous": "Herzerkrankung - vermeide anstrengende Aktivitäten"
     },
     "severity": {
       "low": "Niedrig",
-      "moderate": "Mäßig", 
+      "moderate": "Mäßig",
       "high": "Hoch",
       "extreme": "Extrem"
     },
