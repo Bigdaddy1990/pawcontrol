@@ -1174,7 +1174,22 @@ class GPSGeofenceManager:
 
         for index, route in enumerate(routes, start=1):
             route_id = f"route_{index}"
-            csv_lines.extend(
+
+for point in route.gps_points:
+                csv_lines.append(
+                    ",".join(
+                        [
+                            point.timestamp.isoformat(),
+                            str(point.latitude),
+                            str(point.longitude),
+                            str(point.altitude if point.altitude is not None else ""),
+                            str(point.accuracy if point.accuracy is not None else ""),
+                            route_id,
+                            str(route.distance_km),
+                            str(route.duration_minutes),
+                        ]
+                    )
+                )
                 ",".join(
                     [
                         point.timestamp.isoformat(),
@@ -1187,6 +1202,21 @@ class GPSGeofenceManager:
                         str(route.duration_minutes),
                     ]
                 )
+
+              csv_lines.extend(
+                 ",".join(
+                    [
+                        point.timestamp.isoformat(),
+                        str(point.latitude),
+                        str(point.longitude),
+                        str(point.altitude if point.altitude is not None else ""),
+                        str(point.accuracy if point.accuracy is not None else ""),
+                        route_id,
+                        str(route.distance_km),
+                        str(route.duration_minutes),
+                    ]
+                )
+
                 for point in route.gps_points
             )
 
