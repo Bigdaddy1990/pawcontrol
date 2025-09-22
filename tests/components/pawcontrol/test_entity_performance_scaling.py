@@ -231,7 +231,7 @@ class TestEntityPerformanceScaling:
 
         # Create entity configurations for subset (realistic scenario)
         entity_configs = []
-        for i, dog_data in enumerate(
+        for _i, dog_data in enumerate(
             dogs_data[:MAX_DOGS_PRODUCTION]
         ):  # Production limit
             for platform in ["sensor", "button", "binary_sensor"]:
