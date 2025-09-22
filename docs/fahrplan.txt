@@ -1,50 +1,35 @@
-*Bewertung der Ausgangsbasis*
-Die bestehende Integration besitzt bereits eine umfangreiche Service-Schicht (u. a. Fütterung, Walk-Tracking, Gesundheitsupdates, Auswertungen), auf die weitere Features aufbauen können.
+Entwicklungsfahrplan, um Dokumentation und Umsetzung in Einklang zu bringen
+Garden-Tracking-Entitäten nachliefern
+a. Anforderungsumfang aus den Docs zusammentragen: Sensoren, Binary-Sensoren und Buttons werden explizit zugesichert (sensor.*_garden_*, binary_sensor.*_garden_*, button.*_garden_*).
+b. Datenquellen im GardenManager prüfen und ggf. erweitern: Die Manager-Logik liefert bereits Laufzeitdaten (aktive Session, Historie, Statistiken), die für Entitäten aufbereitet werden müssen.
+c. Sensorplattform erweitern: In sensor.py existieren bisher nur Regeln für Feeding/Walk/GPS/Health – ergänze ein Garden-Modul mit passenden Klassen (garden_time_today, garden_sessions_today, etc.) und verknüpfe sie mit den Daten aus dem Manager.
+d. Binary-Sensor-Plattform anpassen: Füge Garden-spezifische Zustände (garden_session_active, in_garden, garden_poop_pending) hinzu und sorge für Aktualisierung durch den Manager.
+e. Button-Plattform erweitern: Profile-/Modulregeln decken bislang nur Feeding, Walk, GPS, Health ab; ergänze Garden-Steuerbuttons inkl. Service-Mapping auf die bestehenden Garden-Services.
+f. Tests & Dokumentation: Unit-Tests/Integrationstests für neue Entitäten erstellen und alle betroffenen Dokumente (z. B. Entity-Listen) aktualisieren.
 
-Der Options-Flow ist modular aufgebaut und unterstützt zahlreiche Konfigurationsbereiche, was zeigt, dass die Architektur grundsätzlich erweiterbar ist.
+Health-Notfall-Binary-Sensor und Zusatzentitäten implementieren
+a. Dokumentanforderung analysieren: Automations-Guide verlangt binary_sensor.{dog_id}_health_emergency zusätzlich zu weiteren Health-Entities.
+b. Datenquelle definieren: Prüfe, welche Health-Manager-Daten bereits verfügbar sind; erweitere sie um einen expliziten Notfall-Status (z. B. aus Alerts oder Eingaben).
+c. Binary-Sensor implementieren: Ergänze binary_sensor.py um eine Klasse für den Notfallstatus und integriere sie in die Modulregeln.
+d. Attribute/Trigger bereitstellen: Sorge dafür, dass der Sensor die im Dokument beschriebenen Attribute (z. B. emergency_type) liefert, damit Automationen funktionieren.
+e. Tests und Docs aktualisieren (Automationsguide, README, Diagnostik-Berichte).
 
-**Fahrplan zur vollständigen Umsetzung**
+Diet-Validation-Metriken als eigenständige Sensoren aufteilen
+a. Anforderungen aus dem Diet-Guide aufnehmen: Es werden separate Sensoren für Konfliktanzahl, Warnungsanzahl, Vet-Empfehlung, Anpassungsfaktor und Kompatibilitätsscore erwartet.
+b. Bestehende Umsetzung prüfen: Aktuell existiert nur ein aggregierter diet_validation_status Sensor – zusätzliche Entitäten fehlen.
+c. Datenbereitstellung im FeedingManager: Die Validierungszusammenfassung ist vorhanden; erweitere sie bei Bedarf um fehlende Kennzahlen (z. B. Prozentwerte, Empfehlungen).
+d. Neue Sensor-Klassen implementieren und in die Profil-/Modulregeln aufnehmen (inkl. Übersetzungen).
+e. Dashboards & Dokumentation updaten, damit die neuen Sensoren genutzt werden können.
 
-1. Verbindliche Anforderungsaufnahme
+Service-Validierung nach Qualitäts-Checkliste durchsetzen
+a. Qualitätsdokumentation verlangt Validierung via ServiceValidationError; derzeit werfen die Handler nur HomeAssistantError bei Fehlern.
+b. Für alle Services (insbesondere Garden-Services) Eingabevalidierung implementieren und bei Verstößen ServiceValidationError nutzen; generische Fänge vermeiden oder in spezifische Ausnahmen umwandeln.
+c. Tests ergänzen, die fehlerhafte Payloads prüfen und auf ServiceValidationError erwarten.
+d. Dokumentation/Checklisten anschließend bestätigen oder anpassen.
 
-- Inventar aller versprochenen Features aus info.md, docs/comprehensive_readme.md, docs/automations_health_feeding.md und docs/options_flow_documentation.md erstellen und in Muss-/Soll-/Kann-Kategorien priorisieren (z. B. Türsensorlogik, automatische Skripte, geofencing, zusätzliche Services und Sensoren).
+Nacharbeiten & Regressionstests
+a. Übersetzungen (strings.json, services.yaml) sowie ggf. neue Diagnostics für Garden-/Diet-Daten ergänzen, damit alle Entitäten konsistent sind.
+b. Integrationstests/End-to-End-Tests für Garden-Flows und Diet-Validierung erstellen, um die neuen Sensoren, Buttons und Services abzudecken.
+c. Veraltete Analyse-/Diagnostik-Dokumente (z. B. docs/diagnostik.md) nach erfolgreicher Implementierung aktualisieren, damit sie den neuen Stand reflektieren.
 
-2. Kernfunktionen nachrüsten
-
-- Benachrichtigungssystem erweitern: dynamische Personenerkennung, Multi-Device-Abgleich und Rückfrage-Quittierungen wie beschrieben implementieren.
-
-- Tür- und Gartengang-Logik: automatische Erfassung, Aufenthaltsdauer und Rückfragen umsetzen, inklusive benötigter Sensoren und Counter.
-
-- Fütterungs- und Gesundheitshelfer: input_boolean/input_datetime-Helper sowie Warnlogik für Überfütterung, Medikationserinnerungen und Tierarzt-Checks hinzufügen.
-
-3. GPS- und Geofencing-Funktionen ergänzen
-
-- Fehlende Services (gps_start_walk, gps_end_walk, gps_post_location, gps_export_last_route etc.) implementieren, damit dokumentierte Automationen und Buttons funktionieren.
-
-- Geofencing inklusive Zonenverwaltung, Radiusvalidierung und Benachrichtigungshooks bauen; Options-Flow entsprechend erweitern (neue async_step_geofence mit geofence_lat/lon/radius und Alerts).
-
-4. Erweiterte Automations- und Analysefunktionen
-
-- Die in docs/automations_health_feeding.md erwarteten Services (z. B. recalculate_health_portions, adjust_weight_goal_strategy, Gesundheits- und Diät-Aktionen) nachrüsten und Sensor-/Binary-Sensor-Entitäten für Kalorien-, Gewicht- und Gesundheitsmetriken hinzufügen.
-
-- Zusätzliche Sensoren, Buttons und Device-Tracker aus dem Comprehensive README bereitstellen, damit Dashboards und Automationen kompatibel sind.
-
-5. Options-Flow & Konfiguration angleichen
-
-- Fehlende Optionen wie route_recording, route_history_days, Prioritätsbenachrichtigungen und modulare Einstellungen aus der Dokumentation in den Options-Flow integrieren.
-
-- Besuchshund-Modus, Dashboard-Profile und Exportformate vereinheitlichen (z. B. csv/json/pdf Auswahl im Systembereich).
-
-6. Helper-Erstellung & Skripte automatisieren
-
-- Automatische Anlage der in info.md versprochenen Helfer und Skripte (Rückfragen, Reset, Push-Test) während Setup/Optionen implementieren.
-
-7. Dokumentationsabgleich
-
-- Nach Umsetzung jede Dokumentdatei aktualisieren oder – falls Features bewusst entfallen – das Dokument klar korrigieren. Damit bleiben README, Guides und Options-Flow-Doku synchron.
-
-8. Test-, QA- und Release-Vorbereitung
-
-- Umfassende Tests (Unit, Integration, UI-Flow) ergänzen, Automationsbeispiele als YAML-Beispiele verifizieren und diagnostische Checks erweitern.
-
-- Changelogs & Migrationshinweise bereitstellen, um Nutzer über neue/angepasste Funktionen zu informieren.
+Mit dieser Sequenz lassen sich die größten Abweichungen zwischen Dokumentation und Code schrittweise schließen und anschließend sauber testen sowie dokumentieren.
