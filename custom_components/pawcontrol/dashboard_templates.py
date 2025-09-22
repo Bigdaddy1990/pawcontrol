@@ -1351,8 +1351,8 @@ class DashboardTemplates:
 • Keep hydration available
 {{%- endif -%}}
 
-{"### 🐕 Breed-Specific Advice for " + breed if include_breed_specific else ""}
 {{%- if include_breed_specific -%}}
+### 🐕 Breed-Specific Advice for {{ breed }}
 {{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
 {{%- endif -%}}
 
@@ -1562,6 +1562,29 @@ class DashboardTemplates:
 **Breed Profile Last Updated:** {{{{ states('sensor.{dog_id}_breed_profile_updated') }}}}
 """
 
+        breed_advice_state = self.hass.states.get(
+            f"sensor.{dog_id}_breed_weather_advice"
+        )
+        breed_advice_attrs: dict[str, Any] = {}
+        if breed_advice_state is not None:
+            attrs = getattr(breed_advice_state, "attributes", {})
+            if isinstance(attrs, dict):
+                breed_advice_attrs = attrs
+
+        comfort_range = breed_advice_attrs.get("comfort_range", {})
+        if not isinstance(comfort_range, dict):
+            comfort_range = {}
+
+        try:
+            comfort_min_value = float(comfort_range.get("min", 10))
+        except (TypeError, ValueError):
+            comfort_min_value = 10.0
+
+        try:
+            comfort_max_value = float(comfort_range.get("max", 25))
+        except (TypeError, ValueError):
+            comfort_max_value = 25.0
+
         # Breed-specific styling
         if theme == "modern":
             card_style = (
@@ -1586,14 +1609,8 @@ class DashboardTemplates:
                         {% endif %};
                 }
             """.replace("{dog_id}", dog_id)
-                .replace(
-                    "breed_comfort_min",
-                    str(breed_advice.get("comfort_range", {}).get("min", 10)),
-                )
-                .replace(
-                    "breed_comfort_max",
-                    str(breed_advice.get("comfort_range", {}).get("max", 25)),
-                )
+                .replace("breed_comfort_min", str(comfort_min_value))
+                .replace("breed_comfort_max", str(comfort_max_value))
             )
         else:
             card_style = theme_styles.get("card_mod", {}).get("style", "")

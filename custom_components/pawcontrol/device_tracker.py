@@ -642,7 +642,7 @@ class PawControlGPSTracker(
             from math import atan2, cos, radians, sin, sqrt
 
             # Earth's radius in meters
-            R = 6371000
+            earth_radius_m = 6_371_000
 
             for i in range(1, len(points)):
                 lat1 = radians(points[i - 1]["latitude"])
@@ -655,7 +655,7 @@ class PawControlGPSTracker(
 
                 a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
                 c = 2 * atan2(sqrt(a), sqrt(1 - a))
-                distance = R * c
+                distance = earth_radius_m * c
 
                 total_distance += distance
 
