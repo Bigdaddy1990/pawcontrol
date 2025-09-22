@@ -1033,12 +1033,14 @@ class GardenManager:
 
         # Calculate today's aggregates including active session
         sessions_to_process = list(todays_sessions)
-        if active_session and dt_util.as_local(active_session.start_time) >= start_of_day:
-            if not any(
-                session.session_id == active_session.session_id
-                for session in sessions_to_process
-            ):
-                sessions_to_process.append(active_session)
+        if (
+            active_session
+            and dt_util.as_local(active_session.start_time) >= start_of_day
+        ) and not any(
+            session.session_id == active_session.session_id
+            for session in sessions_to_process
+        ):
+            sessions_to_process.append(active_session)
 
         total_seconds_today = 0
         total_poop_today = 0

@@ -1938,26 +1938,31 @@ class WeatherHealthManager:
             # Add health condition considerations
             if health_conditions:
                 for condition in health_conditions:
-                    if condition.lower() in ["respiratory", "breathing", "asthma"]:
-                        if alert.alert_type in [
+                    condition_lower = condition.lower()
+                    if condition_lower in ["respiratory", "breathing", "asthma"] and (
+                        alert.alert_type
+                        in [
                             WeatherHealthImpact.RESPIRATORY_RISK,
                             WeatherHealthImpact.AIR_QUALITY,
-                        ]:
-                            recommendations.append(
-                                self._get_translation(
-                                    "weather.recommendations.respiratory_monitoring"
-                                )
+                        ]
+                    ):
+                        recommendations.append(
+                            self._get_translation(
+                                "weather.recommendations.respiratory_monitoring"
                             )
-                    elif condition.lower() in ["heart", "cardiac"]:
-                        if alert.alert_type in [
+                        )
+                    elif condition_lower in ["heart", "cardiac"] and (
+                        alert.alert_type
+                        in [
                             WeatherHealthImpact.HEAT_STRESS,
                             WeatherHealthImpact.EXERCISE_LIMITATION,
-                        ]:
-                            recommendations.append(
-                                self._get_translation(
-                                    "weather.recommendations.heart_avoid_strenuous"
-                                )
+                        ]
+                    ):
+                        recommendations.append(
+                            self._get_translation(
+                                "weather.recommendations.heart_avoid_strenuous"
                             )
+                        )
 
         # Remove duplicates while preserving order
         unique_recommendations = []

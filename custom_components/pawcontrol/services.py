@@ -21,7 +21,7 @@ from typing import TypeVar, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
@@ -58,6 +58,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .types import DogConfigData
 from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
@@ -610,6 +611,32 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         return manager
 
+    def _resolve_dog(
+        coordinator: PawControlCoordinator, raw_dog_id: str
+    ) -> tuple[str, DogConfigData]:
+        """Validate and normalize a dog identifier for service handling."""
+
+        if not isinstance(raw_dog_id, str):
+            raise ServiceValidationError("dog_id must be provided as a string")
+
+        dog_id = raw_dog_id.strip()
+        if not dog_id:
+            raise ServiceValidationError("dog_id must be a non-empty string")
+
+        dog_config = coordinator.get_dog_config(dog_id)
+        if dog_config is None:
+            known_ids = coordinator.get_configured_dog_ids()
+            if known_ids:
+                hint = ", ".join(sorted(known_ids))
+                raise ServiceValidationError(
+                    f"Unknown dog_id '{dog_id}'. Known dog_ids: {hint}"
+                )
+            raise ServiceValidationError(
+                "No dogs are configured for PawControl. Add a dog before calling services."
+            )
+
+        return dog_id, dog_config
+
     async def add_feeding_service(call: ServiceCall) -> None:
         """Handle add feeding service call."""
         coordinator = _get_coordinator()
@@ -617,7 +644,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         amount = call.data["amount"]
         meal_type = call.data.get("meal_type")
         notes = call.data.get("notes")
@@ -679,7 +707,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         walker = call.data.get("walker")
         weather = call.data.get("weather")
         leash_used = call.data.get("leash_used", True)
@@ -726,7 +755,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         notes = call.data.get("notes")
         dog_weight_kg = call.data.get("dog_weight_kg")
 
@@ -765,7 +795,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         latitude = call.data["latitude"]
         longitude = call.data["longitude"]
         altitude = call.data.get("altitude")
@@ -798,7 +829,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         health_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
@@ -829,7 +861,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         health_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
@@ -856,7 +889,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         medication_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
@@ -890,7 +924,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         enabled = call.data.get("enabled")
         visitor_name = call.data.get("visitor_name")
         duration_hours = call.data.get("duration_hours")
@@ -936,7 +971,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.gps_geofence_manager, "GPS geofence manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         walker = call.data.get("walker")
         track_route = call.data.get("track_route", True)
         safety_alerts = call.data.get("safety_alerts", True)
@@ -974,7 +1010,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.gps_geofence_manager, "GPS geofence manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         save_route = call.data.get("save_route", True)
         notes = call.data.get("notes")
 
@@ -1013,7 +1050,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.gps_geofence_manager, "GPS geofence manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         latitude = call.data["latitude"]
         longitude = call.data["longitude"]
         altitude = call.data.get("altitude")
@@ -1055,7 +1093,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.gps_geofence_manager, "GPS geofence manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         export_format = call.data.get("format", "gpx")
         last_n_walks = call.data.get("last_n_walks", 1)
 
@@ -1106,7 +1145,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.gps_geofence_manager, "GPS geofence manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         auto_start_walk = call.data.get("auto_start_walk", True)
         safe_zone_radius = call.data.get("safe_zone_radius", 50)
         track_route = call.data.get("track_route", True)
@@ -1276,7 +1316,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         meal_type = call.data["meal_type"]
         override_health_data = call.data.get("override_health_data")
 
@@ -1304,7 +1345,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         data_type = call.data["data_type"]
         export_format = call.data.get("format", "json")
         days = call.data.get("days")
@@ -1338,7 +1380,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         analysis_type = call.data["analysis_type"]
         days = call.data.get("days", 30)
 
@@ -1366,7 +1409,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         report_type = call.data["report_type"]
         include_recommendations = call.data.get("include_recommendations", True)
         days = call.data.get("days", 30)
@@ -1419,7 +1463,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         force_recalculation = call.data.get("force_recalculation", False)
         update_feeding_schedule = call.data.get("update_feeding_schedule", True)
 
@@ -1451,7 +1496,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         activity_level = call.data["activity_level"]
         duration_hours = call.data.get("duration_hours")
         temporary = call.data.get("temporary", True)
@@ -1491,7 +1537,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         meal_frequency = call.data.get("meal_frequency", 4)
         carb_limit_percent = call.data.get("carb_limit_percent", 20)
         monitor_blood_glucose = call.data.get("monitor_blood_glucose", True)
@@ -1530,7 +1577,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         amount = call.data["amount"]
         medication_name = call.data["medication_name"]
         dose = call.data["dose"]
@@ -1577,7 +1625,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         include_recommendations = call.data.get("include_recommendations", True)
         include_charts = call.data.get("include_charts", True)
         report_format = call.data.get("format", "pdf")
@@ -1613,7 +1662,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         emergency_type = call.data["emergency_type"]
         duration_days = call.data.get("duration_days", 3)
         portion_adjustment = call.data.get("portion_adjustment", 0.8)
@@ -1653,7 +1703,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         new_food_type = call.data["new_food_type"]
         transition_days = call.data.get("transition_days", 7)
         gradual_increase_percent = call.data.get("gradual_increase_percent", 25)
@@ -1690,7 +1741,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         days_to_check = call.data.get("days_to_check", 7)
         notify_on_issues = call.data.get("notify_on_issues", True)
 
@@ -1723,7 +1775,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         adjustment_percent = call.data["adjustment_percent"]
         reason = call.data.get("reason")
         temporary = call.data.get("temporary", False)
@@ -1763,7 +1816,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.feeding_manager, "feeding manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         snack_type = call.data["snack_type"]
         amount = call.data["amount"]
         health_benefit = call.data.get("health_benefit")
@@ -1801,7 +1855,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         poop_data = {
             k: v for k, v in call.data.items() if k != "dog_id" and v is not None
         }
@@ -1834,7 +1889,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator()
         data_manager = _require_manager(coordinator.data_manager, "data manager")
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         grooming_type = call.data["grooming_type"]
         groomer = call.data.get("groomer")
         location = call.data.get("location")
@@ -1899,19 +1955,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, dog_config = _resolve_dog(coordinator, raw_dog_id)
         detection_method = call.data.get("detection_method", "manual")
         weather_conditions = call.data.get("weather_conditions")
         temperature = call.data.get("temperature")
-
-        # Get dog name from coordinator
-        dog_name = dog_id  # Fallback
-        try:
-            dogs_data = coordinator.data.get("dogs", {})
-            dog_info = dogs_data.get(dog_id, {})
-            dog_name = dog_info.get("name", dog_id)
-        except Exception:
-            pass
+        dog_name = coordinator.get_configured_dog_name(dog_id) or dog_id
 
         try:
             session_id = await garden_manager.async_start_garden_session(
@@ -1946,7 +1995,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         notes = call.data.get("notes")
         activities = call.data.get("activities")
 
@@ -1968,7 +2018,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     session.poop_count,
                 )
             else:
-                _LOGGER.warning("No active garden session found for %s", dog_id)
+                raise ServiceValidationError(
+                    f"No active garden session is currently running for {dog_id}."
+                )
 
         except HomeAssistantError:
             raise
@@ -1985,7 +2037,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         activity_type = call.data["activity_type"]
         duration_seconds = call.data.get("duration_seconds")
         location = call.data.get("location")
@@ -2010,9 +2063,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     location or "unspecified",
                 )
             else:
-                _LOGGER.warning(
-                    "Failed to add garden activity for %s: no active session",
-                    dog_id,
+                raise ServiceValidationError(
+                    f"No active garden session is currently running for {dog_id}. "
+                    "Start a garden session before adding activities."
                 )
 
         except HomeAssistantError:
@@ -2030,11 +2083,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             getattr(coordinator, "garden_manager", None), "garden manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         confirmed = call.data["confirmed"]
         quality = call.data.get("quality")
         size = call.data.get("size")
         location = call.data.get("location")
+
+        if not garden_manager.has_pending_confirmation(dog_id):
+            raise ServiceValidationError(
+                f"No pending garden poop confirmation found for {dog_id}. "
+                "Start a garden session and wait for detection first."
+            )
 
         try:
             await garden_manager.async_handle_poop_confirmation(
@@ -2182,17 +2242,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.weather_health_manager, "weather health manager"
         )
 
-        dog_id = call.data["dog_id"]
+        raw_dog_id = call.data["dog_id"]
+        dog_id, dog_config = _resolve_dog(coordinator, raw_dog_id)
         include_breed_specific = call.data.get("include_breed_specific", True)
         include_health_conditions = call.data.get("include_health_conditions", True)
         max_recommendations = call.data.get("max_recommendations", 5)
 
         try:
-            # Get dog configuration
-            dog_config = coordinator.get_dog_config(dog_id)
-            if not dog_config:
-                raise HomeAssistantError(f"Dog {dog_id} not found")
-
             # Get recommendations
             dog_breed = dog_config.get("breed") if include_breed_specific else None
             dog_age_months = dog_config.get("age_months")

@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
@@ -107,6 +108,18 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ValidationError(
                 "dogs_config", None, f"Invalid dogs configuration: {err}"
             ) from err
+
+        self._dog_config_by_id: dict[str, DogConfigData] = {}
+        self._configured_dog_ids: list[str] = []
+        for config in self._dogs_config:
+            dog_id = config.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str):
+                continue
+            normalized_id = dog_id.strip()
+            if not normalized_id or normalized_id in self._dog_config_by_id:
+                continue
+            self._dog_config_by_id[normalized_id] = config
+            self._configured_dog_ids.append(normalized_id)
 
         self._use_external_api = bool(
             entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
@@ -917,10 +930,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Dog configuration or None if not found
         """
-        for config in self._dogs_config:
-            if config.get(CONF_DOG_ID) == dog_id:
-                return config
-        return None
+        if not isinstance(dog_id, str):
+            return None
+        return self._dog_config_by_id.get(dog_id.strip())
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
         """Get enabled modules for dog.
@@ -956,11 +968,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             List of dog identifiers
         """
-        return [
-            dog[CONF_DOG_ID]
-            for dog in self._dogs_config
-            if CONF_DOG_ID in dog and isinstance(dog[CONF_DOG_ID], str)
-        ]
+        return list(self._configured_dog_ids)
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
         """Get data for specific dog.
@@ -984,6 +992,23 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Module data dictionary
         """
         return self._data.get(dog_id, {}).get(module, {})
+
+    def get_configured_dog_ids(self) -> list[str]:
+        """Return a list of configured dog identifiers."""
+
+        return [dog_id for dog_id in self._configured_dog_ids]
+
+    def get_configured_dog_name(self, dog_id: str) -> str | None:
+        """Return the configured display name for a dog if available."""
+
+        config = self.get_dog_config(dog_id)
+        if not config:
+            return None
+
+        dog_name = config.get(CONF_DOG_NAME)
+        if isinstance(dog_name, str) and dog_name.strip():
+            return dog_name
+        return None
 
     @property
     def available(self) -> bool:

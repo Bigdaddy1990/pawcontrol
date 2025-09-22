@@ -2264,7 +2264,6 @@ class FeedingManager:
 
             # Schedule reversion if temporary
             if temporary and duration_hours and original_activity:
-
                 if existing_task := self._activity_reversion_tasks.pop(dog_id, None):
                     existing_task.cancel()
 
@@ -2981,7 +2980,6 @@ class FeedingManager:
 
             # Schedule reversion if temporary
             if temporary and duration_days:
-
                 if existing_task := self._portion_reversion_tasks.pop(dog_id, None):
                     existing_task.cancel()
 

@@ -1086,9 +1086,8 @@ class HealthCalculator:
             elif temp < -10:  # Extreme cold
                 if adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
                     adjusted_level = ActivityLevel.MODERATE
-            elif temp < 0:  # High cold
-                if adjusted_level == ActivityLevel.VERY_HIGH:
-                    adjusted_level = ActivityLevel.HIGH
+            elif temp < 0 and adjusted_level == ActivityLevel.VERY_HIGH:  # High cold
+                adjusted_level = ActivityLevel.HIGH
 
         # Breed-specific weather adjustments
         if dog_breed:
@@ -1198,13 +1197,16 @@ class HealthCalculator:
                 adjustment_factor *= 1.1  # 10% increase in extreme cold
 
         # Activity level adjustments based on weather limitations
-        if activity_level in [ActivityLevel.VERY_LOW, ActivityLevel.LOW]:
-            # If activity is reduced due to weather, slightly reduce portions
-            if weather_conditions.temperature_c and (
+        if (
+            activity_level in [ActivityLevel.VERY_LOW, ActivityLevel.LOW]
+            and weather_conditions.temperature_c
+            and (
                 weather_conditions.temperature_c > 30
                 or weather_conditions.temperature_c < 0
-            ):
-                adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
+            )
+        ):
+            # If activity is reduced due to weather, slightly reduce portions
+            adjustment_factor *= 0.95  # 5% reduction for weather-limited activity
 
         return round(base_portion * adjustment_factor, 1)
 

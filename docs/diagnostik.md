@@ -196,7 +196,7 @@ Fehlende oder nicht implementierte Punkte pro Dokument
 
 docs/QUALITY\_CHECKLIST.md
 
-Die Checkliste verlangt Service-Validierung via ServiceValidationError, tatsächlich fangen die Service-Handler nur allgemeine HomeAssistantError-Ausnahmen ab; spezielle Validierungen fehlen.
+✅ Services validieren Eingaben jetzt über `ServiceValidationError`. Die Handler prüfen beispielsweise unbekannte `dog_id`-Werte und ungültige Garden-Aktionen und melden Verstöße mit präzisen Fehlermeldungen.
 
 
 
