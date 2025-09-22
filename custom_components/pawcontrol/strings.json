@@ -443,6 +443,27 @@
       },
       "last_garden_session_hours": {
         "name": "Hours Since Last Garden Session"
+      },
+      "health_feeding_status": {
+        "name": "Health Feeding Status"
+      },
+      "daily_calorie_target": {
+        "name": "Daily Calorie Target"
+      },
+      "calories_consumed_today": {
+        "name": "Calories Consumed Today"
+      },
+      "portion_adjustment_factor": {
+        "name": "Portion Adjustment Factor"
+      },
+      "health_conditions": {
+        "name": "Health Conditions"
+      },
+      "weight_goal_progress": {
+        "name": "Weight Goal Progress"
+      },
+      "daily_activity_level": {
+        "name": "Daily Activity Level"
       }
     },
     "binary_sensor": {
@@ -523,6 +544,15 @@
       },
       "garden_poop_pending": {
         "name": "Garden Poop Confirmation Pending"
+      },
+      "health_aware_feeding": {
+        "name": "Health-Aware Feeding"
+      },
+      "medication_with_meals": {
+        "name": "Medication With Meals"
+      },
+      "health_emergency": {
+        "name": "Health Emergency"
       }
     },
     "button": {

@@ -199,6 +199,7 @@ async def _create_module_entities(
                 ),
                 ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 3),
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 2),
+                ("health_feeding_status", PawControlHealthFeedingStatusSensor, 1),
             ],
             "advanced": [
                 ("last_feeding", PawControlLastFeedingSensor, 8),
@@ -218,9 +219,28 @@ async def _create_module_entities(
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 3),
                 ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 2),
                 ("health_aware_portion", PawControlHealthAwarePortionSensor, 1),
+                ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 1),
+                ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 1),
+                (
+                    "portion_adjustment_factor",
+                    PawControlPortionAdjustmentFactorSensor,
+                    0,
+                ),
                 ("feeding_recommendation", PawControlFeedingRecommendationSensor, 0),
             ],
             "health_focus": [
+                ("health_feeding_status", PawControlHealthFeedingStatusSensor, 9),
+                ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 8),
+                ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 7),
+                (
+                    "portion_adjustment_factor",
+                    PawControlPortionAdjustmentFactorSensor,
+                    6,
+                ),
+                ("health_aware_portion", PawControlHealthAwarePortionSensor, 5),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 4),
+                ("daily_calories", PawControlDailyCaloriesSensor, 3),
+                ("daily_portions", PawControlDailyPortionsSensor, 2),
                 ("health_aware_portion", PawControlHealthAwarePortionSensor, 8),
                 ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 7),
                 ("daily_calories", PawControlDailyCaloriesSensor, 6),
@@ -233,9 +253,9 @@ async def _create_module_entities(
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    3,
+                    1,
                 ),
-                ("diet_validation_status", PawControlDietValidationStatusSensor, 2),
+                ("diet_validation_status", PawControlDietValidationStatusSensor, 0),
             ],
         },
         "walk": {
@@ -502,6 +522,9 @@ async def _create_module_entities(
                 ("weight_trend", PawControlWeightTrendSensor, 7),
                 ("body_condition_score", PawControlBodyConditionScoreSensor, 6),
                 ("last_vet_visit", PawControlLastVetVisitSensor, 5),
+                ("health_conditions", PawControlHealthConditionsSensor, 4),
+                ("weight_goal_progress", PawControlWeightGoalProgressSensor, 3),
+                ("daily_activity_level", PawControlDailyActivityLevelSensor, 2),
             ],
         },
     }
@@ -2006,6 +2029,240 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
         return attrs
 
 
+@register_sensor("health_feeding_status")
+class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
+    """Sensor reflecting overall health-aware feeding status."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_feeding_status",
+            icon="mdi:heart-pulse",
+            translation_key="health_feeding_status",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return current health feeding status."""
+
+        feeding_data = self._get_module_data("feeding")
+        status = feeding_data.get("health_feeding_status") if feeding_data else None
+        if not status:
+            return "unknown"
+        return str(status)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        """Return diagnostic attributes for the health feeding status."""
+
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
+                "total_calories_today": feeding_data.get("total_calories_today"),
+                "portion_adjustment_factor": feeding_data.get(
+                    "portion_adjustment_factor"
+                ),
+                "weight_goal": feeding_data.get("weight_goal"),
+                "emergency_active": feeding_data.get("health_emergency", False),
+            }
+        )
+        if feeding_data.get("emergency_mode"):
+            attrs["emergency_details"] = feeding_data["emergency_mode"]
+        return attrs
+
+
+@register_sensor("daily_calorie_target")
+class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
+    """Sensor reporting the calculated daily calorie target."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "daily_calorie_target",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            icon="mdi:fire",
+            translation_key="daily_calorie_target",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current calorie target in kcal."""
+
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        value = feeding_data.get("daily_calorie_target")
+        if value is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(value), 1)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "calories_per_gram": feeding_data.get("calories_per_gram"),
+                "health_source": feeding_data.get("health_summary", {}).get(
+                    "life_stage"
+                ),
+            }
+        )
+        return attrs
+
+
+@register_sensor("calories_consumed_today")
+class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
+    """Sensor for calories consumed today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "calories_consumed_today",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+            icon="mdi:food-drumstick",
+            translation_key="calories_consumed_today",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        value = feeding_data.get("total_calories_today")
+        if value is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(value), 1)
+        return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
+                "calorie_goal_progress": feeding_data.get("calorie_goal_progress"),
+            }
+        )
+        return attrs
+
+
+@register_sensor("portion_adjustment_factor")
+class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
+    """Sensor exposing the calculated portion adjustment factor."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "portion_adjustment_factor",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:scale-balance",
+            translation_key="portion_adjustment_factor",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return None
+
+        factor = feeding_data.get("portion_adjustment_factor")
+        if factor is None:
+            return None
+        with contextlib.suppress(TypeError, ValueError):
+            return round(float(factor), 2)
+        return None
+        try:
+            calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+            calorie_target = float(
+                feeding_data.get(
+                    "daily_calorie_target",
+                    feeding_data.get("target_calories_per_day", 1000.0),
+                )
+            )
+
+            if calorie_target <= 0:
+                return 0.0
+
+            progress = (calories_consumed / calorie_target) * 100
+            return round(min(progress, 150.0), 1)  # Cap at 150% to show overfeeding
+
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.0
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        feeding_data = self._get_module_data("feeding") or {}
+        attrs.update(
+            {
+                "weight_goal": feeding_data.get("weight_goal"),
+                "health_conditions": feeding_data.get("health_conditions", []),
+            }
+        )
+
+        feeding_data = self._get_module_data("feeding")
+        if feeding_data:
+            with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calorie_target = float(
+                    feeding_data.get(
+                        "daily_calorie_target",
+                        feeding_data.get("target_calories_per_day", 1000.0),
+                    )
+                )
+
+                attrs.update(
+                    {
+                        "calories_consumed": calories_consumed,
+                        "calorie_target": calorie_target,
+                        "calories_remaining": max(
+                            0, calorie_target - calories_consumed
+                        ),
+                        "over_target": calories_consumed > calorie_target,
+                        "over_target_amount": max(
+                            0, calories_consumed - calorie_target
+                        ),
+                        "target_met": calories_consumed >= calorie_target,
+                        "progress_status": (
+                            "over_target"
+                            if calories_consumed > calorie_target * 1.1
+                            else "on_target"
+                            if calories_consumed >= calorie_target * 0.9
+                            else "under_target"
+                        ),
+                    }
+                )
+
+        return attrs
+
+
 @register_sensor("food_consumption")
 class PawControlFoodConsumptionSensor(PawControlSensorBase):
     """Sensor for food consumption tracking."""
@@ -3210,6 +3467,133 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 }
             )
 
+        return attrs
+
+
+@register_sensor("health_conditions")
+class PawControlHealthConditionsSensor(PawControlSensorBase):
+    """Sensor exposing tracked health conditions."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "health_conditions",
+            icon="mdi:clipboard-pulse",
+            translation_key="health_conditions",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return comma separated list of health conditions."""
+
+        conditions = self._get_module_data("health") or {}
+        condition_list = conditions.get("health_conditions")
+        if not condition_list:
+            return "none"
+        if isinstance(condition_list, list):
+            return ", ".join(str(cond) for cond in condition_list)
+        return str(condition_list)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        conditions = self._get_module_data("health") or {}
+        attrs["conditions"] = conditions.get("health_conditions", [])
+        return attrs
+
+
+@register_sensor("weight_goal_progress")
+class PawControlWeightGoalProgressSensor(PawControlSensorBase):
+    """Sensor for weight goal progress percentage."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "weight_goal_progress",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=PERCENTAGE,
+            icon="mdi:bullseye-arrow",
+            translation_key="weight_goal_progress",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return percentage progress toward weight goal."""
+
+        health_data = self._get_module_data("health")
+        if not health_data:
+            return None
+
+        try:
+            progress = health_data.get("weight_goal_progress")
+            return float(progress) if progress is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        health_data = self._get_module_data("health") or {}
+        attrs.update(
+            {
+                "weight_goal": health_data.get("weight_goal"),
+                "current_weight": health_data.get("weight"),
+                "ideal_weight": health_data.get("ideal_weight"),
+            }
+        )
+        return attrs
+
+
+@register_sensor("daily_activity_level")
+class PawControlDailyActivityLevelSensor(PawControlSensorBase):
+    """Sensor summarizing the daily health activity level."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "daily_activity_level",
+            icon="mdi:run",
+            translation_key="daily_activity_level",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return the activity level for today."""
+
+        health_data = self._get_module_data("health")
+        if not health_data:
+            return "unknown"
+
+        level = health_data.get("activity_level") or health_data.get(
+            "daily_activity_level"
+        )
+        if not level:
+            return "unknown"
+        return str(level)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        health_data = self._get_module_data("health") or {}
+        attrs.update(
+            {
+                "calorie_target": health_data.get("daily_calorie_target"),
+                "calories_consumed": health_data.get("total_calories_today"),
+            }
+        )
         return attrs
 
 

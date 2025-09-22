@@ -497,6 +497,27 @@
       },
       "last_garden_session_hours": {
         "name": "Stunden seit letzter Gartensitzung"
+      },
+      "health_feeding_status": {
+        "name": "Gesundheitsfütterungsstatus"
+      },
+      "daily_calorie_target": {
+        "name": "Tägliches Kalorienziel"
+      },
+      "calories_consumed_today": {
+        "name": "Heute verzehrte Kalorien"
+      },
+      "portion_adjustment_factor": {
+        "name": "Portionsanpassungsfaktor"
+      },
+      "health_conditions": {
+        "name": "Gesundheitszustände"
+      },
+      "weight_goal_progress": {
+        "name": "Fortschritt zum Gewichtsziel"
+      },
+      "daily_activity_level": {
+        "name": "Tägliches Aktivitätsniveau"
       }
     },
     "binary_sensor": {
@@ -562,6 +583,15 @@
       },
       "garden_poop_pending": {
         "name": "Offene Garten-Kotbestätigung"
+      },
+      "health_aware_feeding": {
+        "name": "Gesundheitsbewusste Fütterung"
+      },
+      "medication_with_meals": {
+        "name": "Medikamentengabe zu Mahlzeiten"
+      },
+      "health_emergency": {
+        "name": "Gesundheitsnotfall"
       }
     },
     "button": {
