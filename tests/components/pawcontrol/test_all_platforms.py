@@ -180,7 +180,9 @@ def mock_coordinator() -> Mock:
                         "chasing butterflies",
                     ],
                     "weekly_summary": {"sessions": 5, "poops_confirmed": 3},
-                    "last_garden_visit": (dt_util.utcnow() - timedelta(hours=3)).isoformat(),
+                    "last_garden_visit": (
+                        dt_util.utcnow() - timedelta(hours=3)
+                    ).isoformat(),
                 },
                 "weather_summary": "Pleasant sunshine",
                 "pending_confirmations": [
@@ -528,8 +530,7 @@ class TestSensorPlatform:
         )
         assert compatibility_sensor.native_value == 82.5
         assert (
-            compatibility_sensor.extra_state_attributes["compatibility_level"]
-            == "good"
+            compatibility_sensor.extra_state_attributes["compatibility_level"] == "good"
         )
 
 

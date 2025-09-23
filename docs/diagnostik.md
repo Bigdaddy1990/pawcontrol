@@ -35,4 +35,3 @@
 - Einige historische Konfigurationskonstanten wie `CONF_SOURCES`, `CONF_PERSON_ENTITIES`, `CONF_DEVICE_TRACKERS`, `CONF_CALENDAR` oder `CONF_WEATHER` sind weiterhin ausschließlich in `const.py` definiert und besitzen keine weiteren Verwendungen im aktiven Codepfad, obwohl ergänzende Features (z. B. externe Kalender-Hooks) in älteren Dokumenten erwähnt werden.【F:custom_components/pawcontrol/const.py†L101-L119】【904f82†L1-L6】
 - Das Performance-Monitoring-Set (`CORE_SERVICES`, `PERFORMANCE_THRESHOLDS`) bleibt bislang unreferenziert; eine spätere Integration in Telemetrie- oder Diagnostics-Routinen ist möglich, derzeit existiert jedoch keine Auswertung.【F:custom_components/pawcontrol/const.py†L347-L356】【11fb2d†L1-L6】
 - Dashboard-/Automation-Templates decken den dokumentierten Funktionsumfang bereits ab; zusätzliche End-to-End-Tests für GPS-/Geofencing-Flows können künftig Regressionen reduzieren.
-
