@@ -32,6 +32,7 @@ class TestEntityProfiles:
             "feeding": True,
             "walk": True,
             "health": True,
+            "garden": True,
             "gps": False,
             "notifications": True,
             "dashboard": False,
@@ -49,6 +50,7 @@ class TestEntityProfiles:
             "walk": True,
             "health": True,
             "gps": True,
+            "garden": True,
             "notifications": True,
             "dashboard": True,
             "visitor": True,
@@ -67,6 +69,7 @@ class TestEntityProfiles:
             "gps": True,
             "notifications": True,
             "dashboard": False,
+            "garden": False,
             "visitor": True,
             "medication": False,
             "training": False,
@@ -196,6 +199,26 @@ class TestEntityProfiles:
         assert isinstance(gps_count, int)
         # GPS focus might be more efficient than standard for this config
         assert gps_count <= standard_count + 2  # Allow some variance
+
+    def test_garden_module_impacts_entity_estimate(
+        self,
+        entity_factory: EntityFactory,
+        sample_modules_basic: dict[str, bool],
+    ) -> None:
+        """Enabling the garden module should adjust entity estimates."""
+
+        modules_without_garden = dict(sample_modules_basic)
+        modules_without_garden["garden"] = False
+
+        baseline = entity_factory.estimate_entity_count(
+            "standard", modules_without_garden
+        )
+        with_garden = entity_factory.estimate_entity_count(
+            "standard", sample_modules_basic
+        )
+
+        assert with_garden >= baseline
+        assert with_garden <= ENTITY_PROFILES["standard"]["max_entities"]
 
     def test_should_create_entity_priority_filtering(
         self, entity_factory: EntityFactory

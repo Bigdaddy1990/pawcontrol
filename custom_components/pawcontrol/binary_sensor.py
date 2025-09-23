@@ -47,6 +47,9 @@ _LOGGER = logging.getLogger(__name__)
 # Type aliases for better code readability (Python 3.13 compatible)
 AttributeDict = dict[str, Any]
 
+# Home Assistant platform configuration
+PARALLEL_UPDATES = 1
+
 # OPTIMIZATION: Performance constants for batched entity creation
 ENTITY_CREATION_BATCH_SIZE = 12  # Optimized for binary sensors
 ENTITY_CREATION_DELAY = 0.1  # 100ms between batches
