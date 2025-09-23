@@ -1,35 +1,46 @@
-Entwicklungsfahrplan, um Dokumentation und Umsetzung in Einklang zu bringen
-Garden-Tracking-Entitäten nachliefern
-a. Anforderungsumfang aus den Docs zusammentragen: Sensoren, Binary-Sensoren und Buttons werden explizit zugesichert (sensor.*_garden_*, binary_sensor.*_garden_*, button.*_garden_*).
-b. Datenquellen im GardenManager prüfen und ggf. erweitern: Die Manager-Logik liefert bereits Laufzeitdaten (aktive Session, Historie, Statistiken), die für Entitäten aufbereitet werden müssen.
-c. Sensorplattform erweitern: In sensor.py existieren bisher nur Regeln für Feeding/Walk/GPS/Health – ergänze ein Garden-Modul mit passenden Klassen (garden_time_today, garden_sessions_today, etc.) und verknüpfe sie mit den Daten aus dem Manager.
-d. Binary-Sensor-Plattform anpassen: Füge Garden-spezifische Zustände (garden_session_active, in_garden, garden_poop_pending) hinzu und sorge für Aktualisierung durch den Manager.
-e. Button-Plattform erweitern: Profile-/Modulregeln decken bislang nur Feeding, Walk, GPS, Health ab; ergänze Garden-Steuerbuttons inkl. Service-Mapping auf die bestehenden Garden-Services.
-f. Tests & Dokumentation: Unit-Tests/Integrationstests für neue Entitäten erstellen und alle betroffenen Dokumente (z. B. Entity-Listen) aktualisieren.
+Aktueller Verbesserungsfahrplan für Paw Control
 
-Health-Notfall-Binary-Sensor und Zusatzentitäten implementieren
-a. Dokumentanforderung analysieren: Automations-Guide verlangt binary_sensor.{dog_id}_health_emergency zusätzlich zu weiteren Health-Entities.
-b. Datenquelle definieren: Prüfe, welche Health-Manager-Daten bereits verfügbar sind; erweitere sie um einen expliziten Notfall-Status (z. B. aus Alerts oder Eingaben).
-c. Binary-Sensor implementieren: Ergänze binary_sensor.py um eine Klasse für den Notfallstatus und integriere sie in die Modulregeln.
-d. Attribute/Trigger bereitstellen: Sorge dafür, dass der Sensor die im Dokument beschriebenen Attribute (z. B. emergency_type) liefert, damit Automationen funktionieren.
-e. Tests und Docs aktualisieren (Automationsguide, README, Diagnostik-Berichte).
+1. Basis-Setup & GPS-Kernfunktionen
+   - Config-Flow überprüfen und vereinfachen, sodass die im Info-Dokument genannten Parameter (Hundename, GPS-Quelle, Auto-Tracking, Sicherheitsradius) vollständig unterstützt und validiert werden.
+   - Den automatischen Service `pawcontrol.setup_automatic_gps` absichern: Pflichtfelder prüfen, Fehlerfeedback verbessern und eine Erfolgsmeldung für das UI ergänzen.
+   - Sicherstellen, dass das GPS-Tracking nahtlos für Tractive, Companion-App-Tracker und DIY-Integrationen funktioniert; ggf. Beispiel-Blueprints ergänzen.
 
-Diet-Validation-Metriken als eigenständige Sensoren aufteilen
-a. Anforderungen aus dem Diet-Guide aufnehmen: Es werden separate Sensoren für Konfliktanzahl, Warnungsanzahl, Vet-Empfehlung, Anpassungsfaktor und Kompatibilitätsscore erwartet.
-b. Bestehende Umsetzung prüfen: Aktuell existiert nur ein aggregierter diet_validation_status Sensor – zusätzliche Entitäten fehlen.
-c. Datenbereitstellung im FeedingManager: Die Validierungszusammenfassung ist vorhanden; erweitere sie bei Bedarf um fehlende Kennzahlen (z. B. Prozentwerte, Empfehlungen).
-d. Neue Sensor-Klassen implementieren und in die Profil-/Modulregeln aufnehmen (inkl. Übersetzungen).
-e. Dashboards & Dokumentation updaten, damit die neuen Sensoren genutzt werden können.
+2. Spaziergangs- & Gartenlogik
+   - Binary-Sensoren für `*_on_walk`, `*_in_safe_zone` und Gartenaufenthalte konsistent aktualisieren und mit Dauer-/Historienwerten verknüpfen.
+   - Automatische Spaziergang-Erkennung gegenüber den dokumentierten Benachrichtigungen testen und Optimierungen (z. B. Verzögerungen, Mindestdauer) dokumentieren.
+   - Sicherheitszonenlogik mit Warn-Timeout (2 Minuten) als Standardautomation anbieten und auf Mehr-Hund-Szenarien prüfen.
 
-Service-Validierung nach Qualitäts-Checkliste durchsetzen
-a. Qualitätsdokumentation verlangt Validierung via ServiceValidationError; derzeit werfen die Handler nur HomeAssistantError bei Fehlern.
-b. Für alle Services (insbesondere Garden-Services) Eingabevalidierung implementieren und bei Verstößen ServiceValidationError nutzen; generische Fänge vermeiden oder in spezifische Ausnahmen umwandeln.
-c. Tests ergänzen, die fehlerhafte Payloads prüfen und auf ServiceValidationError erwarten.
-d. Dokumentation/Checklisten anschließend bestätigen oder anpassen.
+3. Push-Benachrichtigungen & Rückfragen
+   - Dynamische Personenerkennung für `person.*`-Entitäten gegen reale Home-Assistant-States testen und Fallback-Kette (mobile_app) robust implementieren.
+   - Interaktive Rückfragen vereinheitlichen: gleiche Texte, Emojis und Quittierungs-Logik gemäß Info-Dokument.
+   - Push-Test-Service verbessern, damit Benutzer:innen Feedback zur Zustellung sehen (Erfolg/Fehler pro Gerät).
 
-Nacharbeiten & Regressionstests
-a. Übersetzungen (strings.json, services.yaml) sowie ggf. neue Diagnostics für Garden-/Diet-Daten ergänzen, damit alle Entitäten konsistent sind.
-b. Integrationstests/End-to-End-Tests für Garden-Flows und Diet-Validierung erstellen, um die neuen Sensoren, Buttons und Services abzudecken.
-c. Veraltete Analyse-/Diagnostik-Dokumente (z. B. docs/diagnostik.md) nach erfolgreicher Implementierung aktualisieren, damit sie den neuen Stand reflektieren.
+4. Fütterung & Gesundheitsüberwachung
+   - Vier Mahlzeiten als optionale Module mit eigenen Countern, Rückfragen und Überfütterungswarnungen implementieren.
+   - Gesundheits-/Kot-Tracking erweitern: Notfallstatus, Tierarzt-Erinnerungen und optionale Wetterabhängigkeiten vorbereiten.
+   - Tagesübersichten validieren (Reset um 23:59 Uhr), inklusive konfigurierbarer Uhrzeit pro Hund.
 
-Mit dieser Sequenz lassen sich die größten Abweichungen zwischen Dokumentation und Code schrittweise schließen und anschließend sauber testen sowie dokumentieren.
+5. Dashboard & UI-Erlebnis
+   - Lovelace-Layout ausliefern, das Mushroom-Karten, Statusindikatoren und Schnellaktionen gemäß Info-Versprechen nutzt.
+   - Responsive Varianten für Desktop/Mobile testen; bei Bedarf CSS/Template-Anpassungen dokumentieren.
+   - Besucherhund-Modus visuell klar abgrenzen (Farbcode, Icon, eigener Abschnitt) und Aktivierungs-Workflow beschreiben.
+
+6. Automationen & Skripte
+   - Auto-generierte Skripte (Rückfrage, Reset, Push-Test) gegen neue Entitäten aktualisieren und YAML-Beispiele aus dem Info-Dokument bereitstellen.
+   - Standard-Automationen für Spaziergang und Sicherheitszone als Blueprints/Rezepte veröffentlichen.
+   - Service-Schemas validieren und alle Services mit ausführlicher Fehlerbehandlung (ServiceValidationError) versehen.
+
+7. Erweiterbarkeit & Mehr-Hund-Unterstützung
+   - Manager-Logiken für mehrere Hunde testen: getrennte Historien, Farben, Icons und individuelle Einstellungen sicherstellen.
+   - Besucherhund-Modus so erweitern, dass er sämtliche Sensoren, Benachrichtigungen und Statistiken isoliert behandelt.
+   - Vorbereitung für weitere Sensoren (Futterschale, Wasserspender) skizzieren und Schnittstellen definieren.
+
+8. Dokumentation & Community
+   - Installations- und Setup-Anleitungen mit Screenshots/Schritten aus HACS aktualisieren.
+   - Diagnose- und Supportkanäle konsolidieren (Verweise auf Issues, Discussions, Support-Mail) und im Onboarding verlinken.
+   - Beitrag zur Community fördern: Abschnitt zu Feature-Vorschlägen und Bug-Meldungen in README/Docs hervorheben.
+
+Meilensteine
+   - Kurzfristig (0–4 Wochen): Basis-Setup, GPS-Services, Push-Rückfragen stabilisieren.
+   - Mittelfristig (4–8 Wochen): Fütterungs-/Gesundheitsmodule, Dashboard-Verbesserungen, Automationen.
+   - Langfristig (8+ Wochen): Erweiterbarkeit für zusätzliche Sensoren, Community-Enablement und proaktive Gesundheitsfunktionen.
