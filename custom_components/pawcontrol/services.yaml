@@ -72,35 +72,50 @@ feed_dog:
       required: true
       selector:
         text:
-    amount:
+    meal_type:
+      name: Meal Type
+      description: Type of meal being logged.
+      required: false
+      default: "dinner"
+      selector:
+        select:
+          options:
+            - "breakfast"
+            - "lunch"
+            - "dinner"
+            - "snack"
+            - "treat"
+    portion_size:
       name: Portion Size
-      description: Amount of food given in grams.
-      required: true
+      description: Size of the portion in grams (0 for default).
+      required: false
+      default: 0
       selector:
         number:
           min: 0
-          max: 2000
-          step: 1
+          max: 1000
+          step: 10
           unit_of_measurement: "g"
-    meal_type:
-      name: Meal Type
-      description: Optional label for the meal.
+    food_type:
+      name: Food Type
+      description: Type of food being given.
       required: false
       selector:
-        text:
+        select:
+          options:
+            - "dry_food"
+            - "wet_food"
+            - "barf"
+            - "home_cooked"
+            - "treat"
+            - "mixed"
     notes:
       name: Notes
-      description: Additional information about the feeding.
+      description: Optional notes about the feeding.
       required: false
       selector:
         text:
           multiline: true
-    feeder:
-      name: Feeder
-      description: Person or device that provided the meal.
-      required: false
-      selector:
-        text:
 
 calculate_portion:
   name: Calculate Meal Portion
@@ -605,7 +620,7 @@ add_gps_point:
         number:
           min: -90
           max: 90
-          step: 0.0001
+          step: 0.001
     longitude:
       name: Longitude
       description: Longitude coordinate of the dog.
@@ -614,7 +629,7 @@ add_gps_point:
         number:
           min: -180
           max: 180
-          step: 0.0001
+          step: 0.001
     altitude:
       name: Altitude
       description: Optional altitude reading in meters.
@@ -954,7 +969,7 @@ gps_post_location:
         number:
           min: -90
           max: 90
-          step: 0.0001
+          step: 0.001
     longitude:
       name: Longitude
       description: Longitude value to record.
@@ -963,7 +978,7 @@ gps_post_location:
         number:
           min: -180
           max: 180
-          step: 0.0001
+          step: 0.001
     altitude:
       name: Altitude
       description: Optional altitude reading in meters.
