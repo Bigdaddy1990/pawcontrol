@@ -19,7 +19,7 @@ from datetime import timedelta
 from typing import Any, Final
 
 from homeassistant.components import bluetooth, dhcp, usb, zeroconf
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
@@ -70,7 +70,7 @@ class PawControlDiscovery:
         self._discovered_devices: dict[str, DiscoveredDevice] = {}
         self._discovery_tasks: set[asyncio.Task[Any]] = set()
         self._scan_active = False
-        self._listeners: list[callable] = []
+        self._listeners: list[CALLBACK_TYPE] = []
 
     async def async_initialize(self) -> None:
         """Initialize discovery systems and start background scanning."""
