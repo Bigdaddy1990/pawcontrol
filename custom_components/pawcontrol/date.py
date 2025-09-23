@@ -369,6 +369,7 @@ class PawControlDateBase(
         update_token = object()
         self._active_update_token = update_token
 
+        try:
             _LOGGER.debug(
                 "Set %s for %s (%s) to %s",
                 self._date_type,
@@ -379,10 +380,14 @@ class PawControlDateBase(
 
             # Call subclass-specific handling
             await self._async_handle_date_set(value)
-
         except Exception as err:
-            if self._active_update_token is update_token:
+            if (
+                self._active_update_token is update_token
+                and self._current_value == previous_value
+            ):
                 self._current_value = previous_value
+                self.async_write_ha_state()
+
             _LOGGER.error(
                 "Error setting %s for %s: %s",
                 self._date_type,
@@ -396,17 +401,16 @@ class PawControlDateBase(
                 constraint=f"Failed to set date: {err}",
             ) from err
         else:
-            if self._active_update_token is update_token:
-                self._current_value = value
-                self.async_write_ha_state()
+            self._current_value = value
+            self.async_write_ha_state()
 
-                _LOGGER.debug(
-                    "Set %s for %s (%s) to %s",
-                    self._date_type,
-                    self._dog_name,
-                    self._dog_id,
-                    value,
-                )
+            _LOGGER.debug(
+                "Set %s for %s (%s) to %s",
+                self._date_type,
+                self._dog_name,
+                self._dog_id,
+                value,
+            )
         finally:
             if self._active_update_token is update_token:
                 self._active_update_token = None
