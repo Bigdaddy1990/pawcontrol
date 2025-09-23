@@ -369,11 +369,17 @@ class PawControlDateBase(
         update_token = object()
         self._active_update_token = update_token
 
-        try:
-            # Let subclasses perform their extra work before the state mutation
-            # becomes visible to Home Assistant. If this fails we revert back to
-            # the previous value so restored state remains accurate.
+            _LOGGER.debug(
+                "Set %s for %s (%s) to %s",
+                self._date_type,
+                self._dog_name,
+                self._dog_id,
+                value,
+            )
+
+            # Call subclass-specific handling
             await self._async_handle_date_set(value)
+
         except Exception as err:
             if self._active_update_token is update_token:
                 self._current_value = previous_value
