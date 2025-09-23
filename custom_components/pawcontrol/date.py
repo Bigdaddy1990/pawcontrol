@@ -356,23 +356,31 @@ class PawControlDateBase(
         Raises:
             ValidationError: If date value is invalid
         """
-        # Validate date value early so we can return a consistent error message.
-        if not isinstance(value, date):
-            raise ValidationError(
-                field="date_value",
-                value=str(value),
-                reason="Value must be a date object",
+        try:
+            # Validate date value
+            if not isinstance(value, date):
+                raise ValidationError(
+                    field="date_value",
+                    value=str(value),
+                    reason="Value must be a date object",
+                )
+
+            # Store the new value
+            self._current_value = value
+            self.async_write_ha_state()
+
+            _LOGGER.debug(
+                "Set %s for %s (%s) to %s",
+                self._date_type,
+                self._dog_name,
+                self._dog_id,
+                value,
             )
 
-        previous_value = self._current_value
-
-        try:
-            # Let subclasses perform their extra work before the state mutation
-            # becomes visible to Home Assistant. If this fails we revert back to
-            # the previous value so restored state remains accurate.
+            # Call subclass-specific handling
             await self._async_handle_date_set(value)
+
         except Exception as err:
-            self._current_value = previous_value
             _LOGGER.error(
                 "Error setting %s for %s: %s",
                 self._date_type,
@@ -385,17 +393,6 @@ class PawControlDateBase(
                 value=str(value),
                 reason=f"Failed to set date: {err}",
             ) from err
-
-        self._current_value = value
-        self.async_write_ha_state()
-
-        _LOGGER.debug(
-            "Set %s for %s (%s) to %s",
-            self._date_type,
-            self._dog_name,
-            self._dog_id,
-            value,
-        )
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle date-specific logic when value is set.
