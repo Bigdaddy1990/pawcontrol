@@ -208,7 +208,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
     """
 
     VERSION = 1
-    MINOR_VERSION = 1
+    MINOR_VERSION = 3
 
     def __init__(self) -> None:
         """Initialize configuration flow with enhanced state management."""
