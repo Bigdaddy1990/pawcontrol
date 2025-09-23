@@ -47,6 +47,9 @@ _LOGGER = logging.getLogger(__name__)
 SensorValue = str | int | float | datetime | None
 AttributeDict = dict[str, Any]
 
+# Home Assistant platform configuration
+PARALLEL_UPDATES = 1
+
 # OPTIMIZED: Performance constants for Platinum profiles
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation

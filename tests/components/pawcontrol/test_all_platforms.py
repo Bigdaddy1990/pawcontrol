@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import sys
 from datetime import datetime, timedelta
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -57,6 +57,7 @@ def mock_config_entry_data() -> dict[str, Any]:
                     "walk": True,
                     "health": True,
                     "gps": True,
+                    "garden": True,
                     "notifications": True,
                     "dashboard": True,
                 },
@@ -75,6 +76,8 @@ def mock_coordinator() -> Mock:
     coordinator.config_entry.entry_id = "test_entry_id"
 
     # Mock comprehensive dog data
+    last_garden_start = dt_util.utcnow() - timedelta(hours=2)
+    last_garden_end = dt_util.utcnow() - timedelta(hours=1, minutes=10)
     coordinator.data = {
         "test_dog": {
             "dog_info": {
@@ -94,6 +97,32 @@ def mock_coordinator() -> Mock:
                 "daily_target_met": False,
                 "next_feeding_due": (dt_util.utcnow() + timedelta(hours=2)).isoformat(),
                 "feeding_schedule_adherence": 85.0,
+                "health_emergency": True,
+                "emergency_mode": {
+                    "emergency_type": "diabetes",
+                    "portion_adjustment": 0.85,
+                    "activated_at": (dt_util.utcnow() - timedelta(hours=1)).isoformat(),
+                    "expires_at": (dt_util.utcnow() + timedelta(hours=5)).isoformat(),
+                    "status": "active",
+                },
+                "diet_validation_summary": {
+                    "conflict_count": 1,
+                    "warning_count": 2,
+                    "total_diets": 3,
+                    "compatibility_score": 82.5,
+                    "compatibility_level": "good",
+                    "diet_validation_adjustment": 0.925,
+                    "adjustment_direction": "decrease",
+                    "safety_factor": 0.8,
+                    "percentage_adjustment": -7.5,
+                    "adjustment_info": "Reduce portions slightly due to vet plan",
+                    "has_adjustments": True,
+                    "vet_consultation_state": "recommended",
+                    "vet_consultation_recommended": True,
+                    "consultation_urgency": "medium",
+                    "conflicts": ["High-fat treat conflicts with diabetic plan"],
+                    "warnings": ["Monitor hydration closely", "Avoid late snacks"],
+                },
             },
             "walk": {
                 "last_walk": (dt_util.utcnow() - timedelta(hours=6)).isoformat(),
@@ -127,6 +156,42 @@ def mock_coordinator() -> Mock:
                 "geofence_alert": False,
                 "battery_level": 75,
             },
+            "garden": {
+                "status": "active",
+                "time_today_minutes": 35.5,
+                "sessions_today": 2,
+                "poop_today": 1,
+                "activities_today": 3,
+                "activities_total": 12,
+                "last_session": {
+                    "session_id": "garden-session-123",
+                    "start_time": last_garden_start.isoformat(),
+                    "end_time": last_garden_end.isoformat(),
+                    "duration_minutes": 50.0,
+                    "activity_count": 4,
+                    "poop_count": 1,
+                    "status": "completed",
+                    "weather_conditions": "Sunny with mild breeze",
+                },
+                "stats": {
+                    "average_session_duration": 28.5,
+                    "favorite_activities": [
+                        "sunbathing",
+                        "chasing butterflies",
+                    ],
+                    "weekly_summary": {"sessions": 5, "poops_confirmed": 3},
+                    "last_garden_visit": (dt_util.utcnow() - timedelta(hours=3)).isoformat(),
+                },
+                "weather_summary": "Pleasant sunshine",
+                "pending_confirmations": [
+                    {
+                        "session_id": "garden-session-123",
+                        "activity_id": "activity-456",
+                        "type": "poop",
+                    }
+                ],
+                "hours_since_last_session": 1.25,
+            },
             "visitor_mode_active": False,
             "visitor_mode_started": None,
         }
@@ -143,6 +208,14 @@ def mock_coordinator() -> Mock:
     coordinator.get_module_data = get_module_data
     coordinator.async_request_refresh = AsyncMock()
     coordinator.async_request_selective_refresh = AsyncMock()
+    garden_data = coordinator.data["test_dog"]["garden"]
+    coordinator.garden_manager = SimpleNamespace(
+        build_garden_snapshot=lambda dog_id: garden_data,
+        is_dog_in_garden=lambda dog_id: garden_data.get("status") == "active",
+        has_pending_confirmation=lambda dog_id: bool(
+            garden_data.get("pending_confirmations")
+        ),
+    )
 
     return coordinator
 
@@ -350,6 +423,114 @@ class TestSensorPlatform:
         )
 
         assert speed_sensor.native_value == 0.0
+
+    async def test_garden_sensors(self, mock_coordinator: Mock) -> None:
+        """Test newly added garden tracking sensors."""
+        from custom_components.pawcontrol.sensor import (
+            PawControlGardenActivitiesCountSensor,
+            PawControlGardenSessionsTodaySensor,
+            PawControlGardenTimeTodaySensor,
+            PawControlLastGardenSessionHoursSensor,
+            PawControlLastGardenSessionSensor,
+        )
+
+        garden_time_sensor = PawControlGardenTimeTodaySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert garden_time_sensor.native_value == 35.5
+
+        attrs = garden_time_sensor.extra_state_attributes
+        assert attrs["garden_status"] == "active"
+        assert attrs["pending_confirmations"] == [
+            {
+                "session_id": "garden-session-123",
+                "activity_id": "activity-456",
+                "type": "poop",
+            }
+        ]
+
+        sessions_sensor = PawControlGardenSessionsTodaySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert sessions_sensor.native_value == 2
+
+        last_session_sensor = PawControlLastGardenSessionSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        expected_end = dt_util.parse_datetime(
+            mock_coordinator.data["test_dog"]["garden"]["last_session"]["end_time"]
+        )
+        assert last_session_sensor.native_value == expected_end
+
+        activities_sensor = PawControlGardenActivitiesCountSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert activities_sensor.native_value == 12
+
+        hours_sensor = PawControlLastGardenSessionHoursSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert hours_sensor.native_value == 1.25
+
+    async def test_diet_validation_sensors(self, mock_coordinator: Mock) -> None:
+        """Test diet validation metric sensors required by documentation."""
+        from custom_components.pawcontrol.sensor import (
+            PawControlDietCompatibilityScoreSensor,
+            PawControlDietConflictCountSensor,
+            PawControlDietValidationAdjustmentSensor,
+            PawControlDietValidationStatusSensor,
+            PawControlDietVetConsultationSensor,
+            PawControlDietWarningCountSensor,
+        )
+
+        status_sensor = PawControlDietValidationStatusSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert status_sensor.native_value == "conflicts_detected"
+        assert status_sensor.extra_state_attributes["diet_validation_available"] is True
+
+        conflict_sensor = PawControlDietConflictCountSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert conflict_sensor.native_value == 1
+        assert conflict_sensor.extra_state_attributes["conflicts"] == [
+            "High-fat treat conflicts with diabetic plan"
+        ]
+
+        warning_sensor = PawControlDietWarningCountSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert warning_sensor.native_value == 2
+        assert warning_sensor.extra_state_attributes["warnings"] == [
+            "Monitor hydration closely",
+            "Avoid late snacks",
+        ]
+
+        vet_sensor = PawControlDietVetConsultationSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert vet_sensor.native_value == "recommended"
+        vet_attrs = vet_sensor.extra_state_attributes
+        assert vet_attrs["vet_consultation_recommended"] is True
+        assert vet_attrs["consultation_urgency"] == "medium"
+        assert vet_attrs["has_conflicts"] is True
+
+        adjustment_sensor = PawControlDietValidationAdjustmentSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert adjustment_sensor.native_value == 0.925
+        adjustment_attrs = adjustment_sensor.extra_state_attributes
+        assert adjustment_attrs["percentage_adjustment"] == -7.5
+        assert adjustment_attrs["has_adjustments"] is True
+
+        compatibility_sensor = PawControlDietCompatibilityScoreSensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert compatibility_sensor.native_value == 82.5
+        assert (
+            compatibility_sensor.extra_state_attributes["compatibility_level"]
+            == "good"
+        )
 
 
 class TestBinarySensorPlatform:
@@ -567,6 +748,49 @@ class TestBinarySensorPlatform:
 
         assert battery_sensor.device_class == BinarySensorDeviceClass.BATTERY
         assert battery_sensor.is_on is False  # 75% > 20% threshold
+
+    async def test_garden_binary_sensors(self, mock_coordinator: Mock) -> None:
+        """Test garden-specific binary sensor entities."""
+        from custom_components.pawcontrol.binary_sensor import (
+            PawControlGardenPoopPendingBinarySensor,
+            PawControlGardenSessionActiveBinarySensor,
+            PawControlInGardenBinarySensor,
+        )
+
+        active_sensor = PawControlGardenSessionActiveBinarySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert active_sensor.is_on is True
+
+        in_garden_sensor = PawControlInGardenBinarySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert in_garden_sensor.is_on is True
+
+        poop_pending_sensor = PawControlGardenPoopPendingBinarySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        assert poop_pending_sensor.is_on is True
+        assert (
+            poop_pending_sensor.extra_state_attributes["pending_confirmation_count"]
+            == 1
+        )
+
+    async def test_health_emergency_binary_sensor(self, mock_coordinator: Mock) -> None:
+        """Test health emergency binary sensor attributes and state."""
+        from custom_components.pawcontrol.binary_sensor import (
+            PawControlHealthEmergencyBinarySensor,
+        )
+
+        sensor = PawControlHealthEmergencyBinarySensor(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+
+        assert sensor.is_on is True
+        attrs = sensor.extra_state_attributes
+        assert attrs["emergency_type"] == "diabetes"
+        assert attrs["portion_adjustment"] == 0.85
+        assert attrs["status"] == "active"
 
     async def test_health_binary_sensors(self, mock_coordinator: Mock) -> None:
         """Test health-related binary sensor entities."""
@@ -889,6 +1113,87 @@ class TestButtonPlatform:
         await sync_button.async_press()
         # Should request high priority refresh
         mock_coordinator.async_request_selective_refresh.assert_called()
+
+    async def test_garden_buttons(
+        self, hass: HomeAssistant, mock_coordinator: Mock
+    ) -> None:
+        """Test garden session control buttons trigger the expected services."""
+        from custom_components.pawcontrol.button import (
+            PawControlConfirmGardenPoopButton,
+            PawControlEndGardenSessionButton,
+            PawControlLogGardenActivityButton,
+            PawControlStartGardenSessionButton,
+        )
+
+        garden_data = mock_coordinator.data["test_dog"]["garden"]
+
+        # Start garden session button should call start service when idle
+        garden_data["status"] = "idle"
+        start_button = PawControlStartGardenSessionButton(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        start_button.hass = hass
+        assert start_button.available is True
+        with patch.object(hass.services, "async_call", AsyncMock()) as mock_call:
+            await start_button.async_press()
+        mock_call.assert_awaited_once_with(
+            "pawcontrol",
+            "start_garden_session",
+            {"dog_id": "test_dog", "detection_method": "manual"},
+            blocking=False,
+        )
+
+        # End garden session button should call end service when active
+        garden_data["status"] = "active"
+        end_button = PawControlEndGardenSessionButton(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        end_button.hass = hass
+        assert end_button.available is True
+        with patch.object(hass.services, "async_call", AsyncMock()) as mock_call:
+            await end_button.async_press()
+        mock_call.assert_awaited_once_with(
+            "pawcontrol", "end_garden_session", {"dog_id": "test_dog"}, blocking=False
+        )
+
+        # Logging activity should call add activity service
+        log_button = PawControlLogGardenActivityButton(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        log_button.hass = hass
+        with patch.object(hass.services, "async_call", AsyncMock()) as mock_call:
+            await log_button.async_press()
+        mock_call.assert_awaited_once_with(
+            "pawcontrol",
+            "add_garden_activity",
+            {
+                "dog_id": "test_dog",
+                "activity_type": "general",
+                "notes": "Logged via garden activity button",
+                "confirmed": True,
+            },
+            blocking=False,
+        )
+
+        # Confirm garden poop button should call confirmation service when pending
+        confirm_button = PawControlConfirmGardenPoopButton(
+            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        )
+        confirm_button.hass = hass
+        assert confirm_button.available is True
+        with patch.object(hass.services, "async_call", AsyncMock()) as mock_call:
+            await confirm_button.async_press()
+        mock_call.assert_awaited_once_with(
+            "pawcontrol",
+            "confirm_garden_poop",
+            {
+                "dog_id": "test_dog",
+                "confirmed": True,
+                "quality": "normal",
+                "size": "normal",
+            },
+            blocking=False,
+        )
 
 
 class TestEntityAvailability:

@@ -188,6 +188,13 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
         "health_focus": 3,  # Health-integrated grooming
         "gps_focus": 1,  # Basic grooming status
     },
+    "garden": {
+        "basic": 4,  # session count, time, poop, last session
+        "standard": 7,  # + activities today/count, last duration, hours since
+        "advanced": 11,  # + averages, stats, favorite activities, last session detail
+        "gps_focus": 6,  # Outdoor focused metrics
+        "health_focus": 7,  # Activity summaries useful for health automations
+    },
 }
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
@@ -213,6 +220,7 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
                 "walk": True,
                 "health": True,
                 "gps": True,
+                "garden": True,
                 "notifications": True,
                 "dashboard": True,
             }
@@ -803,6 +811,7 @@ class EntityFactory:
             "feeding": True,
             "walk": True,
             "health": True,
+            "garden": True,
             "gps": False,
             "notifications": True,
         }

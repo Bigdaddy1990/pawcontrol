@@ -53,6 +53,9 @@ from .utils import PawControlDeviceLinkMixin
 
 _LOGGER = logging.getLogger(__name__)
 
+# Home Assistant platform configuration
+PARALLEL_UPDATES = 1
+
 # OPTIMIZATION: Profile-based entity reduction
 PROFILE_BUTTON_LIMITS = {
     "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
