@@ -814,7 +814,9 @@ class PawControlGeofencing:
                 )
             elif zone.type == GeofenceType.SAFE_ZONE:
                 title = f"🏡 {dog_id} returned to the safe zone"
-                message = f"{dog_id} is back inside safe zone '{zone.name}'{location_suffix}."
+                message = (
+                    f"{dog_id} is back inside safe zone '{zone.name}'{location_suffix}."
+                )
             else:
                 title = f"🗺️ {dog_id} entered {zone.name}"
                 message = f"{dog_id} entered zone '{zone.name}'{location_suffix}."
@@ -824,16 +826,16 @@ class PawControlGeofencing:
                 message = f"{dog_id} left safe zone '{zone.name}'{location_suffix}."
             elif zone.type == GeofenceType.RESTRICTED_AREA:
                 title = f"✅ {dog_id} left the restricted area"
-                message = f"{dog_id} exited restricted zone '{zone.name}'{location_suffix}."
+                message = (
+                    f"{dog_id} exited restricted zone '{zone.name}'{location_suffix}."
+                )
             else:
                 title = f"🚶 {dog_id} left {zone.name}"
                 message = f"{dog_id} left zone '{zone.name}'{location_suffix}."
         else:  # GeofenceEvent.DWELL
             if zone.type == GeofenceType.RESTRICTED_AREA:
                 title = f"⏱️ {dog_id} still in restricted area"
-                message = (
-                    f"{dog_id} remains inside restricted zone '{zone.name}'{location_suffix}."
-                )
+                message = f"{dog_id} remains inside restricted zone '{zone.name}'{location_suffix}."
             else:
                 title = f"⏱️ {dog_id} still in {zone.name}"
                 message = (
