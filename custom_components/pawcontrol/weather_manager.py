@@ -44,8 +44,13 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import translation
 from homeassistant.util import dt as dt_util
+
+from .weather_translations import (
+    DEFAULT_LANGUAGE,
+    SUPPORTED_LANGUAGES,
+    get_weather_translations,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -372,25 +377,21 @@ class WeatherHealthManager:
             language: Language code (e.g., 'en', 'de')
         """
         try:
-            self._translations = await translation.async_get_translations(
-                self.hass, language, "weather", {"pawcontrol"}
-            )
+            if language not in SUPPORTED_LANGUAGES:
+                _LOGGER.debug(
+                    "Weather translations for %s not available, using English fallback",
+                    language,
+                )
+            self._translations = get_weather_translations(language)
+            if language == DEFAULT_LANGUAGE:
+                self._english_translations = self._translations
+            else:
+                self._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
             _LOGGER.debug("Loaded weather translations for language: %s", language)
-        except Exception as err:
+        except Exception as err:  # pragma: no cover - defensive fallback
             _LOGGER.warning("Failed to load weather translations: %s", err)
-            self._translations = {}
-
-        if language == "en":
+            self._translations = get_weather_translations(DEFAULT_LANGUAGE)
             self._english_translations = self._translations
-            return
-
-        try:
-            self._english_translations = await translation.async_get_translations(
-                self.hass, "en", "weather", {"pawcontrol"}
-            )
-        except Exception as err:
-            _LOGGER.warning("Failed to load English fallback translations: %s", err)
-            self._english_translations = {}
 
     def _get_translation(self, key: str, **kwargs: Any) -> str:
         """Get translated string with variable substitution.
