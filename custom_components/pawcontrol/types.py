@@ -427,6 +427,145 @@ Usage:
 
 
 @dataclass
+class DailyStats:
+    """Aggregated per-day statistics for a dog.
+
+    The data manager stores a ``DailyStats`` instance for each dog so that
+    frequently accessed aggregate metrics such as the total number of feedings
+    or walks can be retrieved without scanning the full history on every
+    update.  The class mirrors the behaviour of the Home Assistant integration
+    by providing helpers for serialization and incremental updates.
+    """
+
+    date: datetime
+    feedings_count: int = 0
+    walks_count: int = 0
+    health_logs_count: int = 0
+    gps_updates_count: int = 0
+    total_food_amount: float = 0.0
+    total_walk_distance: float = 0.0
+    total_walk_time: int = 0
+    total_calories_burned: float = 0.0
+    last_feeding: datetime | None = None
+    last_walk: datetime | None = None
+    last_health_event: datetime | None = None
+
+    @staticmethod
+    def _parse_datetime(value: Any) -> datetime | None:
+        """Convert ISO formatted values into timezone aware ``datetime`` objects."""
+
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return dt_util.as_utc(value)
+        if isinstance(value, str):
+            parsed = dt_util.parse_datetime(value)
+            if parsed is not None:
+                return dt_util.as_utc(parsed)
+        return None
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> DailyStats:
+        """Deserialize daily statistics from a dictionary structure."""
+
+        raw_date = payload.get("date")
+        date_value = cls._parse_datetime(raw_date) or dt_util.utcnow()
+        return cls(
+            date=date_value,
+            feedings_count=int(payload.get("feedings_count", 0)),
+            walks_count=int(payload.get("walks_count", 0)),
+            health_logs_count=int(payload.get("health_logs_count", 0)),
+            gps_updates_count=int(payload.get("gps_updates_count", 0)),
+            total_food_amount=float(payload.get("total_food_amount", 0.0)),
+            total_walk_distance=float(payload.get("total_walk_distance", 0.0)),
+            total_walk_time=int(payload.get("total_walk_time", 0)),
+            total_calories_burned=float(payload.get("total_calories_burned", 0.0)),
+            last_feeding=cls._parse_datetime(payload.get("last_feeding")),
+            last_walk=cls._parse_datetime(payload.get("last_walk")),
+            last_health_event=cls._parse_datetime(payload.get("last_health_event")),
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Serialize the statistics for storage."""
+
+        return {
+            "date": dt_util.as_utc(self.date).isoformat(),
+            "feedings_count": self.feedings_count,
+            "walks_count": self.walks_count,
+            "health_logs_count": self.health_logs_count,
+            "gps_updates_count": self.gps_updates_count,
+            "total_food_amount": self.total_food_amount,
+            "total_walk_distance": self.total_walk_distance,
+            "total_walk_time": self.total_walk_time,
+            "total_calories_burned": self.total_calories_burned,
+            "last_feeding": self.last_feeding.isoformat()
+            if self.last_feeding
+            else None,
+            "last_walk": self.last_walk.isoformat() if self.last_walk else None,
+            "last_health_event": self.last_health_event.isoformat()
+            if self.last_health_event
+            else None,
+        }
+
+    def reset(self, *, preserve_date: bool = True) -> None:
+        """Reset all counters, optionally keeping the current date."""
+
+        if not preserve_date:
+            self.date = dt_util.utcnow()
+        self.feedings_count = 0
+        self.walks_count = 0
+        self.health_logs_count = 0
+        self.gps_updates_count = 0
+        self.total_food_amount = 0.0
+        self.total_walk_distance = 0.0
+        self.total_walk_time = 0
+        self.total_calories_burned = 0.0
+        self.last_feeding = None
+        self.last_walk = None
+        self.last_health_event = None
+
+    def register_feeding(self, portion_size: float, timestamp: datetime | None) -> None:
+        """Record a feeding event in the aggregate counters."""
+
+        self.feedings_count += 1
+        if portion_size > 0:
+            self.total_food_amount += portion_size
+        parsed = self._parse_datetime(timestamp)
+        if parsed is not None:
+            self.last_feeding = parsed
+
+    def register_walk(
+        self,
+        duration: int | None,
+        distance: float | None,
+        timestamp: datetime | None,
+    ) -> None:
+        """Record a walk event in the aggregate counters."""
+
+        self.walks_count += 1
+        if duration:
+            self.total_walk_time += int(duration)
+        if distance:
+            self.total_walk_distance += float(distance)
+        parsed = self._parse_datetime(timestamp)
+        if parsed is not None:
+            self.last_walk = parsed
+
+    def register_health_event(self, timestamp: datetime | None) -> None:
+        """Record a health log entry in the aggregate counters."""
+
+        self.health_logs_count += 1
+        parsed = self._parse_datetime(timestamp)
+        if parsed is not None:
+            self.last_health_event = parsed
+
+    def register_gps_update(self) -> None:
+        """Increase the GPS update counter for the day."""
+
+        self.gps_updates_count += 1
+
+
+@dataclass
 class FeedingData:
     """Data structure for individual feeding records with comprehensive validation.
 
