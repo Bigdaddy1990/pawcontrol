@@ -759,7 +759,7 @@ def flatten_dict(
     Returns:
         Flattened dictionary
     """
-    flattened = {}
+    flattened: dict[str, Any] = {}
 
     for key, value in data.items():
         new_key = f"{prefix}{separator}{key}" if prefix else key
@@ -782,7 +782,7 @@ def unflatten_dict(data: dict[str, Any], separator: str = ".") -> dict[str, Any]
     Returns:
         Nested dictionary
     """
-    result = {}
+    result: dict[str, Any] = {}
 
     for key, value in data.items():
         safe_set_nested(result, key, value, separator)
