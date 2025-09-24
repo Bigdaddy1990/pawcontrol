@@ -73,7 +73,7 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
     },
     "advanced": {
         "name": "Advanced (≤16 entities)",
-        "description": "Comprehensive monitoring – higher resource usage",
+        "description": "Comprehensive monitoring - higher resource usage",
         "max_entities": 16,
         "performance_impact": "medium",
         "recommended_for": "Power users, detailed analytics",
