@@ -760,9 +760,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             except asyncio.CancelledError:
                 _LOGGER.debug("Background monitor task cancelled")
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.warning(
-                    "Error while awaiting background monitor task: %s", err
-                )
+                _LOGGER.warning("Error while awaiting background monitor task: %s", err)
             finally:
                 runtime_data.background_monitor_task = None
 

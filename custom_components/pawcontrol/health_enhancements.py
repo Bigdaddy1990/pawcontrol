@@ -445,12 +445,11 @@ class EnhancedHealthCalculator:
                     )
                     continue
 
-                treatment_name = (
-                    deworming.treatment_type.value.replace("_", " ").title()
-                )
+                treatment_name = deworming.treatment_type.value.replace(
+                    "_", " "
+                ).title()
                 message = (
-                    f"{treatment_name} treatment is {abs(days_until_due)} "
-                    "days overdue"
+                    f"{treatment_name} treatment is {abs(days_until_due)} days overdue"
                 )
                 health_status["priority_alerts"].append(
                     {
@@ -471,9 +470,9 @@ class EnhancedHealthCalculator:
                     )
                     continue
 
-                treatment_name = (
-                    deworming.treatment_type.value.replace("_", " ").title()
-                )
+                treatment_name = deworming.treatment_type.value.replace(
+                    "_", " "
+                ).title()
                 message = f"{treatment_name} treatment due in {days_until_due} days"
                 health_status["upcoming_care"].append(
                     {
