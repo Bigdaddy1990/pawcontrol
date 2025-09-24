@@ -14,7 +14,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant
@@ -34,6 +34,10 @@ from .const import (
 )
 from .notifications import NotificationPriority, NotificationType
 from .types import DogConfigData
+
+if TYPE_CHECKING:
+    from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,6 +151,37 @@ class WalkDetectionState:
         return min(confidence, 1.0)
 
 
+class DetectionStatistics(TypedDict):
+    """Aggregated statistics for door sensor walk detection."""
+
+    total_detections: int
+    successful_walks: int
+    false_positives: int
+    false_negatives: int
+    average_confidence: float
+
+
+class DetectionStatusEntry(TypedDict):
+    """Status information for a single dog's detection state."""
+
+    dog_name: str
+    door_sensor: str
+    current_state: str
+    confidence_score: float
+    active_walk_id: str | None
+    last_door_state: str | None
+    recent_activity: int
+
+
+class DetectionStatus(TypedDict):
+    """Structured detection status payload for diagnostics."""
+
+    configured_dogs: int
+    active_detections: int
+    detection_states: dict[str, DetectionStatusEntry]
+    statistics: DetectionStatistics
+
+
 class DoorSensorManager:
     """Manager for door sensor based walk detection."""
 
@@ -167,11 +202,11 @@ class DoorSensorManager:
         self._cleanup_task: asyncio.Task | None = None
 
         # Dependencies (injected during initialization)
-        self._walk_manager = None
-        self._notification_manager = None
+        self._walk_manager: WalkManager | None = None
+        self._notification_manager: PawControlNotificationManager | None = None
 
         # Performance tracking
-        self._detection_stats = {
+        self._detection_stats: DetectionStatistics = {
             "total_detections": 0,
             "successful_walks": 0,
             "false_positives": 0,
@@ -182,8 +217,8 @@ class DoorSensorManager:
     async def async_initialize(
         self,
         dogs: list[DogConfigData],
-        walk_manager=None,
-        notification_manager=None,
+        walk_manager: WalkManager | None = None,
+        notification_manager: PawControlNotificationManager | None = None,
     ) -> None:
         """Initialize door sensor monitoring for configured dogs.
 
@@ -453,7 +488,7 @@ class DoorSensorManager:
             config: Door sensor configuration
             state: Detection state for this dog
         """
-        if not self._notification_manager:
+        if self._notification_manager is None:
             _LOGGER.warning("No notification manager available for confirmation")
             await self._start_automatic_walk(config, state)
             return
@@ -510,7 +545,7 @@ class DoorSensorManager:
             config: Door sensor configuration
             state: Detection state for this dog
         """
-        if not self._walk_manager:
+        if self._walk_manager is None:
             _LOGGER.error("No walk manager available to start walk")
             state.current_state = WALK_STATE_IDLE
             return
@@ -576,7 +611,7 @@ class DoorSensorManager:
             config: Door sensor configuration
             state: Detection state for this dog
         """
-        if state.current_state != WALK_STATE_RETURNING or not state.active_walk_id:
+        if state.current_state != WALK_STATE_RETURNING or state.active_walk_id is None:
             return
 
         # Calculate walk duration
@@ -606,7 +641,7 @@ class DoorSensorManager:
             state: Detection state for this dog
             reason: Reason for ending walk
         """
-        if not state.active_walk_id or not self._walk_manager:
+        if state.active_walk_id is None or self._walk_manager is None:
             return
 
         try:
@@ -649,7 +684,7 @@ class DoorSensorManager:
             )
 
             # Send completion notification
-            if self._notification_manager:
+            if self._notification_manager is not None:
                 await self._notification_manager.async_send_notification(
                     notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🏠 {config.dog_name} returned",
@@ -739,17 +774,19 @@ class DoorSensorManager:
 
             _LOGGER.info("Walk detection denied for %s", config.dog_name)
 
-    async def async_get_detection_status(self) -> dict[str, Any]:
+    async def async_get_detection_status(self) -> DetectionStatus:
         """Get current detection status for all dogs.
 
         Returns:
             Detection status information
         """
-        status = {
+        status: DetectionStatus = {
             "configured_dogs": len(self._sensor_configs),
             "active_detections": 0,
             "detection_states": {},
-            "statistics": self._detection_stats.copy(),
+            "statistics": cast(
+                DetectionStatistics, dict(self._detection_stats)
+            ),
         }
 
         for dog_id, state in self._detection_states.items():
@@ -758,7 +795,7 @@ class DoorSensorManager:
             if state.current_state != WALK_STATE_IDLE:
                 status["active_detections"] += 1
 
-            status["detection_states"][dog_id] = {
+            detection_entry: DetectionStatusEntry = {
                 "dog_name": config.dog_name,
                 "door_sensor": config.entity_id,
                 "current_state": state.current_state,
@@ -767,6 +804,7 @@ class DoorSensorManager:
                 "last_door_state": state.last_door_state,
                 "recent_activity": len(state.state_history),
             }
+            status["detection_states"][dog_id] = detection_entry
 
         return status
 
@@ -845,7 +883,7 @@ class DoorSensorManager:
 
         # Clean up any active walks
         for state in self._detection_states.values():
-            if state.active_walk_id and self._walk_manager:
+            if state.active_walk_id and self._walk_manager is not None:
                 try:
                     await self._walk_manager.async_end_walk(
                         dog_id=state.dog_id,
