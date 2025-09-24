@@ -251,6 +251,7 @@ class PawControlDateBase(
         self._dog_name = dog_name
         self._date_type = date_type
         self._current_value: date | None = None
+        self._active_update_token: object | None = None
 
         # Entity configuration with modern HA standards
         self._attr_unique_id = f"pawcontrol_{dog_id}_{date_type}"
@@ -356,19 +357,19 @@ class PawControlDateBase(
         Raises:
             ValidationError: If date value is invalid
         """
+        # Validate date value early so we can return a consistent error message.
+        if not isinstance(value, date):
+            raise ValidationError(
+                field="date_value",
+                value=str(value),
+                constraint="Value must be a date object",
+            )
+
+        previous_value = self._current_value
+        update_token = object()
+        self._active_update_token = update_token
+
         try:
-            # Validate date value
-            if not isinstance(value, date):
-                raise ValidationError(
-                    field="date_value",
-                    value=str(value),
-                    reason="Value must be a date object",
-                )
-
-            # Store the new value
-            self._current_value = value
-            self.async_write_ha_state()
-
             _LOGGER.debug(
                 "Set %s for %s (%s) to %s",
                 self._date_type,
@@ -379,8 +380,14 @@ class PawControlDateBase(
 
             # Call subclass-specific handling
             await self._async_handle_date_set(value)
-
         except Exception as err:
+            if (
+                self._active_update_token is update_token
+                and self._current_value == previous_value
+            ):
+                self._current_value = previous_value
+                self.async_write_ha_state()
+
             _LOGGER.error(
                 "Error setting %s for %s: %s",
                 self._date_type,
@@ -391,8 +398,22 @@ class PawControlDateBase(
             raise ValidationError(
                 field="date_value",
                 value=str(value),
-                reason=f"Failed to set date: {err}",
+                constraint=f"Failed to set date: {err}",
             ) from err
+        else:
+            self._current_value = value
+            self.async_write_ha_state()
+
+            _LOGGER.debug(
+                "Set %s for %s (%s) to %s",
+                self._date_type,
+                self._dog_name,
+                self._dog_id,
+                value,
+            )
+        finally:
+            if self._active_update_token is update_token:
+                self._active_update_token = None
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle date-specific logic when value is set.
@@ -495,6 +516,7 @@ class PawControlBirthdateDate(PawControlDateBase):
                 )
         except Exception as err:
             _LOGGER.debug("Could not update dog profile: %s", err)
+            raise
 
 
 class PawControlAdoptionDate(PawControlDateBase):
@@ -573,6 +595,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
             )
         except Exception as err:
             _LOGGER.debug("Could not log vet visit: %s", err)
+            raise
 
 
 class PawControlNextVetAppointmentDate(PawControlDateBase):
@@ -670,6 +693,7 @@ class PawControlVaccinationDate(PawControlDateBase):
             )
         except Exception as err:
             _LOGGER.debug("Could not log vaccination: %s", err)
+            raise
 
 
 class PawControlNextVaccinationDate(PawControlDateBase):
@@ -710,6 +734,7 @@ class PawControlDewormingDate(PawControlDateBase):
             )
         except Exception as err:
             _LOGGER.debug("Could not log deworming: %s", err)
+            raise
 
 
 class PawControlNextDewormingDate(PawControlDateBase):
