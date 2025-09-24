@@ -75,6 +75,8 @@ class MockCoordinator:
 class TestEntityBase(OptimizedEntityBase):
     """Test implementation of OptimizedEntityBase."""
 
+    __test__ = False
+
     def __init__(self, coordinator, dog_id: str, dog_name: str, **kwargs) -> None:
         super().__init__(
             coordinator=coordinator,
