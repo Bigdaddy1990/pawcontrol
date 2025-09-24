@@ -12,15 +12,57 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 
-from .const import CONF_DOOR_SENSOR, CONF_GPS_SOURCE, CONF_NOTIFY_FALLBACK
+from .const import (
+    CONF_DOOR_SENSOR,
+    CONF_GPS_SOURCE,
+    CONF_NOTIFY_FALLBACK,
+    MODULE_GPS,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+)
+from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+
+    class ExternalFlowHost(Protocol):
+        _dogs: list[DogConfigData]
+        _enabled_modules: dict[str, bool]
+        _external_entities: dict[str, Any]
+        hass: HomeAssistant
+
+        async def async_step_final_setup(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema: vol.Schema,
+            description_placeholders: dict[str, Any] | None = None,
+            errors: dict[str, str] | None = None,
+        ) -> ConfigFlowResult: ...
+
+        def _get_available_device_trackers(self) -> dict[str, str]: ...
+
+        def _get_available_person_entities(self) -> dict[str, str]: ...
+
+        def _get_available_door_sensors(self) -> dict[str, str]: ...
+
+        def _get_available_notify_services(self) -> dict[str, str]: ...
+
+else:  # pragma: no cover - used only for type checking
+    ExternalFlowHost = object
 
 
 class ExternalEntityConfigurationMixin:
@@ -31,6 +73,20 @@ class ExternalEntityConfigurationMixin:
     for Platinum quality scale compliance and ensures proper integration
     with the broader Home Assistant ecosystem.
     """
+
+    if TYPE_CHECKING:
+        hass: HomeAssistant
+        _dogs: list[DogConfigData]
+        _enabled_modules: dict[str, bool]
+        _external_entities: dict[str, Any]
+
+        def _get_available_device_trackers(self) -> dict[str, str]: ...
+
+        def _get_available_person_entities(self) -> dict[str, str]: ...
+
+        def _get_available_door_sensors(self) -> dict[str, str]: ...
+
+        def _get_available_notify_services(self) -> dict[str, str]: ...
 
     async def async_step_configure_external_entities(
         self, user_input: dict[str, Any] | None = None
@@ -46,28 +102,30 @@ class ExternalEntityConfigurationMixin:
         Returns:
             Configuration flow result for final setup
         """
+        flow = cast(ExternalFlowHost, self)
+
         if user_input is not None:
             # Validate and store external entity selections
             try:
                 validated_entities = await self._async_validate_external_entities(
                     user_input
                 )
-                self._external_entities.update(validated_entities)
-                return await self.async_step_final_setup()
+                flow._external_entities.update(validated_entities)
+                return await flow.async_step_final_setup()
             except ValueError as err:
-                return self.async_show_form(
+                return flow.async_show_form(
                     step_id="configure_external_entities",
                     data_schema=self._get_external_entities_schema(),
                     errors={"base": str(err)},
                 )
 
-        return self.async_show_form(
+        return flow.async_show_form(
             step_id="configure_external_entities",
             data_schema=self._get_external_entities_schema(),
             description_placeholders={
-                "gps_enabled": self._enabled_modules.get("gps", False),
-                "visitor_enabled": self._enabled_modules.get("visitor", False),
-                "dog_count": len(self._dogs),
+                "gps_enabled": flow._enabled_modules.get(MODULE_GPS, False),
+                "visitor_enabled": flow._enabled_modules.get(MODULE_VISITOR, False),
+                "dog_count": len(flow._dogs),
             },
         )
 
@@ -75,13 +133,13 @@ class ExternalEntityConfigurationMixin:
         """Get schema for external entities configuration."""
         schema: dict[Any, Any] = {}
 
-        if self._enabled_modules.get("gps", False):
+        if self._enabled_modules.get(MODULE_GPS, False):
             schema.update(self._build_gps_source_selector())
 
-        if self._enabled_modules.get("visitor", False):
+        if self._enabled_modules.get(MODULE_VISITOR, False):
             schema.update(self._build_door_sensor_selector())
 
-        if self._enabled_modules.get("advanced", False):
+        if self._enabled_modules.get(MODULE_NOTIFICATIONS, False):
             schema.update(self._build_notify_service_selector())
 
         return vol.Schema(schema)

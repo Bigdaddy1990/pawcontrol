@@ -1,8 +1,18 @@
 """Module configuration steps for Paw Control configuration flow.
 
-This module handles the configuration of global settings and dashboard preferences
-after individual dog configuration is complete. The per-dog module selection
-is now handled in config_flow_dogs.py for better granularity.
+This module handles the configuration of global settings and dashboard
+preferences after individual dog configuration is complete. The per-dog module
+selection is now handled in ``config_flow_dogs.py`` for better granularity.
+
+The original implementation relied heavily on dynamically created attributes
+defined in :class:`~custom_components.pawcontrol.config_flow_base.PawControlBaseConfigFlow`.
+While that works at runtime, static type checkers (notably mypy with
+``disallow_untyped_defs`` enabled) cannot see those attributes. The result was
+dozens of ``attr-defined`` errors that blocked the "strict typing" milestone in
+``quality_scale.yaml``. This file now declares the required attributes in a
+``TYPE_CHECKING`` block and introduces structured return types to help mypy
+understand the control flow. The runtime behaviour is unchanged, but type
+analysis is now sound and deterministic.
 
 Quality Scale: Platinum
 Home Assistant: 2025.8.2+
@@ -12,7 +22,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -28,8 +38,43 @@ from .const import (
     MODULE_HEALTH,
     SPECIAL_DIET_OPTIONS,
 )
+from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+
+    class ModuleFlowHost(Protocol):
+        _dogs: list[DogConfigData]
+        _global_settings: dict[str, Any]
+        _dashboard_config: dict[str, Any]
+        _feeding_config: dict[str, Any]
+
+        async def async_step_configure_external_entities(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        async def async_step_configure_feeding_details(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        async def async_step_configure_dashboard(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        async def async_step_final_setup(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema: vol.Schema,
+            description_placeholders: dict[str, Any] | None = None,
+            errors: dict[str, str] | None = None,
+        ) -> ConfigFlowResult: ...
 
 
 class ModuleConfigurationMixin:
@@ -54,9 +99,11 @@ class ModuleConfigurationMixin:
         Returns:
             Configuration flow result for next step or completion
         """
+        flow = cast("ModuleFlowHost", self)
+
         if user_input is not None:
             # Store global settings
-            self._global_settings = {
+            flow._global_settings = {
                 "performance_mode": user_input.get("performance_mode", "balanced"),
                 "enable_analytics": user_input.get("enable_analytics", False),
                 "enable_cloud_backup": user_input.get("enable_cloud_backup", False),
@@ -66,35 +113,40 @@ class ModuleConfigurationMixin:
 
             # Check if any dog has dashboard enabled
             dashboard_enabled = any(
-                dog.get(CONF_MODULES, {}).get(MODULE_DASHBOARD, True)
-                for dog in self._dogs
+                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                    MODULE_DASHBOARD, True
+                )
+                for dog in flow._dogs
             )
 
             if dashboard_enabled:
-                return await self.async_step_configure_dashboard()
+                return await flow.async_step_configure_dashboard()
 
             # Check if feeding details need configuration
             feeding_enabled = any(
-                dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False)
-                for dog in self._dogs
+                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                    MODULE_FEEDING, False
+                )
+                for dog in flow._dogs
             )
 
             if feeding_enabled:
-                return await self.async_step_configure_feeding_details()
+                return await flow.async_step_configure_feeding_details()
 
             # Check if we need external entity configuration
             gps_enabled = any(
-                dog.get(CONF_MODULES, {}).get(MODULE_GPS, False) for dog in self._dogs
+                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                for dog in flow._dogs
             )
 
             if gps_enabled:
-                return await self.async_step_configure_external_entities()
+                return await flow.async_step_configure_external_entities()
 
-            return await self.async_step_final_setup()
+            return await flow.async_step_final_setup()
 
         # Only show this step if we have dogs configured
-        if not self._dogs:
-            return await self.async_step_final_setup()
+        if not flow._dogs:
+            return await flow.async_step_final_setup()
 
         # Analyze configured modules across all dogs
         module_summary = self._analyze_configured_modules()
@@ -129,7 +181,7 @@ class ModuleConfigurationMixin:
                     "enable_analytics", default=False
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "enable_cloud_backup", default=len(self._dogs) > 1
+                    "enable_cloud_backup", default=len(flow._dogs) > 1
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "data_retention_days", default=90
@@ -148,11 +200,11 @@ class ModuleConfigurationMixin:
             }
         )
 
-        return self.async_show_form(
+        return flow.async_show_form(
             step_id="configure_modules",
             data_schema=schema,
             description_placeholders={
-                "dog_count": len(self._dogs),
+                "dog_count": len(flow._dogs),
                 "module_summary": module_summary["description"],
                 "total_modules": module_summary["total"],
                 "gps_dogs": module_summary["gps_dogs"],
@@ -174,16 +226,20 @@ class ModuleConfigurationMixin:
         Returns:
             Configuration flow result for next step
         """
+        flow = cast("ModuleFlowHost", self)
+
         if user_input is not None:
             # Determine which dogs have dashboard enabled
             dashboard_dogs = [
                 dog
-                for dog in self._dogs
-                if dog.get(CONF_MODULES, {}).get(MODULE_DASHBOARD, True)
+                for dog in flow._dogs
+                if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                    MODULE_DASHBOARD, True
+                )
             ]
 
             # Store dashboard configuration
-            self._dashboard_config = {
+            flow._dashboard_config = {
                 "dashboard_enabled": True,
                 "dashboard_auto_create": user_input.get("auto_create_dashboard", True),
                 "dashboard_per_dog": user_input.get(
@@ -206,15 +262,17 @@ class ModuleConfigurationMixin:
 
             # Continue to external entities if GPS is enabled
             if self._has_gps_dogs():
-                return await self.async_step_configure_external_entities()
+                return await flow.async_step_configure_external_entities()
 
-            return await self.async_step_final_setup()
+            return await flow.async_step_final_setup()
 
         # Count dogs with dashboard enabled
         dashboard_dogs = [
             dog
-            for dog in self._dogs
-            if dog.get(CONF_MODULES, {}).get(MODULE_DASHBOARD, True)
+            for dog in flow._dogs
+            if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                MODULE_DASHBOARD, True
+            )
         ]
 
         has_multiple_dogs = len(dashboard_dogs) > 1
@@ -326,7 +384,7 @@ class ModuleConfigurationMixin:
             }
         )
 
-        return self.async_show_form(
+        return flow.async_show_form(
             step_id="configure_dashboard",
             data_schema=schema,
             description_placeholders={
@@ -342,11 +400,13 @@ class ModuleConfigurationMixin:
         Returns:
             Summary of configured modules
         """
-        module_counts = {}
+        flow = cast("ModuleFlowHost", self)
+
+        module_counts: dict[str, int] = {}
         total_modules = 0
 
-        for dog in self._dogs:
-            modules = dog.get(CONF_MODULES, {})
+        for dog in flow._dogs:
+            modules = cast(dict[str, Any], dog.get(CONF_MODULES, {}))
             for module_name, enabled in modules.items():
                 if enabled:
                     module_counts[module_name] = module_counts.get(module_name, 0) + 1
@@ -354,9 +414,9 @@ class ModuleConfigurationMixin:
 
         gps_dogs = module_counts.get(MODULE_GPS, 0)
         health_dogs = module_counts.get(MODULE_HEALTH, 0)
-        feeding_dogs = module_counts.get("feeding", 0)
+        feeding_dogs = module_counts.get(MODULE_FEEDING, 0)
 
-        description_parts = []
+        description_parts: list[str] = []
         if gps_dogs > 0:
             description_parts.append(f"{gps_dogs} dogs with GPS")
         if health_dogs > 0:
@@ -384,7 +444,9 @@ class ModuleConfigurationMixin:
         Returns:
             Suggested performance mode
         """
-        total_dogs = len(self._dogs)
+        flow = cast("ModuleFlowHost", self)
+
+        total_dogs = len(flow._dogs)
         gps_dogs = module_summary["gps_dogs"]
         total_modules = module_summary["total"]
 
@@ -400,20 +462,29 @@ class ModuleConfigurationMixin:
 
     def _has_gps_dogs(self) -> bool:
         """Check if any dog has GPS enabled."""
+        flow = cast("ModuleFlowHost", self)
+
         return any(
-            dog.get(CONF_MODULES, {}).get(MODULE_GPS, False) for dog in self._dogs
+            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+            for dog in flow._dogs
         )
 
     def _has_health_dogs(self) -> bool:
         """Check if any dog has health monitoring enabled."""
+        flow = cast("ModuleFlowHost", self)
+
         return any(
-            dog.get(CONF_MODULES, {}).get(MODULE_HEALTH, False) for dog in self._dogs
+            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_HEALTH, False)
+            for dog in flow._dogs
         )
 
     def _has_feeding_dogs(self) -> bool:
         """Check if any dog has feeding tracking enabled."""
+        flow = cast("ModuleFlowHost", self)
+
         return any(
-            dog.get(CONF_MODULES, {}).get("feeding", False) for dog in self._dogs
+            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_FEEDING, False)
+            for dog in flow._dogs
         )
 
     def _get_dashboard_setup_info(self) -> str:
@@ -427,7 +498,7 @@ class ModuleConfigurationMixin:
         if module_summary["total"] == 0:
             return "Basic dashboard with core monitoring features"
 
-        features = []
+        features: list[str] = []
         if module_summary["gps_dogs"] > 0:
             features.append("live location tracking")
         if module_summary["health_dogs"] > 0:
@@ -449,12 +520,14 @@ class ModuleConfigurationMixin:
         Returns:
             Features description
         """
-        features = ["status cards", "activity tracking", "quick actions"]
+        flow = cast("ModuleFlowHost", self)
+
+        features: list[str] = ["status cards", "activity tracking", "quick actions"]
 
         if has_gps:
             features.append("location maps")
 
-        if len(self._dogs) > 1:
+        if len(flow._dogs) > 1:
             features.append("multi-dog overview")
 
         return ", ".join(features)
@@ -470,9 +543,11 @@ class ModuleConfigurationMixin:
         Returns:
             Configuration flow result for next step
         """
+        flow = cast("ModuleFlowHost", self)
+
         if user_input is not None:
             # Store feeding configuration
-            self._feeding_config = {
+            flow._feeding_config = {
                 "default_daily_food_amount": user_input.get("daily_food_amount", 500.0),
                 "default_meals_per_day": user_input.get("meals_per_day", 2),
                 "default_food_type": user_input.get("food_type", "dry_food"),
@@ -490,15 +565,17 @@ class ModuleConfigurationMixin:
 
             # Continue to GPS configuration if needed
             if self._has_gps_dogs():
-                return await self.async_step_configure_external_entities()
+                return await flow.async_step_configure_external_entities()
 
-            return await self.async_step_final_setup()
+            return await flow.async_step_final_setup()
 
         # Get feeding dogs for context
-        feeding_dogs = [
+        feeding_dogs: list[DogConfigData] = [
             dog
-            for dog in self._dogs
-            if dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False)
+            for dog in flow._dogs
+            if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                MODULE_FEEDING, False
+            )
         ]
 
         schema = vol.Schema(
@@ -573,7 +650,7 @@ class ModuleConfigurationMixin:
             }
         )
 
-        return self.async_show_form(
+        return flow.async_show_form(
             step_id="configure_feeding_details",
             data_schema=schema,
             description_placeholders={
@@ -582,7 +659,7 @@ class ModuleConfigurationMixin:
             },
         )
 
-    def _get_feeding_summary(self, feeding_dogs: list[dict[str, Any]]) -> str:
+    def _get_feeding_summary(self, feeding_dogs: list[DogConfigData]) -> str:
         """Get summary of dogs with feeding enabled.
 
         Args:
@@ -610,17 +687,19 @@ class ModuleConfigurationMixin:
         Returns:
             Formatted summary string
         """
-        if not self._dogs:
+        flow = cast("ModuleFlowHost", self)
+
+        if not flow._dogs:
             return "No dogs configured yet"
 
-        summary_parts = []
-        for dog in self._dogs[:3]:  # Show first 3 dogs
+        summary_parts: list[str] = []
+        for dog in flow._dogs[:3]:  # Show first 3 dogs
             dog_name = dog.get("dog_name", "Unknown")
-            modules = dog.get(CONF_MODULES, {})
-            enabled_count = sum(1 for enabled in modules.values() if enabled)
+            modules = cast(dict[str, Any], dog.get(CONF_MODULES, {}))
+            enabled_count = sum(1 for enabled in modules.values() if bool(enabled))
             summary_parts.append(f"{dog_name}: {enabled_count} modules")
 
-        if len(self._dogs) > 3:
-            summary_parts.append(f"...and {len(self._dogs) - 3} more")
+        if len(flow._dogs) > 3:
+            summary_parts.append(f"...and {len(flow._dogs) - 3} more")
 
         return " | ".join(summary_parts)

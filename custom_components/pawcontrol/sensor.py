@@ -39,7 +39,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
+from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime, is_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1320,7 +1320,7 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         data = self._get_garden_data()
         value = data.get("time_today_minutes")
-        if isinstance(value, int | float):
+        if is_number(value):
             return round(float(value), 2)
         return None
 
@@ -1346,8 +1346,8 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("sessions_today")
-        if isinstance(value, int | float):
-            return int(value)
+        if is_number(value):
+            return int(float(value))
         return None
 
 
@@ -1372,8 +1372,8 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("poop_today")
-        if isinstance(value, int | float):
-            return int(value)
+        if is_number(value):
+            return int(float(value))
         return None
 
 
@@ -1425,8 +1425,8 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("activities_total")
-        if isinstance(value, int | float):
-            return int(value)
+        if is_number(value):
+            return int(float(value))
         return None
 
 
@@ -1452,7 +1452,7 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         stats = self._get_garden_data().get("stats") or {}
         value = stats.get("average_session_duration")
-        if isinstance(value, int | float):
+        if is_number(value):
             return round(float(value), 2)
         return None
 
@@ -1537,7 +1537,7 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
             return None
 
         duration = last_session.get("duration_minutes")
-        if isinstance(duration, int | float):
+        if is_number(duration):
             return round(float(duration), 2)
         return None
 
@@ -1565,8 +1565,8 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
             return None
 
         activity_count = last_session.get("activity_count")
-        if isinstance(activity_count, int | float):
-            return int(activity_count)
+        if is_number(activity_count):
+            return int(float(activity_count))
         return None
 
 
@@ -1590,8 +1590,8 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
     def native_value(self) -> int | None:
         data = self._get_garden_data()
         value = data.get("activities_today")
-        if isinstance(value, int | float):
-            return int(value)
+        if is_number(value):
+            return int(float(value))
         return None
 
 
@@ -1617,7 +1617,7 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
     def native_value(self) -> float | None:
         data = self._get_garden_data()
         value = data.get("hours_since_last_session")
-        if isinstance(value, int | float):
+        if is_number(value):
             return round(float(value), 2)
         return None
 

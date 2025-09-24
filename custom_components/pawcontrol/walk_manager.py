@@ -23,6 +23,8 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from .utils import is_number
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -1150,9 +1152,7 @@ class WalkManager:
 
         # Enhanced calorie estimation with elevation
         weight = walk_data.get("dog_weight_kg")
-        estimated_weight = (
-            float(weight) if isinstance(weight, int | float) and weight > 0 else 20.0
-        )
+        estimated_weight = float(weight) if is_number(weight) and weight > 0 else 20.0
         duration_minutes = walk_data["duration"] / 60
         base_calories = estimated_weight * duration_minutes * 0.5
 

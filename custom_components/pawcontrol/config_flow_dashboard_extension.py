@@ -11,7 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -27,11 +27,35 @@ from .const import (
     DEFAULT_DASHBOARD_AUTO_CREATE,
     DEFAULT_DASHBOARD_MODE,
     DEFAULT_DASHBOARD_THEME,
+    MODULE_GPS,
 )
+from .types import DogConfigData
 
 
 class DashboardFlowMixin:
     """Mixin adding dashboard configuration steps to the config flow."""
+
+    if TYPE_CHECKING:
+        _dogs: list[DogConfigData]
+        _enabled_modules: dict[str, bool]
+        _dashboard_config: dict[str, Any]
+
+        async def async_step_configure_external_entities(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        async def async_step_final_setup(
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema: vol.Schema,
+            description_placeholders: dict[str, Any] | None = None,
+            errors: dict[str, str] | None = None,
+        ) -> ConfigFlowResult: ...
 
     async def async_step_configure_dashboard(
         self, user_input: dict[str, Any] | None = None
@@ -63,12 +87,12 @@ class DashboardFlowMixin:
                 "show_maps": user_input.get("show_maps", True),
             }
 
-            if self._enabled_modules.get("gps", False):
+            if self._enabled_modules.get(MODULE_GPS, False):
                 return await self.async_step_configure_external_entities()
             return await self.async_step_final_setup()
 
         has_multiple_dogs = len(self._dogs) > 1
-        has_gps = self._enabled_modules.get("gps", False)
+        has_gps = self._enabled_modules.get(MODULE_GPS, False)
 
         schema = vol.Schema(
             {
