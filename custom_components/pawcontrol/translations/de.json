@@ -328,7 +328,8 @@
       "invalid_time_format": "Ungültiges Zeitformat",
       "invalid_configuration": "Ungültige Konfiguration",
       "weather_entity_not_found": "Wetter-Entität nicht gefunden",
-      "invalid_weather_entity": "Ungültige Wetter-Entität ausgewählt"
+      "invalid_weather_entity": "Ungültige Wetter-Entität ausgewählt",
+      "invalid_api_endpoint": "API-Endpunkt muss eine gültige http- oder https-URL sein"
     }
   },
   "entity": {

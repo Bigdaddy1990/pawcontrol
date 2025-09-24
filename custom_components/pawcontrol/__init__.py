@@ -39,6 +39,7 @@ from .exceptions import (
 from .feeding_manager import FeedingManager
 from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
+from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
 from .notifications import PawControlNotificationManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
@@ -335,6 +336,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
             garden_manager = GardenManager(hass, entry.entry_id)
 
+            gps_geofence_manager = None
+            if any(
+                dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs_config
+            ):
+                gps_geofence_manager = GPSGeofenceManager(hass)
+                gps_geofence_manager.set_notification_manager(notification_manager)
+                _LOGGER.debug("GPS geofence manager created for GPS-enabled dogs")
+            else:
+                _LOGGER.debug(
+                    "GPS geofence manager not created - no GPS modules enabled"
+                )
+
             # Initialize geofencing manager if GPS module is enabled for any dog
             geofencing_manager = None
             if any(
@@ -471,6 +484,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager=feeding_manager,
             walk_manager=walk_manager,
             notification_manager=notification_manager,
+            gps_geofence_manager=gps_geofence_manager,
             geofencing_manager=geofencing_manager,
             garden_manager=garden_manager,
         )
@@ -588,8 +602,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Add optional managers to runtime data
         runtime_data.helper_manager = helper_manager
         runtime_data.geofencing_manager = geofencing_manager
+        runtime_data.gps_geofence_manager = gps_geofence_manager
         runtime_data.door_sensor_manager = door_sensor_manager
         runtime_data.garden_manager = garden_manager
+        runtime_data.device_api_client = coordinator.api_client
 
         # PLATINUM: Store runtime data only in ConfigEntry.runtime_data
         entry.runtime_data = runtime_data

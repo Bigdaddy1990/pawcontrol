@@ -33,6 +33,8 @@ from .config_flow_profile import (
     validate_profile_selection,
 )
 from .const import (
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
@@ -1168,6 +1170,24 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             "dashboard_auto_create": True,
             "performance_monitoring": True,
         }
+
+        # Derive default API endpoint/token from discovery results when available
+        discovery_info = self._discovery_info or {}
+        if discovery_info:
+            host = discovery_info.get("host") or discovery_info.get("ip")
+            port = discovery_info.get("port")
+            properties = discovery_info.get("properties", {})
+
+            if host and CONF_API_ENDPOINT not in options_data:
+                scheme = "https" if properties.get("https", False) else "http"
+                if port:
+                    options_data[CONF_API_ENDPOINT] = f"{scheme}://{host}:{port}"
+                else:
+                    options_data[CONF_API_ENDPOINT] = f"{scheme}://{host}"
+
+            api_token = properties.get("api_key") or discovery_info.get("api_key")
+            if api_token and CONF_API_TOKEN not in options_data:
+                options_data[CONF_API_TOKEN] = api_token
 
         return config_data, options_data
 

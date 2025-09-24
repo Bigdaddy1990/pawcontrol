@@ -110,6 +110,8 @@ CONF_WEATHER: Final[str] = "weather"
 CONF_WEATHER_ENTITY: Final[str] = "weather_entity"
 CONF_WEATHER_HEALTH_MONITORING: Final[str] = "weather_health_monitoring"
 CONF_WEATHER_ALERTS: Final[str] = "weather_alerts"
+CONF_API_ENDPOINT: Final[str] = "api_endpoint"
+CONF_API_TOKEN: Final[str] = "api_token"
 
 # OPTIMIZED: GPS configuration constants
 CONF_GPS_SOURCE: Final[str] = "gps_source"
@@ -372,6 +374,8 @@ EVENT_FEEDING_LOGGED: Final[str] = "pawcontrol_feeding_logged"
 EVENT_HEALTH_LOGGED: Final[str] = "pawcontrol_health_logged"
 EVENT_GEOFENCE_ENTERED: Final[str] = "pawcontrol_geofence_entered"
 EVENT_GEOFENCE_LEFT: Final[str] = "pawcontrol_geofence_left"
+EVENT_GEOFENCE_BREACH: Final[str] = "pawcontrol_geofence_breach"
+EVENT_GEOFENCE_RETURN: Final[str] = "pawcontrol_geofence_return"
 EVENT_GARDEN_ENTERED: Final[str] = "pawcontrol_garden_entered"
 EVENT_GARDEN_LEFT: Final[str] = "pawcontrol_garden_left"
 

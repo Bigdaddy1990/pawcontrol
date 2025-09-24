@@ -18,6 +18,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
@@ -36,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 # Sensitive keys that should be redacted in diagnostics
 REDACTED_KEYS = {
     "api_key",
+    "api_token",
     "password",
     "token",
     "secret",
@@ -49,6 +52,8 @@ REDACTED_KEYS = {
     "gps_position",
     "location",
     "personal_info",
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
 }
 
 
