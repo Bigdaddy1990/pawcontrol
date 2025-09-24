@@ -384,10 +384,22 @@ class EnhancedHealthCalculator:
         if overdue_vaccines:
             health_status["overall_score"] -= len(overdue_vaccines) * 10
             for vaccine in overdue_vaccines:
+                days_until_due = vaccine.days_until_due()
+                if days_until_due is None:
+                    _LOGGER.debug(
+                        "Skipping overdue vaccination alert for %s because the next due date is unknown",
+                        vaccine.vaccine_type,
+                    )
+                    continue
+
+                message = (
+                    f"{vaccine.vaccine_type.value.title()} vaccination is "
+                    f"{abs(days_until_due)} days overdue"
+                )
                 health_status["priority_alerts"].append(
                     {
                         "type": "vaccination_overdue",
-                        "message": f"{vaccine.vaccine_type.value.title()} vaccination is {abs(vaccine.days_until_due())} days overdue",
+                        "message": message,
                         "severity": "high",
                         "action_required": True,
                     }
@@ -395,10 +407,22 @@ class EnhancedHealthCalculator:
 
         if due_soon_vaccines:
             for vaccine in due_soon_vaccines:
+                days_until_due = vaccine.days_until_due()
+                if days_until_due is None:
+                    _LOGGER.debug(
+                        "Skipping due-soon vaccination reminder for %s because the next due date is unknown",
+                        vaccine.vaccine_type,
+                    )
+                    continue
+
+                message = (
+                    f"{vaccine.vaccine_type.value.title()} vaccination due in "
+                    f"{days_until_due} days"
+                )
                 health_status["upcoming_care"].append(
                     {
                         "type": "vaccination_due",
-                        "message": f"{vaccine.vaccine_type.value.title()} vaccination due in {vaccine.days_until_due()} days",
+                        "message": message,
                         "due_date": vaccine.next_due_date.isoformat()
                         if vaccine.next_due_date
                         else None,
@@ -413,10 +437,25 @@ class EnhancedHealthCalculator:
         if overdue_dewormings:
             health_status["overall_score"] -= len(overdue_dewormings) * 5
             for deworming in overdue_dewormings:
+                days_until_due = deworming.days_until_due()
+                if days_until_due is None:
+                    _LOGGER.debug(
+                        "Skipping overdue deworming alert for %s because the next due date is unknown",
+                        deworming.treatment_type,
+                    )
+                    continue
+
+                treatment_name = (
+                    deworming.treatment_type.value.replace("_", " ").title()
+                )
+                message = (
+                    f"{treatment_name} treatment is {abs(days_until_due)} "
+                    "days overdue"
+                )
                 health_status["priority_alerts"].append(
                     {
                         "type": "deworming_overdue",
-                        "message": f"{deworming.treatment_type.value.replace('_', ' ').title()} treatment is {abs(deworming.days_until_due())} days overdue",
+                        "message": message,
                         "severity": "medium",
                         "action_required": True,
                     }
@@ -424,10 +463,22 @@ class EnhancedHealthCalculator:
 
         if due_soon_dewormings:
             for deworming in due_soon_dewormings:
+                days_until_due = deworming.days_until_due()
+                if days_until_due is None:
+                    _LOGGER.debug(
+                        "Skipping due-soon deworming reminder for %s because the next due date is unknown",
+                        deworming.treatment_type,
+                    )
+                    continue
+
+                treatment_name = (
+                    deworming.treatment_type.value.replace("_", " ").title()
+                )
+                message = f"{treatment_name} treatment due in {days_until_due} days"
                 health_status["upcoming_care"].append(
                     {
                         "type": "deworming_due",
-                        "message": f"{deworming.treatment_type.value.replace('_', ' ').title()} treatment due in {deworming.days_until_due()} days",
+                        "message": message,
                         "due_date": deworming.next_due_date.isoformat()
                         if deworming.next_due_date
                         else None,
