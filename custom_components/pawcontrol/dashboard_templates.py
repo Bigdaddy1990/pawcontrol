@@ -153,7 +153,9 @@ class TemplateCache:
         if not self._access_times:
             return
 
-        lru_key = min(self._access_times, key=self._access_times.get)
+        lru_key = min(
+            self._access_times, key=lambda key: self._access_times[key]
+        )
         del self._cache[lru_key]
         del self._access_times[lru_key]
 
@@ -193,7 +195,9 @@ class DashboardTemplates:
         """
         self.hass = hass
         self._cache = TemplateCache()
-        self._weak_refs: dict[str, Any] = weakref.WeakValueDictionary()
+        self._weak_refs: weakref.WeakValueDictionary[str, dict[str, Any]] = (
+            weakref.WeakValueDictionary()
+        )
 
     @lru_cache(maxsize=64)  # noqa: B019
     def _get_base_card_template(self, card_type: str) -> dict[str, Any]:
@@ -205,7 +209,7 @@ class DashboardTemplates:
         Returns:
             Base card template
         """
-        base_templates = {
+        base_templates: dict[str, dict[str, Any]] = {
             "status": {
                 "type": "entities",
                 "state_color": True,
@@ -277,7 +281,11 @@ class DashboardTemplates:
             },
         }
 
-        return base_templates.get(card_type, {"type": card_type})
+        template = base_templates.get(card_type)
+        if template is None:
+            return {"type": card_type}
+
+        return template.copy()
 
     def _get_theme_styles(self, theme: str = "modern") -> dict[str, Any]:
         """Get theme-specific styling options.

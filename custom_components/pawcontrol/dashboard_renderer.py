@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -287,11 +288,13 @@ class DashboardRenderer:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter successful results and handle exceptions
-        cards = []
+        cards: list[dict[str, Any]] = []
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 _LOGGER.warning("Overview card generation failed: %s", result)
-            elif result is not None:
+                continue
+
+            if isinstance(result, dict):
                 cards.append(result)
 
         return {
@@ -366,9 +369,11 @@ class DashboardRenderer:
 
             # Add successful results
             for result in batch_results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     _LOGGER.warning("Dog view generation failed: %s", result)
-                elif result is not None:
+                    continue
+
+                if isinstance(result, dict):
                     views.append(result)
 
         return views
@@ -466,7 +471,7 @@ class DashboardRenderer:
         Returns:
             List of module view configurations
         """
-        views = []
+        views: list[dict[str, Any]] = []
         modules = dog_config.get("modules", {})
 
         # Define module views with their generators
@@ -506,9 +511,11 @@ class DashboardRenderer:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     _LOGGER.warning("Module view generation failed: %s", result)
-                elif result is not None:
+                    continue
+
+                if isinstance(result, dict):
                     views.append(result)
 
         return views
@@ -520,7 +527,10 @@ class DashboardRenderer:
         module_key: str,
         title: str,
         icon: str,
-        generator,
+        generator: Callable[
+            [dict[str, Any], dict[str, Any]],
+            Awaitable[list[dict[str, Any]] | None],
+        ],
     ) -> dict[str, Any] | None:
         """Render a single module view.
 
