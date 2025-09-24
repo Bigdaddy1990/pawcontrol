@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set
 
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 from .model import Integration
 
-FORBIDDEN_PACKAGE_NAMES: Set[str] = {"tests", "testing"}
-PACKAGE_CHECK_VERSION_RANGE: Dict[str, str] = {}
-PACKAGE_CHECK_PREPARE_UPDATE: Dict[str, int] = {}
-_packages_checked_files_cache: Dict[str, dict[str, Set[str]]] = {}
+FORBIDDEN_PACKAGE_NAMES: set[str] = {"tests", "testing"}
+PACKAGE_CHECK_VERSION_RANGE: dict[str, str] = {}
+PACKAGE_CHECK_PREPARE_UPDATE: dict[str, int] = {}
+_packages_checked_files_cache: dict[str, dict[str, set[str]]] = {}
 
 
 @dataclass(frozen=True)
@@ -65,9 +65,7 @@ def validate_requirements_format(integration: Integration) -> bool:
             continue
 
         if _has_spacing_issue(requirement):
-            integration.add_error(
-                f"Requirement \"{requirement}\" contains a space"
-            )
+            integration.add_error(f'Requirement "{requirement}" contains a space')
             valid = False
             continue
 
@@ -84,7 +82,7 @@ def validate_requirements_format(integration: Integration) -> bool:
                 Version(version.split(";", 1)[0].split(",", 1)[0])
             except InvalidVersion:
                 integration.add_error(
-                    f"Unable to parse package version ({version}) for {requirement.split('==',1)[0]}."
+                    f"Unable to parse package version ({version}) for {requirement.split('==', 1)[0]}."
                 )
                 valid = False
 
@@ -115,12 +113,10 @@ def check_dependency_version_range(
         return False
 
     test_version = Version(f"{target_major}.0")
-    if test_version in specifier_set:
-        return True
-    return False
+    return test_version in specifier_set
 
 
-def files(package: str) -> List[PackagePath]:  # pragma: no cover - patched in tests
+def files(package: str) -> list[PackagePath]:  # pragma: no cover - patched in tests
     """Return files contained in a package distribution.
 
     The real Home Assistant implementation inspects installed distributions. For
@@ -146,11 +142,7 @@ def check_dependency_files(
     if cached is not None:
         top_level = cached["top_level"]
     else:
-        top_level = {
-            path.parts[0]
-            for path in files(pkg)
-            if path.parts
-        }
+        top_level = {path.parts[0] for path in files(pkg) if path.parts}
         _packages_checked_files_cache[pkg] = {"top_level": top_level}
 
     violations = sorted(top_level & FORBIDDEN_PACKAGE_NAMES)

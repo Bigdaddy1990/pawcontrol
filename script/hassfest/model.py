@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -19,10 +20,10 @@ class Config:
     """Configuration context passed to hassfest validators."""
 
     root: Path
-    specific_integrations: Optional[Iterable[str]]
+    specific_integrations: Iterable[str] | None
     action: str
     requirements: bool = False
-    errors: List[ValidationError] = field(default_factory=list)
+    errors: list[ValidationError] = field(default_factory=list)
 
     def add_error(self, message: str) -> None:
         """Record a configuration level error."""
@@ -38,12 +39,12 @@ class Integration:
         path: Path,
         *,
         _config: Config,
-        _manifest: Optional[dict[str, Any]] = None,
+        _manifest: dict[str, Any] | None = None,
     ) -> None:
         self.path = Path(path)
         self._config = _config
         self._manifest: dict[str, Any] = _manifest or {}
-        self.errors: List[ValidationError] = []
+        self.errors: list[ValidationError] = []
 
     @property
     def manifest(self) -> dict[str, Any]:

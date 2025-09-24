@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Dict, Mapping
+from collections.abc import Mapping
 
 from packaging.utils import canonicalize_name
-
 
 EXCLUDED_REQUIREMENTS_ALL: frozenset[str] = frozenset(
     {
@@ -19,7 +18,7 @@ EXCLUDED_REQUIREMENTS_ALL: frozenset[str] = frozenset(
 INCLUDED_REQUIREMENTS_WHEELS: frozenset[str] = frozenset({"env-canada"})
 """Requirement names that should always be available as wheels."""
 
-OVERRIDDEN_REQUIREMENTS_ACTIONS: Dict[str, Dict[str, Mapping[str, str] | set[str]]] = {
+OVERRIDDEN_REQUIREMENTS_ACTIONS: dict[str, dict[str, Mapping[str, str] | set[str]]] = {
     "default": {
         "exclude": set(),
         "include": set(),
@@ -80,6 +79,6 @@ __all__ = [
     "EXCLUDED_REQUIREMENTS_ALL",
     "INCLUDED_REQUIREMENTS_WHEELS",
     "OVERRIDDEN_REQUIREMENTS_ACTIONS",
-    "process_action_requirement",
     "_normalize_package_name",
+    "process_action_requirement",
 ]

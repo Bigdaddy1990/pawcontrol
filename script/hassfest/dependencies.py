@@ -28,7 +28,9 @@ class ImportCollector(ast.NodeVisitor):
         if integration:
             self._add_reference(integration)
 
-    def visit_Import(self, node: ast.Import) -> None:  # pragma: no cover - exercised via tests
+    def visit_Import(
+        self, node: ast.Import
+    ) -> None:  # pragma: no cover - exercised via tests
         for alias in node.names:
             self._record_component(alias.name)
         self.generic_visit(node)

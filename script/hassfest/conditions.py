@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Iterable
 
 from .model import Config, Integration
 
@@ -24,7 +23,7 @@ def grep_dir(path: Path, pattern: str) -> bool:  # pragma: no cover - patched in
     return any(child.name == pattern for child in path.iterdir())
 
 
-def _load_condition_descriptions(integration: Integration) -> Dict[str, dict]:
+def _load_condition_descriptions(integration: Integration) -> dict[str, dict]:
     if annotated_loader is None:
         raise RuntimeError("annotatedyaml loader is not available")
     domain = integration.domain
@@ -64,9 +63,7 @@ def _validate_condition(
         if not string_field.get("name"):
             integration.add_error(f"Condition field {field_name} with no name")
         if not string_field.get("description"):
-            integration.add_error(
-                f"Condition field {field_name} with no description"
-            )
+            integration.add_error(f"Condition field {field_name} with no description")
         selector = field_def.get("selector", {})
         if isinstance(selector, dict):
             for selector_type, selector_details in selector.items():
@@ -83,7 +80,7 @@ def _validate_condition(
                     )
 
 
-def validate(integrations: Dict[str, Integration], config: Config) -> None:
+def validate(integrations: dict[str, Integration], config: Config) -> None:
     """Validate automation condition metadata for integrations."""
 
     for integration in integrations.values():
@@ -114,4 +111,4 @@ def validate(integrations: Dict[str, Integration], config: Config) -> None:
     # errors, so we leave the list untouched here.
 
 
-__all__ = ["validate", "grep_dir"]
+__all__ = ["grep_dir", "validate"]
