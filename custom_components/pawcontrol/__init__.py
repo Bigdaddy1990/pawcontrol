@@ -611,7 +611,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             _async_monitor_background_tasks(runtime_data)
         )
         runtime_data.background_monitor_task = monitor_task
-        entry.async_on_unload(monitor_task.cancel)
 
         # Add reload listener
         entry.async_on_unload(entry.add_update_listener(async_reload_entry))

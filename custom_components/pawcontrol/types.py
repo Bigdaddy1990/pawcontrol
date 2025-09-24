@@ -282,10 +282,10 @@ class PawControlRuntimeData:
     entity_factory: EntityFactory
     entity_profile: str
     dogs: list[DogConfigData]
-    helper_manager: PawControlHelperManager | None = None
-    geofencing_manager: PawControlGeofencing | None = None
-    garden_manager: GardenManager | None = None
     background_monitor_task: Task[None] | None = None
+    garden_manager: GardenManager | None = None
+    geofencing_manager: PawControlGeofencing | None = None
+    helper_manager: PawControlHelperManager | None = None
 
     # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
@@ -314,10 +314,10 @@ class PawControlRuntimeData:
             "dogs": self.dogs,
             "performance_stats": self.performance_stats,
             "error_history": self.error_history,
-            "helper_manager": self.helper_manager,
-            "geofencing_manager": self.geofencing_manager,
-            "garden_manager": self.garden_manager,
             "background_monitor_task": self.background_monitor_task,
+            "garden_manager": self.garden_manager,
+            "geofencing_manager": self.geofencing_manager,
+            "helper_manager": self.helper_manager,
         }
 
     def __getitem__(self, key: str) -> Any:
