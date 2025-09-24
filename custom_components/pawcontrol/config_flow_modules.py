@@ -135,9 +135,7 @@ class ModuleConfigurationMixin:
 
             # Check if we need external entity configuration
             gps_enabled = any(
-                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
-                    MODULE_GPS, False
-                )
+                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in flow._dogs
             )
 
