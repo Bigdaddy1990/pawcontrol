@@ -1119,9 +1119,7 @@ def is_feeding_data_valid(data: Any) -> bool:
 
     if "calories" in data:
         calories = data["calories"]
-        if calories is not None and (
-            not is_number(calories) or float(calories) < 0
-        ):
+        if calories is not None and (not is_number(calories) or float(calories) < 0):
             return False
 
     return True
@@ -1175,18 +1173,14 @@ def is_health_data_valid(data: Any) -> bool:
     if "weight" in data:
         weight = data["weight"]
         if weight is not None and (
-            not is_number(weight)
-            or float(weight) <= 0
-            or float(weight) > 200
+            not is_number(weight) or float(weight) <= 0 or float(weight) > 200
         ):
             return False
 
     if "temperature" in data:
         temp = data["temperature"]
         if temp is not None and (
-            not is_number(temp)
-            or float(temp) < 35
-            or float(temp) > 45
+            not is_number(temp) or float(temp) < 35 or float(temp) > 45
         ):
             return False
 
