@@ -153,9 +153,7 @@ class TemplateCache:
         if not self._access_times:
             return
 
-        lru_key = min(
-            self._access_times, key=lambda key: self._access_times[key]
-        )
+        lru_key = min(self._access_times, key=lambda key: self._access_times[key])
         del self._cache[lru_key]
         del self._access_times[lru_key]
 
