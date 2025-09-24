@@ -529,7 +529,7 @@ class DashboardRenderer:
         icon: str,
         generator: Callable[
             [dict[str, Any], dict[str, Any]],
-            Awaitable[list[dict[str, Any]] | None],
+            Awaitable[list[dict[str, Any]]],
         ],
     ) -> dict[str, Any] | None:
         """Render a single module view.
