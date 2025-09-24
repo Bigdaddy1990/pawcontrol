@@ -1,8 +1,18 @@
 """Module configuration steps for Paw Control configuration flow.
 
-This module handles the configuration of global settings and dashboard preferences
-after individual dog configuration is complete. The per-dog module selection
-is now handled in config_flow_dogs.py for better granularity.
+This module handles the configuration of global settings and dashboard
+preferences after individual dog configuration is complete. The per-dog module
+selection is now handled in ``config_flow_dogs.py`` for better granularity.
+
+The original implementation relied heavily on dynamically created attributes
+defined in :class:`~custom_components.pawcontrol.config_flow_base.PawControlBaseConfigFlow`.
+While that works at runtime, static type checkers (notably mypy with
+``disallow_untyped_defs`` enabled) cannot see those attributes. The result was
+dozens of ``attr-defined`` errors that blocked the "strict typing" milestone in
+``quality_scale.yaml``. This file now declares the required attributes in a
+``TYPE_CHECKING`` block and introduces structured return types to help mypy
+understand the control flow. The runtime behaviour is unchanged, but type
+analysis is now sound and deterministic.
 
 Quality Scale: Platinum
 Home Assistant: 2025.8.2+
@@ -12,7 +22,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -32,6 +42,23 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+    from .types import DogConfigData
+
+
+class ModuleSummary(TypedDict):
+    """Structured information about configured modules."""
+
+    total: int
+    gps_dogs: int
+    health_dogs: int
+    feeding_dogs: int
+    counts: dict[str, int]
+    description: str
+
+
 class ModuleConfigurationMixin:
     """Mixin for global module configuration after per-dog setup.
 
@@ -39,6 +66,42 @@ class ModuleConfigurationMixin:
     after individual dogs have been configured with their specific modules.
     Per-dog module selection has been moved to config_flow_dogs.py.
     """
+
+    if TYPE_CHECKING:
+        # The mixin is designed to be used together with
+        # :class:`PawControlBaseConfigFlow`, which defines these attributes and
+        # helpers. Declaring them here keeps mypy aware of the runtime
+        # contract without changing behaviour.
+        _dogs: list[DogConfigData]
+        _global_settings: dict[str, Any]
+        _dashboard_config: dict[str, Any]
+        _feeding_config: dict[str, Any]
+        hass: HomeAssistant
+
+        # Methods provided by the parent config flow implementation.
+        def async_step_configure_dashboard(  # pragma: no cover - typing only
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_step_configure_feeding_details(  # pragma: no cover - typing only
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_step_configure_external_entities(  # pragma: no cover - typing only
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_step_final_setup(  # pragma: no cover - typing only
+            self, user_input: dict[str, Any] | None = None
+        ) -> ConfigFlowResult: ...
+
+        def async_show_form(  # pragma: no cover - typing only
+            self,
+            *,
+            step_id: str,
+            data_schema: vol.Schema,
+            description_placeholders: dict[str, Any] | None = None,
+        ) -> ConfigFlowResult: ...
 
     async def async_step_configure_modules(
         self, user_input: dict[str, Any] | None = None
@@ -336,13 +399,13 @@ class ModuleConfigurationMixin:
             },
         )
 
-    def _analyze_configured_modules(self) -> dict[str, Any]:
+    def _analyze_configured_modules(self) -> ModuleSummary:
         """Analyze which modules are configured across all dogs.
 
         Returns:
             Summary of configured modules
         """
-        module_counts = {}
+        module_counts: dict[str, int] = {}
         total_modules = 0
 
         for dog in self._dogs:
@@ -356,7 +419,7 @@ class ModuleConfigurationMixin:
         health_dogs = module_counts.get(MODULE_HEALTH, 0)
         feeding_dogs = module_counts.get("feeding", 0)
 
-        description_parts = []
+        description_parts: list[str] = []
         if gps_dogs > 0:
             description_parts.append(f"{gps_dogs} dogs with GPS")
         if health_dogs > 0:
@@ -375,7 +438,7 @@ class ModuleConfigurationMixin:
             else "Basic monitoring",
         }
 
-    def _suggest_performance_mode(self, module_summary: dict[str, Any]) -> str:
+    def _suggest_performance_mode(self, module_summary: ModuleSummary) -> str:
         """Suggest performance mode based on module complexity.
 
         Args:
@@ -427,7 +490,7 @@ class ModuleConfigurationMixin:
         if module_summary["total"] == 0:
             return "Basic dashboard with core monitoring features"
 
-        features = []
+        features: list[str] = []
         if module_summary["gps_dogs"] > 0:
             features.append("live location tracking")
         if module_summary["health_dogs"] > 0:
@@ -449,7 +512,7 @@ class ModuleConfigurationMixin:
         Returns:
             Features description
         """
-        features = ["status cards", "activity tracking", "quick actions"]
+        features: list[str] = ["status cards", "activity tracking", "quick actions"]
 
         if has_gps:
             features.append("location maps")
@@ -495,7 +558,7 @@ class ModuleConfigurationMixin:
             return await self.async_step_final_setup()
 
         # Get feeding dogs for context
-        feeding_dogs = [
+        feeding_dogs: list[DogConfigData] = [
             dog
             for dog in self._dogs
             if dog.get(CONF_MODULES, {}).get(MODULE_FEEDING, False)
