@@ -341,6 +341,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 dog.get("modules", {}).get(MODULE_GPS, False) for dog in dogs_config
             ):
                 geofencing_manager = PawControlGeofencing(hass, entry.entry_id)
+                geofencing_manager.set_notification_manager(notification_manager)
                 _LOGGER.debug("Geofencing manager created for GPS-enabled dogs")
             else:
                 _LOGGER.debug("Geofencing manager not created - no GPS modules enabled")
