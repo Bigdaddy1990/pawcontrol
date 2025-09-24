@@ -69,6 +69,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from .device_api import validate_device_endpoint
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .types import DogConfigData
 
@@ -2317,6 +2318,21 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Handle advanced settings configuration."""
         if user_input is not None:
+            errors: dict[str, str] = {}
+            endpoint_value = user_input.get(CONF_API_ENDPOINT, "").strip()
+            if endpoint_value:
+                try:
+                    validate_device_endpoint(endpoint_value)
+                except ValueError:
+                    errors[CONF_API_ENDPOINT] = "invalid_api_endpoint"
+
+            if errors:
+                return self.async_show_form(
+                    step_id="advanced_settings",
+                    errors=errors,
+                    data_schema=self._get_advanced_settings_schema(user_input),
+                )
+
             try:
                 # Update options with advanced settings
                 self._unsaved_changes.update(
@@ -2338,9 +2354,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     }
                 )
                 if CONF_API_ENDPOINT in user_input:
-                    self._unsaved_changes[CONF_API_ENDPOINT] = user_input[
-                        CONF_API_ENDPOINT
-                    ].strip()
+                    self._unsaved_changes[CONF_API_ENDPOINT] = endpoint_value
                 if CONF_API_TOKEN in user_input:
                     self._unsaved_changes[CONF_API_TOKEN] = user_input[
                         CONF_API_TOKEN

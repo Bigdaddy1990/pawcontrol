@@ -23,6 +23,25 @@ class DeviceEndpoint:
     api_key: str | None = None
 
 
+def validate_device_endpoint(endpoint: str) -> URL:
+    """Validate and normalise the configured device endpoint."""
+
+    if not endpoint:
+        raise ValueError("endpoint must be provided for device client")
+
+    try:
+        base_url = URL(endpoint)
+    except ValueError as err:  # pragma: no cover - defensive
+        raise ValueError(f"Invalid Paw Control endpoint: {endpoint}") from err
+
+    if base_url.scheme not in {"http", "https"}:
+        raise ValueError("endpoint must use http or https scheme")
+    if not base_url.host:
+        raise ValueError("endpoint must include a valid hostname")
+
+    return base_url
+
+
 class PawControlDeviceClient:
     """Minimal client that talks to Paw Control companion devices."""
 
@@ -34,16 +53,7 @@ class PawControlDeviceClient:
         api_key: str | None = None,
         timeout: ClientTimeout | None = None,
     ) -> None:
-        if not endpoint:
-            raise ValueError("endpoint must be provided for device client")
-
-        try:
-            base_url = URL(endpoint)
-        except ValueError as err:  # pragma: no cover - defensive
-            raise ValueError(f"Invalid Paw Control endpoint: {endpoint}") from err
-
-        if not base_url.scheme:
-            raise ValueError("endpoint must include http or https scheme")
+        base_url = validate_device_endpoint(endpoint)
 
         self._session = session
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
@@ -105,4 +115,4 @@ class PawControlDeviceClient:
         return response
 
 
-__all__ = ["PawControlDeviceClient"]
+__all__ = ["PawControlDeviceClient", "validate_device_endpoint"]
