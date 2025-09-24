@@ -299,12 +299,13 @@ class PawControlDeviceLinkMixin:
         self._linked_device_entry = device
         self._device_link_initialized = True
 
-        if self.entity_id:
+        entity_id = cast(str | None, getattr(self, "entity_id", None))
+        if entity_id:
             entity_registry = er.async_get(hass)
-            entity_entry = entity_registry.async_get(self.entity_id)
+            entity_entry = entity_registry.async_get(entity_id)
             if entity_entry and entity_entry.device_id != device.id:
                 entity_registry.async_update_entity(
-                    self.entity_id,
+                    entity_id,
                     device_id=device.id,
                 )
 
