@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -32,7 +32,11 @@ from .const import (
     MIN_GEOFENCE_RADIUS,
     STORAGE_VERSION,
 )
+from .notifications import NotificationPriority, NotificationType
 from .types import GPSLocation
+
+if TYPE_CHECKING:
+    from .notifications import PawControlNotificationManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -227,11 +231,27 @@ class PawControlGeofencing:
         self._check_interval = DEFAULT_CHECK_INTERVAL
         self._use_home_location = True
         self._home_zone_radius = DEFAULT_HOME_ZONE_RADIUS
+        self._notification_manager: PawControlNotificationManager | None = None
 
         # Background task management
         self._update_task: asyncio.Task | None = None
         self._cleanup_task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
+
+    def set_notification_manager(
+        self, notification_manager: PawControlNotificationManager | None
+    ) -> None:
+        """Attach the notification manager used for zone alerts.
+
+        Args:
+            notification_manager: Notification manager instance or ``None`` to detach
+        """
+
+        self._notification_manager = notification_manager
+        if notification_manager:
+            _LOGGER.debug("Geofencing notification manager attached")
+        else:
+            _LOGGER.debug("Geofencing notification manager cleared")
 
     async def async_initialize(
         self,
@@ -446,6 +466,9 @@ class PawControlGeofencing:
         if not zone or not zone.alerts_enabled:
             return
 
+        dog_state = self._dog_states.get(dog_id)
+        location = dog_state.last_location if dog_state else None
+
         event_data = {
             "dog_id": dog_id,
             "zone_id": zone_id,
@@ -454,6 +477,15 @@ class PawControlGeofencing:
             "event_type": event.value,
             "timestamp": dt_util.utcnow().isoformat(),
         }
+
+        if location:
+            event_data.update(
+                {
+                    "latitude": location.latitude,
+                    "longitude": location.longitude,
+                    "altitude": location.altitude,
+                }
+            )
 
         # Fire Home Assistant event
         if event == GeofenceEvent.ENTERED:
@@ -468,6 +500,12 @@ class PawControlGeofencing:
             zone.type.value,
             zone.name,
         )
+
+        if self._notification_manager:
+            self.hass.async_create_task(
+                self._notify_zone_event(dog_id, zone, event, location),
+                name=f"pawcontrol_geofence_notify_{dog_id}_{zone_id}",
+            )
 
     async def _cleanup_old_data(self) -> None:
         """Clean up old location history and zone entry times."""
@@ -671,6 +709,141 @@ class PawControlGeofencing:
         async with self._lock:
             self._zones.clear()
             self._dog_states.clear()
+            self._notification_manager = None
+
+    async def _notify_zone_event(
+        self,
+        dog_id: str,
+        zone: GeofenceZone,
+        event: GeofenceEvent,
+        location: GPSLocation | None,
+    ) -> None:
+        """Send a notification for a geofence event using the notification manager."""
+
+        if not self._notification_manager:
+            return
+
+        priority = self._map_notification_priority(zone, event)
+        title, message = self._format_notification_content(
+            dog_id, zone, event, location
+        )
+
+        notification_data: dict[str, Any] = {
+            "zone_id": zone.id,
+            "zone_name": zone.name,
+            "zone_type": zone.type.value,
+            "event_type": event.value,
+            "radius": zone.radius,
+        }
+
+        if location:
+            distance = zone.distance_to_location(location)
+            notification_data.update(
+                {
+                    "latitude": location.latitude,
+                    "longitude": location.longitude,
+                    "distance_from_center_m": round(distance, 2),
+                    "accuracy": location.accuracy,
+                }
+            )
+
+        try:
+            await self._notification_manager.async_send_notification(
+                notification_type=NotificationType.GEOFENCE_ALERT,
+                title=title,
+                message=message,
+                dog_id=dog_id,
+                priority=priority,
+                data=notification_data,
+                allow_batching=False,
+            )
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error(
+                "Failed to send geofence notification for %s/%s: %s",
+                dog_id,
+                zone.id,
+                err,
+            )
+
+    @staticmethod
+    def _map_notification_priority(
+        zone: GeofenceZone, event: GeofenceEvent
+    ) -> NotificationPriority:
+        """Determine notification priority for a geofence event."""
+
+        if zone.type == GeofenceType.RESTRICTED_AREA:
+            if event == GeofenceEvent.ENTERED:
+                return NotificationPriority.URGENT
+            if event == GeofenceEvent.DWELL:
+                return NotificationPriority.HIGH
+            return NotificationPriority.NORMAL
+
+        if zone.type == GeofenceType.SAFE_ZONE:
+            if event == GeofenceEvent.LEFT:
+                return NotificationPriority.HIGH
+            if event == GeofenceEvent.DWELL:
+                return NotificationPriority.LOW
+            return NotificationPriority.NORMAL
+
+        if event == GeofenceEvent.DWELL:
+            return NotificationPriority.NORMAL
+        if event == GeofenceEvent.LEFT:
+            return NotificationPriority.NORMAL
+        return NotificationPriority.LOW
+
+    @staticmethod
+    def _format_notification_content(
+        dog_id: str,
+        zone: GeofenceZone,
+        event: GeofenceEvent,
+        location: GPSLocation | None,
+    ) -> tuple[str, str]:
+        """Create notification title and message for a geofence event."""
+
+        location_suffix = ""
+        if location:
+            location_suffix = (
+                f" (lat {location.latitude:.5f}, lon {location.longitude:.5f})"
+            )
+
+        if event == GeofenceEvent.ENTERED:
+            if zone.type == GeofenceType.RESTRICTED_AREA:
+                title = f"🚫 {dog_id} entered a restricted area"
+                message = (
+                    f"{dog_id} entered restricted zone '{zone.name}'{location_suffix}."
+                )
+            elif zone.type == GeofenceType.SAFE_ZONE:
+                title = f"🏡 {dog_id} returned to the safe zone"
+                message = (
+                    f"{dog_id} is back inside safe zone '{zone.name}'{location_suffix}."
+                )
+            else:
+                title = f"🗺️ {dog_id} entered {zone.name}"
+                message = f"{dog_id} entered zone '{zone.name}'{location_suffix}."
+        elif event == GeofenceEvent.LEFT:
+            if zone.type == GeofenceType.SAFE_ZONE:
+                title = f"⚠️ {dog_id} left the safe zone"
+                message = f"{dog_id} left safe zone '{zone.name}'{location_suffix}."
+            elif zone.type == GeofenceType.RESTRICTED_AREA:
+                title = f"✅ {dog_id} left the restricted area"
+                message = (
+                    f"{dog_id} exited restricted zone '{zone.name}'{location_suffix}."
+                )
+            else:
+                title = f"🚶 {dog_id} left {zone.name}"
+                message = f"{dog_id} left zone '{zone.name}'{location_suffix}."
+        else:  # GeofenceEvent.DWELL
+            if zone.type == GeofenceType.RESTRICTED_AREA:
+                title = f"⏱️ {dog_id} still in restricted area"
+                message = f"{dog_id} remains inside restricted zone '{zone.name}'{location_suffix}."
+            else:
+                title = f"⏱️ {dog_id} still in {zone.name}"
+                message = (
+                    f"{dog_id} has been in zone '{zone.name}' for an extended time"
+                    f"{location_suffix}."
+                )
+
+        return title, message
 
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
