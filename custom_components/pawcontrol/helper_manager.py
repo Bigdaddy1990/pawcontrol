@@ -15,9 +15,9 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.components import (
     input_boolean,
@@ -34,8 +34,10 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    CONF_MODULES,
     DEFAULT_RESET_TIME,
     HEALTH_STATUS_OPTIONS,
     MEAL_TYPES,
@@ -43,6 +45,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_MEDICATION,
 )
+from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,32 +104,163 @@ class PawControlHelperManager:
 
         # Track entities that were created by this manager
         self._managed_entities: dict[str, dict[str, Any]] = {}
+        self._dog_helpers: dict[str, list[str]] = {}
+        self._daily_reset_configured = False
+
+    async def async_initialize(self) -> None:
+        """Reset internal state prior to creating helpers."""
+
+        for unsubscribe in self._cleanup_listeners:
+            try:
+                unsubscribe()
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.debug(
+                    "Error cleaning up listener during initialization: %s", err
+                )
+
+        self._cleanup_listeners.clear()
+        self._created_helpers.clear()
+        self._managed_entities.clear()
+        self._dog_helpers.clear()
+        self._daily_reset_configured = False
+
+        _LOGGER.debug("Helper manager initialized for entry %s", self._entry.entry_id)
+
+    @staticmethod
+    def _normalize_dogs_config(dogs: Any) -> list[DogConfigData]:
+        """Convert raw config entry dog data into typed dictionaries."""
+
+        normalized: list[DogConfigData] = []
+
+        if isinstance(dogs, Mapping):
+            for dog_id, dog_config in dogs.items():
+                if not isinstance(dog_config, Mapping):
+                    continue
+                dog_dict: dict[str, Any] = dict(dog_config)
+                dog_dict.setdefault(CONF_DOG_ID, str(dog_id))
+                dog_dict.setdefault(CONF_DOG_NAME, str(dog_dict[CONF_DOG_ID]))
+                normalized.append(cast(DogConfigData, dog_dict))
+            return normalized
+
+        if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
+            for dog_config in dogs:
+                if not isinstance(dog_config, Mapping):
+                    continue
+                dog_dict = dict(dog_config)
+                dog_id = dog_dict.get(CONF_DOG_ID)
+                if not isinstance(dog_id, str):
+                    continue
+                if not isinstance(dog_dict.get(CONF_DOG_NAME), str):
+                    dog_dict[CONF_DOG_NAME] = dog_id
+                normalized.append(cast(DogConfigData, dog_dict))
+
+        return normalized
+
+    @staticmethod
+    def _normalize_enabled_modules(modules: Any) -> frozenset[str]:
+        """Return a normalized set of enabled module identifiers."""
+
+        if isinstance(modules, Mapping):
+            return frozenset(
+                module
+                for module, enabled in modules.items()
+                if isinstance(module, str) and bool(enabled)
+            )
+
+        if isinstance(modules, Sequence) and not isinstance(modules, str | bytes):
+            return frozenset(str(module) for module in modules)
+
+        if isinstance(modules, str):
+            return frozenset({modules})
+
+        return frozenset()
 
     async def async_setup(self) -> None:
         """Setup the helper manager and create required helpers."""
         _LOGGER.debug("Setting up PawControl helper manager")
 
         try:
-            dogs_config = self._entry.data.get(CONF_DOGS, {})
-            enabled_modules = self._entry.options.get("modules", {})
+            dogs_config = self._normalize_dogs_config(
+                self._entry.data.get(CONF_DOGS, [])
+            )
+            modules_option = (
+                self._entry.options.get(CONF_MODULES)
+                or self._entry.options.get("modules")
+                or []
+            )
+            enabled_modules = self._normalize_enabled_modules(modules_option)
 
-            for dog_id, dog_config in dogs_config.items():
-                await self._async_create_helpers_for_dog(
-                    dog_id, dog_config, enabled_modules
-                )
-
-            # Setup daily reset to reset feeding toggles
-            await self._async_setup_daily_reset()
+            await self.async_initialize()
+            created_helpers = await self.async_create_helpers_for_dogs(
+                dogs_config, enabled_modules
+            )
 
             _LOGGER.info(
                 "Helper manager setup complete: %d helpers created for %d dogs",
                 len(self._created_helpers),
-                len(dogs_config),
+                len(created_helpers),
             )
 
         except Exception as err:
             _LOGGER.error("Failed to setup helper manager: %s", err)
             raise HomeAssistantError(f"Helper manager setup failed: {err}") from err
+
+    async def async_create_helpers_for_dogs(
+        self,
+        dogs: Sequence[DogConfigData],
+        enabled_modules: Collection[str] | Mapping[str, bool],
+    ) -> dict[str, list[str]]:
+        """Create helpers for all provided dogs and return created entity IDs."""
+
+        created: dict[str, list[str]] = {}
+        if isinstance(enabled_modules, Mapping):
+            enabled_lookup = {
+                module: bool(value)
+                for module, value in enabled_modules.items()
+                if isinstance(module, str)
+            }
+        else:
+            enabled_lookup = {module: True for module in enabled_modules}
+
+        for dog in dogs:
+            dog_id = dog.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str) or not dog_id:
+                _LOGGER.debug("Skipping helper creation for dog without valid id: %s", dog)
+                continue
+
+            modules_config_raw = dog.get(CONF_MODULES, {})
+            if isinstance(modules_config_raw, Mapping):
+                modules_config = {
+                    module: bool(value)
+                    for module, value in modules_config_raw.items()
+                    if isinstance(module, str)
+                }
+            else:
+                modules_config = {}
+
+            modules_config.update(enabled_lookup)
+
+            before_creation = set(self._created_helpers)
+            await self._async_create_helpers_for_dog(dog_id, dict(dog), modules_config)
+            new_helpers = sorted(self._created_helpers - before_creation)
+
+            if not new_helpers:
+                continue
+
+            existing = self._dog_helpers.setdefault(dog_id, [])
+            for helper in new_helpers:
+                if helper not in existing:
+                    existing.append(helper)
+
+            created[dog_id] = new_helpers
+            _LOGGER.debug(
+                "Created %d helpers for dog %s", len(new_helpers), dog_id
+            )
+
+        if created:
+            await self._ensure_daily_reset_listener()
+
+        return created
 
     async def _async_create_helpers_for_dog(
         self, dog_id: str, dog_config: dict[str, Any], enabled_modules: dict[str, bool]
@@ -521,6 +655,19 @@ class PawControlHelperManager:
         except Exception as err:
             _LOGGER.warning("Failed to create input_select %s: %s", entity_id, err)
 
+    async def _ensure_daily_reset_listener(self) -> None:
+        """Ensure the daily reset listener is configured exactly once."""
+
+        if self._daily_reset_configured:
+            return
+
+        try:
+            await self._async_setup_daily_reset()
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.warning("Failed to configure daily reset listener: %s", err)
+        else:
+            self._daily_reset_configured = True
+
     async def _async_setup_daily_reset(self) -> None:
         """Setup daily reset to reset feeding toggles."""
         reset_time_str = self._entry.options.get("reset_time", DEFAULT_RESET_TIME)
@@ -553,15 +700,28 @@ class PawControlHelperManager:
     async def _async_reset_feeding_toggles(self) -> None:
         """Reset all feeding toggles to False."""
         try:
-            dogs_config = self._entry.data.get(CONF_DOGS, {})
+            dog_ids: list[str] = list(self._dog_helpers)
 
-            for dog_id in dogs_config:
+            if not dog_ids:
+                dogs_raw = self._entry.data.get(CONF_DOGS, [])
+                if isinstance(dogs_raw, Mapping):
+                    dog_ids = [str(dog_id) for dog_id in dogs_raw]
+                elif isinstance(dogs_raw, Sequence) and not isinstance(
+                    dogs_raw, str | bytes
+                ):
+                    for dog_config in dogs_raw:
+                        if isinstance(dog_config, Mapping):
+                            dog_id = dog_config.get(CONF_DOG_ID)
+                            if isinstance(dog_id, str):
+                                dog_ids.append(dog_id)
+
+            for dog_id in dog_ids:
+                slug_dog_id = slugify(dog_id)
                 for meal_type in MEAL_TYPES:
                     entity_id = HELPER_FEEDING_MEAL_TEMPLATE.format(
-                        dog_id=slugify(dog_id), meal=meal_type
+                        dog_id=slug_dog_id, meal=meal_type
                     )
 
-                    # Reset the toggle to False
                     await self._hass.services.async_call(
                         input_boolean.DOMAIN,
                         "turn_off",
@@ -569,7 +729,7 @@ class PawControlHelperManager:
                         blocking=False,
                     )
 
-            _LOGGER.info("Reset feeding toggles for %d dogs", len(dogs_config))
+            _LOGGER.info("Reset feeding toggles for %d dogs", len(dog_ids))
 
         except Exception as err:
             _LOGGER.error("Failed to reset feeding toggles: %s", err)
@@ -583,8 +743,20 @@ class PawControlHelperManager:
             dog_id: Unique identifier for the dog
             dog_config: Dog configuration dictionary
         """
-        enabled_modules = self._entry.options.get("modules", {})
-        await self._async_create_helpers_for_dog(dog_id, dog_config, enabled_modules)
+        dog_data: dict[str, Any] = dict(dog_config)
+        dog_data[CONF_DOG_ID] = dog_id
+        dog_data.setdefault(CONF_DOG_NAME, dog_id)
+
+        modules_option = (
+            self._entry.options.get(CONF_MODULES)
+            or self._entry.options.get("modules")
+            or []
+        )
+        enabled_modules = self._normalize_enabled_modules(modules_option)
+
+        await self.async_create_helpers_for_dogs(
+            [cast(DogConfigData, dog_data)], enabled_modules
+        )
 
         _LOGGER.info("Created helpers for new dog: %s", dog_id)
 
@@ -615,6 +787,8 @@ class PawControlHelperManager:
 
                 except Exception as err:
                     _LOGGER.warning("Failed to remove helper %s: %s", entity_id, err)
+
+        self._dog_helpers.pop(dog_id, None)
 
         _LOGGER.info("Removed %d helpers for dog: %s", removed_count, dog_id)
 
@@ -697,6 +871,11 @@ class PawControlHelperManager:
         """Return the set of created helper entity IDs."""
         return self._created_helpers.copy()
 
+    def get_helper_count(self) -> int:
+        """Return the total number of helpers managed by this instance."""
+
+        return len(self._created_helpers)
+
     @property
     def managed_entities(self) -> dict[str, dict[str, Any]]:
         """Return information about managed entities."""
@@ -712,6 +891,8 @@ class PawControlHelperManager:
                 _LOGGER.debug("Error cleaning up listener: %s", err)
 
         self._cleanup_listeners.clear()
+        self._daily_reset_configured = False
+        self._dog_helpers.clear()
 
         _LOGGER.debug("Helper manager cleanup complete")
 

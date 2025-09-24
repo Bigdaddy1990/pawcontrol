@@ -331,7 +331,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager = FeedingManager()
             walk_manager = WalkManager()
             entity_factory = EntityFactory(coordinator)
-            helper_manager = PawControlHelperManager(hass, entry.entry_id)
+            helper_manager = PawControlHelperManager(hass, entry)
             door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
             garden_manager = GardenManager(hass, entry.entry_id)
 
