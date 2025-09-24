@@ -12,6 +12,8 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from .utils import is_number
+
 # Support running as standalone module in tests
 try:  # pragma: no cover - fallback for direct test execution
     from .health_calculator import (
@@ -1387,21 +1389,21 @@ class FeedingManager:
         if config and health_summary:
             current_weight = health_summary.get("current_weight")
             ideal_weight = health_summary.get("ideal_weight")
-            if isinstance(current_weight, int | float) and isinstance(
-                ideal_weight, int | float
-            ):
+            if is_number(current_weight) and is_number(ideal_weight):
+                current = float(current_weight)
+                ideal = float(ideal_weight)
                 try:
                     if config.weight_goal == "lose":
-                        ratio = ideal_weight / current_weight if current_weight else 0
+                        ratio = ideal / current if current else 0
                         weight_goal_progress = max(0.0, min(ratio * 100, 100.0))
                     elif config.weight_goal == "gain":
-                        ratio = current_weight / ideal_weight if ideal_weight else 0
+                        ratio = current / ideal if ideal else 0
                         weight_goal_progress = max(0.0, min(ratio * 100, 100.0))
                     else:
-                        diff = abs(current_weight - ideal_weight)
+                        diff = abs(current - ideal)
                         weight_goal_progress = max(
                             0.0,
-                            min(100.0, 100.0 - (diff / max(ideal_weight, 1)) * 100.0),
+                            min(100.0, 100.0 - (diff / max(ideal, 1.0)) * 100.0),
                         )
                 except (TypeError, ZeroDivisionError):
                     weight_goal_progress = None

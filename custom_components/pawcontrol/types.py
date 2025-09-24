@@ -28,6 +28,8 @@ from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
+from .utils import is_number
+
 # OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
@@ -1010,7 +1012,7 @@ def is_dog_config_valid(config: Any) -> bool:
         return False
 
     if "dog_weight" in config and (
-        not isinstance(config["dog_weight"], int | float) or config["dog_weight"] <= 0
+        not is_number(config["dog_weight"]) or float(config["dog_weight"]) <= 0
     ):
         return False
 
@@ -1052,14 +1054,15 @@ def is_gps_location_valid(location: Any) -> bool:
         if coord not in location:
             return False
         value = location[coord]
-        if not isinstance(value, int | float):
+        if not is_number(value):
             return False
-        if not (limits[0] <= value <= limits[1]):
+        numeric_value = float(value)
+        if not (limits[0] <= numeric_value <= limits[1]):
             return False
 
     # Validate optional fields with appropriate constraints
     if "accuracy" in location and (
-        not isinstance(location["accuracy"], int | float) or location["accuracy"] < 0
+        not is_number(location["accuracy"]) or float(location["accuracy"]) < 0
     ):
         return False
 
@@ -1107,7 +1110,7 @@ def is_feeding_data_valid(data: Any) -> bool:
         return False
 
     portion = data["portion_size"]
-    if not isinstance(portion, int | float) or portion < 0:
+    if not is_number(portion) or float(portion) < 0:
         return False
 
     # Validate optional fields with appropriate constraints
@@ -1116,9 +1119,7 @@ def is_feeding_data_valid(data: Any) -> bool:
 
     if "calories" in data:
         calories = data["calories"]
-        if calories is not None and (
-            not isinstance(calories, int | float) or calories < 0
-        ):
+        if calories is not None and (not is_number(calories) or float(calories) < 0):
             return False
 
     return True
@@ -1172,14 +1173,14 @@ def is_health_data_valid(data: Any) -> bool:
     if "weight" in data:
         weight = data["weight"]
         if weight is not None and (
-            not isinstance(weight, int | float) or weight <= 0 or weight > 200
+            not is_number(weight) or float(weight) <= 0 or float(weight) > 200
         ):
             return False
 
     if "temperature" in data:
         temp = data["temperature"]
         if temp is not None and (
-            not isinstance(temp, int | float) or temp < 35 or temp > 45
+            not is_number(temp) or float(temp) < 35 or float(temp) > 45
         ):
             return False
 

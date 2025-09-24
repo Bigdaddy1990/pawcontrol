@@ -17,7 +17,7 @@ import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
-from typing import Any, ParamSpec, TypedDict, TypeVar, cast
+from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -35,6 +35,7 @@ K = TypeVar("K")
 V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
+Number = int | float
 
 
 class PortionValidationResult(TypedDict):
@@ -44,6 +45,14 @@ class PortionValidationResult(TypedDict):
     warnings: list[str]
     recommendations: list[str]
     percentage_of_daily: float
+
+
+def is_number(value: Any) -> TypeGuard[Number]:
+    """Return whether ``value`` is a real number (excluding booleans)."""
+
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, int | float)
 
 
 def create_device_info(
@@ -538,8 +547,9 @@ def parse_weight(weight_input: str | float | int) -> float | None:
     Returns:
         Weight in kilograms or None if invalid
     """
-    if isinstance(weight_input, int | float):
-        return float(weight_input) if weight_input > 0 else None
+    if is_number(weight_input):
+        numeric_weight = float(weight_input)
+        return numeric_weight if numeric_weight > 0 else None
 
     if not isinstance(weight_input, str):
         return None
