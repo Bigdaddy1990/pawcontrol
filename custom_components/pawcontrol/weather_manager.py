@@ -314,7 +314,7 @@ class WeatherHealthManager:
             _LOGGER.warning("Failed to load weather translations: %s", err)
             self._translations = {}
 
-    def _get_translation(self, key: str, **kwargs) -> str:
+    def _get_translation(self, key: str, **kwargs: Any) -> str:
         """Get translated string with variable substitution.
 
         Args:
@@ -326,8 +326,11 @@ class WeatherHealthManager:
         """
         try:
             # Navigate through nested translation dict
-            value = self._translations
+            value: Any = self._translations
             for part in key.split("."):
+                if not isinstance(value, dict):
+                    value = {}
+                    break
                 value = value.get(part, {})
 
             if isinstance(value, str):
@@ -339,7 +342,7 @@ class WeatherHealthManager:
         # Fallback to English if translation not found
         return self._get_english_fallback(key, **kwargs)
 
-    def _get_english_fallback(self, key: str, **kwargs) -> str:
+    def _get_english_fallback(self, key: str, **kwargs: Any) -> str:
         """Get English fallback text for translation keys.
 
         Args:
@@ -349,7 +352,7 @@ class WeatherHealthManager:
         Returns:
             English fallback text
         """
-        fallbacks = {
+        fallbacks: dict[str, str] = {
             # Alert titles
             "weather.alerts.extreme_heat_warning.title": "🔥 Extreme Heat Warning",
             "weather.alerts.high_heat_advisory.title": "🌡️ High Heat Advisory",
@@ -897,7 +900,7 @@ class WeatherHealthManager:
         Returns:
             List of predicted health impacts
         """
-        alerts = []
+        alerts: list[WeatherHealthImpact] = []
 
         if forecast_point.temperature_c is None:
             return alerts
@@ -1267,7 +1270,7 @@ class WeatherHealthManager:
             alert for alert in self._active_alerts if alert.is_active
         ]
 
-        new_alerts = []
+        new_alerts: list[WeatherAlert] = []
 
         # Temperature-based alerts
         new_alerts.extend(self._check_temperature_alerts())
@@ -1301,7 +1304,7 @@ class WeatherHealthManager:
         Returns:
             List of temperature-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if (
             not self._current_conditions
@@ -1481,7 +1484,7 @@ class WeatherHealthManager:
         Returns:
             List of UV-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or self._current_conditions.uv_index is None:
             return alerts
@@ -1550,7 +1553,7 @@ class WeatherHealthManager:
         Returns:
             List of humidity-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if (
             not self._current_conditions
@@ -1598,7 +1601,7 @@ class WeatherHealthManager:
         Returns:
             List of condition-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or not self._current_conditions.condition:
             return alerts
@@ -1744,7 +1747,7 @@ class WeatherHealthManager:
 
         forecast = self._current_forecast
 
-        summary = {
+        summary: dict[str, Any] = {
             "status": "available",
             "forecast_quality": forecast.quality.value,
             "forecast_summary": forecast.forecast_summary,
