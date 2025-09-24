@@ -25,6 +25,17 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .const import (
+    EVENT_GEOFENCE_BREACH,
+    EVENT_GEOFENCE_ENTERED,
+    EVENT_GEOFENCE_LEFT,
+    EVENT_GEOFENCE_RETURN,
+)
+from .notifications import (
+    NotificationPriority,
+    NotificationType,
+    PawControlNotificationManager,
+)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -304,6 +315,7 @@ class GPSGeofenceManager:
         self._last_locations: dict[str, GPSPoint] = {}
         self._tracking_tasks: dict[str, asyncio.Task] = {}
         self._route_history: dict[str, list[WalkRoute]] = {}
+        self._notification_manager: PawControlNotificationManager | None = None
 
         # Performance tracking
         self._stats = {
@@ -312,6 +324,13 @@ class GPSGeofenceManager:
             "geofence_events": 0,
             "last_update": dt_util.utcnow(),
         }
+
+    def set_notification_manager(
+        self, manager: PawControlNotificationManager | None
+    ) -> None:
+        """Attach or detach the notification manager used for alerts."""
+
+        self._notification_manager = manager
 
     async def async_configure_dog_gps(
         self, dog_id: str, config: dict[str, Any]
@@ -952,35 +971,80 @@ class GPSGeofenceManager:
     async def _send_geofence_notification(self, event: GeofenceEvent) -> None:
         """Send notification for geofence event."""
         try:
-            # This would integrate with the notification manager
-            # For now, just log the event
+            event_payload: dict[str, Any] = {
+                "dog_id": event.dog_id,
+                "zone": event.zone.name,
+                "zone_type": event.zone.zone_type,
+                "event": event.event_type.value,
+                "distance_meters": round(event.distance_from_center, 2),
+                "timestamp": event.timestamp.isoformat(),
+                "latitude": event.location.latitude,
+                "longitude": event.location.longitude,
+            }
+            if event.duration_outside:
+                event_payload["duration_seconds"] = int(
+                    event.duration_outside.total_seconds()
+                )
 
-            title = f"🗺️ Geofence Alert: {event.dog_id}"
+            hass_event = {
+                GeofenceEventType.ENTERED: EVENT_GEOFENCE_ENTERED,
+                GeofenceEventType.EXITED: EVENT_GEOFENCE_LEFT,
+                GeofenceEventType.BREACH: EVENT_GEOFENCE_BREACH,
+                GeofenceEventType.RETURN: EVENT_GEOFENCE_RETURN,
+            }[event.event_type]
+            self.hass.bus.async_fire(hass_event, event_payload)
+
+            title = f"Geofence alert • {event.dog_id}"
+            zone_name = event.zone.name
+            distance = event_payload["distance_meters"]
 
             if event.event_type == GeofenceEventType.ENTERED:
-                message = f"{event.dog_id} entered {event.zone.name}"
+                message = f"{event.dog_id} entered {zone_name}."
+                priority = NotificationPriority.NORMAL
+            elif event.event_type == GeofenceEventType.RETURN:
+                message = f"{event.dog_id} returned to {zone_name}."
+                priority = NotificationPriority.NORMAL
             elif event.event_type == GeofenceEventType.EXITED:
-                message = f"{event.dog_id} left {event.zone.name}"
-            elif event.event_type == GeofenceEventType.BREACH:
-                duration_min = (
-                    event.duration_outside.total_seconds() / 60
-                    if event.duration_outside
-                    else 0
+                message = (
+                    f"{event.dog_id} left {zone_name} and is {distance:.0f} m away."
                 )
-                message = f"{event.dog_id} has been outside {event.zone.name} for {duration_min:.1f} minutes"
+                priority = (
+                    NotificationPriority.HIGH
+                    if event.zone.zone_type == "safe_zone"
+                    else NotificationPriority.NORMAL
+                )
             else:
-                message = f"{event.dog_id} returned to {event.zone.name}"
+                duration = event_payload.get("duration_seconds", 0)
+                minutes = duration / 60 if duration else 0
+                message = (
+                    f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
+                )
+                priority = NotificationPriority.URGENT
+
+            notification_data = {
+                "zone": zone_name,
+                "zone_type": event.zone.zone_type,
+                "event": event.event_type.value,
+                "distance_meters": distance,
+                "coordinates": {
+                    "latitude": event.location.latitude,
+                    "longitude": event.location.longitude,
+                },
+            }
+            if event.duration_outside:
+                notification_data["duration_seconds"] = event_payload["duration_seconds"]
 
             _LOGGER.info("Geofence notification: %s - %s", title, message)
 
-            # TODO: Integrate with notification manager when available
-            # await notification_manager.async_send_notification(
-            #     notification_type="geofence_alert",
-            #     title=title,
-            #     message=message,
-            #     dog_id=event.dog_id,
-            #     priority=severity,
-            # )
+            if self._notification_manager:
+                await self._notification_manager.async_send_notification(
+                    NotificationType.GEOFENCE_ALERT,
+                    title,
+                    message,
+                    dog_id=event.dog_id,
+                    priority=priority,
+                    data=notification_data,
+                )
 
         except Exception as err:
             _LOGGER.error("Failed to send geofence notification: %s", err)

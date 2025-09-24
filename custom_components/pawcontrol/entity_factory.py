@@ -48,20 +48,20 @@ _ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
 # Entity profile definitions with performance impact
 ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
     "basic": {
-        "name": "Basic (8 entities)",
-        "description": "Essential monitoring only - Best performance",
-        "max_entities": 8,
+        "name": "Basic (≤6 entities)",
+        "description": "Absolute minimum footprint for one dog",
+        "max_entities": 6,
         "performance_impact": "minimal",
-        "recommended_for": "Single dog, basic monitoring",
-        "platforms": [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_SENSOR],
-        "priority_threshold": 7,  # Only high-priority entities
+        "recommended_for": "Single dog, essential telemetry only",
+        "platforms": [Platform.SENSOR, Platform.BINARY_SENSOR],
+        "priority_threshold": 8,  # Critical-only entities for the basic tier
     },
     "standard": {
-        "name": "Standard (12 entities)",
-        "description": "Balanced monitoring with GPS - Good performance",
-        "max_entities": 12,
+        "name": "Standard (≤10 entities)",
+        "description": "Balanced monitoring with selective extras",
+        "max_entities": 10,
         "performance_impact": "low",
-        "recommended_for": "Most users, balanced functionality",
+        "recommended_for": "Most users, curated functionality",
         "platforms": [
             Platform.SENSOR,
             Platform.BUTTON,
@@ -69,20 +69,20 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.SELECT,
             Platform.SWITCH,
         ],
-        "priority_threshold": 4,  # Medium-priority entities and above
+        "priority_threshold": 6,  # Medium-priority entities and above
     },
     "advanced": {
-        "name": "Advanced (18 entities)",
-        "description": "Comprehensive monitoring - Higher resource usage",
-        "max_entities": 18,
+        "name": "Advanced (≤16 entities)",
+        "description": "Comprehensive monitoring – higher resource usage",
+        "max_entities": 16,
         "performance_impact": "medium",
         "recommended_for": "Power users, detailed analytics",
-        "platforms": ALL_AVAILABLE_PLATFORMS,  # All platforms available
+        "platforms": ALL_AVAILABLE_PLATFORMS,
         "priority_threshold": 3,  # Most entities included
     },
     "gps_focus": {
-        "name": "GPS Focus (10 entities)",
-        "description": "GPS tracking optimized - Good for active dogs",
+        "name": "GPS Focus (≤10 entities)",
+        "description": "GPS tracking optimised for active dogs",
         "max_entities": 10,
         "performance_impact": "low",
         "recommended_for": "Active dogs, outdoor adventures",
@@ -93,12 +93,12 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.DEVICE_TRACKER,
             Platform.NUMBER,
         ],
-        "priority_threshold": 5,  # GPS-focused entities
+        "priority_threshold": 6,  # Keep non-critical GPS sensors out
         "preferred_modules": ["gps", "walk", "visitor"],
     },
     "health_focus": {
-        "name": "Health Focus (10 entities)",
-        "description": "Health monitoring optimized - Good for senior dogs",
+        "name": "Health Focus (≤10 entities)",
+        "description": "Health monitoring optimised for senior dogs",
         "max_entities": 10,
         "performance_impact": "low",
         "recommended_for": "Senior dogs, health conditions",
@@ -110,7 +110,7 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.DATE,
             Platform.TEXT,
         ],
-        "priority_threshold": 5,  # Health-focused entities
+        "priority_threshold": 6,
         "preferred_modules": ["health", "feeding", "medication"],
     },
 }
@@ -119,81 +119,81 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
 # performance-critical calculations.
 MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
     "feeding": {
-        "basic": 3,  # feeding_status, last_feeding, next_feeding
-        "standard": 5,  # + portion_today, schedule_active, food_level
-        "advanced": 10,  # + nutrition_tracking, feeding_history, alerts
-        "health_focus": 6,  # Health-optimized feeding entities
-        "gps_focus": 3,  # Minimal feeding for GPS focus
+        "basic": 2,  # last feeding + critical schedule helper
+        "standard": 5,  # adds calories/portions without diagnostics
+        "advanced": 8,  # detailed nutrition insights
+        "health_focus": 5,  # curated for health automations
+        "gps_focus": 2,  # minimal feeding context for GPS builds
     },
     "walk": {
-        "basic": 2,  # walk_status, daily_walks
-        "standard": 3,  # + current_walk_duration, last_walk_distance
-        "advanced": 6,  # + walk_history, activity_score, route_map
-        "gps_focus": 5,  # GPS-optimized walk tracking
-        "health_focus": 4,  # Health metrics from walks
+        "basic": 2,  # last walk + count today
+        "standard": 4,  # adds duration and weekly rollups
+        "advanced": 6,  # full history/analytics
+        "gps_focus": 5,  # GPS-centric walk metrics
+        "health_focus": 3,  # walk data that feeds health scoring
     },
     "gps": {
-        "basic": 2,  # location, battery
-        "standard": 3,  # + accuracy, zone_status
-        "advanced": 5,  # + altitude, speed, heading
-        "gps_focus": 6,  # All GPS features optimized
-        "health_focus": 3,  # Basic GPS for health context
+        "basic": 1,  # location state only
+        "standard": 3,  # adds accuracy/battery context
+        "advanced": 5,  # altitude, heading, etc.
+        "gps_focus": 6,  # full GPS feature set
+        "health_focus": 2,  # minimal health context from GPS
     },
     "health": {
-        "basic": 2,  # health_status, weight
-        "standard": 3,  # + mood, activity_level
-        "advanced": 6,  # + detailed_metrics, trends, alerts
-        "health_focus": 8,  # Comprehensive health monitoring
-        "gps_focus": 3,  # Basic health for GPS context
+        "basic": 2,  # status + weight
+        "standard": 3,  # adds trend scoring
+        "advanced": 6,  # deep health analytics
+        "health_focus": 8,  # full dedicated health set
+        "gps_focus": 3,  # minimal health overlay
     },
     "notifications": {
-        "basic": 1,  # notification_status
-        "standard": 2,  # + pending_notifications
-        "advanced": 3,  # + notification_history
-        "gps_focus": 2,  # GPS-related notifications
-        "health_focus": 2,  # Health-related notifications
+        "basic": 1,
+        "standard": 2,
+        "advanced": 3,
+        "gps_focus": 2,
+        "health_focus": 2,
     },
     "dashboard": {
-        "basic": 0,  # No dashboard entities
-        "standard": 1,  # dashboard_status
-        "advanced": 2,  # + dashboard_config
-        "gps_focus": 1,  # GPS dashboard
-        "health_focus": 1,  # Health dashboard
+        "basic": 0,
+        "standard": 1,
+        "advanced": 2,
+        "gps_focus": 1,
+        "health_focus": 1,
     },
     "visitor": {
-        "basic": 1,  # visitor_mode
-        "standard": 2,  # + visitor_schedule
-        "advanced": 3,  # + visitor_history
-        "gps_focus": 2,  # GPS-enhanced visitor mode
-        "health_focus": 1,  # Basic visitor mode
+        "basic": 1,
+        "standard": 2,
+        "advanced": 3,
+        "gps_focus": 2,
+        "health_focus": 1,
     },
     "medication": {
-        "basic": 2,  # medication_due, last_dose
-        "standard": 3,  # + medication_schedule
-        "advanced": 5,  # + medication_history, side_effects
-        "health_focus": 6,  # Comprehensive medication tracking
-        "gps_focus": 2,  # Basic medication for GPS users
+        "basic": 1,
+        "standard": 2,
+        "advanced": 4,
+        "health_focus": 5,
+        "gps_focus": 1,
     },
     "training": {
-        "basic": 1,  # training_status
-        "standard": 3,  # + training_progress, sessions_today
-        "advanced": 5,  # + training_history, skill_levels
-        "gps_focus": 2,  # Location-based training
-        "health_focus": 3,  # Health-integrated training
+        "basic": 1,
+        "standard": 2,
+        "advanced": 4,
+        "gps_focus": 2,
+        "health_focus": 2,
     },
     "grooming": {
-        "basic": 1,  # grooming_due
-        "standard": 2,  # + last_grooming
-        "advanced": 3,  # + grooming_schedule
-        "health_focus": 3,  # Health-integrated grooming
-        "gps_focus": 1,  # Basic grooming status
+        "basic": 1,
+        "standard": 2,
+        "advanced": 3,
+        "health_focus": 3,
+        "gps_focus": 1,
     },
     "garden": {
-        "basic": 4,  # session count, time, poop, last session
-        "standard": 7,  # + activities today/count, last duration, hours since
-        "advanced": 11,  # + averages, stats, favorite activities, last session detail
-        "gps_focus": 6,  # Outdoor focused metrics
-        "health_focus": 7,  # Activity summaries useful for health automations
+        "basic": 2,  # time + sessions only
+        "standard": 5,  # adds poop + recent duration/summary
+        "advanced": 8,  # statistics suite
+        "gps_focus": 5,
+        "health_focus": 6,
     },
 }
 
@@ -206,8 +206,6 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
             {
                 "feeding": True,
                 "walk": True,
-                "health": True,
-                "gps": True,
                 "notifications": True,
             }
         ),
@@ -219,7 +217,6 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
                 "feeding": True,
                 "walk": True,
                 "health": True,
-                "gps": True,
                 "garden": True,
                 "notifications": True,
                 "dashboard": True,
@@ -810,10 +807,10 @@ class EntityFactory:
         return {
             "feeding": True,
             "walk": True,
-            "health": True,
-            "garden": True,
-            "gps": False,
             "notifications": True,
+            "health": False,
+            "garden": False,
+            "gps": False,
         }
 
     def get_performance_metrics(

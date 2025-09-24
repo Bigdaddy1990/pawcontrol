@@ -30,6 +30,8 @@ from .config_flow_profile import (
     validate_profile_selection,
 )
 from .const import (
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
     CONF_DASHBOARD_MODE,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -2335,6 +2337,10 @@ class PawControlOptionsFlow(OptionsFlow):
                         ),
                     }
                 )
+                if CONF_API_ENDPOINT in user_input:
+                    self._unsaved_changes[CONF_API_ENDPOINT] = user_input[CONF_API_ENDPOINT].strip()
+                if CONF_API_TOKEN in user_input:
+                    self._unsaved_changes[CONF_API_TOKEN] = user_input[CONF_API_TOKEN].strip()
                 # Save changes and return to main menu
                 return await self._async_save_options()
             except Exception as err:
@@ -2425,6 +2431,30 @@ class PawControlOptionsFlow(OptionsFlow):
                         current_options.get(CONF_EXTERNAL_INTEGRATIONS, False),
                     ),
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    CONF_API_ENDPOINT,
+                    default=current_values.get(
+                        CONF_API_ENDPOINT,
+                        current_options.get(CONF_API_ENDPOINT, ""),
+                    ),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=False,
+                    )
+                ),
+                vol.Optional(
+                    CONF_API_TOKEN,
+                    default=current_values.get(
+                        CONF_API_TOKEN,
+                        current_options.get(CONF_API_TOKEN, ""),
+                    ),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.PASSWORD,
+                        multiline=False,
+                    )
+                ),
             }
         )
 

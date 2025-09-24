@@ -176,104 +176,61 @@ async def _create_module_entities(
     module_entity_rules = {
         "feeding": {
             "basic": [
-                ("last_feeding", PawControlLastFeedingSensor, 8),
-                ("daily_calories", PawControlDailyCaloriesSensor, 7),
-                ("daily_portions", PawControlDailyPortionsSensor, 6),
-                (
-                    "last_feeding_hours",
-                    PawControlLastFeedingHoursSensor,
-                    5,
-                ),  # NEW: Critical missing sensor
+                ("last_feeding", PawControlLastFeedingSensor, 9),
+                ("daily_portions", PawControlDailyPortionsSensor, 8),
             ],
             "standard": [
-                ("last_feeding", PawControlLastFeedingSensor, 8),
+                ("last_feeding", PawControlLastFeedingSensor, 9),
+                ("daily_portions", PawControlDailyPortionsSensor, 8),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
-                ("daily_portions", PawControlDailyPortionsSensor, 6),
-                ("food_consumption", PawControlFoodConsumptionSensor, 5),
-                (
-                    "last_feeding_hours",
-                    PawControlLastFeedingHoursSensor,
-                    5,
-                ),  # NEW: Critical missing sensor
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 6),
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    4,
+                    5,
                 ),
-                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 3),
-                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 2),
-                ("health_feeding_status", PawControlHealthFeedingStatusSensor, 1),
-                (
-                    "diet_validation_status",
-                    PawControlDietValidationStatusSensor,
-                    1,
-                ),
-                ("diet_conflict_count", PawControlDietConflictCountSensor, 0),
-                ("diet_warning_count", PawControlDietWarningCountSensor, 0),
-                (
-                    "diet_vet_consultation",
-                    PawControlDietVetConsultationSensor,
-                    0,
-                ),
-                (
-                    "diet_validation_adjustment",
-                    PawControlDietValidationAdjustmentSensor,
-                    0,
-                ),
-                (
-                    "diet_compatibility_score",
-                    PawControlDietCompatibilityScoreSensor,
-                    0,
-                ),
+                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 4),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 3),
+                ("health_feeding_status", PawControlHealthFeedingStatusSensor, 2),
             ],
             "advanced": [
-                ("last_feeding", PawControlLastFeedingSensor, 8),
-                ("daily_calories", PawControlDailyCaloriesSensor, 7),
-                ("daily_portions", PawControlDailyPortionsSensor, 6),
-                ("food_consumption", PawControlFoodConsumptionSensor, 5),
-                (
-                    "last_feeding_hours",
-                    PawControlLastFeedingHoursSensor,
-                    5,
-                ),  # NEW: Critical missing sensor
+                ("last_feeding", PawControlLastFeedingSensor, 9),
+                ("daily_calories", PawControlDailyCaloriesSensor, 8),
+                ("daily_portions", PawControlDailyPortionsSensor, 7),
+                ("food_consumption", PawControlFoodConsumptionSensor, 6),
+                ("last_feeding_hours", PawControlLastFeedingHoursSensor, 6),
                 (
                     "feeding_schedule_adherence",
                     PawControlFeedingScheduleAdherenceSensor,
-                    4,
+                    5,
                 ),
-                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 3),
-                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 2),
-                ("health_aware_portion", PawControlHealthAwarePortionSensor, 1),
-                ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 1),
-                ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 1),
+                ("calorie_goal_progress", PawControlCalorieGoalProgressSensor, 4),
+                ("total_feedings_today", PawControlTotalFeedingsTodaySensor, 3),
+                ("health_aware_portion", PawControlHealthAwarePortionSensor, 2),
+                ("daily_calorie_target", PawControlDailyCalorieTargetSensor, 2),
+                ("calories_consumed_today", PawControlCaloriesConsumedTodaySensor, 2),
                 (
                     "portion_adjustment_factor",
                     PawControlPortionAdjustmentFactorSensor,
-                    0,
+                    1,
                 ),
-                ("feeding_recommendation", PawControlFeedingRecommendationSensor, 0),
-                (
-                    "diet_validation_status",
-                    PawControlDietValidationStatusSensor,
-                    0,
-                ),
+                ("feeding_recommendation", PawControlFeedingRecommendationSensor, 1),
+                ("diet_validation_status", PawControlDietValidationStatusSensor, 1),
                 ("diet_conflict_count", PawControlDietConflictCountSensor, 0),
                 ("diet_warning_count", PawControlDietWarningCountSensor, 0),
-                (
-                    "diet_vet_consultation",
-                    PawControlDietVetConsultationSensor,
-                    0,
-                ),
+                ("diet_vet_consultation", PawControlDietVetConsultationSensor, 0),
                 (
                     "diet_validation_adjustment",
                     PawControlDietValidationAdjustmentSensor,
                     0,
                 ),
-                (
-                    "diet_compatibility_score",
-                    PawControlDietCompatibilityScoreSensor,
-                    0,
-                ),
+                ("diet_compatibility_score", PawControlDietCompatibilityScoreSensor, 0),
+            ],
+            "gps_focus": [
+                ("last_feeding", PawControlLastFeedingSensor, 9),
+                ("daily_portions", PawControlDailyPortionsSensor, 8),
+                ("daily_calories", PawControlDailyCaloriesSensor, 7),
+                ("food_consumption", PawControlFoodConsumptionSensor, 5),
             ],
             "health_focus": [
                 ("health_feeding_status", PawControlHealthFeedingStatusSensor, 9),
@@ -320,70 +277,48 @@ async def _create_module_entities(
         },
         "walk": {
             "basic": [
-                ("last_walk", PawControlLastWalkSensor, 8),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                (
-                    "walk_distance_today",
-                    PawControlWalkDistanceTodaySensor,
-                    6,
-                ),
-                (
-                    "calories_burned_today",
-                    PawControlCaloriesBurnedTodaySensor,
-                    5,
-                ),  # NEW: Critical missing sensor
+                ("last_walk", PawControlLastWalkSensor, 9),
+                ("walk_count_today", PawControlWalkCountTodaySensor, 8),
             ],
             "standard": [
-                ("last_walk", PawControlLastWalkSensor, 8),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 7),
-                (
-                    "walk_distance_today",
-                    PawControlWalkDistanceTodaySensor,
-                    6,
-                ),
-                (
-                    "calories_burned_today",
-                    PawControlCaloriesBurnedTodaySensor,
-                    5,
-                ),  # NEW: Critical missing sensor
-                ("last_walk_duration", PawControlLastWalkDurationSensor, 4),
-                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 3),
-                (
-                    "total_walk_distance",
-                    PawControlTotalWalkDistanceSensor,
-                    2,
-                ),  # NEW: Critical missing sensor
-                (
-                    "walks_this_week",
-                    PawControlWalksThisWeekSensor,
-                    1,
-                ),  # NEW: Critical missing sensor
-            ],
-            "gps_focus": [
-                ("last_walk", PawControlLastWalkSensor, 8),
+                ("last_walk", PawControlLastWalkSensor, 9),
+                ("walk_count_today", PawControlWalkCountTodaySensor, 8),
                 (
                     "walk_distance_today",
                     PawControlWalkDistanceTodaySensor,
                     7,
                 ),
                 (
+                    "calories_burned_today",
+                    PawControlCaloriesBurnedTodaySensor,
+                    6,
+                ),
+                ("last_walk_duration", PawControlLastWalkDurationSensor, 5),
+                ("total_walk_time_today", PawControlTotalWalkTimeTodaySensor, 4),
+            ],
+            "gps_focus": [
+                ("last_walk", PawControlLastWalkSensor, 9),
+                (
+                    "walk_distance_today",
+                    PawControlWalkDistanceTodaySensor,
+                    8,
+                ),
+                (
                     "total_walk_distance",
                     PawControlTotalWalkDistanceSensor,
-                    6,
-                ),  # NEW: Higher priority for GPS
-                ("walk_count_today", PawControlWalkCountTodaySensor, 5),
+                    7,
+                ),
+                ("walk_count_today", PawControlWalkCountTodaySensor, 6),
                 (
                     "walks_this_week",
                     PawControlWalksThisWeekSensor,
-                    4,
-                ),  # NEW: Critical missing sensor
+                    5,
+                ),
                 (
                     "calories_burned_today",
                     PawControlCaloriesBurnedTodaySensor,
-                    3,
-                ),  # NEW: Critical missing sensor
-                ("last_walk_distance", PawControlLastWalkDistanceSensor, 2),
-                ("average_walk_duration", PawControlAverageWalkDurationSensor, 1),
+                    4,
+                ),
             ],
         },
         MODULE_GARDEN: {
@@ -391,59 +326,49 @@ async def _create_module_entities(
                 (
                     "garden_time_today",
                     PawControlGardenTimeTodaySensor,
-                    7,
+                    8,
                 ),
                 (
                     "garden_sessions_today",
                     PawControlGardenSessionsTodaySensor,
-                    6,
-                ),
-                (
-                    "garden_poop_count_today",
-                    PawControlGardenPoopCountTodaySensor,
-                    5,
-                ),
-                (
-                    "last_garden_session",
-                    PawControlLastGardenSessionSensor,
-                    4,
+                    7,
                 ),
             ],
             "standard": [
                 (
                     "garden_time_today",
                     PawControlGardenTimeTodaySensor,
-                    7,
+                    8,
                 ),
                 (
                     "garden_sessions_today",
                     PawControlGardenSessionsTodaySensor,
-                    6,
+                    7,
                 ),
                 (
                     "garden_poop_count_today",
                     PawControlGardenPoopCountTodaySensor,
-                    5,
+                    6,
                 ),
                 (
                     "garden_activities_today",
                     PawControlGardenActivitiesTodaySensor,
-                    4,
+                    5,
                 ),
                 (
                     "garden_activities_count",
                     PawControlGardenActivitiesCountSensor,
-                    3,
+                    4,
                 ),
                 (
                     "last_garden_session_hours",
                     PawControlLastGardenSessionHoursSensor,
-                    2,
+                    3,
                 ),
                 (
                     "last_garden_duration",
                     PawControlLastGardenDurationSensor,
-                    1,
+                    2,
                 ),
             ],
             "advanced": [

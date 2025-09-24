@@ -34,10 +34,13 @@ from .utils import is_number
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
     from .data_manager import PawControlDataManager
+    from .device_api import PawControlDeviceClient
+    from .door_sensor_manager import DoorSensorManager
     from .entity_factory import EntityFactory
     from .feeding_manager import FeedingManager
     from .garden_manager import GardenManager
     from .geofencing import PawControlGeofencing
+    from .gps_manager import GPSGeofenceManager
     from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
@@ -332,6 +335,9 @@ class PawControlRuntimeData:
     garden_manager: GardenManager | None = None
     geofencing_manager: PawControlGeofencing | None = None
     helper_manager: PawControlHelperManager | None = None
+    gps_geofence_manager: GPSGeofenceManager | None = None
+    door_sensor_manager: DoorSensorManager | None = None
+    device_api_client: PawControlDeviceClient | None = None
 
     # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
@@ -358,12 +364,16 @@ class PawControlRuntimeData:
             "entity_factory": self.entity_factory,
             "entity_profile": self.entity_profile,
             "dogs": self.dogs,
+            "garden_manager": self.garden_manager,
+            "geofencing_manager": self.geofencing_manager,
+            "gps_geofence_manager": self.gps_geofence_manager,
+            "door_sensor_manager": self.door_sensor_manager,
+            "helper_manager": self.helper_manager,
+            "device_api_client": self.device_api_client,
             "performance_stats": self.performance_stats,
             "error_history": self.error_history,
             "background_monitor_task": self.background_monitor_task,
-            "garden_manager": self.garden_manager,
-            "geofencing_manager": self.geofencing_manager,
-            "helper_manager": self.helper_manager,
+            "daily_reset_unsub": self.daily_reset_unsub,
         }
 
     def __getitem__(self, key: str) -> Any:
