@@ -14,7 +14,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant
@@ -33,7 +33,12 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 from .notifications import NotificationPriority, NotificationType
-from .types import DogConfigData
+from .types import (
+    DetectionStatistics,
+    DetectionStatus,
+    DetectionStatusEntry,
+    DogConfigData,
+)
 
 if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
@@ -149,37 +154,6 @@ class WalkDetectionState:
             confidence += 0.05
 
         return min(confidence, 1.0)
-
-
-class DetectionStatistics(TypedDict):
-    """Aggregated statistics for door sensor walk detection."""
-
-    total_detections: int
-    successful_walks: int
-    false_positives: int
-    false_negatives: int
-    average_confidence: float
-
-
-class DetectionStatusEntry(TypedDict):
-    """Status information for a single dog's detection state."""
-
-    dog_name: str
-    door_sensor: str
-    current_state: str
-    confidence_score: float
-    active_walk_id: str | None
-    last_door_state: str | None
-    recent_activity: int
-
-
-class DetectionStatus(TypedDict):
-    """Structured detection status payload for diagnostics."""
-
-    configured_dogs: int
-    active_detections: int
-    detection_states: dict[str, DetectionStatusEntry]
-    statistics: DetectionStatistics
 
 
 class DoorSensorManager:
@@ -881,7 +855,7 @@ class DoorSensorManager:
 
         # Clean up any active walks
         for state in self._detection_states.values():
-            if state.active_walk_id and self._walk_manager is not None:
+            if state.active_walk_id is not None and self._walk_manager is not None:
                 try:
                     await self._walk_manager.async_end_walk(
                         dog_id=state.dog_id,

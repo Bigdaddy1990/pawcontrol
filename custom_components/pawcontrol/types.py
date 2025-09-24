@@ -240,6 +240,50 @@ class DogConfigData(TypedDict):
     discovery_info: dict[str, Any] | None  # Device discovery integration support
 
 
+class DetectionStatistics(TypedDict):
+    """Aggregated statistics for door sensor walk detection diagnostics.
+
+    This structure mirrors the runtime statistics tracked by the
+    ``DoorSensorManager`` and is used for diagnostic payloads that surface
+    detection performance information through Home Assistant's diagnostics and
+    logging facilities.
+
+    Attributes:
+        total_detections: Total number of detection events processed.
+        successful_walks: Number of detections that resulted in confirmed walks.
+        false_positives: Count of detections that were dismissed as false alarms.
+        false_negatives: Number of missed walks detected through manual review.
+        average_confidence: Rolling average confidence score for detections.
+    """
+
+    total_detections: int
+    successful_walks: int
+    false_positives: int
+    false_negatives: int
+    average_confidence: float
+
+
+class DetectionStatusEntry(TypedDict):
+    """Status information for an individual dog's detection state."""
+
+    dog_name: str
+    door_sensor: str
+    current_state: str
+    confidence_score: float
+    active_walk_id: str | None
+    last_door_state: str | None
+    recent_activity: int
+
+
+class DetectionStatus(TypedDict):
+    """Structured detection status payload for diagnostics endpoints."""
+
+    configured_dogs: int
+    active_detections: int
+    detection_states: dict[str, DetectionStatusEntry]
+    statistics: DetectionStatistics
+
+
 @dataclass
 class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
