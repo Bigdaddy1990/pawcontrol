@@ -14,7 +14,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 from homeassistant.components.weather import (
     ATTR_FORECAST,
@@ -200,6 +200,71 @@ class WeatherForecast:
         return self.critical_periods[0]  # First (most severe) critical period
 
 
+@dataclass(slots=True)
+class ScoreRangeSummary:
+    """Range of forecast health scores for planning."""
+
+    min: int | None
+    max: int | None
+
+
+@dataclass(slots=True)
+class CriticalPeriodSummary:
+    """Summary of critical forecast periods."""
+
+    start: str
+    end: str
+    duration_hours: float
+
+
+@dataclass(slots=True)
+class OptimalWindowSummary:
+    """Summary of optimal activity windows."""
+
+    activity: str
+    start: str
+    end: str
+    health_score: int
+    alert_level: str
+    recommendations: list[str]
+
+
+@dataclass(slots=True)
+class ActivityWindowSummary:
+    """Summary for the next recommended activity window."""
+
+    start: str
+    health_score: int
+    alert_level: str
+
+
+@dataclass(slots=True)
+class WorstPeriodSummary:
+    """Summary of the worst forecast period."""
+
+    start: str
+    end: str
+    advice: str
+
+
+@dataclass(slots=True)
+class ForecastPlanningSummary:
+    """Typed representation of forecast planning guidance."""
+
+    status: Literal["available", "unavailable"]
+    message: str | None = None
+    forecast_quality: str | None = None
+    forecast_summary: str | None = None
+    avg_health_score: int | None = None
+    score_range: ScoreRangeSummary | None = None
+    critical_periods: list[CriticalPeriodSummary] = field(default_factory=list)
+    optimal_windows: list[OptimalWindowSummary] = field(default_factory=list)
+    next_walk_time: ActivityWindowSummary | None = None
+    next_play_time: ActivityWindowSummary | None = None
+    next_exercise_time: ActivityWindowSummary | None = None
+    worst_period: WorstPeriodSummary | None = None
+
+
 @dataclass
 class WeatherAlert:
     """Weather-based health alert for dogs."""
@@ -269,6 +334,7 @@ class WeatherHealthManager:
         self._current_conditions: WeatherConditions | None = None
         self._active_alerts: list[WeatherAlert] = []
         self._translations: dict[str, Any] = {}
+        self._english_translations: dict[str, Any] = {}
         self._current_forecast: WeatherForecast | None = None
 
         # Temperature thresholds for different severity levels (Celsius)
@@ -314,7 +380,19 @@ class WeatherHealthManager:
             _LOGGER.warning("Failed to load weather translations: %s", err)
             self._translations = {}
 
-    def _get_translation(self, key: str, **kwargs) -> str:
+        if language == "en":
+            self._english_translations = self._translations
+            return
+
+        try:
+            self._english_translations = await translation.async_get_translations(
+                self.hass, "en", "weather", {"pawcontrol"}
+            )
+        except Exception as err:
+            _LOGGER.warning("Failed to load English fallback translations: %s", err)
+            self._english_translations = {}
+
+    def _get_translation(self, key: str, **kwargs: Any) -> str:
         """Get translated string with variable substitution.
 
         Args:
@@ -326,9 +404,11 @@ class WeatherHealthManager:
         """
         try:
             # Navigate through nested translation dict
-            value = self._translations
+            value: Any = self._translations
             for part in key.split("."):
-                value = value.get(part, {})
+                if not isinstance(value, dict):
+                    break
+                value = value.get(part)
 
             if isinstance(value, str):
                 return value.format(**kwargs) if kwargs else value
@@ -339,7 +419,7 @@ class WeatherHealthManager:
         # Fallback to English if translation not found
         return self._get_english_fallback(key, **kwargs)
 
-    def _get_english_fallback(self, key: str, **kwargs) -> str:
+    def _get_english_fallback(self, key: str, **kwargs: Any) -> str:
         """Get English fallback text for translation keys.
 
         Args:
@@ -349,91 +429,20 @@ class WeatherHealthManager:
         Returns:
             English fallback text
         """
-        fallbacks = {
-            # Alert titles
-            "weather.alerts.extreme_heat_warning.title": "🔥 Extreme Heat Warning",
-            "weather.alerts.high_heat_advisory.title": "🌡️ High Heat Advisory",
-            "weather.alerts.warm_weather_caution.title": "☀️ Warm Weather Caution",
-            "weather.alerts.extreme_cold_warning.title": "🥶 Extreme Cold Warning",
-            "weather.alerts.high_cold_advisory.title": "❄️ High Cold Advisory",
-            "weather.alerts.extreme_uv_warning.title": "☢️ Extreme UV Warning",
-            "weather.alerts.high_uv_advisory.title": "🌞 High UV Advisory",
-            "weather.alerts.high_humidity_alert.title": "💨 High Humidity Alert",
-            "weather.alerts.wet_weather_advisory.title": "🌧️ Wet Weather Advisory",
-            "weather.alerts.storm_warning.title": "⛈️ Storm Warning",
-            "weather.alerts.snow_ice_alert.title": "🌨️ Snow/Ice Alert",
-            # Alert messages
-            "weather.alerts.extreme_heat_warning.message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme heat risk to dogs",
-            "weather.alerts.high_heat_advisory.message": "Temperature {temperature}°C requires heat precautions for dogs",
-            "weather.alerts.warm_weather_caution.message": "Temperature {temperature}°C requires basic heat precautions",
-            "weather.alerts.extreme_cold_warning.message": "Temperature {temperature}°C (feels like {feels_like}°C) poses extreme cold risk",
-            "weather.alerts.high_cold_advisory.message": "Temperature {temperature}°C requires cold weather precautions",
-            "weather.alerts.extreme_uv_warning.message": "UV Index {uv_index} poses extreme UV risk to dogs",
-            "weather.alerts.high_uv_advisory.message": "UV Index {uv_index} requires UV protection for dogs",
-            "weather.alerts.high_humidity_alert.message": "Humidity {humidity}% may cause breathing difficulties",
-            "weather.alerts.wet_weather_advisory.message": "Rainy conditions require paw care precautions",
-            "weather.alerts.storm_warning.message": "Storms can cause anxiety and safety risks for dogs",
-            "weather.alerts.snow_ice_alert.message": "Icy conditions require paw protection",
-            # Recommendations
-            "weather.recommendations.avoid_peak_hours": "Avoid outdoor activities during peak hours",
-            "weather.recommendations.provide_water": "Provide constant access to cool water",
-            "weather.recommendations.keep_indoors": "Keep dog indoors with air conditioning",
-            "weather.recommendations.watch_heat_signs": "Watch for signs of heat exhaustion: heavy panting, drooling, lethargy",
-            "weather.recommendations.use_cooling_aids": "Consider cooling mats or vests",
-            "weather.recommendations.never_leave_in_car": "Never leave dog in car or direct sunlight",
-            "weather.recommendations.limit_outdoor_time": "Limit outdoor activities to early morning or evening",
-            "weather.recommendations.ensure_shade": "Ensure adequate water availability",
-            "weather.recommendations.monitor_overheating": "Monitor for signs of overheating",
-            "weather.recommendations.cooler_surfaces": "Consider shorter walks on cooler surfaces",
-            "weather.recommendations.extra_water": "Provide extra water during outdoor activities",
-            "weather.recommendations.cooler_day_parts": "Plan walks during cooler parts of the day",
-            "weather.recommendations.watch_heat_stress": "Watch for early signs of heat stress",
-            "weather.recommendations.essential_only": "Limit outdoor exposure to essential needs only",
-            "weather.recommendations.protective_clothing": "Use protective clothing for short-haired breeds",
-            "weather.recommendations.protect_paws": "Protect paws from ice and salt",
-            "weather.recommendations.warm_shelter": "Provide warm, draft-free sleeping area",
-            "weather.recommendations.watch_hypothermia": "Watch for signs of hypothermia: shivering, lethargy, weakness",
-            "weather.recommendations.postpone_activities": "Consider postponing non-essential outdoor activities",
-            "weather.recommendations.shorten_activities": "Shorten outdoor activities",
-            "weather.recommendations.consider_clothing": "Consider protective clothing for sensitive breeds",
-            "weather.recommendations.cold_surface_protection": "Protect paws from cold surfaces",
-            "weather.recommendations.warm_shelter_available": "Ensure warm shelter is available",
-            "weather.recommendations.avoid_peak_uv": "Avoid outdoor activities during peak UV hours (10am-4pm)",
-            "weather.recommendations.provide_shade_always": "Provide shade for all outdoor time",
-            "weather.recommendations.uv_protective_clothing": "Consider UV-protective clothing for light-colored dogs",
-            "weather.recommendations.protect_nose_ears": "Protect nose and ear tips from UV exposure",
-            "weather.recommendations.pet_sunscreen": "Use pet-safe sunscreen on exposed areas",
-            "weather.recommendations.shade_during_activities": "Provide shade during outdoor activities",
-            "weather.recommendations.limit_peak_exposure": "Limit exposure during peak hours",
-            "weather.recommendations.monitor_skin_irritation": "Monitor light-colored dogs for skin irritation",
-            "weather.recommendations.reduce_exercise_intensity": "Reduce exercise intensity and duration",
-            "weather.recommendations.good_air_circulation": "Ensure good air circulation indoors",
-            "weather.recommendations.monitor_breathing": "Monitor brachycephalic breeds closely",
-            "weather.recommendations.cool_ventilated_areas": "Provide cool, well-ventilated rest areas",
-            "weather.recommendations.dry_paws_thoroughly": "Dry paws thoroughly after outdoor activities",
-            "weather.recommendations.check_toe_irritation": "Check for irritation between toes",
-            "weather.recommendations.use_paw_balm": "Use protective paw balm if needed",
-            "weather.recommendations.waterproof_protection": "Consider waterproof protection for sensitive paws",
-            "weather.recommendations.keep_indoors_storm": "Keep dog indoors during storm",
-            "weather.recommendations.comfort_anxious": "Provide comfort for anxious dogs",
-            "weather.recommendations.secure_id_tags": "Ensure identification tags are secure before storm",
-            "weather.recommendations.avoid_until_passes": "Avoid outdoor activities until storm passes",
-            "weather.recommendations.use_paw_protection": "Use paw protection or boots",
-            "weather.recommendations.watch_ice_buildup": "Watch for ice buildup between toes",
-            "weather.recommendations.rinse_salt_chemicals": "Rinse paws after walks to remove salt/chemicals",
-            "weather.recommendations.provide_traction": "Provide traction on slippery surfaces",
-            "weather.recommendations.breed_specific_caution": "Extra caution needed for {breed} breed during {alert_type}",
-            "weather.recommendations.puppy_extra_monitoring": "Puppies are more vulnerable - monitor closely",
-            "weather.recommendations.senior_extra_protection": "Senior dogs need extra protection",
-            "weather.recommendations.respiratory_monitoring": "Respiratory condition requires extra monitoring",
-            "weather.recommendations.heart_avoid_strenuous": "Heart condition - avoid strenuous activity",
-        }
+        value: Any = self._english_translations
+        for part in key.split("."):
+            if not isinstance(value, dict):
+                value = None
+                break
+            value = value.get(part)
 
-        fallback = fallbacks.get(key, key)
-        try:
-            return fallback.format(**kwargs) if kwargs else fallback
-        except (KeyError, ValueError):
-            return fallback
+        if isinstance(value, str):
+            try:
+                return value.format(**kwargs) if kwargs else value
+            except (KeyError, ValueError):
+                return value
+
+        return key
 
     async def async_update_weather_data(
         self, weather_entity_id: str | None = None
@@ -897,7 +906,7 @@ class WeatherHealthManager:
         Returns:
             List of predicted health impacts
         """
-        alerts = []
+        alerts: list[WeatherHealthImpact] = []
 
         if forecast_point.temperature_c is None:
             return alerts
@@ -1267,7 +1276,7 @@ class WeatherHealthManager:
             alert for alert in self._active_alerts if alert.is_active
         ]
 
-        new_alerts = []
+        new_alerts: list[WeatherAlert] = []
 
         # Temperature-based alerts
         new_alerts.extend(self._check_temperature_alerts())
@@ -1301,7 +1310,7 @@ class WeatherHealthManager:
         Returns:
             List of temperature-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if (
             not self._current_conditions
@@ -1481,7 +1490,7 @@ class WeatherHealthManager:
         Returns:
             List of UV-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or self._current_conditions.uv_index is None:
             return alerts
@@ -1550,7 +1559,7 @@ class WeatherHealthManager:
         Returns:
             List of humidity-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if (
             not self._current_conditions
@@ -1598,7 +1607,7 @@ class WeatherHealthManager:
         Returns:
             List of condition-related alerts
         """
-        alerts = []
+        alerts: list[WeatherAlert] = []
 
         if not self._current_conditions or not self._current_conditions.condition:
             return alerts
@@ -1726,7 +1735,7 @@ class WeatherHealthManager:
         self,
         dog_breed: str | None = None,
         dog_age_months: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> ForecastPlanningSummary:
         """Get comprehensive forecast summary for planning purposes.
 
         Args:
@@ -1737,61 +1746,65 @@ class WeatherHealthManager:
             Comprehensive forecast planning summary
         """
         if not self._current_forecast or not self._current_forecast.is_valid:
-            return {
-                "status": "unavailable",
-                "message": "Weather forecast data not available",
-            }
+            return ForecastPlanningSummary(
+                status="unavailable",
+                message="Weather forecast data not available",
+            )
 
         forecast = self._current_forecast
 
-        summary = {
-            "status": "available",
-            "forecast_quality": forecast.quality.value,
-            "forecast_summary": forecast.forecast_summary,
-            "avg_health_score": forecast.avg_health_score,
-            "score_range": {
-                "min": forecast.min_health_score,
-                "max": forecast.max_health_score,
-            },
-            "critical_periods": [
-                {
-                    "start": period[0].isoformat(),
-                    "end": period[1].isoformat(),
-                    "duration_hours": (period[1] - period[0]).total_seconds() / 3600,
-                }
+        summary = ForecastPlanningSummary(
+            status="available",
+            forecast_quality=forecast.quality.value,
+            forecast_summary=forecast.forecast_summary,
+            avg_health_score=forecast.avg_health_score,
+            score_range=ScoreRangeSummary(
+                min=forecast.min_health_score,
+                max=forecast.max_health_score,
+            ),
+            critical_periods=[
+                CriticalPeriodSummary(
+                    start=period[0].isoformat(),
+                    end=period[1].isoformat(),
+                    duration_hours=(period[1] - period[0]).total_seconds() / 3600,
+                )
                 for period in forecast.critical_periods
             ],
-            "optimal_windows": [
-                {
-                    "activity": window.activity_type,
-                    "start": window.start_time.isoformat(),
-                    "end": window.end_time.isoformat(),
-                    "health_score": window.health_score,
-                    "alert_level": window.alert_level.value,
-                    "recommendations": window.recommendations,
-                }
-                for window in forecast.optimal_activity_windows[:5]  # Next 5 windows
+            optimal_windows=[
+                OptimalWindowSummary(
+                    activity=window.activity_type,
+                    start=window.start_time.isoformat(),
+                    end=window.end_time.isoformat(),
+                    health_score=window.health_score,
+                    alert_level=window.alert_level.value,
+                    recommendations=window.recommendations,
+                )
+                for window in forecast.optimal_activity_windows[:5]
             ],
-        }
+        )
 
         # Add next optimal times for common activities
         for activity in ["walk", "play", "exercise"]:
             next_window = forecast.get_next_optimal_window(activity)
             if next_window:
-                summary[f"next_{activity}_time"] = {
-                    "start": next_window.start_time.isoformat(),
-                    "health_score": next_window.health_score,
-                    "alert_level": next_window.alert_level.value,
-                }
+                setattr(
+                    summary,
+                    f"next_{activity}_time",
+                    ActivityWindowSummary(
+                        start=next_window.start_time.isoformat(),
+                        health_score=next_window.health_score,
+                        alert_level=next_window.alert_level.value,
+                    ),
+                )
 
         # Add worst period info
         worst_period = forecast.get_worst_period()
         if worst_period:
-            summary["worst_period"] = {
-                "start": worst_period[0].isoformat(),
-                "end": worst_period[1].isoformat(),
-                "advice": "Plan indoor activities during this time",
-            }
+            summary.worst_period = WorstPeriodSummary(
+                start=worst_period[0].isoformat(),
+                end=worst_period[1].isoformat(),
+                advice="Plan indoor activities during this time",
+            )
 
         return summary
 
