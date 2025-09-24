@@ -1,3 +1,5 @@
+"""Supplemental sensors promised in the public documentation."""
+
 # NEW: Missing sensor implementations per requirements_inventory.md
 # These will be added to the main sensor.py file
 
@@ -24,6 +26,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the activity level sensor for a dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -144,6 +147,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the calories burned sensor for a dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -266,6 +270,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the last feeding sensor for a dog."""
         super().__init__(
             coordinator,
             dog_id,
