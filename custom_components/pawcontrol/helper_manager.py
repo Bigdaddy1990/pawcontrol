@@ -225,7 +225,9 @@ class PawControlHelperManager:
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id:
-                _LOGGER.debug("Skipping helper creation for dog without valid id: %s", dog)
+                _LOGGER.debug(
+                    "Skipping helper creation for dog without valid id: %s", dog
+                )
                 continue
 
             modules_config_raw = dog.get(CONF_MODULES, {})
@@ -253,9 +255,7 @@ class PawControlHelperManager:
                     existing.append(helper)
 
             created[dog_id] = new_helpers
-            _LOGGER.debug(
-                "Created %d helpers for dog %s", len(new_helpers), dog_id
-            )
+            _LOGGER.debug("Created %d helpers for dog %s", len(new_helpers), dog_id)
 
         if created:
             await self._ensure_daily_reset_listener()
