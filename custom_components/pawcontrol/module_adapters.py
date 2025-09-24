@@ -187,9 +187,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter):
 
         if self._use_external_api and self._api_client is not None:
             try:
-                payload = dict(
-                    await self._api_client.async_get_feeding_payload(dog_id)
-                )
+                payload = dict(await self._api_client.async_get_feeding_payload(dog_id))
             except RateLimitError:
                 raise
             except NetworkError:
@@ -491,7 +489,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
     def attach(self, manager: WeatherHealthManager | None) -> None:
         self._manager = manager
 
-    async def async_get_data(self, dog_id: str) -> dict[str, Any]:  # noqa: ARG002
+    async def async_get_data(self, dog_id: str) -> dict[str, Any]:
         if cached := self._cached(dog_id):
             return cached
 
@@ -505,7 +503,9 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
             try:
                 await self._manager.async_update_weather_data(weather_entity)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug("Failed to refresh weather data from %s: %s", weather_entity, err)
+                _LOGGER.debug(
+                    "Failed to refresh weather data from %s: %s", weather_entity, err
+                )
 
         try:
             payload = await self._manager.async_get_health_recommendations()
@@ -673,4 +673,3 @@ class CoordinatorModuleAdapters:
             metrics.misses += adapter_metrics.misses
 
         return metrics
-

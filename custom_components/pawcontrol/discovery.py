@@ -19,10 +19,11 @@ from typing import Any, Final
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
 from .const import DEVICE_CATEGORIES, DOMAIN
@@ -300,7 +301,9 @@ class PawControlDiscovery:
         confidence = min(confidence, 0.95)
         return category, capabilities, confidence
 
-    def _connection_details(self, device_entry: DeviceEntry) -> tuple[str, dict[str, Any]]:
+    def _connection_details(
+        self, device_entry: DeviceEntry
+    ) -> tuple[str, dict[str, Any]]:
         connection_info: dict[str, Any] = {}
         connection_type = "unknown"
 
@@ -315,7 +318,10 @@ class PawControlDiscovery:
                 connection_type = "usb"
                 connection_info.setdefault("usb", conn_id)
 
-        if device_entry.configuration_url and "configuration_url" not in connection_info:
+        if (
+            device_entry.configuration_url
+            and "configuration_url" not in connection_info
+        ):
             connection_info["configuration_url"] = device_entry.configuration_url
         if device_entry.via_device_id:
             connection_info["via_device_id"] = device_entry.via_device_id

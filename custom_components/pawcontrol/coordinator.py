@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientError, ClientSession
@@ -34,12 +34,7 @@ from .const import (
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
-    CONF_WEATHER_ENTITY,
-    MODULE_FEEDING,
-    MODULE_GARDEN,
     MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
 )
@@ -140,7 +135,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     api_key=api_token_option.strip() or None,
                 )
             except ValueError as err:
-                _LOGGER.warning("Invalid Paw Control API endpoint '%s': %s", api_endpoint_option, err)
+                _LOGGER.warning(
+                    "Invalid Paw Control API endpoint '%s': %s",
+                    api_endpoint_option,
+                    err,
+                )
 
         # Calculate update interval with validation
         try:

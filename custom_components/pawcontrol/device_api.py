@@ -92,12 +92,15 @@ class PawControlDeviceClient:
             raise ConfigEntryAuthFailed("Authentication with Paw Control device failed")
         if response.status == 429:
             retry_after = response.headers.get("Retry-After")
-            retry_seconds = int(retry_after) if retry_after and retry_after.isdigit() else 60
+            retry_seconds = (
+                int(retry_after) if retry_after and retry_after.isdigit() else 60
+            )
             raise RateLimitError("device_api", retry_after=retry_seconds)
         if response.status >= 400:
             text = await response.text()
             raise NetworkError(
-                f"Device API returned HTTP {response.status}: {text.strip()}")
+                f"Device API returned HTTP {response.status}: {text.strip()}"
+            )
 
         return response
 

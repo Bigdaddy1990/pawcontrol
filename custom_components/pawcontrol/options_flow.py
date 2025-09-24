@@ -2338,9 +2338,13 @@ class PawControlOptionsFlow(OptionsFlow):
                     }
                 )
                 if CONF_API_ENDPOINT in user_input:
-                    self._unsaved_changes[CONF_API_ENDPOINT] = user_input[CONF_API_ENDPOINT].strip()
+                    self._unsaved_changes[CONF_API_ENDPOINT] = user_input[
+                        CONF_API_ENDPOINT
+                    ].strip()
                 if CONF_API_TOKEN in user_input:
-                    self._unsaved_changes[CONF_API_TOKEN] = user_input[CONF_API_TOKEN].strip()
+                    self._unsaved_changes[CONF_API_TOKEN] = user_input[
+                        CONF_API_TOKEN
+                    ].strip()
                 # Save changes and return to main menu
                 return await self._async_save_options()
             except Exception as err:

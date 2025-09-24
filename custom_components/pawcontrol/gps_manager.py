@@ -36,6 +36,7 @@ from .notifications import (
     NotificationType,
     PawControlNotificationManager,
 )
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -1016,9 +1017,7 @@ class GPSGeofenceManager:
             else:
                 duration = event_payload.get("duration_seconds", 0)
                 minutes = duration / 60 if duration else 0
-                message = (
-                    f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
-                )
+                message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
                 priority = NotificationPriority.URGENT
 
             notification_data = {
@@ -1032,7 +1031,9 @@ class GPSGeofenceManager:
                 },
             }
             if event.duration_outside:
-                notification_data["duration_seconds"] = event_payload["duration_seconds"]
+                notification_data["duration_seconds"] = event_payload[
+                    "duration_seconds"
+                ]
 
             _LOGGER.info("Geofence notification: %s - %s", title, message)
 

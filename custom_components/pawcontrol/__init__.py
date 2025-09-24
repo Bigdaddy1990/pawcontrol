@@ -344,7 +344,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 gps_geofence_manager.set_notification_manager(notification_manager)
                 _LOGGER.debug("GPS geofence manager created for GPS-enabled dogs")
             else:
-                _LOGGER.debug("GPS geofence manager not created - no GPS modules enabled")
+                _LOGGER.debug(
+                    "GPS geofence manager not created - no GPS modules enabled"
+                )
 
             # Initialize geofencing manager if GPS module is enabled for any dog
             geofencing_manager = None
