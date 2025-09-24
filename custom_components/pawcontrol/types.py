@@ -19,6 +19,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from asyncio import Task
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -264,6 +265,9 @@ class PawControlRuntimeData:
         error_history: Historical error tracking for diagnostics
         helper_manager: Home Assistant helper creation and management service
         geofencing_manager: Geofencing and GPS zone monitoring service
+        garden_manager: Garden care automation service
+        daily_reset_unsub: Callback used to cancel the scheduled daily reset
+        background_monitor_task: Background health monitoring task handle
 
     Note:
         This class implements both dataclass and dictionary-like access
@@ -281,6 +285,7 @@ class PawControlRuntimeData:
     helper_manager: PawControlHelperManager | None = None
     geofencing_manager: PawControlGeofencing | None = None
     garden_manager: GardenManager | None = None
+    background_monitor_task: Task[None] | None = None
 
     # Enhanced runtime tracking for Platinum-level monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
@@ -312,6 +317,7 @@ class PawControlRuntimeData:
             "helper_manager": self.helper_manager,
             "geofencing_manager": self.geofencing_manager,
             "garden_manager": self.garden_manager,
+            "background_monitor_task": self.background_monitor_task,
         }
 
     def __getitem__(self, key: str) -> Any:

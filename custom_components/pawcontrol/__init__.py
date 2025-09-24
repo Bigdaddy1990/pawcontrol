@@ -607,7 +607,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         coordinator.async_start_background_tasks()
 
         # Start background task health monitoring
-        asyncio.create_task(_async_monitor_background_tasks(runtime_data))  # noqa: RUF006
+        monitor_task = hass.async_create_task(
+            _async_monitor_background_tasks(runtime_data)
+        )
+        runtime_data.background_monitor_task = monitor_task
+        entry.async_on_unload(monitor_task.cancel)
 
         # Add reload listener
         entry.async_on_unload(entry.add_update_listener(async_reload_entry))
@@ -748,6 +752,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
     # Cleanup runtime data with enhanced error handling and timeouts
     if runtime_data:
+        monitor_task = getattr(runtime_data, "background_monitor_task", None)
+        if monitor_task:
+            monitor_task.cancel()
+            try:
+                await monitor_task
+            except asyncio.CancelledError:
+                _LOGGER.debug("Background monitor task cancelled")
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.warning(
+                    "Error while awaiting background monitor task: %s", err
+                )
+            finally:
+                runtime_data.background_monitor_task = None
+
         cleanup_start = time.time()
 
         # Define manager cleanup tasks with timeouts
