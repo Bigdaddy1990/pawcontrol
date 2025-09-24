@@ -784,9 +784,7 @@ class DoorSensorManager:
             "configured_dogs": len(self._sensor_configs),
             "active_detections": 0,
             "detection_states": {},
-            "statistics": cast(
-                DetectionStatistics, dict(self._detection_stats)
-            ),
+            "statistics": cast(DetectionStatistics, dict(self._detection_stats)),
         }
 
         for dog_id, state in self._detection_states.items():
