@@ -9,12 +9,16 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
     pass
 
 
-class UndefinedSubstitution(Exception):
+class UndefinedSubstitutionError(Exception):
     """Error raised when a requested substitution is missing."""
 
     def __init__(self, input_name: str) -> None:
         super().__init__(f"No substitution found for input {input_name}")
         self.input = input_name
+
+
+# ``UndefinedSubstitution`` is kept for compatibility with the real package.
+UndefinedSubstitution = UndefinedSubstitutionError
 
 
 def extract_inputs(obj: Any) -> set[str]:
@@ -53,7 +57,7 @@ def substitute(obj: Any, substitutions: Mapping[str, Any]) -> Any:
             try:
                 return substitutions[input_obj.name]
             except KeyError as exc:
-                raise UndefinedSubstitution(input_obj.name) from exc
+                raise UndefinedSubstitutionError(input_obj.name) from exc
         case str() | bytes() | bytearray():
             return obj
         case Sequence() as seq:
