@@ -171,7 +171,6 @@ async def _async_add_entities_in_batches(
             async_add_entities_func, batch, update_before_add=False
         )
 
-
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
             await asyncio.sleep(delay_between_batches)
