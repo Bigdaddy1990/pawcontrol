@@ -163,7 +163,7 @@ async def _async_add_entities_in_batches(
         )
 
         # Add batch without update_before_add to reduce Registry load
-        await async_add_entities_func(batch, update_before_add=False)
+        async_add_entities_func(batch, update_before_add=False)
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
@@ -224,7 +224,7 @@ async def async_setup_entry(
     # OPTIMIZED: Smart batching based on entity count
     if len(entities) <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once for better performance
-        await async_add_entities(entities, update_before_add=False)
+        async_add_entities(entities, update_before_add=False)
         _LOGGER.info(
             "Created %d binary sensor entities for %d dogs (single batch)",
             len(entities),

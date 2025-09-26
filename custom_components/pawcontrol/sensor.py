@@ -583,12 +583,12 @@ async def _add_entities_optimized(
 
     if total_entities <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once
-        await async_add_entities(all_entities, update_before_add=False)
+        async_add_entities(all_entities, update_before_add=False)
     else:
         # Large setup: Use optimized batching
         for i in range(0, total_entities, MAX_ENTITIES_PER_BATCH):
             batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
-            await async_add_entities(batch, update_before_add=False)
+            async_add_entities(batch, update_before_add=False)
 
             # Small delay between batches for system stability
             if i + MAX_ENTITIES_PER_BATCH < total_entities:
