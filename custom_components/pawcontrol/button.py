@@ -591,29 +591,21 @@ async def async_setup_entry(
 
     if total_buttons_created <= batch_size:
         # Small setup: Add all at once
-        await async_add_entities(all_entities, update_before_add=False)
+        async_add_entities(all_entities, update_before_add=False)
         _LOGGER.info(
             "Created %d button entities (single batch) - profile-optimized count",
             total_buttons_created,
         )
     else:
         # Large setup: Efficient batching
-        async def add_batch(batch: list[PawControlButtonBase]) -> None:
-            """Add a batch of entities."""
-            await async_add_entities(batch, update_before_add=False)
-
         # Create and execute batches
         batches = [
             all_entities[i : i + batch_size]
             for i in range(0, len(all_entities), batch_size)
         ]
 
-        tasks = [add_batch(batch) for batch in batches]
-        try:
-            await asyncio.gather(*tasks)
-        except TypeError:
-            for task in tasks:
-                await task
+        for batch in batches:
+            async_add_entities(batch, update_before_add=False)
 
         _LOGGER.info(
             "Created %d button entities for %d dogs (profile-based batching)",

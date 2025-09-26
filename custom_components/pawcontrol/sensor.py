@@ -2235,8 +2235,6 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
             return int(feeding_data.get("portions_today", 0))
         except (TypeError, ValueError):
             return 0
-        except (TypeError, ValueError):
-            return 0
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
