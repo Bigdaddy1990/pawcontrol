@@ -1,17 +1,22 @@
-"""Minimal annotated YAML loader stub for tests."""
+"""Loader utilities for the ``annotatedyaml`` stub package."""
 
 from __future__ import annotations
 
 from typing import Any
 
+from . import Input
 
-def load_yaml(path: str, *, secrets: Any | None = None) -> Any:
-    """Load YAML content from the provided path.
+__all__ = ["load_yaml"]
 
-    This stub implementation simply raises ``FileNotFoundError`` because the
-    real Home Assistant implementation reads files from disk. The tests patch
-    this function with a custom loader, so under test it never reaches this
-    fallback implementation.
+
+def load_yaml(source: str | Input) -> Any:
+    """Placeholder implementation compatible with Home Assistant tests.
+
+    The real ``annotatedyaml`` package exposes ``load_yaml`` which returns a
+    parsed representation of the provided YAML document.  The Home Assistant
+    tests in this repository patch this function, so the implementation here is
+    never executed.  It simply raises ``NotImplementedError`` to signal that the
+    stub does not perform real YAML parsing.
     """
 
-    raise FileNotFoundError(path)
+    raise NotImplementedError("annotatedyaml.loader.load_yaml is a stub")
