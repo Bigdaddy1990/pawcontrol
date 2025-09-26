@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 
 _REQUIRED_MODULES = (
     "homeassistant",
@@ -16,7 +17,12 @@ _missing = [
 if _missing:
     import pytest
 
-    collect_ignore_glob = ["*"]
+    # Only the Home Assistant integration tests require the optional
+    # dependencies.  Unit tests targeting pure python helpers should still run
+    # to provide meaningful coverage for CI.
+    collect_ignore_glob = [
+        "components/*",
+    ]
 
     def pytest_addoption(parser):
         """Register pytest-asyncio compatibility option when dependencies are absent."""
@@ -27,14 +33,11 @@ if _missing:
             default="auto",
         )
 
-    def pytest_sessionstart(session):
-        """Abort the session gracefully when required dependencies are unavailable."""
-
-        pytest.exit(
-            "Skipping PawControl tests because dependencies are missing: "
-            + ", ".join(_missing),
-            returncode=0,
-        )
+    print(
+        "Home Assistant test dependencies are unavailable – integration tests under "
+        "tests/components are skipped.",
+        file=sys.stderr,
+    )
 
 else:
     import pytest_homeassistant_custom_component
