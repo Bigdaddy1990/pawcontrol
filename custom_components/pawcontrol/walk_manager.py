@@ -15,12 +15,12 @@ import contextlib
 import json
 import logging
 import math
-from defusedxml import ElementTree as ET
 from collections import deque
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+from defusedxml import ElementTree as ET
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
