@@ -15,8 +15,9 @@ for the tests without pulling a heavy dependency into the execution environment.
 from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 try:  # pragma: no cover - optional dependency
     import yaml
@@ -45,7 +46,9 @@ def add_representer(data_type: type[Any], representer: Callable[..., Any]) -> No
     _registered_representers.append((data_type, representer))
 
 
-def represent_odict(value: OrderedDict[Any, Any] | dict[str, Any]) -> list[tuple[Any, Any]]:
+def represent_odict(
+    value: OrderedDict[Any, Any] | dict[str, Any],
+) -> list[tuple[Any, Any]]:
     """Return a list representation for ordered dictionaries.
 
     PyYAML uses ``represent_odict`` to convert ordered dictionaries into a
@@ -92,4 +95,3 @@ def save_yaml(filename: str | Path, data: Any) -> None:
     path = Path(filename)
     with path.open("w", encoding="utf-8") as handle:
         dump(data, stream=handle)
-
