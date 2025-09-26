@@ -1134,8 +1134,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
     conversion = _UNIT_CONVERSIONS.get((normalized_from, normalized_to))
     if conversion is None:
         raise ValueError(
-            "Conversion from %s to %s not supported (available: %s)"
-            % (normalized_from, normalized_to, _AVAILABLE_CONVERSIONS_MESSAGE)
+            f"Conversion from {normalized_from} to {normalized_to} not supported (available: {_AVAILABLE_CONVERSIONS_MESSAGE})"
         )
 
     return conversion(value)
