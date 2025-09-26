@@ -15,7 +15,7 @@ import contextlib
 import json
 import logging
 import math
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from collections import deque
 from datetime import datetime, timedelta
 from enum import StrEnum
