@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
-from typing import Any, Callable, Iterable, TextIO
 from typing import Any
 
 try:  # pragma: no cover - optional dependency
