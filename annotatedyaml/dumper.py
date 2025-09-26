@@ -105,16 +105,16 @@ def _minimal_yaml_serialize(data: Any, *, _indent: int = 0) -> str:
         return f"{indent}null\n"
     if isinstance(data, bool):
         return f"{indent}{'true' if data else 'false'}\n"
-    if isinstance(data, (int, float)):
+    if isinstance(data, int | float):
         return f"{indent}{data}\n"
     if isinstance(data, str):
         return f"{indent}{data}\n"
-    if isinstance(data, (list, tuple)):
+    if isinstance(data, list | tuple):
         if not data:
             return f"{indent}[]\n"
         lines: list[str] = []
         for item in data:
-            if isinstance(item, (list, tuple, dict)):
+            if isinstance(item, list | tuple | dict):
                 lines.append(f"{indent}-\n")
                 lines.append(_minimal_yaml_serialize(item, _indent=_indent + 2))
             else:
@@ -126,11 +126,11 @@ def _minimal_yaml_serialize(data: Any, *, _indent: int = 0) -> str:
             return f"{indent}{{}}\n"
         lines = []
         for key, value in data.items():
-            if isinstance(value, (list, tuple, dict)):
+            if isinstance(value, list | tuple | dict):
                 lines.append(f"{indent}{key}:\n")
                 lines.append(_minimal_yaml_serialize(value, _indent=_indent + 2))
             else:
                 rendered = _minimal_yaml_serialize(value, _indent=_indent + 2)
                 lines.append(f"{indent}{key}: {rendered.strip()}\n")
         return "".join(lines)
-    return f"{indent}{repr(data)}\n"
+    return f"{indent}{data!r}\n"
