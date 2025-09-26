@@ -6,7 +6,13 @@ from typing import Any
 
 from . import Input
 
-__all__ = ["load_yaml"]
+__all__ = ["HAS_C_LOADER", "load_yaml"]
+
+# ``HAS_C_LOADER`` is exposed by the real ``annotatedyaml`` package to signal
+# whether the optional LibYAML-based C extension is available.  Home Assistant
+# checks this flag during its import of the stub, so we provide it here and mark
+# it ``False`` because the stub never bundles the compiled extension.
+HAS_C_LOADER: bool = False
 
 
 def load_yaml(source: str | Input) -> Any:
