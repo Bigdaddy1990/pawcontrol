@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-__all__ = ["SECRET_YAML", "Input", "YamlTypeError"]
+from .input import UndefinedSubstitution, extract_inputs, substitute
+
+__all__ = [
+    "SECRET_YAML",
+    "Input",
+    "UndefinedSubstitution",
+    "YamlTypeError",
+    "extract_inputs",
+    "substitute",
+]
 
 # ``!secret`` is a sentinel tag used by Home Assistant to reference entries in
 # ``secrets.yaml``.  It is not an actual secret value, but rather a public
@@ -23,7 +32,7 @@ class Input(str):
     behaves like a string and optionally stores line/column information.
     """
 
-    __slots__ = ("_column", "_line")
+    __slots__ = ("_column", "_line", "_name")
 
     def __new__(
         cls,
@@ -34,6 +43,7 @@ class Input(str):
         obj = super().__new__(cls, value)
         obj._line = line
         obj._column = column
+        obj._name = value
         return obj
 
     @property
@@ -47,3 +57,9 @@ class Input(str):
         """Return the column number associated with the value, if available."""
 
         return self._column
+
+    @property
+    def name(self) -> str:
+        """Return the name of the input placeholder."""
+
+        return self._name
