@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 __all__ = [
-    "SECRET_YAML",
     "Input",
-    "UndefinedSubstitutionError",
+    "SECRET_YAML",
+    "UndefinedSubstitution",
     "YamlTypeError",
     "extract_inputs",
     "substitute",
@@ -37,11 +37,12 @@ class Input(str):
         value: str,
         line: int | None = None,
         column: int | None = None,
+        name: str | None = None,
     ) -> Input:
         obj = super().__new__(cls, value)
         obj._line = line
         obj._column = column
-        obj._name = value
+        obj._name = name if name is not None else value
         return obj
 
     @property
@@ -63,4 +64,4 @@ class Input(str):
         return self._name
 
 
-from .input import UndefinedSubstitutionError, extract_inputs, substitute
+from .input import UndefinedSubstitution, extract_inputs, substitute

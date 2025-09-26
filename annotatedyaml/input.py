@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from . import Input
+if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
+    from . import Input
 
 
-class UndefinedSubstitutionError(Exception):
+class UndefinedSubstitution(Exception):
     """Error raised when a requested substitution is missing."""
 
     def __init__(self, input_name: str) -> None:
@@ -27,12 +28,14 @@ def extract_inputs(obj: Any) -> set[str]:
 def _extract_inputs(obj: Any, found: set[str]) -> None:
     """Recursive helper for :func:`extract_inputs`."""
 
+    from . import Input as _Input
+
     match obj:
-        case Input() as input_obj:
+        case _Input() as input_obj:
             found.add(input_obj.name)
         case str() | bytes() | bytearray():
             pass
-        case Sequence() as seq if not isinstance(seq, str | bytes | bytearray):
+        case Sequence() as seq:
             for value in seq:
                 _extract_inputs(value, found)
         case Mapping() as mapping:
@@ -43,15 +46,17 @@ def _extract_inputs(obj: Any, found: set[str]) -> None:
 def substitute(obj: Any, substitutions: Mapping[str, Any]) -> Any:
     """Replace :class:`Input` placeholders in ``obj`` using ``substitutions``."""
 
+    from . import Input as _Input
+
     match obj:
-        case Input() as input_obj:
+        case _Input() as input_obj:
             try:
                 return substitutions[input_obj.name]
-            except KeyError as exc:  # pragma: no cover - defensive guard
-                raise UndefinedSubstitutionError(input_obj.name) from exc
+            except KeyError as exc:
+                raise UndefinedSubstitution(input_obj.name) from exc
         case str() | bytes() | bytearray():
             return obj
-        case Sequence() as seq if not isinstance(seq, str | bytes | bytearray):
+        case Sequence() as seq:
             return [substitute(value, substitutions) for value in seq]
         case Mapping() as mapping:
             return {
