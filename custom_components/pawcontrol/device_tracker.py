@@ -42,7 +42,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +110,9 @@ async def async_setup_entry(
             entities.append(tracker)
 
     if entities:
-        async_add_entities(entities, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities, entities, update_before_add=False
+        )
         _LOGGER.info(
             "Set up %d GPS device trackers with profile '%s'",
             len(entities),

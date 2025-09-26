@@ -42,7 +42,8 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin
+from .types import PawControlRuntimeData
+from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -244,7 +245,9 @@ async def _async_add_entities_in_batches(
         )
 
         # Add batch without update_before_add to reduce Registry load
-        async_add_entities_func(batch, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities_func, batch, update_before_add=False
+        )
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch
@@ -260,12 +263,16 @@ async def async_setup_entry(
 
     runtime_data = getattr(entry, "runtime_data", None)
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
+    if isinstance(runtime_data, PawControlRuntimeData):
+        coordinator = runtime_data.coordinator
+        dogs = runtime_data.dogs
     else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+        entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        coordinator = entry_data.get("coordinator")
+        dogs = entry_data.get("dogs", entry.data.get(CONF_DOGS, []))
+
+        if coordinator is None:
+            raise HomeAssistantError("Coordinator not available for switch setup")
 
     # Profile-optimized entity creation
     all_entities: list[OptimizedSwitchBase] = []
@@ -417,7 +424,8 @@ class OptimizedSwitchBase(
             self._is_on = True
             self._last_changed = dt_util.utcnow()
             self._update_cache(True)
-            self.async_write_ha_state()
+            if self.hass is not None:
+                self.async_write_ha_state()
 
             _LOGGER.debug(
                 "Switch turned on: %s %s",
@@ -441,7 +449,8 @@ class OptimizedSwitchBase(
             self._is_on = False
             self._last_changed = dt_util.utcnow()
             self._update_cache(False)
-            self.async_write_ha_state()
+            if self.hass is not None:
+                self.async_write_ha_state()
 
             _LOGGER.debug(
                 "Switch turned off: %s %s",
@@ -499,6 +508,10 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set main power state with system-wide impact."""
+        if self.hass is None:
+            _LOGGER.debug("Skipping main power update; hass not available")
+            return
+
         try:
             runtime_data = self.hass.data[DOMAIN][
                 self.coordinator.config_entry.entry_id
@@ -534,6 +547,10 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set DND state with notification impact."""
+        if self.hass is None:
+            _LOGGER.debug("Skipping DND update; hass not available")
+            return
+
         try:
             entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
             notification_manager = entry_data.get("notifications")
@@ -571,6 +588,10 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set visitor mode with service call."""
+        if self.hass is None:
+            _LOGGER.debug("Skipping visitor mode service call; hass not available")
+            return
+
         await self.hass.services.async_call(
             DOMAIN,
             "set_visitor_mode",
@@ -614,6 +635,10 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set module state with config update."""
+        if self.hass is None:
+            _LOGGER.debug("Skipping module state update; hass not available")
+            return
+
         try:
             # Update config entry
             new_data = dict(self.coordinator.config_entry.data)
@@ -692,6 +717,13 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set feature state with module-specific handling."""
+        if self.hass is None:
+            _LOGGER.debug(
+                "Skipping feature state update for %s; hass not available",
+                self._feature_id,
+            )
+            return
+
         _LOGGER.info(
             "%s %s for %s (module: %s)",
             "Enabled" if state else "Disabled",

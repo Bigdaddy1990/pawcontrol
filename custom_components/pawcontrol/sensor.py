@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -39,7 +39,12 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime, is_number
+from .utils import (
+    PawControlDeviceLinkMixin,
+    async_call_add_entities,
+    ensure_utc_datetime,
+    is_number,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,11 +64,28 @@ PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
 def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
     """Calculate dynamic cache TTL based on coordinator update interval."""
-    if not coordinator.update_interval:
+
+    update_interval = getattr(coordinator, "update_interval", None)
+    if not update_interval:
         return 300  # Default 5 minutes
 
+    interval_seconds: float | None
+
+    if hasattr(update_interval, "total_seconds"):
+        try:
+            interval_seconds = float(update_interval.total_seconds())
+        except (TypeError, ValueError):
+            interval_seconds = None
+    else:
+        try:
+            interval_seconds = float(update_interval)
+        except (TypeError, ValueError):
+            interval_seconds = None
+
+    if not interval_seconds or interval_seconds <= 0:
+        return 300
+
     # Cache for 2.5x the update interval, minimum 60s, maximum 600s
-    interval_seconds = int(coordinator.update_interval.total_seconds())
     cache_ttl = max(60, min(600, int(interval_seconds * 2.5)))
     return cache_ttl
 
@@ -182,6 +204,7 @@ async def _create_module_entities(
             "standard": [
                 ("last_feeding", PawControlLastFeedingSensor, 9),
                 ("daily_portions", PawControlDailyPortionsSensor, 8),
+                ("portions_today", PawControlPortionsTodaySensor, 7),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
                 ("last_feeding_hours", PawControlLastFeedingHoursSensor, 6),
                 (
@@ -197,6 +220,7 @@ async def _create_module_entities(
                 ("last_feeding", PawControlLastFeedingSensor, 9),
                 ("daily_calories", PawControlDailyCaloriesSensor, 8),
                 ("daily_portions", PawControlDailyPortionsSensor, 7),
+                ("portions_today", PawControlPortionsTodaySensor, 7),
                 ("food_consumption", PawControlFoodConsumptionSensor, 6),
                 ("last_feeding_hours", PawControlLastFeedingHoursSensor, 6),
                 (
@@ -229,6 +253,7 @@ async def _create_module_entities(
             "gps_focus": [
                 ("last_feeding", PawControlLastFeedingSensor, 9),
                 ("daily_portions", PawControlDailyPortionsSensor, 8),
+                ("portions_today", PawControlPortionsTodaySensor, 7),
                 ("daily_calories", PawControlDailyCaloriesSensor, 7),
                 ("food_consumption", PawControlFoodConsumptionSensor, 5),
             ],
@@ -244,6 +269,7 @@ async def _create_module_entities(
                 ("health_aware_portion", PawControlHealthAwarePortionSensor, 5),
                 ("daily_calories", PawControlDailyCaloriesSensor, 4),
                 ("daily_portions", PawControlDailyPortionsSensor, 3),
+                ("portions_today", PawControlPortionsTodaySensor, 3),
                 (
                     "last_feeding_hours",
                     PawControlLastFeedingHoursSensor,
@@ -278,11 +304,18 @@ async def _create_module_entities(
         "walk": {
             "basic": [
                 ("last_walk", PawControlLastWalkSensor, 9),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 8),
+                ("last_walk_hours", PawControlLastWalkHoursSensor, 8),
+                ("walks_today", PawControlWalksTodaySensor, 7),
             ],
             "standard": [
                 ("last_walk", PawControlLastWalkSensor, 9),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 8),
+                ("last_walk_hours", PawControlLastWalkHoursSensor, 8),
+                ("walks_today", PawControlWalksTodaySensor, 7),
+                (
+                    "current_walk_duration",
+                    PawControlCurrentWalkDurationSensor,
+                    7,
+                ),
                 (
                     "walk_distance_today",
                     PawControlWalkDistanceTodaySensor,
@@ -308,7 +341,8 @@ async def _create_module_entities(
                     PawControlTotalWalkDistanceSensor,
                     7,
                 ),
-                ("walk_count_today", PawControlWalkCountTodaySensor, 6),
+                ("last_walk_hours", PawControlLastWalkHoursSensor, 7),
+                ("walks_today", PawControlWalksTodaySensor, 6),
                 (
                     "walks_this_week",
                     PawControlWalksThisWeekSensor,
@@ -481,12 +515,14 @@ async def _create_module_entities(
         "gps": {
             "standard": [
                 ("current_zone", PawControlCurrentZoneSensor, 8),
+                ("current_location", PawControlCurrentLocationSensor, 8),
                 ("distance_from_home", PawControlDistanceFromHomeSensor, 7),
             ],
             "gps_focus": [
                 ("current_zone", PawControlCurrentZoneSensor, 9),
+                ("current_location", PawControlCurrentLocationSensor, 9),
                 ("distance_from_home", PawControlDistanceFromHomeSensor, 8),
-                ("current_speed", PawControlCurrentSpeedSensor, 7),
+                ("speed", PawControlSpeedSensor, 7),
                 ("gps_accuracy", PawControlGPSAccuracySensor, 6),
                 ("gps_battery_level", PawControlGPSBatteryLevelSensor, 5),
             ],
@@ -552,12 +588,16 @@ async def _add_entities_optimized(
 
     if total_entities <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once
-        async_add_entities(all_entities, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities, all_entities, update_before_add=False
+        )
     else:
         # Large setup: Use optimized batching
         for i in range(0, total_entities, MAX_ENTITIES_PER_BATCH):
             batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
-            async_add_entities(batch, update_before_add=False)
+            await async_call_add_entities(
+                async_add_entities, batch, update_before_add=False
+            )
 
             # Small delay between batches for system stability
             if i + MAX_ENTITIES_PER_BATCH < total_entities:
@@ -574,8 +614,18 @@ def _log_setup_metrics(
     total_entities = len(all_entities)
     avg_entities_per_dog = total_entities / len(dogs) if dogs else 0
 
-    profile_info = entity_factory.get_profile_info(profile)
-    max_possible = profile_info["max_entities"] * len(dogs)
+    profile_info: dict[str, Any] | None = None
+    if hasattr(entity_factory, "get_profile_info"):
+        try:
+            profile_info = entity_factory.get_profile_info(profile)
+        except Exception:  # pragma: no cover - defensive for mock objects
+            profile_info = None
+
+    max_entities = 0
+    if isinstance(profile_info, Mapping) and "max_entities" in profile_info:
+        max_entities = int(profile_info["max_entities"])
+
+    max_possible = max_entities * len(dogs)
     efficiency = (
         (max_possible - total_entities) / max_possible * 100 if max_possible > 0 else 0
     )
@@ -620,10 +670,12 @@ class PawControlSensorBase(
         self._sensor_type = sensor_type
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
         self._attr_name = f"{dog_name} {sensor_type.replace('_', ' ').title()}"
-        self._attr_translation_key = translation_key
+        self._pending_translation_key = translation_key
+        self._attr_translation_key = None
         self._attr_device_class = device_class
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit_of_measurement
+        self._attr_unit_of_measurement_translation_key = None
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
@@ -659,6 +711,14 @@ class PawControlSensorBase(
         self._cache_timestamp = now
 
         return dog_data
+
+    async def async_added_to_hass(self) -> None:
+        """Populate translation data after the entity is registered."""
+
+        await super().async_added_to_hass()
+
+        if self._pending_translation_key and self._attr_translation_key is None:
+            self._attr_translation_key = self._pending_translation_key
 
     def _get_module_data(self, module: str) -> dict[str, Any] | None:
         """Get module data with enhanced error handling and validation."""
@@ -715,6 +775,12 @@ class PawControlSensorBase(
                 )
         except Exception as err:
             _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
+
+        last_update = getattr(self.coordinator, "last_update_success_time", None)
+        if isinstance(last_update, datetime):
+            attrs["last_updated"] = dt_util.as_local(last_update).isoformat()
+        else:
+            attrs["last_updated"] = None
 
         return attrs
 
@@ -1113,7 +1179,6 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             dog_name,
             "activity_level",
             icon="mdi:speedometer",
-            translation_key="activity_level",
         )
 
     @property
@@ -1124,6 +1189,11 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             return STATE_UNKNOWN
 
         try:
+            health_data = dog_data.get("health", {})
+            activity_state = health_data.get("activity_level")
+            if isinstance(activity_state, str) and activity_state:
+                return activity_state
+
             # Get current activity metrics
             walk_data = dog_data.get("walk", {})
             gps_data = dog_data.get("gps", {})
@@ -1145,7 +1215,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
             # Calculate activity intensity score
             if walks_today == 0:
-                return "inactive"
+                return activity_state or "inactive"
 
             # Weighted scoring: walks * duration * distance
             activity_score = (
@@ -1167,6 +1237,8 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             _LOGGER.debug(
                 "Error calculating activity level for %s: %s", self._dog_id, err
             )
+            if isinstance(activity_state, str) and activity_state:
+                return activity_state
             return STATE_UNKNOWN
 
     @property
@@ -1603,6 +1675,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             dog_id,
             dog_name,
             "last_feeding_hours",
+            device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
             unit_of_measurement=UnitOfTime.HOURS,
             icon="mdi:clock-outline",
@@ -2141,6 +2214,37 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
         except (TypeError, ValueError):
             return 0
 
+
+@register_sensor("portions_today")
+class PawControlPortionsTodaySensor(PawControlSensorBase):
+    """Sensor that reports the recorded portions served today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "portions_today",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon="mdi:bowl",
+            translation_key="portions_today",
+        )
+
+    @property
+    def native_value(self) -> int:
+        """Return number of configured feeding portions completed today."""
+
+        feeding_data = self._get_module_data("feeding")
+        if not feeding_data:
+            return 0
+
+        try:
+            return int(feeding_data.get("portions_today", 0))
+        except (TypeError, ValueError):
+            return 0
+
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for portions sensor."""
@@ -2616,6 +2720,102 @@ class PawControlLastWalkSensor(PawControlSensorBase):
         _LOGGER.debug("Invalid last_walk timestamp: %s", last_walk)
 
         return None
+
+
+@register_sensor("last_walk_hours")
+class PawControlLastWalkHoursSensor(PawControlSensorBase):
+    """Sensor providing the elapsed hours since the last walk."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "last_walk_hours",
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.HOURS,
+            icon="mdi:timer-outline",
+            translation_key="last_walk_hours",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return hours elapsed since the most recent walk."""
+
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0.0
+
+        try:
+            return float(walk_data.get("last_walk_hours", 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+
+
+@register_sensor("walks_today")
+class PawControlWalksTodaySensor(PawControlSensorBase):
+    """Sensor counting walks completed today."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "walks_today",
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            icon="mdi:walk",
+            translation_key="walks_today",
+        )
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of walks recorded for today."""
+
+        walk_data = self._get_module_data("walk")
+        if not walk_data:
+            return 0
+
+        try:
+            return int(walk_data.get("walks_today", 0))
+        except (TypeError, ValueError):
+            return 0
+
+
+@register_sensor("current_walk_duration")
+class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
+    """Sensor indicating the active walk duration in minutes."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "current_walk_duration",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            icon="mdi:clock-outline",
+            translation_key="current_walk_duration",
+        )
+
+    @property
+    def native_value(self) -> int:
+        """Return the active walk duration if a walk is in progress."""
+
+        walk_data = self._get_module_data("walk")
+        if not walk_data or not walk_data.get("walk_in_progress"):
+            return 0
+
+        try:
+            return int(walk_data.get("current_walk_duration", 0))
+        except (TypeError, ValueError):
+            return 0
 
 
 @register_sensor("walk_count_today")
@@ -3172,6 +3372,45 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
         return str(gps_data.get("zone", STATE_UNKNOWN))
 
 
+@register_sensor("current_location")
+class PawControlCurrentLocationSensor(PawControlSensorBase):
+    """Sensor exposing the dog's current location label."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "current_location",
+            icon="mdi:map-marker",
+            translation_key="current_location",
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return the friendly current location for the dog."""
+
+        gps_data = self._get_module_data("gps")
+        if not gps_data:
+            return STATE_UNKNOWN
+
+        location = gps_data.get("current_location") or gps_data.get("zone")
+        if not location:
+            return STATE_UNKNOWN
+
+        return str(location)
+
+    @property
+    def extra_state_attributes(self) -> AttributeDict:
+        attrs = super().extra_state_attributes
+        gps_data = self._get_module_data("gps") or {}
+        attrs["last_seen"] = gps_data.get("last_seen")
+        attrs["in_safe_zone"] = gps_data.get("in_safe_zone")
+        return attrs
+
+
 @register_sensor("distance_from_home")
 class PawControlDistanceFromHomeSensor(PawControlSensorBase):
     """Sensor for distance from home."""
@@ -3234,6 +3473,39 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
             return float(speed) if speed is not None else None
         except (TypeError, ValueError):
             return None
+
+
+@register_sensor("speed")
+class PawControlSpeedSensor(PawControlSensorBase):
+    """Compatibility sensor exposing GPS speed readings."""
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        super().__init__(
+            coordinator,
+            dog_id,
+            dog_name,
+            "speed",
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+            icon="mdi:speedometer",
+            translation_key="speed",
+        )
+
+    @property
+    def native_value(self) -> float:
+        """Return the current GPS speed reading."""
+
+        gps_data = self._get_module_data("gps")
+        if not gps_data:
+            return 0.0
+
+        try:
+            value = gps_data.get("speed", gps_data.get("current_speed", 0.0))
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
 
 
 @register_sensor("gps_accuracy")

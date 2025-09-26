@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import inspect
 import logging
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
@@ -23,6 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
+from homeassistant.helpers.entity import Entity
 from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
@@ -127,6 +129,20 @@ def create_device_info(
         device_info["suggested_area"] = suggested_area
 
     return device_info
+
+
+async def async_call_add_entities(
+    add_entities_callback: Callable[[Iterable[Entity], bool], Any],
+    entities: Iterable[Entity],
+    *,
+    update_before_add: bool = False,
+) -> None:
+    """Invoke Home Assistant's async_add_entities callback and await when needed."""
+
+    result = add_entities_callback(entities, update_before_add=update_before_add)
+
+    if inspect.isawaitable(result):
+        await cast(Awaitable[Any], result)
 
 
 async def async_get_or_create_dog_device_entry(
