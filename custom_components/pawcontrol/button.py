@@ -12,6 +12,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any, cast
@@ -599,16 +600,20 @@ async def async_setup_entry(
         )
     else:
         # Large setup: Efficient batching
-        # Create and execute batches
+        # Create and execute batches concurrently while still awaiting helpers
         batches = [
             all_entities[i : i + batch_size]
             for i in range(0, len(all_entities), batch_size)
         ]
 
-        for batch in batches:
-            await async_call_add_entities(
-                async_add_entities, batch, update_before_add=False
+        await asyncio.gather(
+            *(
+                async_call_add_entities(
+                    async_add_entities, batch, update_before_add=False
+                )
+                for batch in batches
             )
+        )
 
         _LOGGER.info(
             "Created %d button entities for %d dogs (profile-based batching)",

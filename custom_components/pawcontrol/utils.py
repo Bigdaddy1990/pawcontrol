@@ -23,6 +23,7 @@ from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
 from homeassistant.util import dt as dt_util
 
