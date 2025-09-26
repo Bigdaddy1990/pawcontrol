@@ -885,9 +885,11 @@ rules:
 
 ### Project Validation
 - **Run hassfest** (checks project structure and updates generated files):
-  ```bash
-  python -m script.hassfest
-  ```
+  - Automatically executed in CI via `home-assistant/actions/hassfest@master`
+  - Optional local run (requires hassfest installed):
+    ```bash
+    python -m hassfest --integration-path custom_components/pawcontrol
+    ```
 
 ### File Locations
 - **Integration code**: `./custom_components/<integration_domain>/`
@@ -1154,8 +1156,10 @@ _LOGGER.debug("Processing data: %s", data)  # Use lazy logging
 
 ### Validation Commands
 ```bash
-# Check specific integration
-python -m script.hassfest --integration-path custom_components/pawcontrol
+# hassfest checks run automatically in CI
+
+# Optional: check specific integration locally (requires hassfest installed)
+python -m hassfest --integration-path custom_components/pawcontrol
 
 # Validate quality scale
 # Check quality_scale.yaml against current rules

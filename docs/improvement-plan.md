@@ -260,8 +260,10 @@ mypy homeassistant/components/pawcontrol
 ruff check custom_components/pawcontrol
 pylint custom_components/pawcontrol
 
-# Validation
-python -m script.hassfest
+# Validation (CI)
+# hassfest runs automatically via home-assistant/actions/hassfest@master
+# Optional local run (requires hassfest installed):
+#   python -m hassfest --integration-path custom_components/pawcontrol
 ```
 
 ## 🎁 Quick Wins Checkliste
