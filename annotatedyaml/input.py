@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checkers only
-    from . import Input
+    pass
 
 
 class UndefinedSubstitution(Exception):
