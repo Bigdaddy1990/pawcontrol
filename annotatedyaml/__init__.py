@@ -1,4 +1,5 @@
 """Minimal stub of the ``annotatedyaml`` package for tests."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -20,27 +21,27 @@ class Input(str):
     behaves like a string and optionally stores line/column information.
     """
 
-    __slots__ = ("_line", "_column")
+    __slots__ = ("_column", "_line")
 
     def __new__(
         cls,
         value: str,
-        line: Optional[int] = None,
-        column: Optional[int] = None,
-    ) -> "Input":
+        line: int | None = None,
+        column: int | None = None,
+    ) -> Input:
         obj = super().__new__(cls, value)
         obj._line = line
         obj._column = column
         return obj
 
     @property
-    def line(self) -> Optional[int]:
+    def line(self) -> int | None:
         """Return the line number associated with the value, if available."""
 
         return self._line
 
     @property
-    def column(self) -> Optional[int]:
+    def column(self) -> int | None:
         """Return the column number associated with the value, if available."""
 
         return self._column
