@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 __all__ = ["SECRET_YAML", "Input", "YamlTypeError"]
 
 SECRET_YAML = "!secret"
@@ -21,7 +19,6 @@ class Input(str):
     behaves like a string and optionally stores line/column information.
     """
 
-    __slots__ = ("_column", "_line")
     __slots__ = ("_column", "_line")
 
     def __new__(
