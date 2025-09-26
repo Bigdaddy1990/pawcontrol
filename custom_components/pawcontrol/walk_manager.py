@@ -56,7 +56,9 @@ GPX_SCHEMA_LOCATION = (
 )
 
 
-def _indent_xml(element: ElementTree.Element, level: int = 0, space: str = "  ") -> None:
+def _indent_xml(
+    element: ElementTree.Element, level: int = 0, space: str = "  "
+) -> None:
     """Pretty-print XML output while remaining compatible with defusedxml."""
 
     indent_text = "\n" + space * level
