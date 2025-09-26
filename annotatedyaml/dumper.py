@@ -94,7 +94,7 @@ def save_yaml(filename: str | Path, data: Any) -> None:
         with path.open("w", encoding="utf-8") as handle:
             dump(data, stream=handle)
     except OSError as exc:
-        raise IOError(f"Failed to save YAML to {filename}: {exc}") from exc
+        raise OSError(f"Failed to save YAML to {filename}: {exc}") from exc
 
 
 def _minimal_yaml_serialize(data: Any, *, _indent: int = 0) -> str:
