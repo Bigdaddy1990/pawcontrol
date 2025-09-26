@@ -31,7 +31,7 @@ def _extract_inputs(obj: Any, found: set[str]) -> None:
         found.add(obj.name)
         return
 
-    if isinstance(obj, Sequence) and not isinstance(obj, (str, bytes, bytearray)):
+    if isinstance(obj, Sequence) and not isinstance(obj, str | bytes | bytearray):
         for value in obj:
             _extract_inputs(value, found)
         return
@@ -51,7 +51,7 @@ def substitute(obj: Any, substitutions: Mapping[str, Any]) -> Any:
         except KeyError as exc:  # pragma: no cover - defensive guard
             raise UndefinedSubstitution(obj.name) from exc
 
-    if isinstance(obj, Sequence) and not isinstance(obj, (str, bytes, bytearray)):
+    if isinstance(obj, Sequence) and not isinstance(obj, str | bytes | bytearray):
         return [substitute(value, substitutions) for value in obj]
 
     if isinstance(obj, Mapping):
