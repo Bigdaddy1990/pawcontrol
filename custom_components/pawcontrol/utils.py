@@ -36,6 +36,42 @@ V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
 Number = int | float
+ConversionKey = tuple[str, str]
+ConversionFunc = Callable[[float], float]
+
+
+_WEIGHT_CONVERSIONS: dict[ConversionKey, ConversionFunc] = {
+    ("kg", "lb"): lambda value: value * 2.20462,
+    ("lb", "kg"): lambda value: value * 0.453592,
+    ("g", "kg"): lambda value: value / 1000,
+    ("kg", "g"): lambda value: value * 1000,
+    ("oz", "g"): lambda value: value * 28.3495,
+    ("g", "oz"): lambda value: value / 28.3495,
+}
+
+_DISTANCE_CONVERSIONS: dict[ConversionKey, ConversionFunc] = {
+    ("m", "ft"): lambda value: value * 3.28084,
+    ("ft", "m"): lambda value: value / 3.28084,
+    ("km", "mi"): lambda value: value * 0.621371,
+    ("mi", "km"): lambda value: value / 0.621371,
+    ("m", "km"): lambda value: value / 1000,
+    ("km", "m"): lambda value: value * 1000,
+}
+
+_TEMPERATURE_CONVERSIONS: dict[ConversionKey, ConversionFunc] = {
+    ("c", "f"): lambda value: (value * 9 / 5) + 32,
+    ("f", "c"): lambda value: (value - 32) * 5 / 9,
+}
+
+_UNIT_CONVERSIONS: dict[ConversionKey, ConversionFunc] = {
+    **_WEIGHT_CONVERSIONS,
+    **_DISTANCE_CONVERSIONS,
+    **_TEMPERATURE_CONVERSIONS,
+}
+
+_AVAILABLE_CONVERSIONS_MESSAGE = ", ".join(
+    f"{source}->{target}" for source, target in sorted(_UNIT_CONVERSIONS)
+)
 
 
 class PortionValidationResult(TypedDict):
@@ -1088,50 +1124,18 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
     Raises:
         ValueError: If unit conversion not supported
     """
-    # Weight conversions
-    weight_conversions = {
-        ("kg", "lb"): lambda x: x * 2.20462,
-        ("lb", "kg"): lambda x: x * 0.453592,
-        ("g", "kg"): lambda x: x / 1000,
-        ("kg", "g"): lambda x: x * 1000,
-        ("oz", "g"): lambda x: x * 28.3495,
-        ("g", "oz"): lambda x: x / 28.3495,
-    }
 
-    # Distance conversions
-    distance_conversions = {
-        ("m", "ft"): lambda x: x * 3.28084,
-        ("ft", "m"): lambda x: x / 3.28084,
-        ("km", "mi"): lambda x: x * 0.621371,
-        ("mi", "km"): lambda x: x / 0.621371,
-        ("m", "km"): lambda x: x / 1000,
-        ("km", "m"): lambda x: x * 1000,
-    }
+    normalized_from = from_unit.lower().strip()
+    normalized_to = to_unit.lower().strip()
 
-    # Temperature conversions
-    temp_conversions = {
-        ("c", "f"): lambda x: (x * 9 / 5) + 32,
-        ("f", "c"): lambda x: (x - 32) * 5 / 9,
-    }
-
-    # Combine all conversions
-    all_conversions = {
-        **weight_conversions,
-        **distance_conversions,
-        **temp_conversions,
-    }
-
-    # Normalize unit names
-    from_unit = from_unit.lower().strip()
-    to_unit = to_unit.lower().strip()
-
-    # Handle same unit
-    if from_unit == to_unit:
+    if normalized_from == normalized_to:
         return value
 
-    # Look up conversion
-    conversion_key = (from_unit, to_unit)
-    if conversion_key in all_conversions:
-        return all_conversions[conversion_key](value)
+    conversion = _UNIT_CONVERSIONS.get((normalized_from, normalized_to))
+    if conversion is None:
+        raise ValueError(
+            "Conversion from %s to %s not supported (available: %s)"
+            % (normalized_from, normalized_to, _AVAILABLE_CONVERSIONS_MESSAGE)
+        )
 
-    raise ValueError(f"Conversion from {from_unit} to {to_unit} not supported")
+    return conversion(value)
