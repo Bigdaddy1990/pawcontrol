@@ -26,7 +26,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,7 +120,9 @@ async def _async_add_entities_in_batches(
             len(batch),
         )
 
-        async_add_entities_func(batch, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities_func, batch, update_before_add=False
+        )
 
         if delay_between_batches > 0 and batch_index + 1 < total_batches:
             await asyncio.sleep(delay_between_batches)

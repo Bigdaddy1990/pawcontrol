@@ -43,7 +43,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .types import PawControlRuntimeData
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -245,7 +245,9 @@ async def _async_add_entities_in_batches(
         )
 
         # Add batch without update_before_add to reduce Registry load
-        async_add_entities_func(batch, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities_func, batch, update_before_add=False
+        )
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch

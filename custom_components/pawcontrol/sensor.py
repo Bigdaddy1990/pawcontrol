@@ -39,7 +39,12 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
 from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime, is_number
+from .utils import (
+    PawControlDeviceLinkMixin,
+    async_call_add_entities,
+    ensure_utc_datetime,
+    is_number,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -583,12 +588,16 @@ async def _add_entities_optimized(
 
     if total_entities <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once
-        async_add_entities(all_entities, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities, all_entities, update_before_add=False
+        )
     else:
         # Large setup: Use optimized batching
         for i in range(0, total_entities, MAX_ENTITIES_PER_BATCH):
             batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
-            async_add_entities(batch, update_before_add=False)
+            await async_call_add_entities(
+                async_add_entities, batch, update_before_add=False
+            )
 
             # Small delay between batches for system stability
             if i + MAX_ENTITIES_PER_BATCH < total_entities:
