@@ -131,8 +131,8 @@ def create_device_info(
 
 
 async def async_call_add_entities(
-    add_entities_callback: Callable[[Iterable[Any], bool], Any],
-    entities: Iterable[Any],
+    add_entities_callback: Callable[[Iterable["Entity"], bool], Any],
+    entities: Iterable["Entity"],
     *,
     update_before_add: bool = False,
 ) -> None:
