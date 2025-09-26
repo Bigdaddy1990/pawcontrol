@@ -20,6 +20,7 @@ class Input(str):
     values.  For the purposes of the test-suite we only need an object that
     behaves like a string and optionally stores line/column information.
     """
+
     __slots__ = ("_column", "_line")
     __slots__ = ("_column", "_line")
 
