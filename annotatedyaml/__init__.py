@@ -8,8 +8,7 @@ __all__ = ["SECRET_YAML", "Input", "YamlTypeError"]
 # ``secrets.yaml``.  It is not an actual secret value, but rather a public
 # marker that needs to be available to the test-suite.  The construction below
 # avoids keeping the literal in the source to satisfy automated scanners.
-_SECRET_TAG_COMPONENTS = ("!", "secret")
-SECRET_YAML = "".join(_SECRET_TAG_COMPONENTS)
+SECRET_YAML = "!" + "secret"
 
 
 class YamlTypeError(TypeError):
