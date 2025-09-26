@@ -717,7 +717,8 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         """Set feature state with module-specific handling."""
         if self.hass is None:
             _LOGGER.debug(
-                "Skipping feature state update for %s; hass not available", self._feature_id
+                "Skipping feature state update for %s; hass not available",
+                self._feature_id,
             )
             return
 

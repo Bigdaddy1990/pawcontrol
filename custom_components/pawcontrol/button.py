@@ -70,7 +70,9 @@ class _ServiceRegistryProxy:
         return getattr(self._registry, item)
 
 
-def _prepare_service_proxy(hass: HomeAssistant) -> ServiceRegistry | _ServiceRegistryProxy | None:
+def _prepare_service_proxy(
+    hass: HomeAssistant,
+) -> ServiceRegistry | _ServiceRegistryProxy | None:
     """Ensure the hass instance exposes a patchable services object."""
 
     services = getattr(hass, "services", None)
@@ -83,13 +85,17 @@ def _prepare_service_proxy(hass: HomeAssistant) -> ServiceRegistry | _ServiceReg
 
     if isinstance(services, ServiceRegistry):
         proxy = hass.data.get("_pawcontrol_service_proxy")
-        if not isinstance(proxy, _ServiceRegistryProxy) or proxy._registry is not services:
+        if (
+            not isinstance(proxy, _ServiceRegistryProxy)
+            or proxy._registry is not services
+        ):
             proxy = _ServiceRegistryProxy(services)
             hass.data["_pawcontrol_service_proxy"] = proxy
-        setattr(hass, "services", proxy)
+        hass.services = proxy
         return proxy
 
     return cast(ServiceRegistry | _ServiceRegistryProxy | None, services)
+
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 1
@@ -194,7 +200,7 @@ class ProfileAwareButtonFactory:
                 "type": "mark_fed",
                 "priority": BUTTON_PRIORITIES["mark_fed"],
                 "profiles": ["basic", "standard", "advanced", "health_focus"],
-            }
+            },
         ]
 
         if self.profile in ["standard", "advanced", "health_focus"]:
@@ -745,7 +751,9 @@ class PawControlButtonBase(
         """Check availability with optimized cache."""
         return self.coordinator.available and self._get_dog_data_cached() is not None
 
-    def _ensure_patchable_services(self) -> ServiceRegistry | _ServiceRegistryProxy | None:
+    def _ensure_patchable_services(
+        self,
+    ) -> ServiceRegistry | _ServiceRegistryProxy | None:
         """Return a service registry object that supports attribute patching."""
 
         if self.hass is None:
@@ -1373,6 +1381,7 @@ class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
         self._button_type = "update_location"
         self._attr_unique_id = f"pawcontrol_{dog_id}_update_location"
         self._attr_name = f"{dog_name} Update Location"
+
 
 class PawControlExportRouteButton(PawControlButtonBase):
     """Button to export route data."""
