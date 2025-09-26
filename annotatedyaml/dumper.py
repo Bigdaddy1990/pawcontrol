@@ -15,7 +15,6 @@ for the tests without pulling a heavy dependency into the execution environment.
 from __future__ import annotations
 
 import json
-
 from collections import OrderedDict
 from collections.abc import Callable
 from pathlib import Path
