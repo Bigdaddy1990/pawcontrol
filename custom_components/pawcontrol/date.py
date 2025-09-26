@@ -13,7 +13,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import inspect
 import logging
 from contextlib import suppress
 from datetime import date
@@ -41,7 +40,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
-from .utils import PawControlDeviceLinkMixin
+from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,9 +84,9 @@ async def _async_add_entities_in_batches(
         )
 
         # Add batch without update_before_add to reduce Registry load
-        result = async_add_entities_func(batch, update_before_add=False)
-        if inspect.isawaitable(result):
-            await result
+        await async_call_add_entities(
+            async_add_entities_func, batch, update_before_add=False
+        )
 
         # Small delay between batches to prevent Registry flooding
         if i + batch_size < total_entities:  # No delay after last batch

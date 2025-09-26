@@ -41,7 +41,11 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin, ensure_utc_datetime
+from .utils import (
+    PawControlDeviceLinkMixin,
+    async_call_add_entities,
+    ensure_utc_datetime,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1013,7 +1017,9 @@ async def create_optimized_entities_batched(
             len(batch),
         )
 
-        async_add_entities_callback(batch, update_before_add=False)
+        await async_call_add_entities(
+            async_add_entities_callback, batch, update_before_add=False
+        )
 
         if i + batch_size < total_entities:
             await asyncio.sleep(delay_between_batches)
