@@ -641,17 +641,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 "You can create the scripts manually from Home Assistant's script editor.",
                 scripts_duration,
             )
-        except HomeAssistantError as script_err:
+        except (HomeAssistantError, Exception) as script_err:
             scripts_duration = time.time() - scripts_start
-            _LOGGER.warning(
-                "Script creation skipped after %.2f seconds (non-critical): %s",
-                scripts_duration,
-                script_err,
+            error_type = (
+                "skipped" if isinstance(script_err, HomeAssistantError) else "failed"
             )
-        except Exception as script_err:
-            scripts_duration = time.time() - scripts_start
             _LOGGER.warning(
-                "Script creation failed after %.2f seconds (non-critical): %s",
+                "Script creation %s after %.2f seconds (non-critical): %s",
+                error_type,
                 scripts_duration,
                 script_err,
             )

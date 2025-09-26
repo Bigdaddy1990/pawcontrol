@@ -114,13 +114,6 @@ class PawControlScriptManager:
                     dog_notifications_enabled = bool(
                         dog_modules.get(MODULE_NOTIFICATIONS)
                     )
-            elif isinstance(dog_modules, Collection) and not isinstance(
-                dog_modules, str | bytes
-            ):
-                dog_notifications_enabled = (
-                    global_notifications_enabled
-                    and MODULE_NOTIFICATIONS in {str(module) for module in dog_modules}
-                )
 
             script_definitions = self._build_scripts_for_dog(
                 slug, dog_id, dog_name, dog_notifications_enabled
