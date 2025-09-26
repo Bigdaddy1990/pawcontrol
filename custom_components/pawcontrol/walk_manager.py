@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
-from defusedxml import ElementTree as ET
+from defusedxml import ElementTree
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
@@ -54,6 +54,21 @@ GPX_NAMESPACE = "http://www.topografix.com/GPX/1/1"
 GPX_SCHEMA_LOCATION = (
     "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
 )
+
+
+def _indent_xml(element: ElementTree.Element, level: int = 0, space: str = "  ") -> None:
+    """Pretty-print XML output while remaining compatible with defusedxml."""
+
+    indent_text = "\n" + space * level
+    if len(element):
+        if not element.text or not element.text.strip():
+            element.text = indent_text + space
+        for child in element:
+            _indent_xml(child, level + 1, space)
+        if not element[-1].tail or not element[-1].tail.strip():
+            element[-1].tail = indent_text
+    if level and (not element.tail or not element.tail.strip()):
+        element.tail = indent_text
 
 
 class GPSCache:
@@ -1409,7 +1424,7 @@ class WalkManager:
         """
         try:
             # Create root GPX element with proper namespaces
-            root = ET.Element("gpx")
+            root = ElementTree.Element("gpx")
             root.set("version", GPX_VERSION)
             root.set("creator", GPX_CREATOR)
             root.set("xmlns", GPX_NAMESPACE)
@@ -1417,25 +1432,25 @@ class WalkManager:
             root.set("xsi:schemaLocation", GPX_SCHEMA_LOCATION)
 
             # Add metadata
-            metadata = ET.SubElement(root, "metadata")
+            metadata = ElementTree.SubElement(root, "metadata")
 
-            name_elem = ET.SubElement(metadata, "name")
+            name_elem = ElementTree.SubElement(metadata, "name")
             name_elem.text = f"PawControl Routes - {dog_id}"
 
-            desc_elem = ET.SubElement(metadata, "desc")
+            desc_elem = ElementTree.SubElement(metadata, "desc")
             desc_elem.text = f"GPS tracks for {dog_id} exported from PawControl"
 
-            author_elem = ET.SubElement(metadata, "author")
-            author_name = ET.SubElement(author_elem, "name")
+            author_elem = ElementTree.SubElement(metadata, "author")
+            author_name = ElementTree.SubElement(author_elem, "name")
             author_name.text = "PawControl"
 
-            time_elem = ET.SubElement(metadata, "time")
+            time_elem = ElementTree.SubElement(metadata, "time")
             time_elem.text = dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # Calculate and add bounds
             bounds_data = self._calculate_route_bounds(walks)
             if any(bounds_data.values()):
-                bounds = ET.SubElement(metadata, "bounds")
+                bounds = ElementTree.SubElement(metadata, "bounds")
                 bounds.set("minlat", f"{bounds_data['min_lat']:.6f}")
                 bounds.set("minlon", f"{bounds_data['min_lon']:.6f}")
                 bounds.set("maxlat", f"{bounds_data['max_lat']:.6f}")
@@ -1451,20 +1466,20 @@ class WalkManager:
                     and start_location.get("latitude")
                     and start_location.get("longitude")
                 ):
-                    wpt = ET.SubElement(root, "wpt")
+                    wpt = ElementTree.SubElement(root, "wpt")
                     wpt.set("lat", f"{start_location['latitude']:.6f}")
                     wpt.set("lon", f"{start_location['longitude']:.6f}")
 
-                    name_elem = ET.SubElement(wpt, "name")
+                    name_elem = ElementTree.SubElement(wpt, "name")
                     name_elem.text = f"Walk {i} Start"
 
-                    desc_elem = ET.SubElement(wpt, "desc")
+                    desc_elem = ElementTree.SubElement(wpt, "desc")
                     desc_elem.text = (
                         f"Start of walk {walk.get('walk_id', i)} for {dog_id}"
                     )
 
                     if start_location.get("timestamp"):
-                        time_elem = ET.SubElement(wpt, "time")
+                        time_elem = ElementTree.SubElement(wpt, "time")
                         time_elem.text = self._format_gpx_timestamp(
                             start_location["timestamp"]
                         )
@@ -1474,33 +1489,33 @@ class WalkManager:
                     and end_location.get("latitude")
                     and end_location.get("longitude")
                 ):
-                    wpt = ET.SubElement(root, "wpt")
+                    wpt = ElementTree.SubElement(root, "wpt")
                     wpt.set("lat", f"{end_location['latitude']:.6f}")
                     wpt.set("lon", f"{end_location['longitude']:.6f}")
 
-                    name_elem = ET.SubElement(wpt, "name")
+                    name_elem = ElementTree.SubElement(wpt, "name")
                     name_elem.text = f"Walk {i} End"
 
-                    desc_elem = ET.SubElement(wpt, "desc")
+                    desc_elem = ElementTree.SubElement(wpt, "desc")
                     desc_elem.text = (
                         f"End of walk {walk.get('walk_id', i)} for {dog_id}"
                     )
 
                     if end_location.get("timestamp"):
-                        time_elem = ET.SubElement(wpt, "time")
+                        time_elem = ElementTree.SubElement(wpt, "time")
                         time_elem.text = self._format_gpx_timestamp(
                             end_location["timestamp"]
                         )
 
             # Add tracks with enhanced metadata
             for i, walk in enumerate(walks, 1):
-                track = ET.SubElement(root, "trk")
+                track = ElementTree.SubElement(root, "trk")
 
                 # Track metadata
-                name_elem = ET.SubElement(track, "name")
+                name_elem = ElementTree.SubElement(track, "name")
                 name_elem.text = f"{dog_id} - Walk {i}"
 
-                desc_elem = ET.SubElement(track, "desc")
+                desc_elem = ElementTree.SubElement(track, "desc")
                 walk_info = []
                 if walk.get("distance"):
                     walk_info.append(f"Distance: {walk['distance']:.1f}m")
@@ -1515,11 +1530,11 @@ class WalkManager:
                 )
 
                 # Track type
-                type_elem = ET.SubElement(track, "type")
+                type_elem = ElementTree.SubElement(track, "type")
                 type_elem.text = walk.get("walk_type", "walk")
 
                 # Track segment
-                trkseg = ET.SubElement(track, "trkseg")
+                trkseg = ElementTree.SubElement(track, "trkseg")
 
                 # Add track points with full data
                 for point in walk.get("path", []):
@@ -1527,37 +1542,37 @@ class WalkManager:
                     lon = point.get("longitude")
 
                     if lat is not None and lon is not None:
-                        trkpt = ET.SubElement(trkseg, "trkpt")
+                        trkpt = ElementTree.SubElement(trkseg, "trkpt")
                         trkpt.set("lat", f"{lat:.6f}")
                         trkpt.set("lon", f"{lon:.6f}")
 
                         # Add elevation if available
                         altitude = point.get("altitude")
                         if altitude is not None:
-                            ele_elem = ET.SubElement(trkpt, "ele")
+                            ele_elem = ElementTree.SubElement(trkpt, "ele")
                             ele_elem.text = f"{altitude:.1f}"
 
                         # Add timestamp
                         timestamp = point.get("timestamp")
                         if timestamp:
-                            time_elem = ET.SubElement(trkpt, "time")
+                            time_elem = ElementTree.SubElement(trkpt, "time")
                             time_elem.text = self._format_gpx_timestamp(timestamp)
 
                         # Add speed if available
                         speed = point.get("speed")
                         if speed is not None:
-                            speed_elem = ET.SubElement(trkpt, "speed")
+                            speed_elem = ElementTree.SubElement(trkpt, "speed")
                             speed_elem.text = f"{speed:.2f}"
 
                         # Add accuracy as horizontal dilution of precision
                         accuracy = point.get("accuracy")
                         if accuracy is not None:
-                            hdop_elem = ET.SubElement(trkpt, "hdop")
+                            hdop_elem = ElementTree.SubElement(trkpt, "hdop")
                             hdop_elem.text = f"{accuracy:.1f}"
 
             # Convert to string with proper formatting
-            ET.indent(root, space="  ", level=0)
-            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(
+            _indent_xml(root, space="  ", level=0)
+            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ElementTree.tostring(
                 root, encoding="unicode"
             )
 
