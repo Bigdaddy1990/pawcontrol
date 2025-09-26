@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 __all__ = [
-    "Input",
     "SECRET_YAML",
+    "Input",
     "UndefinedSubstitutionError",
     "YamlTypeError",
     "extract_inputs",
