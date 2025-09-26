@@ -13,9 +13,10 @@ import logging
 from collections.abc import Collection, Mapping, Sequence
 from typing import Any, Final
 
-from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN, ScriptEntity
+from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
+from homeassistant.components.script import ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
-from homeassistant.components.script.const import (CONF_FIELDS, CONF_TRACE)
+from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_ALIAS,
@@ -57,7 +58,9 @@ class PawControlScriptManager:
         self._dog_scripts.clear()
         _LOGGER.debug("Script manager initialised for entry %s", self._entry.entry_id)
 
-    def _get_component(self, *, require_loaded: bool = True) -> EntityComponent[Any] | None:
+    def _get_component(
+        self, *, require_loaded: bool = True
+    ) -> EntityComponent[Any] | None:
         """Return the Home Assistant script entity component."""
 
         component: EntityComponent[Any] | None = self._hass.data.get(SCRIPT_DOMAIN)
@@ -92,7 +95,9 @@ class PawControlScriptManager:
         for dog in dogs:
             dog_id = dog.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id:
-                _LOGGER.debug("Skipping script generation for invalid dog entry: %s", dog)
+                _LOGGER.debug(
+                    "Skipping script generation for invalid dog entry: %s", dog
+                )
                 continue
 
             processed_dogs.add(dog_id)
@@ -110,13 +115,11 @@ class PawControlScriptManager:
                         dog_modules.get(MODULE_NOTIFICATIONS)
                     )
             elif isinstance(dog_modules, Collection) and not isinstance(
-                dog_modules, (str, bytes)
+                dog_modules, str | bytes
             ):
                 dog_notifications_enabled = (
                     global_notifications_enabled
-                    and MODULE_NOTIFICATIONS in {
-                        str(module) for module in dog_modules
-                    }
+                    and MODULE_NOTIFICATIONS in {str(module) for module in dog_modules}
                 )
 
             script_definitions = self._build_scripts_for_dog(
@@ -184,7 +187,9 @@ class PawControlScriptManager:
             self._created_entities.discard(entity_id)
 
         self._dog_scripts.clear()
-        _LOGGER.debug("Removed all PawControl managed scripts for entry %s", self._entry.entry_id)
+        _LOGGER.debug(
+            "Removed all PawControl managed scripts for entry %s", self._entry.entry_id
+        )
 
     async def _async_remove_script_entity(self, entity_id: str) -> None:
         """Remove a specific script entity and its registry entry."""
@@ -217,9 +222,7 @@ class PawControlScriptManager:
         )
 
         if notifications_enabled:
-            scripts.append(
-                self._build_confirmation_script(slug, dog_id, dog_name)
-            )
+            scripts.append(self._build_confirmation_script(slug, dog_id, dog_name))
             scripts.append(self._build_push_test_script(slug, dog_id, dog_name))
 
         return scripts

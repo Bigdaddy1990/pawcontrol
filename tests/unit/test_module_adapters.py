@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -19,7 +19,7 @@ class _DtUtilStub(ModuleType):
 
     def __init__(self) -> None:
         super().__init__("homeassistant.util.dt")
-        self._now = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        self._now = datetime(2024, 1, 1, tzinfo=UTC)
 
     def utcnow(self) -> datetime:
         return self._now
@@ -60,9 +60,7 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     const_stub.MODULE_HEALTH = "health"
     const_stub.MODULE_WALK = "walk"
     const_stub.MODULE_WEATHER = "weather"
-    monkeypatch.setitem(
-        sys.modules, "custom_components.pawcontrol.const", const_stub
-    )
+    monkeypatch.setitem(sys.modules, "custom_components.pawcontrol.const", const_stub)
 
     exceptions_stub = ModuleType("custom_components.pawcontrol.exceptions")
 
@@ -102,7 +100,9 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     return module, dt_stub
 
 
-def test_expiring_cache_handles_hits_and_expiration(module_adapters: tuple[Any, _DtUtilStub]) -> None:
+def test_expiring_cache_handles_hits_and_expiration(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
     """_ExpiringCache should track hits, misses and cleanup correctly."""
 
     module, dt_stub = module_adapters
@@ -131,7 +131,7 @@ def test_expiring_cache_handles_hits_and_expiration(module_adapters: tuple[Any, 
 
 
 def test_feeding_adapter_uses_manager_and_cache(
-    module_adapters: tuple[Any, _DtUtilStub]
+    module_adapters: tuple[Any, _DtUtilStub],
 ) -> None:
     """FeedingModuleAdapter should use the manager and cache results."""
 
@@ -165,13 +165,15 @@ def test_feeding_adapter_uses_manager_and_cache(
 
 
 def test_feeding_adapter_external_api_fallback(
-    module_adapters: tuple[Any, _DtUtilStub]
+    module_adapters: tuple[Any, _DtUtilStub],
 ) -> None:
     """External API is used when the manager is unavailable."""
 
     module, _ = module_adapters
     api_client = AsyncMock()
-    api_client.async_get_feeding_payload = AsyncMock(return_value={"feedings_today": {}})
+    api_client.async_get_feeding_payload = AsyncMock(
+        return_value={"feedings_today": {}}
+    )
 
     adapter = module.FeedingModuleAdapter(
         session=object(),
@@ -188,7 +190,9 @@ def test_feeding_adapter_external_api_fallback(
     asyncio.run(_exercise())
 
 
-def test_feeding_adapter_default_payload(module_adapters: tuple[Any, _DtUtilStub]) -> None:
+def test_feeding_adapter_default_payload(
+    module_adapters: tuple[Any, _DtUtilStub],
+) -> None:
     """A deterministic default payload is returned when no sources are available."""
 
     module, _ = module_adapters
