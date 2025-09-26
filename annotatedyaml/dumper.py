@@ -14,6 +14,8 @@ for the tests without pulling a heavy dependency into the execution environment.
 
 from __future__ import annotations
 
+import json
+
 from collections import OrderedDict
 from collections.abc import Callable
 from pathlib import Path
@@ -108,7 +110,7 @@ def _minimal_yaml_serialize(data: Any, *, _indent: int = 0) -> str:
     if isinstance(data, int | float):
         return f"{indent}{data}\n"
     if isinstance(data, str):
-        return f"{indent}{data}\n"
+        return f"{indent}{json.dumps(data, ensure_ascii=False)}\n"
     if isinstance(data, list | tuple):
         if not data:
             return f"{indent}[]\n"
