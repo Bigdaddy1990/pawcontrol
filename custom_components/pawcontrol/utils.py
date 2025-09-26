@@ -52,7 +52,7 @@ def is_number(value: Any) -> TypeGuard[Number]:
 
     if isinstance(value, bool):
         return False
-    return isinstance(value, (int, float))
+    return isinstance(value, int | float)
 
 
 def create_device_info(
