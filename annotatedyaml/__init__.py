@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 __all__ = [
-    "SECRET_YAML",
     "Input",
-    "UndefinedSubstitution",
+    "SECRET_YAML",
+    "UndefinedSubstitutionError",
     "YamlTypeError",
     "extract_inputs",
     "substitute",
@@ -63,4 +63,4 @@ class Input(str):
         return self._name
 
 
-from .input import UndefinedSubstitution, extract_inputs, substitute
+from .input import UndefinedSubstitutionError, extract_inputs, substitute

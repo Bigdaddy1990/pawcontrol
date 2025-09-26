@@ -8,7 +8,7 @@ from typing import Any
 from . import Input
 
 
-class UndefinedSubstitution(Exception):
+class UndefinedSubstitutionError(Exception):
     """Error raised when a requested substitution is missing."""
 
     def __init__(self, input_name: str) -> None:
@@ -32,7 +32,7 @@ def _extract_inputs(obj: Any, found: set[str]) -> None:
             found.add(input_obj.name)
         case str() | bytes() | bytearray():
             pass
-        case Sequence() as seq if not isinstance(seq, str | bytes | bytearray):
+        case Sequence() as seq if not isinstance(seq, (str, bytes, bytearray)):
             for value in seq:
                 _extract_inputs(value, found)
         case Mapping() as mapping:
@@ -48,14 +48,15 @@ def substitute(obj: Any, substitutions: Mapping[str, Any]) -> Any:
             try:
                 return substitutions[input_obj.name]
             except KeyError as exc:  # pragma: no cover - defensive guard
-                raise UndefinedSubstitution(input_obj.name) from exc
+                raise UndefinedSubstitutionError(input_obj.name) from exc
         case str() | bytes() | bytearray():
             return obj
-        case Sequence() as seq if not isinstance(seq, str | bytes | bytearray):
+        case Sequence() as seq if not isinstance(seq, (str, bytes, bytearray)):
             return [substitute(value, substitutions) for value in seq]
         case Mapping() as mapping:
             return {
-                key: substitute(value, substitutions) for key, value in mapping.items()
+                key: substitute(value, substitutions)
+                for key, value in mapping.items()
             }
         case _:
             return obj
