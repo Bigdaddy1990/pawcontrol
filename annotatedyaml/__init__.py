@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from .input import UndefinedSubstitution, extract_inputs, substitute
-
 __all__ = [
-    "SECRET_YAML",
     "Input",
-    "UndefinedSubstitution",
+    "SECRET_YAML",
+    "UndefinedSubstitutionError",
     "YamlTypeError",
     "extract_inputs",
     "substitute",
@@ -63,3 +61,6 @@ class Input(str):
         """Return the name of the input placeholder."""
 
         return self._name
+
+
+from .input import UndefinedSubstitutionError, extract_inputs, substitute

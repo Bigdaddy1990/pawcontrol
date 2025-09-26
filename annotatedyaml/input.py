@@ -8,7 +8,7 @@ from typing import Any
 from . import Input
 
 
-class UndefinedSubstitution(Exception):
+class UndefinedSubstitutionError(Exception):
     """Error raised when a requested substitution is missing."""
 
     def __init__(self, input_name: str) -> None:
@@ -27,34 +27,36 @@ def extract_inputs(obj: Any) -> set[str]:
 def _extract_inputs(obj: Any, found: set[str]) -> None:
     """Recursive helper for :func:`extract_inputs`."""
 
-    if isinstance(obj, Input):
-        found.add(obj.name)
-        return
-
-    if isinstance(obj, Sequence) and not isinstance(obj, str | bytes | bytearray):
-        for value in obj:
-            _extract_inputs(value, found)
-        return
-
-    if isinstance(obj, Mapping):
-        for value in obj.values():
-            _extract_inputs(value, found)
-        return
+    match obj:
+        case Input() as input_obj:
+            found.add(input_obj.name)
+        case str() | bytes() | bytearray():
+            pass
+        case Sequence() as seq if not isinstance(seq, (str, bytes, bytearray)):
+            for value in seq:
+                _extract_inputs(value, found)
+        case Mapping() as mapping:
+            for value in mapping.values():
+                _extract_inputs(value, found)
 
 
 def substitute(obj: Any, substitutions: Mapping[str, Any]) -> Any:
     """Replace :class:`Input` placeholders in ``obj`` using ``substitutions``."""
 
-    if isinstance(obj, Input):
-        try:
-            return substitutions[obj.name]
-        except KeyError as exc:  # pragma: no cover - defensive guard
-            raise UndefinedSubstitution(obj.name) from exc
-
-    if isinstance(obj, Sequence) and not isinstance(obj, str | bytes | bytearray):
-        return [substitute(value, substitutions) for value in obj]
-
-    if isinstance(obj, Mapping):
-        return {key: substitute(value, substitutions) for key, value in obj.items()}
-
-    return obj
+    match obj:
+        case Input() as input_obj:
+            try:
+                return substitutions[input_obj.name]
+            except KeyError as exc:  # pragma: no cover - defensive guard
+                raise UndefinedSubstitutionError(input_obj.name) from exc
+        case str() | bytes() | bytearray():
+            return obj
+        case Sequence() as seq if not isinstance(seq, (str, bytes, bytearray)):
+            return [substitute(value, substitutions) for value in seq]
+        case Mapping() as mapping:
+            return {
+                key: substitute(value, substitutions)
+                for key, value in mapping.items()
+            }
+        case _:
+            return obj
