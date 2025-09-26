@@ -17,12 +17,16 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+)
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_track_state_change_event,
 )
-from homeassistant.helpers.typing import CALLBACK_TYPE
 from homeassistant.util import dt as dt_util
 
 from .const import (

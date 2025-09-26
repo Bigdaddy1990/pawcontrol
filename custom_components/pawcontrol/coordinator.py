@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -27,32 +27,32 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
-    CONF_WEATHER_ENTITY,
-    MODULE_FEEDING,
-    MODULE_GARDEN,
     MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
 )
+from .device_api import PawControlDeviceClient
 from .exceptions import (
     GPSUnavailableError,
     NetworkError,
     RateLimitError,
     ValidationError,
 )
+from .module_adapters import CoordinatorModuleAdapters
 from .types import DogConfigData, PawControlConfigEntry
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
     from .feeding_manager import FeedingManager
     from .garden_manager import GardenManager
+    from .geofencing import PawControlGeofencing
     from .gps_manager import GPSGeofenceManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
@@ -124,11 +124,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._use_external_api = bool(
             entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
         )
-
-        # Enhanced TTL-based cache with performance tracking
-        self._cache: dict[str, tuple[Any, datetime]] = {}
-        self._cache_hits = 0
-        self._cache_misses = 0
+        api_endpoint_option = entry.options.get(CONF_API_ENDPOINT) or ""
+        api_token_option = entry.options.get(CONF_API_TOKEN) or ""
+        self._api_client: PawControlDeviceClient | None = None
+        if api_endpoint_option:
+            try:
+                self._api_client = PawControlDeviceClient(
+                    self.session,
+                    endpoint=api_endpoint_option.strip(),
+                    api_key=api_token_option.strip() or None,
+                )
+            except ValueError as err:
+                _LOGGER.warning(
+                    "Invalid Paw Control API endpoint '%s': %s",
+                    api_endpoint_option,
+                    err,
+                )
 
         # Calculate update interval with validation
         try:
@@ -148,6 +159,14 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             config_entry=entry,
         )
 
+        self._modules = CoordinatorModuleAdapters(
+            session=self.session,
+            config_entry=entry,
+            use_external_api=self._use_external_api,
+            cache_ttl=timedelta(seconds=CACHE_TTL_SECONDS),
+            api_client=self._api_client,
+        )
+
         # Runtime data and performance tracking
         self._data: dict[str, dict[str, Any]] = {}
         self._update_count = 0
@@ -163,6 +182,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.gps_geofence_manager: GPSGeofenceManager | None = None
         self.weather_health_manager: WeatherHealthManager | None = None
         self.garden_manager: GardenManager | None = None
+        self.geofencing_manager: PawControlGeofencing | None = None
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -181,6 +201,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update the external API usage flag."""
         self._use_external_api = bool(value)
 
+    @property
+    def api_client(self) -> PawControlDeviceClient | None:
+        """Return the configured device API client, if any."""
+
+        return self._api_client
+
     def attach_runtime_managers(
         self,
         *,
@@ -188,6 +214,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         feeding_manager: FeedingManager,
         walk_manager: WalkManager,
         notification_manager: PawControlNotificationManager,
+        geofencing_manager: PawControlGeofencing | None = None,
         gps_geofence_manager: GPSGeofenceManager | None = None,
         weather_health_manager: WeatherHealthManager | None = None,
         garden_manager: GardenManager | None = None,
@@ -207,8 +234,19 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.walk_manager = walk_manager
         self.notification_manager = notification_manager
         self.gps_geofence_manager = gps_geofence_manager
+        self.geofencing_manager = geofencing_manager
         self.weather_health_manager = weather_health_manager
         self.garden_manager = garden_manager
+        if gps_geofence_manager:
+            gps_geofence_manager.set_notification_manager(notification_manager)
+        self._modules.attach_managers(
+            data_manager=data_manager,
+            feeding_manager=feeding_manager,
+            walk_manager=walk_manager,
+            gps_geofence_manager=gps_geofence_manager,
+            weather_health_manager=weather_health_manager,
+            garden_manager=garden_manager,
+        )
         _LOGGER.debug(
             "Runtime managers attached (gps_geofence: %s, weather: %s)",
             bool(gps_geofence_manager),
@@ -222,39 +260,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.walk_manager = None
         self.notification_manager = None
         self.gps_geofence_manager = None
+        self.geofencing_manager = None
         self.weather_health_manager = None
         self.garden_manager = None
-
-    def _get_cache(self, key: str) -> Any | None:
-        """Get item from cache if not expired.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            Cached value or None if expired/missing
-        """
-        if key not in self._cache:
-            self._cache_misses += 1
-            return None
-
-        data, timestamp = self._cache[key]
-        if (dt_util.utcnow() - timestamp).total_seconds() > CACHE_TTL_SECONDS:
-            del self._cache[key]
-            self._cache_misses += 1
-            return None
-
-        self._cache_hits += 1
-        return data
-
-    def _set_cache(self, key: str, data: Any) -> None:
-        """Set item in cache with timestamp.
-
-        Args:
-            key: Cache key
-            data: Data to cache
-        """
-        self._cache[key] = (data, dt_util.utcnow())
+        self._modules.detach_managers()
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data for all dogs efficiently with enhanced error handling.
@@ -403,13 +412,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Dictionary containing update statistics and performance metrics
         """
         successful_updates = max(self._update_count - self._error_count, 0)
-        cache_entries = len(self._cache)
-        total_cache_requests = self._cache_hits + self._cache_misses
-        cache_hit_rate = (
-            (self._cache_hits / total_cache_requests * 100)
-            if total_cache_requests > 0
-            else 0
-        )
+        cache_metrics = self._modules.cache_metrics()
+        cache_entries = cache_metrics.entries
+        cache_hit_rate = cache_metrics.hit_rate
 
         return {
             "update_counts": {
@@ -459,23 +464,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         modules = dog_config.get("modules", {})
 
-        # PLATINUM: Enhanced module data fetching with specific error handling
-        module_tasks = []
-        if modules.get(MODULE_FEEDING):
-            module_tasks.append(("feeding", self._get_feeding_data(dog_id)))
-        if modules.get(MODULE_WALK):
-            module_tasks.append(("walk", self._get_walk_data(dog_id)))
-        if modules.get(MODULE_GPS):
-            module_tasks.append(("gps", self._get_gps_data(dog_id)))
-            # Include geofencing data if GPS manager is available and GPS is enabled
-            if self.gps_geofence_manager:
-                module_tasks.append(("geofencing", self._get_geofencing_data(dog_id)))
-        if modules.get(MODULE_HEALTH):
-            module_tasks.append(("health", self._get_health_data(dog_id)))
-        if modules.get(MODULE_WEATHER):
-            module_tasks.append(("weather", self._get_weather_data(dog_id)))
-        if modules.get(MODULE_GARDEN):
-            module_tasks.append(("garden", self._get_garden_data(dog_id)))
+        # PLATINUM: Enhanced module data fetching with dedicated adapters
+        module_tasks = self._modules.build_tasks(dog_id, modules)
 
         # Execute module tasks concurrently with enhanced error handling
         if module_tasks:
@@ -513,348 +503,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     data[module_name] = result
 
         return data
-
-    async def _get_feeding_data(self, dog_id: str) -> dict[str, Any]:
-        """Get feeding data for dog with caching and error handling.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Feeding data dictionary
-
-        Raises:
-            NetworkError: If external API call fails
-        """
-        cache_key = f"feeding_{dog_id}"
-        if (cached := self._get_cache(cache_key)) is not None:
-            return cached
-
-        # Prefer local feeding manager data for Platinum compliance
-        if self.feeding_manager:
-            try:
-                data = await self.feeding_manager.async_get_feeding_data(dog_id)
-                feeding_data = dict(data)
-                feeding_data.setdefault("status", "ready")
-                self._set_cache(cache_key, feeding_data)
-                return feeding_data
-            except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug(
-                    "Feeding manager data unavailable for %s: %s", dog_id, err
-                )
-
-        try:
-            if self._use_external_api:
-                async with self.session.get(
-                    f"/api/dogs/{dog_id}/feeding", timeout=ClientTimeout(total=10.0)
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        self._set_cache(cache_key, data)
-                        return data
-                    elif resp.status == 429:
-                        retry_after = resp.headers.get("Retry-After")
-                        raise RateLimitError(
-                            "feeding_data",
-                            retry_after=int(retry_after) if retry_after else 60,
-                        )
-                    elif resp.status >= 400:
-                        raise NetworkError(f"HTTP {resp.status}")
-        except ClientError as err:
-            raise NetworkError(f"Client error: {err}") from err
-
-        # Default data
-        default_data = {
-            "last_feeding": None,
-            "feedings_today": {},
-            "total_feedings_today": 0,
-            "daily_amount_consumed": 0.0,
-            "daily_portions": 0,
-            "feeding_schedule": [],
-            "status": "ready",
-            "daily_calorie_target": None,
-            "total_calories_today": 0.0,
-            "portion_adjustment_factor": None,
-            "health_feeding_status": "insufficient_data",
-            "medication_with_meals": False,
-            "health_aware_feeding": False,
-            "health_conditions": [],
-            "daily_activity_level": None,
-            "weight_goal": None,
-            "weight_goal_progress": None,
-            "health_emergency": False,
-            "emergency_mode": None,
-        }
-        self._set_cache(cache_key, default_data)
-        return default_data
-
-    async def _get_walk_data(self, dog_id: str) -> dict[str, Any]:
-        """Get walk data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Walk data dictionary
-        """
-        return {
-            "current_walk": None,
-            "last_walk": None,
-            "daily_walks": 0,
-            "total_distance": 0.0,
-            "status": "ready",
-        }
-
-    async def _get_gps_data(self, dog_id: str) -> dict[str, Any]:
-        """Get GPS data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            GPS data dictionary
-
-        Raises:
-            GPSUnavailableError: If GPS data is not available
-        """
-        if not self.gps_geofence_manager:
-            raise GPSUnavailableError(dog_id, "GPS manager not available")
-
-        try:
-            # Get current location
-            current_location = (
-                await self.gps_geofence_manager.async_get_current_location(dog_id)
-            )
-
-            # Get active route if any
-            active_route = await self.gps_geofence_manager.async_get_active_route(
-                dog_id
-            )
-
-            return {
-                "latitude": current_location.latitude if current_location else None,
-                "longitude": current_location.longitude if current_location else None,
-                "accuracy": current_location.accuracy if current_location else None,
-                "last_update": current_location.timestamp.isoformat()
-                if current_location
-                else None,
-                "source": current_location.source.value if current_location else None,
-                "status": "tracking"
-                if active_route and active_route.is_active
-                else "ready",
-                "active_route": {
-                    "start_time": active_route.start_time.isoformat(),
-                    "duration_minutes": active_route.duration_minutes,
-                    "distance_km": active_route.distance_km,
-                    "points_count": len(active_route.gps_points),
-                }
-                if active_route and active_route.is_active
-                else None,
-            }
-
-        except Exception as err:
-            _LOGGER.warning("Failed to get GPS data for %s: %s", dog_id, err)
-            raise GPSUnavailableError(dog_id, str(err)) from err
-
-    async def _get_health_data(self, dog_id: str) -> dict[str, Any]:
-        """Get health data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Health data dictionary
-        """
-        health_data: dict[str, Any] = {
-            "weight": None,
-            "ideal_weight": None,
-            "last_vet_visit": None,
-            "medications": [],
-            "health_alerts": [],
-            "status": "healthy",
-        }
-
-        feeding_context: dict[str, Any] = {}
-        if self.feeding_manager:
-            try:
-                feeding_context = await self.feeding_manager.async_get_feeding_data(
-                    dog_id
-                )
-            except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug(
-                    "Failed to gather feeding context for %s: %s", dog_id, err
-                )
-
-        if feeding_context:
-            summary = feeding_context.get("health_summary", {})
-            if summary:
-                health_data.update(
-                    {
-                        "weight": summary.get("current_weight"),
-                        "ideal_weight": summary.get("ideal_weight"),
-                        "life_stage": summary.get("life_stage"),
-                        "activity_level": summary.get("activity_level"),
-                        "body_condition_score": summary.get("body_condition_score"),
-                        "health_conditions": summary.get("health_conditions", []),
-                    }
-                )
-
-            if "health_conditions" not in health_data and feeding_context.get(
-                "health_conditions"
-            ):
-                health_data["health_conditions"] = feeding_context.get(
-                    "health_conditions"
-                )
-
-            if feeding_context.get("health_emergency"):
-                emergency = feeding_context.get("emergency_mode") or {}
-                health_data["status"] = "attention"
-                health_data["emergency"] = emergency
-                health_data.setdefault("health_alerts", []).append(
-                    {
-                        "type": "emergency_feeding",
-                        "severity": "critical",
-                        "details": emergency,
-                    }
-                )
-
-            if feeding_context.get("medication_with_meals"):
-                health_data.setdefault("medications", []).append("meal_medication")
-
-            health_data["health_status"] = feeding_context.get(
-                "health_feeding_status", "healthy"
-            )
-            health_data["daily_calorie_target"] = feeding_context.get(
-                "daily_calorie_target"
-            )
-            health_data["total_calories_today"] = feeding_context.get(
-                "total_calories_today"
-            )
-            health_data["weight_goal_progress"] = feeding_context.get(
-                "weight_goal_progress"
-            )
-            health_data["weight_goal"] = feeding_context.get("weight_goal")
-            if feeding_context.get("daily_activity_level"):
-                health_data["activity_level"] = feeding_context.get(
-                    "daily_activity_level"
-                )
-
-        return health_data
-
-    async def _get_weather_data(self, dog_id: str) -> dict[str, Any]:
-        """Get weather health data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Weather health data dictionary
-        """
-        if not self.weather_health_manager:
-            return {"status": "disabled", "health_score": None, "alerts": []}
-
-        try:
-            # Update weather data from configured entity
-            weather_entity = self.config_entry.options.get(CONF_WEATHER_ENTITY)
-            if weather_entity:
-                await self.weather_health_manager.async_update_weather_data(
-                    weather_entity
-                )
-
-            # Get weather health information
-            weather_conditions = self.weather_health_manager.get_current_conditions()
-            weather_score = self.weather_health_manager.get_weather_health_score()
-            active_alerts = self.weather_health_manager.get_active_alerts()
-
-            # Get dog-specific recommendations
-            dog_config = self.get_dog_config(dog_id)
-            recommendations = []
-            if dog_config:
-                recommendations = (
-                    self.weather_health_manager.get_recommendations_for_dog(
-                        dog_breed=dog_config.get("breed"),
-                        dog_age_months=dog_config.get("age_months"),
-                        health_conditions=dog_config.get("health_conditions", []),
-                    )
-                )
-
-            return {
-                "status": "active"
-                if weather_conditions and weather_conditions.is_valid
-                else "no_data",
-                "health_score": weather_score,
-                "temperature_c": weather_conditions.temperature_c
-                if weather_conditions
-                else None,
-                "condition": weather_conditions.condition
-                if weather_conditions
-                else None,
-                "alerts": [
-                    {
-                        "type": alert.alert_type.value,
-                        "severity": alert.severity.value,
-                        "title": alert.title,
-                        "message": alert.message,
-                    }
-                    for alert in active_alerts[:3]  # Limit to 3 most important
-                ],
-                "recommendations": recommendations[:5],  # Limit to 5 recommendations
-                "last_updated": weather_conditions.last_updated.isoformat()
-                if weather_conditions
-                else None,
-            }
-
-        except Exception as err:
-            _LOGGER.warning("Failed to get weather data for %s: %s", dog_id, err)
-            return {"status": "error", "error": str(err)}
-
-    async def _get_geofencing_data(self, dog_id: str) -> dict[str, Any]:
-        """Get geofencing data for dog.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Geofencing data dictionary
-        """
-        if not self.gps_geofence_manager:
-            return {"status": "disabled", "zones": []}
-
-        try:
-            # Get geofence status from GPS manager
-            geofence_status = await self.gps_geofence_manager.async_get_geofence_status(
-                dog_id
-            )
-
-            return {
-                "status": "active"
-                if geofence_status.get("current_location")
-                else "no_location",
-                "zones_configured": geofence_status.get("zones_configured", 0),
-                "safe_zone_breaches": geofence_status.get("safe_zone_breaches", 0),
-                "current_location": geofence_status.get("current_location"),
-                "zone_status": geofence_status.get("zone_status", {}),
-                "last_update": geofence_status.get("last_update"),
-            }
-
-        except Exception as err:
-            _LOGGER.warning("Failed to get geofencing data for %s: %s", dog_id, err)
-            return {"status": "error", "error": str(err)}
-
-    async def _get_garden_data(self, dog_id: str) -> dict[str, Any]:
-        """Get garden tracking data for a dog."""
-
-        if not self.garden_manager:
-            return {"status": "disabled"}
-
-        try:
-            snapshot = self.garden_manager.build_garden_snapshot(dog_id)
-        except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning("Failed to build garden snapshot for %s: %s", dog_id, err)
-            return {"status": "error", "message": str(err)}
-
-        snapshot.setdefault("status", "idle")
-        return snapshot
 
     def _get_empty_dog_data(self) -> dict[str, Any]:
         """Get empty dog data structure.
@@ -1025,6 +673,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Statistics dictionary
         """
+        cache_metrics = self._modules.cache_metrics()
+
         return {
             "total_dogs": len(self._dogs_config),
             "update_count": self._update_count,
@@ -1034,11 +684,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_update": self.last_update_time,
             "update_interval": self.update_interval.total_seconds(),
             "cache_performance": {
-                "hits": self._cache_hits,
-                "misses": self._cache_misses,
-                "hit_rate": (
-                    self._cache_hits / max(self._cache_hits + self._cache_misses, 1)
-                ),
+                "hits": cache_metrics.hits,
+                "misses": cache_metrics.misses,
+                "hit_rate": cache_metrics.hit_rate / 100,
             },
         }
 
@@ -1058,17 +706,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         # PLATINUM: Enhanced cache cleanup
         now = dt_util.utcnow()
-        expired_keys = [
-            key
-            for key, (_, timestamp) in self._cache.items()
-            if (now - timestamp).total_seconds() > CACHE_TTL_SECONDS
-        ]
+        expired = self._modules.cleanup_expired(now)
 
-        for key in expired_keys:
-            del self._cache[key]
-
-        if expired_keys:
-            _LOGGER.debug("Cleaned %d expired cache entries", len(expired_keys))
+        if expired:
+            _LOGGER.debug("Cleaned %d expired cache entries", expired)
 
         # Reset consecutive errors if we've been stable
         if self._consecutive_errors > 0 and self.last_update_success:
@@ -1100,7 +741,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Clear data and cache
             self._data.clear()
-            self._cache.clear()
+            self._modules.clear_caches()
 
             _LOGGER.info("Coordinator shutdown completed successfully")
 
