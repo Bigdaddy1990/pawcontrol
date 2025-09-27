@@ -15,7 +15,9 @@ def _load_health_calculator_module() -> types.ModuleType:
     """Load the health_calculator module with lightweight stubs."""
 
     project_root = pathlib.Path(__file__).resolve().parents[2]
-    module_path = project_root / "custom_components" / "pawcontrol" / "health_calculator.py"
+    module_path = (
+        project_root / "custom_components" / "pawcontrol" / "health_calculator.py"
+    )
 
     if "homeassistant" not in sys.modules:
         homeassistant_pkg = types.ModuleType("homeassistant")
@@ -39,7 +41,9 @@ def _load_health_calculator_module() -> types.ModuleType:
     module = types.ModuleType(module_name)
     module.__file__ = str(module_path)
     module.__package__ = "custom_components.pawcontrol"
-    module.__loader__ = importlib.machinery.SourceFileLoader(module_name, str(module_path))
+    module.__loader__ = importlib.machinery.SourceFileLoader(
+        module_name, str(module_path)
+    )
     module.ensure_local_datetime = lambda value: value
     sys.modules[module_name] = module
 
@@ -119,9 +123,7 @@ def test_breed_recommendations_are_requested_when_breed_valid() -> None:
     )
 
     # Breed value should be normalised and forwarded to the weather manager
-    assert manager.requests == [
-        ("golden retriever", 30, ["arthritis"])
-    ]
+    assert manager.requests == [("golden retriever", 30, ["arthritis"])]
     assert report["recommendations"] == [
         "limit midday walks",
         "ensure hydration",

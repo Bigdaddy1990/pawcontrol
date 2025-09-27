@@ -126,7 +126,7 @@ class HealthMetrics:
     weather_conditions: dict[str, Any] | None = None
     weather_health_score: int | None = None
 
-    _BREED_ALLOWED_CHARACTERS = frozenset(" -'" )
+    _BREED_ALLOWED_CHARACTERS = frozenset(" -'")
 
     def __init__(
         self,
