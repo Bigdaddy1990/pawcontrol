@@ -251,6 +251,7 @@ class TestSensorPlatform:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Import and test sensor platform
@@ -563,6 +564,7 @@ class TestBinarySensorPlatform:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Import and test binary sensor platform
@@ -879,6 +881,7 @@ class TestSwitchPlatform:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Import and test switch platform
@@ -1017,6 +1020,7 @@ class TestButtonPlatform:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Import and test button platform
@@ -1326,6 +1330,7 @@ class TestPlatformIntegration:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Test sensor platform setup and teardown
@@ -1415,6 +1420,7 @@ class TestPlatformIntegration:
             entity_factory=Mock(),
             entity_profile="basic",
             dogs=many_dogs_config[CONF_DOGS],
+            script_manager=None,
         )
 
         # Test sensor platform performance
