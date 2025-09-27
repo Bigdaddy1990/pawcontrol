@@ -81,7 +81,6 @@
 ### 📊 **Analytics & Reporting**
 - **Detaillierte Dashboards** mit Echtzeit-Daten
 - **Wochen-/Monatsberichte** mit Trends
-- **Performance-Monitoring** der Integration
 - **Export-Funktionen** für Datenanalyse
 - **Health-Checks** und Diagnostics
 
