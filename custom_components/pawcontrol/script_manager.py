@@ -109,11 +109,20 @@ class PawControlScriptManager:
 
             dog_modules = dog.get(CONF_MODULES, {})
             dog_notifications_enabled = global_notifications_enabled
-            if isinstance(dog_modules, Mapping):
-                if MODULE_NOTIFICATIONS in dog_modules:
-                    dog_notifications_enabled = bool(
-                        dog_modules.get(MODULE_NOTIFICATIONS)
-                    )
+            if (
+                isinstance(dog_modules, Mapping)
+                and MODULE_NOTIFICATIONS in dog_modules
+            ):
+                dog_notifications_enabled = bool(
+                    dog_modules.get(MODULE_NOTIFICATIONS)
+                )
+            elif dog_modules:
+                _LOGGER.warning(
+                    "Invalid 'modules' format for dog %s (expected a mapping, got %s). "
+                    "Falling back to global notification setting.",
+                    dog_id,
+                    type(dog_modules).__name__,
+                )
 
             script_definitions = self._build_scripts_for_dog(
                 slug, dog_id, dog_name, dog_notifications_enabled
@@ -175,7 +184,7 @@ class PawControlScriptManager:
                 await entity.async_remove()
 
             if registry.async_get(entity_id):
-                registry.async_remove(entity_id)
+                await registry.async_remove(entity_id)
 
             self._created_entities.discard(entity_id)
 
@@ -194,7 +203,7 @@ class PawControlScriptManager:
             await entity.async_remove()
 
         if registry.async_get(entity_id):
-            registry.async_remove(entity_id)
+            await registry.async_remove(entity_id)
 
         self._created_entities.discard(entity_id)
 

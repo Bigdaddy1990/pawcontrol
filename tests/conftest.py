@@ -34,7 +34,7 @@ if _missing:
         )
 
     print(
-        "Home Assistant test dependencies are unavailable – integration tests under "
+        "Home Assistant test dependencies are unavailable - integration tests under "
         "tests/components are skipped.",
         file=sys.stderr,
     )
