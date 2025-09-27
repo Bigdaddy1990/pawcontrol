@@ -7,6 +7,8 @@ recommendations for dogs.
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
@@ -78,15 +80,32 @@ class DietInteractionDetails(TypedDict):
     risk_level: Literal["low", "medium", "high"]
 
 
-@dataclass
+@dataclass(init=False)
 class HealthMetrics:
-    """Comprehensive health metrics for a dog."""
+    """Comprehensive health metrics for a dog.
+
+    Attributes:
+        breed: Standardized breed name (for example, "Golden Retriever").
+            The value must be a non-empty human readable breed description
+            and is leveraged by weather specific advice to tailor
+            recommendations.
+    """
 
     # Basic measurements
     current_weight: float
-    ideal_weight: float | None = None
-    height_cm: float | None = None
     age_months: int | None = None
+    breed: str | None = field(
+        default=None,
+        metadata={
+            "doc": (
+                "Standardized breed name (e.g., 'Golden Retriever'). Used "
+                "by downstream weather guidance for breed-specific "
+                "recommendations."
+            )
+        },
+    )
+    height_cm: float | None = None
+    ideal_weight: float | None = None
 
     # Health assessments
     body_condition_score: BodyConditionScore | None = None
@@ -106,6 +125,74 @@ class HealthMetrics:
     # NEW: Weather-related adjustments
     weather_conditions: dict[str, Any] | None = None
     weather_health_score: int | None = None
+
+    _BREED_ALLOWED_CHARACTERS = frozenset(" -'")
+
+    def __init__(
+        self,
+        current_weight: float,
+        ideal_weight: float | None = None,
+        height_cm: float | None = None,
+        age_months: int | None = None,
+        breed: str | None = None,
+        body_condition_score: BodyConditionScore | None = None,
+        activity_level: ActivityLevel | None = None,
+        life_stage: LifeStage | None = None,
+        health_conditions: Iterable[str] | None = None,
+        medications: Iterable[str] | None = None,
+        special_diet: Iterable[str] | None = None,
+        daily_calorie_requirement: float | None = None,
+        portion_adjustment_factor: float = 1.0,
+        weight_goal: str | None = None,
+        weather_conditions: dict[str, Any] | None = None,
+        weather_health_score: int | None = None,
+    ) -> None:
+        self.current_weight = current_weight
+        self.ideal_weight = ideal_weight
+        self.height_cm = height_cm
+        self.age_months = age_months
+        self.breed = self._validate_breed(breed)
+        self.body_condition_score = body_condition_score
+        self.activity_level = activity_level
+        self.life_stage = life_stage
+        self.health_conditions = (
+            list(health_conditions) if health_conditions is not None else []
+        )
+        self.medications = list(medications) if medications is not None else []
+        self.special_diet = list(special_diet) if special_diet is not None else []
+        self.daily_calorie_requirement = daily_calorie_requirement
+        self.portion_adjustment_factor = portion_adjustment_factor
+        self.weight_goal = weight_goal
+        self.weather_conditions = weather_conditions
+        self.weather_health_score = weather_health_score
+
+    @classmethod
+    def _validate_breed(cls, breed: str | None) -> str | None:
+        """Validate and normalize the provided breed string."""
+
+        if breed is None:
+            return None
+        if not isinstance(breed, str):
+            raise TypeError("breed must be provided as a string")
+
+        normalized = breed.strip()
+        if not normalized:
+            raise ValueError("breed must not be empty when provided")
+
+        if len(normalized) < 2:
+            raise ValueError("breed must contain at least two characters")
+
+        if not all(
+            char.isalpha() or char in cls._BREED_ALLOWED_CHARACTERS
+            for char in normalized
+        ):
+            raise ValueError(
+                "breed may only contain letters, spaces, apostrophes, or hyphens"
+            )
+
+        # Collapse repeated internal whitespace to a single space for consistency.
+        normalized = re.sub(r"\s+", " ", normalized)
+        return normalized
 
 
 class HealthCalculator:
