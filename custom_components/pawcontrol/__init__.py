@@ -10,7 +10,11 @@ from typing import Any, Final
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    HomeAssistantError,
+)
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -42,6 +46,7 @@ from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
 from .notifications import PawControlNotificationManager
+from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 from .walk_manager import WalkManager
@@ -333,6 +338,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             walk_manager = WalkManager()
             entity_factory = EntityFactory(coordinator)
             helper_manager = PawControlHelperManager(hass, entry)
+            script_manager = PawControlScriptManager(hass, entry)
             door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
             garden_manager = GardenManager(hass, entry.entry_id)
 
@@ -416,6 +422,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 ),
                 _async_initialize_manager_with_timeout(
                     "helper_manager", helper_manager.async_initialize()
+                ),
+                _async_initialize_manager_with_timeout(
+                    "script_manager", script_manager.async_initialize()
                 ),
                 _async_initialize_manager_with_timeout(
                     "door_sensor_manager",
@@ -587,6 +596,63 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 helper_err,
             )
 
+        # Generate automation scripts promised by the public documentation
+        scripts_start = time.time()
+        try:
+            created_scripts = await asyncio.wait_for(
+                script_manager.async_generate_scripts_for_dogs(
+                    dogs_config, enabled_modules
+                ),
+                timeout=20,
+            )
+
+            script_count = sum(len(scripts) for scripts in created_scripts.values())
+            scripts_duration = time.time() - scripts_start
+
+            if script_count > 0:
+                _LOGGER.info(
+                    "Created %d PawControl automation scripts for %d dogs in %.2f seconds",
+                    script_count,
+                    len(created_scripts),
+                    scripts_duration,
+                )
+
+                if notification_manager:
+                    try:
+                        await notification_manager.async_send_notification(
+                            notification_type="system_info",
+                            title="PawControl scripts ready",
+                            message=(
+                                "Generated PawControl confirmation, reset, and setup scripts "
+                                f"for {script_count} automation step(s)."
+                            ),
+                            priority="normal",
+                        )
+                    except Exception as notification_err:
+                        _LOGGER.debug(
+                            "Script creation notification failed (non-critical): %s",
+                            notification_err,
+                        )
+
+        except TimeoutError:
+            scripts_duration = time.time() - scripts_start
+            _LOGGER.warning(
+                "Script creation timed out after %.2f seconds (non-critical). "
+                "You can create the scripts manually from Home Assistant's script editor.",
+                scripts_duration,
+            )
+        except (HomeAssistantError, Exception) as script_err:
+            scripts_duration = time.time() - scripts_start
+            error_type = (
+                "skipped" if isinstance(script_err, HomeAssistantError) else "failed"
+            )
+            _LOGGER.warning(
+                "Script creation %s after %.2f seconds (non-critical): %s",
+                error_type,
+                scripts_duration,
+                script_err,
+            )
+
         # Create runtime data
         runtime_data = PawControlRuntimeData(
             coordinator=coordinator,
@@ -601,6 +667,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
         # Add optional managers to runtime data
         runtime_data.helper_manager = helper_manager
+        runtime_data.script_manager = script_manager
         runtime_data.geofencing_manager = geofencing_manager
         runtime_data.gps_geofence_manager = gps_geofence_manager
         runtime_data.door_sensor_manager = door_sensor_manager
@@ -816,6 +883,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         if hasattr(runtime_data, "helper_manager") and runtime_data.helper_manager:
             cleanup_tasks.append(
                 ("helper_manager", runtime_data.helper_manager.async_cleanup())
+            )
+
+        if hasattr(runtime_data, "script_manager") and runtime_data.script_manager:
+            cleanup_tasks.append(
+                ("script_manager", runtime_data.script_manager.async_cleanup())
             )
 
         # Execute cleanup tasks with individual timeouts

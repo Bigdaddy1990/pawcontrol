@@ -10,7 +10,7 @@ rules:
     comment: "Comprehensive config flow covering user setup, discovery, import, and reauth handling."
   test-coverage:
     status: done
-    comment: "Integration is covered by automated tests in the tests/ directory."
+    comment: "Unit coverage provided by tests/unit exercising module caches, API fallbacks, and feeding adapter logic."
 
   config-flow-discovery:
     status: done

@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from .gps_manager import GPSGeofenceManager
     from .helper_manager import PawControlHelperManager
     from .notifications import PawControlNotificationManager
+    from .script_manager import PawControlScriptManager
     from .walk_manager import WalkManager
 
 # OPTIMIZE: Use literal constants for performance - frozensets provide O(1) lookups
@@ -335,6 +336,7 @@ class PawControlRuntimeData:
     garden_manager: GardenManager | None = None
     geofencing_manager: PawControlGeofencing | None = None
     helper_manager: PawControlHelperManager | None = None
+    script_manager: PawControlScriptManager | None = None
     gps_geofence_manager: GPSGeofenceManager | None = None
     door_sensor_manager: DoorSensorManager | None = None
     device_api_client: PawControlDeviceClient | None = None
@@ -366,6 +368,7 @@ class PawControlRuntimeData:
             "dogs": self.dogs,
             "garden_manager": self.garden_manager,
             "geofencing_manager": self.geofencing_manager,
+            "script_manager": self.script_manager,
             "gps_geofence_manager": self.gps_geofence_manager,
             "door_sensor_manager": self.door_sensor_manager,
             "helper_manager": self.helper_manager,

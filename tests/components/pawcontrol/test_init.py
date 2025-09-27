@@ -297,6 +297,7 @@ class TestPawControlIntegrationSetup:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Mock platform unloading
@@ -339,6 +340,7 @@ class TestPawControlIntegrationSetup:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=[],
+            script_manager=None,
         )
 
         # Mock platform unloading to fail
@@ -441,6 +443,7 @@ class TestPawControlIntegrationSetup:
             entity_factory=mock_entity_factory,
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         # Test structure
@@ -629,6 +632,7 @@ class TestPawControlEntityRegistry:
             entity_factory=Mock(),
             entity_profile="standard",
             dogs=mock_config_entry_data[CONF_DOGS],
+            script_manager=None,
         )
 
         with patch(
