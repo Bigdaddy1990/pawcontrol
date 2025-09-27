@@ -109,13 +109,8 @@ class PawControlScriptManager:
 
             dog_modules = dog.get(CONF_MODULES, {})
             dog_notifications_enabled = global_notifications_enabled
-            if (
-                isinstance(dog_modules, Mapping)
-                and MODULE_NOTIFICATIONS in dog_modules
-            ):
-                dog_notifications_enabled = bool(
-                    dog_modules.get(MODULE_NOTIFICATIONS)
-                )
+            if isinstance(dog_modules, Mapping) and MODULE_NOTIFICATIONS in dog_modules:
+                dog_notifications_enabled = bool(dog_modules.get(MODULE_NOTIFICATIONS))
             elif dog_modules:
                 _LOGGER.warning(
                     "Invalid 'modules' format for dog %s (expected a mapping, got %s). "
