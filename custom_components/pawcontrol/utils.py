@@ -18,6 +18,7 @@ import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
+from numbers import Real
 from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
@@ -37,7 +38,7 @@ K = TypeVar("K")
 V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
-Number = int | float
+Number = Real
 
 
 class PortionValidationResult(TypedDict):
@@ -54,7 +55,7 @@ def is_number(value: Any) -> TypeGuard[Number]:
 
     if isinstance(value, bool):
         return False
-    return isinstance(value, int | float)
+    return isinstance(value, Real)
 
 
 def create_device_info(
