@@ -84,10 +84,10 @@ class HealthMetrics:
 
     # Basic measurements
     current_weight: float
-    ideal_weight: float | None = None
-    height_cm: float | None = None
     age_months: int | None = None
     breed: str | None = None
+    height_cm: float | None = None
+    ideal_weight: float | None = None
 
     # Health assessments
     body_condition_score: BodyConditionScore | None = None
