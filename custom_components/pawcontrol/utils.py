@@ -543,7 +543,17 @@ def calculate_age_from_months(age_months: int) -> dict[str, int]:
 
     Returns:
         Dictionary with years and months
+
+    Raises:
+        TypeError: If ``age_months`` is not an integer value
+        ValueError: If ``age_months`` is negative
     """
+    if isinstance(age_months, bool) or not isinstance(age_months, int):
+        raise TypeError("age_months must be provided as an integer")
+
+    if age_months < 0:
+        raise ValueError("age_months must be non-negative")
+
     years = age_months // 12
     months = age_months % 12
 
