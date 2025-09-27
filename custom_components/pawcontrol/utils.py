@@ -191,29 +191,31 @@ async def async_get_or_create_dog_device_entry(
         configuration_url=device_info.get("configuration_url"),
     )
 
-    if suggested_area := device_info.get("suggested_area"):
+    update_kwargs: dict[str, Any] = {}
+    for field in (
+        "suggested_area",
+        "serial_number",
+        "hw_version",
+        "sw_version",
+        "configuration_url",
+    ):
+        value = device_info.get(field)
+        if value and getattr(device, field, None) != value:
+            update_kwargs[field] = value
+
+    if update_kwargs:
         try:
             if updated_device := device_registry.async_update_device(
-                device.id, suggested_area=suggested_area
+                device.id, **update_kwargs
             ):
                 device = updated_device
         except Exception as err:  # pragma: no cover - defensive, HA guarantees API
-            _LOGGER.warning(
-                "Unable to set suggested area for %s (%s): %s", dog_name, dog_id, err
+            _LOGGER.debug(
+                "Failed to update device registry entry %s for dog %s: %s",
+                device.id,
+                dog_id,
+                err,
             )
-
-    update_kwargs: dict[str, Any] = {}
-    if serial_number := device_info.get("serial_number"):
-        update_kwargs["serial_number"] = serial_number
-    if hw_version := device_info.get("hw_version"):
-        update_kwargs["hw_version"] = hw_version
-
-    if update_kwargs and (
-        updated_device := device_registry.async_update_device(
-            device.id, **update_kwargs
-        )
-    ):
-        device = updated_device
 
     return device
 
