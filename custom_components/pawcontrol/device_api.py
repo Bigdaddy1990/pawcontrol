@@ -24,7 +24,7 @@ class DeviceEndpoint:
 
 
 def validate_device_endpoint(endpoint: str) -> URL:
-    """Validate and normalise the configured device endpoint."""
+    """Validate and normalize the configured device endpoint."""
 
     if not endpoint:
         raise ValueError("endpoint must be provided for device client")
@@ -53,7 +53,7 @@ class PawControlDeviceClient:
         api_key: str | None = None,
         timeout: ClientTimeout | None = None,
     ) -> None:
-        """Initialise the client with a configured session and endpoint."""
+        """Initialize the client with a configured session and endpoint."""
 
         base_url = validate_device_endpoint(endpoint)
 
@@ -83,7 +83,7 @@ class PawControlDeviceClient:
         return await self.async_get_json(f"/api/dogs/{dog_id}/feeding")
 
     async def _async_request(self, method: str, path: str) -> ClientResponse:
-        """Execute an HTTP request and normalise errors."""
+        """Execute an HTTP request and normalize errors."""
 
         url = self._endpoint.base_url.join(URL(path))
         headers: dict[str, str] | None = None
