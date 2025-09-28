@@ -119,9 +119,8 @@ class _CoordinatorResolver:
         if self._cached_coordinator is None:
             return
 
-        if entry_id is None or entry_id == self._cached_entry_id:
-            self._cached_coordinator = None
-            self._cached_entry_id = None
+        self._cached_coordinator = None
+        self._cached_entry_id = None
 
     def _cache_coordinator(self, coordinator: PawControlCoordinator) -> None:
         config_entry = getattr(coordinator, "config_entry", None)
@@ -164,13 +163,11 @@ class _CoordinatorResolver:
             )
 
         def _coordinator_from_runtime(runtime: object) -> PawControlCoordinator | None:
-            if runtime is None:
+            if not runtime:
                 return None
 
             coordinator = getattr(runtime, "coordinator", None)
-            if coordinator is None:
-                return None
-            return cast(PawControlCoordinator, coordinator)
+            return cast(PawControlCoordinator, coordinator) if coordinator else None
 
         # Prefer coordinators from loaded config entries which hold authoritative runtime data.
         for entry in self._hass.config_entries.async_entries(DOMAIN):
@@ -732,10 +729,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     def _handle_config_entry_state(event: Event) -> None:
         """Invalidate cached coordinator when the active entry changes state."""
 
-        if event.data.get("domain") != DOMAIN:
+        entry_id = event.data.get("entry_id")
+        entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
+        if not entry or entry.domain != DOMAIN:
             return
 
-        resolver.invalidate(entry_id=event.data.get("entry_id"))
+        resolver.invalidate(entry_id=entry_id)
 
     domain_data["_service_coordinator_listener"] = hass.bus.async_listen(
         EVENT_CONFIG_ENTRY_STATE_CHANGED, _handle_config_entry_state

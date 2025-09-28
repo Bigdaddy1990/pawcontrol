@@ -249,13 +249,19 @@ async def test_config_entry_state_change_invalidates_cache(
     entry = SimpleNamespace(
         entry_id="test-entry",
         state=ConfigEntryState.LOADED,
+        domain=DOMAIN,
         runtime_data=SimpleNamespace(coordinator=coordinator_mock),
     )
     coordinator_mock.config_entry = entry
 
-    with patch.object(
-        hass.config_entries, "async_entries", return_value=[entry]
-    ) as entries_mock:
+    with (
+        patch.object(
+            hass.config_entries, "async_entries", return_value=[entry]
+        ) as entries_mock,
+        patch.object(
+            hass.config_entries, "async_get_entry", return_value=entry
+        ) as get_entry_mock,
+    ):
         handlers = await _register_services(hass, coordinator_mock)
         handler = handlers[(DOMAIN, SERVICE_START_WALK)]
 
@@ -271,10 +277,15 @@ async def test_config_entry_state_change_invalidates_cache(
 
         hass.bus.async_fire(
             EVENT_CONFIG_ENTRY_STATE_CHANGED,
-            {"domain": DOMAIN, "entry_id": entry.entry_id, "state": "reloading"},
+            {
+                "entry_id": entry.entry_id,
+                "from_state": ConfigEntryState.LOADED,
+                "to_state": ConfigEntryState.SETUP_IN_PROGRESS,
+            },
         )
         await hass.async_block_till_done()
 
         await handler(call)
 
     assert entries_mock.call_count == 2
+    get_entry_mock.assert_called_with(entry.entry_id)
