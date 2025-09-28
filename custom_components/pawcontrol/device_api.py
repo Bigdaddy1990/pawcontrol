@@ -53,7 +53,15 @@ class PawControlDeviceClient:
         api_key: str | None = None,
         timeout: ClientTimeout | None = None,
     ) -> None:
-        """Initialize optional access to the companion device."""
+        """Initialize the client for the Paw Control companion device.
+
+        Args:
+            session: The `aiohttp.ClientSession` to use for requests.
+            endpoint: The base URL for the companion device API.
+            api_key: An optional API key for bearer token authentication.
+            timeout: An optional client timeout configuration.
+
+        """
 
         base_url = validate_device_endpoint(endpoint)
 
