@@ -53,6 +53,8 @@ class PawControlDeviceClient:
         api_key: str | None = None,
         timeout: ClientTimeout | None = None,
     ) -> None:
+        """Initialise the client with a configured session and endpoint."""
+
         base_url = validate_device_endpoint(endpoint)
 
         self._session = session
