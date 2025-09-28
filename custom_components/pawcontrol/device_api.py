@@ -43,7 +43,12 @@ def validate_device_endpoint(endpoint: str) -> URL:
 
 
 class PawControlDeviceClient:
-    """Minimal client that talks to Paw Control companion devices."""
+    """Optional client for direct Paw Control companion communication.
+
+    Home Assistant primarily supplies data via the native app integration, so
+    this client only acts as the fallback path when external integrations are
+    enabled.
+    """
 
     def __init__(
         self,
@@ -53,7 +58,7 @@ class PawControlDeviceClient:
         api_key: str | None = None,
         timeout: ClientTimeout | None = None,
     ) -> None:
-        """Initialize the client with a configured session and endpoint."""
+        """Initialize the client for optional companion device access."""
 
         base_url = validate_device_endpoint(endpoint)
 
@@ -63,7 +68,7 @@ class PawControlDeviceClient:
 
     @property
     def base_url(self) -> URL:
-        """Return the configured base URL."""
+        """Return the configured base URL for the companion endpoint."""
 
         return self._endpoint.base_url
 
@@ -78,7 +83,7 @@ class PawControlDeviceClient:
         return payload
 
     async def async_get_feeding_payload(self, dog_id: str) -> Mapping[str, Any]:
-        """Fetch the latest feeding payload for a dog."""
+        """Fetch the latest feeding payload for a dog from the companion device."""
 
         return await self.async_get_json(f"/api/dogs/{dog_id}/feeding")
 
