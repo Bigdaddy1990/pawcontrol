@@ -1,29 +1,30 @@
 # Paw Control – Integration Quality Scale Checklist
 
-This document maps our implementation to the **Integration Quality Scale**.
+This document maps our implementation to the **Integration Quality Scale**. As of the February 2025 review, the
+integration only claims **Bronze** compliance while keeping the higher-tier items tracked for future work.
 
-## Silver (runtime robustness)
-- [x] Services registered in `async_setup` and validated via `ServiceValidationError`.
-- [x] `PARALLEL_UPDATES` explicitly set for read-only platforms.
-- [x] Graceful error handling; entities set `available` accordingly (coordinator-based).
-- [x] `async_setup_entry` / `async_unload_entry` implemented; `async_remove_entry` cleans up.
-- [x] `strings.json` + translations for errors and services.
-- [x] Tests skeleton in place; target coverage ≥ 95% (to be completed in CI).
+## Bronze (baseline expectations)
+- [x] Maintainer declared in `manifest.json` (`codeowners`).
+- [x] Config flow available with basic setup / unload.
+- [x] Entities expose unique IDs and mark themselves unavailable on update failures.
+- [x] User-facing strings are translated via `strings.json`.
+- [x] Core services documented in `services.yaml`.
+- [ ] Automated test coverage beyond smoke imports. (Bronze has no fixed bar but this remains a risk.)
 
-## Gold (user experience & supportability)
-- [x] Diagnostics (`diagnostics.py`) with **redaction** of sensitive data.
-- [x] Repair issues & Repair flows (`repairs.py`) for user-guided fixes.
-- [x] Device Registry: each dog/tracker is a Device; `unique_id` for entities.
-- [x] Entity naming: `_attr_has_entity_name=True`, `translation_key` set; `strings.json` updated.
-- [x] Icon translations via `icons.json` with state mappings.
-- [x] Reconfigure flow (`async_step_reconfigure`) to change options post-setup.
-- [x] Services/Translations in sync; `services.yaml` matches registrations.
-- [ ] Brands assets prepared (SVG placeholders here) – PR to `home-assistant/brands` pending.
-- [ ] Test coverage ≥ 95% (implement & measure in CI with pytest + coverage).
+## Silver (deferred)
+- [ ] Services validated with rich error handling.
+- [ ] `PARALLEL_UPDATES` tuned per platform.
+- [ ] End-to-end tests ensuring runtime robustness.
+
+## Gold & Platinum (deferred)
+- [ ] Diagnostics with redaction validated by tests.
+- [ ] Repair issues with guided flows.
+- [ ] Device registry metadata confirmed via coverage tests.
+- [ ] Brands assets submitted to `home-assistant/brands`.
+- [ ] Test coverage ≥ 95% to unlock Platinum claims.
 
 ## Notes
-- Discovery not applicable (no discoverable transport). Documented as exception.
-- Reauth only needed if authentication is introduced later.
-
+- Discovery remains optional for the currently supported hardware and is tracked as an exemption.
+- Reauthentication is not implemented because external services do not require credentials yet.
 
 - [x] **GitHub Topics** gesetzt (z. B. `home-assistant`, `hacs`, `integration`) – verbessert Auffindbarkeit im HACS-Store.
