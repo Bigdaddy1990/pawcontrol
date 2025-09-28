@@ -19,8 +19,12 @@ from datetime import datetime, timedelta
 from typing import TypeVar, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+    EVENT_CONFIG_ENTRY_STATE_CHANGED,
+)
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_change
@@ -84,6 +88,131 @@ SERVICE_ADD_GARDEN_ACTIVITY = "add_garden_activity"
 SERVICE_CONFIRM_POOP = "confirm_garden_poop"
 
 _ManagerT = TypeVar("_ManagerT")
+
+
+class _CoordinatorResolver:
+    """Resolve and cache the active PawControl coordinator instance."""
+
+    __slots__ = ("_cached_coordinator", "_cached_entry_id", "_hass")
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Create a resolver tied to the provided Home Assistant instance."""
+
+        self._hass = hass
+        self._cached_coordinator: PawControlCoordinator | None = None
+        self._cached_entry_id: str | None = None
+
+    def resolve(self) -> PawControlCoordinator:
+        """Return the active coordinator, consulting cache when valid."""
+
+        coordinator = self._get_cached_coordinator()
+        if coordinator is not None:
+            return coordinator
+
+        coordinator = self._resolve_from_sources()
+        self._cache_coordinator(coordinator)
+        return coordinator
+
+    def invalidate(self, *, entry_id: str | None = None) -> None:
+        """Drop any cached coordinator when it is no longer valid."""
+
+        if self._cached_coordinator is None:
+            return
+
+        if entry_id is None or entry_id == self._cached_entry_id:
+            self._cached_coordinator = None
+            self._cached_entry_id = None
+
+    def _cache_coordinator(self, coordinator: PawControlCoordinator) -> None:
+        config_entry = getattr(coordinator, "config_entry", None)
+        self._cached_coordinator = coordinator
+        self._cached_entry_id = getattr(config_entry, "entry_id", None)
+
+    def _get_cached_coordinator(self) -> PawControlCoordinator | None:
+        coordinator = self._cached_coordinator
+        if coordinator is None:
+            return None
+
+        if getattr(coordinator, "hass", None) is not self._hass:
+            # The coordinator was created for a different Home Assistant instance.
+            self.invalidate()
+            return None
+
+        config_entry = getattr(coordinator, "config_entry", None)
+        if config_entry is not None and config_entry.state is not ConfigEntryState.LOADED:
+            # The entry is not ready yet; wait for a fresh lookup.
+            self.invalidate(entry_id=getattr(config_entry, "entry_id", None))
+            return None
+
+        return coordinator
+
+    def _resolve_from_sources(self) -> PawControlCoordinator:
+        """Locate the active coordinator from config entries or stored data."""
+
+        domain_data = self._hass.data.get(DOMAIN)
+        if not domain_data:
+            raise HomeAssistantError(
+                "PawControl is not set up. Add the integration before calling its services.",
+            )
+
+        if not isinstance(domain_data, dict):
+            raise HomeAssistantError(
+                "PawControl runtime storage is corrupted. Reload the integration.",
+            )
+
+        def _coordinator_from_runtime(runtime: object) -> PawControlCoordinator | None:
+            if runtime is None:
+                return None
+
+            coordinator = getattr(runtime, "coordinator", None)
+            if coordinator is None:
+                return None
+            return cast(PawControlCoordinator, coordinator)
+
+        # Prefer coordinators from loaded config entries which hold authoritative runtime data.
+        for entry in self._hass.config_entries.async_entries(DOMAIN):
+            if entry.state is not ConfigEntryState.LOADED:
+                continue
+
+            coordinator = _coordinator_from_runtime(getattr(entry, "runtime_data", None))
+            if coordinator is not None:
+                return coordinator
+
+        # Fall back to data stored under the domain namespace per entry.
+        for value in domain_data.values():
+            if not isinstance(value, dict):
+                continue
+
+            coordinator = _coordinator_from_runtime(value.get("runtime_data"))
+            if coordinator is not None:
+                return coordinator
+
+            coordinator_value = value.get("coordinator")
+            if coordinator_value is not None:
+                return cast(PawControlCoordinator, coordinator_value)
+
+        # Legacy fallback for integrations that stored the coordinator at the top level.
+        coordinator = domain_data.get("coordinator")
+        if coordinator is not None:
+            return cast(PawControlCoordinator, coordinator)
+
+        raise HomeAssistantError(
+            "PawControl is still initializing. Try again once setup has finished.",
+        )
+
+
+@callback
+def _coordinator_resolver(hass: HomeAssistant) -> _CoordinatorResolver:
+    """Return a coordinator resolver stored within Home Assistant data."""
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    resolver = domain_data.get("_service_coordinator_resolver")
+    if isinstance(resolver, _CoordinatorResolver):
+        return resolver
+
+    resolver = _CoordinatorResolver(hass)
+    domain_data["_service_coordinator_resolver"] = resolver
+    return resolver
 
 # Service schemas
 SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(
@@ -583,22 +712,33 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass: Home Assistant instance
     """
 
+    resolver = _coordinator_resolver(hass)
+    resolver.invalidate()
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+
+    # Replace any previous listener so duplicate registrations do not accumulate.
+    remove_listener = domain_data.pop("_service_coordinator_listener", None)
+    if callable(remove_listener):
+        remove_listener()
+
+    @callback
+    def _handle_config_entry_state(event: Event) -> None:
+        """Invalidate cached coordinator when the active entry changes state."""
+
+        if event.data.get("domain") != DOMAIN:
+            return
+
+        resolver.invalidate(entry_id=event.data.get("entry_id"))
+
+    domain_data["_service_coordinator_listener"] = hass.bus.async_listen(
+        EVENT_CONFIG_ENTRY_STATE_CHANGED, _handle_config_entry_state
+    )
+
     def _get_coordinator() -> PawControlCoordinator:
         """Return the active coordinator or raise a descriptive error."""
 
-        domain_data = hass.data.get(DOMAIN)
-        if not domain_data:
-            raise HomeAssistantError(
-                "PawControl is not set up. Add the integration before calling its services.",
-            )
-
-        coordinator = domain_data.get("coordinator")
-        if coordinator is None:
-            raise HomeAssistantError(
-                "PawControl is still initializing. Try again once setup has finished.",
-            )
-
-        return cast(PawControlCoordinator, coordinator)
+        return resolver.resolve()
 
     def _require_manager(manager: _ManagerT | None, description: str) -> _ManagerT:
         """Ensure a runtime manager is available before using it."""

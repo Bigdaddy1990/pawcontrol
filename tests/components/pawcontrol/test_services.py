@@ -11,6 +11,7 @@ import pytest
 from custom_components.pawcontrol import services as services_module
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.services import (
+    ConfigEntryState,
     SERVICE_CONFIRM_POOP,
     SERVICE_END_WALK,
     SERVICE_START_WALK,
@@ -18,6 +19,7 @@ from custom_components.pawcontrol.services import (
 from custom_components.pawcontrol.walk_manager import WeatherCondition
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.config_entries import EVENT_CONFIG_ENTRY_STATE_CHANGED
 
 
 @pytest.fixture
@@ -44,8 +46,14 @@ async def _register_services(
 ) -> dict[tuple[str, str], Callable[[ServiceCall], Awaitable[None]]]:
     """Register PawControl services and return the handlers."""
 
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN]["coordinator"] = coordinator
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    domain_data.setdefault(
+        "test-entry",
+        {
+            "runtime_data": SimpleNamespace(coordinator=coordinator),
+            "coordinator": coordinator,
+        },
+    )
 
     registered: dict[tuple[str, str], Callable[[ServiceCall], Awaitable[None]]] = {}
 
@@ -192,3 +200,81 @@ async def test_confirm_garden_poop_requires_pending_confirmation(
         "doggo"
     )
     coordinator_mock.garden_manager.async_handle_poop_confirmation.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_coordinator_lookup_is_cached(
+    hass: HomeAssistant, coordinator_mock: SimpleNamespace
+) -> None:
+    """Ensure coordinator lookup does not repeatedly query config entries."""
+
+    hass.data.setdefault(DOMAIN, {})
+
+    entry = SimpleNamespace(
+        entry_id="test-entry",
+        state=ConfigEntryState.LOADED,
+        runtime_data=SimpleNamespace(coordinator=coordinator_mock),
+    )
+    coordinator_mock.config_entry = entry
+
+    with patch.object(
+        hass.config_entries, "async_entries", return_value=[entry]
+    ) as entries_mock:
+        handlers = await _register_services(hass, coordinator_mock)
+        handler = handlers[(DOMAIN, SERVICE_START_WALK)]
+
+        coordinator_mock.walk_manager.async_start_walk.return_value = "session-1"
+
+        call = ServiceCall(
+            hass,
+            DOMAIN,
+            SERVICE_START_WALK,
+            {"dog_id": "doggo"},
+        )
+
+        await handler(call)
+        await handler(call)
+
+    assert entries_mock.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_config_entry_state_change_invalidates_cache(
+    hass: HomeAssistant, coordinator_mock: SimpleNamespace
+) -> None:
+    """Ensure cached coordinator invalidates when entry state changes."""
+
+    hass.data.setdefault(DOMAIN, {})
+
+    entry = SimpleNamespace(
+        entry_id="test-entry",
+        state=ConfigEntryState.LOADED,
+        runtime_data=SimpleNamespace(coordinator=coordinator_mock),
+    )
+    coordinator_mock.config_entry = entry
+
+    with patch.object(
+        hass.config_entries, "async_entries", return_value=[entry]
+    ) as entries_mock:
+        handlers = await _register_services(hass, coordinator_mock)
+        handler = handlers[(DOMAIN, SERVICE_START_WALK)]
+
+        call = ServiceCall(
+            hass,
+            DOMAIN,
+            SERVICE_START_WALK,
+            {"dog_id": "doggo"},
+        )
+
+        await handler(call)
+        assert entries_mock.call_count == 1
+
+        hass.bus.async_fire(
+            EVENT_CONFIG_ENTRY_STATE_CHANGED,
+            {"domain": DOMAIN, "entry_id": entry.entry_id, "state": "reloading"},
+        )
+        await hass.async_block_till_done()
+
+        await handler(call)
+
+    assert entries_mock.call_count == 2
