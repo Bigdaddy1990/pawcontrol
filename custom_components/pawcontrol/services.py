@@ -20,9 +20,9 @@ from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    EVENT_CONFIG_ENTRY_STATE_CHANGED,
     ConfigEntry,
     ConfigEntryState,
-    EVENT_CONFIG_ENTRY_STATE_CHANGED,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -139,7 +139,10 @@ class _CoordinatorResolver:
             return None
 
         config_entry = getattr(coordinator, "config_entry", None)
-        if config_entry is not None and config_entry.state is not ConfigEntryState.LOADED:
+        if (
+            config_entry is not None
+            and config_entry.state is not ConfigEntryState.LOADED
+        ):
             # The entry is not ready yet; wait for a fresh lookup.
             self.invalidate(entry_id=getattr(config_entry, "entry_id", None))
             return None
@@ -174,7 +177,9 @@ class _CoordinatorResolver:
             if entry.state is not ConfigEntryState.LOADED:
                 continue
 
-            coordinator = _coordinator_from_runtime(getattr(entry, "runtime_data", None))
+            coordinator = _coordinator_from_runtime(
+                getattr(entry, "runtime_data", None)
+            )
             if coordinator is not None:
                 return coordinator
 
@@ -213,6 +218,7 @@ def _coordinator_resolver(hass: HomeAssistant) -> _CoordinatorResolver:
     resolver = _CoordinatorResolver(hass)
     domain_data["_service_coordinator_resolver"] = resolver
     return resolver
+
 
 # Service schemas
 SERVICE_ADD_FEEDING_SCHEMA = vol.Schema(

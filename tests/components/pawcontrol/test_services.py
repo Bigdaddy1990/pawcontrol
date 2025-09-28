@@ -11,15 +11,15 @@ import pytest
 from custom_components.pawcontrol import services as services_module
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.services import (
-    ConfigEntryState,
     SERVICE_CONFIRM_POOP,
     SERVICE_END_WALK,
     SERVICE_START_WALK,
+    ConfigEntryState,
 )
 from custom_components.pawcontrol.walk_manager import WeatherCondition
+from homeassistant.config_entries import EVENT_CONFIG_ENTRY_STATE_CHANGED
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.config_entries import EVENT_CONFIG_ENTRY_STATE_CHANGED
 
 
 @pytest.fixture
