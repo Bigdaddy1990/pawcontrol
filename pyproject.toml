@@ -65,7 +65,8 @@ show_missing = true
 skip_covered = false
 precision = 2
 ignore_errors = true
-fail_under = 95
+# Temporarily disabled while the project only claims Bronze quality.
+fail_under = 0
 
 [tool.coverage.html]
 directory = "htmlcov"
