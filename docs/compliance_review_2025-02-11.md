@@ -50,4 +50,3 @@ level of validation.
 - `custom_components/pawcontrol/quality_scale.yaml` – tracks rule completion and keeps test coverage as a deferred task.
 - `pyproject.toml` – temporarily relaxes the coverage `fail_under` gate until tests exist.
 - `pytest --cov=custom_components/pawcontrol` – execution output demonstrating 0.95 % coverage and failure.
-
