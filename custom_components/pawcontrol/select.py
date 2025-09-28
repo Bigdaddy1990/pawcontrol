@@ -434,13 +434,11 @@ class PawControlSelectBase(
         if self.hass is None:
             return None
 
-        domain_data = self.hass.data.get(DOMAIN)
-        if isinstance(domain_data, dict):
-            entry_data = domain_data.get(entry.entry_id)
-            if isinstance(entry_data, dict):
-                runtime = entry_data.get("runtime_data")
-                if isinstance(runtime, PawControlRuntimeData):
-                    return runtime
+        entry_data = self.hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_data, dict):
+            runtime = entry_data.get("runtime_data")
+            if isinstance(runtime, PawControlRuntimeData):
+                return runtime
 
         return None
 
@@ -450,12 +448,9 @@ class PawControlSelectBase(
         if self.hass is None:
             return {}
 
-        domain_data = self.hass.data.get(DOMAIN)
-        if isinstance(domain_data, dict):
-            entry_data = domain_data.get(self.coordinator.config_entry.entry_id)
-            if isinstance(entry_data, dict):
-                return entry_data
-        return {}
+        domain_data = self.hass.data.get(DOMAIN, {})
+        entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+        return entry_data if isinstance(entry_data, dict) else {}
 
     def _get_data_manager(self):
         """Return the data manager for persistence if available."""
@@ -508,7 +503,7 @@ class PawControlSelectBase(
             merged = updates
         dog_data[module] = merged
         coordinator_data[self._dog_id] = dog_data
-        await self.coordinator.async_set_updated_data(coordinator_data)
+        self.coordinator.async_set_updated_data(coordinator_data)
 
     async def _async_update_gps_settings(
         self,
@@ -862,14 +857,13 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             ) from err
 
         runtime_data = self._get_runtime_data()
-        notification_manager = None
-        if runtime_data and getattr(runtime_data, "notification_manager", None):
-            notification_manager = runtime_data.notification_manager
+        notification_manager = getattr(runtime_data, "notification_manager", None)
+
         if notification_manager is None:
             entry_data = self._get_domain_entry_data()
-            notification_manager = entry_data.get(
-                "notification_manager"
-            ) or entry_data.get("notifications")
+            notification_manager = entry_data.get("notification_manager") or entry_data.get(
+                "notifications"
+            )
 
         if notification_manager:
             await notification_manager.async_set_priority_threshold(
