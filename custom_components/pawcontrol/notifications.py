@@ -425,6 +425,7 @@ class PawControlNotificationManager:
             "average_delivery_time_ms": 0.0,
             "person_targeted_notifications": 0,  # NEW
             "static_fallback_notifications": 0,  # NEW
+            "config_updates": 0,  # NEW: track configuration changes
         }
 
         # OPTIMIZE: Template system for customizable notifications
@@ -616,6 +617,34 @@ class PawControlNotificationManager:
         # Start batch processing task
         if self._batch_task is None:
             self._batch_task = asyncio.create_task(self._process_batch_notifications())
+
+    async def async_set_priority_threshold(
+        self, dog_id: str, priority: NotificationPriority
+    ) -> None:
+        """Set the default notification priority threshold for a dog."""
+
+        config_key = dog_id or "system"
+
+        async with self._lock:
+            config = self._configs.get(config_key)
+            if config is None:
+                config = NotificationConfig()
+
+            if config.priority_threshold == priority:
+                # Ensure cache stays in sync even when value is unchanged
+                self._cache.set_config(config_key, config)
+                return
+
+            config.priority_threshold = priority
+            self._configs[config_key] = config
+            self._cache.set_config(config_key, config)
+            self._performance_metrics["config_updates"] += 1
+
+        _LOGGER.info(
+            "Updated notification priority for %s to %s",
+            config_key,
+            priority.value,
+        )
 
     async def async_send_notification(
         self,

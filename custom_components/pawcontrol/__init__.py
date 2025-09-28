@@ -677,6 +677,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # PLATINUM: Store runtime data only in ConfigEntry.runtime_data
         entry.runtime_data = runtime_data
 
+        # Maintain backwards-compatible hass.data mapping for entity platforms
+        domain_data = hass.data.setdefault(DOMAIN, {})
+        entry_payload = runtime_data.as_dict()
+        # Allow direct access to the dataclass for advanced consumers
+        entry_payload["runtime_data"] = runtime_data
+        # Provide legacy alias used by earlier platform implementations
+        entry_payload.setdefault("notifications", runtime_data.notification_manager)
+        domain_data[entry.entry_id] = entry_payload
+
         # Setup daily reset scheduler with error tolerance
         try:
             reset_unsub = await async_setup_daily_reset_scheduler(hass, entry)
@@ -991,6 +1000,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                 _LOGGER.warning("Service manager shutdown timed out")
             except Exception as err:
                 _LOGGER.warning("Error shutting down service manager: %s", err)
+
+    # Remove entry payload from hass.data to prevent stale references after unload
+    if isinstance(domain_data, dict):
+        domain_data.pop(entry.entry_id, None)
 
     unload_duration = time.time() - unload_start_time
     _LOGGER.info(
