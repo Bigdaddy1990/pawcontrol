@@ -861,9 +861,9 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
         if notification_manager is None:
             entry_data = self._get_domain_entry_data()
-            notification_manager = entry_data.get("notification_manager") or entry_data.get(
-                "notifications"
-            )
+            notification_manager = entry_data.get(
+                "notification_manager"
+            ) or entry_data.get("notifications")
 
         if notification_manager:
             await notification_manager.async_set_priority_threshold(
