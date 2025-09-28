@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -44,7 +44,13 @@ from .const import (
     PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .notifications import NotificationPriority
+from .types import PawControlRuntimeData
+from .utils import (
+    PawControlDeviceLinkMixin,
+    async_call_add_entities,
+    deep_merge_dicts,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +77,49 @@ TRACKING_MODES = [
     "on_demand",
     "battery_saver",
 ]
+
+TRACKING_MODE_PRESETS: dict[str, dict[str, Any]] = {
+    "continuous": {
+        "update_interval_seconds": 15,
+        "auto_start_walk": True,
+        "track_route": True,
+    },
+    "interval": {
+        "update_interval_seconds": 60,
+        "auto_start_walk": True,
+        "track_route": True,
+    },
+    "on_demand": {
+        "update_interval_seconds": 300,
+        "auto_start_walk": False,
+        "track_route": False,
+    },
+    "battery_saver": {
+        "update_interval_seconds": 180,
+        "auto_start_walk": True,
+        "route_smoothing": True,
+    },
+}
+
+LOCATION_ACCURACY_CONFIGS: dict[str, dict[str, Any]] = {
+    "low": {
+        "gps_accuracy_threshold": 150.0,
+        "min_distance_for_point": 50.0,
+    },
+    "balanced": {
+        "gps_accuracy_threshold": 75.0,
+        "min_distance_for_point": 25.0,
+    },
+    "high": {
+        "gps_accuracy_threshold": 30.0,
+        "min_distance_for_point": 10.0,
+    },
+    "best": {
+        "gps_accuracy_threshold": 10.0,
+        "min_distance_for_point": 5.0,
+        "route_smoothing": False,
+    },
+}
 
 FEEDING_SCHEDULES = [
     "flexible",
@@ -371,6 +420,131 @@ class PawControlSelectBase(
             sw_version="1.0.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",
         )
+
+    def _get_runtime_data(self) -> PawControlRuntimeData | None:
+        """Return runtime data associated with the config entry."""
+
+        entry = self.coordinator.config_entry
+        runtime_data = cast(
+            PawControlRuntimeData | None, getattr(entry, "runtime_data", None)
+        )
+        if runtime_data:
+            return runtime_data
+
+        if self.hass is None:
+            return None
+
+        entry_data = self.hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_data, dict):
+            runtime = entry_data.get("runtime_data")
+            if isinstance(runtime, PawControlRuntimeData):
+                return runtime
+
+        return None
+
+    def _get_domain_entry_data(self) -> dict[str, Any]:
+        """Return the hass.data payload for this config entry."""
+
+        if self.hass is None:
+            return {}
+
+        domain_data = self.hass.data.get(DOMAIN, {})
+        entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+        return entry_data if isinstance(entry_data, dict) else {}
+
+    def _get_data_manager(self):
+        """Return the data manager for persistence if available."""
+
+        runtime_data = self._get_runtime_data()
+        if runtime_data and getattr(runtime_data, "data_manager", None):
+            return runtime_data.data_manager
+
+        entry_data = self._get_domain_entry_data()
+        return entry_data.get("data_manager")
+
+    def _get_current_gps_config(self) -> dict[str, Any]:
+        """Return the currently stored GPS configuration."""
+
+        dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
+        gps_data = dog_data.get("gps", {})
+        config = gps_data.get("config")
+        if isinstance(config, dict):
+            return cast(dict[str, Any], config)
+        return {}
+
+    async def _async_update_module_settings(
+        self,
+        module: str,
+        updates: dict[str, Any],
+    ) -> None:
+        """Persist updates for a module and refresh coordinator data."""
+
+        data_manager = self._get_data_manager()
+        if data_manager:
+            try:
+                await data_manager.async_update_dog_data(
+                    self._dog_id, {module: updates}
+                )
+            except Exception as err:  # pragma: no cover - defensive log
+                _LOGGER.warning(
+                    "Failed to persist %s updates for %s: %s",
+                    module,
+                    self._dog_name,
+                    err,
+                )
+
+        coordinator_data = dict(self.coordinator.data or {})
+        existing_dog = cast(dict[str, Any], coordinator_data.get(self._dog_id, {}))
+        dog_data = existing_dog.copy()
+        existing = dog_data.get(module, {})
+        if isinstance(existing, dict):
+            merged = deep_merge_dicts(existing, updates)
+        else:
+            merged = updates
+        dog_data[module] = merged
+        coordinator_data[self._dog_id] = dog_data
+        self.coordinator.async_set_updated_data(coordinator_data)
+
+    async def _async_update_gps_settings(
+        self,
+        *,
+        state_updates: dict[str, Any] | None = None,
+        config_updates: dict[str, Any] | None = None,
+    ) -> None:
+        """Update stored GPS settings and apply them to the GPS manager."""
+
+        gps_updates: dict[str, Any] = {}
+        merged_config: dict[str, Any] | None = None
+
+        if state_updates:
+            gps_updates.update(state_updates)
+
+        if config_updates:
+            current_config = self._get_current_gps_config()
+            merged_config = deep_merge_dicts(current_config, config_updates)
+            gps_updates.setdefault("config", merged_config)
+
+        if gps_updates:
+            await self._async_update_module_settings("gps", gps_updates)
+
+        if merged_config:
+            runtime_data = self._get_runtime_data()
+            gps_manager = (
+                getattr(runtime_data, "gps_geofence_manager", None)
+                if runtime_data
+                else None
+            )
+            if gps_manager:
+                try:
+                    await gps_manager.async_configure_dog_gps(
+                        self._dog_id, merged_config
+                    )
+                except Exception as err:  # pragma: no cover - defensive log
+                    _LOGGER.warning(
+                        "Failed to apply GPS configuration for %s: %s",
+                        self._dog_name,
+                        err,
+                    )
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
@@ -674,13 +848,42 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the notification priority."""
-        # This would update notification settings
-        entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
-        notification_manager = entry_data.get("notifications")
+
+        try:
+            priority = NotificationPriority(option)
+        except ValueError as err:
+            raise HomeAssistantError(
+                f"Unsupported notification priority '{option}'"
+            ) from err
+
+        runtime_data = self._get_runtime_data()
+        notification_manager = getattr(runtime_data, "notification_manager", None)
+
+        if notification_manager is None:
+            entry_data = self._get_domain_entry_data()
+            notification_manager = entry_data.get(
+                "notification_manager"
+            ) or entry_data.get("notifications")
 
         if notification_manager:
-            # Update default priority settings
-            pass
+            await notification_manager.async_set_priority_threshold(
+                self._dog_id, priority
+            )
+        else:
+            _LOGGER.debug(
+                "Notification manager not available when updating priority for %s",
+                self._dog_name,
+            )
+
+        timestamp = dt_util.utcnow().isoformat()
+        await self._async_update_module_settings(
+            "notifications",
+            {
+                "default_priority": option,
+                "priority_last_updated": timestamp,
+                "priority_numeric": priority.value_numeric,
+            },
+        )
 
 
 # Feeding selects
@@ -960,8 +1163,14 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the GPS source."""
-        # This would configure GPS data source
-        pass
+
+        timestamp = dt_util.utcnow().isoformat()
+        await self._async_update_gps_settings(
+            state_updates={
+                "source": option,
+                "source_updated_at": timestamp,
+            }
+        )
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -1042,8 +1251,16 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the tracking mode."""
-        # This would configure GPS tracking behavior
-        pass
+
+        timestamp = dt_util.utcnow().isoformat()
+        config_updates = TRACKING_MODE_PRESETS.get(option, {})
+        await self._async_update_gps_settings(
+            state_updates={
+                "tracking_mode": option,
+                "tracking_mode_updated_at": timestamp,
+            },
+            config_updates=config_updates,
+        )
 
 
 class PawControlLocationAccuracySelect(PawControlSelectBase):
@@ -1066,8 +1283,16 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
 
     async def _async_set_select_option(self, option: str) -> None:
         """Set the location accuracy preference."""
-        # This would configure GPS accuracy vs battery trade-off
-        pass
+
+        timestamp = dt_util.utcnow().isoformat()
+        config_updates = LOCATION_ACCURACY_CONFIGS.get(option, {})
+        await self._async_update_gps_settings(
+            state_updates={
+                "location_accuracy": option,
+                "location_accuracy_updated_at": timestamp,
+            },
+            config_updates=config_updates,
+        )
 
 
 # Health selects
