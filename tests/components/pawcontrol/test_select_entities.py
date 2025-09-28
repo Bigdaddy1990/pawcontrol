@@ -26,14 +26,22 @@ class _DummyCoordinator:
 
     def __init__(self, hass, runtime_data: PawControlRuntimeData, dog_id: str) -> None:
         self.hass = hass
-        self.config_entry = SimpleNamespace(entry_id="test-entry", runtime_data=runtime_data)
-        self.data: dict[str, dict[str, object]] = {dog_id: {"gps": {}, "notifications": {}}}
+        self.config_entry = SimpleNamespace(
+            entry_id="test-entry", runtime_data=runtime_data
+        )
+        self.data: dict[str, dict[str, object]] = {
+            dog_id: {"gps": {}, "notifications": {}}
+        }
         self.last_update_success = True
 
-    def async_add_listener(self, _update_callback):  # pragma: no cover - coordinator interface
+    def async_add_listener(
+        self, _update_callback
+    ):  # pragma: no cover - coordinator interface
         return lambda: None
 
-    async def async_request_refresh(self) -> None:  # pragma: no cover - coordinator interface
+    async def async_request_refresh(
+        self,
+    ) -> None:  # pragma: no cover - coordinator interface
         return None
 
     async def async_set_updated_data(self, data: dict[str, dict[str, object]]) -> None:
@@ -129,12 +137,12 @@ async def test_notification_priority_select_updates_manager(
     assert update_call.args[0] == dog_id
     notification_updates = update_call.args[1]["notifications"]
     assert notification_updates["default_priority"] == "high"
-    assert notification_updates["priority_numeric"] == NotificationPriority.HIGH.value_numeric
-
     assert (
-        coordinator.data[dog_id]["notifications"]["default_priority"]
-        == "high"
+        notification_updates["priority_numeric"]
+        == NotificationPriority.HIGH.value_numeric
     )
+
+    assert coordinator.data[dog_id]["notifications"]["default_priority"] == "high"
 
 
 @pytest.mark.asyncio

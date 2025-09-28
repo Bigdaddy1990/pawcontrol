@@ -45,12 +45,12 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .notifications import NotificationPriority
+from .types import PawControlRuntimeData
 from .utils import (
     PawControlDeviceLinkMixin,
     async_call_add_entities,
     deep_merge_dicts,
 )
-from .types import PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -425,7 +425,9 @@ class PawControlSelectBase(
         """Return runtime data associated with the config entry."""
 
         entry = self.coordinator.config_entry
-        runtime_data = cast(PawControlRuntimeData | None, getattr(entry, "runtime_data", None))
+        runtime_data = cast(
+            PawControlRuntimeData | None, getattr(entry, "runtime_data", None)
+        )
         if runtime_data:
             return runtime_data
 
@@ -485,7 +487,9 @@ class PawControlSelectBase(
         data_manager = self._get_data_manager()
         if data_manager:
             try:
-                await data_manager.async_update_dog_data(self._dog_id, {module: updates})
+                await data_manager.async_update_dog_data(
+                    self._dog_id, {module: updates}
+                )
             except Exception as err:  # pragma: no cover - defensive log
                 _LOGGER.warning(
                     "Failed to persist %s updates for %s: %s",
@@ -530,10 +534,16 @@ class PawControlSelectBase(
 
         if merged_config:
             runtime_data = self._get_runtime_data()
-            gps_manager = getattr(runtime_data, "gps_geofence_manager", None) if runtime_data else None
+            gps_manager = (
+                getattr(runtime_data, "gps_geofence_manager", None)
+                if runtime_data
+                else None
+            )
             if gps_manager:
                 try:
-                    await gps_manager.async_configure_dog_gps(self._dog_id, merged_config)
+                    await gps_manager.async_configure_dog_gps(
+                        self._dog_id, merged_config
+                    )
                 except Exception as err:  # pragma: no cover - defensive log
                     _LOGGER.warning(
                         "Failed to apply GPS configuration for %s: %s",
@@ -857,12 +867,14 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             notification_manager = runtime_data.notification_manager
         if notification_manager is None:
             entry_data = self._get_domain_entry_data()
-            notification_manager = entry_data.get("notification_manager") or entry_data.get(
-                "notifications"
-            )
+            notification_manager = entry_data.get(
+                "notification_manager"
+            ) or entry_data.get("notifications")
 
         if notification_manager:
-            await notification_manager.async_set_priority_threshold(self._dog_id, priority)
+            await notification_manager.async_set_priority_threshold(
+                self._dog_id, priority
+            )
         else:
             _LOGGER.debug(
                 "Notification manager not available when updating priority for %s",
