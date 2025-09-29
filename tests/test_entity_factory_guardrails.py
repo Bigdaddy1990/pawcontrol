@@ -10,12 +10,12 @@ imported and exercised directly.
 
 from __future__ import annotations
 
-from enum import StrEnum
-from datetime import datetime, timezone
-from typing import Callable
 import pathlib
 import sys
 import types
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
+from enum import StrEnum
 
 
 class _Platform(StrEnum):
@@ -47,7 +47,9 @@ def _install_homeassistant_stubs() -> None:
     helpers_module = types.ModuleType("homeassistant.helpers")
     helpers_module.__path__ = []  # mark as package
     entity_module = types.ModuleType("homeassistant.helpers.entity")
-    config_validation_module = types.ModuleType("homeassistant.helpers.config_validation")
+    config_validation_module = types.ModuleType(
+        "homeassistant.helpers.config_validation"
+    )
     aiohttp_client_module = types.ModuleType("homeassistant.helpers.aiohttp_client")
     event_module = types.ModuleType("homeassistant.helpers.event")
     update_coordinator_module = types.ModuleType(
@@ -80,7 +82,9 @@ def _install_homeassistant_stubs() -> None:
     core_module.HomeAssistant = _HomeAssistant
 
     class Event:  # pragma: no cover - helper stub
-        def __init__(self, event_type: str, data: dict[str, object] | None = None) -> None:
+        def __init__(
+            self, event_type: str, data: dict[str, object] | None = None
+        ) -> None:
             self.event_type = event_type
             self.data = data or {}
 
@@ -109,14 +113,11 @@ def _install_homeassistant_stubs() -> None:
     class _ConfigEntryError(Exception):
         """Base class for fake config entry errors."""
 
-    class _ConfigEntryAuthFailed(_ConfigEntryError):
-        ...
+    class _ConfigEntryAuthFailed(_ConfigEntryError): ...
 
-    class _ConfigEntryNotReady(_ConfigEntryError):
-        ...
+    class _ConfigEntryNotReady(_ConfigEntryError): ...
 
-    class _HomeAssistantError(Exception):
-        ...
+    class _HomeAssistantError(Exception): ...
 
     exceptions_module.ConfigEntryAuthFailed = _ConfigEntryAuthFailed
     exceptions_module.ConfigEntryNotReady = _ConfigEntryNotReady
@@ -204,18 +205,20 @@ def _install_homeassistant_stubs() -> None:
         def async_get(self, entity_id: str) -> RegistryEntry | None:
             return self.entities.get(entity_id)
 
-        def async_get_or_create(self, entity_id: str, **kwargs: object) -> RegistryEntry:
+        def async_get_or_create(
+            self, entity_id: str, **kwargs: object
+        ) -> RegistryEntry:
             entry = RegistryEntry(entity_id, **kwargs)
             self.entities[entity_id] = entry
             return entry
 
-        def async_update_entity(self, entity_id: str, **kwargs: object) -> RegistryEntry:
+        def async_update_entity(
+            self, entity_id: str, **kwargs: object
+        ) -> RegistryEntry:
             entry = self.entities.setdefault(entity_id, RegistryEntry(entity_id))
             return entry
 
-        def async_entries_for_config_entry(
-            self, entry_id: str
-        ) -> list[RegistryEntry]:
+        def async_entries_for_config_entry(self, entry_id: str) -> list[RegistryEntry]:
             return list(self.entities.values())
 
         def async_listen(self, callback):  # type: ignore[no-untyped-def]
@@ -289,7 +292,9 @@ def _install_homeassistant_stubs() -> None:
     event_module.async_track_state_change_event = _async_track_state_change_event
 
     class _DataUpdateCoordinator:  # pragma: no cover - helper stub
-        def __init__(self, hass: object, *, name: str | None = None, **kwargs: object) -> None:
+        def __init__(
+            self, hass: object, *, name: str | None = None, **kwargs: object
+        ) -> None:
             self.hass = hass
             self.name = name or "stub"
 
@@ -303,14 +308,13 @@ def _install_homeassistant_stubs() -> None:
         def __class_getitem__(cls, item):  # pragma: no cover - helper stub
             return cls
 
-    class _UpdateFailed(Exception):
-        ...
+    class _UpdateFailed(Exception): ...
 
     update_coordinator_module.DataUpdateCoordinator = _DataUpdateCoordinator
     update_coordinator_module.UpdateFailed = _UpdateFailed
 
     def _utcnow() -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     dt_util_module.utcnow = _utcnow
 
@@ -326,11 +330,9 @@ def _install_homeassistant_stubs() -> None:
         def __init__(self, **kwargs: object) -> None:
             self.options = kwargs
 
-    class SelectSelector(_SelectorBase):
-        ...
+    class SelectSelector(_SelectorBase): ...
 
-    class BooleanSelector(_SelectorBase):
-        ...
+    class BooleanSelector(_SelectorBase): ...
 
     class NumberSelectorMode(StrEnum):
         BOX = "box"
@@ -340,8 +342,7 @@ def _install_homeassistant_stubs() -> None:
         def __init__(self, **kwargs: object) -> None:
             self.options = kwargs
 
-    class NumberSelector(_SelectorBase):
-        ...
+    class NumberSelector(_SelectorBase): ...
 
     class TextSelectorType(StrEnum):
         TEXT = "text"
@@ -351,14 +352,11 @@ def _install_homeassistant_stubs() -> None:
         def __init__(self, **kwargs: object) -> None:
             self.options = kwargs
 
-    class TextSelector(_SelectorBase):
-        ...
+    class TextSelector(_SelectorBase): ...
 
-    class TimeSelector(_SelectorBase):
-        ...
+    class TimeSelector(_SelectorBase): ...
 
-    class DateSelector(_SelectorBase):
-        ...
+    class DateSelector(_SelectorBase): ...
 
     selector_module.SelectSelectorMode = SelectSelectorMode
     selector_module.SelectSelectorConfig = SelectSelectorConfig
@@ -390,7 +388,11 @@ def _install_homeassistant_stubs() -> None:
     helpers_module.storage = storage_module
     util_module.dt = dt_util_module
 
-    package_root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "pawcontrol"
+    package_root = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "custom_components"
+        / "pawcontrol"
+    )
 
     custom_components_pkg = sys.modules.setdefault(
         "custom_components", types.ModuleType("custom_components")
@@ -422,7 +424,7 @@ def _install_homeassistant_stubs() -> None:
 
 _install_homeassistant_stubs()
 
-from custom_components.pawcontrol.entity_factory import (  # noqa: E402  (import after stubs)
+from custom_components.pawcontrol.entity_factory import (
     ENTITY_PROFILES,
     EntityFactory,
 )

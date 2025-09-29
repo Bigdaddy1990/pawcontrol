@@ -720,7 +720,9 @@ class EntityFactory:
 
         platform = self._resolve_platform(entity_type)
         if platform is None:
-            _LOGGER.error("Unsupported entity type for config creation: %s", entity_type)
+            _LOGGER.error(
+                "Unsupported entity type for config creation: %s", entity_type
+            )
             return None
 
         normalized_type = platform.value
