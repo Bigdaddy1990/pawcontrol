@@ -29,7 +29,6 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
-    CONF_DOGS,
     DOG_SIZES,
     DOMAIN,
     FOOD_TYPES,

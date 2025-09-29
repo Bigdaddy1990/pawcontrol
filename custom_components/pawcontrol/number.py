@@ -37,8 +37,6 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_WEIGHT,
-    CONF_DOGS,
-    DOMAIN,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,

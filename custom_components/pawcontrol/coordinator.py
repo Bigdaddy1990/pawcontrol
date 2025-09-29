@@ -432,9 +432,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if errors == total_dogs:
             self._error_count += 1
             self._consecutive_errors += 1
-            raise CoordinatorUpdateFailed(
-                f"All {total_dogs} dogs failed to update"
-            )
+            raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
 
         if success_rate < 0.5:  # More than 50% failed
             self._consecutive_errors += 1

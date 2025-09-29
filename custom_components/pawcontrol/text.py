@@ -18,7 +18,6 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     DOMAIN,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
@@ -26,7 +25,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .runtime_data import get_runtime_data
-from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
+from .types import DogConfigData, PawControlConfigEntry
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)

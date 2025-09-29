@@ -23,7 +23,10 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
     PLATFORMS,
 )
-from custom_components.pawcontrol.runtime_data import get_runtime_data, store_runtime_data
+from custom_components.pawcontrol.runtime_data import (
+    get_runtime_data,
+    store_runtime_data,
+)
 from custom_components.pawcontrol.types import PawControlRuntimeData
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform

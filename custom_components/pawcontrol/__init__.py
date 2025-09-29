@@ -392,8 +392,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         except TimeoutError as err:
             coordinator_setup_duration = time.time() - coordinator_setup_start
             raise ConfigEntryNotReady(
-                "Coordinator pre-setup timeout after "
-                f"{coordinator_setup_duration:.2f}s"
+                f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s"
             ) from err
         except ConfigEntryAuthFailed:
             raise

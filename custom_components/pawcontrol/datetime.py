@@ -19,7 +19,6 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,

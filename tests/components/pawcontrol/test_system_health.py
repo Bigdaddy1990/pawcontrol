@@ -1,8 +1,6 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from types import SimpleNamespace
-
 import pytest
 from custom_components.pawcontrol import system_health as system_health_module
 from custom_components.pawcontrol.const import DOMAIN
