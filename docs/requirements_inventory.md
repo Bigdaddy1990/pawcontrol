@@ -2,7 +2,7 @@
 
 The previous inventory listed numerous documentation promises as missing. After re-auditing the integration in March 2025 the
 functionality is now in place. This document summarises the key requirement clusters and points to the implementation areas
-that fulfil them. For a narrative compliance report see `docs/compliance_review_2025-03-03.md`.
+that fulfill them. For a narrative compliance report see `docs/compliance_review_2025-03-03.md`.
 
 ## Setup & Configuration
 - UI config flow supports multiple dogs, module toggles, and profile selection as described in the setup guides.【F:custom_components/pawcontrol/config_flow.py†L40-L118】
