@@ -6,7 +6,8 @@ import asyncio
 import importlib.util
 import sys
 import types
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Self
 from pathlib import Path
 
 import pytest
@@ -172,10 +173,10 @@ ha_helpers_selector.selector = lambda *args, **kwargs: None
 sys.modules.setdefault("homeassistant.helpers.selector", ha_helpers_selector)
 
 ha_util_dt = types.ModuleType("homeassistant.util.dt")
-ha_util_dt.utcnow = lambda: datetime.now(timezone.utc)
-ha_util_dt.now = lambda: datetime.now(timezone.utc)
+ha_util_dt.utcnow = lambda: datetime.now(datetime.UTC)
+ha_util_dt.now = lambda: datetime.now(datetime.UTC)
 ha_util_dt.as_utc = (
-    lambda value: value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    lambda value: value if value.tzinfo else value.replace(tzinfo=datetime.UTC)
 )
 ha_util_dt.as_local = lambda value: value
 ha_util_dt.parse_datetime = (
@@ -198,35 +199,34 @@ AdaptiveCache = data_manager.AdaptiveCache
 
 UTC = UTC
 
-
-def test_cleanup_expired_removes_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_cleanup_expired_removes_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Expired cache entries should be evicted and reported."""
 
-    async def _run_test() -> None:
-        cache = AdaptiveCache()
+    cache = AdaptiveCache()
 
-        base_time = datetime(2024, 1, 1, tzinfo=UTC)
-        monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
+    base_time = datetime(2024, 1, 1, tzinfo=UTC)
+    monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
 
-        await cache.set("dog", {"name": "Otis"}, base_ttl=60)
-        value, hit = await cache.get("dog")
-        assert hit is True
-        assert value == {"name": "Otis"}
+    await cache.set("dog", {"name": "Otis"}, base_ttl=60)
+    value, hit = await cache.get("dog")
+    assert hit is True
+    assert value == {"name": "Otis"}
 
-        monkeypatch.setattr(
-            data_manager.dt_util,
-            "utcnow",
-            lambda: base_time + timedelta(minutes=5),
-        )
+    monkeypatch.setattr(
+        data_manager.dt_util,
+        "utcnow",
+        lambda: base_time + timedelta(minutes=5),
+    )
 
-        removed = await cache.cleanup_expired()
-        assert removed == 1
+    removed = await cache.cleanup_expired()
+    assert removed == 1
 
-        value, hit = await cache.get("dog")
-        assert hit is False
-        assert value is None
-
-    asyncio.run(_run_test())
+    value, hit = await cache.get("dog")
+    assert hit is False
+    assert value is None
 
 
 class _TrackingAsyncLock:
@@ -236,7 +236,7 @@ class _TrackingAsyncLock:
         self._lock = asyncio.Lock()
         self.acquire_count = 0
 
-    async def __aenter__(self) -> _TrackingAsyncLock:
+    async def __aenter__(self) -> Self:
         self.acquire_count += 1
         await self._lock.acquire()
         return self
@@ -249,30 +249,29 @@ class _TrackingAsyncLock:
     ) -> None:
         self._lock.release()
 
-
-def test_cleanup_expired_uses_internal_lock(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_cleanup_expired_uses_internal_lock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The cleanup routine should acquire the cache lock to avoid races."""
 
-    async def _run_test() -> None:
-        cache = AdaptiveCache()
-        tracking_lock = _TrackingAsyncLock()
-        cache._lock = tracking_lock  # type: ignore[attr-defined]
+    cache = AdaptiveCache()
+    tracking_lock = _TrackingAsyncLock()
+    cache._lock = tracking_lock  # type: ignore[attr-defined]
 
-        base_time = datetime(2024, 2, 1, tzinfo=UTC)
-        monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
-        await cache.set("dog", {"value": 1}, base_ttl=60)
+    base_time = datetime(2024, 2, 1, tzinfo=UTC)
+    monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
+    await cache.set("dog", {"value": 1}, base_ttl=60)
 
-        initial_acquisitions = tracking_lock.acquire_count
+    initial_acquisitions = tracking_lock.acquire_count
 
-        monkeypatch.setattr(
-            data_manager.dt_util,
-            "utcnow",
-            lambda: base_time + timedelta(hours=2),
-        )
+    monkeypatch.setattr(
+        data_manager.dt_util,
+        "utcnow",
+        lambda: base_time + timedelta(hours=2),
+    )
 
-        removed = await cache.cleanup_expired()
+    removed = await cache.cleanup_expired()
 
-        assert removed == 1
-        assert tracking_lock.acquire_count == initial_acquisitions + 1
-
-    asyncio.run(_run_test())
+    assert removed == 1
+    assert tracking_lock.acquire_count == initial_acquisitions + 1

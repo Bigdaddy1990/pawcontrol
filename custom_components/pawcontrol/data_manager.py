@@ -78,7 +78,7 @@ class AdaptiveCache:
 
                 # Check expiry with adaptive TTL
                 if now > metadata["expiry"]:
-                    await self._evict(key)
+                    self._evict(key)
                     self._miss_count += 1
                     return None, False
 
@@ -110,7 +110,7 @@ class AdaptiveCache:
 
             # Evict if needed to stay within memory limit
             while self._current_memory + value_size > self._max_memory_bytes:
-                if not await self._evict_lru():
+                if not self._evict_lru():
                     break  # Can't free more memory
 
             # Calculate adaptive TTL
@@ -152,7 +152,7 @@ class AdaptiveCache:
                     0.5, self._ttl_multipliers.get(key, 1.0) * 0.9
                 )
 
-    async def _evict(self, key: str) -> None:
+    def _evict(self, key: str) -> None:
         """Evict entry from cache."""
         if key in self._data:
             self._current_memory -= self._metadata[key]["size"]
@@ -160,7 +160,7 @@ class AdaptiveCache:
             del self._metadata[key]
             self._ttl_multipliers.pop(key, None)
 
-    async def _evict_lru(self) -> bool:
+    def _evict_lru(self) -> bool:
         """Evict least recently used entry.
 
         Returns:
@@ -174,7 +174,7 @@ class AdaptiveCache:
             self._metadata.keys(), key=lambda k: self._metadata[k]["last_access"]
         )
 
-        await self._evict(lru_key)
+        self._evict(lru_key)
         return True
 
     async def cleanup_expired(self) -> int:
@@ -193,7 +193,7 @@ class AdaptiveCache:
             ]
 
             for key in expired_keys:
-                await self._evict(key)
+                self._evict(key)
 
             return len(expired_keys)
 
