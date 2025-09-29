@@ -8,7 +8,9 @@ from importlib import import_module
 
 # Reuse the comprehensive Home Assistant stub installation from the guard rail
 # tests so that helper modules can be imported without the real dependency.
-install_stubs = import_module("tests.test_entity_factory_guardrails")._install_homeassistant_stubs
+install_stubs = import_module(
+    "tests.test_entity_factory_guardrails"
+)._install_homeassistant_stubs
 install_stubs()
 
 from homeassistant.util import dt as dt_util
@@ -31,15 +33,11 @@ def test_get_handles_expiration(monkeypatch) -> None:
         await cache.set("expired", "value", ttl_seconds=5)
 
         # Not expired yet
-        monkeypatch.setattr(
-            dt_util, "utcnow", lambda: base_time + timedelta(seconds=4)
-        )
+        monkeypatch.setattr(dt_util, "utcnow", lambda: base_time + timedelta(seconds=4))
         assert await cache.get("active") == "value"
 
         # Expired entry should be removed and return the default
-        monkeypatch.setattr(
-            dt_util, "utcnow", lambda: base_time + timedelta(seconds=6)
-        )
+        monkeypatch.setattr(dt_util, "utcnow", lambda: base_time + timedelta(seconds=6))
         assert await cache.get("expired", default="missing") == "missing"
 
     asyncio.run(_run())
@@ -62,9 +60,7 @@ def test_set_normalizes_ttl(monkeypatch) -> None:
         assert cache._ttls["negative"] == 0
 
         # Entries with normalized zero TTLs should persist.
-        monkeypatch.setattr(
-            dt_util, "utcnow", lambda: base_time + timedelta(hours=1)
-        )
+        monkeypatch.setattr(dt_util, "utcnow", lambda: base_time + timedelta(hours=1))
         assert await cache.get("zero") == "value"
         assert await cache.get("negative") == "value"
 
@@ -83,16 +79,12 @@ def test_cleanup_expired_respects_override(monkeypatch) -> None:
         await cache.set("long", "value", ttl_seconds=20)
 
         # Without override TTL only the short-lived entry should expire.
-        monkeypatch.setattr(
-            dt_util, "utcnow", lambda: base_time + timedelta(seconds=7)
-        )
+        monkeypatch.setattr(dt_util, "utcnow", lambda: base_time + timedelta(seconds=7))
         assert await cache.cleanup_expired() == 1
         assert "long" in cache._cache
 
         # Override TTL should force expiration even if the stored TTL is longer.
-        monkeypatch.setattr(
-            dt_util, "utcnow", lambda: base_time + timedelta(seconds=8)
-        )
+        monkeypatch.setattr(dt_util, "utcnow", lambda: base_time + timedelta(seconds=8))
         assert await cache.cleanup_expired(ttl_seconds=6) == 1
         assert await cache.get("long", default=None) is None
 
