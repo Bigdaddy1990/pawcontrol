@@ -15,7 +15,7 @@ listed dev dependencies are installed the test suite passes (see *Testing*).
 ## Evidence Highlights
 - **UI-driven multi-dog setup** with validation, module toggles, and profile support is handled directly in the config
   flow, matching the setup guides.【F:custom_components/pawcontrol/config_flow.py†L40-L118】
-- **Door sensor based walk detection** including confidence scoring and walk lifecycle tracking fulfils the automatic
+- **Door sensor based walk detection** including confidence scoring and walk lifecycle tracking fulfills the automatic
   walk recognition commitment from `info.md`.【F:custom_components/pawcontrol/door_sensor_manager.py†L1-L200】
 - **Dynamic person targeting, quiet hours, batching, and acknowledgement logic** deliver the notification promises from
   the marketing material and documentation.【F:custom_components/pawcontrol/notifications.py†L710-L838】
