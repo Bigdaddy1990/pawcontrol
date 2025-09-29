@@ -58,6 +58,45 @@ def is_number(value: Any) -> TypeGuard[Number]:
     return isinstance(value, Real)
 
 
+def _normalize_identifier_pair(
+    identifier: object,
+) -> tuple[str, str] | None:
+    """Normalize an identifier tuple used for Home Assistant device registry entries.
+
+    The Home Assistant device registry expects identifiers to be pairs of strings.
+    Many PawControl call sites build identifier tuples dynamically which means we
+    occasionally encounter stray whitespace, ``None`` values, or non-string objects.
+    The registry would silently coerce those values which results in confusing and
+    hard-to-deduplicate entries.  Normalising them in a single helper keeps the
+    behaviour predictable and ensures we never pass malformed identifiers to Home
+    Assistant.
+    """
+
+    if isinstance(identifier, tuple):
+        candidate = identifier
+    elif isinstance(identifier, Sequence) and not isinstance(
+        identifier, (str, bytes, bytearray)
+    ):
+        candidate = tuple(identifier)
+    else:
+        return None
+
+    if len(candidate) != 2:
+        return None
+
+    domain, value = candidate
+    if domain is None or value is None:
+        return None
+
+    domain_str = str(domain).strip()
+    value_str = str(value).strip()
+
+    if not domain_str or not value_str:
+        return None
+
+    return domain_str, value_str
+
+
 def create_device_info(
     dog_id: str,
     dog_name: str,
@@ -98,7 +137,10 @@ def create_device_info(
     identifiers: set[tuple[str, str]] = {(DOMAIN, sanitized_id)}
 
     if extra_identifiers:
-        identifiers.update(extra_identifiers)
+        for identifier in extra_identifiers:
+            normalized = _normalize_identifier_pair(identifier)
+            if normalized is not None:
+                identifiers.add(normalized)
 
     if microchip_id is not None:
         sanitized_microchip = sanitize_microchip_id(str(microchip_id))
