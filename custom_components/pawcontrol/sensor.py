@@ -38,6 +38,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity_factory import EntityFactory
+from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -110,6 +111,68 @@ def register_sensor(
     return decorator
 
 
+def _copy_base_docstring(
+    *,
+    attribute_name: str,
+    cls: type[PawControlSensorBase],
+    attribute: Any,
+) -> None:
+    """Copy a docstring from a base implementation to the given attribute."""
+
+    for base in cls.__mro__[1:]:
+        base_attribute = getattr(base, attribute_name, None)
+        if base_attribute is None:
+            continue
+
+        base_doc = getattr(base_attribute, "__doc__", None)
+        if not base_doc:
+            continue
+
+        if isinstance(attribute, property):
+            setattr(
+                cls,
+                attribute_name,
+                property(
+                    attribute.fget,
+                    attribute.fset,
+                    attribute.fdel,
+                    base_doc,
+                ),
+            )
+            return
+
+        if isinstance(attribute, (classmethod, staticmethod)):
+            func = attribute.__func__
+            if getattr(func, "__doc__", None):
+                return
+            func.__doc__ = base_doc
+            return
+
+        try:
+            attribute.__doc__ = base_doc
+        except AttributeError:
+            pass
+        return
+
+
+def inherit_missing_docstrings() -> None:
+    """Ensure all PawControl sensor overrides provide a docstring."""
+
+    for obj in list(globals().values()):
+        if not isinstance(obj, type) or not issubclass(obj, PawControlSensorBase):
+            continue
+
+        for name, attr in vars(obj).items():
+            if getattr(attr, "__doc__", None):
+                continue
+
+            _copy_base_docstring(
+                attribute_name=name,
+                cls=obj,
+                attribute=attr,
+            )
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
@@ -118,7 +181,10 @@ async def async_setup_entry(
     """Set up Paw Control sensor platform with profile optimization."""
 
     # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
-    runtime_data = entry.runtime_data
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
     coordinator = runtime_data.coordinator
     dogs = runtime_data.dogs
     entity_factory = runtime_data.entity_factory
@@ -856,6 +922,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         attrs.update(self._garden_attributes())
         return attrs
@@ -880,6 +947,7 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary:
@@ -920,6 +988,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Action Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -968,6 +1037,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Dog Status Sensor."""
         super().__init__(coordinator, dog_id, dog_name, "status", icon="mdi:dog")
 
     @property
@@ -1014,6 +1084,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Activity Score Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1173,6 +1244,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Activity Level Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1302,6 +1374,7 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Time Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1315,6 +1388,7 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("time_today_minutes")
         if is_number(value):
@@ -1329,6 +1403,7 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Sessions Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1341,6 +1416,7 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("sessions_today")
         if is_number(value):
@@ -1355,6 +1431,7 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Poop Count Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1367,6 +1444,7 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("poop_today")
         if is_number(value):
@@ -1381,6 +1459,7 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Garden Session Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1393,6 +1472,7 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> datetime | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         last_session = data.get("last_session")
         if not last_session:
@@ -1409,6 +1489,7 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Activities Count Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1420,6 +1501,7 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("activities_total")
         if is_number(value):
@@ -1434,6 +1516,7 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Average Garden Duration Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1447,6 +1530,7 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         stats = self._get_garden_data().get("stats") or {}
         value = stats.get("average_session_duration")
         if is_number(value):
@@ -1461,6 +1545,7 @@ class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Stats Weekly Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1472,6 +1557,7 @@ class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> str | None:
+        """Return the native value reported by this sensor."""
         summary = self._get_garden_data().get("stats", {}).get("weekly_summary")
         if not summary or not summary.get("session_count"):
             return None
@@ -1488,6 +1574,7 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Favorite Garden Activities Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1499,6 +1586,7 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> str | None:
+        """Return the native value reported by this sensor."""
         favorites = (
             self._get_garden_data().get("stats", {}).get("favorite_activities", [])
         )
@@ -1516,6 +1604,7 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Garden Duration Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1529,6 +1618,7 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         last_session = self._get_garden_data().get("last_session")
         if not last_session:
             return None
@@ -1546,6 +1636,7 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Activities Last Session Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1557,6 +1648,7 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return the native value reported by this sensor."""
         last_session = self._get_garden_data().get("last_session")
         if not last_session:
             return None
@@ -1574,6 +1666,7 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Garden Activities Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1585,6 +1678,7 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> int | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("activities_today")
         if is_number(value):
@@ -1599,6 +1693,7 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Garden Session Hours Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1612,6 +1707,7 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         data = self._get_garden_data()
         value = data.get("hours_since_last_session")
         if is_number(value):
@@ -1629,6 +1725,7 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Feeding Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1670,6 +1767,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Feeding Hours Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1780,6 +1878,7 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Daily Calories Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1811,6 +1910,7 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Feeding Schedule Adherence Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1841,6 +1941,7 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Total Feedings Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1870,6 +1971,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Health Aware Portion Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1914,6 +2016,7 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Feeding Recommendation Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1957,6 +2060,7 @@ class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Validation Status Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1994,6 +2098,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Conflict Count Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2006,6 +2111,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return the native value reported by this sensor."""
         summary = self._get_validation_summary()
         if not summary:
             return 0
@@ -2016,6 +2122,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary and summary.get("conflicts"):
@@ -2030,6 +2137,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Warning Count Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2042,6 +2150,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return the native value reported by this sensor."""
         summary = self._get_validation_summary()
         if not summary:
             return 0
@@ -2052,6 +2161,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary and summary.get("warnings"):
@@ -2066,6 +2176,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Vet Consultation Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2078,6 +2189,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
 
     @property
     def native_value(self) -> str:
+        """Return the native value reported by this sensor."""
         summary = self._get_validation_summary()
         if not summary:
             return "not_needed"
@@ -2085,6 +2197,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary:
@@ -2107,6 +2220,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Validation Adjustment Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2119,6 +2233,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
 
     @property
     def native_value(self) -> float:
+        """Return the native value reported by this sensor."""
         summary = self._get_validation_summary()
         if not summary:
             return 1.0
@@ -2130,6 +2245,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary:
@@ -2150,6 +2266,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Diet Compatibility Score Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2163,6 +2280,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
 
     @property
     def native_value(self) -> float:
+        """Return the native value reported by this sensor."""
         summary = self._get_validation_summary()
         if not summary:
             return 100.0
@@ -2174,6 +2292,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         summary = self._get_validation_summary()
         if summary:
@@ -2188,6 +2307,7 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Daily Portions Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2222,6 +2342,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Portions Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2280,6 +2401,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Calorie Goal Progress Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2364,6 +2486,7 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Health Feeding Status Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2412,6 +2535,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Daily Calorie Target Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2440,6 +2564,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
@@ -2460,6 +2585,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Calories Consumed Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2473,6 +2599,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return None
@@ -2486,6 +2613,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
@@ -2504,6 +2632,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Portion Adjustment Factor Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2516,6 +2645,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return the native value reported by this sensor."""
         feeding_data = self._get_module_data("feeding")
         if not feeding_data:
             return None
@@ -2546,6 +2676,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
@@ -2598,6 +2729,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Food Consumption Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2693,6 +2825,7 @@ class PawControlLastWalkSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Walk Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2729,6 +2862,7 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Walk Hours Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2762,6 +2896,7 @@ class PawControlWalksTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Walks Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2793,6 +2928,7 @@ class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Current Walk Duration Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2825,6 +2961,7 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Walk Count Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2854,6 +2991,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Walk Distance Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -2915,6 +3053,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Calories Burned Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3049,6 +3188,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Total Walk Distance Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3129,6 +3269,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Walks This Week Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3228,6 +3369,7 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Walk Duration Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3260,6 +3402,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Walk Distance Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3292,6 +3435,7 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Total Walk Time Today Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3324,6 +3468,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Average Walk Duration Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3360,6 +3505,7 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Current Zone Sensor."""
         super().__init__(coordinator, dog_id, dog_name, "current_zone", icon="mdi:map")
 
     @property
@@ -3379,6 +3525,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Current Location Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3404,6 +3551,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         gps_data = self._get_module_data("gps") or {}
         attrs["last_seen"] = gps_data.get("last_seen")
@@ -3418,6 +3566,7 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Distance From Home Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3450,6 +3599,7 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Current Speed Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3482,6 +3632,7 @@ class PawControlSpeedSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Speed Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3515,6 +3666,7 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control G P S Accuracy Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3547,6 +3699,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control G P S Battery Level Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3582,6 +3735,7 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Health Status Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3607,6 +3761,7 @@ class PawControlWeightSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Weight Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3640,6 +3795,7 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Weight Trend Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3665,6 +3821,7 @@ class PawControlBodyConditionScoreSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Body Condition Score Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3695,6 +3852,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Last Vet Visit Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3731,6 +3889,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Health Conditions Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3755,6 +3914,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         conditions = self._get_module_data("health") or {}
         attrs["conditions"] = conditions.get("health_conditions", [])
@@ -3768,6 +3928,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Weight Goal Progress Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3795,6 +3956,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         health_data = self._get_module_data("health") or {}
         attrs.update(
@@ -3814,6 +3976,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the Paw Control Daily Activity Level Sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -3840,6 +4003,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
         health_data = self._get_module_data("health") or {}
         attrs.update(
@@ -3849,3 +4013,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
             }
         )
         return attrs
+
+
+# Ensure every override inherits a meaningful docstring from its base implementation.
+inherit_missing_docstrings()

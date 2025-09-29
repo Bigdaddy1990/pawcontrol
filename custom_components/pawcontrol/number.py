@@ -49,6 +49,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,14 +128,13 @@ async def async_setup_entry(
         entry: Configuration entry containing dog configurations
         async_add_entities: Callback to add number entities
     """
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
-    else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+    coordinator: PawControlCoordinator = runtime_data.coordinator
+    dogs: list[dict[str, Any]] = runtime_data.dogs
 
     entities: list[PawControlNumberBase] = []
 
@@ -610,8 +610,13 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
 
         # Persist the change if the data manager is available
-        runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
-        if runtime_data and (data_manager := runtime_data.get("data_manager")):
+        runtime_data = (
+            get_runtime_data(self.hass, self.coordinator.config_entry)
+            if self.hass
+            else None
+        )
+        data_manager = getattr(runtime_data, "data_manager", None)
+        if data_manager:
             try:
                 await data_manager.async_update_dog_data(
                     self._dog_id, {"profile": {CONF_DOG_AGE: int_value}}

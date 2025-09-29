@@ -56,13 +56,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 **Datei: `custom_components/pawcontrol/__init__.py`**
 ```python
-# Ändern von:
+# Alte Logik:
 entry.runtime_data = runtime_data
 hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime_data
 
-# Zu:
-entry.runtime_data = runtime_data  # NUR hier
-# hass.data Zeile entfernen
+# Neue Lösung (ab 2025.9):
+domain_data = hass.data.setdefault(DOMAIN, {})
+domain_data[entry.entry_id] = runtime_data
 ```
 
 ## 🔧 Kritische Fixes (Day 2-3)

@@ -308,10 +308,10 @@ def _install_homeassistant_stubs() -> None:
         def __class_getitem__(cls, item):  # pragma: no cover - helper stub
             return cls
 
-    class _UpdateFailedError(Exception): ...
+    class _CoordinatorUpdateFailedError(Exception): ...
 
     update_coordinator_module.DataUpdateCoordinator = _DataUpdateCoordinator
-    update_coordinator_module.UpdateFailed = _UpdateFailedError
+    update_coordinator_module.CoordinatorUpdateFailed = _CoordinatorUpdateFailedError
 
     def _utcnow() -> datetime:
         return datetime.now(UTC)

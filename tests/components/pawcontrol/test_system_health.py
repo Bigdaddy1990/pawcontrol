@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from types import SimpleNamespace
+
 import pytest
 from custom_components.pawcontrol import system_health as system_health_module
 from custom_components.pawcontrol.const import DOMAIN
@@ -46,8 +48,10 @@ async def test_system_health_reports_coordinator_status(
         data={"name": "Paw Control", "dogs": []},
         unique_id="coordinator-entry",
     )
-    entry.runtime_data = SimpleNamespace(coordinator=coordinator)
     entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SimpleNamespace(
+        coordinator=coordinator
+    )
 
     info = await system_health_module.system_health_info(hass)
 
@@ -74,8 +78,10 @@ async def test_system_health_reports_external_quota(
         options={"external_api_quota": 10},
         unique_id="quota-entry",
     )
-    entry.runtime_data = SimpleNamespace(coordinator=coordinator)
     entry.add_to_hass(hass)
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SimpleNamespace(
+        coordinator=coordinator
+    )
 
     info = await system_health_module.system_health_info(hass)
 

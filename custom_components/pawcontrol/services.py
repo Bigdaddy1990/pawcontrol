@@ -62,6 +62,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .types import DogConfigData
 from .walk_manager import WeatherCondition
 
@@ -162,36 +163,27 @@ class _CoordinatorResolver:
                 "PawControl runtime storage is corrupted. Reload the integration.",
             )
 
-        def _coordinator_from_runtime(runtime: object) -> PawControlCoordinator | None:
-            if not runtime:
-                return None
-
-            coordinator = getattr(runtime, "coordinator", None)
-            return cast(PawControlCoordinator, coordinator) if coordinator else None
-
         # Prefer coordinators from loaded config entries which hold authoritative runtime data.
         for entry in self._hass.config_entries.async_entries(DOMAIN):
             if entry.state is not ConfigEntryState.LOADED:
                 continue
 
-            coordinator = _coordinator_from_runtime(
-                getattr(entry, "runtime_data", None)
-            )
-            if coordinator is not None:
-                return coordinator
+            runtime_data = get_runtime_data(self._hass, entry)
+            if runtime_data and getattr(runtime_data, "coordinator", None):
+                return cast(PawControlCoordinator, runtime_data.coordinator)
 
         # Fall back to data stored under the domain namespace per entry.
         for value in domain_data.values():
-            if not isinstance(value, dict):
-                continue
+            if isinstance(value, dict):
+                runtime = value.get("runtime_data")
+                if runtime and getattr(runtime, "coordinator", None):
+                    return cast(PawControlCoordinator, runtime.coordinator)
 
-            coordinator = _coordinator_from_runtime(value.get("runtime_data"))
-            if coordinator is not None:
-                return coordinator
-
-            coordinator_value = value.get("coordinator")
-            if coordinator_value is not None:
-                return cast(PawControlCoordinator, coordinator_value)
+                coordinator_value = value.get("coordinator")
+                if coordinator_value is not None:
+                    return cast(PawControlCoordinator, coordinator_value)
+            elif getattr(value, "coordinator", None):
+                return cast(PawControlCoordinator, value.coordinator)
 
         # Legacy fallback for integrations that stored the coordinator at the top level.
         coordinator = domain_data.get("coordinator")
@@ -2832,12 +2824,7 @@ class PawControlServiceManager:
 async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Perform maintenance tasks for the daily reset."""
 
-    runtime_data = getattr(entry, "runtime_data", None)
-    if runtime_data is None:
-        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-        if isinstance(entry_store, dict):
-            runtime_data = entry_store.get("runtime_data")
-
+    runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
         _LOGGER.debug(
             "Skipping daily reset for entry %s: runtime data unavailable",
@@ -2845,9 +2832,9 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
         return
 
-    coordinator = runtime_data["coordinator"]
-    walk_manager = runtime_data.get("walk_manager")
-    notification_manager = runtime_data.get("notification_manager")
+    coordinator = runtime_data.coordinator
+    walk_manager = getattr(runtime_data, "walk_manager", None)
+    notification_manager = getattr(runtime_data, "notification_manager", None)
 
     try:
         if walk_manager and hasattr(walk_manager, "async_cleanup"):

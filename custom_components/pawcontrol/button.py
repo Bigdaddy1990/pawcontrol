@@ -48,6 +48,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
+from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
@@ -548,7 +549,10 @@ async def async_setup_entry(
     """Set up PawControl button platform with profile-based optimization."""
 
     # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
-    runtime_data = entry.runtime_data
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
     coordinator = runtime_data.coordinator
     dogs = runtime_data.dogs
 

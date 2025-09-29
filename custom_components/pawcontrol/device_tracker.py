@@ -41,6 +41,7 @@ from .const import (
     MODULE_GPS,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
@@ -71,7 +72,10 @@ async def async_setup_entry(
 
     NEW: Implements missing device tracker functionality per requirements_inventory.md
     """
-    runtime_data = entry.runtime_data
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
     coordinator = runtime_data.coordinator
     dogs = runtime_data.dogs
     entity_factory = runtime_data.entity_factory

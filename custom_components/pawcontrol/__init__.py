@@ -46,6 +46,7 @@ from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
 from .notifications import PawControlNotificationManager
+from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
@@ -74,6 +75,7 @@ _CACHE_TTL_SECONDS: Final[int] = 3600  # 1 hour cache TTL
 _MAX_CACHE_SIZE: Final[int] = 100  # Prevent unbounded memory growth
 _MANAGER_INIT_TIMEOUT: Final[int] = 30  # 30 seconds per manager
 _COORDINATOR_REFRESH_TIMEOUT: Final[int] = 45  # 45 seconds for coordinator
+_COORDINATOR_SETUP_TIMEOUT: Final[int] = 15  # 15 seconds for coordinator pre-setup
 
 
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
@@ -375,21 +377,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             "Manager creation completed in %.2f seconds", manager_init_duration
         )
 
-        # PLATINUM: Enhanced coordinator refresh with timeout
-        coordinator_start = time.time()
+        # PLATINUM: Enhanced coordinator pre-setup and refresh with timeouts
+        coordinator_setup_start = time.time()
+        try:
+            await asyncio.wait_for(
+                coordinator._async_setup(),
+                timeout=_COORDINATOR_SETUP_TIMEOUT,
+            )
+            coordinator_setup_duration = time.time() - coordinator_setup_start
+            _LOGGER.debug(
+                "Coordinator pre-setup completed in %.2f seconds",
+                coordinator_setup_duration,
+            )
+        except TimeoutError as err:
+            coordinator_setup_duration = time.time() - coordinator_setup_start
+            raise ConfigEntryNotReady(
+                "Coordinator pre-setup timeout after "
+                f"{coordinator_setup_duration:.2f}s"
+            ) from err
+        except ConfigEntryAuthFailed:
+            raise
+        except (OSError, ConnectionError) as err:
+            raise ConfigEntryNotReady(
+                f"Network connectivity issue during coordinator pre-setup: {err}"
+            ) from err
+
+        coordinator_refresh_start = time.time()
         try:
             await asyncio.wait_for(
                 coordinator.async_config_entry_first_refresh(),
                 timeout=_COORDINATOR_REFRESH_TIMEOUT,
             )
-            coordinator_duration = time.time() - coordinator_start
+            coordinator_refresh_duration = time.time() - coordinator_refresh_start
             _LOGGER.debug(
-                "Coordinator refresh completed in %.2f seconds", coordinator_duration
+                "Coordinator refresh completed in %.2f seconds",
+                coordinator_refresh_duration,
             )
         except TimeoutError as err:
-            coordinator_duration = time.time() - coordinator_start
+            coordinator_refresh_duration = time.time() - coordinator_refresh_start
             raise ConfigEntryNotReady(
-                f"Coordinator initialization timeout after {coordinator_duration:.2f}s"
+                "Coordinator initialization timeout after "
+                f"{coordinator_refresh_duration:.2f}s"
             ) from err
         except ConfigEntryAuthFailed:
             raise  # Re-raise auth failures directly
@@ -674,17 +702,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         runtime_data.garden_manager = garden_manager
         runtime_data.device_api_client = coordinator.api_client
 
-        # PLATINUM: Store runtime data only in ConfigEntry.runtime_data
-        entry.runtime_data = runtime_data
-
-        # Maintain backwards-compatible hass.data mapping for entity platforms
-        domain_data = hass.data.setdefault(DOMAIN, {})
-        entry_payload = runtime_data.as_dict()
-        # Allow direct access to the dataclass for advanced consumers
-        entry_payload["runtime_data"] = runtime_data
-        # Provide legacy alias used by earlier platform implementations
-        entry_payload.setdefault("notifications", runtime_data.notification_manager)
-        domain_data[entry.entry_id] = entry_payload
+        # Store runtime data using the legacy hass.data pattern for compatibility
+        store_runtime_data(hass, entry, runtime_data)
 
         # Setup daily reset scheduler with error tolerance
         try:
@@ -801,7 +820,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         True if unload successful
     """
     unload_start_time = time.time()
-    runtime_data = entry.runtime_data
+    runtime_data = get_runtime_data(hass, entry)
 
     # Get platforms for unloading
     if runtime_data:
@@ -980,6 +999,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             "Runtime data cleanup completed in %.2f seconds", cleanup_duration
         )
 
+    pop_runtime_data(hass, entry)
+
     # Clear caches with size reporting
     cache_size = len(_PLATFORM_CACHE)
     _PLATFORM_CACHE.clear()
@@ -1000,10 +1021,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                 _LOGGER.warning("Service manager shutdown timed out")
             except Exception as err:
                 _LOGGER.warning("Error shutting down service manager: %s", err)
-
-    # Remove entry payload from hass.data to prevent stale references after unload
-    if isinstance(domain_data, dict):
-        domain_data.pop(entry.entry_id, None)
 
     unload_duration = time.time() - unload_start_time
     _LOGGER.info(

@@ -25,6 +25,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
@@ -135,24 +136,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up the PawControl text platform for a config entry."""
 
-    runtime_data: PawControlRuntimeData | None = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
 
-    if isinstance(runtime_data, PawControlRuntimeData):
-        coordinator = runtime_data.coordinator
-        dogs: list[DogConfigData] = runtime_data.dogs
-    else:
-        domain_data = cast(
-            dict[str, Any] | None, hass.data.get(DOMAIN, {}).get(entry.entry_id)
-        )
-        if domain_data is None:
-            _LOGGER.error(
-                "Missing runtime data for PawControl entry %s", entry.entry_id
-            )
-            return
-
-        coordinator = cast(PawControlCoordinator, domain_data["coordinator"])
-        raw_dogs = domain_data.get("dogs") or entry.data.get(CONF_DOGS)
-        dogs = _normalize_dog_configs(cast(Iterable[Any] | None, raw_dogs))
+    coordinator = runtime_data.coordinator
+    dogs: list[DogConfigData] = runtime_data.dogs
 
     if not dogs:
         _LOGGER.info("No dogs configured for PawControl entry %s", entry.entry_id)

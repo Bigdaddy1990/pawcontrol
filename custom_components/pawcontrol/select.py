@@ -45,6 +45,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .notifications import NotificationPriority
+from .runtime_data import get_runtime_data
 from .types import PawControlRuntimeData
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -211,14 +212,13 @@ async def async_setup_entry(
         entry: Configuration entry containing dog configurations
         async_add_entities: Callback to add select entities
     """
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs: list[dict[str, Any]] = runtime_data.get("dogs", [])
-    else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+    coordinator: PawControlCoordinator = runtime_data.coordinator
+    dogs: list[dict[str, Any]] = runtime_data.dogs
 
     entities: list[PawControlSelectBase] = []
 
@@ -424,23 +424,10 @@ class PawControlSelectBase(
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return runtime data associated with the config entry."""
 
-        entry = self.coordinator.config_entry
-        runtime_data = cast(
-            PawControlRuntimeData | None, getattr(entry, "runtime_data", None)
-        )
-        if runtime_data:
-            return runtime_data
-
         if self.hass is None:
             return None
 
-        entry_data = self.hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        if isinstance(entry_data, dict):
-            runtime = entry_data.get("runtime_data")
-            if isinstance(runtime, PawControlRuntimeData):
-                return runtime
-
-        return None
+        return get_runtime_data(self.hass, self.coordinator.config_entry)
 
     def _get_domain_entry_data(self) -> dict[str, Any]:
         """Return the hass.data payload for this config entry."""
@@ -450,6 +437,8 @@ class PawControlSelectBase(
 
         domain_data = self.hass.data.get(DOMAIN, {})
         entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
+        if isinstance(entry_data, PawControlRuntimeData):
+            return entry_data.as_dict()
         return entry_data if isinstance(entry_data, dict) else {}
 
     def _get_data_manager(self):

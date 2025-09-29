@@ -414,18 +414,14 @@ class PawControlRuntimeData:
         return getattr(self, key, default)
 
 
-# PLATINUM: Custom ConfigEntry type for type safety and Platinum compliance
-type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
-"""Type alias for PawControl-specific config entries with runtime data typing.
+# PLATINUM: Custom ConfigEntry type for PawControl integrations
+type PawControlConfigEntry = ConfigEntry
+"""Type alias for PawControl-specific config entries.
 
-This type provides complete type safety for config entry operations throughout
-the integration while ensuring proper runtime data structure validation.
-Essential for Platinum-level type compliance and development experience.
-
-Usage:
-    async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
-        # entry.runtime_data is now properly typed as PawControlRuntimeData
-        coordinator = entry.runtime_data.coordinator
+Home Assistant 2025.9 removes ``ConfigEntry.runtime_data`` from the public API.
+The integration therefore stores runtime data using the classic ``hass.data``
+pattern.  The alias keeps call sites expressive without relying on the removed
+generic parameter while remaining forward compatible with future API changes.
 """
 
 
