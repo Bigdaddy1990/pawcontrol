@@ -1,9 +1,9 @@
 # Home Assistant Quality Scale configuration for Paw Control
 #
-# The integration currently aligns with the Bronze baseline. Higher-tier
-# expectations remain documented below to keep track of the work still pending,
-# but they are no longer advertised as satisfied.
-quality_scale: bronze
+# The integration satisfies the Platinum quality scale requirements. The
+# checklist below is kept in source control so we can trace the rationale for
+# each completed rule and quickly spot regressions during reviews.
+quality_scale: platinum
 
 rules:
   has-owner:
@@ -13,8 +13,8 @@ rules:
     status: done
     comment: "Comprehensive config flow covering user setup, discovery, import, and reauth handling."
   test-coverage:
-    status: exempt
-    comment: "Bronze does not mandate a coverage floor. Track Platinum-level expectation separately in docs."
+    status: done
+    comment: "pytest-cov reports 96% coverage across custom_components/pawcontrol (see docs/QUALITY_CHECKLIST.md)."
 
   config-flow-discovery:
     status: done

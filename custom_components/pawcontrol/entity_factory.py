@@ -53,7 +53,7 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "max_entities": 6,
         "performance_impact": "minimal",
         "recommended_for": "Single dog, essential telemetry only",
-        "platforms": [Platform.SENSOR, Platform.BINARY_SENSOR],
+        "platforms": [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON],
         "priority_threshold": 8,  # Critical-only entities for the basic tier
     },
     "standard": {
@@ -198,6 +198,10 @@ MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
 }
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
+
+KNOWN_MODULES: Final[frozenset[str]] = frozenset(
+    set(MODULE_ENTITY_ESTIMATES) | {"weather"}
+)
 
 _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
     (
@@ -489,7 +493,7 @@ class EntityFactory:
     def should_create_entity(
         self,
         profile: str,
-        entity_type: str,
+        entity_type: str | Platform,
         module: str,
         priority: int = 5,
         **kwargs: Any,
@@ -509,6 +513,17 @@ class EntityFactory:
         if not self._validate_profile(profile):
             profile = "standard"
 
+        platform = self._resolve_platform(entity_type)
+        if platform is None:
+            _LOGGER.warning("Invalid entity type: %s", entity_type)
+            return False
+
+        if module not in KNOWN_MODULES:
+            _LOGGER.warning(
+                "Unknown module '%s' requested platform '%s'", module, platform.value
+            )
+            return False
+
         profile_config = ENTITY_PROFILES[profile]
         priority_threshold = profile_config.get("priority_threshold", 5)
 
@@ -522,13 +537,25 @@ class EntityFactory:
 
         # Profile-specific entity filtering
         return self._apply_profile_specific_rules(
-            profile, entity_type, module, priority, **kwargs
+            profile, platform, module, priority, **kwargs
         )
+
+    @staticmethod
+    def _resolve_platform(entity_type: str | Platform) -> Platform | None:
+        """Return the Home Assistant platform for the provided entity type."""
+
+        if isinstance(entity_type, Platform):
+            return entity_type
+
+        if isinstance(entity_type, str):
+            return _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
+
+        return None
 
     def _apply_profile_specific_rules(
         self,
         profile: str,
-        entity_type: str,
+        platform: Platform,
         module: str,
         priority: int,
         **kwargs: Any,
@@ -547,21 +574,19 @@ class EntityFactory:
         """
         profile_config = ENTITY_PROFILES[profile]
 
-        # Check if platform is supported by profile
-        platform = _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
-        if platform is None:
-            _LOGGER.warning("Invalid entity type: %s", entity_type)
-            return False
-
         if platform not in profile_config["platforms"]:
             return False
 
         if profile == "basic":
             # Only essential entities
-            essential_types = {"sensor", "button", "binary_sensor"}
+            essential_types = {
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.BINARY_SENSOR,
+            }
             essential_modules = {"feeding", "health", "walk"}
             return (
-                entity_type in essential_types
+                platform in essential_types
                 and module in essential_modules
                 and priority >= 7
             )
@@ -569,16 +594,27 @@ class EntityFactory:
         elif profile == "gps_focus":
             # GPS-related entities prioritized
             preferred_modules = profile_config.get("preferred_modules", [])
-            gps_types = {"device_tracker", "sensor", "binary_sensor", "number"}
-            return entity_type in gps_types and (
+            gps_types = {
+                Platform.DEVICE_TRACKER,
+                Platform.SENSOR,
+                Platform.BINARY_SENSOR,
+                Platform.NUMBER,
+            }
+            return platform in gps_types and (
                 module in preferred_modules or priority >= 7
             )
 
         elif profile == "health_focus":
             # Health-related entities prioritized
             preferred_modules = profile_config.get("preferred_modules", [])
-            health_types = {"sensor", "number", "date", "text", "binary_sensor"}
-            return entity_type in health_types and (
+            health_types = {
+                Platform.SENSOR,
+                Platform.NUMBER,
+                Platform.DATE,
+                Platform.TEXT,
+                Platform.BINARY_SENSOR,
+            }
+            return platform in health_types and (
                 module in preferred_modules or priority >= 7
             )
 
@@ -682,10 +718,21 @@ class EntityFactory:
             )
             return None
 
-        if not self.should_create_entity(profile, entity_type, module, priority):
+        platform = self._resolve_platform(entity_type)
+        if platform is None:
+            _LOGGER.error("Unsupported entity type for config creation: %s", entity_type)
+            return None
+
+        normalized_type = platform.value
+
+        if module not in KNOWN_MODULES:
+            _LOGGER.error("Unsupported module for config creation: %s", module)
+            return None
+
+        if not self.should_create_entity(profile, platform, module, priority):
             _LOGGER.debug(
                 "Skipping %s entity for %s/%s (profile: %s, priority: %d)",
-                entity_type,
+                normalized_type,
                 dog_id,
                 module,
                 profile,
@@ -696,7 +743,7 @@ class EntityFactory:
         # Build entity configuration
         config = {
             "dog_id": dog_id,
-            "entity_type": entity_type,
+            "entity_type": normalized_type,
             "module": module,
             "profile": profile,
             "priority": priority,
@@ -707,6 +754,7 @@ class EntityFactory:
         # Add profile-specific optimizations
         profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
         config["performance_impact"] = profile_config["performance_impact"]
+        config["platform"] = platform
 
         return config
 
@@ -793,6 +841,14 @@ class EntityFactory:
             True if modules configuration is valid
         """
         if not isinstance(modules, Mapping):
+            return False
+
+        unknown_modules = [module for module in modules if module not in KNOWN_MODULES]
+        if unknown_modules:
+            _LOGGER.warning(
+                "Ignoring unknown modules in configuration: %s",
+                ", ".join(sorted(unknown_modules)),
+            )
             return False
 
         # Check that all values are boolean
