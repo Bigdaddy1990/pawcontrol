@@ -141,19 +141,18 @@ class OptimizedDataCache:
         )
 
         # Remove from cache
-        if lru_key in self._cache:
-            self._remove_locked(lru_key)
+        self._remove_locked(lru_key)
 
     async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
         """Remove expired entries based on their per-key TTL."""
         override_ttl = None if ttl_seconds is None else self._normalize_ttl(ttl_seconds)
-        expired_keys: list[str] = []
-
         async with self._lock:
             now = dt_util.utcnow()
-            for key in list(self._cache.keys()):
-                if self._is_expired_locked(key, now, override_ttl):
-                    expired_keys.append(key)
+            expired_keys = [
+                key
+                for key in tuple(self._cache.keys())
+                if self._is_expired_locked(key, now, override_ttl)
+            ]
 
             for key in expired_keys:
                 self._remove_locked(key)
