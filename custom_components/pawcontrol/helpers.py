@@ -70,11 +70,17 @@ DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
 class OptimizedDataCache:
     """High-performance in-memory cache with automatic cleanup."""
 
-    def __init__(self, max_memory_mb: int = MAX_MEMORY_CACHE_MB) -> None:
-        """Initialize cache with memory limits."""
+    def __init__(
+        self,
+        max_memory_mb: int = MAX_MEMORY_CACHE_MB,
+        default_ttl_seconds: int = 300,
+    ) -> None:
+        """Initialize cache with memory limits and TTL management."""
         self._cache: dict[str, Any] = {}
         self._timestamps: dict[str, datetime] = {}
         self._access_count: dict[str, int] = {}
+        self._ttls: dict[str, int] = {}
+        self._default_ttl_seconds = max(default_ttl_seconds, 0)
         self._max_memory_bytes = max_memory_mb * 1024 * 1024
         self._current_memory = 0
         self._hits = 0
@@ -85,6 +91,11 @@ class OptimizedDataCache:
         """Get cached value with access tracking."""
         async with self._lock:
             if key in self._cache:
+                if self._is_expired_locked(key):
+                    self._remove_locked(key)
+                    self._misses += 1
+                    return default
+
                 self._access_count[key] = self._access_count.get(key, 0) + 1
                 self._timestamps[key] = dt_util.utcnow()
                 self._hits += 1
@@ -115,6 +126,7 @@ class OptimizedDataCache:
             self._cache[key] = value
             self._timestamps[key] = dt_util.utcnow()
             self._access_count[key] = self._access_count.get(key, 0) + 1
+            self._ttls[key] = self._normalize_ttl(ttl_seconds)
             self._current_memory += value_size
 
     async def _evict_lru(self) -> None:
@@ -130,31 +142,66 @@ class OptimizedDataCache:
 
         # Remove from cache
         if lru_key in self._cache:
-            value_size = self._estimate_size(self._cache[lru_key])
-            self._current_memory -= value_size
-            del self._cache[lru_key]
-            del self._timestamps[lru_key]
-            del self._access_count[lru_key]
+            self._remove_locked(lru_key)
 
-    async def cleanup_expired(self, ttl_seconds: int = 300) -> int:
-        """Remove expired entries."""
-        cutoff = dt_util.utcnow() - timedelta(seconds=ttl_seconds)
-        expired_keys = []
+    async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
+        """Remove expired entries based on their per-key TTL."""
+        override_ttl = None if ttl_seconds is None else self._normalize_ttl(ttl_seconds)
+        expired_keys: list[str] = []
 
         async with self._lock:
-            for key, timestamp in self._timestamps.items():
-                if timestamp < cutoff:
+            now = dt_util.utcnow()
+            for key in list(self._cache.keys()):
+                if self._is_expired_locked(key, now, override_ttl):
                     expired_keys.append(key)
 
             for key in expired_keys:
-                if key in self._cache:
-                    value_size = self._estimate_size(self._cache[key])
-                    self._current_memory -= value_size
-                    del self._cache[key]
-                    del self._timestamps[key]
-                    del self._access_count[key]
+                self._remove_locked(key)
 
         return len(expired_keys)
+
+    def _remove_locked(self, key: str) -> None:
+        """Remove a key from the cache while holding the lock."""
+        if key in self._cache:
+            value_size = self._estimate_size(self._cache[key])
+            self._current_memory -= value_size
+            del self._cache[key]
+
+        self._timestamps.pop(key, None)
+        self._access_count.pop(key, None)
+        self._ttls.pop(key, None)
+
+    def _is_expired_locked(
+        self,
+        key: str,
+        now: datetime | None = None,
+        override_ttl: int | None = None,
+    ) -> bool:
+        """Return if a cached key is expired using stored TTL information."""
+
+        timestamp = self._timestamps.get(key)
+        if timestamp is None:
+            return True
+
+        ttl = override_ttl if override_ttl is not None else self._ttls.get(
+            key, self._default_ttl_seconds
+        )
+
+        if ttl <= 0:
+            return False
+
+        if now is None:
+            now = dt_util.utcnow()
+
+        return now >= timestamp + timedelta(seconds=ttl)
+
+    def _normalize_ttl(self, ttl_seconds: int) -> int:
+        """Normalize TTL seconds to a non-negative integer."""
+
+        if ttl_seconds <= 0:
+            return 0
+
+        return int(ttl_seconds)
 
     def _estimate_size(self, value: Any) -> int:
         """Estimate memory size of value."""

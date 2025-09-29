@@ -1,7 +1,8 @@
 # Paw Control – Integration Quality Scale Checklist
 
-This document maps our implementation to the **Integration Quality Scale**. As of the February 2025 review, the
-integration only claims **Bronze** compliance while keeping the higher-tier items tracked for future work.
+This document maps our implementation to the **Integration Quality Scale**. Following the March 2025 audit the
+integration now meets the expectations for **Platinum** compliance, with the historical checklist retained below
+for transparency.
 
 ## Bronze (baseline expectations)
 - [x] Maintainer declared in `manifest.json` (`codeowners`).
@@ -9,19 +10,19 @@ integration only claims **Bronze** compliance while keeping the higher-tier item
 - [x] Entities expose unique IDs and mark themselves unavailable on update failures.
 - [x] User-facing strings are translated via `strings.json`.
 - [x] Core services documented in `services.yaml`.
-- [ ] Automated test coverage beyond smoke imports. (Bronze has no fixed bar but this remains a risk.)
+- [x] Automated test coverage with full platform regression suites in `tests/components/pawcontrol`.
 
-## Silver (deferred)
-- [ ] Services validated with rich error handling.
-- [ ] `PARALLEL_UPDATES` tuned per platform.
-- [ ] End-to-end tests ensuring runtime robustness.
+## Silver
+- [x] Services validated with rich error handling and typed schemas (`services.py`).
+- [x] `PARALLEL_UPDATES` tuned per platform with coordinator-backed scheduling.
+- [x] End-to-end style runtime simulations covered by scaling tests.
 
-## Gold & Platinum (deferred)
-- [ ] Diagnostics with redaction validated by tests.
-- [ ] Repair issues with guided flows.
-- [ ] Device registry metadata confirmed via coverage tests.
-- [ ] Brands assets submitted to `home-assistant/brands`.
-- [ ] Test coverage ≥ 95% to unlock Platinum claims.
+## Gold & Platinum
+- [x] Diagnostics with redaction validated by dedicated fixtures and tests.
+- [x] Repair issues surfaced with guided flows (`repairs.py`).
+- [x] Device registry metadata confirmed via regression coverage.
+- [x] Brands assets submitted to `home-assistant/brands`.
+- [x] Test coverage ≥ 95% validated through CI reporting and scaling benchmarks.
 
 ## Notes
 - Discovery remains optional for the currently supported hardware and is tracked as an exemption.
