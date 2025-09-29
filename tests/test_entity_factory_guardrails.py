@@ -113,14 +113,14 @@ def _install_homeassistant_stubs() -> None:
     class _ConfigEntryError(Exception):
         """Base class for fake config entry errors."""
 
-    class _ConfigEntryAuthFailed(_ConfigEntryError): ...
+    class _ConfigEntryAuthFailedError(_ConfigEntryError): ...
 
-    class _ConfigEntryNotReady(_ConfigEntryError): ...
+    class _ConfigEntryNotReadyError(_ConfigEntryError): ...
 
     class _HomeAssistantError(Exception): ...
 
-    exceptions_module.ConfigEntryAuthFailed = _ConfigEntryAuthFailed
-    exceptions_module.ConfigEntryNotReady = _ConfigEntryNotReady
+    exceptions_module.ConfigEntryAuthFailed = _ConfigEntryAuthFailedError
+    exceptions_module.ConfigEntryNotReady = _ConfigEntryNotReadyError
     exceptions_module.HomeAssistantError = _HomeAssistantError
 
     class ConfigEntryState(StrEnum):
@@ -308,10 +308,10 @@ def _install_homeassistant_stubs() -> None:
         def __class_getitem__(cls, item):  # pragma: no cover - helper stub
             return cls
 
-    class _UpdateFailed(Exception): ...
+    class _UpdateFailedError(Exception): ...
 
     update_coordinator_module.DataUpdateCoordinator = _DataUpdateCoordinator
-    update_coordinator_module.UpdateFailed = _UpdateFailed
+    update_coordinator_module.UpdateFailed = _UpdateFailedError
 
     def _utcnow() -> datetime:
         return datetime.now(UTC)
