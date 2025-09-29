@@ -494,9 +494,16 @@ class FeedingConfig:
         # Determine life stage
         life_stage = None
         if age_months is not None:
-            life_stage = HealthCalculator.calculate_life_stage(
-                age_months, self.breed_size
-            )
+            try:
+                life_stage = HealthCalculator.calculate_life_stage(
+                    age_months, self.breed_size
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Received invalid age_months=%s for %s; skipping life stage determination",
+                    age_months,
+                    self.dog_id,
+                )
 
         # Parse activity level
         activity_level = None
