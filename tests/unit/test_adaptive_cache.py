@@ -7,8 +7,8 @@ import importlib.util
 import sys
 import types
 from datetime import UTC, datetime, timedelta
-from typing import Self
 from pathlib import Path
+from typing import Self
 
 import pytest
 
@@ -199,6 +199,7 @@ AdaptiveCache = data_manager.AdaptiveCache
 
 UTC = UTC
 
+
 @pytest.mark.asyncio
 async def test_cleanup_expired_removes_entries(
     monkeypatch: pytest.MonkeyPatch,
@@ -248,6 +249,7 @@ class _TrackingAsyncLock:
         tb: object | None,
     ) -> None:
         self._lock.release()
+
 
 @pytest.mark.asyncio
 async def test_cleanup_expired_uses_internal_lock(
