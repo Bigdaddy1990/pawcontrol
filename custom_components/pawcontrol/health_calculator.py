@@ -255,7 +255,7 @@ class HealthCalculator:
             Life stage classification
         """
         if age_months < 0:
-            return LifeStage.PUPPY
+            raise ValueError("age_months must be greater than or equal to zero")
 
         # Adjust adult/senior thresholds based on breed size
         size_adjustments = {
