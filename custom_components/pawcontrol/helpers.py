@@ -183,8 +183,10 @@ class OptimizedDataCache:
         if timestamp is None:
             return True
 
-        ttl = override_ttl if override_ttl is not None else self._ttls.get(
-            key, self._default_ttl_seconds
+        ttl = (
+            override_ttl
+            if override_ttl is not None
+            else self._ttls.get(key, self._default_ttl_seconds)
         )
 
         if ttl <= 0:
