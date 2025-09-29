@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-
 from tests.unit.test_health_metrics import (  # type: ignore[import-not-found]
     HealthCalculator,
     HealthMetrics,
@@ -16,7 +15,7 @@ dt_util = health_calculator.dt_util  # type: ignore[attr-defined]
 ActivityLevel = health_calculator.ActivityLevel
 BodyConditionScore = health_calculator.BodyConditionScore
 LifeStage = health_calculator.LifeStage
-dt_util.now = lambda: datetime.now(timezone.utc)
+dt_util.now = lambda: datetime.now(UTC)
 
 
 def create_metrics(**overrides: object) -> HealthMetrics:
@@ -58,25 +57,14 @@ class TestLifeStageCalculation:
     def test_life_stage_thresholds(self) -> None:
         """Life stage thresholds account for breed size."""
 
+        assert HealthCalculator.calculate_life_stage(10, "medium") == LifeStage.PUPPY
         assert (
-            HealthCalculator.calculate_life_stage(10, "medium")
-            == LifeStage.PUPPY
+            HealthCalculator.calculate_life_stage(20, "medium") == LifeStage.YOUNG_ADULT
         )
+        assert HealthCalculator.calculate_life_stage(70, "large") == LifeStage.ADULT
+        assert HealthCalculator.calculate_life_stage(90, "medium") == LifeStage.SENIOR
         assert (
-            HealthCalculator.calculate_life_stage(20, "medium")
-            == LifeStage.YOUNG_ADULT
-        )
-        assert (
-            HealthCalculator.calculate_life_stage(70, "large")
-            == LifeStage.ADULT
-        )
-        assert (
-            HealthCalculator.calculate_life_stage(90, "medium")
-            == LifeStage.SENIOR
-        )
-        assert (
-            HealthCalculator.calculate_life_stage(130, "medium")
-            == LifeStage.GERIATRIC
+            HealthCalculator.calculate_life_stage(130, "medium") == LifeStage.GERIATRIC
         )
 
     def test_life_stage_negative_age_raises(self) -> None:
