@@ -183,17 +183,19 @@ class AdaptiveCache:
         Returns:
             Number of entries cleaned up
         """
-        now = dt_util.utcnow()
-        expired_keys = []
 
-        for key, metadata in self._metadata.items():
-            if now > metadata["expiry"]:
-                expired_keys.append(key)
+        async with self._lock:
+            now = dt_util.utcnow()
+            expired_keys = [
+                key
+                for key, metadata in list(self._metadata.items())
+                if now > metadata["expiry"]
+            ]
 
-        for key in expired_keys:
-            await self._evict(key)
+            for key in expired_keys:
+                await self._evict(key)
 
-        return len(expired_keys)
+            return len(expired_keys)
 
     def _estimate_size(self, value: Any) -> int:
         """Estimate memory size of value."""
