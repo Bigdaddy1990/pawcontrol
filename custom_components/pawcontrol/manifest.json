@@ -46,7 +46,7 @@
   "loggers": [
     "custom_components.pawcontrol"
   ],
-  "quality_scale": "bronze",
+  "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=23.1.0",
     "defusedxml>=0.7.1"
