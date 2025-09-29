@@ -29,7 +29,6 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -42,7 +41,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .types import PawControlRuntimeData
+from .runtime_data import get_runtime_data
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -261,18 +260,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up PawControl switch platform with profile-based optimization."""
 
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
 
-    if isinstance(runtime_data, PawControlRuntimeData):
-        coordinator = runtime_data.coordinator
-        dogs = runtime_data.dogs
-    else:
-        entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        coordinator = entry_data.get("coordinator")
-        dogs = entry_data.get("dogs", entry.data.get(CONF_DOGS, []))
-
-        if coordinator is None:
-            raise HomeAssistantError("Coordinator not available for switch setup")
+    coordinator = runtime_data.coordinator
+    dogs = runtime_data.dogs
 
     # Profile-optimized entity creation
     all_entities: list[OptimizedSwitchBase] = []
@@ -513,12 +507,10 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
             return
 
         try:
-            runtime_data = self.hass.data[DOMAIN][
-                self.coordinator.config_entry.entry_id
-            ]
-            data_manager = runtime_data.get("data_manager")
+            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
+            data_manager = getattr(runtime_data, "data_manager", None)
 
-            if data_manager:
+            if data_manager is not None:
                 await data_manager.async_set_dog_power_state(self._dog_id, state)
 
             # High priority refresh for power changes
@@ -552,8 +544,8 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
             return
 
         try:
-            entry_data = self.hass.data[DOMAIN][self.coordinator.config_entry.entry_id]
-            notification_manager = entry_data.get("notifications")
+            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
+            notification_manager = getattr(runtime_data, "notification_manager", None)
 
             if notification_manager and hasattr(
                 notification_manager, "async_set_dnd_mode"
@@ -757,12 +749,10 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     async def _set_gps_tracking(self, state: bool) -> None:
         """Handle GPS tracking state."""
         try:
-            runtime_data = self.hass.data[DOMAIN][
-                self.coordinator.config_entry.entry_id
-            ]
-            data_manager = runtime_data.get("data_manager")
+            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
+            data_manager = getattr(runtime_data, "data_manager", None)
 
-            if data_manager:
+            if data_manager is not None:
                 await data_manager.async_set_gps_tracking(self._dog_id, state)
 
         except Exception as err:

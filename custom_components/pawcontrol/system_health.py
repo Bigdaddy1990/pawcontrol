@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
+from .runtime_data import get_runtime_data
 
 
 @callback
@@ -59,7 +60,7 @@ def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
 def _async_resolve_coordinator(hass: HomeAssistant, entry: ConfigEntry) -> Any | None:
     """Resolve the coordinator for system health lookups."""
 
-    runtime = getattr(entry, "runtime_data", None)
+    runtime = get_runtime_data(hass, entry)
     if runtime and getattr(runtime, "coordinator", None) is not None:
         return runtime.coordinator
 
@@ -67,15 +68,24 @@ def _async_resolve_coordinator(hass: HomeAssistant, entry: ConfigEntry) -> Any |
     if not domain_data:
         return None
 
-    if (entry_store := domain_data.get(entry.entry_id)) and isinstance(
-        entry_store, dict
-    ):
-        coordinator = entry_store.get("coordinator")
-        if coordinator is not None:
-            return coordinator
-
+    entry_store = domain_data.get(entry.entry_id)
+    if isinstance(entry_store, dict):
         runtime = entry_store.get("runtime_data")
         if runtime and getattr(runtime, "coordinator", None) is not None:
             return runtime.coordinator
 
-    return domain_data.get("coordinator")
+        coordinator = entry_store.get("coordinator")
+        if coordinator is not None:
+            return coordinator
+    elif getattr(entry_store, "coordinator", None) is not None:
+        return entry_store.coordinator
+
+    coordinator = domain_data.get("coordinator")
+    if coordinator is not None:
+        return coordinator
+
+    runtime = domain_data.get("runtime_data")
+    if runtime and getattr(runtime, "coordinator", None) is not None:
+        return runtime.coordinator
+
+    return None

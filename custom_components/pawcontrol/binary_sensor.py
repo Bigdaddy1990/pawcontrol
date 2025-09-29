@@ -39,6 +39,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -184,7 +185,10 @@ async def async_setup_entry(
     """Set up Paw Control binary sensor platform with optimized performance."""
 
     # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
-    runtime_data = entry.runtime_data
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
     coordinator = runtime_data.coordinator
     dogs = runtime_data.dogs
 

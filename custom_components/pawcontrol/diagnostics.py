@@ -31,7 +31,8 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .types import PawControlConfigEntry
+from .runtime_data import get_runtime_data
+from .types import PawControlConfigEntry, PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ async def async_get_config_entry_diagnostics(
     _LOGGER.debug("Generating diagnostics for Paw Control entry: %s", entry.entry_id)
 
     # Get runtime data using Platinum-compliant approach
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
     coordinator = runtime_data.coordinator if runtime_data else None
 
     # Base diagnostics structure
@@ -153,7 +154,9 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def _get_integration_status(
-    hass: HomeAssistant, entry: ConfigEntry, runtime_data: dict[str, Any] | None
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    runtime_data: PawControlRuntimeData | None,
 ) -> dict[str, Any]:
     """Get integration status diagnostics.
 
@@ -167,15 +170,18 @@ async def _get_integration_status(
     """
     if runtime_data:
         coordinator = runtime_data.coordinator
-        data_manager = runtime_data.data_manager
-        notification_manager = runtime_data.notification_manager
+        data_manager = getattr(runtime_data, "data_manager", None)
+        notification_manager = getattr(runtime_data, "notification_manager", None)
     else:
         coordinator = None
         data_manager = None
         notification_manager = None
 
+    domain_entries = hass.data.get(DOMAIN, {})
+    entry_loaded = isinstance(domain_entries, dict) and entry.entry_id in domain_entries
+
     return {
-        "entry_loaded": hasattr(entry, "runtime_data"),
+        "entry_loaded": entry_loaded,
         "coordinator_available": coordinator is not None,
         "coordinator_success": coordinator.last_update_success
         if coordinator
@@ -430,7 +436,9 @@ async def _get_performance_metrics(
         return {"available": False, "error": str(err)}
 
 
-async def _get_data_statistics(runtime_data: dict[str, Any] | None) -> dict[str, Any]:
+async def _get_data_statistics(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
     """Get data storage statistics.
 
     Args:

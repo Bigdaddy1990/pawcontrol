@@ -23,6 +23,8 @@ from custom_components.pawcontrol.const import (
     CONF_DOGS,
     DOMAIN,
 )
+from custom_components.pawcontrol.runtime_data import store_runtime_data
+from custom_components.pawcontrol.types import PawControlRuntimeData
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
@@ -240,18 +242,20 @@ class TestSensorPlatform:
         entry.add_to_hass(hass)
 
         # Mock runtime data
-        from custom_components.pawcontrol.types import PawControlRuntimeData
-
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="standard",
-            dogs=mock_config_entry_data[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="standard",
+                dogs=mock_config_entry_data[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Import and test sensor platform
@@ -555,16 +559,20 @@ class TestBinarySensorPlatform:
         # Mock runtime data
         from custom_components.pawcontrol.types import PawControlRuntimeData
 
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="standard",
-            dogs=mock_config_entry_data[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="standard",
+                dogs=mock_config_entry_data[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Import and test binary sensor platform
@@ -872,16 +880,20 @@ class TestSwitchPlatform:
         # Mock runtime data
         from custom_components.pawcontrol.types import PawControlRuntimeData
 
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="standard",
-            dogs=mock_config_entry_data[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="standard",
+                dogs=mock_config_entry_data[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Import and test switch platform
@@ -1011,16 +1023,20 @@ class TestButtonPlatform:
         # Mock runtime data
         from custom_components.pawcontrol.types import PawControlRuntimeData
 
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="standard",
-            dogs=mock_config_entry_data[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="standard",
+                dogs=mock_config_entry_data[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Import and test button platform
@@ -1321,16 +1337,20 @@ class TestPlatformIntegration:
         # Mock runtime data
         from custom_components.pawcontrol.types import PawControlRuntimeData
 
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="standard",
-            dogs=mock_config_entry_data[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="standard",
+                dogs=mock_config_entry_data[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Test sensor platform setup and teardown
@@ -1409,18 +1429,20 @@ class TestPlatformIntegration:
         entry.add_to_hass(hass)
 
         # Mock runtime data
-        from custom_components.pawcontrol.types import PawControlRuntimeData
-
-        entry.runtime_data = PawControlRuntimeData(
-            coordinator=mock_coordinator,
-            data_manager=Mock(),
-            notification_manager=Mock(),
-            feeding_manager=Mock(),
-            walk_manager=Mock(),
-            entity_factory=Mock(),
-            entity_profile="basic",
-            dogs=many_dogs_config[CONF_DOGS],
-            script_manager=None,
+        store_runtime_data(
+            hass,
+            entry,
+            PawControlRuntimeData(
+                coordinator=mock_coordinator,
+                data_manager=Mock(),
+                notification_manager=Mock(),
+                feeding_manager=Mock(),
+                walk_manager=Mock(),
+                entity_factory=Mock(),
+                entity_profile="basic",
+                dogs=many_dogs_config[CONF_DOGS],
+                script_manager=None,
+            ),
         )
 
         # Test sensor platform performance

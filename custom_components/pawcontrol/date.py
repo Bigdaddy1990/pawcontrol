@@ -31,7 +31,6 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
@@ -40,6 +39,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
+from .runtime_data import get_runtime_data
 from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,16 +114,14 @@ async def async_setup_entry(
     _LOGGER.debug("Setting up Paw Control date platform for entry %s", entry.entry_id)
 
     try:
-        # Get runtime data using modern approach with fallback
-        runtime_data = getattr(entry, "runtime_data", None)
+        # Retrieve runtime data from hass.data
+        runtime_data = get_runtime_data(hass, entry)
+        if runtime_data is None:
+            _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+            return
 
-        if runtime_data:
-            coordinator = runtime_data["coordinator"]
-            dogs = runtime_data.get("dogs", [])
-        else:
-            # Fallback to legacy data storage
-            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-            dogs = entry.data.get(CONF_DOGS, [])
+        coordinator = runtime_data.coordinator
+        dogs = runtime_data.dogs
 
         entities = []
 
@@ -507,9 +505,13 @@ class PawControlBirthdateDate(PawControlDateBase):
 
         # Update dog profile if data manager is available
         try:
-            runtime_data = getattr(self.coordinator.config_entry, "runtime_data", None)
-            if runtime_data and "data_manager" in runtime_data:
-                data_manager = runtime_data["data_manager"]
+            runtime_data = (
+                get_runtime_data(self.hass, self.coordinator.config_entry)
+                if self.hass
+                else None
+            )
+            data_manager = getattr(runtime_data, "data_manager", None)
+            if data_manager:
                 await data_manager.async_update_dog_profile(
                     self._dog_id, {"birthdate": value.isoformat()}
                 )

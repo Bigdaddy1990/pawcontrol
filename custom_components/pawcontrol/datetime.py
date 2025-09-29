@@ -19,13 +19,13 @@ from .const import (
     ATTR_DOG_NAME,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .runtime_data import get_runtime_data
 from .utils import (
     PawControlDeviceLinkMixin,
     async_call_add_entities,
@@ -89,14 +89,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control datetime platform."""
-    runtime_data = getattr(entry, "runtime_data", None)
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data is None:
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        return
 
-    if runtime_data:
-        coordinator: PawControlCoordinator = runtime_data["coordinator"]
-        dogs = runtime_data.get("dogs", [])
-    else:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        dogs = entry.data.get(CONF_DOGS, [])
+    coordinator: PawControlCoordinator = runtime_data.coordinator
+    dogs = runtime_data.dogs
 
     entities = []
 
@@ -658,12 +657,12 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         )
 
         # Send urgent notification
-        notification_manager = self.hass.data[DOMAIN][
-            self.coordinator.config_entry.entry_id
-        ]["notifications"]
-        await notification_manager.async_send_notification(
-            self._dog_id,
-            "🚨 Emergency Event Logged",
-            f"Emergency event logged for {self._dog_name} on {value.strftime('%Y-%m-%d %H:%M')}",
-            priority="urgent",
-        )
+        runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
+        notification_manager = getattr(runtime_data, "notification_manager", None)
+        if notification_manager:
+            await notification_manager.async_send_notification(
+                self._dog_id,
+                "🚨 Emergency Event Logged",
+                f"Emergency event logged for {self._dog_name} on {value.strftime('%Y-%m-%d %H:%M')}",
+                priority="urgent",
+            )

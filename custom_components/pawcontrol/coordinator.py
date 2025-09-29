@@ -23,7 +23,10 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorUpdateFailed,
+    DataUpdateCoordinator,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -34,6 +37,7 @@ from .const import (
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
     MODULE_GPS,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -66,6 +70,7 @@ CACHE_TTL_SECONDS = 300  # 5 minutes
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 MAX_RETRY_ATTEMPTS = 3
 RETRY_BACKOFF_FACTOR = 1.5
+COORDINATOR_SETUP_TIMEOUT = 15
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -173,6 +178,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._error_count = 0
         self._consecutive_errors = 0
         self._maintenance_unsub: callback | None = None
+        self._setup_complete = False
 
         # Runtime manager references (TYPE_CHECKING imports)
         self.data_manager: PawControlDataManager | None = None
@@ -265,6 +271,42 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.garden_manager = None
         self._modules.detach_managers()
 
+    async def _async_setup(self) -> None:
+        """Perform coordinator preparation before the first refresh."""
+
+        if self._setup_complete:
+            return
+
+        if not self._dogs_config:
+            _LOGGER.debug("Skipping coordinator setup: no dogs configured")
+            self._setup_complete = True
+            return
+
+        # Normalize module mappings to avoid key errors in later refreshes.
+        for dog in self._dogs_config:
+            modules = dog.get(CONF_MODULES)
+            if modules is None:
+                dog[CONF_MODULES] = {}
+            elif not isinstance(modules, dict):
+                _LOGGER.warning(
+                    "Normalizing invalid module configuration for dog %s",
+                    dog.get(CONF_DOG_ID, "<unknown>"),
+                )
+                dog[CONF_MODULES] = {}
+
+        # Ensure runtime storage contains placeholders so entities do not read
+        # from an empty mapping during the first coordinator refresh.
+        for dog_id in self._configured_dog_ids:
+            self._data.setdefault(dog_id, {})
+
+        # Clear adapter caches to guarantee fresh data after reloads.
+        self._modules.clear_caches()
+
+        self._setup_complete = True
+        _LOGGER.debug(
+            "Coordinator pre-setup completed for %d dogs", len(self._configured_dog_ids)
+        )
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data for all dogs efficiently with enhanced error handling.
 
@@ -272,7 +314,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             Dictionary mapping dog_id to dog data
 
         Raises:
-            UpdateFailed: If all dogs fail or critical errors occur
+            CoordinatorUpdateFailed: If all dogs fail or critical errors occur
             ConfigEntryAuthFailed: If authentication fails
             ConfigEntryNotReady: If coordinator is not ready
         """
@@ -294,7 +336,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if not dog_ids:
             self._error_count += 1
-            raise UpdateFailed("No valid dogs configured")
+            raise CoordinatorUpdateFailed("No valid dogs configured")
 
         # PLATINUM: Enhanced concurrent fetch with specific error handling
         async def fetch_and_store(dog_id: str) -> None:
@@ -390,7 +432,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if errors == total_dogs:
             self._error_count += 1
             self._consecutive_errors += 1
-            raise UpdateFailed(f"All {total_dogs} dogs failed to update")
+            raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
 
         if success_rate < 0.5:  # More than 50% failed
             self._consecutive_errors += 1
