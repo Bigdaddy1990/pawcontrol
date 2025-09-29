@@ -6,7 +6,7 @@ import asyncio
 import importlib.util
 import sys
 import types
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -83,14 +83,18 @@ class _DeviceInfo(dict):  # pragma: no cover - minimal registry stub
 
 ha_helpers_device_registry.DeviceEntry = _DeviceEntry
 ha_helpers_device_registry.DeviceInfo = _DeviceInfo
-sys.modules.setdefault("homeassistant.helpers.device_registry", ha_helpers_device_registry)
+sys.modules.setdefault(
+    "homeassistant.helpers.device_registry", ha_helpers_device_registry
+)
 
 ha_helpers_entity_registry = types.ModuleType("homeassistant.helpers.entity_registry")
 ha_helpers_entity_registry.async_get = lambda hass: types.SimpleNamespace(
     async_get=lambda entity_id: None,
     async_update_entity=lambda entity_id, **kwargs: None,
 )
-sys.modules.setdefault("homeassistant.helpers.entity_registry", ha_helpers_entity_registry)
+sys.modules.setdefault(
+    "homeassistant.helpers.entity_registry", ha_helpers_entity_registry
+)
 
 ha_helpers_entity = types.ModuleType("homeassistant.helpers.entity")
 
@@ -170,11 +174,17 @@ sys.modules.setdefault("homeassistant.helpers.selector", ha_helpers_selector)
 ha_util_dt = types.ModuleType("homeassistant.util.dt")
 ha_util_dt.utcnow = lambda: datetime.now(timezone.utc)
 ha_util_dt.now = lambda: datetime.now(timezone.utc)
-ha_util_dt.as_utc = lambda value: value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+ha_util_dt.as_utc = (
+    lambda value: value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+)
 ha_util_dt.as_local = lambda value: value
-ha_util_dt.parse_datetime = lambda value: datetime.fromisoformat(value) if isinstance(value, str) else None
+ha_util_dt.parse_datetime = (
+    lambda value: datetime.fromisoformat(value) if isinstance(value, str) else None
+)
 ha_util_dt.parse_date = (
-    lambda value: datetime.fromisoformat(value).date() if isinstance(value, str) else None
+    lambda value: datetime.fromisoformat(value).date()
+    if isinstance(value, str)
+    else None
 )
 sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 ha_util.dt = ha_util_dt
@@ -186,7 +196,7 @@ spec.loader.exec_module(data_manager)
 AdaptiveCache = data_manager.AdaptiveCache
 
 
-UTC = timezone.utc
+UTC = UTC
 
 
 def test_cleanup_expired_removes_entries(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -226,7 +236,7 @@ class _TrackingAsyncLock:
         self._lock = asyncio.Lock()
         self.acquire_count = 0
 
-    async def __aenter__(self) -> "_TrackingAsyncLock":
+    async def __aenter__(self) -> _TrackingAsyncLock:
         self.acquire_count += 1
         await self._lock.acquire()
         return self
