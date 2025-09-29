@@ -36,4 +36,3 @@ listed dev dependencies are installed the test suite passes (see *Testing*).
 ## Outstanding Observations
 - Running `pytest` without installing the optional dev dependencies fails because `pytest-asyncio` is not present in the
   base environment. Installing the packages from `requirements_test.txt` resolves the issue.【e8a461†L1-L17】【32d54d†L1-L13】
-
