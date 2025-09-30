@@ -17,11 +17,13 @@ across tests and made it hard to reason about success rates or cache health.
 - Introduce `CoordinatorMetrics` to encapsulate update counters, success rate
   calculations, and the serialization used by diagnostics/system_health.
 - Keep `PawControlCoordinator` focused on orchestrating async refreshes by
-  delegating to these helpers.
+  delegating to these helpers. Runtime-specific logic (adaptive polling,
+  resilience execution, entity budget analytics) is implemented in
+  `coordinator_runtime.py` to maintain readability.
 
 ## Consequences
 
-- Coordinator implementation shrinks to 393 lines while remaining readable.
+- Coordinator implementation shrinks to 321 lines while remaining readable.
 - Tests can assert behaviour by manipulating helper instances instead of
   modifying private coordinator attributes.
 - Metrics serialisation is consistent across diagnostics, system health, and

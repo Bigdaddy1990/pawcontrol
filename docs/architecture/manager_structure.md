@@ -24,7 +24,10 @@ The coordinator acts as an orchestrator rather than a data owner:
    as `enabled_modules` and `empty_payload`.
 2. `CoordinatorModuleAdapters` convert manager calls into async tasks with
    shared caching.
-3. `CoordinatorMetrics` collects update telemetry, informing diagnostics and
+3. `CoordinatorRuntime` owns adaptive polling, resilience execution, and task
+   concurrency. The class now lives in `coordinator_runtime.py`, keeping
+   `coordinator.py` focussed on orchestration glue.
+4. `CoordinatorMetrics` collects update telemetry, informing diagnostics and
    `system_health` callbacks.
 
 Managers are attached via `PawControlCoordinator.attach_runtime_managers` during
@@ -52,5 +55,6 @@ flowchart LR
     Coordinator -->|Aggregated data| Entities
 ```
 
-This separation enables us to keep the coordinator implementation under 400
-lines while maintaining clear ownership and fault boundaries.
+This separation keeps the coordinator implementation under 400 lines while the
+runtime helper encapsulates adaptive polling, entity budget analysis, and
+error handling without leaking complexity into entity code.

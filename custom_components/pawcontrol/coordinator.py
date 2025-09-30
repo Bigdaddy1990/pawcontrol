@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from datetime import timedelta
@@ -53,7 +52,6 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-API_TIMEOUT = 30.0
 CACHE_TTL_SECONDS = 300
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 
@@ -61,7 +59,7 @@ __all__ = ["PawControlCoordinator", "EntityBudgetSnapshot"]
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Central data coordinator with a compact, testable core."""
+    """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
     def __init__(
         self,
@@ -91,10 +89,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             config_entry=entry,
         )
 
+        use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
+        self._api_client = self._build_api_client(
+            endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
+            token=entry.options.get(CONF_API_TOKEN, ""),
+        )
+
         self._modules = CoordinatorModuleAdapters(
             session=self.session,
             config_entry=entry,
-            use_external_api=self._use_external_api,
+            use_external_api=use_external_api,
             cache_ttl=timedelta(seconds=CACHE_TTL_SECONDS),
             api_client=self._api_client,
         )
@@ -137,6 +141,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             jitter=True,
         )
 
+        self._runtime = CoordinatorRuntime(
+            registry=self.registry,
+            modules=self._modules,
+            resilience_manager=self.resilience_manager,
+            retry_config=self._retry_config,
+            metrics=self._metrics,
+            adaptive_polling=self._adaptive_polling,
+            logger=_LOGGER,
+        )
+
         _LOGGER.info(
             "Coordinator initialised: %d dogs, %ds interval, external_api=%s",
             len(self.registry),
@@ -156,6 +170,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> PawControlDeviceClient | None:
         if not endpoint:
             return None
+
         try:
             return PawControlDeviceClient(
                 session=self.session,
@@ -191,8 +206,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._entity_budget_snapshots:
             return 0.0
 
-        total_capacity = sum(
-            snapshot.capacity for snapshot in self._entity_budget_snapshots.values()
+        dog_ids = self.registry.ids()
+        data, cycle = await self._runtime.execute_cycle(
+            dog_ids,
+            self._data,
+            empty_payload_factory=self.registry.empty_payload,
         )
         if total_capacity <= 0:
             return 0.0
