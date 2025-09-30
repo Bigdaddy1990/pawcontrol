@@ -14,7 +14,7 @@ import sys
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock, Mock, PropertyMock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -250,29 +250,24 @@ async def mock_coordinator(
     """
     from custom_components.pawcontrol.coordinator import PawControlCoordinator
 
-    with patch.object(
-        PawControlCoordinator, "resilience_manager", new_callable=PropertyMock
-    ) as mock_rm:
-        mock_rm.return_value = mock_resilience_manager
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator.resilience_manager = mock_resilience_manager
 
-        coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
-
-        # Set initial data
-        coordinator.data = {
-            "test_dog": {
-                "dog_info": mock_config_entry.data["dogs"][0],
-                "status": "online",
-                "last_update": datetime.now().isoformat(),
-                "feeding": {},
-                "walk": {},
-                "gps": {},
-                "health": {},
-            }
+    coordinator.data = {
+        "test_dog": {
+            "dog_info": mock_config_entry.data["dogs"][0],
+            "status": "online",
+            "last_update": datetime.now().isoformat(),
+            "feeding": {},
+            "walk": {},
+            "gps": {},
+            "health": {},
         }
+    }
 
-        coordinator.last_update_success = True
+    coordinator.last_update_success = True
 
-        yield coordinator
+    yield coordinator
 
 
 @pytest.fixture

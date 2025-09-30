@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from collections.abc import Mapping as TypingMapping
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Mapping as TypingMapping
+from typing import Any
 
 from .const import (
     ALL_MODULES,
@@ -274,8 +275,10 @@ def bind_runtime_managers(
 
     gps_manager = managers.get("gps_geofence_manager")
     notification_manager = managers.get("notification_manager")
-    if gps_manager and notification_manager and hasattr(
-        gps_manager, "set_notification_manager"
+    if (
+        gps_manager
+        and notification_manager
+        and hasattr(gps_manager, "set_notification_manager")
     ):
         gps_manager.set_notification_manager(notification_manager)
 
