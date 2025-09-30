@@ -222,13 +222,21 @@ async def _create_profile_entities(
 
         # Create core entities (always included)
         core_entities = _create_core_entities(coordinator, dog_id, dog_name)
+        entity_factory.begin_budget(
+            dog_id,
+            profile,
+            base_allocation=len(core_entities),
+        )
         all_entities.extend(core_entities)
 
         # Create module-specific entities based on profile
-        module_entities = await _create_module_entities(
-            coordinator, entity_factory, dog_id, dog_name, modules, profile
-        )
-        all_entities.extend(module_entities)
+        try:
+            module_entities = await _create_module_entities(
+                coordinator, entity_factory, dog_id, dog_name, modules, profile
+            )
+            all_entities.extend(module_entities)
+        finally:
+            entity_factory.finalize_budget(dog_id, profile)
 
     return all_entities
 
@@ -257,6 +265,7 @@ async def _create_module_entities(
 ) -> list[PawControlSensorBase]:
     """Create module-specific entities based on profile and enabled modules."""
     entities = []
+    budget = entity_factory.get_budget(dog_id, profile)
 
     # Define entity creation rules per module and profile
     module_entity_rules = {
@@ -619,12 +628,28 @@ async def _create_module_entities(
         if not enabled or module not in module_entity_rules:
             continue
 
+        if budget and budget.remaining <= 0:
+            _LOGGER.debug(
+                "Entity budget depleted for %s/%s; skipping remaining modules",
+                dog_id,
+                profile,
+            )
+            break
+
         # Get rules for this profile (with fallback to standard)
         profile_rules = module_entity_rules[module].get(
             profile, module_entity_rules[module].get("standard", [])
         )
 
         for entity_key, entity_class, priority in profile_rules:
+            if budget and budget.remaining <= 0:
+                _LOGGER.debug(
+                    "Entity budget exhausted while building %s entities for %s/%s",
+                    module,
+                    dog_id,
+                    profile,
+                )
+                break
             # Use entity factory to determine if entity should be created
             config = entity_factory.create_entity_config(
                 dog_id=dog_id,
