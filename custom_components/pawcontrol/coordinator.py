@@ -4,17 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_API_ENDPOINT,
@@ -33,13 +29,9 @@ from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
     ensure_background_task,
-    fetch_all_dogs,
-    fetch_single_dog,
     run_maintenance,
 )
-from .coordinator_tasks import (
-    shutdown as shutdown_tasks,
-)
+from .coordinator_tasks import shutdown as shutdown_tasks
 from .device_api import PawControlDeviceClient
 from .exceptions import ValidationError
 from .module_adapters import CoordinatorModuleAdapters
@@ -98,16 +90,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             config_entry=entry,
         )
 
-        use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
-        self._api_client = self._build_api_client(
-            endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
-            token=entry.options.get(CONF_API_TOKEN, ""),
-        )
-
         self._modules = CoordinatorModuleAdapters(
             session=self.session,
             config_entry=entry,
-            use_external_api=use_external_api,
+            use_external_api=self._use_external_api,
             cache_ttl=timedelta(seconds=CACHE_TTL_SECONDS),
             api_client=self._api_client,
         )
@@ -302,33 +288,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
-        self._metrics.start_cycle()
-        cycle_start = time.perf_counter()
-        result = await self._fetch_all_dogs(dog_ids)
-
-        duration = max(time.perf_counter() - cycle_start, 0.0)
-        error_ratio = result.errors / len(dog_ids)
-        new_interval = self._adaptive_polling.record_cycle(
-            duration=duration,
-            success=result.errors < len(dog_ids),
-            error_ratio=error_ratio,
+        data, cycle = await self._runtime.execute_cycle(
+            dog_ids,
+            self._data,
+            empty_payload_factory=self.registry.empty_payload,
         )
-        self._apply_adaptive_interval(new_interval)
+        self._apply_adaptive_interval(cycle.new_interval)
 
-        success_rate, all_failed = self._metrics.record_cycle(
-            len(dog_ids), result.errors
-        )
-        if all_failed:
-            raise CoordinatorUpdateFailed(f"All {len(dog_ids)} dogs failed to update")
-        if success_rate < 0.5:
-            _LOGGER.warning(
-                "Low success rate: %d/%d dogs updated successfully",
-                len(dog_ids) - result.errors,
-                len(dog_ids),
-            )
-
-        self._data = result.payload
+        self._data = data
         return self._data
+
+    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime's protected fetch for legacy callers."""
+
+        return await self._runtime._fetch_dog_data_protected(dog_id)
+
+    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime fetch implementation."""
+
+        return await self._runtime._fetch_dog_data(dog_id)
 
     def _apply_adaptive_interval(self, new_interval: float) -> None:
         current_seconds = self.update_interval.total_seconds()
@@ -341,24 +319,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             new_interval,
         )
         self.update_interval = timedelta(seconds=new_interval)
-
-    async def _fetch_all_dogs(self, dog_ids: list[str]) -> UpdateResult:
-        return await fetch_all_dogs(self, dog_ids)
-
-    async def _fetch_with_resilience(self, dog_id: str) -> dict[str, Any]:
-        return await self.resilience_manager.execute_with_resilience(
-            self._fetch_dog_data_protected,
-            dog_id,
-            circuit_breaker_name=f"dog_data_{dog_id}",
-            retry_config=self._retry_config,
-        )
-
-    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
-        async with asyncio.timeout(API_TIMEOUT):
-            return await self._fetch_dog_data(dog_id)
-
-    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
-        return await fetch_single_dog(self, dog_id)
 
     def get_dog_config(self, dog_id: str) -> Any:
         return self.registry.get(dog_id)

@@ -381,6 +381,41 @@ def test_record_success_resets_failure_count() -> None:
     asyncio.run(scenario())
 
 
+def test_record_success_noop_while_open() -> None:
+    """Calling record_success in OPEN state leaves counters untouched."""
+
+    async def scenario() -> None:
+        breaker = CircuitBreaker("open")
+        breaker._stats.state = CircuitState.OPEN  # type: ignore[attr-defined]
+        breaker._stats.failure_count = 3  # type: ignore[attr-defined]
+
+        await breaker._record_success()
+
+        assert breaker.stats.state is CircuitState.OPEN
+        assert breaker.stats.failure_count == 3
+
+    asyncio.run(scenario())
+
+
+def test_half_open_success_requires_threshold() -> None:
+    """Half-open circuits stay half-open until the success threshold is met."""
+
+    async def scenario() -> None:
+        breaker = CircuitBreaker(
+            "half-open-threshold",
+            CircuitBreakerConfig(success_threshold=2, half_open_max_calls=1),
+        )
+        breaker._stats.state = CircuitState.HALF_OPEN  # type: ignore[attr-defined]
+        breaker._stats.success_count = 0  # type: ignore[attr-defined]
+
+        await breaker._record_success()
+
+        assert breaker.stats.state is CircuitState.HALF_OPEN
+        assert breaker.stats.success_count == 1
+
+    asyncio.run(scenario())
+
+
 def test_should_attempt_reset_without_failure() -> None:
     """Reset checks return true when no failures recorded."""
 
