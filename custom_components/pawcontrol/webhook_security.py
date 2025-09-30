@@ -6,9 +6,10 @@ import base64
 import binascii
 import hmac
 import secrets
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import ClassVar, Mapping
+from typing import ClassVar
 
 
 @dataclass(slots=True)
@@ -143,5 +144,5 @@ class WebhookSecurityManager:
     def _build_message(self, payload: bytes, timestamp: int, nonce: str) -> bytes:
         """Build the message that is signed or verified."""
 
-        prefix = f"{timestamp}.{nonce}".encode("utf-8")
+        prefix = f"{timestamp}.{nonce}".encode()
         return prefix + b"." + payload

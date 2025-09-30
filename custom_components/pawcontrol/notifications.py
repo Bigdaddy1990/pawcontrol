@@ -1294,7 +1294,9 @@ class PawControlNotificationManager:
                 algorithm=algorithm,
                 tolerance_seconds=tolerance,
             )
-            headers.update(manager.build_headers(payload_bytes, header_prefix=header_prefix))
+            headers.update(
+                manager.build_headers(payload_bytes, header_prefix=header_prefix)
+            )
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
         session = async_get_clientsession(self._hass)
@@ -1676,6 +1678,31 @@ class PawControlNotificationManager:
                 # NEW: Person targeting stats
                 "person_entity_stats": person_stats,
             }
+
+    def webhook_security_status(self) -> dict[str, Any]:
+        """Return aggregated HMAC webhook security information."""
+
+        webhook_configs: list[str] = []
+        insecure_configs: list[str] = []
+
+        for config_key, config in self._configs.items():
+            if NotificationChannel.WEBHOOK not in config.channels:
+                continue
+
+            webhook_configs.append(config_key)
+            secret = config.custom_settings.get("webhook_secret")
+            if not isinstance(secret, str) or not secret.strip():
+                insecure_configs.append(config_key)
+
+        configured = bool(webhook_configs)
+        secure = configured and not insecure_configs
+
+        return {
+            "configured": configured,
+            "secure": secure,
+            "hmac_ready": secure,
+            "insecure_configs": tuple(insecure_configs),
+        }
 
     async def async_shutdown(self) -> None:
         """Enhanced shutdown with comprehensive cleanup."""
