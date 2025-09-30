@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-
 from custom_components.pawcontrol.coordinator_observability import (
     EntityBudgetTracker,
     build_performance_snapshot,

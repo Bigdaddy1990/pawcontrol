@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
-
 from collections.abc import Iterable, Sequence
-
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +17,10 @@ from .const import (
     CONF_API_TOKEN,
     CONF_EXTERNAL_INTEGRATIONS,
     UPDATE_INTERVALS,
+)
+from .coordinator_insights import (
+    build_performance_snapshot,
+    build_security_scorecard,
 )
 from .coordinator_observability import (
     EntityBudgetTracker,
@@ -35,19 +36,14 @@ from .coordinator_runtime import (
     summarize_entity_budgets,
 )
 from .coordinator_support import (
+    MANAGER_ATTRIBUTES,
     CoordinatorMetrics,
     DogConfigRegistry,
     bind_runtime_managers,
-    MANAGER_ATTRIBUTES,
+)
+from .coordinator_support import (
     clear_runtime_managers as unbind_runtime_managers,
 )
-from .coordinator_insights import (
-    build_performance_snapshot,
-    build_security_scorecard,
-)
-
-from .coordinator_support import CoordinatorMetrics, DogConfigRegistry, UpdateResult
-
 from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
@@ -225,7 +221,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         ratio = summary.get("total_allocated", 0) / total_capacity
         return max(0.0, min(1.0, float(ratio)))
 
-
     def attach_runtime_managers(
         self,
         *,
@@ -306,7 +301,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             new_interval,
         )
         self.update_interval = timedelta(seconds=new_interval)
-
 
     async def _execute_cycle(
         self, dog_ids: Sequence[str]

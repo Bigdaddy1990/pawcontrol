@@ -10,7 +10,6 @@ from typing import Any
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
 from .coordinator_support import CoordinatorMetrics
 
-
 _LOGGER = getLogger(__name__)
 
 
@@ -164,7 +163,7 @@ def normalise_webhook_status(manager: Any) -> dict[str, Any]:
     status.setdefault("secure", False)
     status.setdefault("hmac_ready", False)
     insecure = status.get("insecure_configs", ())
-    if isinstance(insecure, (list, tuple, set)):
+    if isinstance(insecure, list | tuple | set):
         status["insecure_configs"] = tuple(insecure)
     else:
         status["insecure_configs"] = (insecure,) if insecure else ()

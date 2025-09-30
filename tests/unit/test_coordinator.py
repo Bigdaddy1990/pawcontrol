@@ -6,7 +6,6 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.coordinator_runtime import (
     EntityBudgetSnapshot,
@@ -16,7 +15,9 @@ from custom_components.pawcontrol.coordinator_runtime import (
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_initialisation_builds_registry(mock_hass, mock_config_entry, mock_session):
+async def test_initialisation_builds_registry(
+    mock_hass, mock_config_entry, mock_session
+):
     """The registry should expose configured dog identifiers."""
 
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -28,7 +29,9 @@ async def test_initialisation_builds_registry(mock_hass, mock_config_entry, mock
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_update_data_uses_runtime(mock_hass, mock_config_entry, mock_session):
+async def test_async_update_data_uses_runtime(
+    mock_hass, mock_config_entry, mock_session
+):
     """Runtime results should be surfaced as coordinator data and adjust polling."""
 
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
@@ -54,7 +57,9 @@ async def test_async_update_data_uses_runtime(mock_hass, mock_config_entry, mock
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_async_update_data_without_dogs(mock_hass, mock_config_entry, mock_session):
+async def test_async_update_data_without_dogs(
+    mock_hass, mock_config_entry, mock_session
+):
     """When no dogs are configured the coordinator should return an empty payload."""
 
     mock_config_entry.data = {"dogs": []}
