@@ -258,7 +258,7 @@ async def _update_location_from_device_tracker(self, dog_id: str) -> None:
     async def _fetch_device_tracker_location() -> None:
         # Device tracker entity lookup and GPS extraction
         ...
-    
+
     # Retry for transient failures
     await self.resilience_manager.execute_with_resilience(
         _fetch_device_tracker_location,
@@ -286,7 +286,7 @@ async def async_update_weather_data(
     async def _fetch_weather_data() -> WeatherConditions | None:
         # Weather entity state fetch and parsing
         ...
-    
+
     # Retry for transient failures
     return await self.resilience_manager.execute_with_resilience(
         _fetch_weather_data,
@@ -600,23 +600,23 @@ except Exception as err:
 ```python
 async def check_resilience_health() -> dict[str, Any]:
     """Periodic health check for resilience systems."""
-    
+
     # Get all circuit breaker states
     stats = coordinator.get_statistics()
     resilience_stats = stats["resilience"]
-    
+
     open_circuits = [
         name for name, cb in resilience_stats.items()
         if cb["state"] == "open"
     ]
-    
+
     # Check notification performance
     notif_stats = await notification_manager.async_get_performance_statistics()
     failure_rate = (
         notif_stats["performance_metrics"]["notifications_failed"] /
         max(notif_stats["performance_metrics"]["notifications_sent"], 1)
     )
-    
+
     return {
         "healthy": len(open_circuits) == 0 and failure_rate < 0.05,
         "open_circuits": open_circuits,
@@ -639,14 +639,14 @@ async def test_circuit_breaker():
             await coordinator._fetch_dog_data_protected("test_dog")
         except Exception:
             pass
-    
+
     # Check circuit is OPEN
     stats = coordinator.get_statistics()
     assert stats["resilience"]["dog_data_test_dog"]["state"] == "open"
-    
+
     # Wait for timeout
     await asyncio.sleep(35)
-    
+
     # Circuit should transition to HALF_OPEN
     stats = coordinator.get_statistics()
     assert stats["resilience"]["dog_data_test_dog"]["state"] == "half_open"
@@ -712,7 +712,7 @@ async def test_circuit_breaker():
        async def _internal_fetch():
            # Your fetch logic
            return data
-       
+
        return await self.resilience_manager.execute_with_resilience(
            _internal_fetch,
            circuit_breaker_name="my_service",
@@ -836,6 +836,6 @@ Includes:
 
 ---
 
-*Last Updated: 2025-09-30*  
-*PawControl Version: 1.0.0*  
+*Last Updated: 2025-09-30*
+*PawControl Version: 1.0.0*
 *Home Assistant: 2025.9.3+*
