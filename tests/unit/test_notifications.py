@@ -158,6 +158,45 @@ class TestNotificationConfig:
         notification = manager._notifications.get(notification_id)
         assert notification is None or len(notification.sent_to) == 0
 
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestWebhookSecurityStatus:
+    """Test webhook security status aggregation."""
+
+    async def test_secure_webhook_configs(self, mock_notification_manager):
+        """Secure webhooks should report pass status."""
+
+        mock_notification_manager._configs["dog1"] = NotificationConfig(
+            channels=[NotificationChannel.WEBHOOK],
+            custom_settings={"webhook_secret": "supersecret"},
+        )
+
+        status = mock_notification_manager.webhook_security_status()
+
+        assert status["configured"] is True
+        assert status["secure"] is True
+        assert status["hmac_ready"] is True
+        assert status["insecure_configs"] == ()
+
+    async def test_insecure_webhook_configs(self, mock_notification_manager):
+        """Missing secrets should be flagged as insecure."""
+
+        mock_notification_manager._configs["dog1"] = NotificationConfig(
+            channels=[NotificationChannel.WEBHOOK],
+            custom_settings={},
+        )
+        mock_notification_manager._configs["dog2"] = NotificationConfig(
+            channels=[NotificationChannel.PERSISTENT],
+        )
+
+        status = mock_notification_manager.webhook_security_status()
+
+        assert status["configured"] is True
+        assert status["secure"] is False
+        assert status["hmac_ready"] is False
+        assert status["insecure_configs"] == ("dog1",)
+
     async def test_priority_threshold_filters_low_priority(self, mock_hass):
         """Test that priority threshold filters notifications."""
         manager = PawControlNotificationManager(mock_hass, "test_entry")
