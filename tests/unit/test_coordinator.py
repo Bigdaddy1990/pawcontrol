@@ -198,10 +198,11 @@ class TestErrorHandling:
         """Test handling when some dogs fail."""
         # Add second dog
         mock_coordinator._configured_dog_ids.append("dog2")
-        mock_coordinator._dog_config_by_id["dog2"] = {
+        mock_coordinator.registry._ids.append("dog2")
+        mock_coordinator.registry._by_id["dog2"] = {
             "dog_id": "dog2",
             "dog_name": "Max",
-            "weight": 15.0,
+            "modules": {},
         }
         
         await mock_coordinator._async_setup()
@@ -234,13 +235,13 @@ class TestErrorHandling:
         """Test that consecutive errors are tracked."""
         await mock_coordinator._async_setup()
         
-        initial_errors = mock_coordinator._consecutive_errors
-        
+        initial_errors = mock_coordinator._metrics.consecutive_errors
+
         # Simulate error
-        mock_coordinator._error_count += 1
-        mock_coordinator._consecutive_errors += 1
-        
-        assert mock_coordinator._consecutive_errors > initial_errors
+        mock_coordinator._metrics.failed_cycles += 1
+        mock_coordinator._metrics.consecutive_errors += 1
+
+        assert mock_coordinator._metrics.consecutive_errors > initial_errors
 
 
 @pytest.mark.unit
@@ -338,13 +339,10 @@ class TestStatistics:
     async def test_get_update_statistics(self, mock_coordinator):
         """Test retrieving update statistics."""
         stats = mock_coordinator.get_update_statistics()
-        
-        assert "update_counts" in stats
-        assert "performance_metrics" in stats
-        assert "health_indicators" in stats
-        
-        assert "total" in stats["update_counts"]
-        assert "successful" in stats["update_counts"]
+
+        assert "total_updates" in stats
+        assert "successful_updates" in stats
+        assert "failed" in stats
 
     async def test_get_statistics(self, mock_coordinator):
         """Test comprehensive statistics."""
@@ -358,13 +356,13 @@ class TestStatistics:
     async def test_statistics_reflect_state(self, mock_coordinator):
         """Test that statistics reflect actual state."""
         # Simulate some updates
-        mock_coordinator._update_count = 10
-        mock_coordinator._error_count = 2
-        
+        mock_coordinator._metrics.update_count = 10
+        mock_coordinator._metrics.failed_cycles = 2
+
         stats = mock_coordinator.get_update_statistics()
-        
-        assert stats["update_counts"]["total"] == 10
-        assert stats["update_counts"]["failed"] == 2
+
+        assert stats["total_updates"] == 10
+        assert stats["failed"] == 2
 
 
 @pytest.mark.unit
@@ -375,21 +373,21 @@ class TestAvailability:
     async def test_available_when_healthy(self, mock_coordinator):
         """Test coordinator is available when healthy."""
         mock_coordinator.last_update_success = True
-        mock_coordinator._consecutive_errors = 0
+        mock_coordinator._metrics.consecutive_errors = 0
         
         assert mock_coordinator.available is True
 
     async def test_unavailable_after_many_errors(self, mock_coordinator):
         """Test coordinator becomes unavailable after errors."""
         mock_coordinator.last_update_success = False
-        mock_coordinator._consecutive_errors = 10
+        mock_coordinator._metrics.consecutive_errors = 10
         
         assert mock_coordinator.available is False
 
     async def test_availability_threshold(self, mock_coordinator):
         """Test availability threshold."""
         mock_coordinator.last_update_success = True
-        mock_coordinator._consecutive_errors = 5  # At threshold
+        mock_coordinator._metrics.consecutive_errors = 5  # At threshold
         
         # Should still be unavailable at threshold
         assert mock_coordinator.available is False
