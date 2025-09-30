@@ -15,6 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover - import for typing only
 
     from .coordinator import PawControlCoordinator
 
+
 def build_update_statistics(coordinator: PawControlCoordinator) -> dict[str, Any]:
     """Return lightweight update statistics for diagnostics endpoints."""
 

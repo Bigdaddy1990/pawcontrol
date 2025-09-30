@@ -21,6 +21,6 @@ targets risk regressing over time.
 ## Consequences
 
 - Contributors have clear guidance on where to place new logic.
-- The coordinator file currently sits at 373 lines, providing headroom for
+- The coordinator file currently sits at 353 lines, providing headroom for
   minor tweaks without violating the target.
 - Documentation and ADRs record the rationale, making it part of onboarding.

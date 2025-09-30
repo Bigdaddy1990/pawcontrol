@@ -280,15 +280,17 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {}
 
         await self._async_setup()
-
         dog_ids = self.registry.ids()
+        if not dog_ids:
+            raise CoordinatorUpdateFailed("No valid dogs configured")
+
         data, cycle = await self._runtime.execute_cycle(
             dog_ids,
             self._data,
             empty_payload_factory=self.registry.empty_payload,
         )
-
         self._apply_adaptive_interval(cycle.new_interval)
+
         self._data = data
         return self._data
 
