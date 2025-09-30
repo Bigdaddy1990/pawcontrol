@@ -519,7 +519,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             for (module_name, _), result in zip(module_tasks, results, strict=True):
                 if isinstance(result, Exception):
-                    # PLATINUM: Module-specific error handling
+            for (module_name, _), result in zip(module_tasks, results, strict=True):
                     if isinstance(result, GPSUnavailableError):
                         _LOGGER.debug("GPS unavailable for %s: %s", dog_id, result)
                         data[module_name] = {
