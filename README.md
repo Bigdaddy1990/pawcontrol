@@ -677,7 +677,7 @@ Retry Strategy:
   Attempt 1: Immediate
   Attempt 2: Wait 1-2s (with jitter)
   Attempt 3: Wait 2-4s (with jitter)
-  
+
 Components Protected:
   - Coordinator API calls (2 retries)
   - GPS location updates (3 retries)

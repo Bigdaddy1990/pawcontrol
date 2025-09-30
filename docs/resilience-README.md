@@ -55,8 +55,8 @@ Learn about:
 
 ### resilience-quickstart.md
 
-**What:** 5-minute quick start guide  
-**For:** End users, integrators  
+**What:** 5-minute quick start guide
+**For:** End users, integrators
 **Contains:**
 - Quick health checks
 - Common scenarios
@@ -73,8 +73,8 @@ Learn about:
 
 ### resilience.md
 
-**What:** Complete technical reference  
-**For:** Developers, advanced users  
+**What:** Complete technical reference
+**For:** Developers, advanced users
 **Contains:**
 - Architecture overview
 - Circuit breaker pattern
@@ -95,8 +95,8 @@ Learn about:
 
 ### resilience-examples.md
 
-**What:** 10+ practical code examples  
-**For:** Developers  
+**What:** 10+ practical code examples
+**For:** Developers
 **Contains:**
 - Basic circuit breaker
 - Retry logic
@@ -432,11 +432,11 @@ For enterprise support, contact: support@pawcontrol.example.com
 
 ## 📝 License
 
-Documentation licensed under Creative Commons BY-SA 4.0  
+Documentation licensed under Creative Commons BY-SA 4.0
 Code examples licensed under MIT License
 
 ---
 
-*PawControl Resilience Documentation*  
-*Version 1.0.0 | Last Updated: 2025-09-30*  
+*PawControl Resilience Documentation*
+*Version 1.0.0 | Last Updated: 2025-09-30*
 *Home Assistant: 2025.9.3+ | Python: 3.13+*

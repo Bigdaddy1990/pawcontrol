@@ -8,14 +8,15 @@ suitable for resource constrained CI environments.
 
 from __future__ import annotations
 
-import sys
-import types
+import asyncio
 import importlib.machinery
 import importlib.util
 import pathlib
-import asyncio
-from typing import Callable
+import sys
+import types
+from collections.abc import Callable
 from unittest.mock import AsyncMock
+
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -63,7 +64,7 @@ if "custom_components.pawcontrol" not in sys.modules:
 else:  # pragma: no cover - executed when package already present
     pawcontrol_pkg = sys.modules["custom_components.pawcontrol"]
 
-setattr(custom_components_pkg, "pawcontrol", pawcontrol_pkg)
+custom_components_pkg.pawcontrol = pawcontrol_pkg
 
 module_name = "custom_components.pawcontrol.resilience"
 module_path = (
@@ -79,7 +80,7 @@ assert spec is not None and spec.loader is not None
 resilience = importlib.util.module_from_spec(spec)
 sys.modules[module_name] = resilience
 loader.exec_module(resilience)
-setattr(pawcontrol_pkg, "resilience", resilience)
+pawcontrol_pkg.resilience = resilience
 
 CircuitBreaker = resilience.CircuitBreaker
 CircuitBreakerConfig = resilience.CircuitBreakerConfig
@@ -125,9 +126,7 @@ def fast_sleep(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     return recorded
 
 
-def test_circuit_breaker_open_and_recover(
-    fake_time: Callable[[float], None]
-) -> None:
+def test_circuit_breaker_open_and_recover(fake_time: Callable[[float], None]) -> None:
     """Circuit breaker opens after failures and closes after successful reset."""
 
     async def scenario() -> None:
@@ -169,7 +168,10 @@ def test_circuit_breaker_half_open_limits(monkeypatch: pytest.MonkeyPatch) -> No
 
     async def scenario() -> None:
         config = CircuitBreakerConfig(
-            failure_threshold=1, success_threshold=2, half_open_max_calls=1, timeout_seconds=5.0
+            failure_threshold=1,
+            success_threshold=2,
+            half_open_max_calls=1,
+            timeout_seconds=5.0,
         )
         breaker = CircuitBreaker("limited", config)
 
@@ -293,7 +295,9 @@ def test_retry_with_backoff_logs_subsequent_success(
             )
 
         assert result == "done"
-        assert any("Retry succeeded on attempt" in message for message in caplog.messages)
+        assert any(
+            "Retry succeeded on attempt" in message for message in caplog.messages
+        )
         assert fast_sleep == pytest.approx([0.01])
 
     asyncio.run(scenario())

@@ -63,4 +63,3 @@ coverage above the 99 % gate.
 Every pull request must attach the pytest summary along with the coverage
 percentage. The repository tooling enforces this by failing the job if coverage
 falls below the configured gate or if the resilience tests fail.
-
