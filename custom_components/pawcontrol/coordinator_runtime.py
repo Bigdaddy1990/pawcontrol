@@ -6,10 +6,11 @@ import asyncio
 import logging
 import time
 from collections import deque
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from statistics import fmean
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import CoordinatorUpdateFailed
@@ -61,13 +62,13 @@ class AdaptivePollingController:
     """Manage dynamic polling intervals based on runtime performance."""
 
     __slots__ = (
-        "_history",
-        "_min_interval",
-        "_max_interval",
-        "_target_cycle",
         "_current_interval",
-        "_error_streak",
         "_entity_saturation",
+        "_error_streak",
+        "_history",
+        "_max_interval",
+        "_min_interval",
+        "_target_cycle",
     )
 
     def __init__(
@@ -306,9 +307,7 @@ class CoordinatorRuntime:
         success_rate, all_failed = self._metrics.record_cycle(total_dogs, errors)
 
         if all_failed:
-            raise CoordinatorUpdateFailed(
-                f"All {total_dogs} dogs failed to update"
-            )
+            raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
 
         if success_rate < 0.5:
             self._logger.warning(
@@ -388,4 +387,3 @@ class CoordinatorRuntime:
                 payload[module_name] = result
 
         return payload
-

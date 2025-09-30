@@ -318,4 +318,3 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._data.clear()
         self._modules.clear_caches()
         _LOGGER.info("Coordinator shutdown completed successfully")
-
