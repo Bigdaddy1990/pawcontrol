@@ -1,4 +1,4 @@
-# 🏆 Fahrplan zur perfekten "Homeassistant Paw Control Integration"
+# 🏆 Fahrplan zur perfekten Homeassistant Paw Control Integration
 
 Dieser Fahrplan beschreibt, wie die Integration in den Bereichen Architektur, Testing, Performance, Fehlerbehandlung, Sicherheit und Dokumentation auf 100 % Reifegrad gebracht wird. Alle Maßnahmen sind in Sprints organisiert und enthalten klare Qualitätsmetriken.
 
@@ -14,8 +14,6 @@ Dieser Fahrplan beschreibt, wie die Integration in den Bereichen Architektur, Te
    - Einführen von `GpsTrackingManager`, `WalkSessionManager`, `FeedingManager`, `HealthInsightsManager`, `NotificationManager`.
    - Coordinator auf <400 Zeilen reduzieren; ausschließlich Orchestrierung.
    - Verantwortungsketten dokumentieren (Sequence Diagramme je Use Case).
-   - _Status 2025-03-10:_ `DogDomainOrchestrator` ausgelagert; erster ADR dokumentiert.
-   - _Status 2025-03-11:_ `ModuleSnapshot`/`DomainSnapshot` sorgen für typsichere Laufzeitverträge inkl. Metadaten.
 2. **Config- & Options-Flow modularisieren**
    - Profile (Basic, Advanced, Pro) als definierte Konfigurationspakete.
    - Validierungsregeln in `validators.py` auslagern und unit-testen.
