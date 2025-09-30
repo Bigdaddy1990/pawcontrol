@@ -433,9 +433,7 @@ class EntityFactory:
 
         return self._active_budgets.get((dog_id, profile))
 
-    def finalize_budget(
-        self, dog_id: str, profile: str
-    ) -> EntityBudgetSnapshot | None:
+    def finalize_budget(self, dog_id: str, profile: str) -> EntityBudgetSnapshot | None:
         """Finalize and report the entity budget for a dog/profile."""
 
         key = (dog_id, profile)

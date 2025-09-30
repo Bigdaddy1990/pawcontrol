@@ -443,9 +443,7 @@ class TestDiagnosticsAndSecurity:
         assert "adaptive_polling" in snapshot
         assert snapshot["adaptive_polling"]["target_cycle_ms"] <= 200.0
 
-    async def test_security_scorecard_pass_without_webhooks(
-        self, mock_coordinator
-    ):
+    async def test_security_scorecard_pass_without_webhooks(self, mock_coordinator):
         """Scorecard passes when no insecure webhook configs exist."""
 
         scorecard = mock_coordinator.get_security_scorecard()
@@ -454,9 +452,7 @@ class TestDiagnosticsAndSecurity:
         assert scorecard["checks"]["adaptive_polling"]["pass"] is True
         assert scorecard["checks"]["webhooks"]["pass"] is True
 
-    async def test_security_scorecard_detects_insecure_webhooks(
-        self, mock_coordinator
-    ):
+    async def test_security_scorecard_detects_insecure_webhooks(self, mock_coordinator):
         """Insecure webhook configurations should fail the scorecard."""
 
         class InsecureWebhookManager:

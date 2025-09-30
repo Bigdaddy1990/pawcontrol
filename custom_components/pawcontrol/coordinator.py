@@ -7,7 +7,7 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from statistics import fmean
 from typing import TYPE_CHECKING, Any
 
@@ -89,13 +89,13 @@ class AdaptivePollingController:
     """Manage dynamic polling intervals based on runtime performance."""
 
     __slots__ = (
-        "_history",
-        "_min_interval",
-        "_max_interval",
-        "_target_cycle",
         "_current_interval",
-        "_error_streak",
         "_entity_saturation",
+        "_error_streak",
+        "_history",
+        "_max_interval",
+        "_min_interval",
+        "_target_cycle",
     )
 
     def __init__(
@@ -157,7 +157,9 @@ class AdaptivePollingController:
         else:
             load_factor = 1.0 + (self._entity_saturation * 0.5)
             if average_duration < self._target_cycle * 0.8:
-                reduction_factor = min(2.0, (self._target_cycle / average_duration) * 0.5)
+                reduction_factor = min(
+                    2.0, (self._target_cycle / average_duration) * 0.5
+                )
                 next_interval = max(
                     self._min_interval,
                     next_interval / max(1.0, reduction_factor * load_factor),
@@ -187,6 +189,7 @@ class AdaptivePollingController:
             "error_streak": self._error_streak,
             "entity_saturation": round(self._entity_saturation, 3),
         }
+
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Central data coordinator with a compact, testable core."""
@@ -350,7 +353,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         average_utilization = (
             (total_allocated / total_capacity) if total_capacity else 0.0
         )
-        peak_utilization = max((snapshot.saturation for snapshot in snapshots), default=0.0)
+        peak_utilization = max(
+            (snapshot.saturation for snapshot in snapshots), default=0.0
+        )
 
         return {
             "active_dogs": len(snapshots),
@@ -488,16 +493,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # PLATINUM: Enhanced failure analysis
             total_dogs = len(dog_ids)
-            success_rate = (
-                (total_dogs - errors) / total_dogs if total_dogs > 0 else 0
-            )
+            success_rate = (total_dogs - errors) / total_dogs if total_dogs > 0 else 0
 
             if errors == total_dogs:
                 self._error_count += 1
                 self._consecutive_errors += 1
-                raise CoordinatorUpdateFailed(
-                    f"All {total_dogs} dogs failed to update"
-                )
+                raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
 
             if success_rate < 0.5:
                 self._consecutive_errors += 1

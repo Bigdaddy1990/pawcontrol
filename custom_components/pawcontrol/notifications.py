@@ -1294,7 +1294,9 @@ class PawControlNotificationManager:
                 algorithm=algorithm,
                 tolerance_seconds=tolerance,
             )
-            headers.update(manager.build_headers(payload_bytes, header_prefix=header_prefix))
+            headers.update(
+                manager.build_headers(payload_bytes, header_prefix=header_prefix)
+            )
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
         session = async_get_clientsession(self._hass)
