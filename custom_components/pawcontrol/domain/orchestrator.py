@@ -137,7 +137,7 @@ class DogDomainOrchestrator:
             result = await awaitable
         except asyncio.CancelledError:
             raise
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             return self._normalize_exception(module_name, err, dog_id, started_at)
         return self._normalize_success(module_name, result, dog_id, started_at)
 

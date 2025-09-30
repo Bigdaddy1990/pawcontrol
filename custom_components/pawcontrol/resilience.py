@@ -13,9 +13,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -273,9 +274,7 @@ class RetryExhaustedError(HomeAssistantError):
             attempts: Number of attempts made
             last_error: Last exception that occurred
         """
-        super().__init__(
-            f"Retry exhausted after {attempts} attempts: {last_error}"
-        )
+        super().__init__(f"Retry exhausted after {attempts} attempts: {last_error}")
         self.attempts = attempts
         self.last_error = last_error
 
@@ -442,9 +441,7 @@ class ResilienceManager:
         Returns:
             Dictionary mapping circuit breaker names to their statistics
         """
-        return {
-            name: breaker.stats for name, breaker in self._circuit_breakers.items()
-        }
+        return {name: breaker.stats for name, breaker in self._circuit_breakers.items()}
 
     async def reset_circuit_breaker(self, name: str) -> bool:
         """Manually reset a circuit breaker.

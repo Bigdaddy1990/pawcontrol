@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -25,7 +26,7 @@ class ModuleSnapshot:
         fallback_status: str,
         received_at: datetime,
         latency: float | None,
-    ) -> "ModuleSnapshot":
+    ) -> ModuleSnapshot:
         """Return a copy populated with orchestration runtime defaults."""
 
         return ModuleSnapshot(
@@ -38,7 +39,7 @@ class ModuleSnapshot:
         )
 
     @classmethod
-    def empty(cls, name: str, status: str = "unknown") -> "ModuleSnapshot":
+    def empty(cls, name: str, status: str = "unknown") -> ModuleSnapshot:
         """Create a deterministic empty snapshot for a module."""
 
         return cls(name=name, status=status)
@@ -77,9 +78,7 @@ class DomainSnapshot:
         base = {
             "dog_info": dict(self.dog_info),
             "status": self.status,
-            "last_update": self.last_updated.isoformat()
-            if self.last_updated
-            else None,
+            "last_update": self.last_updated.isoformat() if self.last_updated else None,
             "metadata": dict(self.metadata),
         }
         base.update(flattened_modules)
