@@ -34,14 +34,16 @@ stack is unavailable in CI.
 
 ## Coverage & Quality Gates
 
-| Metric                    | Target | Current | Source |
-|---------------------------|:------:|:-------:|--------|
-| Branch coverage           | 95 %   | 99.55 % | `pytest --cov-branch` (see below)
+| Metric                    | Target | Current  | Source |
+|---------------------------|:------:|:--------:|--------|
+| Branch coverage           | 95 %   | 100 %    | `pytest --cov-branch` (see below)
+| Line coverage             | 95 %   | 100 %    | `pytest --cov-branch` (see below)
 | Coverage fail-under gate  | 95 %   | Enforced via `pytest.ini` (`--cov-fail-under=95`)
 | PR test evidence          | 100 %  | Required; PRs must include pytest run output
 
 The coverage badge in the repository root reflects the latest `pytest`
-execution and links back to this strategy document.
+execution and links to the [coverage reporting playbook](coverage_reporting.md)
+that explains how to regenerate the badge and attach the PR evidence.
 
 ## Running the CI Suite Locally
 
@@ -49,8 +51,8 @@ execution and links back to this strategy document.
 # Install test dependencies (optional if Home Assistant extras are missing)
 pip install -r requirements_test.txt
 
-# Execute the lightweight pyramid-focused suite
-pytest --maxfail=1 --disable-warnings
+# Execute the lightweight pyramid-focused suite with coverage artefacts
+pytest --maxfail=1 --disable-warnings --cov-branch
 ```
 
 The command generates `coverage.xml` and `htmlcov/` for inspection. When the
@@ -62,4 +64,6 @@ coverage above the 99 % gate.
 
 Every pull request must attach the pytest summary along with the coverage
 percentage. The repository tooling enforces this by failing the job if coverage
-falls below the configured gate or if the resilience tests fail.
+falls below the configured gate or if the resilience tests fail. See the
+[coverage reporting guide](coverage_reporting.md#documenting-pr-evidence) for
+the copy-paste template used in reviews.

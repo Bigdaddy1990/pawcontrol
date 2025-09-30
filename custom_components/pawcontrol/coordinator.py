@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+
 from collections.abc import Iterable, Sequence
+
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_API_ENDPOINT,
@@ -39,15 +39,16 @@ from .coordinator_insights import (
     build_performance_snapshot,
     build_security_scorecard,
 )
+
+from .coordinator_support import CoordinatorMetrics, DogConfigRegistry, UpdateResult
+
 from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
     ensure_background_task,
     run_maintenance,
 )
-from .coordinator_tasks import (
-    shutdown as shutdown_tasks,
-)
+from .coordinator_tasks import shutdown as shutdown_tasks
 from .device_api import PawControlDeviceClient
 from .exceptions import ValidationError
 from .module_adapters import CoordinatorModuleAdapters
@@ -206,6 +207,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._adaptive_polling.update_entity_saturation(self._entity_saturation())
 
     def _entity_saturation(self) -> float:
+        """Return the current saturation ratio across all entity budgets."""
+
         if not self._entity_budget_snapshots:
             return 0.0
 
@@ -215,6 +218,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return 0.0
         ratio = summary.get("total_allocated", 0) / total_capacity
         return max(0.0, min(1.0, float(ratio)))
+
 
     def attach_runtime_managers(
         self,
@@ -265,9 +269,25 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
-        data, _cycle = await self._execute_cycle(dog_ids)
+        data, cycle = await self._runtime.execute_cycle(
+            dog_ids,
+            self._data,
+            empty_payload_factory=self.registry.empty_payload,
+        )
+        self._apply_adaptive_interval(cycle.new_interval)
+
         self._data = data
         return self._data
+
+    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime's protected fetch for legacy callers."""
+
+        return await self._runtime._fetch_dog_data_protected(dog_id)
+
+    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime fetch implementation."""
+
+        return await self._runtime._fetch_dog_data(dog_id)
 
     def _apply_adaptive_interval(self, new_interval: float) -> None:
         current_seconds = self.update_interval.total_seconds()
@@ -280,6 +300,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             new_interval,
         )
         self.update_interval = timedelta(seconds=new_interval)
+
 
     async def _execute_cycle(
         self, dog_ids: Sequence[str]
@@ -355,6 +376,93 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return dog_data["dog_info"]
         return self.registry.get(dog_id) or {}
 
+    def get_performance_snapshot(self) -> dict[str, Any]:
+        """Return a lightweight snapshot of runtime performance metrics."""
+
+        adaptive = self._adaptive_polling.as_diagnostics()
+        entity_budget = summarize_entity_budgets(
+            self._entity_budget_snapshots.values()
+        )
+        update_interval = self.update_interval.total_seconds() if self.update_interval else 0.0
+        last_update = (
+            self.last_update_time.isoformat()
+            if getattr(self, "last_update_time", None) is not None
+            else None
+        )
+
+        return {
+            "update_counts": {
+                "total": self._metrics.update_count,
+                "successful": self._metrics.successful_cycles,
+                "failed": self._metrics.failed_cycles,
+            },
+            "performance_metrics": {
+                "last_update": last_update,
+                "last_update_success": self.last_update_success,
+                "success_rate": round(self._metrics.success_rate_percent, 2),
+                "consecutive_errors": self._metrics.consecutive_errors,
+                "update_interval_s": round(update_interval, 3),
+                "current_cycle_ms": adaptive.get("current_interval_ms"),
+            },
+            "adaptive_polling": adaptive,
+            "entity_budget": entity_budget,
+            "webhook_security": self._webhook_security_status(),
+        }
+
+    def get_security_scorecard(self) -> dict[str, Any]:
+        """Return aggregated pass/fail status for security critical checks."""
+
+        adaptive = self._adaptive_polling.as_diagnostics()
+        target_ms = adaptive.get("target_cycle_ms", 200.0) or 200.0
+        current_ms = adaptive.get("current_interval_ms", target_ms)
+        threshold_ms = min(target_ms, 200.0)
+        adaptive_pass = current_ms <= threshold_ms
+        adaptive_check: dict[str, Any] = {
+            "pass": adaptive_pass,
+            "current_ms": current_ms,
+            "target_ms": target_ms,
+            "threshold_ms": threshold_ms,
+        }
+        if not adaptive_pass:
+            adaptive_check["reason"] = (
+                "Update interval exceeds 200ms target"
+            )
+
+        entity_summary = summarize_entity_budgets(
+            self._entity_budget_snapshots.values()
+        )
+        peak_utilisation = entity_summary.get("peak_utilization", 0.0)
+        entity_threshold = 95.0
+        entity_pass = peak_utilisation <= entity_threshold
+        entity_check: dict[str, Any] = {
+            "pass": entity_pass,
+            "summary": entity_summary,
+            "threshold_percent": entity_threshold,
+        }
+        if not entity_pass:
+            entity_check["reason"] = (
+                "Entity budget utilisation above safe threshold"
+            )
+
+        webhook_status = self._webhook_security_status()
+        webhook_pass = (not webhook_status.get("configured")) or bool(
+            webhook_status.get("secure")
+        )
+        webhook_check: dict[str, Any] = {"pass": webhook_pass, **webhook_status}
+        if not webhook_pass:
+            webhook_check.setdefault(
+                "reason", "Webhook configurations missing HMAC protection"
+            )
+
+        checks = {
+            "adaptive_polling": adaptive_check,
+            "entity_budget": entity_check,
+            "webhooks": webhook_check,
+        }
+        status = "pass" if all(check["pass"] for check in checks.values()) else "fail"
+
+        return {"status": status, "checks": checks}
+
     @property
     def available(self) -> bool:
         return self.last_update_success and self._metrics.consecutive_errors < 5
@@ -396,3 +504,37 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         await shutdown_tasks(self)
+
+    def _webhook_security_status(self) -> dict[str, Any]:
+        """Return normalised webhook security information."""
+
+        manager = getattr(self, "notification_manager", None)
+        if manager is None or not hasattr(manager, "webhook_security_status"):
+            return {
+                "configured": False,
+                "secure": True,
+                "hmac_ready": False,
+                "insecure_configs": (),
+            }
+
+        try:
+            status = dict(manager.webhook_security_status())
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.debug("Webhook security inspection failed: %s", err)
+            return {
+                "configured": True,
+                "secure": False,
+                "hmac_ready": False,
+                "insecure_configs": (),
+                "error": str(err),
+            }
+
+        status.setdefault("configured", False)
+        status.setdefault("secure", False)
+        status.setdefault("hmac_ready", False)
+        insecure = status.get("insecure_configs", ())
+        if isinstance(insecure, (list, tuple, set)):
+            status["insecure_configs"] = tuple(insecure)
+        else:
+            status["insecure_configs"] = (insecure,) if insecure else ()
+        return status

@@ -17,10 +17,10 @@ available via the [documentation portal](../portal/README.md).
 
 - **Code Climate Maintainability ≥ 90 %** – enforced by keeping coordinator
   logic modular and shifting responsibilities into testable helpers.
-- **Coordinator implementation < 400 lines** – achieved via
-  `DogConfigRegistry`, `CoordinatorMetrics`, and the dedicated
-  `CoordinatorRuntime` that owns concurrency, resilience, and adaptive polling
-  mechanics.
+- **Coordinator implementation < 400 lines** – the orchestration file is now
+  358 lines because `CoordinatorRuntime.execute_cycle` handles concurrency,
+  resilience, and adaptive polling while `coordinator.py` focuses on glue
+  logic and manager wiring.
 - **Error Culture** – errors map to the catalogue, enabling unified reporting
   across diagnostics, repairs, and the resilience layer.
 
