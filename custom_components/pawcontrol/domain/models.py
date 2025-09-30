@@ -78,8 +78,9 @@ class DomainSnapshot:
         base = {
             "dog_info": dict(self.dog_info),
             "status": self.status,
-            "last_update": self.last_updated.isoformat() if self.last_updated else None,
+            "last_update": self.last_updated.isoformat()
+            if self.last_updated
+            else None,
             "metadata": dict(self.metadata),
         }
-        base.update(flattened_modules)
-        return base
+        return {**flattened_modules, **base}
