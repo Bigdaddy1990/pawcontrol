@@ -60,7 +60,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.session = session or async_get_clientsession(hass)
         self.registry = DogConfigRegistry.from_entry(entry)
         self._configured_dog_ids = self.registry.ids()
-        self._use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
+        self._use_external_api = bool(
+            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
+        )
         self._api_client = self._build_api_client(
             endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
             token=entry.options.get(CONF_API_TOKEN, ""),
@@ -190,7 +192,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._setup_complete:
             return
         self._data.update(
-            {dog_id: self.registry.empty_payload() for dog_id in self._configured_dog_ids}
+            {
+                dog_id: self.registry.empty_payload()
+                for dog_id in self._configured_dog_ids
+            }
         )
         self._modules.clear_caches()
         self._setup_complete = True
@@ -208,11 +213,11 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._metrics.start_cycle()
         result = await self._fetch_all_dogs(dog_ids)
 
-        success_rate, all_failed = self._metrics.record_cycle(len(dog_ids), result.errors)
+        success_rate, all_failed = self._metrics.record_cycle(
+            len(dog_ids), result.errors
+        )
         if all_failed:
-            raise CoordinatorUpdateFailed(
-                f"All {len(dog_ids)} dogs failed to update"
-            )
+            raise CoordinatorUpdateFailed(f"All {len(dog_ids)} dogs failed to update")
 
         if success_rate < 0.5:
             _LOGGER.warning(

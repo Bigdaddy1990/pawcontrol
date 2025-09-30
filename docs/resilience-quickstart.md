@@ -271,7 +271,7 @@ automation:
       - condition: template
         value_template: >
           {% set cb = state_attr('sensor.pawcontrol_statistics', 'resilience') %}
-          {{ cb is not none and 
+          {{ cb is not none and
              cb.values() | selectattr('state', 'eq', 'open') | list | length > 0 }}
     action:
       - service: notify.mobile_app
@@ -359,5 +359,5 @@ Ask on Home Assistant forums with tag `pawcontrol`
 
 ---
 
-*Quick Start Guide - PawControl v1.0.0*  
+*Quick Start Guide - PawControl v1.0.0*
 *Last Updated: 2025-09-30*

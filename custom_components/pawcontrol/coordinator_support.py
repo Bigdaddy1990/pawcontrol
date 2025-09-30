@@ -57,7 +57,7 @@ class DogConfigRegistry:
         self.configs = cleaned
 
     @classmethod
-    def from_entry(cls, entry: PawControlConfigEntry) -> "DogConfigRegistry":
+    def from_entry(cls, entry: PawControlConfigEntry) -> DogConfigRegistry:
         """Build registry from a config entry."""
 
         raw_dogs = entry.data.get(CONF_DOGS, [])
@@ -96,9 +96,7 @@ class DogConfigRegistry:
         if not config:
             return frozenset()
         modules = config.get(CONF_MODULES, {})
-        return frozenset(
-            module for module, enabled in modules.items() if bool(enabled)
-        )
+        return frozenset(module for module, enabled in modules.items() if bool(enabled))
 
     def has_module(self, module: str) -> bool:
         return any(module in self.enabled_modules(dog_id) for dog_id in self._ids)
@@ -186,7 +184,13 @@ class CoordinatorMetrics:
             return 100.0
         return (self.successful_cycles / self.update_count) * 100
 
-    def update_statistics(self, cache_entries: int, cache_hit_rate: float, last_update: Any, interval: timedelta | None) -> dict[str, Any]:
+    def update_statistics(
+        self,
+        cache_entries: int,
+        cache_hit_rate: float,
+        last_update: Any,
+        interval: timedelta | None,
+    ) -> dict[str, Any]:
         return {
             "total_updates": self.update_count,
             "successful_updates": self.successful_cycles,
@@ -199,7 +203,13 @@ class CoordinatorMetrics:
             "update_interval": (interval or timedelta()).total_seconds(),
         }
 
-    def runtime_statistics(self, cache_metrics: Any, total_dogs: int, last_update: Any, interval: timedelta | None) -> dict[str, Any]:
+    def runtime_statistics(
+        self,
+        cache_metrics: Any,
+        total_dogs: int,
+        last_update: Any,
+        interval: timedelta | None,
+    ) -> dict[str, Any]:
         return {
             "total_dogs": total_dogs,
             "update_count": self.update_count,

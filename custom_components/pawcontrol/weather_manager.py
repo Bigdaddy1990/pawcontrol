@@ -472,6 +472,7 @@ class WeatherHealthManager:
         Returns:
             Updated weather conditions or None if unavailable
         """
+
         async def _fetch_weather_data() -> WeatherConditions | None:
             """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded
@@ -567,6 +568,7 @@ class WeatherHealthManager:
         Returns:
             Updated weather forecast or None if unavailable
         """
+
         async def _fetch_forecast_data() -> WeatherForecast | None:
             """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded
@@ -648,7 +650,9 @@ class WeatherHealthManager:
                 # Fallback if no resilience manager
                 return await _fetch_forecast_data()
         except Exception as err:
-            _LOGGER.error("Failed to update weather forecast data after retries: %s", err)
+            _LOGGER.error(
+                "Failed to update weather forecast data after retries: %s", err
+            )
             return None
 
     async def _process_forecast_data(
