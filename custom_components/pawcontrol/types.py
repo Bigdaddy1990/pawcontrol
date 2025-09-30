@@ -418,10 +418,10 @@ class PawControlRuntimeData:
 type PawControlConfigEntry = ConfigEntry
 """Type alias for PawControl-specific config entries.
 
-Home Assistant 2025.9 removes ``ConfigEntry.runtime_data`` from the public API.
-The integration therefore stores runtime data using the classic ``hass.data``
-pattern.  The alias keeps call sites expressive without relying on the removed
-generic parameter while remaining forward compatible with future API changes.
+Home Assistant removed ``ConfigEntry.runtime_data`` from the public API, so the
+integration standardizes on storing the runtime payload in ``hass.data``.  The
+alias keeps call sites expressive while remaining forward compatible with
+future Home Assistant releases and their typing changes.
 """
 
 
