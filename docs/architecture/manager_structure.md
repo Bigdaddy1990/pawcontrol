@@ -58,3 +58,12 @@ flowchart LR
 This separation keeps the coordinator implementation under 400 lines while the
 runtime helper encapsulates adaptive polling, entity budget analysis, and
 error handling without leaking complexity into entity code.
+
+## Diagnostics & Security Surfaces
+
+- `get_performance_snapshot()` delegates to `coordinator_insights` so
+  diagnostics surfaces receive a consistent view of update counts, adaptive
+  polling behaviour, and the most recent `RuntimeCycleInfo`.
+- `get_security_scorecard()` normalises webhook posture checks and adaptive
+  polling bounds, keeping security reporting aligned with the error catalogue
+  and avoiding ad-hoc checks in entity code.
