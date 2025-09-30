@@ -30,7 +30,7 @@ sensor.{dog_id}_weather_recommendations # Current weather advice
 # Weather Safety Binary Sensors
 binary_sensor.{dog_id}_weather_safe        # Overall weather safety
 binary_sensor.{dog_id}_heat_stress_alert   # Heat stress warning
-binary_sensor.{dog_id}_cold_stress_alert   # Cold stress warning  
+binary_sensor.{dog_id}_cold_stress_alert   # Cold stress warning
 binary_sensor.{dog_id}_uv_exposure_alert   # UV protection needed
 binary_sensor.{dog_id}_storm_warning       # Storm safety alert
 binary_sensor.{dog_id}_paw_protection_needed # Paw protection required
@@ -140,7 +140,7 @@ automation:
                 data:
                   dog_id: "buddy"
                   message: "Perfect conditions for extended outdoor time!"
-          
+
           # Good conditions (Score 60-79)
           - conditions:
               - condition: numeric_state
@@ -152,7 +152,7 @@ automation:
                 data:
                   dog_id: "buddy"
                   message: "Good weather for a regular walk with minor precautions."
-          
+
           # Moderate concerns (Score 40-59)
           - conditions:
               - condition: numeric_state
@@ -164,7 +164,7 @@ automation:
                 data:
                   dog_id: "buddy"
                   message: "Weather requires caution - consider a shorter walk."
-          
+
           # Poor conditions (Score <40)
           - conditions:
               - condition: numeric_state
@@ -187,7 +187,7 @@ script:
             actions:
               - action: "START_LONG_WALK"
                 title: "🚶‍♂️ Long Walk (60+ min)"
-              - action: "START_NORMAL_WALK"  
+              - action: "START_NORMAL_WALK"
                 title: "🚶 Normal Walk (30 min)"
 
   recommend_normal_walk:
@@ -264,7 +264,7 @@ automation:
           include_breed_specific: true
           include_health_conditions: true
         response_variable: heat_recommendations
-      
+
       - variables:
           temp_current: "{{ states('sensor.temperature') | float }}"
           feels_like: "{{ state_attr('weather.home', 'temperature') | float }}"
@@ -296,7 +296,7 @@ automation:
                         title: "❄️ Emergency Cooling"
                       - action: "VET_HOTLINE"
                         title: "🏥 Vet Hotline"
-              
+
               # Activate emergency cooling
               - service: climate.set_temperature
                 data:
@@ -306,13 +306,13 @@ automation:
                 entity_id: switch.ceiling_fans
               - service: switch.turn_on
                 entity_id: switch.air_purifier
-              
+
               # Disable walk automations
               - service: automation.turn_off
-                entity_id: 
+                entity_id:
                   - automation.buddy_walk_reminders
                   - automation.automatic_walk_detection
-              
+
               # Schedule re-enabling after temperature drops
               - delay: "06:00:00"
               - wait_template: "{{ states('sensor.temperature') | float < 30 }}"
@@ -322,7 +322,7 @@ automation:
                   - automation.buddy_walk_reminders
                   - automation.automatic_walk_detection
 
-          # High heat (30-34°C)  
+          # High heat (30-34°C)
           - conditions:
               - condition: template
                 value_template: "{{ temp_current >= 30 and temp_current < 35 }}"
@@ -342,7 +342,7 @@ automation:
                         title: "❄️ Cooling Tips"
                       - action: "SET_EVENING_REMINDER"
                         title: "⏰ Evening Walk Reminder"
-              
+
               # Postpone walks until evening
               - service: input_datetime.set_datetime
                 data:
@@ -365,7 +365,7 @@ automation:
                     actions:
                       - action: "EARLY_WALK"
                         title: "🌅 Early Walk"
-                      - action: "EVENING_WALK" 
+                      - action: "EVENING_WALK"
                         title: "🌇 Evening Walk"
 ```
 
@@ -389,11 +389,11 @@ automation:
           dog_id: "buddy"
           include_breed_specific: true
         response_variable: breed_advice
-      
+
       - variables:
           dog_breed: "{{ state_attr('sensor.buddy_profile', 'breed') }}"
           is_brachycephalic: >
-            {{ dog_breed.lower() in ['bulldog', 'pug', 'boston terrier', 
+            {{ dog_breed.lower() in ['bulldog', 'pug', 'boston terrier',
                                      'french bulldog', 'pekingese', 'boxer'] }}
           is_thick_coat: >
             {{ dog_breed.lower() in ['golden retriever', 'husky', 'german shepherd',
@@ -458,17 +458,17 @@ script:
             4. Contact vet if symptoms persist
           data:
             tag: "cooling_protocol"
-      
+
       - service: climate.set_temperature
         data:
           entity_id: climate.living_room
           temperature: 18
-      
+
       - service: switch.turn_on
         entity_id: switch.ceiling_fans
-      
+
       - delay: "00:30:00"
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "🌡️ Heat Status Check"
@@ -528,7 +528,7 @@ automation:
                         title: "🔥 Emergency Warmth"
                       - action: "PROTECTIVE_GEAR"
                         title: "🧥 Protective Gear"
-              
+
               # Activate heating systems
               - service: climate.set_temperature
                 data:
@@ -581,7 +581,7 @@ automation:
                                 title: "🧥 Add Clothing"
                               - action: "NORMAL_WALK"
                                 title: "🚶 Normal Walk"
-                
+
                   # Thick-coated dogs handle cold better
                   - conditions:
                       - condition: template
@@ -701,7 +701,7 @@ automation:
         to: "on"
       - platform: state
         entity_id: weather.home
-        to: 
+        to:
           - "lightning"
           - "thunderstorms"
           - "severe-thunderstorm"
@@ -754,18 +754,18 @@ automation:
         entity_id:
           - automation.buddy_walk_reminders
           - automation.automatic_walk_detection
-      
+
       # Wait for storm to pass
       - wait_template: >
           {{ states('weather.home') not in ['lightning', 'thunderstorms', 'severe-thunderstorm'] }}
         timeout: "06:00:00"
-      
+
       # Re-enable automations after storm
       - service: automation.turn_on
         entity_id:
           - automation.buddy_walk_reminders
           - automation.automatic_walk_detection
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "🌤️ Storm Passed"
@@ -892,7 +892,7 @@ automation:
         before: "21:00:00"
       - condition: template
         value_template: >
-          {{ states('sensor.buddy_weather_health_score') | int != 
+          {{ states('sensor.buddy_weather_health_score') | int !=
              state_attr('sensor.buddy_weather_health_score', 'previous_score') | int }}
     action:
       - variables:
@@ -947,7 +947,7 @@ automation:
     id: pawcontrol_smart_home_weather
     trigger:
       - platform: state
-        entity_id: 
+        entity_id:
           - binary_sensor.buddy_heat_stress_alert
           - binary_sensor.buddy_cold_stress_alert
           - binary_sensor.buddy_storm_warning
@@ -969,27 +969,27 @@ automation:
                   entity_id: climate.living_room
                   temperature: 20
               - service: switch.turn_on
-                entity_id: 
+                entity_id:
                   - switch.ceiling_fans
                   - switch.air_purifier
-              
+
               # Lighting adjustments (reduce heat)
               - service: light.turn_off
                 entity_id: light.high_heat_bulbs
               - service: cover.close_cover
                 entity_id: cover.south_facing_blinds
-              
+
               # Water system
               - service: switch.turn_on
                 entity_id: switch.automatic_water_dispenser
-              
+
               # Notifications to other family members
               - service: notify.family_group
                 data:
                   title: "🔥 Heat Alert - Buddy"
                   message: "Heat stress protocol activated. Buddy needs cool environment."
 
-          # Cold stress response  
+          # Cold stress response
           - conditions:
               - condition: template
                 value_template: "{{ alert_type == 'cold' }}"
@@ -1001,13 +1001,13 @@ automation:
                   temperature: 22
               - service: switch.turn_on
                 entity_id: switch.heated_dog_bed
-              
+
               # Block cold drafts
               - service: cover.close_cover
                 entity_id: cover.all_windows
               - service: switch.turn_off
                 entity_id: switch.exhaust_fans
-              
+
               # Lighting for warmth
               - service: light.turn_on
                 data:
@@ -1025,7 +1025,7 @@ automation:
                 entity_id: cover.all_outdoor_covers
               - service: switch.turn_off
                 entity_id: switch.outdoor_speakers
-              
+
               # Create calming environment
               - service: light.turn_on
                 data:
@@ -1037,7 +1037,7 @@ automation:
                   entity_id: media_player.house_speakers
                   media_content_id: "white_noise_rain"
                   media_content_type: "music"
-              
+
               # Security measures
               - service: lock.lock
                 entity_id: lock.all_doors
@@ -1101,8 +1101,8 @@ automation:
         above: 70
       - platform: state
         entity_id: sensor.air_quality_index
-        to: 
-          - "moderate" 
+        to:
+          - "moderate"
           - "unhealthy"
     condition:
       - condition: template
@@ -1215,7 +1215,7 @@ automation:
         entity_id:
           - automation.buddy_exercise_reminders
           - automation.buddy_training_sessions
-      
+
       # Schedule re-evaluation in 2 hours
       - delay: "02:00:00"
       - condition: numeric_state
@@ -1399,5 +1399,5 @@ The weather integration transforms PawControl from a basic pet tracker into an i
 
 ---
 
-**Last Updated:** 2025-01-20 - Comprehensive weather automation examples  
+**Last Updated:** 2025-01-20 - Comprehensive weather automation examples
 **Quality Level:** 🏆 **Platinum+** | **Enterprise-Ready** | **Production-Validated**

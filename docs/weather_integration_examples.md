@@ -51,7 +51,7 @@ automation:
           dog_id: "buddy"
           weather_entity: "weather.home"
           force_update: true
-      
+
       # Get personalized recommendations
       - service: pawcontrol.get_weather_recommendations
         data:
@@ -60,7 +60,7 @@ automation:
           include_health_conditions: true
           time_horizon_hours: 24
         response_variable: weather_recommendations
-      
+
       # Send morning weather briefing
       - service: notify.mobile_app_phone
         data:
@@ -69,7 +69,7 @@ automation:
             Weather Score: {{ states('sensor.buddy_weather_health_score') }}/100
             Temperature: {{ states('sensor.temperature') }}°C
             Conditions: {{ states('weather.home') }}
-            
+
             📋 Today's Recommendations:
             {{ weather_recommendations.recommendations | join('\n• ') }}
           data:
@@ -109,7 +109,7 @@ automation:
             🌡️ Temperature: {{ states('sensor.temperature') }}°C
             ☀️ Conditions: {{ states('weather.home') }}
             📊 Weather Score: {{ states('sensor.buddy_weather_health_score') }}/100
-            
+
             Perfect conditions for Buddy's walk!
           data:
             priority: normal
@@ -145,7 +145,7 @@ automation:
           dog_id: "buddy"
           include_breed_specific: true
         response_variable: updated_recommendations
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "🌤️ Weather Conditions Changed"
@@ -153,7 +153,7 @@ automation:
             {% set old_score = trigger.from_state.state | int(0) %}
             {% set new_score = trigger.to_state.state | int(0) %}
             Weather score changed: {{ old_score }} → {{ new_score }}
-            
+
             📋 Updated recommendations:
             {{ updated_recommendations.recommendations[:3] | join('\n• ') }}
           data:
@@ -190,7 +190,7 @@ automation:
           time_horizon_hours: 6
           include_forecast: true
         response_variable: forecast_data
-      
+
       # Create walk schedule based on forecast
       - choose:
           # Excellent conditions now - recommend immediate walk
@@ -207,7 +207,7 @@ automation:
                     actions:
                       - action: "START_WALK_NOW"
                         title: "Start Walk Now"
-          
+
           # Conditions declining - recommend walk soon
           - conditions:
               - condition: template
@@ -227,7 +227,7 @@ automation:
                     actions:
                       - action: "SCHEDULE_WALK"
                         title: "Schedule Walk"
-          
+
           # Poor conditions - suggest alternative
           - conditions:
               - condition: numeric_state
@@ -240,7 +240,7 @@ automation:
                   message: >
                     Weather score: {{ states('sensor.buddy_weather_health_score') }}/100
                     Next good walk window: {{ forecast_data.next_optimal_time }}
-                    
+
                     Consider indoor activities today.
 ```
 
@@ -260,7 +260,7 @@ automation:
           dog_id: "buddy"
           current_conditions: true
         response_variable: weather_analysis
-      
+
       # Determine exercise modifications
       - service: script.adjust_exercise_plan
         data:
@@ -277,7 +277,7 @@ automation:
             {% else %}
               indoor_only
             {% endif %}
-      
+
       # Start walk with weather-appropriate settings
       - service: pawcontrol.gps_start_walk
         data:
@@ -304,7 +304,7 @@ script:
                 data:
                   title: "🌟 Perfect Exercise Weather"
                   message: "Normal exercise intensity recommended. Enjoy your walk!"
-          
+
           # Reduced intensity
           - conditions:
               - condition: template
@@ -319,7 +319,7 @@ script:
                     • More rest breaks
                     • Monitor for stress signs
                     • Bring extra water
-          
+
           # Short walks only
           - conditions:
               - condition: template
@@ -334,7 +334,7 @@ script:
                     • Essential bathroom breaks only
                     • Stay in shaded areas
                     • Watch for distress signals
-          
+
           # Indoor only
           - conditions:
               - condition: template
@@ -366,7 +366,7 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {{ state_attr('device_tracker.buddy_profile', 'breed').lower() in 
+          {{ state_attr('device_tracker.buddy_profile', 'breed').lower() in
              ['bulldog', 'french bulldog', 'pug', 'boston terrier', 'pekingese', 'shih tzu'] }}
     action:
       # Immediate heat stress prevention
@@ -376,7 +376,7 @@ automation:
           message: >
             ⚠️ Temperature: {{ states('sensor.temperature') }}°C
             🐶 Buddy's flat face makes him vulnerable to heat stress
-            
+
             IMMEDIATE ACTIONS NEEDED:
             • Cancel any planned walks
             • Ensure air conditioning is on
@@ -390,19 +390,19 @@ automation:
                 title: "Emergency Protocol"
               - action: "CALL_VET"
                 title: "Call Vet"
-      
+
       # Disable walk automations
       - service: automation.turn_off
         target:
           entity_id: automation.optimal_walk_time_alert
-      
+
       # Enable cooling measures
       - service: climate.set_temperature
         target:
           entity_id: climate.main_ac
         data:
           temperature: 22
-      
+
       # Schedule re-evaluation
       - delay: "02:00:00"
       - service: automation.turn_on
@@ -432,7 +432,7 @@ automation:
           message: >
             🌡️ Temperature: {{ states('sensor.temperature') }}°C
             🐕 Small dogs lose body heat quickly
-            
+
             PROTECTION MEASURES:
             • Use dog coat/sweater for walks
             • Protect paws with booties
@@ -455,12 +455,12 @@ script:
           entity_id: input_number.buddy_max_walk_duration
         data:
           value: 15  # Maximum 15 minutes
-      
+
       # Enable cold weather notifications
       - service: switch.turn_on
         target:
           entity_id: switch.buddy_cold_weather_alerts
-      
+
       # Set temperature monitoring
       - service: automation.trigger
         target:
@@ -483,7 +483,7 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {{ state_attr('device_tracker.buddy_profile', 'breed').lower() in 
+          {{ state_attr('device_tracker.buddy_profile', 'breed').lower() in
              ['golden retriever', 'german shepherd', 'husky', 'malamute', 'chow chow', 'newfoundland'] }}
     action:
       # Check combined heat index
@@ -492,7 +492,7 @@ automation:
           dog_id: "buddy"
           breed_specific: true
         response_variable: heat_analysis
-      
+
       # Thick coat specific recommendations
       - service: notify.mobile_app_phone
         data:
@@ -500,7 +500,7 @@ automation:
           message: >
             Temperature: {{ states('sensor.temperature') }}°C
             Humidity: {{ states('sensor.humidity') }}%
-            
+
             THICK COAT CONSIDERATIONS:
             • Early morning walks (before 8 AM)
             • Evening walks (after 7 PM)
@@ -514,7 +514,7 @@ automation:
                 title: "Schedule Grooming"
               - action: "COOLING_PRODUCTS"
                 title: "Cooling Products"
-      
+
       # Adjust walk schedule for thick-coated breeds
       - service: automation.trigger
         target:
@@ -538,7 +538,7 @@ automation:
         above: 70
       - platform: state
         entity_id: weather.home
-        to: 
+        to:
           - "fog"
           - "hazy"
     condition:
@@ -553,11 +553,11 @@ automation:
           title: "💨 Respiratory Health Alert"
           message: >
             ⚠️ Weather conditions may affect breathing:
-            
+
             🌡️ Temperature: {{ states('sensor.temperature') }}°C
             💧 Humidity: {{ states('sensor.humidity') }}%
             🌫️ Conditions: {{ states('weather.home') }}
-            
+
             RESPIRATORY CARE:
             • Reduce exercise intensity
             • Ensure good air circulation indoors
@@ -571,12 +571,12 @@ automation:
                 title: "Breathing Protocol"
               - action: "EMERGENCY_VET"
                 title: "Emergency Vet"
-      
+
       # Enable enhanced monitoring
       - service: switch.turn_on
         target:
           entity_id: switch.buddy_respiratory_monitoring
-      
+
       # Reduce activity reminders
       - service: automation.turn_off
         target:
@@ -605,20 +605,20 @@ automation:
           age_considerations: true
           health_conditions: ["senior", "arthritis"]
         response_variable: senior_recommendations
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "👴 Senior Dog Weather Considerations"
           message: >
             Weather Score: {{ states('sensor.buddy_weather_health_score') }}/100
-            
+
             SENIOR DOG ADJUSTMENTS:
             • Shorter, more frequent outings
             • Avoid temperature extremes
             • Monitor joint stiffness
             • Extra comfort measures needed
             • Consider arthritis pain impact
-            
+
             Recommendations:
             {{ senior_recommendations.recommendations[:3] | join('\n• ') }}
           data:
@@ -637,12 +637,12 @@ script:
           entity_id: input_number.buddy_weather_threshold
         data:
           value: 75  # Higher threshold for seniors
-      
+
       # Enable joint monitoring
       - service: switch.turn_on
         target:
           entity_id: switch.buddy_arthritis_monitoring
-      
+
       # Reduce walk intensity
       - service: input_select.select_option
         target:
@@ -675,10 +675,10 @@ automation:
           title: "🚨 EXTREME HEAT EMERGENCY"
           message: >
             🔥 DANGEROUS CONDITIONS - IMMEDIATE ACTION REQUIRED
-            
+
             Temperature: {{ states('sensor.temperature') }}°C
             Heat Index: {{ state_attr('sensor.temperature', 'heat_index') }}°C
-            
+
             ⚠️ IMMEDIATE ACTIONS:
             • Bring dog indoors IMMEDIATELY
             • Provide cool (not cold) water
@@ -696,15 +696,15 @@ automation:
                 title: "Call Vet NOW"
               - action: "COOLING_MEASURES"
                 title: "Emergency Cooling"
-      
+
       # Disable all outdoor activities
       - service: automation.turn_off
         target:
-          entity_id: 
+          entity_id:
             - automation.optimal_walk_time_alert
             - automation.walk_reminder
             - automation.outdoor_play_time
-      
+
       # Emergency cooling activation
       - service: climate.set_temperature
         target:
@@ -716,7 +716,7 @@ automation:
           entity_id: fan.living_room
         data:
           speed: high
-      
+
       # Monitor for recovery
       - repeat:
           until:
@@ -746,7 +746,7 @@ script:
             • Lethargy/collapse
             • Red/dark gums
             • High body temperature
-            
+
             🚑 EMERGENCY ACTIONS:
             1. Move to cool area immediately
             2. Apply cool (not cold) water to paws/belly
@@ -785,14 +785,14 @@ automation:
           title: "⛈️ Severe Storm Alert"
           message: >
             🌩️ Severe weather detected - Storm safety protocol activated
-            
+
             IMMEDIATE ACTIONS:
             • Keep dog indoors
             • Secure identification tags
             • Prepare comfort items for anxiety
             • Close curtains/blinds
             • Have emergency supplies ready
-            
+
             Weather: {{ states('weather.home') }}
             Duration: Monitor until storm passes
           data:
@@ -801,7 +801,7 @@ automation:
                 title: "Comfort Measures"
               - action: "EMERGENCY_SUPPLIES"
                 title: "Emergency Supplies"
-      
+
       # Comfort measures for storm anxiety
       - if:
           - condition: template
@@ -810,7 +810,7 @@ automation:
                  'storm_anxiety' in state_attr('device_tracker.buddy_profile', 'health_conditions') }}
         then:
           - service: script.storm_anxiety_protocol
-      
+
       # Monitor storm passage
       - repeat:
           until:
@@ -827,7 +827,7 @@ automation:
             - service: pawcontrol.update_weather_data
               data:
                 dog_id: "buddy"
-      
+
       # Storm cleared notification
       - service: notify.mobile_app_phone
         data:
@@ -843,14 +843,14 @@ script:
         data:
           media_content_id: "calming_music_for_dogs"
           media_content_type: "playlist"
-      
+
       - service: light.turn_on
         target:
           entity_id: light.living_room
         data:
           brightness: 128
           color_name: "warm_white"
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "🎵 Storm Anxiety Protocol Activated"
@@ -883,18 +883,18 @@ automation:
         data:
           dog_id: "buddy"
         response_variable: buddy_weather
-      
+
       - service: pawcontrol.calculate_weather_health_score
         data:
           dog_id: "luna"
         response_variable: luna_weather
-      
+
       # Determine group activity based on most sensitive dog
       - service: script.coordinate_multi_dog_activities
         data:
           buddy_score: "{{ buddy_weather.score }}"
           luna_score: "{{ luna_weather.score }}"
-          
+
 script:
   coordinate_multi_dog_activities:
     sequence:
@@ -907,7 +907,7 @@ script:
             {% else %}
               Luna
             {% endif %}
-      
+
       # Base recommendations on most weather-sensitive dog
       - choose:
           - conditions:
@@ -921,13 +921,13 @@ script:
                     Weather suitable for all dogs:
                     • Buddy: {{ buddy_score }}/100
                     • Luna: {{ luna_score }}/100
-                    
+
                     Group walks and outdoor activities recommended!
                   data:
                     actions:
                       - action: "GROUP_WALK"
                         title: "Start Group Walk"
-          
+
           - conditions:
               - condition: template
                 value_template: "{{ lowest_score | int >= 50 }}"
@@ -940,9 +940,9 @@ script:
                     • Buddy: {{ buddy_score }}/100
                     • Luna: {{ luna_score }}/100
                     • Most sensitive: {{ most_sensitive_dog }}
-                    
+
                     Shorter walks and increased monitoring recommended.
-          
+
           - conditions:
               - condition: template
                 value_template: "{{ lowest_score | int < 50 }}"
@@ -954,7 +954,7 @@ script:
                     Weather unsuitable for outdoor activities:
                     • Buddy: {{ buddy_score }}/100
                     • Luna: {{ luna_score }}/100
-                    
+
                     Keep all dogs indoors with climate control.
                     {{ most_sensitive_dog }} is most vulnerable.
 ```
@@ -975,13 +975,13 @@ automation:
           dog_id: "buddy"  # Golden Retriever
           include_breed_specific: true
         response_variable: buddy_recommendations
-      
+
       - service: pawcontrol.get_weather_recommendations
         data:
           dog_id: "luna"   # Chihuahua
           include_breed_specific: true
         response_variable: luna_recommendations
-      
+
       # Handle different breed requirements
       - service: script.manage_breed_differences
         data:
@@ -1003,18 +1003,18 @@ script:
                   title: "🥶 Cold Weather - Breed Considerations"
                   message: >
                     Temperature: {{ temperature }}°C
-                    
+
                     🐕 Buddy (Golden Retriever):
                     • Can handle cold well
                     • Normal walk duration OK
                     • Monitor paws for ice
-                    
+
                     🐾 Luna (Chihuahua):
                     • Needs warm coat/sweater
                     • Maximum 10-minute walks
                     • Carry for longer distances
                     • Watch for shivering
-                    
+
                     PLAN: Separate walk schedules recommended
                   data:
                     actions:
@@ -1022,7 +1022,7 @@ script:
                         title: "Plan Separate Walks"
                       - action: "COLD_GEAR_CHECK"
                         title: "Check Cold Gear"
-          
+
           # Hot weather - Golden Retriever needs more care
           - conditions:
               - condition: template
@@ -1033,18 +1033,18 @@ script:
                   title: "🔥 Hot Weather - Breed Considerations"
                   message: >
                     Temperature: {{ temperature }}°C
-                    
+
                     🐕 Buddy (Golden Retriever):
                     • Thick coat = heat sensitive
                     • Early morning/late evening only
                     • Extra water and cooling needed
                     • Consider grooming
-                    
+
                     🐾 Luna (Chihuahua):
                     • Better heat tolerance
                     • Still needs protection
                     • Shorter legs = closer to hot ground
-                    
+
                     PLAN: Very early/late walks only for both
                   data:
                     actions:
@@ -1093,7 +1093,7 @@ automation:
                   - service: switch.turn_on
                     target:
                       entity_id: switch.cooling_mats
-              
+
               # Cold weather comfort
               - if:
                   - condition: numeric_state
@@ -1108,14 +1108,14 @@ automation:
                   - service: switch.turn_on
                     target:
                       entity_id: switch.heated_dog_beds
-      
+
       # Notify about automatic adjustments
       - service: notify.mobile_app_phone
         data:
           title: "🏠 Climate Auto-Adjusted"
           message: >
             Weather Score: {{ states('sensor.buddy_weather_health_score') }}/100
-            
+
             Automatic climate adjustments made for Buddy's comfort:
             {% if states('sensor.temperature') | float > 25 %}
             • AC set to 22°C
@@ -1148,26 +1148,26 @@ automation:
           humidity: "{{ states('sensor.humidity') | float }}"
           dog_weight: "{{ state_attr('device_tracker.buddy_profile', 'weight_kg') }}"
         response_variable: water_calculation
-      
+
       # Water system management
       - service: switch.turn_on
         target:
           entity_id: switch.automatic_water_dispensers
-      
+
       - service: notify.mobile_app_phone
         data:
           title: "💧 Increased Water Needs"
           message: >
             🌡️ Temperature: {{ states('sensor.temperature') }}°C
             💨 Humidity: {{ states('sensor.humidity') }}%
-            
+
             💧 WATER MANAGEMENT:
             • Automatic dispensers activated
             • Check water levels more frequently
             • Add ice cubes for cooling
             • Monitor water consumption
             • Consider electrolyte supplements
-            
+
             Recommended daily water: {{ water_calculation.daily_ml }}ml
             ({{ water_calculation.increase_percentage }}% increase from normal)
 
@@ -1190,12 +1190,12 @@ script:
           total_multiplier: "{{ (temp_multiplier | float) * (humidity_multiplier | float) }}"
           daily_ml: "{{ (base_water_ml | float * total_multiplier | float) | round(0) }}"
           increase_percentage: "{{ ((total_multiplier | float - 1) * 100) | round(0) }}"
-      
+
       - service: system_log.write
         data:
           message: >
-            Water calculation: Base {{ base_water_ml }}ml, 
-            Multiplier {{ total_multiplier }}, 
+            Water calculation: Base {{ base_water_ml }}ml,
+            Multiplier {{ total_multiplier }},
             Total {{ daily_ml }}ml
           level: info
 ```
@@ -1228,7 +1228,7 @@ cards:
       {% elif score >= 60 %}Good Conditions
       {% elif score >= 40 %}Caution Needed
       {% else %}Dangerous Conditions{% endif %}
-  
+
   # Active Weather Alerts
   - type: conditional
     conditions:
@@ -1257,7 +1257,7 @@ cards:
           icon: mdi:weather-lightning
           icon_color: purple
           content_info: none
-  
+
   # Weather Details
   - type: entities
     title: Current Weather Impact
@@ -1265,7 +1265,7 @@ cards:
       - entity: sensor.buddy_temperature_impact
         name: Temperature Impact
         icon: mdi:thermometer
-      - entity: sensor.buddy_humidity_impact  
+      - entity: sensor.buddy_humidity_impact
         name: Humidity Impact
         icon: mdi:water-percent
       - entity: sensor.buddy_uv_exposure_level
@@ -1274,7 +1274,7 @@ cards:
       - entity: sensor.buddy_weather_recommendations
         name: Current Recommendations
         icon: mdi:lightbulb-on
-  
+
   # Quick Actions
   - type: custom:mushroom-chips-card
     chips:
@@ -1354,7 +1354,7 @@ script:
             {% elif weather_score < 50 %}high
             {% elif weather_score < 70 %}normal
             {% else %}low{% endif %}
-      
+
       # Send appropriate notification based on conditions
       - choose:
           # Critical weather conditions
@@ -1367,10 +1367,10 @@ script:
                   title: "🚨 CRITICAL WEATHER ALERT"
                   message: >
                     ⚠️ DANGEROUS CONDITIONS FOR BUDDY
-                    
+
                     Weather Score: {{ weather_score }}/100
                     Active Alerts: {{ active_alerts | join(', ') }}
-                    
+
                     🚑 IMMEDIATE ACTION REQUIRED:
                     {% for alert in active_alerts %}
                     {% if alert == 'heat_stress' %}
@@ -1392,7 +1392,7 @@ script:
                         title: "Emergency Protocol"
                       - action: "CALL_VET"
                         title: "Call Vet"
-          
+
           # High priority conditions
           - conditions:
               - condition: template
@@ -1403,7 +1403,7 @@ script:
                   title: "⚠️ High Weather Alert"
                   message: >
                     Weather Score: {{ weather_score }}/100
-                    
+
                     ⚠️ PRECAUTIONS NEEDED:
                     {% for alert in active_alerts %}
                     {% if alert == 'heat_stress' %}
@@ -1414,7 +1414,7 @@ script:
                     • UV exposure risk - provide shade/protection
                     {% endif %}
                     {% endfor %}
-                    
+
                     Monitor Buddy closely and adjust activities.
                   data:
                     priority: normal
@@ -1424,7 +1424,7 @@ script:
                         title: "Get Recommendations"
                       - action: "ADJUST_ACTIVITIES"
                         title: "Adjust Activities"
-          
+
           # Normal monitoring notifications
           - conditions:
               - condition: template
@@ -1435,7 +1435,7 @@ script:
                   title: "🌤️ Weather Update"
                   message: >
                     Weather Score: {{ weather_score }}/100
-                    
+
                     {% if active_alerts | length > 0 %}
                     Active considerations: {{ active_alerts | join(', ') }}
                     Moderate precautions recommended.

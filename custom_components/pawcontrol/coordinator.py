@@ -465,15 +465,15 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
         """Protected fetch with timeout - called through resilience manager.
-        
+
         This method is wrapped by resilience patterns (circuit breaker + retry).
-        
+
         Args:
             dog_id: Dog identifier
-            
+
         Returns:
             Dog data dictionary
-            
+
         Raises:
             TimeoutError: If fetch takes too long
             ConfigEntryAuthFailed: If authentication fails
