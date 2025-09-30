@@ -1,4 +1,5 @@
 """Coordinator for the PawControl integration."""
+
 """Coordinator for the PawControl integration."""
 
 from __future__ import annotations
@@ -24,11 +25,6 @@ from .const import (
 )
 from .coordinator_runtime import AdaptivePollingController, EntityBudgetSnapshot
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry, UpdateResult
-from .device_api import PawControlDeviceClient
-from .exceptions import ValidationError
-from .module_adapters import CoordinatorModuleAdapters
-from .resilience import ResilienceManager, RetryConfig
-from .types import PawControlConfigEntry
 from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
@@ -36,8 +32,15 @@ from .coordinator_tasks import (
     fetch_all_dogs,
     fetch_single_dog,
     run_maintenance,
+)
+from .coordinator_tasks import (
     shutdown as shutdown_tasks,
 )
+from .device_api import PawControlDeviceClient
+from .exceptions import ValidationError
+from .module_adapters import CoordinatorModuleAdapters
+from .resilience import ResilienceManager, RetryConfig
+from .types import PawControlConfigEntry
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
@@ -55,7 +58,7 @@ _LOGGER = logging.getLogger(__name__)
 CACHE_TTL_SECONDS = 300
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 
-__all__ = ["PawControlCoordinator", "EntityBudgetSnapshot"]
+__all__ = ["EntityBudgetSnapshot", "PawControlCoordinator"]
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -70,7 +73,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.config_entry = entry
         self.session = session or async_get_clientsession(hass)
         self.registry = DogConfigRegistry.from_entry(entry)
-        self._use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
+        self._use_external_api = bool(
+            entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
+        )
         self._api_client = self._build_api_client(
             endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
             token=entry.options.get(CONF_API_TOKEN, ""),
@@ -215,7 +220,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if total_capacity <= 0:
             return 0.0
         total_allocated = sum(
-            snapshot.total_allocated for snapshot in self._entity_budget_snapshots.values()
+            snapshot.total_allocated
+            for snapshot in self._entity_budget_snapshots.values()
         )
         return max(0.0, min(1.0, total_allocated / total_capacity))
 
@@ -305,7 +311,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._apply_adaptive_interval(new_interval)
 
-        success_rate, all_failed = self._metrics.record_cycle(len(dog_ids), result.errors)
+        success_rate, all_failed = self._metrics.record_cycle(
+            len(dog_ids), result.errors
+        )
         if all_failed:
             raise CoordinatorUpdateFailed(f"All {len(dog_ids)} dogs failed to update")
         if success_rate < 0.5:

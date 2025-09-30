@@ -146,7 +146,7 @@ def build_runtime_statistics(coordinator: PawControlCoordinator) -> dict[str, An
 
 @callback
 def ensure_background_task(
-    coordinator: PawControlCoordinator, interval: "timedelta"
+    coordinator: PawControlCoordinator, interval: timedelta
 ) -> None:
     """Start the maintenance task if not already running."""
 
