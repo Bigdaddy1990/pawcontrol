@@ -28,11 +28,24 @@ _missing = [
 ]
 
 if _missing:
-    # Only the Home Assistant integration tests require the optional
-    # dependencies.  Unit tests targeting pure python helpers should still run
-    # to provide meaningful coverage for CI.
+    # When the optional Home Assistant stack is unavailable we skip
+    # integration-heavy suites that would otherwise fail during import.  This
+    # keeps the lightweight unit tests runnable in constrained CI environments
+    # while still providing meaningful coverage for the pure Python modules.
+    collect_ignore = [
+        "components",
+        "integration",
+        "hassfest",
+        "script",
+        "unit",
+        "test_entity_factory_guardrails.py",
+    ]
     collect_ignore_glob = [
         "components/*",
+        "integration/*",
+        "hassfest/*",
+        "script/*",
+        "unit/*",
     ]
 
     def pytest_addoption(parser):
@@ -44,8 +57,8 @@ if _missing:
         )
 
     print(
-        "Home Assistant test dependencies are unavailable - integration tests under "
-        "tests/components are skipped.",
+        "Home Assistant test dependencies are unavailable - skipping Home Assistant "
+        "dependent suites (components, integration, unit, hassfest, script).",
         file=sys.stderr,
     )
 

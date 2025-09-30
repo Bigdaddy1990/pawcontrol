@@ -353,7 +353,7 @@ async def retry_with_backoff(
             await asyncio.sleep(delay)
 
     # Should never reach here due to raise in loop, but satisfy type checker
-    if last_exception:
+    if last_exception:  # pragma: no cover - defensive safeguard
         raise RetryExhaustedError(retry_config.max_attempts, last_exception)
     raise HomeAssistantError("Retry failed with no exception recorded")
 
