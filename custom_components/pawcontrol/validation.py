@@ -11,7 +11,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from typing import Any, Final
 
 from homeassistant.exceptions import ServiceValidationError
@@ -50,7 +49,7 @@ MAX_GEOFENCE_RADIUS: Final[float] = 5000.0
 
 class ValidationError(Exception):
     """Validation error with detailed context.
-    
+
     Provides structured error information for debugging and user feedback.
     """
 
@@ -62,7 +61,7 @@ class ValidationError(Exception):
         suggestion: str | None = None,
     ) -> None:
         """Initialize validation error.
-        
+
         Args:
             field: Field name that failed validation
             value: Value that was provided
@@ -73,17 +72,17 @@ class ValidationError(Exception):
         self.value = value
         self.constraint = constraint
         self.suggestion = suggestion
-        
+
         message = f"Validation failed for '{field}': {constraint}"
         if suggestion:
             message += f". {suggestion}"
-        
+
         super().__init__(message)
 
 
 class InputValidator:
     """Comprehensive input validation for PawControl.
-    
+
     Provides static methods for validating all types of user inputs
     with detailed error reporting and security checks.
     """
@@ -91,14 +90,14 @@ class InputValidator:
     @staticmethod
     def validate_dog_id(dog_id: Any, required: bool = True) -> str | None:
         """Validate and sanitize dog identifier.
-        
+
         Args:
             dog_id: Dog identifier to validate
             required: Whether the field is required
-            
+
         Returns:
             Validated dog ID or None if not required and empty
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -108,59 +107,59 @@ class InputValidator:
                     "dog_id",
                     dog_id,
                     "Dog ID is required",
-                    "Provide a valid dog identifier"
+                    "Provide a valid dog identifier",
                 )
             return None
-        
+
         if not isinstance(dog_id, str):
             raise ValidationError(
                 "dog_id",
                 dog_id,
                 "Must be a string",
-                f"Received {type(dog_id).__name__}"
+                f"Received {type(dog_id).__name__}",
             )
-        
+
         dog_id = dog_id.strip()
-        
+
         if not dog_id:
             if required:
                 raise ValidationError(
                     "dog_id",
                     dog_id,
                     "Cannot be empty or whitespace only",
-                    "Provide a valid identifier"
+                    "Provide a valid identifier",
                 )
             return None
-        
+
         if len(dog_id) > 50:
             raise ValidationError(
                 "dog_id",
                 dog_id,
                 "Maximum 50 characters",
-                f"Current length: {len(dog_id)}"
+                f"Current length: {len(dog_id)}",
             )
-        
+
         if not re.match(VALID_DOG_ID_PATTERN, dog_id):
             raise ValidationError(
                 "dog_id",
                 dog_id,
                 "Only alphanumeric characters, underscore, and hyphen allowed",
-                "Use only: a-z, A-Z, 0-9, _, -"
+                "Use only: a-z, A-Z, 0-9, _, -",
             )
-        
+
         return dog_id
 
     @staticmethod
     def validate_dog_name(name: Any, required: bool = True) -> str | None:
         """Validate dog name.
-        
+
         Args:
             name: Dog name to validate
             required: Whether the field is required
-            
+
         Returns:
             Validated name or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -170,38 +169,32 @@ class InputValidator:
                     "dog_name",
                     name,
                     "Dog name is required",
-                    "Provide a display name for the dog"
+                    "Provide a display name for the dog",
                 )
             return None
-        
+
         if not isinstance(name, str):
             raise ValidationError(
-                "dog_name",
-                name,
-                "Must be a string",
-                f"Received {type(name).__name__}"
+                "dog_name", name, "Must be a string", f"Received {type(name).__name__}"
             )
-        
+
         name = name.strip()
-        
+
         if not name:
             if required:
                 raise ValidationError(
-                    "dog_name",
-                    name,
-                    "Cannot be empty",
-                    "Provide a display name"
+                    "dog_name", name, "Cannot be empty", "Provide a display name"
                 )
             return None
-        
+
         if len(name) > 100:
             raise ValidationError(
                 "dog_name",
                 name,
                 "Maximum 100 characters",
-                f"Current length: {len(name)}"
+                f"Current length: {len(name)}",
             )
-        
+
         return name
 
     @staticmethod
@@ -212,16 +205,16 @@ class InputValidator:
         max_kg: float = MAX_WEIGHT_KG,
     ) -> float | None:
         """Validate dog weight in kilograms.
-        
+
         Args:
             weight: Weight value to validate
             required: Whether the field is required
             min_kg: Minimum allowed weight
             max_kg: Maximum allowed weight
-            
+
         Returns:
             Validated weight or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -231,44 +224,38 @@ class InputValidator:
                     "weight",
                     weight,
                     "Weight is required",
-                    "Provide dog weight in kilograms"
+                    "Provide dog weight in kilograms",
                 )
             return None
-        
-        if not isinstance(weight, (int, float)):
+
+        if not isinstance(weight, int | float):
             raise ValidationError(
-                "weight",
-                weight,
-                "Must be numeric",
-                f"Received {type(weight).__name__}"
+                "weight", weight, "Must be numeric", f"Received {type(weight).__name__}"
             )
-        
+
         weight = float(weight)
-        
+
         if weight <= 0:
             raise ValidationError(
-                "weight",
-                weight,
-                "Must be positive",
-                "Weight must be greater than 0"
+                "weight", weight, "Must be positive", "Weight must be greater than 0"
             )
-        
+
         if weight < min_kg:
             raise ValidationError(
                 "weight",
                 weight,
                 f"Minimum weight is {min_kg} kg",
-                f"Provided: {weight} kg"
+                f"Provided: {weight} kg",
             )
-        
+
         if weight > max_kg:
             raise ValidationError(
                 "weight",
                 weight,
                 f"Maximum weight is {max_kg} kg",
-                f"Provided: {weight} kg - unusually large for a dog"
+                f"Provided: {weight} kg - unusually large for a dog",
             )
-        
+
         return weight
 
     @staticmethod
@@ -279,55 +266,49 @@ class InputValidator:
         max_months: int = MAX_AGE_MONTHS,
     ) -> int | None:
         """Validate dog age in months.
-        
+
         Args:
             age: Age value to validate
             required: Whether the field is required
             min_months: Minimum allowed age
             max_months: Maximum allowed age
-            
+
         Returns:
             Validated age or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
         if age is None:
             if required:
                 raise ValidationError(
-                    "age_months",
-                    age,
-                    "Age is required",
-                    "Provide dog age in months"
+                    "age_months", age, "Age is required", "Provide dog age in months"
                 )
             return None
-        
-        if not isinstance(age, (int, float)):
+
+        if not isinstance(age, int | float):
             raise ValidationError(
-                "age_months",
-                age,
-                "Must be numeric",
-                f"Received {type(age).__name__}"
+                "age_months", age, "Must be numeric", f"Received {type(age).__name__}"
             )
-        
+
         age = int(age)
-        
+
         if age < min_months:
             raise ValidationError(
                 "age_months",
                 age,
                 f"Minimum age is {min_months} months",
-                f"Provided: {age} months"
+                f"Provided: {age} months",
             )
-        
+
         if age > max_months:
             raise ValidationError(
                 "age_months",
                 age,
                 f"Maximum age is {max_months} months ({max_months // 12} years)",
-                f"Provided: {age} months - unusually old"
+                f"Provided: {age} months - unusually old",
             )
-        
+
         return age
 
     @staticmethod
@@ -336,14 +317,14 @@ class InputValidator:
         longitude: Any,
     ) -> tuple[float, float]:
         """Validate GPS coordinates.
-        
+
         Args:
             latitude: Latitude value
             longitude: Longitude value
-            
+
         Returns:
             Tuple of validated (latitude, longitude)
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -352,52 +333,52 @@ class InputValidator:
                 "latitude",
                 latitude,
                 "Latitude is required",
-                "Provide GPS latitude coordinate"
+                "Provide GPS latitude coordinate",
             )
-        
+
         if longitude is None:
             raise ValidationError(
                 "longitude",
                 longitude,
                 "Longitude is required",
-                "Provide GPS longitude coordinate"
+                "Provide GPS longitude coordinate",
             )
-        
-        if not isinstance(latitude, (int, float)):
+
+        if not isinstance(latitude, int | float):
             raise ValidationError(
                 "latitude",
                 latitude,
                 "Must be numeric",
-                f"Received {type(latitude).__name__}"
+                f"Received {type(latitude).__name__}",
             )
-        
-        if not isinstance(longitude, (int, float)):
+
+        if not isinstance(longitude, int | float):
             raise ValidationError(
                 "longitude",
                 longitude,
                 "Must be numeric",
-                f"Received {type(longitude).__name__}"
+                f"Received {type(longitude).__name__}",
             )
-        
+
         latitude = float(latitude)
         longitude = float(longitude)
-        
+
         if not MIN_LATITUDE <= latitude <= MAX_LATITUDE:
             raise ValidationError(
                 "latitude",
                 latitude,
                 f"Must be between {MIN_LATITUDE} and {MAX_LATITUDE}",
-                f"Provided: {latitude}"
+                f"Provided: {latitude}",
             )
-        
+
         if not MIN_LONGITUDE <= longitude <= MAX_LONGITUDE:
             raise ValidationError(
                 "longitude",
                 longitude,
                 f"Must be between {MIN_LONGITUDE} and {MAX_LONGITUDE}",
-                f"Provided: {longitude}"
+                f"Provided: {longitude}",
             )
-        
+
         return latitude, longitude
 
     @staticmethod
@@ -406,14 +387,14 @@ class InputValidator:
         required: bool = False,
     ) -> float | None:
         """Validate GPS accuracy in meters.
-        
+
         Args:
             accuracy: Accuracy value
             required: Whether the field is required
-            
+
         Returns:
             Validated accuracy or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -423,36 +404,36 @@ class InputValidator:
                     "accuracy",
                     accuracy,
                     "GPS accuracy is required",
-                    "Provide accuracy in meters"
+                    "Provide accuracy in meters",
                 )
             return None
-        
-        if not isinstance(accuracy, (int, float)):
+
+        if not isinstance(accuracy, int | float):
             raise ValidationError(
                 "accuracy",
                 accuracy,
                 "Must be numeric",
-                f"Received {type(accuracy).__name__}"
+                f"Received {type(accuracy).__name__}",
             )
-        
+
         accuracy = float(accuracy)
-        
+
         if accuracy < MIN_ACCURACY_METERS:
             raise ValidationError(
                 "accuracy",
                 accuracy,
                 f"Minimum accuracy is {MIN_ACCURACY_METERS} meters",
-                f"Provided: {accuracy}"
+                f"Provided: {accuracy}",
             )
-        
+
         if accuracy > MAX_ACCURACY_METERS:
             raise ValidationError(
                 "accuracy",
                 accuracy,
                 f"Maximum accuracy is {MAX_ACCURACY_METERS} meters",
-                f"Provided: {accuracy} - unusually inaccurate"
+                f"Provided: {accuracy} - unusually inaccurate",
             )
-        
+
         return accuracy
 
     @staticmethod
@@ -461,14 +442,14 @@ class InputValidator:
         required: bool = True,
     ) -> float | None:
         """Validate food portion size in grams.
-        
+
         Args:
             amount: Portion amount
             required: Whether the field is required
-            
+
         Returns:
             Validated amount or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -478,44 +459,41 @@ class InputValidator:
                     "amount",
                     amount,
                     "Portion amount is required",
-                    "Provide amount in grams"
+                    "Provide amount in grams",
                 )
             return None
-        
-        if not isinstance(amount, (int, float)):
+
+        if not isinstance(amount, int | float):
             raise ValidationError(
-                "amount",
-                amount,
-                "Must be numeric",
-                f"Received {type(amount).__name__}"
+                "amount", amount, "Must be numeric", f"Received {type(amount).__name__}"
             )
-        
+
         amount = float(amount)
-        
+
         if amount <= 0:
             raise ValidationError(
                 "amount",
                 amount,
                 "Must be positive",
-                "Portion size must be greater than 0"
+                "Portion size must be greater than 0",
             )
-        
+
         if amount < MIN_PORTION_GRAMS:
             raise ValidationError(
                 "amount",
                 amount,
                 f"Minimum portion is {MIN_PORTION_GRAMS} grams",
-                f"Provided: {amount} grams - unusually small"
+                f"Provided: {amount} grams - unusually small",
             )
-        
+
         if amount > MAX_PORTION_GRAMS:
             raise ValidationError(
                 "amount",
                 amount,
                 f"Maximum portion is {MAX_PORTION_GRAMS} grams",
-                f"Provided: {amount} grams - unusually large for one meal"
+                f"Provided: {amount} grams - unusually large for one meal",
             )
-        
+
         return amount
 
     @staticmethod
@@ -524,14 +502,14 @@ class InputValidator:
         required: bool = False,
     ) -> float | None:
         """Validate body temperature in Celsius.
-        
+
         Args:
             temperature: Temperature value
             required: Whether the field is required
-            
+
         Returns:
             Validated temperature or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -541,28 +519,28 @@ class InputValidator:
                     "temperature",
                     temperature,
                     "Temperature is required",
-                    "Provide body temperature in Celsius"
+                    "Provide body temperature in Celsius",
                 )
             return None
-        
-        if not isinstance(temperature, (int, float)):
+
+        if not isinstance(temperature, int | float):
             raise ValidationError(
                 "temperature",
                 temperature,
                 "Must be numeric",
-                f"Received {type(temperature).__name__}"
+                f"Received {type(temperature).__name__}",
             )
-        
+
         temperature = float(temperature)
-        
+
         if not MIN_TEMPERATURE_CELSIUS <= temperature <= MAX_TEMPERATURE_CELSIUS:
             raise ValidationError(
                 "temperature",
                 temperature,
                 f"Normal range: {MIN_TEMPERATURE_CELSIUS}-{MAX_TEMPERATURE_CELSIUS}°C",
-                f"Provided: {temperature}°C - seek veterinary attention if accurate"
+                f"Provided: {temperature}°C - seek veterinary attention if accurate",
             )
-        
+
         return temperature
 
     @staticmethod
@@ -574,70 +552,61 @@ class InputValidator:
         min_length: int = 0,
     ) -> str | None:
         """Validate and sanitize text input.
-        
+
         Args:
             text: Text to validate
             field_name: Name of the field for error reporting
             required: Whether the field is required
             max_length: Maximum allowed length
             min_length: Minimum required length
-            
+
         Returns:
             Sanitized text or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
         if text is None or text == "":
             if required:
                 raise ValidationError(
-                    field_name,
-                    text,
-                    f"{field_name} is required",
-                    "Provide text input"
+                    field_name, text, f"{field_name} is required", "Provide text input"
                 )
             return None
-        
+
         if not isinstance(text, str):
             raise ValidationError(
-                field_name,
-                text,
-                "Must be text",
-                f"Received {type(text).__name__}"
+                field_name, text, "Must be text", f"Received {type(text).__name__}"
             )
-        
+
         text = text.strip()
-        
+
         if not text and required:
             raise ValidationError(
                 field_name,
                 text,
                 "Cannot be empty or whitespace",
-                "Provide meaningful text"
+                "Provide meaningful text",
             )
-        
+
         if len(text) < min_length:
             raise ValidationError(
                 field_name,
                 text,
                 f"Minimum length: {min_length} characters",
-                f"Provided: {len(text)} characters"
+                f"Provided: {len(text)} characters",
             )
-        
+
         if len(text) > max_length:
             raise ValidationError(
                 field_name,
                 text,
                 f"Maximum length: {max_length} characters",
-                f"Provided: {len(text)} characters"
+                f"Provided: {len(text)} characters",
             )
-        
+
         # Remove control characters (except newlines)
-        text = "".join(
-            char for char in text
-            if ord(char) >= 32 or char == "\n"
-        )
-        
+        text = "".join(char for char in text if ord(char) >= 32 or char == "\n")
+
         return text
 
     @staticmethod
@@ -648,16 +617,16 @@ class InputValidator:
         max_minutes: int = MAX_DURATION_MINUTES,
     ) -> int | None:
         """Validate duration in minutes.
-        
+
         Args:
             duration: Duration value
             required: Whether the field is required
             min_minutes: Minimum duration
             max_minutes: Maximum duration
-            
+
         Returns:
             Validated duration or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -667,36 +636,36 @@ class InputValidator:
                     "duration",
                     duration,
                     "Duration is required",
-                    "Provide duration in minutes"
+                    "Provide duration in minutes",
                 )
             return None
-        
-        if not isinstance(duration, (int, float)):
+
+        if not isinstance(duration, int | float):
             raise ValidationError(
                 "duration",
                 duration,
                 "Must be numeric",
-                f"Received {type(duration).__name__}"
+                f"Received {type(duration).__name__}",
             )
-        
+
         duration = int(duration)
-        
+
         if duration < min_minutes:
             raise ValidationError(
                 "duration",
                 duration,
                 f"Minimum duration: {min_minutes} minutes",
-                f"Provided: {duration} minutes"
+                f"Provided: {duration} minutes",
             )
-        
+
         if duration > max_minutes:
             raise ValidationError(
                 "duration",
                 duration,
                 f"Maximum duration: {max_minutes} minutes ({max_minutes // 60} hours)",
-                f"Provided: {duration} minutes - unusually long"
+                f"Provided: {duration} minutes - unusually long",
             )
-        
+
         return duration
 
     @staticmethod
@@ -705,14 +674,14 @@ class InputValidator:
         required: bool = True,
     ) -> float | None:
         """Validate geofence radius in meters.
-        
+
         Args:
             radius: Radius value
             required: Whether the field is required
-            
+
         Returns:
             Validated radius or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -722,44 +691,38 @@ class InputValidator:
                     "radius",
                     radius,
                     "Geofence radius is required",
-                    "Provide radius in meters"
+                    "Provide radius in meters",
                 )
             return None
-        
-        if not isinstance(radius, (int, float)):
+
+        if not isinstance(radius, int | float):
             raise ValidationError(
-                "radius",
-                radius,
-                "Must be numeric",
-                f"Received {type(radius).__name__}"
+                "radius", radius, "Must be numeric", f"Received {type(radius).__name__}"
             )
-        
+
         radius = float(radius)
-        
+
         if radius <= 0:
             raise ValidationError(
-                "radius",
-                radius,
-                "Must be positive",
-                "Radius must be greater than 0"
+                "radius", radius, "Must be positive", "Radius must be greater than 0"
             )
-        
+
         if radius < MIN_GEOFENCE_RADIUS:
             raise ValidationError(
                 "radius",
                 radius,
                 f"Minimum radius: {MIN_GEOFENCE_RADIUS} meters",
-                f"Provided: {radius} meters - too small for reliable detection"
+                f"Provided: {radius} meters - too small for reliable detection",
             )
-        
+
         if radius > MAX_GEOFENCE_RADIUS:
             raise ValidationError(
                 "radius",
                 radius,
                 f"Maximum radius: {MAX_GEOFENCE_RADIUS} meters ({MAX_GEOFENCE_RADIUS / 1000} km)",
-                f"Provided: {radius} meters - unusually large"
+                f"Provided: {radius} meters - unusually large",
             )
-        
+
         return radius
 
     @staticmethod
@@ -768,14 +731,14 @@ class InputValidator:
         required: bool = False,
     ) -> str | None:
         """Validate email address.
-        
+
         Args:
             email: Email address to validate
             required: Whether the field is required
-            
+
         Returns:
             Validated email or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -785,36 +748,30 @@ class InputValidator:
                     "email",
                     email,
                     "Email address is required",
-                    "Provide valid email address"
+                    "Provide valid email address",
                 )
             return None
-        
+
         if not isinstance(email, str):
             raise ValidationError(
-                "email",
-                email,
-                "Must be text",
-                f"Received {type(email).__name__}"
+                "email", email, "Must be text", f"Received {type(email).__name__}"
             )
-        
+
         email = email.strip().lower()
-        
+
         if not re.match(VALID_EMAIL_PATTERN, email):
             raise ValidationError(
-                "email",
-                email,
-                "Invalid email format",
-                "Use format: user@example.com"
+                "email", email, "Invalid email format", "Use format: user@example.com"
             )
-        
+
         if len(email) > 254:  # RFC 5321
             raise ValidationError(
                 "email",
                 email,
                 "Email too long (max 254 characters)",
-                f"Provided: {len(email)} characters"
+                f"Provided: {len(email)} characters",
             )
-        
+
         return email
 
     @staticmethod
@@ -825,16 +782,16 @@ class InputValidator:
         required: bool = True,
     ) -> str | None:
         """Validate enum/choice value.
-        
+
         Args:
             value: Value to validate
             field_name: Field name for error reporting
             valid_values: List/set of valid values
             required: Whether the field is required
-            
+
         Returns:
             Validated value or None if not required
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -844,40 +801,42 @@ class InputValidator:
                     field_name,
                     value,
                     f"{field_name} is required",
-                    f"Choose from: {', '.join(valid_values)}"
+                    f"Choose from: {', '.join(valid_values)}",
                 )
             return None
-        
+
         if not isinstance(value, str):
             value = str(value)
-        
+
         value = value.strip().lower()
-        
+
         # Case-insensitive matching
         valid_values_lower = {v.lower() for v in valid_values}
-        
+
         if value not in valid_values_lower:
             raise ValidationError(
                 field_name,
                 value,
-                f"Invalid value",
-                f"Valid options: {', '.join(sorted(valid_values))}"
+                "Invalid value",
+                f"Valid options: {', '.join(sorted(valid_values))}",
             )
-        
+
         # Return original case from valid_values
         for valid in valid_values:
             if valid.lower() == value:
                 return valid
-        
+
         return value
 
 
-def convert_validation_error_to_service_error(error: ValidationError) -> ServiceValidationError:
+def convert_validation_error_to_service_error(
+    error: ValidationError,
+) -> ServiceValidationError:
     """Convert ValidationError to Home Assistant ServiceValidationError.
-    
+
     Args:
         error: ValidationError to convert
-        
+
     Returns:
         ServiceValidationError for Home Assistant
     """

@@ -144,7 +144,7 @@ import pytest
 async def test_calculate_portion(mock_feeding_manager):
     """Test portion calculation."""
     portion = mock_feeding_manager.calculate_portion("test_dog", "breakfast")
-    
+
     assert 100 < portion < 500
     assert isinstance(portion, float)
 ```
@@ -159,13 +159,13 @@ from homeassistant.core import HomeAssistant
 async def test_service_call(hass: HomeAssistant, mock_config_entry):
     """Test service call integration."""
     mock_config_entry.add_to_hass(hass)
-    
+
     await hass.services.async_call(
         "pawcontrol",
         "feed_dog",
         {"dog_id": "buddy", "amount": 200.0}
     )
-    
+
     # Assert service effects
 ```
 
