@@ -462,7 +462,9 @@ class WeatherHealthManager:
     async def async_update_weather_data(
         self, weather_entity_id: str | None = None
     ) -> WeatherConditions | None:
-        """Update weather data from Home Assistant weather entity.
+        """Update weather data from Home Assistant weather entity with resilience.
+
+        Uses retry logic for transient failures when fetching weather data.
 
         Args:
             weather_entity_id: Weather entity ID, if None will try to find one
@@ -470,21 +472,23 @@ class WeatherHealthManager:
         Returns:
             Updated weather conditions or None if unavailable
         """
-        try:
+        async def _fetch_weather_data() -> WeatherConditions | None:
+            """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded
             if not self._translations:
                 await self.async_load_translations()
 
             # Find weather entity if not specified
-            if weather_entity_id is None:
-                weather_entity_id = await self._find_weather_entity()
+            weather_entity_id_local = weather_entity_id
+            if weather_entity_id_local is None:
+                weather_entity_id_local = await self._find_weather_entity()
 
-            if weather_entity_id is None:
+            if weather_entity_id_local is None:
                 _LOGGER.warning("No weather entity found for weather health monitoring")
                 return None
 
             # Get weather state
-            weather_state = self.hass.states.get(weather_entity_id)
+            weather_state = self.hass.states.get(weather_entity_id_local)
             if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
                 STATE_UNKNOWN,
@@ -514,7 +518,7 @@ class WeatherHealthManager:
                 pressure_hpa=attributes.get(ATTR_WEATHER_PRESSURE),
                 visibility_km=attributes.get(ATTR_WEATHER_VISIBILITY),
                 condition=weather_state.state,
-                source_entity=weather_entity_id,
+                source_entity=weather_entity_id_local,
                 last_updated=dt_util.utcnow(),
             )
 
@@ -533,8 +537,18 @@ class WeatherHealthManager:
 
             return self._current_conditions
 
+        # RESILIENCE: Wrap weather data fetch with retry logic
+        try:
+            if self.resilience_manager:
+                return await self.resilience_manager.execute_with_resilience(
+                    _fetch_weather_data,
+                    retry_config=self._retry_config,
+                )
+            else:
+                # Fallback if no resilience manager
+                return await _fetch_weather_data()
         except Exception as err:
-            _LOGGER.error("Failed to update weather data: %s", err)
+            _LOGGER.error("Failed to update weather data after retries: %s", err)
             return None
 
     async def async_update_forecast_data(
@@ -542,7 +556,9 @@ class WeatherHealthManager:
         weather_entity_id: str | None = None,
         forecast_horizon_hours: int = 24,
     ) -> WeatherForecast | None:
-        """Update weather forecast data for advanced health planning.
+        """Update weather forecast data for advanced health planning with resilience.
+
+        Uses retry logic for transient failures when fetching forecast data.
 
         Args:
             weather_entity_id: Weather entity ID, if None will try to find one
@@ -551,21 +567,23 @@ class WeatherHealthManager:
         Returns:
             Updated weather forecast or None if unavailable
         """
-        try:
+        async def _fetch_forecast_data() -> WeatherForecast | None:
+            """Internal fetch function wrapped by resilience manager."""
             # Load translations if not already loaded
             if not self._translations:
                 await self.async_load_translations()
 
             # Find weather entity if not specified
-            if weather_entity_id is None:
-                weather_entity_id = await self._find_weather_entity()
+            weather_entity_id_local = weather_entity_id
+            if weather_entity_id_local is None:
+                weather_entity_id_local = await self._find_weather_entity()
 
-            if weather_entity_id is None:
+            if weather_entity_id_local is None:
                 _LOGGER.warning("No weather entity found for forecast analysis")
                 return None
 
             # Get weather entity with forecast data
-            weather_state = self.hass.states.get(weather_entity_id)
+            weather_state = self.hass.states.get(weather_entity_id_local)
             if not weather_state or weather_state.state in [
                 STATE_UNAVAILABLE,
                 STATE_UNKNOWN,
@@ -595,7 +613,7 @@ class WeatherHealthManager:
             # Create forecast object
             self._current_forecast = WeatherForecast(
                 forecast_points=forecast_points,
-                source_entity=weather_entity_id,
+                source_entity=weather_entity_id_local,
                 generated_at=dt_util.utcnow(),
                 forecast_horizon_hours=forecast_horizon_hours,
                 quality=self._assess_forecast_quality(forecast_data),
@@ -619,8 +637,18 @@ class WeatherHealthManager:
 
             return self._current_forecast
 
+        # RESILIENCE: Wrap forecast data fetch with retry logic
+        try:
+            if self.resilience_manager:
+                return await self.resilience_manager.execute_with_resilience(
+                    _fetch_forecast_data,
+                    retry_config=self._retry_config,
+                )
+            else:
+                # Fallback if no resilience manager
+                return await _fetch_forecast_data()
         except Exception as err:
-            _LOGGER.error("Failed to update weather forecast data: %s", err)
+            _LOGGER.error("Failed to update weather forecast data after retries: %s", err)
             return None
 
     async def _process_forecast_data(
