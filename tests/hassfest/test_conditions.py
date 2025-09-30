@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from homeassistant.util.yaml.loader import parse_yaml
 from script.hassfest import conditions
 from script.hassfest.model import Config

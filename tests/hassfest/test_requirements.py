@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from script.hassfest.model import Config, Integration
 from script.hassfest.requirements import (
     FORBIDDEN_PACKAGE_NAMES,
@@ -43,7 +44,7 @@ def integration():
 def mock_forbidden_package_names() -> Generator[None]:
     """Fixture for FORBIDDEN_PACKAGE_NAMES."""
     # pylint: disable-next=global-statement
-    global FORBIDDEN_PACKAGE_NAMES
+    global FORBIDDEN_PACKAGE_NAMES  # noqa: PLW0603
     original = FORBIDDEN_PACKAGE_NAMES.copy()
     FORBIDDEN_PACKAGE_NAMES = {"test", "tests"}
     try:

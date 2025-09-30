@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 import voluptuous as vol
+
 from script.hassfest.manifest import (
     CUSTOM_INTEGRATION_MANIFEST_SCHEMA,
     validate_version,

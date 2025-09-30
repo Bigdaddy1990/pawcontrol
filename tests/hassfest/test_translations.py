@@ -2,6 +2,7 @@
 
 import pytest
 import voluptuous as vol
+
 from script.hassfest import translations
 
 
