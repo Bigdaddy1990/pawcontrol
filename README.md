@@ -8,9 +8,9 @@
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
-[![Coverage](https://img.shields.io/badge/Coverage-99%25-brightgreen.svg)](docs/testing/test_pyramid.md)
+[![Coverage](https://img.shields.io/badge/Coverage-95%25-brightgreen.svg)](docs/testing/test_pyramid.md)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. Built with enterprise-grade architecture and 99% branch-aware test coverage for production reliability.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. Built with enterprise-grade architecture and ≥95% branch-aware test coverage for production reliability.
 
 ## ✨ Key Features
 
@@ -28,7 +28,7 @@
 ## 🧪 Quality & Testing
 
 - 📐 **Test pyramid coverage** with focused unit and service-level suites. [Read the strategy](docs/testing/test_pyramid.md#pyramid-overview).
-- ✅ **Branch coverage gate** held at 99% to protect critical resilience paths.
+- ✅ **Branch coverage gate** held at 95% to protect critical resilience paths.
 - ▶️ Run the lightweight CI suite locally:
   ```bash
   pytest --maxfail=1 --disable-warnings

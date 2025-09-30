@@ -36,8 +36,8 @@ stack is unavailable in CI.
 
 | Metric                    | Target | Current | Source |
 |---------------------------|:------:|:-------:|--------|
-| Branch coverage           | 99 %   | 99.55 % | `pytest --cov-branch` (see below)
-| Coverage fail-under gate  | 99 %   | Enforced via `pyproject.toml`
+| Branch coverage           | 95 %   | 99.55 % | `pytest --cov-branch` (see below)
+| Coverage fail-under gate  | 95 %   | Enforced via `pytest.ini` (`--cov-fail-under=95`)
 | PR test evidence          | 100 %  | Required; PRs must include pytest run output
 
 The coverage badge in the repository root reflects the latest `pytest`
