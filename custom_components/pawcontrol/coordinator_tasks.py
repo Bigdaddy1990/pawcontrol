@@ -2,112 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .coordinator_runtime import summarize_entity_budgets
-from .coordinator_support import UpdateResult
-from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from datetime import timedelta
 
     from .coordinator import PawControlCoordinator
-
-
-async def fetch_all_dogs(
-    coordinator: PawControlCoordinator, dog_ids: list[str]
-) -> UpdateResult:
-    """Fetch all dog payloads with resilience handling."""
-
-    result = UpdateResult()
-    tasks = [coordinator._fetch_with_resilience(dog_id) for dog_id in dog_ids]
-    responses = await asyncio.gather(*tasks, return_exceptions=True)
-
-    for dog_id, response in zip(dog_ids, responses, strict=True):
-        if isinstance(response, ConfigEntryAuthFailed):
-            raise response
-
-        if isinstance(response, ValidationError):
-            coordinator.logger().error(
-                "Invalid configuration for dog %s: %s", dog_id, response
-            )
-            result.add_error(dog_id, coordinator.registry.empty_payload())
-            continue
-
-        if isinstance(response, Exception):
-            coordinator.logger().error(
-                "Resilience exhausted for dog %s: %s (%s)",
-                dog_id,
-                response,
-                response.__class__.__name__,
-            )
-            result.add_error(
-                dog_id,
-                coordinator._data.get(dog_id, coordinator.registry.empty_payload()),
-            )
-            continue
-
-        result.add_success(dog_id, response)
-
-    return result
-
-
-async def fetch_single_dog(
-    coordinator: PawControlCoordinator, dog_id: str
-) -> dict[str, Any]:
-    """Fetch data for a single dog across all modules."""
-
-    dog_config = coordinator.registry.get(dog_id)
-    if not dog_config:
-        raise ValidationError("dog_id", dog_id, "Dog configuration not found")
-
-    payload = {
-        "dog_info": dog_config,
-        "status": "online",
-        "last_update": dt_util.utcnow().isoformat(),
-    }
-
-    modules = dog_config.get("modules", {})
-    module_tasks = coordinator._modules.build_tasks(dog_id, modules)
-    if not module_tasks:
-        return payload
-
-    results = await asyncio.gather(
-        *(task for _, task in module_tasks), return_exceptions=True
-    )
-
-    for (module_name, _), result in zip(module_tasks, results, strict=True):
-        if isinstance(result, GPSUnavailableError):
-            coordinator.logger().debug("GPS unavailable for %s: %s", dog_id, result)
-            payload[module_name] = {"status": "unavailable", "reason": str(result)}
-        elif isinstance(result, NetworkError):
-            coordinator.logger().warning(
-                "Network error fetching %s data for %s: %s",
-                module_name,
-                dog_id,
-                result,
-            )
-            payload[module_name] = {"status": "network_error"}
-        elif isinstance(result, Exception):
-            coordinator.logger().warning(
-                "Failed to fetch %s data for %s: %s (%s)",
-                module_name,
-                dog_id,
-                result,
-                result.__class__.__name__,
-            )
-            payload[module_name] = {"status": "error"}
-        else:
-            payload[module_name] = result
-
-    return payload
-
 
 def build_update_statistics(coordinator: PawControlCoordinator) -> dict[str, Any]:
     """Return lightweight update statistics for diagnostics endpoints."""
