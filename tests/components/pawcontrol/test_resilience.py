@@ -11,8 +11,6 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.exceptions import HomeAssistantError
-
 from custom_components.pawcontrol.resilience import (
     CircuitBreaker,
     CircuitBreakerConfig,
@@ -22,6 +20,7 @@ from custom_components.pawcontrol.resilience import (
     RetryExhaustedError,
     retry_with_backoff,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 
 class TestCircuitBreaker:
@@ -48,7 +47,7 @@ class TestCircuitBreaker:
             raise ValueError("Test failure")
 
         # First 3 failures should be allowed
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises(ValueError):
                 await breaker.call(failing_func)
 
@@ -273,9 +272,7 @@ class TestResilienceManager:
         breaker2 = await manager.get_circuit_breaker("test")
         assert breaker is breaker2
 
-    async def test_resilience_manager_execute_with_circuit_breaker(
-        self, hass
-    ) -> None:
+    async def test_resilience_manager_execute_with_circuit_breaker(self, hass) -> None:
         """Test execute with circuit breaker protection."""
         manager = ResilienceManager(hass)
 

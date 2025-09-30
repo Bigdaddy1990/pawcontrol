@@ -15,11 +15,10 @@ import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from aiohttp import ClientError, ClientSession
+from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
-    HomeAssistantError,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
@@ -46,7 +45,6 @@ from .device_api import PawControlDeviceClient
 from .exceptions import (
     GPSUnavailableError,
     NetworkError,
-    RateLimitError,
     ValidationError,
 )
 from .module_adapters import CoordinatorModuleAdapters

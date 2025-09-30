@@ -17,7 +17,6 @@ from typing import Any
 
 import aiohttp
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -217,7 +216,7 @@ class APIValidator:
                 endpoint,
                 allow_redirects=True,
                 ssl=False,  # For self-signed certificates
-            ) as response:
+            ):
                 # Any response (even 404) means the endpoint is reachable
                 return True
 
@@ -228,9 +227,7 @@ class APIValidator:
             _LOGGER.debug("Unexpected error testing reachability: %s", err)
             return False
 
-    async def _test_authentication(
-        self, endpoint: str, token: str
-    ) -> dict[str, Any]:
+    async def _test_authentication(self, endpoint: str, token: str) -> dict[str, Any]:
         """Test API authentication with token.
 
         Args:
