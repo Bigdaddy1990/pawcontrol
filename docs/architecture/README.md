@@ -2,7 +2,8 @@
 
 This directory captures the architectural foundations that guide the PawControl
 integration. It is intentionally lightweight and focused on the deliverables
-requested for the *Architektur & Fehlerkultur* milestone.
+requested for the *Architektur & Fehlerkultur* milestone. A curated overview is
+available via the [documentation portal](../portal/README.md).
 
 ## Structure
 

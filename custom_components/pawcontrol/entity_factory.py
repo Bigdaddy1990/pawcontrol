@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, Final
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
-from .coordinator import EntityBudgetSnapshot
+from .coordinator_runtime import EntityBudgetSnapshot
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
