@@ -192,9 +192,11 @@ class CircuitBreaker:
                 # Any failure in half-open immediately opens circuit
                 self._transition_to_open()
 
-            elif self._stats.state == CircuitState.CLOSED:
-                if self._stats.failure_count >= self.config.failure_threshold:
-                    self._transition_to_open()
+            elif (
+                self._stats.state == CircuitState.CLOSED
+                and self._stats.failure_count >= self.config.failure_threshold
+            ):
+                self._transition_to_open()
 
     def _should_attempt_reset(self) -> bool:
         """Check if circuit should attempt reset from open to half-open.
