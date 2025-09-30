@@ -471,6 +471,29 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _fetch_dog_snapshot_protected(self, dog_id: str) -> DomainSnapshot:
         """Fetch a dog snapshot with timeout handling."""
+        
+    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+        """Protected fetch with timeout - called through resilience manager.
+
+        This method is wrapped by resilience patterns (circuit breaker + retry).
+
+        Args:
+            dog_id: Dog identifier
+
+        Returns:
+            Dog data dictionary
+
+        Raises:
+            TimeoutError: If fetch takes too long
+            ConfigEntryAuthFailed: If authentication fails
+            NetworkError: If network-related errors occur
+            ValidationError: If dog configuration is invalid
+        """
+        async with asyncio.timeout(API_TIMEOUT):
+            return await self._fetch_dog_data(dog_id)
+
+    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+        """Fetch data for a single dog with enhanced error handling.
 
         async with asyncio.timeout(API_TIMEOUT):
             return await self._fetch_dog_snapshot(dog_id)
