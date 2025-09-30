@@ -317,7 +317,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Ensure runtime storage contains placeholders so entities do not read
         # from an empty mapping during the first coordinator refresh.
         for dog_id in self._configured_dog_ids:
-            self._data.setdefault(dog_id, {})
+            self._data.setdefault(dog_id, self._get_empty_dog_data())
 
         # Clear adapter caches to guarantee fresh data after reloads.
         self._modules.clear_caches()
