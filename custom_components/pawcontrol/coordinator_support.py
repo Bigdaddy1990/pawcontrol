@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import Any, Mapping as TypingMapping
 
 from .const import (
     ALL_MODULES,
@@ -186,59 +186,112 @@ class CoordinatorMetrics:
 
     def update_statistics(
         self,
+        *,
         cache_entries: int,
         cache_hit_rate: float,
         last_update: Any,
         interval: timedelta | None,
     ) -> dict[str, Any]:
+        update_interval = (interval or timedelta()).total_seconds()
         return {
-            "total_updates": self.update_count,
-            "successful_updates": self.successful_cycles,
-            "failed": self.failed_cycles,
-            "success_rate": self.success_rate_percent,
-            "cache_entries": cache_entries,
-            "cache_hit_rate": cache_hit_rate,
-            "consecutive_errors": self.consecutive_errors,
-            "last_update": last_update,
-            "update_interval": (interval or timedelta()).total_seconds(),
+            "update_counts": {
+                "total": self.update_count,
+                "successful": self.successful_cycles,
+                "failed": self.failed_cycles,
+            },
+            "performance_metrics": {
+                "success_rate": round(self.success_rate_percent, 2),
+                "cache_entries": cache_entries,
+                "cache_hit_rate": round(cache_hit_rate, 2),
+                "consecutive_errors": self.consecutive_errors,
+                "last_update": last_update,
+                "update_interval": update_interval,
+                "api_calls": 0,
+            },
+            "health_indicators": {
+                "consecutive_errors": self.consecutive_errors,
+                "stability_window_ok": self.consecutive_errors < 5,
+            },
         }
 
     def runtime_statistics(
         self,
+        *,
         cache_metrics: Any,
         total_dogs: int,
         last_update: Any,
         interval: timedelta | None,
     ) -> dict[str, Any]:
+        update_interval = (interval or timedelta()).total_seconds()
+        cache_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
         return {
-            "total_dogs": total_dogs,
-            "update_count": self.update_count,
-            "error_count": self.failed_cycles,
-            "consecutive_errors": self.consecutive_errors,
-            "error_rate": (
-                self.failed_cycles / self.update_count if self.update_count else 0.0
-            ),
-            "last_update": last_update,
-            "update_interval": (interval or timedelta()).total_seconds(),
+            "update_counts": {
+                "total": self.update_count,
+                "successful": self.successful_cycles,
+                "failed": self.failed_cycles,
+            },
+            "context": {
+                "total_dogs": total_dogs,
+                "last_update": last_update,
+                "update_interval": update_interval,
+            },
+            "error_summary": {
+                "consecutive_errors": self.consecutive_errors,
+                "error_rate": (
+                    self.failed_cycles / self.update_count if self.update_count else 0.0
+                ),
+            },
             "cache_performance": {
                 "hits": getattr(cache_metrics, "hits", 0),
                 "misses": getattr(cache_metrics, "misses", 0),
                 "entries": getattr(cache_metrics, "entries", 0),
-                "hit_rate": getattr(cache_metrics, "hit_rate", 0.0) / 100,
+                "hit_rate": cache_hit_rate / 100,
             },
         }
 
 
-@dataclass(slots=True)
-class UpdateResult:
-    """Container for update outcomes."""
+MANAGER_ATTRIBUTES: tuple[str, ...] = (
+    "data_manager",
+    "feeding_manager",
+    "walk_manager",
+    "notification_manager",
+    "gps_geofence_manager",
+    "geofencing_manager",
+    "weather_health_manager",
+    "garden_manager",
+)
 
-    payload: dict[str, dict[str, Any]] = field(default_factory=dict)
-    errors: int = 0
 
-    def add_success(self, dog_id: str, data: dict[str, Any]) -> None:
-        self.payload[dog_id] = data
+def bind_runtime_managers(
+    coordinator: Any,
+    modules: Any,
+    managers: TypingMapping[str, Any],
+) -> None:
+    """Bind runtime managers to the coordinator and adapters."""
 
-    def add_error(self, dog_id: str, data: dict[str, Any]) -> None:
-        self.errors += 1
-        self.payload[dog_id] = data
+    for attr in MANAGER_ATTRIBUTES:
+        setattr(coordinator, attr, managers.get(attr))
+
+    gps_manager = managers.get("gps_geofence_manager")
+    notification_manager = managers.get("notification_manager")
+    if gps_manager and notification_manager and hasattr(
+        gps_manager, "set_notification_manager"
+    ):
+        gps_manager.set_notification_manager(notification_manager)
+
+    modules.attach_managers(
+        data_manager=managers.get("data_manager"),
+        feeding_manager=managers.get("feeding_manager"),
+        walk_manager=managers.get("walk_manager"),
+        gps_geofence_manager=managers.get("gps_geofence_manager"),
+        weather_health_manager=managers.get("weather_health_manager"),
+        garden_manager=managers.get("garden_manager"),
+    )
+
+
+def clear_runtime_managers(coordinator: Any, modules: Any) -> None:
+    """Clear bound runtime managers from the coordinator."""
+
+    for attr in MANAGER_ATTRIBUTES:
+        setattr(coordinator, attr, None)
+    modules.detach_managers()

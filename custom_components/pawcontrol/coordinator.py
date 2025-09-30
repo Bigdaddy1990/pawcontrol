@@ -1,11 +1,9 @@
 """Coordinator for the PawControl integration."""
 
-"""Coordinator for the PawControl integration."""
-
 from __future__ import annotations
 
 import logging
-import time
+from collections.abc import Iterable, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -23,14 +21,28 @@ from .const import (
     CONF_EXTERNAL_INTEGRATIONS,
     UPDATE_INTERVALS,
 )
-from .coordinator_runtime import AdaptivePollingController, EntityBudgetSnapshot
-from .coordinator_support import CoordinatorMetrics, DogConfigRegistry, UpdateResult
+from .coordinator_runtime import (
+    AdaptivePollingController,
+    CoordinatorRuntime,
+    EntityBudgetSnapshot,
+    RuntimeCycleInfo,
+    summarize_entity_budgets,
+)
+from .coordinator_support import (
+    CoordinatorMetrics,
+    DogConfigRegistry,
+    bind_runtime_managers,
+    MANAGER_ATTRIBUTES,
+    clear_runtime_managers as unbind_runtime_managers,
+)
+from .coordinator_insights import (
+    build_performance_snapshot,
+    build_security_scorecard,
+)
 from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
     ensure_background_task,
-    fetch_all_dogs,
-    fetch_single_dog,
     run_maintenance,
 )
 from .coordinator_tasks import (
@@ -58,7 +70,7 @@ _LOGGER = logging.getLogger(__name__)
 CACHE_TTL_SECONDS = 300
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 
-__all__ = ["EntityBudgetSnapshot", "PawControlCoordinator"]
+__all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -94,16 +106,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             config_entry=entry,
         )
 
-        use_external_api = bool(entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False))
-        self._api_client = self._build_api_client(
-            endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
-            token=entry.options.get(CONF_API_TOKEN, ""),
-        )
-
         self._modules = CoordinatorModuleAdapters(
             session=self.session,
             config_entry=entry,
-            use_external_api=use_external_api,
+            use_external_api=self._use_external_api,
             cache_ttl=timedelta(seconds=CACHE_TTL_SECONDS),
             api_client=self._api_client,
         )
@@ -115,6 +121,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._entity_budget_snapshots: dict[str, EntityBudgetSnapshot] = {}
         self._setup_complete = False
         self._maintenance_unsub: callback | None = None
+        self._last_cycle: RuntimeCycleInfo | None = None
 
         self.data_manager: PawControlDataManager | None
         self.feeding_manager: FeedingManager | None
@@ -125,16 +132,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.weather_health_manager: WeatherHealthManager | None
         self.garden_manager: GardenManager | None
 
-        for attr in (
-            "data_manager",
-            "feeding_manager",
-            "walk_manager",
-            "notification_manager",
-            "gps_geofence_manager",
-            "geofencing_manager",
-            "weather_health_manager",
-            "garden_manager",
-        ):
+        for attr in MANAGER_ATTRIBUTES:
             setattr(self, attr, None)
 
         self.resilience_manager = ResilienceManager(hass)
@@ -211,19 +209,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._entity_budget_snapshots:
             return 0.0
 
-        dog_ids = self.registry.ids()
-        data, cycle = await self._runtime.execute_cycle(
-            dog_ids,
-            self._data,
-            empty_payload_factory=self.registry.empty_payload,
-        )
+        summary = summarize_entity_budgets(self._entity_budget_snapshots.values())
+        total_capacity = summary.get("total_capacity", 0)
         if total_capacity <= 0:
             return 0.0
-        total_allocated = sum(
-            snapshot.total_allocated
-            for snapshot in self._entity_budget_snapshots.values()
-        )
-        return max(0.0, min(1.0, total_allocated / total_capacity))
+        ratio = summary.get("total_allocated", 0) / total_capacity
+        return max(0.0, min(1.0, float(ratio)))
 
     def attach_runtime_managers(
         self,
@@ -237,47 +228,23 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         weather_health_manager: WeatherHealthManager | None = None,
         garden_manager: GardenManager | None = None,
     ) -> None:
-        managers = {
-            "data_manager": data_manager,
-            "feeding_manager": feeding_manager,
-            "walk_manager": walk_manager,
-            "notification_manager": notification_manager,
-            "gps_geofence_manager": gps_geofence_manager,
-            "geofencing_manager": geofencing_manager,
-            "weather_health_manager": weather_health_manager,
-            "garden_manager": garden_manager,
-        }
-
-        for attr, value in managers.items():
-            setattr(self, attr, value)
-
-        if managers["gps_geofence_manager"]:
-            managers["gps_geofence_manager"].set_notification_manager(
-                notification_manager
-            )
-
-        self._modules.attach_managers(
-            data_manager=managers["data_manager"],
-            feeding_manager=managers["feeding_manager"],
-            walk_manager=managers["walk_manager"],
-            gps_geofence_manager=managers["gps_geofence_manager"],
-            weather_health_manager=managers["weather_health_manager"],
-            garden_manager=managers["garden_manager"],
+        bind_runtime_managers(
+            self,
+            self._modules,
+            {
+                "data_manager": data_manager,
+                "feeding_manager": feeding_manager,
+                "walk_manager": walk_manager,
+                "notification_manager": notification_manager,
+                "gps_geofence_manager": gps_geofence_manager,
+                "geofencing_manager": geofencing_manager,
+                "weather_health_manager": weather_health_manager,
+                "garden_manager": garden_manager,
+            },
         )
 
     def clear_runtime_managers(self) -> None:
-        for attr in (
-            "data_manager",
-            "feeding_manager",
-            "walk_manager",
-            "notification_manager",
-            "gps_geofence_manager",
-            "geofencing_manager",
-            "weather_health_manager",
-            "garden_manager",
-        ):
-            setattr(self, attr, None)
-        self._modules.detach_managers()
+        unbind_runtime_managers(self, self._modules)
 
     async def _async_setup(self) -> None:
         if self._setup_complete:
@@ -298,32 +265,8 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
-        self._metrics.start_cycle()
-        cycle_start = time.perf_counter()
-        result = await self._fetch_all_dogs(dog_ids)
-
-        duration = max(time.perf_counter() - cycle_start, 0.0)
-        error_ratio = result.errors / len(dog_ids)
-        new_interval = self._adaptive_polling.record_cycle(
-            duration=duration,
-            success=result.errors < len(dog_ids),
-            error_ratio=error_ratio,
-        )
-        self._apply_adaptive_interval(new_interval)
-
-        success_rate, all_failed = self._metrics.record_cycle(
-            len(dog_ids), result.errors
-        )
-        if all_failed:
-            raise CoordinatorUpdateFailed(f"All {len(dog_ids)} dogs failed to update")
-        if success_rate < 0.5:
-            _LOGGER.warning(
-                "Low success rate: %d/%d dogs updated successfully",
-                len(dog_ids) - result.errors,
-                len(dog_ids),
-            )
-
-        self._data = result.payload
+        data, _cycle = await self._execute_cycle(dog_ids)
+        self._data = data
         return self._data
 
     def _apply_adaptive_interval(self, new_interval: float) -> None:
@@ -338,23 +281,50 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.update_interval = timedelta(seconds=new_interval)
 
-    async def _fetch_all_dogs(self, dog_ids: list[str]) -> UpdateResult:
-        return await fetch_all_dogs(self, dog_ids)
-
-    async def _fetch_with_resilience(self, dog_id: str) -> dict[str, Any]:
-        return await self.resilience_manager.execute_with_resilience(
-            self._fetch_dog_data_protected,
-            dog_id,
-            circuit_breaker_name=f"dog_data_{dog_id}",
-            retry_config=self._retry_config,
+    async def _execute_cycle(
+        self, dog_ids: Sequence[str]
+    ) -> tuple[dict[str, dict[str, Any]], RuntimeCycleInfo]:
+        data, cycle = await self._runtime.execute_cycle(
+            dog_ids,
+            self._data,
+            empty_payload_factory=self.registry.empty_payload,
         )
+        self._apply_adaptive_interval(cycle.new_interval)
+        self._last_cycle = cycle
+        return data, cycle
 
-    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
-        async with asyncio.timeout(API_TIMEOUT):
-            return await self._fetch_dog_data(dog_id)
+    async def _refresh_subset(self, dog_ids: Sequence[str]) -> None:
+        if not dog_ids:
+            return
 
-    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
-        return await fetch_single_dog(self, dog_id)
+        data, _cycle = await self._execute_cycle(dog_ids)
+        for dog_id in dog_ids:
+            if dog_id in data:
+                self._data[dog_id] = data[dog_id]
+
+        self.async_set_updated_data(dict(self._data))
+
+    async def async_refresh_dog(self, dog_id: str) -> None:
+        if dog_id not in self.registry.ids():
+            _LOGGER.debug("Ignoring refresh for unknown dog_id: %s", dog_id)
+            return
+
+        await self._refresh_subset([dog_id])
+
+    async def async_request_selective_refresh(
+        self, dog_ids: Iterable[str] | None = None
+    ) -> None:
+        """Refresh a subset of dogs while keeping existing payloads."""
+
+        if dog_ids is None:
+            await self.async_request_refresh()
+            return
+
+        unique_ids = [dog_id for dog_id in dict.fromkeys(dog_ids) if dog_id]
+        if not unique_ids:
+            return
+
+        await self._refresh_subset(unique_ids)
 
     def get_dog_config(self, dog_id: str) -> Any:
         return self.registry.get(dog_id)
@@ -379,6 +349,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def get_configured_dog_name(self, dog_id: str) -> str | None:
         return self.registry.get_name(dog_id)
 
+    def get_dog_info(self, dog_id: str) -> dict[str, Any]:
+        dog_data = self.get_dog_data(dog_id)
+        if dog_data and isinstance(dog_data.get("dog_info"), dict):
+            return dog_data["dog_info"]
+        return self.registry.get(dog_id) or {}
+
     @property
     def available(self) -> bool:
         return self.last_update_success and self._metrics.consecutive_errors < 5
@@ -388,6 +364,28 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def get_statistics(self) -> dict[str, Any]:
         return build_runtime_statistics(self)
+
+    def get_performance_snapshot(self) -> dict[str, Any]:
+        """Return a concise performance snapshot for diagnostics surfaces."""
+
+        return build_performance_snapshot(
+            self.get_update_statistics(), self._last_cycle
+        )
+
+    def get_security_scorecard(self) -> dict[str, Any]:
+        """Return security posture checks derived from runtime state."""
+
+        status = None
+        if self.notification_manager and hasattr(
+            self.notification_manager, "webhook_security_status"
+        ):
+            status = self.notification_manager.webhook_security_status()
+
+        return build_security_scorecard(
+            status,
+            adaptive_interval=self._adaptive_polling.current_interval,
+            configured_interval=self.update_interval.total_seconds(),
+        )
 
     @callback
     def async_start_background_tasks(self) -> None:
