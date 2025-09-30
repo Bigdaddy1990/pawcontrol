@@ -345,7 +345,7 @@ class WeatherHealthManager:
         self._translations: dict[str, Any] = {}
         self._english_translations: dict[str, Any] = {}
         self._current_forecast: WeatherForecast | None = None
-        
+
         # RESILIENCE: Fault tolerance for weather API calls
         self.resilience_manager = resilience_manager
         self._retry_config = RetryConfig(

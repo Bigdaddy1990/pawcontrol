@@ -146,6 +146,5 @@ Dieser Fahrplan beschreibt, wie die Integration in den Bereichen Architektur, Te
 ## ✅ Abschlusskriterien
 - Alle Qualitätsmetriken erfüllt und im CI überwacht.
 - Dokumentierte Betriebshandbücher für Support & On-Call.
-- Offizielles Release „Paw Control 1.0 – Perfect Pet Management“. 
+- Offizielles Release „Paw Control 1.0 – Perfect Pet Management“.
 - Positive Community-Feedback-Schleife (Issues, Discussions) etabliert.
-

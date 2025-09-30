@@ -72,7 +72,7 @@ class PawControlDeviceClient:
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
         self._timeout = timeout or _DEFAULT_TIMEOUT
         self._resilience_manager = resilience_manager
-        
+
         # Configure retry for transient failures
         self._retry_config = RetryConfig(
             max_attempts=3,
@@ -102,7 +102,7 @@ class PawControlDeviceClient:
             )
         else:
             response = await self._async_request("GET", path)
-        
+
         try:
             payload = await response.json()
         except Exception as err:  # pragma: no cover - defensive
@@ -116,16 +116,16 @@ class PawControlDeviceClient:
 
     async def _async_request_protected(self, method: str, path: str) -> ClientResponse:
         """Protected request wrapper - called through resilience patterns.
-        
+
         This method is wrapped by circuit breaker and retry logic.
-        
+
         Args:
             method: HTTP method
             path: API path
-            
+
         Returns:
             ClientResponse
-            
+
         Raises:
             ConfigEntryAuthFailed: If authentication fails
             RateLimitError: If rate limited
