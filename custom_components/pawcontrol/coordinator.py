@@ -471,7 +471,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _fetch_dog_snapshot_protected(self, dog_id: str) -> DomainSnapshot:
         """Fetch a dog snapshot with timeout handling."""
-        
+
     async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
         """Protected fetch with timeout - called through resilience manager.
 
