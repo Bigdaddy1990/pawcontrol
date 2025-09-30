@@ -29,6 +29,7 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ALL_MODULES,
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
     CONF_DOG_ID,
@@ -516,7 +517,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 *(task for _, task in module_tasks), return_exceptions=True
             )
 
-            for (module_name, _), result in zip(module_tasks, results, strict=False):
+            for (module_name, _), result in zip(module_tasks, results, strict=True):
                 if isinstance(result, Exception):
                     # PLATINUM: Module-specific error handling
                     if isinstance(result, GPSUnavailableError):
@@ -553,15 +554,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns:
             Empty dog data dictionary
         """
-        return {
+        dog_data: dict[str, Any] = {
             "dog_info": {},
             "status": "unknown",
             "last_update": None,
-            "feeding": {},
-            "walk": {},
-            "gps": {},
-            "health": {},
         }
+
+        for module in sorted(ALL_MODULES):
+            dog_data[module] = {}
+
+        return dog_data
 
     def _calculate_update_interval(self) -> int:
         """Calculate optimized update interval with validation.
