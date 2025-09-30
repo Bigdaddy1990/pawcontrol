@@ -71,16 +71,15 @@ class DomainSnapshot:
     def as_dict(self) -> dict[str, Any]:
         """Return a dictionary representation for downstream consumers."""
 
+        flattened_modules = {
+            name: snapshot.as_dict() for name, snapshot in self.modules.items()
+        }
         base = {
             "dog_info": dict(self.dog_info),
             "status": self.status,
             "last_update": self.last_updated.isoformat()
             if self.last_updated
             else None,
-            "modules": {name: snapshot.as_dict() for name, snapshot in self.modules.items()},
             "metadata": dict(self.metadata),
-        }
-        flattened_modules = {
-            name: snapshot.as_dict() for name, snapshot in self.modules.items()
         }
         return {**flattened_modules, **base}
