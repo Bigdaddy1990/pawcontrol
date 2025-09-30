@@ -519,7 +519,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         if gps_geofence_manager:
             gps_geofence_manager.resilience_manager = coordinator.resilience_manager
             _LOGGER.debug("Shared ResilienceManager with GPS manager")
-        
+
         if notification_manager:
             notification_manager.resilience_manager = coordinator.resilience_manager
             _LOGGER.debug("Shared ResilienceManager with Notification manager")

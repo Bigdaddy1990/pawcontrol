@@ -886,7 +886,7 @@ class GPSGeofenceManager:
 
     async def _update_location_from_device_tracker(self, dog_id: str) -> None:
         """Try to update location from associated device tracker with retry."""
-        
+
         async def _fetch_device_tracker_location() -> None:
             """Internal function to fetch location - wrapped by retry logic."""
             # Try to find device tracker entity for this dog
@@ -917,7 +917,7 @@ class GPSGeofenceManager:
                             return
 
             # Could also check for companion app entities, etc.
-        
+
         # RESILIENCE: Wrap in retry logic for transient failures
         try:
             await self.resilience_manager.execute_with_resilience(
