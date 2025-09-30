@@ -100,18 +100,29 @@ async def async_setup_entry(
         dog_id = dog[CONF_DOG_ID]
         dog_name = dog[CONF_DOG_NAME]
 
-        # Use entity factory to check if device tracker should be created
-        config = entity_factory.create_entity_config(
-            dog_id=dog_id,
-            entity_type="device_tracker",
-            module="gps",
-            profile=profile,
-            priority=8,  # High priority for GPS tracking
+        snapshot = entity_factory.get_budget_snapshot(dog_id)
+        base_allocation = snapshot.total_allocated if snapshot else 0
+        entity_factory.begin_budget(
+            dog_id,
+            profile,
+            base_allocation=base_allocation,
         )
 
-        if config:
-            tracker = PawControlGPSTracker(coordinator, dog_id, dog_name)
-            entities.append(tracker)
+        # Use entity factory to check if device tracker should be created
+        try:
+            config = entity_factory.create_entity_config(
+                dog_id=dog_id,
+                entity_type="device_tracker",
+                module="gps",
+                profile=profile,
+                priority=8,  # High priority for GPS tracking
+            )
+
+            if config:
+                tracker = PawControlGPSTracker(coordinator, dog_id, dog_name)
+                entities.append(tracker)
+        finally:
+            entity_factory.finalize_budget(dog_id, profile)
 
     if entities:
         await async_call_add_entities(

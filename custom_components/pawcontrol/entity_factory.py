@@ -14,13 +14,16 @@ import asyncio
 import logging
 from collections import OrderedDict
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
+
+from .coordinator import EntityBudgetSnapshot
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
@@ -271,6 +274,66 @@ class EntityEstimate:
     module_signature: tuple[tuple[str, bool], ...]
 
 
+@dataclass(slots=True)
+class EntityBudget:
+    """Track entity allocation against a profile budget."""
+
+    dog_id: str
+    profile: str
+    capacity: int
+    base_allocation: int = 0
+    dynamic_allocation: int = 0
+    requested_entities: list[str] = field(default_factory=list)
+    denied_requests: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Normalize base allocation to remain within the capacity."""
+
+        if self.base_allocation > self.capacity:
+            _LOGGER.warning(
+                "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only
+                self.base_allocation,
+                self.capacity,
+                self.dog_id,
+                self.profile,
+            )
+            self.base_allocation = self.capacity
+
+    @property
+    def remaining(self) -> int:
+        """Return remaining entity slots in the budget."""
+
+        return max(self.capacity - self.base_allocation - self.dynamic_allocation, 0)
+
+    def reserve(self, identifier: str, *, priority: int, weight: int = 1) -> bool:
+        """Reserve capacity for an entity request."""
+
+        if weight <= 0:
+            weight = 1
+
+        if self.remaining < weight:
+            self.denied_requests.append(f"{identifier}|p{priority}")
+            return False
+
+        self.dynamic_allocation += weight
+        self.requested_entities.append(f"{identifier}|p{priority}")
+        return True
+
+    def snapshot(self) -> EntityBudgetSnapshot:
+        """Create a snapshot for diagnostics and coordinator reporting."""
+
+        return EntityBudgetSnapshot(
+            dog_id=self.dog_id,
+            profile=self.profile,
+            capacity=self.capacity,
+            base_allocation=self.base_allocation,
+            dynamic_allocation=self.dynamic_allocation,
+            requested_entities=tuple(self.requested_entities),
+            denied_requests=tuple(self.denied_requests),
+            recorded_at=datetime.now(UTC),
+        )
+
+
 class EntityFactory:
     """Factory for creating entities based on profile and configuration.
 
@@ -297,6 +360,8 @@ class EntityFactory:
         self._last_module_weights: dict[str, int] = {}
         self._last_synergy_score: int = 0
         self._last_triad_score: int = 0
+        self._active_budgets: dict[tuple[str, str], EntityBudget] = {}
+        self._last_budget_snapshots: dict[str, EntityBudgetSnapshot] = {}
         self._prewarm_caches()
 
     def _prewarm_caches(self) -> None:
@@ -346,6 +411,55 @@ class EntityFactory:
             module_weights[a] + module_weights[b] + module_weights[c]
             for a, b, c in combinations(module_weights, 3)
         )
+
+    def begin_budget(
+        self, dog_id: str, profile: str, *, base_allocation: int = 0
+    ) -> EntityBudget:
+        """Begin tracking an entity budget for a dog/profile combination."""
+
+        profile_info = self.get_profile_info(profile)
+        capacity = int(profile_info.get("max_entities", 0) or 0)
+        budget = EntityBudget(
+            dog_id=dog_id,
+            profile=profile,
+            capacity=capacity,
+            base_allocation=base_allocation,
+        )
+        self._active_budgets[(dog_id, profile)] = budget
+        return budget
+
+    def get_budget(self, dog_id: str, profile: str) -> EntityBudget | None:
+        """Return the active budget for the provided dog and profile."""
+
+        return self._active_budgets.get((dog_id, profile))
+
+    def finalize_budget(
+        self, dog_id: str, profile: str
+    ) -> EntityBudgetSnapshot | None:
+        """Finalize and report the entity budget for a dog/profile."""
+
+        key = (dog_id, profile)
+        budget = self._active_budgets.pop(key, None)
+        if budget is None:
+            return None
+
+        snapshot = budget.snapshot()
+        self._last_budget_snapshots[dog_id] = snapshot
+
+        if self.coordinator is not None:
+            try:
+                self.coordinator.report_entity_budget(snapshot)
+            except AttributeError:  # pragma: no cover - defensive guard
+                _LOGGER.debug(
+                    "Coordinator does not support entity budget reporting",  # pragma: no cover - log only
+                )
+
+        return snapshot
+
+    def get_budget_snapshot(self, dog_id: str) -> EntityBudgetSnapshot | None:
+        """Return the most recent budget snapshot for a dog."""
+
+        return self._last_budget_snapshots.get(dog_id)
 
     def _enforce_metrics_runtime(self) -> None:
         """Yield control to the event loop after intensive calculations."""
@@ -741,6 +855,22 @@ class EntityFactory:
                 priority,
             )
             return None
+
+        budget = self.get_budget(dog_id, profile)
+        if budget is not None:
+            identifier_parts = [module, normalized_type]
+            entity_key = kwargs.get("entity_key")
+            if entity_key is not None:
+                identifier_parts.append(str(entity_key))
+            identifier = ":".join(identifier_parts)
+            if not budget.reserve(identifier, priority=priority):
+                _LOGGER.debug(
+                    "Entity budget exhausted for %s/%s (identifier: %s)",
+                    dog_id,
+                    profile,
+                    identifier,
+                )
+                return None
 
         # Build entity configuration
         config = {

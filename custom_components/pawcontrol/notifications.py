@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -19,11 +20,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
+from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt as dt_util
 
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
+from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -459,6 +463,7 @@ class PawControlNotificationManager:
             NotificationChannel.MEDIA_PLAYER: self._send_media_player_notification,
             NotificationChannel.SLACK: self._send_slack_notification,
             NotificationChannel.DISCORD: self._send_discord_notification,
+            NotificationChannel.WEBHOOK: self._send_webhook_notification,
         }
 
         # Wrap handlers with error handling and performance monitoring
@@ -1236,6 +1241,78 @@ class PawControlNotificationManager:
                 channel.value,
                 err,
             )
+
+    def _build_webhook_payload(self, notification: NotificationEvent) -> dict[str, Any]:
+        """Build a structured payload for webhook delivery."""
+
+        return {
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "dog_id": notification.dog_id,
+            "priority": notification.priority.value,
+            "priority_numeric": notification.priority.value_numeric,
+            "channels": [channel.value for channel in notification.channels],
+            "created_at": notification.created_at.isoformat(),
+            "expires_at": notification.expires_at.isoformat()
+            if notification.expires_at
+            else None,
+            "data": notification.data,
+            "targeted_persons": notification.targeted_persons,
+        }
+
+    async def _send_webhook_notification(self, notification: NotificationEvent) -> None:
+        """Send notification payload to a configured webhook endpoint."""
+
+        config_key = notification.dog_id if notification.dog_id else "system"
+        config = await self._get_config_cached(config_key)
+        webhook_url = config.custom_settings.get("webhook_url")
+        if not webhook_url:
+            raise WebhookSecurityError(
+                f"Webhook channel requested without webhook_url for {config_key}"
+            )
+
+        payload = self._build_webhook_payload(notification)
+        payload_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+        headers = {"Content-Type": "application/json"}
+        secret = config.custom_settings.get("webhook_secret")
+        header_prefix = config.custom_settings.get(
+            "webhook_header_prefix", "X-PawControl"
+        )
+
+        if secret:
+            algorithm = config.custom_settings.get("webhook_algorithm", "sha256")
+            tolerance = int(
+                config.custom_settings.get(
+                    "webhook_tolerance_seconds",
+                    WebhookSecurityManager.DEFAULT_TOLERANCE_SECONDS,
+                )
+            )
+            manager = WebhookSecurityManager(
+                secret,
+                algorithm=algorithm,
+                tolerance_seconds=tolerance,
+            )
+            headers.update(manager.build_headers(payload_bytes, header_prefix=header_prefix))
+
+        timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
+        session = async_get_clientsession(self._hass)
+
+        try:
+            async with session.post(
+                webhook_url,
+                data=payload_bytes,
+                headers=headers,
+                timeout=ClientTimeout(total=timeout_seconds),
+            ) as response:
+                if response.status >= 400:
+                    body = await response.text()
+                    raise WebhookSecurityError(
+                        f"Webhook delivery failed with status {response.status}: {body[:200]}"
+                    )
+        except ClientError as err:
+            raise WebhookSecurityError(f"Webhook delivery failed: {err}") from err
 
     # OPTIMIZE: Enhanced notification handlers with better error handling and features
     async def _send_persistent_notification(
