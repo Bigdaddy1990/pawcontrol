@@ -253,12 +253,12 @@ class CoordinatorMetrics:
 MANAGER_ATTRIBUTES: tuple[str, ...] = (
     "data_manager",
     "feeding_manager",
-    "walk_manager",
-    "notification_manager",
-    "gps_geofence_manager",
-    "geofencing_manager",
-    "weather_health_manager",
     "garden_manager",
+    "geofencing_manager",
+    "gps_geofence_manager",
+    "notification_manager",
+    "walk_manager",
+    "weather_health_manager",
 )
 
 
