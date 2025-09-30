@@ -62,11 +62,11 @@ class DomainSnapshot:
     """Normalized runtime snapshot for a PawControl dog domain."""
 
     dog_id: str
-    status: str
     dog_info: Mapping[str, Any]
-    modules: dict[str, ModuleSnapshot] = field(default_factory=dict)
+    status: str
     last_updated: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    modules: dict[str, ModuleSnapshot] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         """Return a dictionary representation for downstream consumers."""
