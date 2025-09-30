@@ -43,12 +43,8 @@ from .const import (
     UPDATE_INTERVALS,
 )
 from .device_api import PawControlDeviceClient
-from .exceptions import (
-    GPSUnavailableError,
-    NetworkError,
-    RateLimitError,
-    ValidationError,
-)
+from .domain import DogDomainOrchestrator, DomainSnapshot
+from .exceptions import ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import (
     CircuitBreakerConfig,
@@ -175,6 +171,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             use_external_api=self._use_external_api,
             cache_ttl=timedelta(seconds=CACHE_TTL_SECONDS),
             api_client=self._api_client,
+        )
+        self._domain_orchestrator = DogDomainOrchestrator(
+            self._modules, logger=_LOGGER.getChild("domain")
         )
 
         # Runtime data and performance tracking
@@ -318,7 +317,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Ensure runtime storage contains placeholders so entities do not read
         # from an empty mapping during the first coordinator refresh.
         for dog_id in self._configured_dog_ids:
-            self._data.setdefault(dog_id, {})
+            self._data.setdefault(
+                dog_id, self._domain_orchestrator.empty_snapshot(dog_id).as_dict()
+            )
 
         # Clear adapter caches to guarantee fresh data after reloads.
         self._modules.clear_caches()
@@ -365,13 +366,13 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             try:
                 # Use resilience manager with circuit breaker and retry
-                result = await self.resilience_manager.execute_with_resilience(
-                    self._fetch_dog_data_protected,
+                snapshot = await self.resilience_manager.execute_with_resilience(
+                    self._fetch_dog_snapshot_protected,
                     dog_id,
                     circuit_breaker_name=f"dog_data_{dog_id}",
                     retry_config=self._retry_config,
                 )
-                all_data[dog_id] = result
+                all_data[dog_id] = snapshot.as_dict()
                 return  # Success
 
             except ConfigEntryAuthFailed:
@@ -382,7 +383,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Data validation errors shouldn't be retried
                 errors += 1
                 _LOGGER.error("Invalid configuration for dog %s: %s", dog_id, err)
-                all_data[dog_id] = self._get_empty_dog_data()
+                all_data[dog_id] = self._domain_orchestrator.empty_snapshot(
+                    dog_id
+                ).as_dict()
             except Exception as err:
                 # All other errors (including RetryExhaustedError, circuit breaker, etc.)
                 errors += 1
@@ -393,7 +396,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     err.__class__.__name__,
                 )
                 # Use cached data if available, otherwise empty
-                all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
+                all_data[dog_id] = self._data.get(
+                    dog_id,
+                    self._domain_orchestrator.empty_snapshot(dog_id).as_dict(),
+                )
 
         # Execute with proper task group error handling
         try:
@@ -463,6 +469,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
         }
 
+    async def _fetch_dog_snapshot_protected(self, dog_id: str) -> DomainSnapshot:
+        """Fetch a dog snapshot with timeout handling."""
+
     async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
         """Protected fetch with timeout - called through resilience manager.
 
@@ -486,84 +495,19 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Fetch data for a single dog with enhanced error handling.
 
-        Args:
-            dog_id: Dog identifier
+        async with asyncio.timeout(API_TIMEOUT):
+            return await self._fetch_dog_snapshot(dog_id)
 
-        Returns:
-            Dog data dictionary
+    async def _fetch_dog_snapshot(self, dog_id: str) -> DomainSnapshot:
+        """Fetch the runtime snapshot for a single dog."""
 
-        Raises:
-            ValidationError: If dog configuration is invalid
-            NetworkError: If network-related errors occur
-            ConfigEntryAuthFailed: If authentication fails
-        """
         dog_config = self.get_dog_config(dog_id)
         if not dog_config:
             raise ValidationError("dog_id", dog_id, "Dog configuration not found")
 
-        data = {
-            "dog_info": dog_config,
-            "status": "online",
-            "last_update": dt_util.utcnow().isoformat(),
-        }
-
-        modules = dog_config.get("modules", {})
-
-        # PLATINUM: Enhanced module data fetching with dedicated adapters
-        module_tasks = self._modules.build_tasks(dog_id, modules)
-
-        # Execute module tasks concurrently with enhanced error handling
-        if module_tasks:
-            results = await asyncio.gather(
-                *(task for _, task in module_tasks), return_exceptions=True
-            )
-
-            for (module_name, _), result in zip(module_tasks, results, strict=False):
-                if isinstance(result, Exception):
-                    # PLATINUM: Module-specific error handling
-                    if isinstance(result, GPSUnavailableError):
-                        _LOGGER.debug("GPS unavailable for %s: %s", dog_id, result)
-                        data[module_name] = {
-                            "status": "unavailable",
-                            "reason": str(result),
-                        }
-                    elif isinstance(result, NetworkError):
-                        _LOGGER.warning(
-                            "Network error fetching %s data for %s: %s",
-                            module_name,
-                            dog_id,
-                            result,
-                        )
-                        data[module_name] = {"status": "network_error"}
-                    else:
-                        _LOGGER.warning(
-                            "Failed to fetch %s data for %s: %s (%s)",
-                            module_name,
-                            dog_id,
-                            result,
-                            result.__class__.__name__,
-                        )
-                        data[module_name] = {"status": "error"}
-                else:
-                    data[module_name] = result
-
-        return data
-
-    def _get_empty_dog_data(self) -> dict[str, Any]:
-        """Get empty dog data structure.
-
-        Returns:
-            Empty dog data dictionary
-        """
-        return {
-            "dog_info": {},
-            "status": "unknown",
-            "last_update": None,
-            "feeding": {},
-            "walk": {},
-            "gps": {},
-            "health": {},
-        }
+        return await self._domain_orchestrator.async_build_snapshot(
+            dog_id, dog_config
+        )
 
     def _calculate_update_interval(self) -> int:
         """Calculate optimized update interval with validation.
