@@ -82,4 +82,5 @@ class DomainSnapshot:
             else None,
             "metadata": dict(self.metadata),
         }
-        return {**flattened_modules, **base}
+        base.update(flattened_modules)
+        return base
