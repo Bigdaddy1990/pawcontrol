@@ -18,11 +18,17 @@ from .const import (
     CONF_EXTERNAL_INTEGRATIONS,
     UPDATE_INTERVALS,
 )
+from .coordinator_observability import (
+    EntityBudgetTracker,
+    build_performance_snapshot,
+    build_security_scorecard,
+    normalise_webhook_status,
+)
 from .coordinator_runtime import (
     API_TIMEOUT,
     AdaptivePollingController,
+    CoordinatorRuntime,
     EntityBudgetSnapshot,
-    summarize_entity_budgets,
 )
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry, UpdateResult
 from .coordinator_tasks import (
@@ -102,7 +108,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
         self._metrics = CoordinatorMetrics()
-        self._entity_budget_snapshots: dict[str, EntityBudgetSnapshot] = {}
+        self._entity_budget = EntityBudgetTracker()
         self._setup_complete = False
         self._maintenance_unsub: callback | None = None
 
@@ -194,26 +200,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
         """Receive entity budget metrics from the entity factory."""
 
-        self._entity_budget_snapshots[snapshot.dog_id] = snapshot
-        self._adaptive_polling.update_entity_saturation(self._entity_saturation())
-
-    def _entity_saturation(self) -> float:
-        """Return the current saturation ratio across all entity budgets."""
-
-        if not self._entity_budget_snapshots:
-            return 0.0
-
-        total_capacity = sum(
-            snapshot.capacity for snapshot in self._entity_budget_snapshots.values()
+        self._entity_budget.record(snapshot)
+        self._adaptive_polling.update_entity_saturation(
+            self._entity_budget.saturation()
         )
-        if total_capacity <= 0:
-            return 0.0
-
-        total_allocated = sum(
-            snapshot.total_allocated
-            for snapshot in self._entity_budget_snapshots.values()
-        )
-        return max(0.0, min(1.0, total_allocated / total_capacity))
 
     def attach_runtime_managers(
         self,
@@ -347,88 +337,33 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Return a lightweight snapshot of runtime performance metrics."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
-        entity_budget = summarize_entity_budgets(
-            self._entity_budget_snapshots.values()
+        entity_budget = self._entity_budget.summary()
+        update_interval = (
+            self.update_interval.total_seconds() if self.update_interval else 0.0
         )
-        update_interval = self.update_interval.total_seconds() if self.update_interval else 0.0
-        last_update = (
-            self.last_update_time.isoformat()
-            if getattr(self, "last_update_time", None) is not None
-            else None
-        )
+        last_update_time = getattr(self, "last_update_time", None)
 
-        return {
-            "update_counts": {
-                "total": self._metrics.update_count,
-                "successful": self._metrics.successful_cycles,
-                "failed": self._metrics.failed_cycles,
-            },
-            "performance_metrics": {
-                "last_update": last_update,
-                "last_update_success": self.last_update_success,
-                "success_rate": round(self._metrics.success_rate_percent, 2),
-                "consecutive_errors": self._metrics.consecutive_errors,
-                "update_interval_s": round(update_interval, 3),
-                "current_cycle_ms": adaptive.get("current_interval_ms"),
-            },
-            "adaptive_polling": adaptive,
-            "entity_budget": entity_budget,
-            "webhook_security": self._webhook_security_status(),
-        }
+        return build_performance_snapshot(
+            metrics=self._metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=update_interval,
+            last_update_time=last_update_time,
+            last_update_success=self.last_update_success,
+            webhook_status=self._webhook_security_status(),
+        )
 
     def get_security_scorecard(self) -> dict[str, Any]:
         """Return aggregated pass/fail status for security critical checks."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
-        target_ms = adaptive.get("target_cycle_ms", 200.0) or 200.0
-        current_ms = adaptive.get("current_interval_ms", target_ms)
-        threshold_ms = min(target_ms, 200.0)
-        adaptive_pass = current_ms <= threshold_ms
-        adaptive_check: dict[str, Any] = {
-            "pass": adaptive_pass,
-            "current_ms": current_ms,
-            "target_ms": target_ms,
-            "threshold_ms": threshold_ms,
-        }
-        if not adaptive_pass:
-            adaptive_check["reason"] = (
-                "Update interval exceeds 200ms target"
-            )
-
-        entity_summary = summarize_entity_budgets(
-            self._entity_budget_snapshots.values()
-        )
-        peak_utilisation = entity_summary.get("peak_utilization", 0.0)
-        entity_threshold = 95.0
-        entity_pass = peak_utilisation <= entity_threshold
-        entity_check: dict[str, Any] = {
-            "pass": entity_pass,
-            "summary": entity_summary,
-            "threshold_percent": entity_threshold,
-        }
-        if not entity_pass:
-            entity_check["reason"] = (
-                "Entity budget utilisation above safe threshold"
-            )
-
+        entity_summary = self._entity_budget.summary()
         webhook_status = self._webhook_security_status()
-        webhook_pass = (not webhook_status.get("configured")) or bool(
-            webhook_status.get("secure")
+        return build_security_scorecard(
+            adaptive=adaptive,
+            entity_summary=entity_summary,
+            webhook_status=webhook_status,
         )
-        webhook_check: dict[str, Any] = {"pass": webhook_pass, **webhook_status}
-        if not webhook_pass:
-            webhook_check.setdefault(
-                "reason", "Webhook configurations missing HMAC protection"
-            )
-
-        checks = {
-            "adaptive_polling": adaptive_check,
-            "entity_budget": entity_check,
-            "webhooks": webhook_check,
-        }
-        status = "pass" if all(check["pass"] for check in checks.values()) else "fail"
-
-        return {"status": status, "checks": checks}
 
     @property
     def available(self) -> bool:
@@ -454,32 +389,4 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Return normalised webhook security information."""
 
         manager = getattr(self, "notification_manager", None)
-        if manager is None or not hasattr(manager, "webhook_security_status"):
-            return {
-                "configured": False,
-                "secure": True,
-                "hmac_ready": False,
-                "insecure_configs": (),
-            }
-
-        try:
-            status = dict(manager.webhook_security_status())
-        except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.debug("Webhook security inspection failed: %s", err)
-            return {
-                "configured": True,
-                "secure": False,
-                "hmac_ready": False,
-                "insecure_configs": (),
-                "error": str(err),
-            }
-
-        status.setdefault("configured", False)
-        status.setdefault("secure", False)
-        status.setdefault("hmac_ready", False)
-        insecure = status.get("insecure_configs", ())
-        if isinstance(insecure, (list, tuple, set)):
-            status["insecure_configs"] = tuple(insecure)
-        else:
-            status["insecure_configs"] = (insecure,) if insecure else ()
-        return status
+        return normalise_webhook_status(manager)
