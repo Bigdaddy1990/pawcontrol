@@ -134,12 +134,27 @@ Dieser Fahrplan beschreibt, wie die Integration in den Bereichen Architektur, Te
 
 ## 📆 Umsetzung & Tracking
 
-| Sprint | Fokus | Key Deliverables | Erfolgskriterien |
-|--------|-------|------------------|------------------|
-| Sprint 1 | Architektur & Fehlerkultur | Manager-Struktur, Error-Catalog, ADR #001–#005 | Code Climate Maintainability > 90 %, Coordinator < 400 Zeilen |
-| Sprint 2 | Testing & Dokumentation | Test-Pyramide, Coverage-Badge, Doc-Portal-Struktur | Branch-Coverage ≥ 95 %, 100 % PRs mit Test-Nachweis |
-| Sprint 3 | Performance & Sicherheit | Adaptive Polling, Entity-Budget, HMAC-Webhooks | Update-Zyklus < 200 ms, Security Scorecard „pass“ |
-| Sprint 4 | Feinschliff & Community | Snapshot-Tests, Support-Workflows, Release-Prozess | 0 offene kritische Bugs, 2 externe Contributor:innen |
+| Sprint   | Fokus                     | Key Deliverables                                 | Erfolgskriterien                                                  |
+|----------|---------------------------|---------------------------------------------------|-------------------------------------------------------------------|
+| Sprint 1 | Architektur & Fehlerkultur | Manager-Struktur, Error-Catalog, ADR #001–#005    | Code Climate Maintainability > 90 %, Coordinator < 400 Zeilen      |
+| Sprint 2 | Testing & Dokumentation    | Test-Pyramide, Coverage-Badge, Doc-Portal-Struktur | Branch-Coverage ≥ 95 %, 100 % PRs mit Test-Nachweis               |
+| Sprint 3 | Performance & Sicherheit   | Adaptive Polling, Entity-Budget, HMAC-Webhooks     | Update-Zyklus < 200 ms, Security Scorecard „pass“                 |
+| Sprint 4 | Feinschliff & Community    | Snapshot-Tests, Support-Workflows, Release-Prozess | 0 offene kritische Bugs, 2 externe Contributor:innen              |
+
+### Sprint-Highlights
+
+- **Sprint 1 – Architektur & Fehlerkultur**
+  - *Lieferobjekte:* Aufbau der Manager-Layer, definierter Error-Catalog, ADRs #001–#005.
+  - *Erfolgskriterien:* Code Climate Maintainability > 90 %, Coordinator-Codebasis < 400 Zeilen.
+- **Sprint 2 – Testing & Dokumentation**
+  - *Lieferobjekte:* Ausformulierte Test-Pyramide, Coverage-Badge im Repository, strukturierte Dokumentations-Portal-Navigation.
+  - *Erfolgskriterien:* Branch-Coverage ≥ 95 %, alle PRs liefern dokumentierten Testnachweis.
+- **Sprint 3 – Performance & Sicherheit**
+  - *Lieferobjekte:* Adaptive Polling-Logik, Entity-Budget-Richtlinien, HMAC-gesicherte Webhooks.
+  - *Erfolgskriterien:* Update-Zyklus < 200 ms für Kernsensoren, Security Scorecard erreicht „pass“.
+- **Sprint 4 – Feinschliff & Community**
+  - *Lieferobjekte:* Snapshot-Test-Suite, Support-Workflows, Release-Prozess mit Community-Einbindung.
+  - *Erfolgskriterien:* Keine offenen kritischen Bugs, mindestens zwei externe Contributor:innen aktiv.
 
 ## ✅ Abschlusskriterien
 - Alle Qualitätsmetriken erfüllt und im CI überwacht.
