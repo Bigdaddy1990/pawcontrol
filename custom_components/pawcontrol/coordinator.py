@@ -7,7 +7,7 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from statistics import fmean
 from typing import TYPE_CHECKING, Any
 
@@ -89,13 +89,13 @@ class AdaptivePollingController:
     """Manage dynamic polling intervals based on runtime performance."""
 
     __slots__ = (
-        "_history",
-        "_min_interval",
-        "_max_interval",
-        "_target_cycle",
         "_current_interval",
-        "_error_streak",
         "_entity_saturation",
+        "_error_streak",
+        "_history",
+        "_max_interval",
+        "_min_interval",
+        "_target_cycle",
     )
 
     def __init__(
@@ -157,7 +157,9 @@ class AdaptivePollingController:
         else:
             load_factor = 1.0 + (self._entity_saturation * 0.5)
             if average_duration < self._target_cycle * 0.8:
-                reduction_factor = min(2.0, (self._target_cycle / average_duration) * 0.5)
+                reduction_factor = min(
+                    2.0, (self._target_cycle / average_duration) * 0.5
+                )
                 next_interval = max(
                     self._min_interval,
                     next_interval / max(1.0, reduction_factor * load_factor),
@@ -187,6 +189,7 @@ class AdaptivePollingController:
             "error_streak": self._error_streak,
             "entity_saturation": round(self._entity_saturation, 3),
         }
+
 
 class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Central data coordinator with a compact, testable core."""
@@ -350,7 +353,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         average_utilization = (
             (total_allocated / total_capacity) if total_capacity else 0.0
         )
-        peak_utilization = max((snapshot.saturation for snapshot in snapshots), default=0.0)
+        peak_utilization = max(
+            (snapshot.saturation for snapshot in snapshots), default=0.0
+        )
 
         return {
             "active_dogs": len(snapshots),
@@ -488,16 +493,12 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # PLATINUM: Enhanced failure analysis
             total_dogs = len(dog_ids)
-            success_rate = (
-                (total_dogs - errors) / total_dogs if total_dogs > 0 else 0
-            )
+            success_rate = (total_dogs - errors) / total_dogs if total_dogs > 0 else 0
 
             if errors == total_dogs:
                 self._error_count += 1
                 self._consecutive_errors += 1
-                raise CoordinatorUpdateFailed(
-                    f"All {total_dogs} dogs failed to update"
-                )
+                raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
 
             if success_rate < 0.5:
                 self._consecutive_errors += 1
@@ -551,41 +552,9 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._data
 
     async def _fetch_all_dogs(self, dog_ids: list[str]) -> UpdateResult:
+        """Fetch data for all configured dogs with resilience protections."""
+
         result = UpdateResult()
-
-        Returns:
-            Dictionary containing update statistics and performance metrics
-        """
-        successful_updates = max(self._update_count - self._error_count, 0)
-        cache_metrics = self._modules.cache_metrics()
-        cache_entries = cache_metrics.entries
-        cache_hit_rate = cache_metrics.hit_rate
-        entity_budget_summary = self._summarize_entity_budgets()
-        adaptive_metrics = self._adaptive_polling.as_diagnostics()
-
-        return {
-            "update_counts": {
-                "total": self._update_count,
-                "successful": successful_updates,
-                "failed": self._error_count,
-                "consecutive_errors": self._consecutive_errors,
-            },
-            "performance_metrics": {
-                "api_calls": self._update_count if self._use_external_api else 0,
-                "cache_entries": cache_entries,
-                "cache_hit_rate": round(cache_hit_rate, 1),
-                "cache_ttl": CACHE_TTL_SECONDS,
-            },
-            "health_indicators": {
-                "success_rate": round(
-                    (successful_updates / max(self._update_count, 1)) * 100, 1
-                ),
-                "is_healthy": self._consecutive_errors < 3,
-                "external_api_enabled": self._use_external_api,
-            },
-            "entity_budget": entity_budget_summary,
-            "adaptive_polling": adaptive_metrics,
-        }
         tasks = [self._fetch_with_resilience(dog_id) for dog_id in dog_ids]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -610,6 +579,90 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result.add_success(dog_id, response)
 
         return result
+
+    def get_performance_snapshot(self) -> dict[str, Any]:
+        """Return a lightweight performance snapshot for diagnostics."""
+
+        successful_updates = max(self._update_count - self._error_count, 0)
+        cache_metrics = self._modules.cache_metrics()
+        entity_budget_summary = self._summarize_entity_budgets()
+        adaptive_metrics = self._adaptive_polling.as_diagnostics()
+
+        return {
+            "update_counts": {
+                "total": self._update_count,
+                "successful": successful_updates,
+                "failed": self._error_count,
+                "consecutive_errors": self._consecutive_errors,
+            },
+            "performance_metrics": {
+                "api_calls": self._update_count if self._use_external_api else 0,
+                "cache_entries": cache_metrics.entries,
+                "cache_hit_rate": round(cache_metrics.hit_rate, 1),
+                "cache_ttl": CACHE_TTL_SECONDS,
+            },
+            "health_indicators": {
+                "success_rate": round(
+                    (successful_updates / max(self._update_count, 1)) * 100, 1
+                ),
+                "is_healthy": self._consecutive_errors < 3,
+                "external_api_enabled": self._use_external_api,
+            },
+            "entity_budget": entity_budget_summary,
+            "adaptive_polling": adaptive_metrics,
+        }
+
+    def get_security_scorecard(self) -> dict[str, Any]:
+        """Evaluate performance and security posture for key subsystems."""
+
+        adaptive_metrics = self._adaptive_polling.as_diagnostics()
+        average_cycle_ms = adaptive_metrics.get("average_cycle_ms", 0.0)
+        current_interval_ms = adaptive_metrics.get("current_interval_ms", 0.0)
+        update_cycle_ms = average_cycle_ms or current_interval_ms
+        cycle_pass = update_cycle_ms <= 200.0
+
+        entity_budget_summary = self._summarize_entity_budgets()
+        budget_peak = entity_budget_summary.get("peak_utilization", 0.0)
+        denied_requests = entity_budget_summary.get("denied_requests", 0)
+        budget_pass = budget_peak <= 100.0 and denied_requests == 0
+
+        webhook_status = {
+            "configured": False,
+            "secure": False,
+            "hmac_ready": False,
+            "insecure_configs": (),
+        }
+        if self.notification_manager is not None:
+            webhook_status = self.notification_manager.webhook_security_status()
+
+        webhooks_pass = (not webhook_status["configured"]) or webhook_status["secure"]
+
+        overall_pass = cycle_pass and budget_pass and webhooks_pass
+
+        return {
+            "status": "pass" if overall_pass else "fail",
+            "checks": {
+                "adaptive_polling": {
+                    "target_cycle_ms": adaptive_metrics.get("target_cycle_ms", 200.0),
+                    "update_cycle_ms": round(update_cycle_ms, 2),
+                    "history_samples": adaptive_metrics.get("history_samples", 0),
+                    "pass": cycle_pass,
+                },
+                "entity_budget": {
+                    "peak_utilization": budget_peak,
+                    "denied_requests": denied_requests,
+                    "active_dogs": entity_budget_summary.get("active_dogs", 0),
+                    "pass": budget_pass,
+                },
+                "webhooks": {
+                    "configured": webhook_status.get("configured", False),
+                    "secure": webhook_status.get("secure", False),
+                    "hmac_ready": webhook_status.get("hmac_ready", False),
+                    "insecure_configs": webhook_status.get("insecure_configs", ()),
+                    "pass": webhooks_pass,
+                },
+            },
+        }
 
     async def _fetch_with_resilience(self, dog_id: str) -> dict[str, Any]:
         return await self.resilience_manager.execute_with_resilience(

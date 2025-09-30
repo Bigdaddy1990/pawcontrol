@@ -10,6 +10,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -425,3 +426,49 @@ class TestConcurrency:
         # All should return same config
         assert all(r is not None for r in results)
         assert all(r["dog_id"] == "test_dog" for r in results)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestDiagnosticsAndSecurity:
+    """Test coordinator diagnostics and security scorecard."""
+
+    async def test_performance_snapshot_structure(self, mock_coordinator):
+        """Snapshot should expose key diagnostic sections."""
+
+        snapshot = mock_coordinator.get_performance_snapshot()
+
+        assert "update_counts" in snapshot
+        assert "performance_metrics" in snapshot
+        assert "adaptive_polling" in snapshot
+        assert snapshot["adaptive_polling"]["target_cycle_ms"] <= 200.0
+
+    async def test_security_scorecard_pass_without_webhooks(self, mock_coordinator):
+        """Scorecard passes when no insecure webhook configs exist."""
+
+        scorecard = mock_coordinator.get_security_scorecard()
+
+        assert scorecard["status"] == "pass"
+        assert scorecard["checks"]["adaptive_polling"]["pass"] is True
+        assert scorecard["checks"]["webhooks"]["pass"] is True
+
+    async def test_security_scorecard_detects_insecure_webhooks(self, mock_coordinator):
+        """Insecure webhook configurations should fail the scorecard."""
+
+        class InsecureWebhookManager:
+            @staticmethod
+            def webhook_security_status() -> dict[str, Any]:
+                return {
+                    "configured": True,
+                    "secure": False,
+                    "hmac_ready": False,
+                    "insecure_configs": ("dog1",),
+                }
+
+        mock_coordinator.notification_manager = InsecureWebhookManager()
+
+        scorecard = mock_coordinator.get_security_scorecard()
+
+        assert scorecard["status"] == "fail"
+        assert scorecard["checks"]["webhooks"]["pass"] is False
+        assert "dog1" in scorecard["checks"]["webhooks"]["insecure_configs"]
