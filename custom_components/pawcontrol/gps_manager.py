@@ -36,6 +36,7 @@ from .notifications import (
     NotificationType,
     PawControlNotificationManager,
 )
+from .resilience import ResilienceManager, RetryConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -317,6 +318,16 @@ class GPSGeofenceManager:
         self._tracking_tasks: dict[str, asyncio.Task] = {}
         self._route_history: dict[str, list[WalkRoute]] = {}
         self._notification_manager: PawControlNotificationManager | None = None
+
+        # RESILIENCE: Initialize resilience manager for GPS operations
+        self.resilience_manager = ResilienceManager(hass)
+        self._gps_retry_config = RetryConfig(
+            max_attempts=3,  # 2 retries (3 total attempts)
+            initial_delay=0.5,
+            max_delay=2.0,
+            exponential_base=2.0,
+            jitter=True,
+        )
 
         # Performance tracking
         self._stats = {
@@ -874,8 +885,10 @@ class GPSGeofenceManager:
         _LOGGER.debug("Stopped GPS tracking task for %s", dog_id)
 
     async def _update_location_from_device_tracker(self, dog_id: str) -> None:
-        """Try to update location from associated device tracker."""
-        try:
+        """Try to update location from associated device tracker with retry."""
+        
+        async def _fetch_device_tracker_location() -> None:
+            """Internal function to fetch location - wrapped by retry logic."""
             # Try to find device tracker entity for this dog
             entity_registry = er.async_get(self.hass)
             dr.async_get(self.hass)
@@ -904,10 +917,18 @@ class GPSGeofenceManager:
                             return
 
             # Could also check for companion app entities, etc.
-
+        
+        # RESILIENCE: Wrap in retry logic for transient failures
+        try:
+            await self.resilience_manager.execute_with_resilience(
+                _fetch_device_tracker_location,
+                retry_config=self._gps_retry_config,
+            )
         except Exception as err:
             _LOGGER.debug(
-                "Failed to update location from device tracker for %s: %s", dog_id, err
+                "Failed to update location from device tracker for %s after retries: %s",
+                dog_id,
+                err,
             )
 
     async def _check_geofence_zones(self, dog_id: str, gps_point: GPSPoint) -> None:

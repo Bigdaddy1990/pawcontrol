@@ -1410,7 +1410,7 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
             coordinator,
             dog_id,
             dog_name,
-            "needs_grooming",  # FIXED: Changed from grooming_due to needs_grooming for docs consistency
+            "needs_grooming",
             icon_on="mdi:content-cut",
             icon_off="mdi:check",
         )

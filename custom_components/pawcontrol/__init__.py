@@ -514,6 +514,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 f"Manager initialization failed after {managers_init_duration:.2f}s ({error_type}): {err}"
             ) from err
 
+        # RESILIENCE: Share coordinator's ResilienceManager with other managers
+        # This ensures centralized monitoring and consistent circuit breaker behavior
+        if gps_geofence_manager:
+            gps_geofence_manager.resilience_manager = coordinator.resilience_manager
+            _LOGGER.debug("Shared ResilienceManager with GPS manager")
+        
+        if notification_manager:
+            notification_manager.resilience_manager = coordinator.resilience_manager
+            _LOGGER.debug("Shared ResilienceManager with Notification manager")
+
         # Attach runtime managers
         coordinator.attach_runtime_managers(
             data_manager=data_manager,

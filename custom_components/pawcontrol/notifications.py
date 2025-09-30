@@ -23,6 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .person_entity_manager import PersonEntityManager
+from .resilience import CircuitBreakerConfig, ResilienceManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -403,6 +404,15 @@ class PawControlNotificationManager:
 
         # NEW: Person entity manager for dynamic targeting
         self._person_manager: PersonEntityManager | None = None
+
+        # RESILIENCE: Initialize resilience manager for notification channels
+        self.resilience_manager = ResilienceManager(hass)
+        self._channel_circuit_config = CircuitBreakerConfig(
+            failure_threshold=5,  # More tolerance for notifications
+            success_threshold=3,  # Need more successes to close
+            timeout_seconds=120.0,  # Longer timeout for notifications
+            half_open_max_calls=1,  # Conservative testing
+        )
 
         # OPTIMIZE: Enhanced background tasks
         self._retry_task: asyncio.Task | None = None
@@ -1195,7 +1205,7 @@ class PawControlNotificationManager:
         channel: NotificationChannel,
         handler: Callable,
     ) -> None:
-        """Send to a single channel with error handling.
+        """Send to a single channel with error handling and circuit breaker.
 
         Args:
             notification: Notification to send
@@ -1203,7 +1213,13 @@ class PawControlNotificationManager:
             handler: Channel handler function
         """
         try:
-            await handler(notification)
+            # RESILIENCE: Wrap handler call with circuit breaker
+            circuit_name = f"notification_channel_{channel.value}"
+            await self.resilience_manager.execute_with_resilience(
+                handler,
+                notification,
+                circuit_breaker_name=circuit_name,
+            )
             notification.sent_to.append(channel)
 
             # Track send attempts

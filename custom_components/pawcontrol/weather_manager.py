@@ -46,6 +46,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .resilience import ResilienceManager, RetryConfig
 from .weather_translations import (
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
@@ -329,11 +330,14 @@ class WeatherConditions:
 class WeatherHealthManager:
     """Manages weather-based health warnings for dogs."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(
+        self, hass: HomeAssistant, resilience_manager: ResilienceManager | None = None
+    ) -> None:
         """Initialize weather health manager.
 
         Args:
             hass: Home Assistant instance
+            resilience_manager: Optional ResilienceManager for fault tolerance
         """
         self.hass = hass
         self._current_conditions: WeatherConditions | None = None
@@ -341,6 +345,16 @@ class WeatherHealthManager:
         self._translations: dict[str, Any] = {}
         self._english_translations: dict[str, Any] = {}
         self._current_forecast: WeatherForecast | None = None
+        
+        # RESILIENCE: Fault tolerance for weather API calls
+        self.resilience_manager = resilience_manager
+        self._retry_config = RetryConfig(
+            max_attempts=2,  # Limited retries for weather data
+            initial_delay=2.0,
+            max_delay=5.0,
+            exponential_base=1.5,
+            jitter=True,
+        )
 
         # Temperature thresholds for different severity levels (Celsius)
         self.temperature_thresholds = {

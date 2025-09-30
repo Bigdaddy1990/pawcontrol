@@ -50,6 +50,11 @@ from .exceptions import (
     ValidationError,
 )
 from .module_adapters import CoordinatorModuleAdapters
+from .resilience import (
+    CircuitBreakerConfig,
+    ResilienceManager,
+    RetryConfig,
+)
 from .types import DogConfigData, PawControlConfigEntry
 
 if TYPE_CHECKING:
@@ -189,6 +194,22 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.weather_health_manager: WeatherHealthManager | None = None
         self.garden_manager: GardenManager | None = None
         self.geofencing_manager: PawControlGeofencing | None = None
+
+        # RESILIENCE: Initialize resilience manager for fault tolerance
+        self.resilience_manager = ResilienceManager(hass)
+        self._circuit_breaker_config = CircuitBreakerConfig(
+            failure_threshold=3,  # Open after 3 failures
+            success_threshold=2,  # Close after 2 successes
+            timeout_seconds=30.0,  # Try again after 30s
+            half_open_max_calls=2,  # Max 2 concurrent test calls
+        )
+        self._retry_config = RetryConfig(
+            max_attempts=2,  # Only 1 retry (2 total attempts)
+            initial_delay=1.0,
+            max_delay=5.0,
+            exponential_base=2.0,
+            jitter=True,
+        )
 
         _LOGGER.info(
             "Coordinator initialized: %d dogs, %ds interval, external_api=%s",
@@ -338,79 +359,41 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._error_count += 1
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
-        # PLATINUM: Enhanced concurrent fetch with specific error handling
+        # RESILIENCE: Enhanced concurrent fetch with resilience patterns
         async def fetch_and_store(dog_id: str) -> None:
             nonlocal errors
-            retry_count = 0
-            last_error: Exception | None = None
 
-            while retry_count < MAX_RETRY_ATTEMPTS:
-                try:
-                    async with asyncio.timeout(API_TIMEOUT):
-                        all_data[dog_id] = await self._fetch_dog_data(dog_id)
-                    return  # Success, exit retry loop
+            try:
+                # Use resilience manager with circuit breaker and retry
+                result = await self.resilience_manager.execute_with_resilience(
+                    self._fetch_dog_data_protected,
+                    dog_id,
+                    circuit_breaker_name=f"dog_data_{dog_id}",
+                    retry_config=self._retry_config,
+                )
+                all_data[dog_id] = result
+                return  # Success
 
-                except TimeoutError as err:
-                    last_error = err
-                    _LOGGER.warning(
-                        "Timeout fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id,
-                        retry_count + 1,
-                        MAX_RETRY_ATTEMPTS,
-                        err,
-                    )
-                except ConfigEntryAuthFailed:
-                    # Authentication errors should not be retried
-                    raise
-                except (ClientError, NetworkError) as err:
-                    last_error = err
-                    _LOGGER.warning(
-                        "Network error fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id,
-                        retry_count + 1,
-                        MAX_RETRY_ATTEMPTS,
-                        err,
-                    )
-                except RateLimitError as err:
-                    last_error = err
-                    _LOGGER.warning(
-                        "Rate limit hit for dog %s, waiting %s seconds",
-                        dog_id,
-                        err.retry_after or 60,
-                    )
-                    if err.retry_after:
-                        await asyncio.sleep(min(err.retry_after, 300))  # Max 5 min wait
-                except ValidationError as err:
-                    # Data validation errors shouldn't be retried
-                    errors += 1
-                    _LOGGER.error("Invalid configuration for dog %s: %s", dog_id, err)
-                    all_data[dog_id] = self._get_empty_dog_data()
-                    return
-                except HomeAssistantError as err:
-                    last_error = err
-                    _LOGGER.warning(
-                        "HA error fetching data for dog %s (attempt %d/%d): %s",
-                        dog_id,
-                        retry_count + 1,
-                        MAX_RETRY_ATTEMPTS,
-                        err,
-                    )
-
-                retry_count += 1
-                if retry_count < MAX_RETRY_ATTEMPTS:
-                    # Exponential backoff
-                    wait_time = min(2**retry_count * RETRY_BACKOFF_FACTOR, 30)
-                    await asyncio.sleep(wait_time)
-
-            # All retries failed
-            errors += 1
-            _LOGGER.error(
-                "Failed to fetch data for dog %s after %d attempts, last error: %s",
-                dog_id,
-                MAX_RETRY_ATTEMPTS,
-                last_error,
-            )
-            all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
+            except ConfigEntryAuthFailed:
+                # Authentication errors should not be retried - re-raise
+                errors += 1
+                raise
+            except ValidationError as err:
+                # Data validation errors shouldn't be retried
+                errors += 1
+                _LOGGER.error("Invalid configuration for dog %s: %s", dog_id, err)
+                all_data[dog_id] = self._get_empty_dog_data()
+            except Exception as err:
+                # All other errors (including RetryExhaustedError, circuit breaker, etc.)
+                errors += 1
+                _LOGGER.error(
+                    "Resilience patterns exhausted for dog %s: %s (%s)",
+                    dog_id,
+                    err,
+                    err.__class__.__name__,
+                )
+                # Use cached data if available, otherwise empty
+                all_data[dog_id] = self._data.get(dog_id, self._get_empty_dog_data())
 
         # Execute with proper task group error handling
         try:
@@ -479,6 +462,26 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "external_api_enabled": self._use_external_api,
             },
         }
+
+    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+        """Protected fetch with timeout - called through resilience manager.
+        
+        This method is wrapped by resilience patterns (circuit breaker + retry).
+        
+        Args:
+            dog_id: Dog identifier
+            
+        Returns:
+            Dog data dictionary
+            
+        Raises:
+            TimeoutError: If fetch takes too long
+            ConfigEntryAuthFailed: If authentication fails
+            NetworkError: If network-related errors occur
+            ValidationError: If dog configuration is invalid
+        """
+        async with asyncio.timeout(API_TIMEOUT):
+            return await self._fetch_dog_data(dog_id)
 
     async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
         """Fetch data for a single dog with enhanced error handling.
@@ -730,6 +733,7 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "misses": cache_metrics.misses,
                 "hit_rate": cache_metrics.hit_rate / 100,
             },
+            "resilience": self.resilience_manager.get_all_circuit_breakers(),
         }
 
     @callback

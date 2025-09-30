@@ -68,6 +68,15 @@ from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
 
+# PLATINUM: Enhanced validation ranges for service inputs
+VALID_WEIGHT_RANGE = (0.5, 100.0)  # kg
+VALID_TEMPERATURE_RANGE = (35.0, 42.0)  # °C
+VALID_PORTION_RANGE = (10.0, 5000.0)  # grams
+VALID_DURATION_RANGE = (1, 480)  # minutes
+VALID_ACCURACY_RANGE = (1.0, 1000.0)  # meters
+VALID_LATITUDE_RANGE = (-90.0, 90.0)  # degrees
+VALID_LONGITUDE_RANGE = (-180.0, 180.0)  # degrees
+
 # Service names - maintain backward compatibility
 SERVICE_ADD_FEEDING = "add_feeding"
 SERVICE_START_WALK = "start_walk"
