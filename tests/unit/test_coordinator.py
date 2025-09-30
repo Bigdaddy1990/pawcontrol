@@ -193,10 +193,11 @@ class TestErrorHandling:
         """Test handling when some dogs fail."""
         # Add second dog
         mock_coordinator._configured_dog_ids.append("dog2")
-        mock_coordinator._dog_config_by_id["dog2"] = {
+        mock_coordinator.registry._ids.append("dog2")
+        mock_coordinator.registry._by_id["dog2"] = {
             "dog_id": "dog2",
             "dog_name": "Max",
-            "weight": 15.0,
+            "modules": {},
         }
 
         await mock_coordinator._async_setup()

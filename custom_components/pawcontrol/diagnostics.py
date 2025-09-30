@@ -421,13 +421,16 @@ async def _get_performance_metrics(
 
     try:
         stats = coordinator.get_update_statistics()
+        error_rate = 0.0
+        if stats.get("total_updates"):
+            error_rate = stats.get("failed", 0) / stats["total_updates"]
         return {
-            "update_frequency": stats.get("update_interval_seconds"),
+            "update_frequency": stats.get("update_interval"),
             "data_freshness": "fresh" if coordinator.last_update_success else "stale",
             "memory_efficient": True,  # Placeholder - could add actual memory usage
             "cpu_efficient": True,  # Placeholder - could add actual CPU usage
             "network_efficient": True,  # Placeholder - could add network usage stats
-            "error_rate": "low",  # Placeholder - could track actual error rates
+            "error_rate": error_rate,
             "response_time": "fast",  # Placeholder - could track actual response times
             "statistics": stats,
         }
