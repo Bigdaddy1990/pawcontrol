@@ -12,11 +12,11 @@ class ModuleSnapshot:
     """Normalized representation of a single module payload."""
 
     name: str
-    status: str = "unknown"
-    payload: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
-    received_at: datetime | None = None
     latency: float | None = None
+    payload: dict[str, Any] = field(default_factory=dict)
+    received_at: datetime | None = None
+    status: str = "unknown"
 
     def with_defaults(
         self,
