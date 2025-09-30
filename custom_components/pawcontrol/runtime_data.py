@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .types import PawControlRuntimeData
+from .types import PawControlConfigEntry, PawControlRuntimeData
 
 
 def store_runtime_data(
-    hass: HomeAssistant, entry: ConfigEntry, runtime_data: PawControlRuntimeData
+    hass: HomeAssistant,
+    entry: PawControlConfigEntry,
+    runtime_data: PawControlRuntimeData,
 ) -> None:
     """Store runtime data in ``hass.data`` for the given config entry."""
 
@@ -21,7 +22,7 @@ def store_runtime_data(
 
 
 def get_runtime_data(
-    hass: HomeAssistant, entry_or_id: ConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData | None:
     """Return the runtime data associated with a config entry."""
 
@@ -43,7 +44,7 @@ def get_runtime_data(
 
 
 def pop_runtime_data(
-    hass: HomeAssistant, entry_or_id: ConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData | None:
     """Remove and return runtime data for a config entry if present."""
 
