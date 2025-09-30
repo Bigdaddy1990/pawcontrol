@@ -229,16 +229,3 @@ class CoordinatorMetrics:
         }
 
 
-@dataclass(slots=True)
-class UpdateResult:
-    """Container for update outcomes."""
-
-    payload: dict[str, dict[str, Any]] = field(default_factory=dict)
-    errors: int = 0
-
-    def add_success(self, dog_id: str, data: dict[str, Any]) -> None:
-        self.payload[dog_id] = data
-
-    def add_error(self, dog_id: str, data: dict[str, Any]) -> None:
-        self.errors += 1
-        self.payload[dog_id] = data

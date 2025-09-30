@@ -9,10 +9,7 @@ from typing import TYPE_CHECKING, Any
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_API_ENDPOINT,
@@ -296,6 +293,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._data = data
         return self._data
+
+    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime's protected fetch for legacy callers."""
+
+        return await self._runtime._fetch_dog_data_protected(dog_id)
+
+    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+        """Delegate to the runtime fetch implementation."""
+
+        return await self._runtime._fetch_dog_data(dog_id)
 
     def _apply_adaptive_interval(self, new_interval: float) -> None:
         current_seconds = self.update_interval.total_seconds()
