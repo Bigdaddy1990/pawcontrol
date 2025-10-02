@@ -706,6 +706,12 @@ class FeedingManager:
                 if not dog_id:
                     continue
 
+                weight = dog.get("weight")
+                if weight is None or float(weight) <= 0:
+                    raise ValueError(
+                        f"Invalid feeding configuration for {dog_id}: weight is required"
+                    )
+
                 feeding_config = dog.get("feeding_config", {})
                 config = await self._create_feeding_config(dog_id, feeding_config)
                 batch_configs[dog_id] = config

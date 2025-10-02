@@ -24,13 +24,9 @@ from .const import (
 from .coordinator_accessors import CoordinatorDataAccessMixin
 from .coordinator_observability import (
     EntityBudgetTracker,
-    normalise_webhook_status,
-)
-from .coordinator_observability import (
     build_performance_snapshot as build_observability_snapshot,
-)
-from .coordinator_observability import (
     build_security_scorecard as build_observability_scorecard,
+    normalise_webhook_status,
 )
 from .coordinator_runtime import (
     AdaptivePollingController,
@@ -414,16 +410,6 @@ class PawControlCoordinator(
             entity_summary=entity_summary,
             webhook_status=webhook_status,
         )
-
-    @property
-    def available(self) -> bool:
-        return self.last_update_success and self._metrics.consecutive_errors < 5
-
-    def get_update_statistics(self) -> dict[str, Any]:
-        return build_update_statistics(self)
-
-    def get_statistics(self) -> dict[str, Any]:
-        return build_runtime_statistics(self)
 
     @callback
     def async_start_background_tasks(self) -> None:

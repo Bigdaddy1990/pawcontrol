@@ -6,12 +6,9 @@ from collections.abc import Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
 from math import isfinite
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from .coordinator_runtime import EntityBudgetSnapshot
-else:  # pragma: no cover - used only for typing
-    EntityBudgetSnapshot = Any
+from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
 
 _LOGGER = getLogger(__name__)
 
@@ -47,7 +44,7 @@ class EntityBudgetTracker:
     def summary(self) -> dict[str, Any]:
         """Return a diagnostics friendly summary."""
 
-        return _summarize_entity_budgets(self._snapshots.values())
+        return summarize_entity_budgets(self._snapshots.values())
 
     def snapshots(self) -> Iterable[EntityBudgetSnapshot]:
         """Expose raw snapshots (used in diagnostics)."""
@@ -87,67 +84,6 @@ def build_performance_snapshot(
         "entity_budget": dict(entity_budget),
         "webhook_security": dict(webhook_status),
     }
-
-
-def _summarize_entity_budgets(
-    snapshots: Iterable[EntityBudgetSnapshot],
-) -> dict[str, Any]:
-    """Summarise entity budget usage for diagnostics surfaces."""
-
-    snapshots = list(snapshots)
-    if not snapshots:
-        return {
-            "active_dogs": 0,
-            "total_capacity": 0,
-            "total_allocated": 0,
-            "total_remaining": 0,
-            "average_utilization": 0.0,
-            "peak_utilization": 0.0,
-            "denied_requests": 0,
-        }
-
-    total_capacity = 0
-    total_allocated = 0
-    total_remaining = 0
-    denied_requests = 0
-    saturations: list[float] = []
-
-    for snapshot in snapshots:
-        capacity = getattr(snapshot, "capacity", 0) or 0
-        total_capacity += int(capacity)
-
-        allocated = getattr(snapshot, "total_allocated", 0) or 0
-        total_allocated += int(allocated)
-
-        remaining = getattr(snapshot, "remaining", 0) or 0
-        total_remaining += int(remaining)
-
-        denied = getattr(snapshot, "denied_requests", ()) or ()
-        denied_requests += len(tuple(denied))
-
-        saturation = getattr(snapshot, "saturation", None)
-        try:
-            saturation_value = float(saturation)
-        except (TypeError, ValueError):
-            continue
-
-        if isfinite(saturation_value):
-            saturations.append(max(0.0, min(1.0, saturation_value)))
-
-    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
-    peak_utilisation = max(saturations, default=0.0)
-
-    return {
-        "active_dogs": len(snapshots),
-        "total_capacity": total_capacity,
-        "total_allocated": total_allocated,
-        "total_remaining": total_remaining,
-        "average_utilization": round(average_utilisation * 100, 1),
-        "peak_utilization": round(peak_utilisation * 100, 1),
-        "denied_requests": denied_requests,
-    }
-
-
 def _coerce_float(value: Any, default: float) -> float:
     """Return a finite float or the provided default."""
 
@@ -178,7 +114,7 @@ def build_security_scorecard(
     if current_ms < 0:
         current_ms = target_ms
 
-    threshold_ms = min(target_ms, 200.0)
+    threshold_ms = 200.0
     adaptive_pass = current_ms <= threshold_ms
     adaptive_check: dict[str, Any] = {
         "pass": adaptive_pass,

@@ -206,7 +206,7 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
 
     assert summary["active_dogs"] == 3
     assert summary["denied_requests"] == 1
-    assert 0.0 < tracker.saturation() <= 1.0
+    assert summary["peak_utilization"] == 100.0
     assert len(tracker.snapshots()) == 3
 
 

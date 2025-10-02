@@ -728,7 +728,7 @@ class TestEdgeCases:
     async def test_add_gps_point_invalid_coordinates(self, mock_gps_manager):
         """Test handling of invalid GPS coordinates."""
         # Latitude out of range
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             await mock_gps_manager.async_add_gps_point(
                 dog_id="test_dog",
                 latitude=100.0,  # Invalid
@@ -737,7 +737,7 @@ class TestEdgeCases:
 
     async def test_geofence_zone_negative_radius(self, mock_gps_manager):
         """Test that negative radius is rejected."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             await mock_gps_manager.async_setup_geofence_zone(
                 dog_id="test_dog",
                 zone_name="test",

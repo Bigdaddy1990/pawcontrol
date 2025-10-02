@@ -319,7 +319,7 @@ class TestChannelDelivery:
 
         # Check call was to persistent_notification
         calls = mock_hass.services.async_call.call_args_list
-        assert any(call[0][0] == "persistent_notification" for call in calls)
+        assert any(mock_call[0][0] == "persistent_notification" for mock_call in calls)
 
     async def test_send_to_multiple_channels(self, mock_notification_manager):
         """Test sending to multiple channels."""
