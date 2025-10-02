@@ -11,7 +11,7 @@ if TYPE_CHECKING:  # pragma: no cover - import for typing only
 class CoordinatorDataAccessMixin:
     """Provide read helpers for coordinator managed state."""
 
-    registry: "DogConfigRegistry"
+    registry: DogConfigRegistry
     _data: dict[str, dict[str, Any]]
 
     def get_dog_config(self, dog_id: str) -> Any:
@@ -51,4 +51,3 @@ class CoordinatorDataAccessMixin:
         if dog_data and isinstance(dog_data.get("dog_info"), dict):
             return dog_data["dog_info"]
         return self.registry.get(dog_id) or {}
-
