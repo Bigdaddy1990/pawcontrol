@@ -8,8 +8,6 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from .coordinator_runtime import summarize_entity_budgets
-
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from datetime import timedelta
 
@@ -26,9 +24,7 @@ def build_update_statistics(coordinator: PawControlCoordinator) -> dict[str, Any
         last_update=coordinator.last_update_time,
         interval=coordinator.update_interval,
     )
-    stats["entity_budget"] = summarize_entity_budgets(
-        coordinator._entity_budget_snapshots
-    )
+    stats["entity_budget"] = coordinator._entity_budget.summary()
     stats["adaptive_polling"] = coordinator._adaptive_polling.as_diagnostics()
     return stats
 
@@ -43,9 +39,7 @@ def build_runtime_statistics(coordinator: PawControlCoordinator) -> dict[str, An
         last_update=coordinator.last_update_time,
         interval=coordinator.update_interval,
     )
-    stats["entity_budget"] = summarize_entity_budgets(
-        coordinator._entity_budget_snapshots
-    )
+    stats["entity_budget"] = coordinator._entity_budget.summary()
     stats["adaptive_polling"] = coordinator._adaptive_polling.as_diagnostics()
     stats["resilience"] = coordinator.resilience_manager.get_all_circuit_breakers()
     return stats
