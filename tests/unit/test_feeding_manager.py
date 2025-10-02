@@ -55,7 +55,7 @@ class TestFeedingManagerInitialization:
 
         invalid_config = {"dog_id": "test", "weight": None}
 
-        with pytest.raises(Exception):  # Should raise validation error
+        with pytest.raises(ValueError):  # Should raise validation error
             await manager.async_initialize([invalid_config])
 
 

@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
+from math import isfinite
 from typing import Any
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
-from .coordinator_support import CoordinatorMetrics
 
 _LOGGER = getLogger(__name__)
 
@@ -54,7 +54,7 @@ class EntityBudgetTracker:
 
 def build_performance_snapshot(
     *,
-    metrics: CoordinatorMetrics,
+    metrics: Any,
     adaptive: Mapping[str, Any],
     entity_budget: Mapping[str, Any],
     update_interval: float,
@@ -86,6 +86,20 @@ def build_performance_snapshot(
     }
 
 
+def _coerce_float(value: Any, default: float) -> float:
+    """Return a finite float or the provided default."""
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    if not isfinite(number):
+        return default
+
+    return number
+
+
 def build_security_scorecard(
     *,
     adaptive: Mapping[str, Any],
@@ -94,9 +108,15 @@ def build_security_scorecard(
 ) -> dict[str, Any]:
     """Return a pass/fail scorecard for coordinator safety checks."""
 
-    target_ms = adaptive.get("target_cycle_ms", 200.0) or 200.0
-    current_ms = adaptive.get("current_interval_ms", target_ms)
-    threshold_ms = min(target_ms, 200.0)
+    target_ms = _coerce_float(adaptive.get("target_cycle_ms"), 200.0)
+    if target_ms <= 0:
+        target_ms = 200.0
+
+    current_ms = _coerce_float(adaptive.get("current_interval_ms"), target_ms)
+    if current_ms < 0:
+        current_ms = target_ms
+
+    threshold_ms = 200.0
     adaptive_pass = current_ms <= threshold_ms
     adaptive_check: dict[str, Any] = {
         "pass": adaptive_pass,
@@ -107,7 +127,8 @@ def build_security_scorecard(
     if not adaptive_pass:
         adaptive_check["reason"] = "Update interval exceeds 200ms target"
 
-    peak_utilisation = entity_summary.get("peak_utilization", 0.0)
+    peak_utilisation = _coerce_float(entity_summary.get("peak_utilization"), 0.0)
+    peak_utilisation = max(0.0, min(100.0, peak_utilisation))
     entity_threshold = 95.0
     entity_pass = peak_utilisation <= entity_threshold
     entity_check: dict[str, Any] = {

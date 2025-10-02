@@ -412,6 +412,15 @@ class GPSGeofenceManager:
             notifications_enabled: Enable notifications for this zone
             breach_timeout_minutes: Minutes outside zone before breach alert
         """
+        if radius_meters <= 0:
+            raise ValueError("Geofence radius must be greater than zero")
+
+        if not (-90.0 <= center_lat <= 90.0):
+            raise ValueError("Geofence latitude must be between -90 and 90 degrees")
+
+        if not (-180.0 <= center_lon <= 180.0):
+            raise ValueError("Geofence longitude must be between -180 and 180 degrees")
+
         try:
             zone = GeofenceZone(
                 name=zone_name,
@@ -620,6 +629,12 @@ class GPSGeofenceManager:
         Returns:
             True if point was added successfully
         """
+        if not (-90.0 <= latitude <= 90.0):
+            raise ValueError("Latitude must be between -90 and 90 degrees")
+
+        if not (-180.0 <= longitude <= 180.0):
+            raise ValueError("Longitude must be between -180 and 180 degrees")
+
         try:
             if timestamp is None:
                 timestamp = dt_util.utcnow()

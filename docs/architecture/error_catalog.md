@@ -20,9 +20,9 @@ map to a code in the table below, ensuring consistent escalation rules.
   `get_statistics()` for UI consumption.
 - The resilience manager exposes `get_all_circuit_breakers()` so the repairs
   dashboard can show which subsystems are degraded.
-- `get_security_scorecard()` surfaces adaptive polling drift and webhook
-  posture in a single payload so diagnostics and portal tiles stay aligned with
-  catalogue guidance.
+- `get_security_scorecard()` surfaces adaptive polling drift, entity budget
+  pressure, and webhook posture in a single payload so diagnostics and portal
+  tiles stay aligned with catalogue guidance.
 - `error_catalog.md` acts as a reference for authoring new repair flows: each
   entry contains the messaging template, required telemetry, and the manager
   responsible for remediation.

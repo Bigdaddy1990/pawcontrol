@@ -24,9 +24,13 @@ from .const import (
 from .coordinator_accessors import CoordinatorDataAccessMixin
 from .coordinator_observability import (
     EntityBudgetTracker,
-    build_performance_snapshot,
-    build_security_scorecard,
     normalise_webhook_status,
+)
+from .coordinator_observability import (
+    build_performance_snapshot as build_observability_snapshot,
+)
+from .coordinator_observability import (
+    build_security_scorecard as build_observability_scorecard,
 )
 from .coordinator_runtime import (
     AdaptivePollingController,
@@ -335,37 +339,34 @@ class PawControlCoordinator(
 
         await self._refresh_subset(unique_ids)
 
-    def get_performance_snapshot(self) -> dict[str, Any]:
-        """Return a lightweight snapshot of runtime performance metrics."""
+    def get_dog_config(self, dog_id: str) -> Any:
+        return self.registry.get(dog_id)
 
-        adaptive = self._adaptive_polling.as_diagnostics()
-        entity_budget = self._entity_budget.summary()
-        update_interval = (
-            self.update_interval.total_seconds() if self.update_interval else 0.0
-        )
-        last_update_time = getattr(self, "last_update_time", None)
+    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
+        return self.registry.enabled_modules(dog_id)
 
-        return build_performance_snapshot(
-            metrics=self._metrics,
-            adaptive=adaptive,
-            entity_budget=entity_budget,
-            update_interval=update_interval,
-            last_update_time=last_update_time,
-            last_update_success=self.last_update_success,
-            webhook_status=self._webhook_security_status(),
-        )
+    def is_module_enabled(self, dog_id: str, module: str) -> bool:
+        return module in self.registry.enabled_modules(dog_id)
 
-    def get_security_scorecard(self) -> dict[str, Any]:
-        """Return aggregated pass/fail status for security critical checks."""
+    def get_dog_ids(self) -> list[str]:
+        return self.registry.ids()
 
-        adaptive = self._adaptive_polling.as_diagnostics()
-        entity_summary = self._entity_budget.summary()
-        webhook_status = self._webhook_security_status()
-        return build_security_scorecard(
-            adaptive=adaptive,
-            entity_summary=entity_summary,
-            webhook_status=webhook_status,
-        )
+    get_configured_dog_ids = get_dog_ids
+
+    def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
+        return self._data.get(dog_id)
+
+    def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+        return self._data.get(dog_id, {}).get(module, {})
+
+    def get_configured_dog_name(self, dog_id: str) -> str | None:
+        return self.registry.get_name(dog_id)
+
+    def get_dog_info(self, dog_id: str) -> dict[str, Any]:
+        dog_data = self.get_dog_data(dog_id)
+        if dog_data and isinstance(dog_data.get("dog_info"), dict):
+            return dog_data["dog_info"]
+        return self.registry.get(dog_id) or {}
 
     @property
     def available(self) -> bool:
@@ -376,6 +377,43 @@ class PawControlCoordinator(
 
     def get_statistics(self) -> dict[str, Any]:
         return build_runtime_statistics(self)
+
+    def get_performance_snapshot(self) -> dict[str, Any]:
+        """Return a comprehensive performance snapshot for diagnostics surfaces."""
+
+        adaptive = self._adaptive_polling.as_diagnostics()
+        entity_budget = self._entity_budget.summary()
+        update_interval = (
+            self.update_interval.total_seconds() if self.update_interval else 0.0
+        )
+        last_update_time = getattr(self, "last_update_time", None)
+
+        snapshot = build_observability_snapshot(
+            metrics=self._metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=update_interval,
+            last_update_time=last_update_time,
+            last_update_success=self.last_update_success,
+            webhook_status=self._webhook_security_status(),
+        )
+
+        if self._last_cycle is not None:
+            snapshot["last_cycle"] = self._last_cycle.to_dict()
+
+        return snapshot
+
+    def get_security_scorecard(self) -> dict[str, Any]:
+        """Return aggregated pass/fail status for security critical checks."""
+
+        adaptive = self._adaptive_polling.as_diagnostics()
+        entity_summary = self._entity_budget.summary()
+        webhook_status = self._webhook_security_status()
+        return build_observability_scorecard(
+            adaptive=adaptive,
+            entity_summary=entity_summary,
+            webhook_status=webhook_status,
+        )
 
     @callback
     def async_start_background_tasks(self) -> None:
