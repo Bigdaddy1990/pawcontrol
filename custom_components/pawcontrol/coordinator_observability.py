@@ -84,6 +84,8 @@ def build_performance_snapshot(
         "entity_budget": dict(entity_budget),
         "webhook_security": dict(webhook_status),
     }
+
+
 def _coerce_float(value: Any, default: float) -> float:
     """Return a finite float or the provided default."""
 
