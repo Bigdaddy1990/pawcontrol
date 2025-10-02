@@ -69,3 +69,9 @@ error handling without leaking complexity into entity code.
   pressure, and adaptive polling drift (targeting an update cycle below 200ms),
   keeping security reporting aligned with the error catalogue and avoiding
   ad-hoc checks in entity code.
+- `get_performance_snapshot()` uses the observability helpers to surface
+  update counts, adaptive polling behaviour, and entity budget saturation in a
+  format shared by diagnostics and system health.
+- `get_security_scorecard()` normalises webhook posture checks and adaptive
+  polling bounds, keeping security reporting aligned with the error catalogue
+  and avoiding ad-hoc checks in entity code.

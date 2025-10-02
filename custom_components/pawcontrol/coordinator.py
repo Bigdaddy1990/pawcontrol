@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING, Any
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorUpdateFailed,
+    DataUpdateCoordinator,
+)
 
 from .const import (
     CONF_API_ENDPOINT,
@@ -18,6 +21,7 @@ from .const import (
     CONF_EXTERNAL_INTEGRATIONS,
     UPDATE_INTERVALS,
 )
+from .coordinator_accessors import CoordinatorDataAccessMixin
 from .coordinator_observability import (
     EntityBudgetTracker,
     normalise_webhook_status,
@@ -33,7 +37,6 @@ from .coordinator_runtime import (
     CoordinatorRuntime,
     EntityBudgetSnapshot,
     RuntimeCycleInfo,
-    summarize_entity_budgets,
 )
 from .coordinator_support import (
     MANAGER_ATTRIBUTES,
@@ -76,7 +79,9 @@ MAINTENANCE_INTERVAL = timedelta(hours=1)
 __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
-class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class PawControlCoordinator(
+    CoordinatorDataAccessMixin, DataUpdateCoordinator[dict[str, Any]]
+):
     """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
     def __init__(
@@ -124,7 +129,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._entity_budget = EntityBudgetTracker()
         self._setup_complete = False
         self._maintenance_unsub: callback | None = None
-        self._last_cycle: RuntimeCycleInfo | None = None
 
         self.data_manager: PawControlDataManager | None
         self.feeding_manager: FeedingManager | None
@@ -205,21 +209,10 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
         """Receive entity budget metrics from the entity factory."""
 
-        self._entity_budget_snapshots[snapshot.dog_id] = snapshot
-        self._adaptive_polling.update_entity_saturation(self._entity_saturation())
-
-    def _entity_saturation(self) -> float:
-        """Return the current saturation ratio across all entity budgets."""
-
-        if not self._entity_budget_snapshots:
-            return 0.0
-
-        summary = summarize_entity_budgets(self._entity_budget_snapshots.values())
-        total_capacity = summary.get("total_capacity", 0)
-        if total_capacity <= 0:
-            return 0.0
-        ratio = summary.get("total_allocated", 0) / total_capacity
-        return max(0.0, min(1.0, float(ratio)))
+        self._entity_budget.record(snapshot)
+        self._adaptive_polling.update_entity_saturation(
+            self._entity_budget.saturation()
+        )
 
     def attach_runtime_managers(
         self,
@@ -311,7 +304,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             empty_payload_factory=self.registry.empty_payload,
         )
         self._apply_adaptive_interval(cycle.new_interval)
-        self._last_cycle = cycle
         return data, cycle
 
     async def _refresh_subset(self, dog_ids: Sequence[str]) -> None:
@@ -422,6 +414,16 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             entity_summary=entity_summary,
             webhook_status=webhook_status,
         )
+
+    @property
+    def available(self) -> bool:
+        return self.last_update_success and self._metrics.consecutive_errors < 5
+
+    def get_update_statistics(self) -> dict[str, Any]:
+        return build_update_statistics(self)
+
+    def get_statistics(self) -> dict[str, Any]:
+        return build_runtime_statistics(self)
 
     @callback
     def async_start_background_tasks(self) -> None:
