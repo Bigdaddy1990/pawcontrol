@@ -5,10 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
-from typing import Any
+from math import isfinite
+from typing import TYPE_CHECKING, Any
 
-from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
-from .coordinator_support import CoordinatorMetrics
+if TYPE_CHECKING:
+    from .coordinator_runtime import EntityBudgetSnapshot
+else:  # pragma: no cover - used only for typing
+    EntityBudgetSnapshot = Any
 
 _LOGGER = getLogger(__name__)
 
@@ -44,7 +47,7 @@ class EntityBudgetTracker:
     def summary(self) -> dict[str, Any]:
         """Return a diagnostics friendly summary."""
 
-        return summarize_entity_budgets(self._snapshots.values())
+        return _summarize_entity_budgets(self._snapshots.values())
 
     def snapshots(self) -> Iterable[EntityBudgetSnapshot]:
         """Expose raw snapshots (used in diagnostics)."""
@@ -54,7 +57,7 @@ class EntityBudgetTracker:
 
 def build_performance_snapshot(
     *,
-    metrics: CoordinatorMetrics,
+    metrics: Any,
     adaptive: Mapping[str, Any],
     entity_budget: Mapping[str, Any],
     update_interval: float,
@@ -86,6 +89,81 @@ def build_performance_snapshot(
     }
 
 
+def _summarize_entity_budgets(
+    snapshots: Iterable[EntityBudgetSnapshot],
+) -> dict[str, Any]:
+    """Summarise entity budget usage for diagnostics surfaces."""
+
+    snapshots = list(snapshots)
+    if not snapshots:
+        return {
+            "active_dogs": 0,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        }
+
+    total_capacity = 0
+    total_allocated = 0
+    total_remaining = 0
+    denied_requests = 0
+    saturations: list[float] = []
+
+    for snapshot in snapshots:
+        capacity = getattr(snapshot, "capacity", 0) or 0
+        total_capacity += int(capacity)
+
+        allocated = getattr(snapshot, "total_allocated", 0) or 0
+        total_allocated += int(allocated)
+
+        remaining = getattr(snapshot, "remaining", 0) or 0
+        total_remaining += int(remaining)
+
+        denied = getattr(snapshot, "denied_requests", ()) or ()
+        denied_requests += len(tuple(denied))
+
+        saturation = getattr(snapshot, "saturation", None)
+        try:
+            saturation_value = float(saturation)
+        except (TypeError, ValueError):
+            continue
+
+        if isfinite(saturation_value):
+            saturations.append(max(0.0, min(1.0, saturation_value)))
+
+    average_utilisation = (
+        (total_allocated / total_capacity) if total_capacity else 0.0
+    )
+    peak_utilisation = max(saturations, default=0.0)
+
+    return {
+        "active_dogs": len(snapshots),
+        "total_capacity": total_capacity,
+        "total_allocated": total_allocated,
+        "total_remaining": total_remaining,
+        "average_utilization": round(average_utilisation * 100, 1),
+        "peak_utilization": round(peak_utilisation * 100, 1),
+        "denied_requests": denied_requests,
+    }
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    """Return a finite float or the provided default."""
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    if not isfinite(number):
+        return default
+
+    return number
+
+
 def build_security_scorecard(
     *,
     adaptive: Mapping[str, Any],
@@ -94,8 +172,14 @@ def build_security_scorecard(
 ) -> dict[str, Any]:
     """Return a pass/fail scorecard for coordinator safety checks."""
 
-    target_ms = adaptive.get("target_cycle_ms", 200.0) or 200.0
-    current_ms = adaptive.get("current_interval_ms", target_ms)
+    target_ms = _coerce_float(adaptive.get("target_cycle_ms"), 200.0)
+    if target_ms <= 0:
+        target_ms = 200.0
+
+    current_ms = _coerce_float(adaptive.get("current_interval_ms"), target_ms)
+    if current_ms < 0:
+        current_ms = target_ms
+
     threshold_ms = min(target_ms, 200.0)
     adaptive_pass = current_ms <= threshold_ms
     adaptive_check: dict[str, Any] = {
@@ -107,7 +191,8 @@ def build_security_scorecard(
     if not adaptive_pass:
         adaptive_check["reason"] = "Update interval exceeds 200ms target"
 
-    peak_utilisation = entity_summary.get("peak_utilization", 0.0)
+    peak_utilisation = _coerce_float(entity_summary.get("peak_utilization"), 0.0)
+    peak_utilisation = max(0.0, min(100.0, peak_utilisation))
     entity_threshold = 95.0
     entity_pass = peak_utilisation <= entity_threshold
     entity_check: dict[str, Any] = {

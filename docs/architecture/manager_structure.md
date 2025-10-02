@@ -61,9 +61,11 @@ error handling without leaking complexity into entity code.
 
 ## Diagnostics & Security Surfaces
 
-- `get_performance_snapshot()` delegates to `coordinator_insights` so
-  diagnostics surfaces receive a consistent view of update counts, adaptive
-  polling behaviour, and the most recent `RuntimeCycleInfo`.
-- `get_security_scorecard()` normalises webhook posture checks and adaptive
-  polling bounds, keeping security reporting aligned with the error catalogue
-  and avoiding ad-hoc checks in entity code.
+- `get_performance_snapshot()` delegates to `coordinator_observability` so
+  diagnostics surfaces receive a unified view of update counts, adaptive
+  polling behaviour, entity budget saturation, webhook posture, and the most
+  recent `RuntimeCycleInfo` when available.
+- `get_security_scorecard()` normalises webhook posture checks, entity budget
+  pressure, and adaptive polling drift (targeting an update cycle below 200ms),
+  keeping security reporting aligned with the error catalogue and avoiding
+  ad-hoc checks in entity code.

@@ -18,14 +18,10 @@ from .const import (
     CONF_EXTERNAL_INTEGRATIONS,
     UPDATE_INTERVALS,
 )
-from .coordinator_insights import (
-    build_performance_snapshot,
-    build_security_scorecard,
-)
 from .coordinator_observability import (
     EntityBudgetTracker,
-    build_performance_snapshot,
-    build_security_scorecard,
+    build_performance_snapshot as build_observability_snapshot,
+    build_security_scorecard as build_observability_scorecard,
     normalise_webhook_status,
 )
 from .coordinator_runtime import (
@@ -376,38 +372,6 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return dog_data["dog_info"]
         return self.registry.get(dog_id) or {}
 
-    def get_performance_snapshot(self) -> dict[str, Any]:
-        """Return a lightweight snapshot of runtime performance metrics."""
-
-        adaptive = self._adaptive_polling.as_diagnostics()
-        entity_budget = self._entity_budget.summary()
-        update_interval = (
-            self.update_interval.total_seconds() if self.update_interval else 0.0
-        )
-        last_update_time = getattr(self, "last_update_time", None)
-
-        return build_performance_snapshot(
-            metrics=self._metrics,
-            adaptive=adaptive,
-            entity_budget=entity_budget,
-            update_interval=update_interval,
-            last_update_time=last_update_time,
-            last_update_success=self.last_update_success,
-            webhook_status=self._webhook_security_status(),
-        )
-
-    def get_security_scorecard(self) -> dict[str, Any]:
-        """Return aggregated pass/fail status for security critical checks."""
-
-        adaptive = self._adaptive_polling.as_diagnostics()
-        entity_summary = self._entity_budget.summary()
-        webhook_status = self._webhook_security_status()
-        return build_security_scorecard(
-            adaptive=adaptive,
-            entity_summary=entity_summary,
-            webhook_status=webhook_status,
-        )
-
     @property
     def available(self) -> bool:
         return self.last_update_success and self._metrics.consecutive_errors < 5
@@ -419,25 +383,40 @@ class PawControlCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return build_runtime_statistics(self)
 
     def get_performance_snapshot(self) -> dict[str, Any]:
-        """Return a concise performance snapshot for diagnostics surfaces."""
+        """Return a comprehensive performance snapshot for diagnostics surfaces."""
 
-        return build_performance_snapshot(
-            self.get_update_statistics(), self._last_cycle
+        adaptive = self._adaptive_polling.as_diagnostics()
+        entity_budget = self._entity_budget.summary()
+        update_interval = (
+            self.update_interval.total_seconds() if self.update_interval else 0.0
+        )
+        last_update_time = getattr(self, "last_update_time", None)
+
+        snapshot = build_observability_snapshot(
+            metrics=self._metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=update_interval,
+            last_update_time=last_update_time,
+            last_update_success=self.last_update_success,
+            webhook_status=self._webhook_security_status(),
         )
 
+        if self._last_cycle is not None:
+            snapshot["last_cycle"] = self._last_cycle.to_dict()
+
+        return snapshot
+
     def get_security_scorecard(self) -> dict[str, Any]:
-        """Return security posture checks derived from runtime state."""
+        """Return aggregated pass/fail status for security critical checks."""
 
-        status = None
-        if self.notification_manager and hasattr(
-            self.notification_manager, "webhook_security_status"
-        ):
-            status = self.notification_manager.webhook_security_status()
-
-        return build_security_scorecard(
-            status,
-            adaptive_interval=self._adaptive_polling.current_interval,
-            configured_interval=self.update_interval.total_seconds(),
+        adaptive = self._adaptive_polling.as_diagnostics()
+        entity_summary = self._entity_budget.summary()
+        webhook_status = self._webhook_security_status()
+        return build_observability_scorecard(
+            adaptive=adaptive,
+            entity_summary=entity_summary,
+            webhook_status=webhook_status,
         )
 
     @callback
