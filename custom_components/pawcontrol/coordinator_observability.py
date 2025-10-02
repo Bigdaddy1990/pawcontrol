@@ -134,9 +134,7 @@ def _summarize_entity_budgets(
         if isfinite(saturation_value):
             saturations.append(max(0.0, min(1.0, saturation_value)))
 
-    average_utilisation = (
-        (total_allocated / total_capacity) if total_capacity else 0.0
-    )
+    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
     peak_utilisation = max(saturations, default=0.0)
 
     return {

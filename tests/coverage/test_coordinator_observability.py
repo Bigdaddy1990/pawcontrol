@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import importlib.util
 import pathlib
 import sys
 import types
+from datetime import datetime
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = (REPO_ROOT / "custom_components").resolve()
@@ -56,7 +56,9 @@ normalise_webhook_status = _observability.normalise_webhook_status
 class DummyMetrics:
     """Minimal metrics stub mirroring the coordinator counters."""
 
-    def __init__(self, *, update_count: int, failed_cycles: int, consecutive_errors: int) -> None:
+    def __init__(
+        self, *, update_count: int, failed_cycles: int, consecutive_errors: int
+    ) -> None:
         self.update_count = update_count
         self.failed_cycles = failed_cycles
         self.consecutive_errors = consecutive_errors
@@ -214,7 +216,11 @@ def test_security_scorecard_reports_failure_reason() -> None:
     scorecard = build_security_scorecard(
         adaptive={"current_interval_ms": 320.0, "target_cycle_ms": 180.0},
         entity_summary={"peak_utilization": 99.0},
-        webhook_status={"configured": True, "secure": False, "insecure_configs": ("dog-a",)},
+        webhook_status={
+            "configured": True,
+            "secure": False,
+            "insecure_configs": ("dog-a",),
+        },
     )
 
     assert scorecard["status"] == "fail"
