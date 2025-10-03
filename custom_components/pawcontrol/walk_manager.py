@@ -1274,8 +1274,11 @@ class WalkManager:
                 # Generate format-specific data with enhanced error handling
                 if format == "gpx":
                     try:
-                        export_data["gpx_data"] = self._generate_enhanced_gpx_data(
-                            recent_walks, dog_id
+                        # defusedxml is synchronous; generate GPX off the event loop
+                        export_data["gpx_data"] = await asyncio.to_thread(
+                            self._generate_enhanced_gpx_data,
+                            recent_walks,
+                            dog_id,
                         )
                         export_data["file_extension"] = ".gpx"
                         export_data["mime_type"] = "application/gpx+xml"
@@ -1416,6 +1419,9 @@ class WalkManager:
 
         OPTIMIZED: Full GPX 1.1 standard compliance with proper namespaces,
         metadata, bounds, waypoints, and track segments.
+
+        NOTE: Uses ``defusedxml`` which is synchronous and therefore executed via
+        :func:`asyncio.to_thread` by the caller to keep the event loop responsive.
 
         Args:
             walks: List of walk data with validated paths

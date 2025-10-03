@@ -804,6 +804,7 @@ class PawControlTestNotificationButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the test-notification button."""
         super().__init__(
             coordinator,
             dog_id,
@@ -838,6 +839,7 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the daily statistics reset control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -884,6 +886,7 @@ class PawControlRefreshDataButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the manual refresh control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -895,6 +898,7 @@ class PawControlRefreshDataButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Request a full coordinator refresh."""
         await super().async_press()
 
         try:
@@ -910,6 +914,7 @@ class PawControlSyncDataButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the high-priority sync control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -921,6 +926,7 @@ class PawControlSyncDataButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Trigger a selective refresh with elevated priority."""
         await super().async_press()
 
         try:
@@ -938,6 +944,7 @@ class PawControlToggleVisitorModeButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the visitor mode toggle control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -986,6 +993,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the smart feeding acknowledgement control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1031,6 +1039,7 @@ class PawControlFeedNowButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the immediate feeding control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1073,6 +1082,7 @@ class PawControlFeedMealButton(PawControlButtonBase):
         dog_name: str,
         meal_type: str,
     ) -> None:
+        """Initialise a shortcut button for a specific meal."""
         self._meal_type = meal_type
         super().__init__(
             coordinator,
@@ -1111,6 +1121,7 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the custom feeding logging control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1149,6 +1160,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the walk start control with validation hooks."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1204,6 +1216,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the walk completion control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1255,6 +1268,7 @@ class PawControlQuickWalkButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the quick-walk logging control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1304,6 +1318,7 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the manual walk logging control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1352,6 +1367,7 @@ class PawControlRefreshLocationButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the GPS refresh control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1381,6 +1397,7 @@ class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the update-location alias control for tests."""
         super().__init__(coordinator, dog_id, dog_name)
         self._button_type = "update_location"
         self._attr_unique_id = f"pawcontrol_{dog_id}_update_location"
@@ -1393,6 +1410,7 @@ class PawControlExportRouteButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the route export control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1431,6 +1449,7 @@ class PawControlCenterMapButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the map centring control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1457,6 +1476,7 @@ class PawControlCallDogButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the tracker call control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1491,6 +1511,7 @@ class PawControlLogWeightButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the quick weight logging control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1525,6 +1546,7 @@ class PawControlLogMedicationButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the medication logging shortcut."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1546,6 +1568,7 @@ class PawControlStartGroomingButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the grooming session starter."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1581,6 +1604,7 @@ class PawControlScheduleVetButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the vet scheduling shortcut."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1602,6 +1626,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the comprehensive health check control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1634,6 +1659,7 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the garden session start control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1644,6 +1670,7 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Start a new garden session via the service layer."""
         await super().async_press()
 
         garden_data = self._get_module_data("garden") or {}
@@ -1665,6 +1692,7 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
 
     @property
     def available(self) -> bool:
+        """Return True when a garden session can be started."""
         if not super().available:
             return False
         garden_data = self._get_module_data("garden") or {}
@@ -1677,6 +1705,7 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the end-garden-session control."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1687,6 +1716,7 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Trigger the integration service to end the active session."""
         await super().async_press()
 
         garden_data = self._get_module_data("garden") or {}
@@ -1708,6 +1738,7 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
 
     @property
     def available(self) -> bool:
+        """Return True only while a session is active."""
         if not super().available:
             return False
         garden_data = self._get_module_data("garden") or {}
@@ -1720,6 +1751,7 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the generic garden activity logger button."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1730,6 +1762,7 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Log a generic garden activity via the integration service."""
         await super().async_press()
 
         garden_data = self._get_module_data("garden") or {}
@@ -1756,6 +1789,7 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
 
     @property
     def available(self) -> bool:
+        """Return True while a garden session is running."""
         if not super().available:
             return False
         garden_data = self._get_module_data("garden") or {}
@@ -1768,6 +1802,7 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the confirmation control for garden poop events."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1778,6 +1813,7 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
         )
 
     async def async_press(self) -> None:
+        """Mark the most recent garden poop confirmation as complete."""
         await super().async_press()
 
         try:
@@ -1800,6 +1836,7 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
 
     @property
     def available(self) -> bool:
+        """Return True when pending garden poop confirmations exist."""
         if not super().available:
             return False
         garden_data = self._get_module_data("garden") or {}

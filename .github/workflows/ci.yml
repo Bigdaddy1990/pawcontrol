@@ -10,6 +10,7 @@ on:
 env:
   PYTHON_VERSION: "3.13"
   HA_VERSION: "2025.9.3"
+  COVERAGE_MIN: "95"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,10 +64,10 @@ jobs:
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U homeassistant==${{ env.HA_VERSION }}
           pip install -U pytest-homeassistant-custom-component
-          pip install -r requirements.txt || true
-          pip install -r requirements_test.txt || true
+          pip install -r requirements.txt
+          pip install -r requirements_test.txt
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage gate
         env:
           PYTHONPATH: .
         run: |
@@ -76,6 +77,7 @@ jobs:
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing:skip-covered \
             --cov-report=html:htmlcov \
+            --cov-fail-under=${{ env.COVERAGE_MIN }} \
             --junitxml=junit.xml \
             -o junit_family=legacy \
             --maxfail=5 \

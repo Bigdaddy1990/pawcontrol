@@ -42,11 +42,15 @@ class DashboardFlowMixin:
 
         async def async_step_configure_external_entities(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the GPS entity configuration step."""
+            ...
 
         async def async_step_final_setup(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the concluding config flow step."""
+            ...
 
         def async_show_form(
             self,
@@ -55,7 +59,9 @@ class DashboardFlowMixin:
             data_schema: vol.Schema,
             description_placeholders: dict[str, Any] | None = None,
             errors: dict[str, str] | None = None,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for Home Assistant form rendering."""
+            ...
 
     async def async_step_configure_dashboard(
         self, user_input: dict[str, Any] | None = None

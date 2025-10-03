@@ -22,9 +22,9 @@ from typing import Any
 
 from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt as dt_util
 
+from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
@@ -392,12 +392,19 @@ class PawControlNotificationManager:
     person entity integration, and comprehensive performance monitoring for Platinum-level quality.
     """
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        *,
+        session: ClientSession,
+    ) -> None:
         """Initialize advanced notification manager.
 
         Args:
             hass: Home Assistant instance
             entry_id: Config entry ID for namespacing
+            session: Home Assistant managed session for outbound calls
         """
         self._hass = hass
         self._entry_id = entry_id
@@ -405,6 +412,9 @@ class PawControlNotificationManager:
         self._configs: dict[str, NotificationConfig] = {}
         self._handlers: dict[NotificationChannel, Callable] = {}
         self._lock = asyncio.Lock()
+        self._session = ensure_shared_client_session(
+            session, owner="PawControlNotificationManager"
+        )
 
         # NEW: Person entity manager for dynamic targeting
         self._person_manager: PersonEntityManager | None = None
@@ -453,6 +463,12 @@ class PawControlNotificationManager:
 
         # Setup default handlers
         self._setup_default_handlers()
+
+    @property
+    def session(self) -> ClientSession:
+        """Return the shared aiohttp session used for webhooks."""
+
+        return self._session
 
     def _setup_default_handlers(self) -> None:
         """Setup default notification handlers with error handling."""
@@ -1299,10 +1315,8 @@ class PawControlNotificationManager:
             )
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
-        session = async_get_clientsession(self._hass)
-
         try:
-            async with session.post(
+            async with self._session.post(
                 webhook_url,
                 data=payload_bytes,
                 headers=headers,

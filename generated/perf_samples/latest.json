@@ -1,0 +1,18 @@
+{
+  "captured_at": "2025-03-16T10:05:00Z",
+  "statistics_aggregation": {
+    "samples_ms": [1.64, 1.66, 1.65, 1.67],
+    "average_ms": 1.655,
+    "source": "custom_components/pawcontrol/coordinator.py"
+  },
+  "visitor_persistence": {
+    "samples_ms": [0.66, 0.68, 0.67, 0.66],
+    "average_ms": 0.6675,
+    "source": "custom_components/pawcontrol/data_manager.py"
+  },
+  "emergency_feeding_restore": {
+    "samples_ms": [32.9, 33.1, 33.0, 32.8],
+    "average_ms": 32.95,
+    "source": "custom_components/pawcontrol/feeding_manager.py"
+  }
+}

@@ -8,7 +8,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 from enum import Enum
-from typing import Any
+from time import perf_counter
+from typing import Any, Callable, TypeVar
 
 from homeassistant.util import dt as dt_util
 
@@ -33,6 +34,7 @@ except ImportError:  # pragma: no cover
     )
 
 _LOGGER = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 # Portion safeguard constants
@@ -682,6 +684,9 @@ class FeedingManager:
         self._activity_reversion_tasks: dict[str, asyncio.Task] = {}
         self._portion_reversion_tasks: dict[str, asyncio.Task] = {}
 
+        # Async dependency audit instrumentation
+        self._profile_threshold = 0.05
+
         # OPTIMIZATION: Feeding data cache
         self._data_cache: dict[str, dict] = {}
         self._cache_time: dict[str, datetime] = {}
@@ -691,6 +696,41 @@ class FeedingManager:
         self._stats_cache: dict[str, dict] = {}
         self._stats_cache_time: dict[str, datetime] = {}
         self._stats_cache_ttl = timedelta(minutes=5)
+
+    async def _offload_blocking(
+        self,
+        description: str,
+        func: Callable[..., T],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """Run *func* in a worker thread and emit async profiling logs."""
+
+        start = perf_counter()
+        result = await asyncio.to_thread(func, *args, **kwargs)
+        duration = perf_counter() - start
+        if duration >= self._profile_threshold:
+            _LOGGER.debug(
+                "Async dependency audit: %s completed in %.3fs off the event loop",
+                description,
+                duration,
+            )
+        return result
+
+    def _apply_emergency_restoration(
+        self,
+        config: FeedingConfig,
+        original_config: dict[str, Any],
+        dog_id: str,
+    ) -> None:
+        """Restore baseline feeding parameters after emergency mode."""
+
+        config.daily_food_amount = original_config["daily_food_amount"]
+        config.meals_per_day = original_config["meals_per_day"]
+        config.schedule_type = original_config["schedule_type"]
+        config.food_type = original_config["food_type"]
+
+        self._invalidate_cache(dog_id)
 
     async def async_initialize(self, dogs: list[dict[str, Any]]) -> None:
         """Initialize feeding configurations for dogs.
@@ -2110,7 +2150,10 @@ class FeedingManager:
                 }
 
             # Build current health metrics
-            health_metrics = config._build_health_metrics()
+            health_metrics = await self._offload_blocking(
+                f"build health metrics for {dog_id}",
+                config._build_health_metrics,
+            )
 
             if not health_metrics.current_weight:
                 return {
@@ -2216,7 +2259,10 @@ class FeedingManager:
             config.activity_level = activity_level
 
             # Recalculate portions with new activity level
-            health_metrics = config._build_health_metrics()
+            health_metrics = await self._offload_blocking(
+                f"build health metrics for {dog_id}",
+                config._build_health_metrics,
+            )
 
             if not health_metrics.current_weight:
                 return {
@@ -2228,7 +2274,9 @@ class FeedingManager:
             try:
                 from .health_calculator import HealthCalculator, LifeStage
 
-                new_daily_calories = HealthCalculator.calculate_daily_calories(
+                new_daily_calories = await self._offload_blocking(
+                    f"calculate calories for {dog_id}",
+                    HealthCalculator.calculate_daily_calories,
                     weight=health_metrics.current_weight,
                     life_stage=health_metrics.life_stage or LifeStage.ADULT,
                     activity_level=activity_enum,
@@ -2240,7 +2288,10 @@ class FeedingManager:
                 raise ValueError("Health calculator not available") from err
 
             # Convert calories to food amount
-            calories_per_gram = config._estimate_calories_per_gram()
+            calories_per_gram = await self._offload_blocking(
+                f"estimate calories per gram for {dog_id}",
+                config._estimate_calories_per_gram,
+            )
             new_daily_amount = new_daily_calories / calories_per_gram
 
             # Update daily food amount
@@ -2565,13 +2616,13 @@ class FeedingManager:
                     duration_days * 24 * 3600
                 )  # Convert days to seconds
                 try:
-                    # Restore original configuration
-                    config.daily_food_amount = original_config["daily_food_amount"]
-                    config.meals_per_day = original_config["meals_per_day"]
-                    config.schedule_type = original_config["schedule_type"]
-                    config.food_type = original_config["food_type"]
-
-                    self._invalidate_cache(dog_id)
+                    await self._offload_blocking(
+                        f"restore emergency feeding plan for {dog_id}",
+                        self._apply_emergency_restoration,
+                        config,
+                        original_config,
+                        dog_id,
+                    )
 
                     _LOGGER.info(
                         "Restored normal feeding mode for %s after %d days",

@@ -28,6 +28,36 @@ async def test_initialisation_builds_registry(
 
 
 @pytest.mark.unit
+def test_initialisation_rejects_missing_session(
+    mock_hass, mock_config_entry
+) -> None:
+    """A helpful error should be raised when no session is provided."""
+
+    with pytest.raises(ValueError):
+        PawControlCoordinator(  # type: ignore[arg-type]
+            mock_hass,
+            mock_config_entry,
+            None,
+        )
+
+
+@pytest.mark.unit
+def test_initialisation_rejects_closed_session(
+    mock_hass, mock_config_entry, session_factory
+) -> None:
+    """Closed sessions must be rejected at construction time."""
+
+    closed_session = session_factory(closed=True)
+
+    with pytest.raises(ValueError):
+        PawControlCoordinator(
+            mock_hass,
+            mock_config_entry,
+            closed_session,
+        )
+
+
+@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_async_update_data_uses_runtime(
     mock_hass, mock_config_entry, mock_session
@@ -170,3 +200,20 @@ async def test_availability_threshold(mock_hass, mock_config_entry, mock_session
 
     coordinator._metrics.consecutive_errors = 1
     assert coordinator.available is True
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_statistics_records_runtime(mock_hass, mock_config_entry, mock_session):
+    """Generating statistics should capture and expose timing samples."""
+
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    coordinator._metrics.update_count = 2
+
+    with patch.object(coordinator.logger(), "debug") as debug_mock:
+        stats = coordinator.get_statistics()
+
+    assert "update_counts" in stats
+    assert coordinator._metrics.statistics_timings
+    assert coordinator._metrics.average_statistics_runtime_ms < 5.0
+    debug_mock.assert_called()

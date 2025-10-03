@@ -536,6 +536,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Expose the latest garden telemetry for diagnostics dashboards."""
         attrs = super().extra_state_attributes
         data = self._get_garden_data()
         attrs.update(
@@ -1495,6 +1496,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the health-aware feeding status sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1513,6 +1515,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return health-aware feeding metadata for the caregiver UI."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
@@ -1532,6 +1535,7 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the medication reminder sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1550,6 +1554,7 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Report which health conditions require medication with meals."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         attrs["health_conditions"] = feeding_data.get("health_conditions", [])
@@ -1562,6 +1567,7 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the emergency escalation sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1581,6 +1587,7 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Expose emergency context such as type, timing, and status."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_module_data("feeding") or {}
         emergency = feeding_data.get("emergency_mode") or {}
@@ -1603,6 +1610,7 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the garden session activity sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1630,6 +1638,7 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the in-garden presence sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1654,6 +1663,7 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the pending garden poop confirmation sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -1674,6 +1684,7 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Expose how many confirmation prompts are outstanding."""
         attrs = super().extra_state_attributes
         pending = self._get_garden_data().get("pending_confirmations") or []
         attrs["pending_confirmation_count"] = len(pending)

@@ -335,7 +335,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         manager_init_start = time.time()
         try:
             data_manager = PawControlDataManager(hass, entry.entry_id)
-            notification_manager = PawControlNotificationManager(hass, entry.entry_id)
+            notification_manager = PawControlNotificationManager(
+                hass, entry.entry_id, session=session
+            )
             feeding_manager = FeedingManager()
             walk_manager = WalkManager()
             entity_factory = EntityFactory(coordinator)

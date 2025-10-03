@@ -39,6 +39,7 @@ class WebhookSecurityManager:
         algorithm: str = "sha256",
         tolerance_seconds: int = DEFAULT_TOLERANCE_SECONDS,
     ) -> None:
+        """Create a security manager for signing and verifying webhooks."""
         if not secret:
             raise ValueError("secret must not be empty")
 

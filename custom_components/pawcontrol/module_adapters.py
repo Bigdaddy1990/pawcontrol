@@ -21,6 +21,7 @@ from .const import (
     MODULE_WEATHER,
 )
 from .device_api import PawControlDeviceClient
+from .http_client import ensure_shared_client_session
 from .exceptions import GPSUnavailableError, NetworkError, RateLimitError
 
 if TYPE_CHECKING:
@@ -157,8 +158,11 @@ class FeedingModuleAdapter(_BaseModuleAdapter):
         ttl: timedelta,
         api_client: PawControlDeviceClient | None,
     ) -> None:
+        """Initialise the feeding adapter with HTTP and manager context."""
         super().__init__(ttl)
-        self._session = session
+        self._session = ensure_shared_client_session(
+            session, owner="FeedingModuleAdapter"
+        )
         self._use_external_api = use_external_api
         self._manager: FeedingManager | None = None
         self._api_client = api_client
@@ -227,13 +231,16 @@ class WalkModuleAdapter(_BaseModuleAdapter):
     """Expose detailed walk data using the walk manager."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
+        """Initialise the walk adapter with optional caching."""
         super().__init__(ttl)
         self._manager: WalkManager | None = None
 
     def attach(self, manager: WalkManager | None) -> None:
+        """Attach the walk manager used to gather live metrics."""
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Return cached or live walk telemetry for the given dog."""
         if cached := self._cached(dog_id):
             return cached
 
@@ -271,12 +278,15 @@ class GPSModuleAdapter:
     """Return GPS-centric data leveraging the GPS manager."""
 
     def __init__(self) -> None:
+        """Initialise the GPS adapter without caching."""
         self._manager: GPSGeofenceManager | None = None
 
     def attach(self, manager: GPSGeofenceManager | None) -> None:
+        """Attach the GPS manager that supplies live coordinates."""
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Return the latest GPS fix and active route information."""
         if not self._manager:
             raise GPSUnavailableError(dog_id, "GPS manager not available")
 
@@ -313,13 +323,16 @@ class GeofencingModuleAdapter(_BaseModuleAdapter):
     """Expose geofence metadata from the GPS manager."""
 
     def __init__(self, *, ttl: timedelta) -> None:
+        """Initialise the geofencing adapter with a cache TTL."""
         super().__init__(ttl)
         self._manager: GPSGeofenceManager | None = None
 
     def attach(self, manager: GPSGeofenceManager | None) -> None:
+        """Attach the geofence manager used to fetch zone information."""
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Return cached or live geofence details for the dog."""
         if cached := self._cached(dog_id):
             return cached
 
@@ -352,6 +365,7 @@ class HealthModuleAdapter(_BaseModuleAdapter):
     """Combine stored health data with live feeding/walk metrics."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
+        """Initialise the health adapter with optional caching."""
         super().__init__(ttl)
         self._feeding_manager: FeedingManager | None = None
         self._data_manager: PawControlDataManager | None = None
@@ -364,11 +378,13 @@ class HealthModuleAdapter(_BaseModuleAdapter):
         data_manager: PawControlDataManager | None,
         walk_manager: WalkManager | None,
     ) -> None:
+        """Provide the managers used to construct the health snapshot."""
         self._feeding_manager = feeding_manager
         self._data_manager = data_manager
         self._walk_manager = walk_manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Build a composite health payload using cached and live data."""
         if cached := self._cached(dog_id):
             return cached
 
@@ -482,14 +498,17 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
     """Adapter for weather-informed health data."""
 
     def __init__(self, *, config_entry: PawControlConfigEntry, ttl: timedelta) -> None:
+        """Initialise the weather adapter with config context."""
         super().__init__(ttl)
         self._config_entry = config_entry
         self._manager: WeatherHealthManager | None = None
 
     def attach(self, manager: WeatherHealthManager | None) -> None:
+        """Attach the weather health manager to source observations."""
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Return weather-adjusted health information for a dog."""
         if cached := self._cached(dog_id):
             return cached
 
@@ -523,13 +542,16 @@ class GardenModuleAdapter(_BaseModuleAdapter):
     """Adapter that exposes garden activity data."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
+        """Initialise the garden adapter and optional cache."""
         super().__init__(ttl)
         self._manager: GardenManager | None = None
 
     def attach(self, manager: GardenManager | None) -> None:
+        """Attach the garden manager used to pull session data."""
         self._manager = manager
 
     async def async_get_data(self, dog_id: str) -> dict[str, Any]:
+        """Return garden status details for the requested dog."""
         if cached := self._cached(dog_id):
             return cached
 
@@ -563,6 +585,7 @@ class CoordinatorModuleAdapters:
         cache_ttl: timedelta,
         api_client: PawControlDeviceClient | None,
     ) -> None:
+        """Initialise the container of module adapters with shared context."""
         self._cache_ttl = cache_ttl
         self.feeding = FeedingModuleAdapter(
             session=session,
@@ -587,6 +610,7 @@ class CoordinatorModuleAdapters:
         weather_health_manager: WeatherHealthManager | None,
         garden_manager: GardenManager | None,
     ) -> None:
+        """Attach runtime managers so adapters can fetch live data."""
         self.feeding.attach(feeding_manager)
         self.walk.attach(walk_manager)
         self.gps.attach(gps_geofence_manager)
@@ -600,6 +624,7 @@ class CoordinatorModuleAdapters:
         self.garden.attach(garden_manager)
 
     def detach_managers(self) -> None:
+        """Detach all runtime managers when tearing down the coordinator."""
         self.feeding.attach(None)
         self.walk.attach(None)
         self.gps.attach(None)
@@ -615,6 +640,7 @@ class CoordinatorModuleAdapters:
     def build_tasks(
         self, dog_id: str, modules: dict[str, Any]
     ) -> list[tuple[str, Awaitable[dict[str, Any]]]]:
+        """Return coroutine tasks for every enabled module for the dog."""
         tasks: list[tuple[str, Awaitable[dict[str, Any]]]] = []
 
         if modules.get(MODULE_FEEDING):
@@ -634,6 +660,7 @@ class CoordinatorModuleAdapters:
         return tasks
 
     def cleanup_expired(self, now: datetime) -> int:
+        """Expire cached entries and return the number of evictions."""
         expired = 0
         for adapter in (
             self.feeding,
@@ -647,6 +674,7 @@ class CoordinatorModuleAdapters:
         return expired
 
     def clear_caches(self) -> None:
+        """Clear all adapter caches, typically during manual refreshes."""
         for adapter in (
             self.feeding,
             self.walk,
@@ -658,6 +686,7 @@ class CoordinatorModuleAdapters:
             adapter.clear()
 
     def cache_metrics(self) -> _CacheMetrics:
+        """Aggregate cache metrics from every module adapter."""
         metrics = _CacheMetrics()
         for adapter in (
             self.feeding,

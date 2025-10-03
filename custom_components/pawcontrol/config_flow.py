@@ -94,6 +94,7 @@ class ConfigFlowPerformanceMonitor:
     """Monitor performance of config flow operations."""
 
     def __init__(self) -> None:
+        """Initialise empty metric buckets for tracking config flow performance."""
         self.operation_times: dict[str, list[float]] = {}
         self.validation_counts: dict[str, int] = {}
 

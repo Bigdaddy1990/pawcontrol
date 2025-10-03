@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from aiohttp import ClientSession
 
 _REQUIRED_MODULES = (
     "homeassistant",
@@ -191,19 +192,54 @@ async def mock_hass() -> AsyncGenerator[Any]:
     yield hass
 
 
+class _MockClientSession(Mock):
+    """Test double that mimics :class:`aiohttp.ClientSession` semantics."""
+
+    def __init__(self) -> None:
+        super().__init__(spec=ClientSession)
+        self.closed = False
+
+        async def _close() -> None:
+            self.closed = True
+
+        self.close = AsyncMock(side_effect=_close)
+        self.request = AsyncMock(name="request")
+        self.get = AsyncMock(side_effect=self.request, name="get")
+
+        def _context_response(*args: Any, **kwargs: Any) -> AsyncMock:
+            """Return an async context manager for ``session.post`` usage."""
+
+            response = Mock()
+            response.status = kwargs.get("status", 200)
+            response.text = AsyncMock(return_value=kwargs.get("text", ""))
+            response.json = AsyncMock(return_value=kwargs.get("json", {}))
+
+            response_cm = AsyncMock()
+            response_cm.__aenter__.return_value = response
+            response_cm.__aexit__.return_value = False
+            response_cm.call_args = (args, kwargs)
+            return response_cm
+
+        self.post = AsyncMock(side_effect=_context_response, name="post")
+
+
 @pytest.fixture
-def mock_session():
-    """Mock aiohttp ClientSession for API calls.
+def session_factory() -> Callable[..., _MockClientSession]:
+    """Return a factory that creates aiohttp session doubles."""
 
-    Returns:
-        Mock ClientSession
-    """
-    session = Mock()
-    session.get = AsyncMock()
-    session.post = AsyncMock()
-    session.close = AsyncMock()
+    def _factory(*, closed: bool = False) -> _MockClientSession:
+        session = _MockClientSession()
+        session.closed = closed
+        return session
 
-    return session
+    return _factory
+
+
+@pytest.fixture
+def mock_session(session_factory: Callable[..., _MockClientSession]) -> _MockClientSession:
+    """Return a reusable aiohttp session double for HTTP entry points."""
+
+    return session_factory()
 
 
 @pytest.fixture
@@ -326,7 +362,9 @@ async def mock_gps_manager(mock_hass, mock_resilience_manager):
 
 
 @pytest.fixture
-async def mock_notification_manager(mock_hass, mock_resilience_manager):
+async def mock_notification_manager(
+    mock_hass, mock_resilience_manager, mock_session
+):
     """Mock PawControlNotificationManager for testing.
 
     Args:
@@ -338,7 +376,9 @@ async def mock_notification_manager(mock_hass, mock_resilience_manager):
     """
     from custom_components.pawcontrol.notifications import PawControlNotificationManager
 
-    manager = PawControlNotificationManager(mock_hass, "test_entry")
+    manager = PawControlNotificationManager(
+        mock_hass, "test_entry", session=mock_session
+    )
     manager.resilience_manager = mock_resilience_manager
 
     await manager.async_initialize()

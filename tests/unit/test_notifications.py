@@ -28,18 +28,24 @@ from custom_components.pawcontrol.notifications import (
 class TestNotificationManagerInitialization:
     """Test notification manager initialization."""
 
-    async def test_initialization_basic(self, mock_hass):
+    async def test_initialization_basic(self, mock_hass, mock_session):
         """Test basic notification manager initialization."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         assert manager._hass == mock_hass
         assert manager._entry_id == "test_entry"
         assert len(manager._notifications) == 0
         assert len(manager._configs) == 0
 
-    async def test_initialization_with_configs(self, mock_hass):
+    async def test_initialization_with_configs(
+        self, mock_hass, mock_session
+    ):
         """Test initialization with notification configs."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -54,9 +60,87 @@ class TestNotificationManagerInitialization:
         assert "test_dog" in manager._configs
         assert manager._configs["test_dog"].enabled is True
 
-    async def test_initialization_validates_channels(self, mock_hass):
+    async def test_initialization_reuses_session(self, mock_hass, session_factory):
+        """Providing a session should be honoured and reused."""
+
+        custom_session = session_factory()
+
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=custom_session
+        )
+
+        assert manager.session is custom_session
+
+    async def test_initialization_rejects_missing_session(self, mock_hass):
+        """Fail loudly when no session is provided."""
+
+        with pytest.raises(ValueError):
+            PawControlNotificationManager(  # type: ignore[arg-type]
+                mock_hass, "test_entry", session=None
+            )
+
+    async def test_initialization_rejects_closed_session(
+        self, mock_hass, session_factory
+    ):
+        """Fail loudly when the session has been disposed."""
+
+        closed_session = session_factory(closed=True)
+
+        with pytest.raises(ValueError):
+            PawControlNotificationManager(
+                mock_hass, "test_entry", session=closed_session
+            )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestNotificationWebhooks:
+    """Ensure webhook delivery honours the shared session."""
+
+    async def test_webhook_uses_injected_session(
+        self, mock_hass, session_factory
+    ):
+        """Injected session should be used for webhook HTTP calls."""
+
+        custom_session = session_factory()
+        response = AsyncMock()
+        response.status = 200
+        post_cm = AsyncMock()
+        post_cm.__aenter__.return_value = response
+        custom_session.post = AsyncMock(return_value=post_cm)
+
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=custom_session
+        )
+        manager._configs["system"] = NotificationConfig(
+            channels=[NotificationChannel.WEBHOOK],
+            custom_settings={"webhook_url": "https://example.invalid"},
+        )
+
+        notification = NotificationEvent(
+            id="notif-1",
+            dog_id=None,
+            notification_type=NotificationType.SYSTEM_INFO,
+            priority=NotificationPriority.NORMAL,
+            title="Title",
+            message="Body",
+            created_at=datetime.utcnow(),
+            channels=[NotificationChannel.WEBHOOK],
+        )
+
+        await manager._send_webhook_notification(notification)
+
+        custom_session.post.assert_called_once()
+        called_kwargs = custom_session.post.call_args.kwargs
+        assert called_kwargs["timeout"].total == pytest.approx(10.0)
+
+    async def test_initialization_validates_channels(
+        self, mock_hass, mock_session
+    ):
         """Test that initialization validates channel names."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -134,9 +218,13 @@ class TestBasicNotificationSending:
 class TestNotificationConfig:
     """Test notification configuration."""
 
-    async def test_notification_disabled_prevents_sending(self, mock_hass):
+    async def test_notification_disabled_prevents_sending(
+        self, mock_hass, mock_session
+    ):
         """Test that disabled notifications are not sent."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -197,9 +285,13 @@ class TestWebhookSecurityStatus:
         assert status["hmac_ready"] is False
         assert status["insecure_configs"] == ("dog1",)
 
-    async def test_priority_threshold_filters_low_priority(self, mock_hass):
+    async def test_priority_threshold_filters_low_priority(
+        self, mock_hass, mock_session
+    ):
         """Test that priority threshold filters notifications."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -238,9 +330,13 @@ class TestWebhookSecurityStatus:
 class TestQuietHours:
     """Test quiet hours functionality."""
 
-    async def test_quiet_hours_suppresses_normal_notifications(self, mock_hass):
+    async def test_quiet_hours_suppresses_normal_notifications(
+        self, mock_hass, mock_session
+    ):
         """Test that quiet hours suppress normal priority notifications."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         # Set quiet hours (22:00 - 07:00)
         configs = {
@@ -269,9 +365,13 @@ class TestQuietHours:
             notification = manager._notifications.get(notification_id)
             assert notification is None or len(notification.sent_to) == 0
 
-    async def test_quiet_hours_allows_urgent_notifications(self, mock_hass):
+    async def test_quiet_hours_allows_urgent_notifications(
+        self, mock_hass, mock_session
+    ):
         """Test that urgent notifications bypass quiet hours."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -413,9 +513,13 @@ class TestBatchProcessing:
 class TestRateLimiting:
     """Test rate limiting functionality."""
 
-    async def test_rate_limit_blocks_excessive_notifications(self, mock_hass):
+    async def test_rate_limit_blocks_excessive_notifications(
+        self, mock_hass, mock_session
+    ):
         """Test that rate limiting blocks excessive notifications."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {
@@ -470,9 +574,13 @@ class TestTemplates:
         # Check that template was applied
         assert notification.template_used is not None
 
-    async def test_custom_template_override(self, mock_hass):
+    async def test_custom_template_override(
+        self, mock_hass, mock_session
+    ):
         """Test custom template overrides."""
-        manager = PawControlNotificationManager(mock_hass, "test_entry")
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
 
         configs = {
             "test_dog": {

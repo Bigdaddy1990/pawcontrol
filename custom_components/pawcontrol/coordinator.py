@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from datetime import timedelta
+from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import (
     CoordinatorUpdateFailed,
     DataUpdateCoordinator,
@@ -55,6 +55,7 @@ from .coordinator_tasks import (
 )
 from .coordinator_tasks import shutdown as shutdown_tasks
 from .device_api import PawControlDeviceClient
+from .http_client import ensure_shared_client_session
 from .exceptions import ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
@@ -88,10 +89,13 @@ class PawControlCoordinator(
         self,
         hass: HomeAssistant,
         entry: PawControlConfigEntry,
-        session: ClientSession | None = None,
+        session: ClientSession,
     ) -> None:
+        """Initialise the coordinator with Home Assistant runtime context."""
         self.config_entry = entry
-        self.session = session or async_get_clientsession(hass)
+        self.session = ensure_shared_client_session(
+            session, owner="PawControlCoordinator"
+        )
         self.registry = DogConfigRegistry.from_entry(entry)
         self._use_external_api = bool(
             entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
@@ -193,6 +197,7 @@ class PawControlCoordinator(
 
     @property
     def use_external_api(self) -> bool:
+        """Return whether the external Paw Control API is enabled."""
         return self._use_external_api
 
     @use_external_api.setter
@@ -201,9 +206,11 @@ class PawControlCoordinator(
 
     @property
     def api_client(self) -> PawControlDeviceClient | None:
+        """Return the device API client when configured."""
         return self._api_client
 
     def logger(self) -> logging.Logger:
+        """Expose the coordinator logger for dependent components."""
         return _LOGGER
 
     def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
@@ -226,6 +233,7 @@ class PawControlCoordinator(
         weather_health_manager: WeatherHealthManager | None = None,
         garden_manager: GardenManager | None = None,
     ) -> None:
+        """Bind manager instances to the module adapters."""
         bind_runtime_managers(
             self,
             self._modules,
@@ -241,7 +249,11 @@ class PawControlCoordinator(
             },
         )
 
+        if hasattr(data_manager, "set_metrics_sink"):
+            data_manager.set_metrics_sink(self._metrics)
+
     def clear_runtime_managers(self) -> None:
+        """Detach runtime managers during teardown or reload."""
         unbind_runtime_managers(self, self._modules)
 
     async def _async_setup(self) -> None:
@@ -318,6 +330,7 @@ class PawControlCoordinator(
         self.async_set_updated_data(dict(self._data))
 
     async def async_refresh_dog(self, dog_id: str) -> None:
+        """Refresh data for a specific dog on demand."""
         if dog_id not in self.registry.ids():
             _LOGGER.debug("Ignoring refresh for unknown dog_id: %s", dog_id)
             return
@@ -340,29 +353,37 @@ class PawControlCoordinator(
         await self._refresh_subset(unique_ids)
 
     def get_dog_config(self, dog_id: str) -> Any:
+        """Return the raw configuration for the specified dog."""
         return self.registry.get(dog_id)
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
+        """Return the modules enabled for the given dog."""
         return self.registry.enabled_modules(dog_id)
 
     def is_module_enabled(self, dog_id: str, module: str) -> bool:
+        """Return True if the module is enabled for the dog."""
         return module in self.registry.enabled_modules(dog_id)
 
     def get_dog_ids(self) -> list[str]:
+        """Return identifiers for all configured dogs."""
         return self.registry.ids()
 
     get_configured_dog_ids = get_dog_ids
 
     def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
+        """Return the coordinator data payload for the dog."""
         return self._data.get(dog_id)
 
     def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+        """Return module-specific data for the dog."""
         return self._data.get(dog_id, {}).get(module, {})
 
     def get_configured_dog_name(self, dog_id: str) -> str | None:
+        """Return the configured display name for the dog."""
         return self.registry.get_name(dog_id)
 
     def get_dog_info(self, dog_id: str) -> dict[str, Any]:
+        """Return core dog information from the coordinator cache."""
         dog_data = self.get_dog_data(dog_id)
         if dog_data and isinstance(dog_data.get("dog_info"), dict):
             return dog_data["dog_info"]
@@ -370,13 +391,26 @@ class PawControlCoordinator(
 
     @property
     def available(self) -> bool:
+        """Return True if the coordinator considers itself healthy."""
         return self.last_update_success and self._metrics.consecutive_errors < 5
 
     def get_update_statistics(self) -> dict[str, Any]:
+        """Return statistics for the most recent update cycle."""
         return build_update_statistics(self)
 
     def get_statistics(self) -> dict[str, Any]:
-        return build_runtime_statistics(self)
+        """Return cumulative runtime statistics for diagnostics."""
+        start = perf_counter()
+        stats = build_runtime_statistics(self)
+        duration = perf_counter() - start
+        self._metrics.record_statistics_timing(duration)
+        self.logger().debug(
+            "Runtime statistics generated in %.3f ms (avg %.3f ms over %d samples)",
+            duration * 1000,
+            self._metrics.average_statistics_runtime_ms,
+            len(self._metrics.statistics_timings),
+        )
+        return stats
 
     def get_performance_snapshot(self) -> dict[str, Any]:
         """Return a comprehensive performance snapshot for diagnostics surfaces."""
@@ -417,12 +451,14 @@ class PawControlCoordinator(
 
     @callback
     def async_start_background_tasks(self) -> None:
+        """Start recurring background maintenance tasks."""
         ensure_background_task(self, MAINTENANCE_INTERVAL)
 
     async def _async_maintenance(self, *_: Any) -> None:
         await run_maintenance(self)
 
     async def async_shutdown(self) -> None:
+        """Stop background tasks and release resources."""
         await shutdown_tasks(self)
 
     def _webhook_security_status(self) -> dict[str, Any]:

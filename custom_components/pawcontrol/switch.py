@@ -490,6 +490,7 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the master power toggle for the integration."""
         super().__init__(
             coordinator,
             dog_id,
@@ -528,6 +529,7 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the do-not-disturb switch."""
         super().__init__(
             coordinator,
             dog_id,
@@ -562,6 +564,7 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the visitor mode switch for temporary guests."""
         super().__init__(
             coordinator,
             dog_id,
@@ -611,6 +614,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
         icon: str,
         initial_state: bool,
     ) -> None:
+        """Initialise a toggle for enabling or disabling a module."""
         self._module_id = module_id
         self._module_name = module_name
 
@@ -680,6 +684,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         icon: str,
         module: str,
     ) -> None:
+        """Initialise a toggle for fine-grained module features."""
         self._feature_id = feature_id
         self._feature_name = feature_name
         self._module = module

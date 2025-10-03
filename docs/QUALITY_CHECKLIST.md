@@ -22,7 +22,7 @@ for transparency.
 - [x] Repair issues surfaced with guided flows (`repairs.py`).
 - [x] Device registry metadata confirmed via regression coverage.
 - [x] Brands assets submitted to `home-assistant/brands`.
-- [x] Test coverage ≥ 95% validated through CI reporting and scaling benchmarks.
+- [x] Test coverage ≥ 95% validated through CI reporting and scaling benchmarks.【F:.github/workflows/ci.yml†L1-L120】【F:.github/workflows/coverage.yml†L1-L60】【F:pyproject.toml†L46-L66】
 
 ## Notes
 - Discovery remains optional for the currently supported hardware and is tracked as an exemption.

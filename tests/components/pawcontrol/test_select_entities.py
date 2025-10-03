@@ -146,10 +146,14 @@ async def test_notification_priority_select_updates_manager(
 
 
 @pytest.mark.asyncio
-async def test_notification_manager_priority_helper_updates_config(hass) -> None:
+async def test_notification_manager_priority_helper_updates_config(
+    hass, session_factory
+) -> None:
     """Ensure the notification manager helper persists priority changes."""
 
-    manager = PawControlNotificationManager(hass, "entry-123")
+    session = session_factory()
+    session.request = AsyncMock()
+    manager = PawControlNotificationManager(hass, "entry-123", session=session)
 
     await manager.async_set_priority_threshold("dog-3", NotificationPriority.URGENT)
 

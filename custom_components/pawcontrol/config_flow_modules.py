@@ -46,6 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 if TYPE_CHECKING:
 
     class ModuleFlowHost(Protocol):
+        """Type-checking protocol describing the module flow host."""
         _dogs: list[DogConfigData]
         _global_settings: dict[str, Any]
         _dashboard_config: dict[str, Any]
@@ -53,19 +54,27 @@ if TYPE_CHECKING:
 
         async def async_step_configure_external_entities(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the external entity step."""
+            ...
 
         async def async_step_configure_feeding_details(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the feeding configuration step."""
+            ...
 
         async def async_step_configure_dashboard(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the dashboard configuration step."""
+            ...
 
         async def async_step_final_setup(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the final setup step."""
+            ...
 
         def async_show_form(
             self,
@@ -74,7 +83,9 @@ if TYPE_CHECKING:
             data_schema: vol.Schema,
             description_placeholders: dict[str, Any] | None = None,
             errors: dict[str, str] | None = None,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for form rendering within the flow."""
+            ...
 
 
 class ModuleConfigurationMixin:
