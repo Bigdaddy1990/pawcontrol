@@ -21,6 +21,7 @@ RUFF_ARGS = (
     "json",
 )
 
+
 def _execute_ruff(repo_root: Path, args: Sequence[str]) -> tuple[int, str, str]:
     """Run Ruff using its Python entrypoint and capture output."""
 
@@ -36,8 +37,9 @@ def _execute_ruff(repo_root: Path, args: Sequence[str]) -> tuple[int, str, str]:
     previous_cwd = Path.cwd()
     try:
         os.chdir(repo_root)
-        with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(
-            stderr_buffer
+        with (
+            contextlib.redirect_stdout(stdout_buffer),
+            contextlib.redirect_stderr(stderr_buffer),
         ):
             exit_code = ruff_main.main(list(args))
     finally:
