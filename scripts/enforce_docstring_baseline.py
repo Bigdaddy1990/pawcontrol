@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import importlib.util
 import json
 import shutil
@@ -32,7 +33,23 @@ def _resolve_ruff_command() -> list[str]:
     be shadowing the desired one.
     """
 
-    if importlib.util.find_spec("ruff") is not None:
+    spec = importlib.util.find_spec("ruff")
+    if spec is not None:
+        try:
+            ruff_main = importlib.import_module("ruff.__main__")
+        except ModuleNotFoundError:
+            ruff_main = None
+        else:
+            find_ruff_bin = getattr(ruff_main, "find_ruff_bin", None)
+            if callable(find_ruff_bin):
+                try:
+                    binary_path = find_ruff_bin()
+                except FileNotFoundError:
+                    binary_path = None
+                else:
+                    if binary_path:
+                        return [binary_path, *RUFF_ARGS]
+
         return [sys.executable, "-m", "ruff", *RUFF_ARGS]
 
     resolved = shutil.which("ruff")
