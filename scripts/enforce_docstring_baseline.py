@@ -8,8 +8,8 @@ import json
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 DEFAULT_BASELINE = Path("generated/lint_baselines/docstring_missing.json")
 RUFF_ARGS = (
