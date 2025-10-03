@@ -339,7 +339,7 @@ async def retry_with_backoff(
             if retry_config.jitter:
                 import random
 
-                delay = delay * (0.5 + random.random())
+                delay = delay * (0.5 + random.SystemRandom().random())
 
             _LOGGER.warning(
                 "Retry attempt %d/%d failed for %s: %s - waiting %.1fs",
