@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from time import perf_counter
+
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
+
+from .runtime_data import get_runtime_data
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from datetime import timedelta
@@ -60,23 +64,68 @@ def ensure_background_task(
 async def run_maintenance(coordinator: PawControlCoordinator) -> None:
     """Perform periodic maintenance work for caches and metrics."""
 
-    now = dt_util.utcnow()
-    expired = coordinator._modules.cleanup_expired(now)
-    if expired:
-        coordinator.logger().debug("Cleaned %d expired cache entries", expired)
+    runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+    start = perf_counter()
+    success = True
+    error: Exception | None = None
 
-    if coordinator._metrics.consecutive_errors > 0 and coordinator.last_update_success:
-        hours_since_last_update = (
-            now - (coordinator.last_update_time or now)
-        ).total_seconds() / 3600
-        if hours_since_last_update > 1:
-            previous = coordinator._metrics.consecutive_errors
-            coordinator._metrics.reset_consecutive()
-            coordinator.logger().info(
-                "Reset consecutive error count (%d) after %d hours of stability",
-                previous,
-                int(hours_since_last_update),
+    now = dt_util.utcnow()
+
+    try:
+        expired = coordinator._modules.cleanup_expired(now)
+        if expired:
+            coordinator.logger().debug("Cleaned %d expired cache entries", expired)
+
+        if (
+            coordinator._metrics.consecutive_errors > 0
+            and coordinator.last_update_success
+        ):
+            hours_since_last_update = (
+                now - (coordinator.last_update_time or now)
+            ).total_seconds() / 3600
+            if hours_since_last_update > 1:
+                previous = coordinator._metrics.consecutive_errors
+                coordinator._metrics.reset_consecutive()
+                coordinator.logger().info(
+                    "Reset consecutive error count (%d) after %d hours of stability",
+                    previous,
+                    int(hours_since_last_update),
+                )
+    except Exception as err:
+        success = False
+        error = err
+        raise
+    finally:
+        duration_ms = max((perf_counter() - start) * 1000.0, 0.0)
+        if runtime_data is not None:
+            stats = runtime_data.performance_stats.setdefault(
+                "analytics_collector_metrics",
+                {
+                    "runs": 0,
+                    "failures": 0,
+                    "durations_ms": [],
+                    "average_ms": 0.0,
+                    "last_run": None,
+                    "last_error": None,
+                },
             )
+
+            durations = stats.setdefault("durations_ms", [])
+            durations.append(round(duration_ms, 3))
+            if len(durations) > 50:
+                del durations[:-50]
+
+            stats["runs"] = stats.get("runs", 0) + 1
+            if success:
+                stats["last_run"] = dt_util.utcnow().isoformat()
+            else:
+                stats["failures"] = stats.get("failures", 0) + 1
+                stats["last_error"] = (
+                    f"{error.__class__.__name__}: {error}" if error else "unknown"
+                )
+
+            if durations:
+                stats["average_ms"] = round(sum(durations) / len(durations), 3)
 
 
 async def shutdown(coordinator: PawControlCoordinator) -> None:

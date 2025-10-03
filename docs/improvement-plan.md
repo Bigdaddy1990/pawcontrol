@@ -61,8 +61,9 @@ entry.runtime_data = runtime_data
 hass.data.setdefault(DOMAIN, {})[entry.entry_id] = runtime_data
 
 # Neue Lösung (ab 2025.9):
-domain_data = hass.data.setdefault(DOMAIN, {})
-domain_data[entry.entry_id] = runtime_data
+from .runtime_data import store_runtime_data
+
+store_runtime_data(hass, entry, runtime_data)
 ```
 
 ## 🔧 Kritische Fixes (Day 2-3)

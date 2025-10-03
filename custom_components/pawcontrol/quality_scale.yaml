@@ -72,8 +72,8 @@ rules:
     status: done
     comment: "Data coordinator schedules parallel refreshes for entities."
   reauthentication-flow:
-    status: exempt
-    comment: "Integration does not require authentication, so reauth is not applicable."
+    status: done
+    comment: "Config flow implements async_step_reauth and async_step_reauth_confirm handling (see config_flow.py)."
   repair-issues:
     status: done
     comment: "Structured repairs surfaced via repairs.py."
@@ -89,7 +89,7 @@ rules:
 
   async-dependency:
     status: done
-    comment: "Integration interactions are fully async-friendly."
+    comment: "GPX exports use an in-process async-safe serializer with no synchronous third-party dependencies."
   inject-websocket-api:
     status: exempt
     comment: "Integration does not expose additional WebSocket APIs."

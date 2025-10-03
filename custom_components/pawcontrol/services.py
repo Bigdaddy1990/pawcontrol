@@ -16,6 +16,7 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
+from time import perf_counter
 from typing import TypeVar, cast
 
 import voluptuous as vol
@@ -2845,6 +2846,22 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
     walk_manager = getattr(runtime_data, "walk_manager", None)
     notification_manager = getattr(runtime_data, "notification_manager", None)
 
+    stats_bucket = runtime_data.performance_stats.setdefault(
+        "daily_reset_metrics",
+        {
+            "runs": 0,
+            "failures": 0,
+            "durations_ms": [],
+            "average_ms": 0.0,
+            "last_run": None,
+            "last_error": None,
+        },
+    )
+
+    start = perf_counter()
+    success = True
+    error: Exception | None = None
+
     try:
         if walk_manager and hasattr(walk_manager, "async_cleanup"):
             await walk_manager.async_cleanup()
@@ -2862,7 +2879,31 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
         _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
     except Exception as err:  # pragma: no cover - defensive logging
+        success = False
+        error = err
         _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
+        raise
+    finally:
+        duration_ms = max((perf_counter() - start) * 1000.0, 0.0)
+        durations = stats_bucket.setdefault("durations_ms", [])
+        durations.append(round(duration_ms, 3))
+        if len(durations) > 20:
+            del durations[:-20]
+
+        stats_bucket["runs"] = stats_bucket.get("runs", 0) + 1
+        if success:
+            stats_bucket["last_run"] = dt_util.utcnow().isoformat()
+        else:
+            stats_bucket["failures"] = stats_bucket.get("failures", 0) + 1
+            stats_bucket["last_error"] = (
+                f"{error.__class__.__name__}: {error}" if error else "unknown"
+            )
+
+        if durations:
+            stats_bucket["average_ms"] = round(
+                sum(durations) / len(durations),
+                3,
+            )
 
 
 async def async_setup_daily_reset_scheduler(

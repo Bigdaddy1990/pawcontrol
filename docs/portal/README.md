@@ -13,6 +13,7 @@ zu beschleunigen und offene Compliance-Aufgaben transparent zu halten.
 | Benachrichtigungen & Resilienz | Konfiguration von Notification-Kanälen, Webhooks und Fehlertoleranz | [Improvement Plan](../improvement-plan.md), [Resilience README](../resilience-README.md), [Async Dependency Audit](../async_dependency_audit.md) |
 | Besucher & Wetter-Workflows | Dokumentierte Besucherprozesse und wettergesteuerte Automationen | [Produktionsdoku](../production_integration_documentation.md), [Weather Automation Guide](../weather_integration_examples.md) |
 | Qualität & Tests | Richtlinien für Linting, Docstrings, Benchmarks und verfügbare Tests | [Compliance Gap Analysis](../compliance_gap_analysis.md), [Docstring Enforcement](../../scripts/enforce_docstring_baseline.py), [Performance Benchmarks](../performance_samples.md), [Test Pyramid](../testing/test_pyramid.md), [CI Workflows](../../.github/workflows/ci.yml) |
+| Compliance & Traceability | Mapping zwischen Guardrails, Code und Nachweisen | [Traceability Matrix](traceability_matrix.md), [Quality Checklist](../QUALITY_CHECKLIST.md), [Quality Scale YAML](../../custom_components/pawcontrol/quality_scale.yaml) |
 
 ## Arbeitsablauf für neue Beiträge
 
@@ -41,12 +42,15 @@ zu beschleunigen und offene Compliance-Aufgaben transparent zu halten.
 
 - **Docstrings** – vollständig erfüllt; die Baseline bleibt Teil von
   Pre-Commit-Hooks.
-- **Async-Disziplin** – Synchronous Bibliotheken sind dokumentiert, kritische
-  Stellen (GPX, Dashboard-Dateien, Notfall-Ernährungsrechner) laufen über
-  `_offload_blocking` im Thread-Pool und werden mit Laufzeit-Logs profiliert.
-  Zusätzlich erfassen Koordinator und Datenmanager `perf_counter`-Messwerte für
-  Statistiken (~1.66 ms) und Besuchsmodus (~0.67 ms); die Benchmarks sind im
-  Async-Audit verlinkt und per Tests abgesichert.【F:custom_components/pawcontrol/coordinator.py†L360-L420】【F:custom_components/pawcontrol/coordinator_support.py†L160-L213】【F:custom_components/pawcontrol/data_manager.py†L360-L450】【F:docs/async_dependency_audit.md†L1-L120】【F:docs/performance_samples.md†L1-L27】【F:generated/perf_samples/latest.json†L1-L17】【F:tests/unit/test_data_manager.py†L1-L118】
+- **Async-Disziplin** – Laufzeitkritische Pfade (GPX-Export, Dashboard-Dateien,
+  Notfall-Ernährungsrechner) laufen asynchron; der GPX-Export nutzt inzwischen
+  einen Event-Loop-kompatiblen Serializer ohne Fremdabhängigkeit.
+  Koordinator, Datenmanager sowie tägliche Resets und Analytics-Collector
+  schreiben `perf_counter`-Messwerte in die Runtime-Daten. Die Benchmarks (Stats
+  ~1.66 ms, Besucher ~0.67 ms, Daily Reset ~11.95 ms, Analytics ~4.25 ms) sind im
+  Async-Audit dokumentiert, als `ci`-Messungen gekennzeichnet und sollen um eine
+  supervised-Installation ergänzt werden, sobald der End-to-End-Smoketest
+  durchlaufen wurde.【F:custom_components/pawcontrol/walk_manager.py†L1388-L1558】【F:custom_components/pawcontrol/coordinator.py†L399-L411】【F:custom_components/pawcontrol/data_manager.py†L922-L959】【F:custom_components/pawcontrol/services.py†L2827-L2884】【F:custom_components/pawcontrol/coordinator_tasks.py†L1-L160】【F:docs/async_dependency_audit.md†L69-L90】【F:docs/performance_samples.md†L15-L34】【F:generated/perf_samples/latest.json†L1-L33】【F:tests/unit/test_data_manager.py†L1-L118】
 - **Tests** – Die globalen Fixtures stellen mit `session_factory` sicher, dass
   alle HTTP-Einstiegspunkte denselben aiohttp-Doppel nutzen; Unit-Tests laufen
   dadurch konsistent auch ohne Home Assistant Core.【F:tests/conftest.py†L195-L242】

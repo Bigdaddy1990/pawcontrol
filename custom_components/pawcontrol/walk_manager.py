@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
-from defusedxml import ElementTree
+from xml.sax.saxutils import escape
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
@@ -54,25 +54,6 @@ GPX_NAMESPACE = "http://www.topografix.com/GPX/1/1"
 GPX_SCHEMA_LOCATION = (
     "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
 )
-
-
-def _indent_xml(
-    element: ElementTree.Element, level: int = 0, space: str = "  "
-) -> None:
-    """Pretty-print XML output while remaining compatible with defusedxml."""
-
-    indent_text = "\n" + space * level
-    if len(element):
-        if not element.text or not element.text.strip():
-            element.text = indent_text + space
-        for child in element:
-            _indent_xml(child, level + 1, space)
-        if not element[-1].tail or not element[-1].tail.strip():
-            element[-1].tail = indent_text
-    if level and (not element.tail or not element.tail.strip()):
-        element.tail = indent_text
-
-
 class GPSCache:
     """Optimized GPS data cache with LRU eviction."""
 
@@ -1274,9 +1255,7 @@ class WalkManager:
                 # Generate format-specific data with enhanced error handling
                 if format == "gpx":
                     try:
-                        # defusedxml is synchronous; generate GPX off the event loop
-                        export_data["gpx_data"] = await asyncio.to_thread(
-                            self._generate_enhanced_gpx_data,
+                        export_data["gpx_data"] = self._generate_enhanced_gpx_data(
                             recent_walks,
                             dog_id,
                         )
@@ -1415,178 +1394,169 @@ class WalkManager:
     def _generate_enhanced_gpx_data(
         self, walks: list[dict[str, Any]], dog_id: str
     ) -> str:
-        """Generate GPX 1.1 compliant data with full metadata.
+        """Generate GPX 1.1 compliant data with full metadata."""
 
-        OPTIMIZED: Full GPX 1.1 standard compliance with proper namespaces,
-        metadata, bounds, waypoints, and track segments.
+        def _escape(value: str) -> str:
+            return escape(value, {'"': '&quot;'})
 
-        NOTE: Uses ``defusedxml`` which is synchronous and therefore executed via
-        :func:`asyncio.to_thread` by the caller to keep the event loop responsive.
+        def _format_attrs(attrs: dict[str, Any]) -> str:
+            parts: list[str] = []
+            for key, raw_value in attrs.items():
+                if raw_value is None:
+                    continue
+                parts.append(f'{key}="{_escape(str(raw_value))}"')
+            return (" " + " ".join(parts)) if parts else ""
 
-        Args:
-            walks: List of walk data with validated paths
-            dog_id: Dog identifier for metadata
+        def _append(level: int, text: str) -> None:
+            lines.append(f"{'  ' * level}{text}" if level > 0 else text)
 
-        Returns:
-            GPX 1.1 compliant XML string
-        """
-        try:
-            # Create root GPX element with proper namespaces
-            root = ElementTree.Element("gpx")
-            root.set("version", GPX_VERSION)
-            root.set("creator", GPX_CREATOR)
-            root.set("xmlns", GPX_NAMESPACE)
-            root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-            root.set("xsi:schemaLocation", GPX_SCHEMA_LOCATION)
+        def _text_element(level: int, tag: str, value: str) -> None:
+            _append(level, f"<{tag}>{_escape(value)}</{tag}>")
 
-            # Add metadata
-            metadata = ElementTree.SubElement(root, "metadata")
+        def _open_tag(level: int, tag: str, attrs: dict[str, Any] | None = None) -> None:
+            _append(level, f"<{tag}{_format_attrs(attrs or {})}>")
 
-            name_elem = ElementTree.SubElement(metadata, "name")
-            name_elem.text = f"PawControl Routes - {dog_id}"
+        def _close_tag(level: int, tag: str) -> None:
+            _append(level, f"</{tag}>")
 
-            desc_elem = ElementTree.SubElement(metadata, "desc")
-            desc_elem.text = f"GPS tracks for {dog_id} exported from PawControl"
+        lines: list[str] = ['<?xml version="1.0" encoding="UTF-8"?>']
 
-            author_elem = ElementTree.SubElement(metadata, "author")
-            author_name = ElementTree.SubElement(author_elem, "name")
-            author_name.text = "PawControl"
+        gpx_attrs = {
+            'version': GPX_VERSION,
+            'creator': GPX_CREATOR,
+            'xmlns': GPX_NAMESPACE,
+            'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+            'xsi:schemaLocation': GPX_SCHEMA_LOCATION,
+        }
+        _append(0, f"<gpx{_format_attrs(gpx_attrs)}>")
 
-            time_elem = ElementTree.SubElement(metadata, "time")
-            time_elem.text = dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        _open_tag(1, 'metadata')
+        _text_element(2, 'name', f"PawControl Routes - {dog_id}")
+        _text_element(2, 'desc', f"GPS tracks for {dog_id} exported from PawControl")
+        _open_tag(2, 'author')
+        _text_element(3, 'name', 'PawControl')
+        _close_tag(2, 'author')
+        _text_element(2, 'time', dt_util.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
 
-            # Calculate and add bounds
-            bounds_data = self._calculate_route_bounds(walks)
-            if any(bounds_data.values()):
-                bounds = ElementTree.SubElement(metadata, "bounds")
-                bounds.set("minlat", f"{bounds_data['min_lat']:.6f}")
-                bounds.set("minlon", f"{bounds_data['min_lon']:.6f}")
-                bounds.set("maxlat", f"{bounds_data['max_lat']:.6f}")
-                bounds.set("maxlon", f"{bounds_data['max_lon']:.6f}")
+        bounds_data = self._calculate_route_bounds(walks)
+        if any(bounds_data.values()):
+            bounds_attrs = {
+                'minlat': f"{bounds_data['min_lat']:.6f}",
+                'minlon': f"{bounds_data['min_lon']:.6f}",
+                'maxlat': f"{bounds_data['max_lat']:.6f}",
+                'maxlon': f"{bounds_data['max_lon']:.6f}",
+            }
+            _append(2, f"<bounds{_format_attrs(bounds_attrs)} />")
 
-            # Add waypoints for start/end locations
-            for i, walk in enumerate(walks, 1):
-                start_location = walk.get("start_location")
-                end_location = walk.get("end_location")
+        _close_tag(1, 'metadata')
 
-                if (
-                    start_location
-                    and start_location.get("latitude")
-                    and start_location.get("longitude")
-                ):
-                    wpt = ElementTree.SubElement(root, "wpt")
-                    wpt.set("lat", f"{start_location['latitude']:.6f}")
-                    wpt.set("lon", f"{start_location['longitude']:.6f}")
+        for index, walk in enumerate(walks, 1):
+            start_location = walk.get('start_location')
+            end_location = walk.get('end_location')
 
-                    name_elem = ElementTree.SubElement(wpt, "name")
-                    name_elem.text = f"Walk {i} Start"
-
-                    desc_elem = ElementTree.SubElement(wpt, "desc")
-                    desc_elem.text = (
-                        f"Start of walk {walk.get('walk_id', i)} for {dog_id}"
-                    )
-
-                    if start_location.get("timestamp"):
-                        time_elem = ElementTree.SubElement(wpt, "time")
-                        time_elem.text = self._format_gpx_timestamp(
-                            start_location["timestamp"]
-                        )
-
-                if (
-                    end_location
-                    and end_location.get("latitude")
-                    and end_location.get("longitude")
-                ):
-                    wpt = ElementTree.SubElement(root, "wpt")
-                    wpt.set("lat", f"{end_location['latitude']:.6f}")
-                    wpt.set("lon", f"{end_location['longitude']:.6f}")
-
-                    name_elem = ElementTree.SubElement(wpt, "name")
-                    name_elem.text = f"Walk {i} End"
-
-                    desc_elem = ElementTree.SubElement(wpt, "desc")
-                    desc_elem.text = (
-                        f"End of walk {walk.get('walk_id', i)} for {dog_id}"
-                    )
-
-                    if end_location.get("timestamp"):
-                        time_elem = ElementTree.SubElement(wpt, "time")
-                        time_elem.text = self._format_gpx_timestamp(
-                            end_location["timestamp"]
-                        )
-
-            # Add tracks with enhanced metadata
-            for i, walk in enumerate(walks, 1):
-                track = ElementTree.SubElement(root, "trk")
-
-                # Track metadata
-                name_elem = ElementTree.SubElement(track, "name")
-                name_elem.text = f"{dog_id} - Walk {i}"
-
-                desc_elem = ElementTree.SubElement(track, "desc")
-                walk_info = []
-                if walk.get("distance"):
-                    walk_info.append(f"Distance: {walk['distance']:.1f}m")
-                if walk.get("duration"):
-                    walk_info.append(f"Duration: {walk['duration']:.0f}s")
-                if walk.get("walker"):
-                    walk_info.append(f"Walker: {walk['walker']}")
-                if walk.get("weather"):
-                    walk_info.append(f"Weather: {walk['weather']}")
-                desc_elem.text = (
-                    " | ".join(walk_info) if walk_info else f"Walk for {dog_id}"
+            if (
+                start_location
+                and start_location.get('latitude')
+                and start_location.get('longitude')
+            ):
+                start_attrs = {
+                    'lat': f"{start_location['latitude']:.6f}",
+                    'lon': f"{start_location['longitude']:.6f}",
+                }
+                _open_tag(1, 'wpt', start_attrs)
+                _text_element(2, 'name', f"Walk {index} Start")
+                _text_element(
+                    2,
+                    'desc',
+                    f"Start of walk {walk.get('walk_id', index)} for {dog_id}",
                 )
+                if start_location.get('timestamp'):
+                    _text_element(
+                        2,
+                        'time',
+                        self._format_gpx_timestamp(start_location['timestamp']),
+                    )
+                _close_tag(1, 'wpt')
 
-                # Track type
-                type_elem = ElementTree.SubElement(track, "type")
-                type_elem.text = walk.get("walk_type", "walk")
+            if (
+                end_location
+                and end_location.get('latitude')
+                and end_location.get('longitude')
+            ):
+                end_attrs = {
+                    'lat': f"{end_location['latitude']:.6f}",
+                    'lon': f"{end_location['longitude']:.6f}",
+                }
+                _open_tag(1, 'wpt', end_attrs)
+                _text_element(2, 'name', f"Walk {index} End")
+                _text_element(
+                    2,
+                    'desc',
+                    f"End of walk {walk.get('walk_id', index)} for {dog_id}",
+                )
+                if end_location.get('timestamp'):
+                    _text_element(
+                        2,
+                        'time',
+                        self._format_gpx_timestamp(end_location['timestamp']),
+                    )
+                _close_tag(1, 'wpt')
 
-                # Track segment
-                trkseg = ElementTree.SubElement(track, "trkseg")
+        for index, walk in enumerate(walks, 1):
+            _open_tag(1, 'trk')
+            _text_element(2, 'name', f"{dog_id} - Walk {index}")
 
-                # Add track points with full data
-                for point in walk.get("path", []):
-                    lat = point.get("latitude")
-                    lon = point.get("longitude")
+            walk_info: list[str] = []
+            if walk.get('distance'):
+                walk_info.append(f"Distance: {walk['distance']:.1f}m")
+            if walk.get('duration'):
+                walk_info.append(f"Duration: {walk['duration']:.0f}s")
+            if walk.get('walker'):
+                walk_info.append(f"Walker: {walk['walker']}")
+            if walk.get('weather'):
+                walk_info.append(f"Weather: {walk['weather']}")
 
-                    if lat is not None and lon is not None:
-                        trkpt = ElementTree.SubElement(trkseg, "trkpt")
-                        trkpt.set("lat", f"{lat:.6f}")
-                        trkpt.set("lon", f"{lon:.6f}")
+            description = ' | '.join(walk_info) if walk_info else f"Walk for {dog_id}"
+            _text_element(2, 'desc', description)
+            _text_element(2, 'type', walk.get('walk_type', 'walk'))
 
-                        # Add elevation if available
-                        altitude = point.get("altitude")
-                        if altitude is not None:
-                            ele_elem = ElementTree.SubElement(trkpt, "ele")
-                            ele_elem.text = f"{altitude:.1f}"
+            _open_tag(2, 'trkseg')
+            for point in walk.get('path', []):
+                lat = point.get('latitude')
+                lon = point.get('longitude')
+                if lat is None or lon is None:
+                    continue
 
-                        # Add timestamp
-                        timestamp = point.get("timestamp")
-                        if timestamp:
-                            time_elem = ElementTree.SubElement(trkpt, "time")
-                            time_elem.text = self._format_gpx_timestamp(timestamp)
+                trkpt_attrs = {
+                    'lat': f"{lat:.6f}",
+                    'lon': f"{lon:.6f}",
+                }
+                _open_tag(3, 'trkpt', trkpt_attrs)
 
-                        # Add speed if available
-                        speed = point.get("speed")
-                        if speed is not None:
-                            speed_elem = ElementTree.SubElement(trkpt, "speed")
-                            speed_elem.text = f"{speed:.2f}"
+                altitude = point.get('altitude')
+                if altitude is not None:
+                    _text_element(4, 'ele', f"{altitude:.1f}")
 
-                        # Add accuracy as horizontal dilution of precision
-                        accuracy = point.get("accuracy")
-                        if accuracy is not None:
-                            hdop_elem = ElementTree.SubElement(trkpt, "hdop")
-                            hdop_elem.text = f"{accuracy:.1f}"
+                timestamp = point.get('timestamp')
+                if timestamp:
+                    _text_element(4, 'time', self._format_gpx_timestamp(timestamp))
 
-            # Convert to string with proper formatting
-            _indent_xml(root, space="  ", level=0)
-            return '<?xml version="1.0" encoding="UTF-8"?>\n' + ElementTree.tostring(
-                root, encoding="unicode"
-            )
+                speed = point.get('speed')
+                if speed is not None:
+                    _text_element(4, 'speed', f"{float(speed):.2f}")
 
-        except Exception as err:
-            _LOGGER.error("Enhanced GPX generation failed: %s", err)
-            raise
+                accuracy = point.get('accuracy')
+                if accuracy is not None:
+                    _text_element(4, 'hdop', f"{float(accuracy):.1f}")
+
+                _close_tag(3, 'trkpt')
+
+            _close_tag(2, 'trkseg')
+            _close_tag(1, 'trk')
+
+        _close_tag(0, 'gpx')
+
+        return "\n".join(lines)
 
     def _format_gpx_timestamp(self, timestamp: str) -> str:
         """Format timestamp for GPX compliance.

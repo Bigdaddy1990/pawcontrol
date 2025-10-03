@@ -383,7 +383,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         coordinator_setup_start = time.time()
         try:
             await asyncio.wait_for(
-                coordinator._async_setup(),
+                coordinator.async_prepare_entry(),
                 timeout=_COORDINATOR_SETUP_TIMEOUT,
             )
             coordinator_setup_duration = time.time() - coordinator_setup_start
