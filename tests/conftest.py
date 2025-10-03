@@ -236,7 +236,9 @@ def session_factory() -> Callable[..., _MockClientSession]:
 
 
 @pytest.fixture
-def mock_session(session_factory: Callable[..., _MockClientSession]) -> _MockClientSession:
+def mock_session(
+    session_factory: Callable[..., _MockClientSession],
+) -> _MockClientSession:
     """Return a reusable aiohttp session double for HTTP entry points."""
 
     return session_factory()
@@ -362,9 +364,7 @@ async def mock_gps_manager(mock_hass, mock_resilience_manager):
 
 
 @pytest.fixture
-async def mock_notification_manager(
-    mock_hass, mock_resilience_manager, mock_session
-):
+async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_session):
     """Mock PawControlNotificationManager for testing.
 
     Args:

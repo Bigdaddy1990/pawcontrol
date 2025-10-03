@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
     class ExternalFlowHost(Protocol):
         """Type-checking protocol describing the config flow host."""
+
         _dogs: list[DogConfigData]
         _enabled_modules: dict[str, bool]
         _external_entities: dict[str, Any]

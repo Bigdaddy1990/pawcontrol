@@ -6,7 +6,6 @@ from collections import deque
 from typing import Any
 
 import pytest
-
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
 from custom_components.pawcontrol.data_manager import PawControlDataManager
 
@@ -32,9 +31,7 @@ class StubDataManager(PawControlDataManager):
         assert namespace == "visitor_mode"
         return {}
 
-    async def _save_namespace(
-        self, namespace: str, data: dict[str, Any]
-    ) -> None:
+    async def _save_namespace(self, namespace: str, data: dict[str, Any]) -> None:
         """Capture writes instead of hitting Home Assistant storage."""
 
         assert namespace == "visitor_mode"

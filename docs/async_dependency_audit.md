@@ -73,4 +73,3 @@ the mitigations in place to keep the Home Assistant event loop responsive.
    can be compared with the CI benchmarks captured above.
 2. Extend this audit whenever new third-party libraries are added so the
    Platinum “async dependency” claim remains verifiable.
-

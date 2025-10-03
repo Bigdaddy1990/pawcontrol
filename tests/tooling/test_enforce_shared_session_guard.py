@@ -6,12 +6,13 @@ import ast
 from pathlib import Path
 
 import pytest
-
 from scripts import enforce_shared_session_guard as guard
 
 
 @pytest.mark.unit
-def test_recursive_glob_roots_are_resolved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_recursive_glob_roots_are_resolved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Ensure glob patterns like services/** add nested helper packages."""
 
     repo_root = tmp_path / "repo"
@@ -26,9 +27,9 @@ def test_recursive_glob_roots_are_resolved(tmp_path: Path, monkeypatch: pytest.M
     config_path = config_dir / "shared_session_guard_roots.toml"
     config_path.write_text(
         "roots = [\n"
-        "  \"custom_components/pawcontrol\",\n"
-        "  \"custom_components/pawcontrol/services\",\n"
-        "  \"custom_components/pawcontrol/services/**\"\n"
+        '  "custom_components/pawcontrol",\n'
+        '  "custom_components/pawcontrol/services",\n'
+        '  "custom_components/pawcontrol/services/**"\n'
         "]\n",
         encoding="utf-8",
     )
@@ -90,8 +91,7 @@ def test_module_alias_detection() -> None:
     """Aliased aiohttp modules should trigger the guard when instantiating pools."""
 
     tree = ast.parse(
-        "import aiohttp.client as aio_client\n"
-        "aio_client.ClientSession()\n"
+        "import aiohttp.client as aio_client\naio_client.ClientSession()\n"
     )
 
     offenders = guard._detect_client_session_calls(tree)
@@ -103,10 +103,7 @@ def test_module_alias_detection() -> None:
 def test_from_import_module_alias_detection() -> None:
     """Module aliases imported via ``from aiohttp import client`` are detected."""
 
-    tree = ast.parse(
-        "from aiohttp import client\n"
-        "client.ClientSession()\n"
-    )
+    tree = ast.parse("from aiohttp import client\nclient.ClientSession()\n")
 
     offenders = guard._detect_client_session_calls(tree)
 

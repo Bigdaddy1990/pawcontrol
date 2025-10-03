@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 DEFAULT_BASELINE = Path("generated/lint_baselines/docstring_missing.json")
 RUFF_CMD = [
     "ruff",
@@ -51,10 +50,7 @@ def collect_diagnostics(repo_root: Path) -> list[dict[str, object]]:
         sys.stderr.write(process.stderr)
         raise SystemExit(process.returncode)
 
-    if process.stdout.strip():
-        raw = json.loads(process.stdout)
-    else:
-        raw = []
+    raw = json.loads(process.stdout) if process.stdout.strip() else []
 
     diagnostics = []
     for entry in raw:
@@ -81,12 +77,10 @@ def compare(
     diagnostics: list[dict[str, object]],
 ) -> tuple[set[tuple[str, int, str]], set[tuple[str, int, str]]]:
     baseline_keys = {
-        (item["path"], int(item["line"]), item["code"])
-        for item in baseline
+        (item["path"], int(item["line"]), item["code"]) for item in baseline
     }
     current_keys = {
-        (item["path"], int(item["line"]), item["code"])
-        for item in diagnostics
+        (item["path"], int(item["line"]), item["code"]) for item in diagnostics
     }
     new_failures = current_keys - baseline_keys
     resolved = baseline_keys - current_keys
@@ -134,7 +128,9 @@ def run() -> int:
         print("New docstring violations detected:")
         for entry in sorted(new_failures):
             print(f"  - {format_entry(entry)}")
-        print("\nAdd docstrings or update the baseline once the violations are resolved.")
+        print(
+            "\nAdd docstrings or update the baseline once the violations are resolved."
+        )
 
     if resolved:
         exit_code = 1

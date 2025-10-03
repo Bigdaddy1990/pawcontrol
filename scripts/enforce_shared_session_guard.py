@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 import sys
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
 
 try:  # Python 3.11+
     import tomllib
@@ -89,9 +89,7 @@ def _collect_client_session_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
                 if alias.name == "ClientSession":
                     session_aliases.add(alias.asname or alias.name)
                 else:
-                    module_aliases.add(
-                        (alias.asname or alias.name).split(".")[0]
-                    )
+                    module_aliases.add((alias.asname or alias.name).split(".")[0])
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name not in TARGET_MODULES:

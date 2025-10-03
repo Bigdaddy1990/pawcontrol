@@ -28,9 +28,7 @@ async def test_initialisation_builds_registry(
 
 
 @pytest.mark.unit
-def test_initialisation_rejects_missing_session(
-    mock_hass, mock_config_entry
-) -> None:
+def test_initialisation_rejects_missing_session(mock_hass, mock_config_entry) -> None:
     """A helpful error should be raised when no session is provided."""
 
     with pytest.raises(ValueError):
@@ -204,7 +202,9 @@ async def test_availability_threshold(mock_hass, mock_config_entry, mock_session
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_get_statistics_records_runtime(mock_hass, mock_config_entry, mock_session):
+async def test_get_statistics_records_runtime(
+    mock_hass, mock_config_entry, mock_session
+):
     """Generating statistics should capture and expose timing samples."""
 
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)

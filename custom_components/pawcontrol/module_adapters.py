@@ -21,8 +21,8 @@ from .const import (
     MODULE_WEATHER,
 )
 from .device_api import PawControlDeviceClient
-from .http_client import ensure_shared_client_session
 from .exceptions import GPSUnavailableError, NetworkError, RateLimitError
+from .http_client import ensure_shared_client_session
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager

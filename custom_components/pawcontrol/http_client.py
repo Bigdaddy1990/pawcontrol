@@ -45,4 +45,3 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
 
 
 __all__ = ["ensure_shared_client_session"]
-

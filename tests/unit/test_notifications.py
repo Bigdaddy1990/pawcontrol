@@ -39,9 +39,7 @@ class TestNotificationManagerInitialization:
         assert len(manager._notifications) == 0
         assert len(manager._configs) == 0
 
-    async def test_initialization_with_configs(
-        self, mock_hass, mock_session
-    ):
+    async def test_initialization_with_configs(self, mock_hass, mock_session):
         """Test initialization with notification configs."""
         manager = PawControlNotificationManager(
             mock_hass, "test_entry", session=mock_session
@@ -97,9 +95,7 @@ class TestNotificationManagerInitialization:
 class TestNotificationWebhooks:
     """Ensure webhook delivery honours the shared session."""
 
-    async def test_webhook_uses_injected_session(
-        self, mock_hass, session_factory
-    ):
+    async def test_webhook_uses_injected_session(self, mock_hass, session_factory):
         """Injected session should be used for webhook HTTP calls."""
 
         custom_session = session_factory()
@@ -134,9 +130,7 @@ class TestNotificationWebhooks:
         called_kwargs = custom_session.post.call_args.kwargs
         assert called_kwargs["timeout"].total == pytest.approx(10.0)
 
-    async def test_initialization_validates_channels(
-        self, mock_hass, mock_session
-    ):
+    async def test_initialization_validates_channels(self, mock_hass, mock_session):
         """Test that initialization validates channel names."""
         manager = PawControlNotificationManager(
             mock_hass, "test_entry", session=mock_session
@@ -574,9 +568,7 @@ class TestTemplates:
         # Check that template was applied
         assert notification.template_used is not None
 
-    async def test_custom_template_override(
-        self, mock_hass, mock_session
-    ):
+    async def test_custom_template_override(self, mock_hass, mock_session):
         """Test custom template overrides."""
         manager = PawControlNotificationManager(
             mock_hass, "test_entry", session=mock_session

@@ -30,7 +30,9 @@ def device_api_module() -> ModuleType:
     monkeypatch.setitem(sys.modules, "homeassistant.exceptions", ha_exceptions)
 
     namespace_pkg = ModuleType("custom_components")
-    namespace_pkg.__path__ = [str(Path(__file__).resolve().parents[2] / "custom_components")]
+    namespace_pkg.__path__ = [
+        str(Path(__file__).resolve().parents[2] / "custom_components")
+    ]
     integration_pkg = ModuleType("custom_components.pawcontrol")
     integration_pkg.__path__ = [
         str(Path(__file__).resolve().parents[2] / "custom_components" / "pawcontrol")

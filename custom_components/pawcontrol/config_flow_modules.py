@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 
     class ModuleFlowHost(Protocol):
         """Type-checking protocol describing the module flow host."""
+
         _dogs: list[DogConfigData]
         _global_settings: dict[str, Any]
         _dashboard_config: dict[str, Any]

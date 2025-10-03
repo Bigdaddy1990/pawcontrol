@@ -12,9 +12,7 @@ from custom_components.pawcontrol.api_validator import APIValidator
 
 
 @pytest.mark.unit
-def test_api_validator_reuses_injected_session(
-    mock_hass, session_factory
-) -> None:
+def test_api_validator_reuses_injected_session(mock_hass, session_factory) -> None:
     """The validator should rely on the injected Home Assistant session."""
 
     hass_session = session_factory()
@@ -59,9 +57,7 @@ async def test_api_validator_does_not_close_hass_session(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_api_validator_cleanup_is_noop(
-    mock_hass, session_factory
-) -> None:
+async def test_api_validator_cleanup_is_noop(mock_hass, session_factory) -> None:
     """Validator cleanup should succeed even if the session is already closed."""
 
     hass_session = session_factory()

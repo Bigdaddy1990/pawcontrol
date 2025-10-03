@@ -56,9 +56,7 @@ class APIValidator:
             session: Home Assistant managed session for HTTP calls.
         """
         self.hass = hass
-        self._session = ensure_shared_client_session(
-            session, owner="APIValidator"
-        )
+        self._session = ensure_shared_client_session(session, owner="APIValidator")
 
     @property
     def session(self) -> aiohttp.ClientSession:

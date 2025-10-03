@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 from enum import Enum
 from time import perf_counter
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from homeassistant.util import dt as dt_util
 

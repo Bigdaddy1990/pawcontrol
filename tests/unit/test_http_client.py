@@ -20,7 +20,9 @@ def http_client_module() -> ModuleType:
         / "pawcontrol"
         / "http_client.py"
     )
-    spec = importlib.util.spec_from_file_location("pawcontrol.http_client_test", module_path)
+    spec = importlib.util.spec_from_file_location(
+        "pawcontrol.http_client_test", module_path
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -28,7 +30,9 @@ def http_client_module() -> ModuleType:
 
 
 @pytest.mark.unit
-def test_ensure_shared_client_session_rejects_none(http_client_module: ModuleType) -> None:
+def test_ensure_shared_client_session_rejects_none(
+    http_client_module: ModuleType,
+) -> None:
     """Passing ``None`` should raise a descriptive ``ValueError``."""
 
     ensure_shared = http_client_module.ensure_shared_client_session
@@ -36,7 +40,9 @@ def test_ensure_shared_client_session_rejects_none(http_client_module: ModuleTyp
     with pytest.raises(ValueError) as excinfo:
         ensure_shared(None, owner="TestHelper")  # type: ignore[arg-type]
 
-    assert "requires Home Assistant's shared aiohttp ClientSession" in str(excinfo.value)
+    assert "requires Home Assistant's shared aiohttp ClientSession" in str(
+        excinfo.value
+    )
 
 
 @pytest.mark.unit

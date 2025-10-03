@@ -163,12 +163,8 @@ class CoordinatorMetrics:
     update_count: int = 0
     failed_cycles: int = 0
     consecutive_errors: int = 0
-    statistics_timings: deque[float] = field(
-        default_factory=lambda: deque(maxlen=50)
-    )
-    visitor_mode_timings: deque[float] = field(
-        default_factory=lambda: deque(maxlen=50)
-    )
+    statistics_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
+    visitor_mode_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
 
     def start_cycle(self) -> None:
         """Record the start of a coordinator update cycle."""
@@ -223,9 +219,7 @@ class CoordinatorMetrics:
 
         if not self.statistics_timings:
             return 0.0
-        return (
-            sum(self.statistics_timings) / len(self.statistics_timings)
-        ) * 1000
+        return (sum(self.statistics_timings) / len(self.statistics_timings)) * 1000
 
     @property
     def average_visitor_runtime_ms(self) -> float:
@@ -233,9 +227,7 @@ class CoordinatorMetrics:
 
         if not self.visitor_mode_timings:
             return 0.0
-        return (
-            sum(self.visitor_mode_timings) / len(self.visitor_mode_timings)
-        ) * 1000
+        return (sum(self.visitor_mode_timings) / len(self.visitor_mode_timings)) * 1000
 
     def update_statistics(
         self,

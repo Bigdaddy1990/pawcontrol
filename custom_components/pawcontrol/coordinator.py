@@ -55,8 +55,8 @@ from .coordinator_tasks import (
 )
 from .coordinator_tasks import shutdown as shutdown_tasks
 from .device_api import PawControlDeviceClient
-from .http_client import ensure_shared_client_session
 from .exceptions import ValidationError
+from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
 from .types import PawControlConfigEntry

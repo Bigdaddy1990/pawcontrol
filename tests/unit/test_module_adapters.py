@@ -98,6 +98,8 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     sys.modules.pop("custom_components.pawcontrol.module_adapters", None)
     module = importlib.import_module("custom_components.pawcontrol.module_adapters")
     return module, dt_stub
+
+
 @pytest.mark.unit
 def test_feeding_adapter_rejects_missing_or_closed_session(
     module_adapters: tuple[Any, _DtUtilStub],

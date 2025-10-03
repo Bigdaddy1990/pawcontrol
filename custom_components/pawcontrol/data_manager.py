@@ -16,8 +16,8 @@ import logging
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
 from time import perf_counter
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -442,7 +442,7 @@ class PawControlDataManager:
             _LOGGER.error("Initialization failed: %s", err)
             raise StorageError("initialize", str(err)) from err
 
-    def set_metrics_sink(self, metrics: "CoordinatorMetrics" | None) -> None:
+    def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Allow the coordinator to observe persistence timings."""
 
         self._metrics_sink = metrics
