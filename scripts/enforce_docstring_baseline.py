@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import importlib
-import importlib.util
+import contextlib
+import io
 import json
-import shutil
-import subprocess
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -23,42 +22,30 @@ RUFF_ARGS = (
 )
 
 
-def _resolve_ruff_command() -> list[str]:
-    """Return a fully-qualified command for invoking Ruff safely.
+def _execute_ruff(repo_root: Path, args: Sequence[str]) -> tuple[int, str, str]:
+    """Run Ruff using its Python entrypoint and capture output."""
 
-    The command is built using ``python -m ruff`` when possible so that the
-    interpreter already running this script is re-used.  Falling back to a
-    ``ruff`` binary from ``PATH`` uses the absolute path detected by
-    :func:`shutil.which` to avoid executing an unexpected executable that might
-    be shadowing the desired one.
-    """
-
-    spec = importlib.util.find_spec("ruff")
-    if spec is not None:
-        try:
-            ruff_main = importlib.import_module("ruff.__main__")
-        except ModuleNotFoundError:
-            ruff_main = None
-        else:
-            find_ruff_bin = getattr(ruff_main, "find_ruff_bin", None)
-            if callable(find_ruff_bin):
-                try:
-                    binary_path = find_ruff_bin()
-                except FileNotFoundError:
-                    binary_path = None
-                else:
-                    if binary_path:
-                        return [binary_path, *RUFF_ARGS]
-
-        return [sys.executable, "-m", "ruff", *RUFF_ARGS]
-
-    resolved = shutil.which("ruff")
-    if not resolved:
+    try:
+        from ruff import __main__ as ruff_main
+    except ModuleNotFoundError as exc:
         raise SystemExit(
-            "Unable to locate the Ruff executable. Ensure it is installed and on PATH."
-        )
+            "Ruff is not installed. Install it in the active environment to run the check."
+        ) from exc
 
-    return [resolved, *RUFF_ARGS]
+    stdout_buffer = io.StringIO()
+    stderr_buffer = io.StringIO()
+    previous_cwd = Path.cwd()
+    try:
+        os.chdir(repo_root)
+        with (
+            contextlib.redirect_stdout(stdout_buffer),
+            contextlib.redirect_stderr(stderr_buffer),
+        ):
+            exit_code = ruff_main.main(list(args))
+    finally:
+        os.chdir(previous_cwd)
+
+    return exit_code, stdout_buffer.getvalue(), stderr_buffer.getvalue()
 
 
 def load_baseline(path: Path) -> list[dict[str, object]]:
@@ -78,27 +65,14 @@ def write_baseline(path: Path, diagnostics: list[dict[str, object]]) -> None:
         handle.write("\n")
 
 
-def collect_diagnostics(
-    repo_root: Path, command: Sequence[str]
-) -> list[dict[str, object]]:
-    try:
-        process = subprocess.run(
-            list(command),
-            capture_output=True,
-            text=True,
-            cwd=repo_root,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise SystemExit(
-            f"Failed to execute Ruff command '{command[0]}': {exc.strerror}."
-        ) from exc
-    if process.returncode not in (0, 1):
-        sys.stderr.write(process.stdout)
-        sys.stderr.write(process.stderr)
-        raise SystemExit(process.returncode)
+def collect_diagnostics(repo_root: Path) -> list[dict[str, object]]:
+    exit_code, stdout, stderr = _execute_ruff(repo_root, RUFF_ARGS)
+    if exit_code not in (0, 1):
+        sys.stderr.write(stdout)
+        sys.stderr.write(stderr)
+        raise SystemExit(exit_code)
 
-    raw = json.loads(process.stdout) if process.stdout.strip() else []
+    raw = json.loads(stdout) if stdout.strip() else []
 
     diagnostics = []
     for entry in raw:
@@ -158,8 +132,7 @@ def run() -> int:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
-    ruff_command = _resolve_ruff_command()
-    diagnostics = collect_diagnostics(repo_root, ruff_command)
+    diagnostics = collect_diagnostics(repo_root)
 
     if args.update_baseline:
         write_baseline(args.baseline, diagnostics)
