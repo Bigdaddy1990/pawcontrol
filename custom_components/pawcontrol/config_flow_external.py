@@ -35,6 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 if TYPE_CHECKING:
 
     class ExternalFlowHost(Protocol):
+        """Type-checking protocol describing the config flow host."""
+
         _dogs: list[DogConfigData]
         _enabled_modules: dict[str, bool]
         _external_entities: dict[str, Any]
@@ -42,7 +44,9 @@ if TYPE_CHECKING:
 
         async def async_step_final_setup(
             self, user_input: dict[str, Any] | None = None
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for the mixin's final step delegation."""
+            ...
 
         def async_show_form(
             self,
@@ -51,15 +55,25 @@ if TYPE_CHECKING:
             data_schema: vol.Schema,
             description_placeholders: dict[str, Any] | None = None,
             errors: dict[str, str] | None = None,
-        ) -> ConfigFlowResult: ...
+        ) -> ConfigFlowResult:
+            """Type-checking stub for Home Assistant form rendering."""
+            ...
 
-        def _get_available_device_trackers(self) -> dict[str, str]: ...
+        def _get_available_device_trackers(self) -> dict[str, str]:
+            """Type-checking stub for available device trackers."""
+            ...
 
-        def _get_available_person_entities(self) -> dict[str, str]: ...
+        def _get_available_person_entities(self) -> dict[str, str]:
+            """Type-checking stub for available person entities."""
+            ...
 
-        def _get_available_door_sensors(self) -> dict[str, str]: ...
+        def _get_available_door_sensors(self) -> dict[str, str]:
+            """Type-checking stub for available door sensors."""
+            ...
 
-        def _get_available_notify_services(self) -> dict[str, str]: ...
+        def _get_available_notify_services(self) -> dict[str, str]:
+            """Type-checking stub for available notification services."""
+            ...
 
 else:  # pragma: no cover - used only for type checking
     ExternalFlowHost = object

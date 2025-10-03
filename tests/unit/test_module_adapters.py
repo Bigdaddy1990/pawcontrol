@@ -100,6 +100,34 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     return module, dt_stub
 
 
+@pytest.mark.unit
+def test_feeding_adapter_rejects_missing_or_closed_session(
+    module_adapters: tuple[Any, _DtUtilStub],
+    session_factory,
+) -> None:
+    """The adapter must enforce Home Assistant's shared session lifecycle."""
+
+    module, _ = module_adapters
+
+    with pytest.raises(ValueError):
+        module.FeedingModuleAdapter(  # type: ignore[arg-type]
+            session=None,
+            use_external_api=False,
+            ttl=timedelta(minutes=5),
+            api_client=None,
+        )
+
+    closed_session = session_factory(closed=True)
+
+    with pytest.raises(ValueError):
+        module.FeedingModuleAdapter(
+            session=closed_session,
+            use_external_api=False,
+            ttl=timedelta(minutes=5),
+            api_client=None,
+        )
+
+
 def test_expiring_cache_handles_hits_and_expiration(
     module_adapters: tuple[Any, _DtUtilStub],
 ) -> None:
@@ -132,12 +160,13 @@ def test_expiring_cache_handles_hits_and_expiration(
 
 def test_feeding_adapter_uses_manager_and_cache(
     module_adapters: tuple[Any, _DtUtilStub],
+    session_factory,
 ) -> None:
     """FeedingModuleAdapter should use the manager and cache results."""
 
     module, dt_stub = module_adapters
     adapter = module.FeedingModuleAdapter(
-        session=object(),
+        session=session_factory(),
         use_external_api=False,
         ttl=timedelta(minutes=5),
         api_client=None,
@@ -166,6 +195,7 @@ def test_feeding_adapter_uses_manager_and_cache(
 
 def test_feeding_adapter_external_api_fallback(
     module_adapters: tuple[Any, _DtUtilStub],
+    session_factory,
 ) -> None:
     """External API is used when the manager is unavailable."""
 
@@ -176,7 +206,7 @@ def test_feeding_adapter_external_api_fallback(
     )
 
     adapter = module.FeedingModuleAdapter(
-        session=object(),
+        session=session_factory(),
         use_external_api=True,
         ttl=timedelta(minutes=5),
         api_client=api_client,
@@ -192,12 +222,13 @@ def test_feeding_adapter_external_api_fallback(
 
 def test_feeding_adapter_default_payload(
     module_adapters: tuple[Any, _DtUtilStub],
+    session_factory,
 ) -> None:
     """A deterministic default payload is returned when no sources are available."""
 
     module, _ = module_adapters
     adapter = module.FeedingModuleAdapter(
-        session=object(),
+        session=session_factory(),
         use_external_api=False,
         ttl=timedelta(minutes=5),
         api_client=None,

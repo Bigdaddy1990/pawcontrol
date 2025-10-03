@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Mapping
 from collections.abc import Mapping as TypingMapping
 from dataclasses import dataclass, field
@@ -32,6 +33,7 @@ class DogConfigRegistry:
     _ids: list[str] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
+        """Normalise the provided dog configuration list."""
         cleaned: list[DogConfigData] = []
         for raw_config in self.configs:
             if not isinstance(raw_config, dict):
@@ -73,17 +75,21 @@ class DogConfigRegistry:
         return cls(list(raw_dogs))
 
     def __len__(self) -> int:  # pragma: no cover - trivial
+        """Return the number of configured dogs."""
         return len(self._ids)
 
     def ids(self) -> list[str]:
+        """Return all configured dog identifiers."""
         return list(self._ids)
 
     def get(self, dog_id: str | None) -> DogConfigData | None:
+        """Return the raw configuration for the requested dog."""
         if not isinstance(dog_id, str):
             return None
         return self._by_id.get(dog_id.strip())
 
     def get_name(self, dog_id: str) -> str | None:
+        """Return the configured name for the dog if available."""
         config = self.get(dog_id)
         if not config:
             return None
@@ -93,6 +99,7 @@ class DogConfigRegistry:
         return None
 
     def enabled_modules(self, dog_id: str) -> frozenset[str]:
+        """Return the enabled modules for the specified dog."""
         config = self.get(dog_id)
         if not config:
             return frozenset()
@@ -100,15 +107,18 @@ class DogConfigRegistry:
         return frozenset(module for module, enabled in modules.items() if bool(enabled))
 
     def has_module(self, module: str) -> bool:
+        """Return True if any dog has the requested module enabled."""
         return any(module in self.enabled_modules(dog_id) for dog_id in self._ids)
 
     def module_count(self) -> int:
+        """Return the total number of enabled modules across all dogs."""
         total = 0
         for dog_id in self._ids:
             total += len(self.enabled_modules(dog_id))
         return total
 
     def empty_payload(self) -> dict[str, Any]:
+        """Return an empty coordinator payload for a dog."""
         payload: dict[str, Any] = {
             "dog_info": {},
             "status": "unknown",
@@ -119,6 +129,7 @@ class DogConfigRegistry:
         return payload
 
     def calculate_update_interval(self, options: Mapping[str, Any]) -> int:
+        """Derive the polling interval from configuration options."""
         if not self._ids:
             return UPDATE_INTERVALS.get("minimal", 300)
 
@@ -152,11 +163,15 @@ class CoordinatorMetrics:
     update_count: int = 0
     failed_cycles: int = 0
     consecutive_errors: int = 0
+    statistics_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
+    visitor_mode_timings: deque[float] = field(default_factory=lambda: deque(maxlen=50))
 
     def start_cycle(self) -> None:
+        """Record the start of a coordinator update cycle."""
         self.update_count += 1
 
     def record_cycle(self, total: int, errors: int) -> tuple[float, bool]:
+        """Record a completed cycle and return its success rate and failure flag."""
         if total == 0:
             return 1.0, False
 
@@ -173,17 +188,46 @@ class CoordinatorMetrics:
         return success_rate, False
 
     def reset_consecutive(self) -> None:
+        """Reset the counter that tracks consecutive error cycles."""
         self.consecutive_errors = 0
 
     @property
     def successful_cycles(self) -> int:
+        """Return how many cycles finished without total failure."""
         return max(self.update_count - self.failed_cycles, 0)
 
     @property
     def success_rate_percent(self) -> float:
+        """Return the success rate as a percentage."""
         if self.update_count == 0:
             return 100.0
         return (self.successful_cycles / self.update_count) * 100
+
+    def record_statistics_timing(self, duration: float) -> None:
+        """Track how long runtime statistics generation took in seconds."""
+
+        self.statistics_timings.append(max(duration, 0.0))
+
+    def record_visitor_timing(self, duration: float) -> None:
+        """Track how long visitor-mode persistence took in seconds."""
+
+        self.visitor_mode_timings.append(max(duration, 0.0))
+
+    @property
+    def average_statistics_runtime_ms(self) -> float:
+        """Return the rolling average runtime for statistics generation."""
+
+        if not self.statistics_timings:
+            return 0.0
+        return (sum(self.statistics_timings) / len(self.statistics_timings)) * 1000
+
+    @property
+    def average_visitor_runtime_ms(self) -> float:
+        """Return the rolling average runtime for visitor mode persistence."""
+
+        if not self.visitor_mode_timings:
+            return 0.0
+        return (sum(self.visitor_mode_timings) / len(self.visitor_mode_timings)) * 1000
 
     def update_statistics(
         self,
@@ -193,6 +237,7 @@ class CoordinatorMetrics:
         last_update: Any,
         interval: timedelta | None,
     ) -> dict[str, Any]:
+        """Return a statistics snapshot for diagnostics panels."""
         update_interval = (interval or timedelta()).total_seconds()
         return {
             "update_counts": {
@@ -223,6 +268,7 @@ class CoordinatorMetrics:
         last_update: Any,
         interval: timedelta | None,
     ) -> dict[str, Any]:
+        """Return runtime statistics derived from cached metrics."""
         update_interval = (interval or timedelta()).total_seconds()
         cache_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
         return {

@@ -306,6 +306,22 @@ pawcontrol:
 
 ---
 
+### Visitor Mode Workflow
+
+1. **Aktivierung** – Besuchermodus per Service `pawcontrol.set_visitor_mode`
+   oder über den generierten Switch/Button auslösen. Optional lassen sich Name
+   des Besuchers sowie reduzierte Alarmprofile übergeben, die im
+   `PawControlDataManager` persistiert werden.
+2. **Statusüberwachung** – Die Binary-Sensoren und das Dashboard zeigen den
+   aktiven Besuch sowie den Startzeitpunkt an; Benachrichtigungen folgen den im
+   Options-Flow hinterlegten Quiet-Time-Regeln.
+3. **Beenden & Nachverfolgung** – Die Dienste `toggle_visitor_mode` oder der
+   Switch deaktivieren den Besuchermodus. Die Historie bleibt im Visitor-
+   Namespace erhalten und kann für Audit- oder Automationszwecke abgefragt
+   werden.
+
+---
+
 ## 🚀 Production Deployment
 
 ### Pre-Deployment Checklist

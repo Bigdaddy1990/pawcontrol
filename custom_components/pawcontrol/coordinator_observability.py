@@ -19,6 +19,7 @@ class EntityBudgetTracker:
     __slots__ = ("_snapshots",)
 
     def __init__(self) -> None:
+        """Initialise the budget tracker with an empty snapshot cache."""
         self._snapshots: dict[str, EntityBudgetSnapshot] = {}
 
     def record(self, snapshot: EntityBudgetSnapshot) -> None:

@@ -63,3 +63,18 @@ repos:
             ^dist/|
             ^build/|
           )
+
+  - repo: local
+    hooks:
+      - id: shared-session-guard
+        name: Enforce shared aiohttp session reuse
+        entry: python scripts/enforce_shared_session_guard.py
+        language: python
+        pass_filenames: false
+      - id: docstring-baseline
+        name: Ensure docstring baseline has no regressions
+        entry: python scripts/enforce_docstring_baseline.py
+        language: python
+        pass_filenames: false
+        additional_dependencies:
+          - ruff==0.12.11

@@ -379,6 +379,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the lifetime walk distance sensor."""
         super().__init__(
             coordinator,
             dog_id,
@@ -457,6 +458,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialise the weekly walks sensor."""
         super().__init__(
             coordinator,
             dog_id,

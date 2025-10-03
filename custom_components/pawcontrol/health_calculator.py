@@ -147,6 +147,7 @@ class HealthMetrics:
         weather_conditions: dict[str, Any] | None = None,
         weather_health_score: int | None = None,
     ) -> None:
+        """Create a calculator pre-populated with the dog's baseline metrics."""
         self.current_weight = current_weight
         self.ideal_weight = ideal_weight
         self.height_cm = height_cm

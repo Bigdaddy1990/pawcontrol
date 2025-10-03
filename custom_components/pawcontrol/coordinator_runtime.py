@@ -239,6 +239,7 @@ class CoordinatorRuntime:
         adaptive_polling: AdaptivePollingController,
         logger: logging.Logger,
     ) -> None:
+        """Initialise the runtime executor with all required collaborators."""
         self._registry = registry
         self._modules = modules
         self._resilience = resilience_manager

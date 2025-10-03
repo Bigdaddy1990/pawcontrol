@@ -18,6 +18,8 @@ from typing import Any
 import aiohttp
 from homeassistant.core import HomeAssistant
 
+from .http_client import ensure_shared_client_session
+
 _LOGGER = logging.getLogger(__name__)
 
 # API validation timeouts
@@ -42,14 +44,24 @@ class APIValidationResult:
 class APIValidator:
     """Validates API connections and credentials for PawControl."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        session: aiohttp.ClientSession,
+    ) -> None:
         """Initialize API validator.
 
         Args:
             hass: Home Assistant instance
+            session: Home Assistant managed session for HTTP calls.
         """
         self.hass = hass
-        self._session: aiohttp.ClientSession | None = None
+        self._session = ensure_shared_client_session(session, owner="APIValidator")
+
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        """Return the HTTP session leveraged for validation calls."""
+        return self._session
 
     async def async_validate_api_connection(
         self,
@@ -188,17 +200,6 @@ class APIValidator:
         except Exception:
             return False
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session.
-
-        Returns:
-            Active ClientSession
-        """
-        if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=30)
-            self._session = aiohttp.ClientSession(timeout=timeout)
-        return self._session
-
     async def _test_endpoint_reachability(self, endpoint: str) -> bool:
         """Test if endpoint is reachable.
 
@@ -209,7 +210,7 @@ class APIValidator:
             True if endpoint is reachable
         """
         try:
-            session = await self._get_session()
+            session = self._session
 
             # Try to connect to the endpoint
             async with session.get(
@@ -238,7 +239,7 @@ class APIValidator:
             Dictionary with authentication results
         """
         try:
-            session = await self._get_session()
+            session = self._session
 
             # Construct auth endpoint (common patterns)
             auth_endpoints = [
@@ -364,6 +365,7 @@ class APIValidator:
 
     async def async_close(self) -> None:
         """Close the API validator and cleanup resources."""
-        if self._session and not self._session.closed:
-            await self._session.close()
-            self._session = None
+        if not self._session.closed:
+            # The validator never owns the session; leave lifecycle management to
+            # Home Assistant to avoid closing the shared pool.
+            return

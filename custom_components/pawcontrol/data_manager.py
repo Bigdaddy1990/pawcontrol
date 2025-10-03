@@ -16,6 +16,7 @@ import logging
 from collections import deque
 from contextlib import suppress
 from datetime import datetime, timedelta
+from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
@@ -27,7 +28,7 @@ from .exceptions import StorageError
 from .utils import deep_merge_dicts, ensure_utc_datetime
 
 if TYPE_CHECKING:
-    pass
+    from .coordinator_support import CoordinatorMetrics
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -414,6 +415,8 @@ class PawControlDataManager:
             "last_cleanup": None,
             "performance_score": 100.0,
         }
+        self._visitor_timings: deque[float] = deque(maxlen=50)
+        self._metrics_sink: CoordinatorMetrics | None = None
 
     async def async_initialize(self) -> None:
         """Initialize with optimized loading."""
@@ -438,6 +441,11 @@ class PawControlDataManager:
         except Exception as err:
             _LOGGER.error("Initialization failed: %s", err)
             raise StorageError("initialize", str(err)) from err
+
+    def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
+        """Allow the coordinator to observe persistence timings."""
+
+        self._metrics_sink = metrics
 
     async def async_shutdown(self) -> None:
         """Clean shutdown with final optimization."""
@@ -910,19 +918,45 @@ class PawControlDataManager:
             visitor_data: Visitor mode configuration
         """
         try:
+            start = perf_counter()
             visitor_namespace = await self._get_namespace_data("visitor_mode")
             visitor_namespace[dog_id] = visitor_data.copy()
 
             await self._save_namespace("visitor_mode", visitor_namespace)
 
+            duration = max(perf_counter() - start, 0.0)
+            self._record_visitor_timing(duration)
+
             _LOGGER.debug(
-                "Set visitor mode for %s: %s", dog_id, visitor_data.get("enabled")
+                "Set visitor mode for %s: %s (%.3f ms)",
+                dog_id,
+                visitor_data.get("enabled"),
+                duration * 1000,
             )
 
         except Exception as err:
             _LOGGER.error("Failed to set visitor mode for %s: %s", dog_id, err)
             self._metrics["errors"] += 1
             raise
+
+    def _record_visitor_timing(self, duration: float) -> None:
+        """Record visitor-mode persistence runtimes for async audit evidence."""
+
+        self._visitor_timings.append(duration)
+        last_ms = round(duration * 1000, 3)
+        avg_ms = (
+            round(
+                sum(self._visitor_timings) / len(self._visitor_timings) * 1000,
+                3,
+            )
+            if self._visitor_timings
+            else 0.0
+        )
+        self._metrics["visitor_mode_last_runtime_ms"] = last_ms
+        self._metrics["visitor_mode_avg_runtime_ms"] = avg_ms
+
+        if self._metrics_sink is not None:
+            self._metrics_sink.record_visitor_timing(duration)
 
     async def async_export_data(
         self,

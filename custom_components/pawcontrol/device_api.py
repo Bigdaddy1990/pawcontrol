@@ -11,6 +11,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from yarl import URL
 
 from .exceptions import NetworkError, RateLimitError
+from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig
 
 _DEFAULT_TIMEOUT = ClientTimeout(total=15.0)
@@ -68,7 +69,9 @@ class PawControlDeviceClient:
 
         base_url = validate_device_endpoint(endpoint)
 
-        self._session = session
+        self._session = ensure_shared_client_session(
+            session, owner="PawControlDeviceClient"
+        )
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
         self._timeout = timeout or _DEFAULT_TIMEOUT
         self._resilience_manager = resilience_manager
