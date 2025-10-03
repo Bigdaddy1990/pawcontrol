@@ -16,7 +16,6 @@ import logging
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
-from time import perf_counter
 from typing import TypeVar, cast
 
 import voluptuous as vol
@@ -63,6 +62,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .performance import performance_tracker
 from .runtime_data import get_runtime_data
 from .types import DogConfigData
 from .walk_manager import WeatherCondition
@@ -2846,64 +2846,31 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
     walk_manager = getattr(runtime_data, "walk_manager", None)
     notification_manager = getattr(runtime_data, "notification_manager", None)
 
-    stats_bucket = runtime_data.performance_stats.setdefault(
+    with performance_tracker(
+        runtime_data,
         "daily_reset_metrics",
-        {
-            "runs": 0,
-            "failures": 0,
-            "durations_ms": [],
-            "average_ms": 0.0,
-            "last_run": None,
-            "last_error": None,
-        },
-    )
+        max_samples=20,
+    ) as perf:
+        try:
+            if walk_manager and hasattr(walk_manager, "async_cleanup"):
+                await walk_manager.async_cleanup()
 
-    start = perf_counter()
-    success = True
-    error: Exception | None = None
+            if notification_manager and hasattr(
+                notification_manager, "async_cleanup_expired_notifications"
+            ):
+                await notification_manager.async_cleanup_expired_notifications()
 
-    try:
-        if walk_manager and hasattr(walk_manager, "async_cleanup"):
-            await walk_manager.async_cleanup()
+            await coordinator.async_request_refresh()
 
-        if notification_manager and hasattr(
-            notification_manager, "async_cleanup_expired_notifications"
-        ):
-            await notification_manager.async_cleanup_expired_notifications()
-
-        await coordinator.async_request_refresh()
-
-        runtime_data.performance_stats.setdefault("daily_resets", 0)
-        runtime_data.performance_stats["daily_resets"] = (
-            runtime_data.performance_stats.get("daily_resets", 0) + 1
-        )
-        _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
-    except Exception as err:  # pragma: no cover - defensive logging
-        success = False
-        error = err
-        _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
-        raise
-    finally:
-        duration_ms = max((perf_counter() - start) * 1000.0, 0.0)
-        durations = stats_bucket.setdefault("durations_ms", [])
-        durations.append(round(duration_ms, 3))
-        if len(durations) > 20:
-            del durations[:-20]
-
-        stats_bucket["runs"] = stats_bucket.get("runs", 0) + 1
-        if success:
-            stats_bucket["last_run"] = dt_util.utcnow().isoformat()
-        else:
-            stats_bucket["failures"] = stats_bucket.get("failures", 0) + 1
-            stats_bucket["last_error"] = (
-                f"{error.__class__.__name__}: {error}" if error else "unknown"
+            runtime_data.performance_stats.setdefault("daily_resets", 0)
+            runtime_data.performance_stats["daily_resets"] = (
+                runtime_data.performance_stats.get("daily_resets", 0) + 1
             )
-
-        if durations:
-            stats_bucket["average_ms"] = round(
-                sum(durations) / len(durations),
-                3,
-            )
+            _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
+        except Exception as err:  # pragma: no cover - defensive logging
+            perf.mark_failure(err)
+            _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
+            raise
 
 
 async def async_setup_daily_reset_scheduler(

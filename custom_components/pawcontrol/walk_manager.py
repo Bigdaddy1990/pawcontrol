@@ -1396,6 +1396,17 @@ class WalkManager:
     def _generate_enhanced_gpx_data(
         self, walks: list[dict[str, Any]], dog_id: str
     ) -> str:
+        """Generate GPX data with defensive error handling."""
+
+        try:
+            return self._render_enhanced_gpx_document(walks, dog_id)
+        except Exception:  # pragma: no cover - defensive logging
+            _LOGGER.exception("Enhanced GPX generation failed for %s", dog_id)
+            raise
+
+    def _render_enhanced_gpx_document(
+        self, walks: list[dict[str, Any]], dog_id: str
+    ) -> str:
         """Generate GPX 1.1 compliant data with full metadata."""
 
         def _escape(value: str) -> str:

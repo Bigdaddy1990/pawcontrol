@@ -40,7 +40,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.coordinator_tasks import run_maintenance
 from custom_components.pawcontrol.runtime_data import get_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
-from homeassistant import __version__ as HA_VERSION
+from homeassistant import __version__ as ha_version
 from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -389,7 +389,7 @@ async def _async_cancel_background(runtime_data: PawControlRuntimeData) -> None:
 def _require_nightly() -> None:
     """Skip tests when the HA runtime is older than the required nightly build."""
 
-    if AwesomeVersion(HA_VERSION) < REQUIRED_NIGHTLY:
+    if AwesomeVersion(ha_version) < REQUIRED_NIGHTLY:
         pytest.skip(
             "Requires Home Assistant 2025.9.1 nightly build or newer for Platinum QA"
         )
