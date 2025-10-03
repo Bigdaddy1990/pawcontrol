@@ -21,10 +21,10 @@ def device_api_module() -> ModuleType:
     ha_module = ModuleType("homeassistant")
     ha_exceptions = ModuleType("homeassistant.exceptions")
 
-    class ConfigEntryAuthFailed(Exception):
+    class ConfigEntryAuthFailedError(Exception):
         """Stubbed Home Assistant auth error."""
 
-    ha_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailed
+    ha_exceptions.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
     ha_module.exceptions = ha_exceptions
     monkeypatch.setitem(sys.modules, "homeassistant", ha_module)
     monkeypatch.setitem(sys.modules, "homeassistant.exceptions", ha_exceptions)

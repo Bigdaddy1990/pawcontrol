@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from aiohttp import ClientError, ClientTimeout
+from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
