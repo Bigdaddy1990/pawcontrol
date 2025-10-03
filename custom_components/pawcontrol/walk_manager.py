@@ -19,8 +19,8 @@ from collections import deque
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
-
 from xml.sax.saxutils import escape
+
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
@@ -54,6 +54,8 @@ GPX_NAMESPACE = "http://www.topografix.com/GPX/1/1"
 GPX_SCHEMA_LOCATION = (
     "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
 )
+
+
 class GPSCache:
     """Optimized GPS data cache with LRU eviction."""
 
@@ -1397,7 +1399,7 @@ class WalkManager:
         """Generate GPX 1.1 compliant data with full metadata."""
 
         def _escape(value: str) -> str:
-            return escape(value, {'"': '&quot;'})
+            return escape(value, {'"': "&quot;"})
 
         def _format_attrs(attrs: dict[str, Any]) -> str:
             parts: list[str] = []
@@ -1413,7 +1415,9 @@ class WalkManager:
         def _text_element(level: int, tag: str, value: str) -> None:
             _append(level, f"<{tag}>{_escape(value)}</{tag}>")
 
-        def _open_tag(level: int, tag: str, attrs: dict[str, Any] | None = None) -> None:
+        def _open_tag(
+            level: int, tag: str, attrs: dict[str, Any] | None = None
+        ) -> None:
             _append(level, f"<{tag}{_format_attrs(attrs or {})}>")
 
         def _close_tag(level: int, tag: str) -> None:
@@ -1422,139 +1426,139 @@ class WalkManager:
         lines: list[str] = ['<?xml version="1.0" encoding="UTF-8"?>']
 
         gpx_attrs = {
-            'version': GPX_VERSION,
-            'creator': GPX_CREATOR,
-            'xmlns': GPX_NAMESPACE,
-            'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            'xsi:schemaLocation': GPX_SCHEMA_LOCATION,
+            "version": GPX_VERSION,
+            "creator": GPX_CREATOR,
+            "xmlns": GPX_NAMESPACE,
+            "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            "xsi:schemaLocation": GPX_SCHEMA_LOCATION,
         }
         _append(0, f"<gpx{_format_attrs(gpx_attrs)}>")
 
-        _open_tag(1, 'metadata')
-        _text_element(2, 'name', f"PawControl Routes - {dog_id}")
-        _text_element(2, 'desc', f"GPS tracks for {dog_id} exported from PawControl")
-        _open_tag(2, 'author')
-        _text_element(3, 'name', 'PawControl')
-        _close_tag(2, 'author')
-        _text_element(2, 'time', dt_util.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        _open_tag(1, "metadata")
+        _text_element(2, "name", f"PawControl Routes - {dog_id}")
+        _text_element(2, "desc", f"GPS tracks for {dog_id} exported from PawControl")
+        _open_tag(2, "author")
+        _text_element(3, "name", "PawControl")
+        _close_tag(2, "author")
+        _text_element(2, "time", dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
         bounds_data = self._calculate_route_bounds(walks)
         if any(bounds_data.values()):
             bounds_attrs = {
-                'minlat': f"{bounds_data['min_lat']:.6f}",
-                'minlon': f"{bounds_data['min_lon']:.6f}",
-                'maxlat': f"{bounds_data['max_lat']:.6f}",
-                'maxlon': f"{bounds_data['max_lon']:.6f}",
+                "minlat": f"{bounds_data['min_lat']:.6f}",
+                "minlon": f"{bounds_data['min_lon']:.6f}",
+                "maxlat": f"{bounds_data['max_lat']:.6f}",
+                "maxlon": f"{bounds_data['max_lon']:.6f}",
             }
             _append(2, f"<bounds{_format_attrs(bounds_attrs)} />")
 
-        _close_tag(1, 'metadata')
+        _close_tag(1, "metadata")
 
         for index, walk in enumerate(walks, 1):
-            start_location = walk.get('start_location')
-            end_location = walk.get('end_location')
+            start_location = walk.get("start_location")
+            end_location = walk.get("end_location")
 
             if (
                 start_location
-                and start_location.get('latitude')
-                and start_location.get('longitude')
+                and start_location.get("latitude")
+                and start_location.get("longitude")
             ):
                 start_attrs = {
-                    'lat': f"{start_location['latitude']:.6f}",
-                    'lon': f"{start_location['longitude']:.6f}",
+                    "lat": f"{start_location['latitude']:.6f}",
+                    "lon": f"{start_location['longitude']:.6f}",
                 }
-                _open_tag(1, 'wpt', start_attrs)
-                _text_element(2, 'name', f"Walk {index} Start")
+                _open_tag(1, "wpt", start_attrs)
+                _text_element(2, "name", f"Walk {index} Start")
                 _text_element(
                     2,
-                    'desc',
+                    "desc",
                     f"Start of walk {walk.get('walk_id', index)} for {dog_id}",
                 )
-                if start_location.get('timestamp'):
+                if start_location.get("timestamp"):
                     _text_element(
                         2,
-                        'time',
-                        self._format_gpx_timestamp(start_location['timestamp']),
+                        "time",
+                        self._format_gpx_timestamp(start_location["timestamp"]),
                     )
-                _close_tag(1, 'wpt')
+                _close_tag(1, "wpt")
 
             if (
                 end_location
-                and end_location.get('latitude')
-                and end_location.get('longitude')
+                and end_location.get("latitude")
+                and end_location.get("longitude")
             ):
                 end_attrs = {
-                    'lat': f"{end_location['latitude']:.6f}",
-                    'lon': f"{end_location['longitude']:.6f}",
+                    "lat": f"{end_location['latitude']:.6f}",
+                    "lon": f"{end_location['longitude']:.6f}",
                 }
-                _open_tag(1, 'wpt', end_attrs)
-                _text_element(2, 'name', f"Walk {index} End")
+                _open_tag(1, "wpt", end_attrs)
+                _text_element(2, "name", f"Walk {index} End")
                 _text_element(
                     2,
-                    'desc',
+                    "desc",
                     f"End of walk {walk.get('walk_id', index)} for {dog_id}",
                 )
-                if end_location.get('timestamp'):
+                if end_location.get("timestamp"):
                     _text_element(
                         2,
-                        'time',
-                        self._format_gpx_timestamp(end_location['timestamp']),
+                        "time",
+                        self._format_gpx_timestamp(end_location["timestamp"]),
                     )
-                _close_tag(1, 'wpt')
+                _close_tag(1, "wpt")
 
         for index, walk in enumerate(walks, 1):
-            _open_tag(1, 'trk')
-            _text_element(2, 'name', f"{dog_id} - Walk {index}")
+            _open_tag(1, "trk")
+            _text_element(2, "name", f"{dog_id} - Walk {index}")
 
             walk_info: list[str] = []
-            if walk.get('distance'):
+            if walk.get("distance"):
                 walk_info.append(f"Distance: {walk['distance']:.1f}m")
-            if walk.get('duration'):
+            if walk.get("duration"):
                 walk_info.append(f"Duration: {walk['duration']:.0f}s")
-            if walk.get('walker'):
+            if walk.get("walker"):
                 walk_info.append(f"Walker: {walk['walker']}")
-            if walk.get('weather'):
+            if walk.get("weather"):
                 walk_info.append(f"Weather: {walk['weather']}")
 
-            description = ' | '.join(walk_info) if walk_info else f"Walk for {dog_id}"
-            _text_element(2, 'desc', description)
-            _text_element(2, 'type', walk.get('walk_type', 'walk'))
+            description = " | ".join(walk_info) if walk_info else f"Walk for {dog_id}"
+            _text_element(2, "desc", description)
+            _text_element(2, "type", walk.get("walk_type", "walk"))
 
-            _open_tag(2, 'trkseg')
-            for point in walk.get('path', []):
-                lat = point.get('latitude')
-                lon = point.get('longitude')
+            _open_tag(2, "trkseg")
+            for point in walk.get("path", []):
+                lat = point.get("latitude")
+                lon = point.get("longitude")
                 if lat is None or lon is None:
                     continue
 
                 trkpt_attrs = {
-                    'lat': f"{lat:.6f}",
-                    'lon': f"{lon:.6f}",
+                    "lat": f"{lat:.6f}",
+                    "lon": f"{lon:.6f}",
                 }
-                _open_tag(3, 'trkpt', trkpt_attrs)
+                _open_tag(3, "trkpt", trkpt_attrs)
 
-                altitude = point.get('altitude')
+                altitude = point.get("altitude")
                 if altitude is not None:
-                    _text_element(4, 'ele', f"{altitude:.1f}")
+                    _text_element(4, "ele", f"{altitude:.1f}")
 
-                timestamp = point.get('timestamp')
+                timestamp = point.get("timestamp")
                 if timestamp:
-                    _text_element(4, 'time', self._format_gpx_timestamp(timestamp))
+                    _text_element(4, "time", self._format_gpx_timestamp(timestamp))
 
-                speed = point.get('speed')
+                speed = point.get("speed")
                 if speed is not None:
-                    _text_element(4, 'speed', f"{float(speed):.2f}")
+                    _text_element(4, "speed", f"{float(speed):.2f}")
 
-                accuracy = point.get('accuracy')
+                accuracy = point.get("accuracy")
                 if accuracy is not None:
-                    _text_element(4, 'hdop', f"{float(accuracy):.1f}")
+                    _text_element(4, "hdop", f"{float(accuracy):.1f}")
 
-                _close_tag(3, 'trkpt')
+                _close_tag(3, "trkpt")
 
-            _close_tag(2, 'trkseg')
-            _close_tag(1, 'trk')
+            _close_tag(2, "trkseg")
+            _close_tag(1, "trk")
 
-        _close_tag(0, 'gpx')
+        _close_tag(0, "gpx")
 
         return "\n".join(lines)
 

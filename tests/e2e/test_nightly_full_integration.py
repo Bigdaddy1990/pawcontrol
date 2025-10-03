@@ -14,10 +14,11 @@ Python: 3.12+
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Generator
 from contextlib import ExitStack, suppress
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -25,10 +26,9 @@ import pytest
 pytest.importorskip("homeassistant")
 AwesomeVersion = pytest.importorskip("awesomeversion").AwesomeVersion
 
-from homeassistant import __version__ as HA_VERSION
-from homeassistant.const import CONF_TOKEN
-from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+# The integration expects the bluetooth_adapters helper to be importable in HA
+# test environments.  Provide a stub to mirror other end-to-end suites.
+import sys
 
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
@@ -37,14 +37,13 @@ from custom_components.pawcontrol.const import (
     CONF_MODULES,
     DOMAIN,
 )
+from custom_components.pawcontrol.coordinator_tasks import run_maintenance
 from custom_components.pawcontrol.runtime_data import get_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
-
-from custom_components.pawcontrol.coordinator_tasks import run_maintenance
-
-# The integration expects the bluetooth_adapters helper to be importable in HA
-# test environments.  Provide a stub to mirror other end-to-end suites.
-import sys
+from homeassistant import __version__ as HA_VERSION
+from homeassistant.const import CONF_TOKEN
+from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 sys.modules.setdefault("bluetooth_adapters", ModuleType("bluetooth_adapters"))
 
@@ -123,7 +122,7 @@ def nightly_config_entry_options() -> dict[str, Any]:
 
 
 @pytest.fixture
-def integration_patches(hass: HomeAssistant) -> Generator[IntegrationMocks, None, None]:
+def integration_patches(hass: HomeAssistant) -> Generator[IntegrationMocks]:
     """Patch expensive integration helpers for deterministic e2e runs."""
 
     with ExitStack() as stack:
@@ -488,7 +487,7 @@ async def test_supervised_smoke_analytics_snapshot(
 
     # Simulate the hourly maintenance collector invoked on supervised builds.
     with patch.object(
-        runtime_data.coordinator._modules,  # noqa: SLF001 - public test contract
+        runtime_data.coordinator._modules,
         "cleanup_expired",
         return_value=0,
     ):
@@ -508,4 +507,3 @@ async def test_supervised_smoke_analytics_snapshot(
 
     assert integration_patches.unload_platforms.await_count >= 1
     assert get_runtime_data(hass, entry) is None
-
