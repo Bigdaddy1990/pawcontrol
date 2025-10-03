@@ -3,21 +3,45 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
+import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 DEFAULT_BASELINE = Path("generated/lint_baselines/docstring_missing.json")
-RUFF_CMD = [
-    "ruff",
+RUFF_ARGS = (
     "check",
     "custom_components/pawcontrol",
     "--select",
     "D1",
     "--output-format",
     "json",
-]
+)
+
+
+def _resolve_ruff_command() -> list[str]:
+    """Return a fully-qualified command for invoking Ruff safely.
+
+    The command is built using ``python -m ruff`` when possible so that the
+    interpreter already running this script is re-used.  Falling back to a
+    ``ruff`` binary from ``PATH`` uses the absolute path detected by
+    :func:`shutil.which` to avoid executing an unexpected executable that might
+    be shadowing the desired one.
+    """
+
+    if importlib.util.find_spec("ruff") is not None:
+        return [sys.executable, "-m", "ruff", *RUFF_ARGS]
+
+    resolved = shutil.which("ruff")
+    if not resolved:
+        raise SystemExit(
+            "Unable to locate the Ruff executable. Ensure it is installed and on PATH."
+        )
+
+    return [resolved, *RUFF_ARGS]
 
 
 def load_baseline(path: Path) -> list[dict[str, object]]:
@@ -37,14 +61,21 @@ def write_baseline(path: Path, diagnostics: list[dict[str, object]]) -> None:
         handle.write("\n")
 
 
-def collect_diagnostics(repo_root: Path) -> list[dict[str, object]]:
-    process = subprocess.run(
-        RUFF_CMD,
-        capture_output=True,
-        text=True,
-        cwd=repo_root,
-        check=False,
-    )
+def collect_diagnostics(
+    repo_root: Path, command: Sequence[str]
+) -> list[dict[str, object]]:
+    try:
+        process = subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            f"Failed to execute Ruff command '{command[0]}': {exc.strerror}."
+        ) from exc
     if process.returncode not in (0, 1):
         sys.stderr.write(process.stdout)
         sys.stderr.write(process.stderr)
@@ -110,7 +141,8 @@ def run() -> int:
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent
-    diagnostics = collect_diagnostics(repo_root)
+    ruff_command = _resolve_ruff_command()
+    diagnostics = collect_diagnostics(repo_root, ruff_command)
 
     if args.update_baseline:
         write_baseline(args.baseline, diagnostics)
