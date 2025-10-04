@@ -347,6 +347,7 @@ async def retry_with_backoff(
             # Add jitter if enabled
             if retry_config.jitter:
                 import random
+
                 delay = delay * (0.5 + random.SystemRandom().random())
                 delay = delay * (0.5 + random.random())
 
