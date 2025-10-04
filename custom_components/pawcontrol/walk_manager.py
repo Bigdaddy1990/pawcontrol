@@ -19,9 +19,9 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
+from html import escape
 from typing import Any
 
-from defusedxml.sax.saxutils import escape
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
@@ -1610,7 +1610,8 @@ class WalkManager:
         """Generate GPX 1.1 compliant data with full metadata."""
 
         def _escape(value: str) -> str:
-            return escape(value, {'"': "&quot;", "'": "&apos;"})
+            escaped = escape(value, quote=True)
+            return escaped.replace("&#x27;", "&apos;")
 
         def _format_attrs(attrs: dict[str, Any]) -> str:
             parts: list[str] = []
