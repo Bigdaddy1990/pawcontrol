@@ -14,6 +14,7 @@ import asyncio
 import hashlib
 import inspect
 import logging
+import math
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, time, timedelta
@@ -749,6 +750,7 @@ def validate_portion_size(
     Returns:
         Validation result with warnings and recommendations
     """
+
     result: PortionValidationResult = {
         "valid": True,
         "warnings": [],
@@ -756,31 +758,85 @@ def validate_portion_size(
         "percentage_of_daily": 0.0,
     }
 
-    if daily_amount > 0:
-        percentage = (portion / daily_amount) * 100
-        result["percentage_of_daily"] = percentage
+    if not is_number(portion):
+        result["valid"] = False
+        result["warnings"].append("Portion must be a real number")
+        result["recommendations"].append("Provide the portion size in grams")
+        return result
 
-        expected_percentage = 100 / meals_per_day
+    portion_value = float(portion)
+    if not math.isfinite(portion_value):
+        result["valid"] = False
+        result["warnings"].append("Portion must be a finite number")
+        result["recommendations"].append(
+            "Replace NaN or infinite values with real numbers"
+        )
+        return result
 
-        # Check for extremely large portions
-        if percentage > 70:
-            result["valid"] = False
-            result["warnings"].append("Portion exceeds 70% of daily requirement")
-            result["recommendations"].append("Consider reducing portion size")
-        elif percentage > expected_percentage * 1.5:
-            result["warnings"].append(
-                "Portion is larger than typical for meal frequency"
-            )
-            result["recommendations"].append("Verify portion calculation")
+    if portion_value <= 0:
+        result["valid"] = False
+        result["warnings"].append("Portion must be greater than zero")
+        result["recommendations"].append(
+            "Increase the portion size or remove the feeding entry"
+        )
+        return result
 
-        # Check for extremely small portions
-        elif percentage < 5:
-            result["warnings"].append(
-                "Portion is very small compared to daily requirement"
-            )
-            result["recommendations"].append(
-                "Consider increasing portion or meal frequency"
-            )
+    if not is_number(daily_amount):
+        result["valid"] = False
+        result["warnings"].append("Daily food amount must be a real number")
+        result["recommendations"].append(
+            "Update the feeding configuration with a numeric daily amount"
+        )
+        return result
+
+    daily_amount_value = float(daily_amount)
+    if not math.isfinite(daily_amount_value) or daily_amount_value <= 0:
+        result["valid"] = False
+        result["warnings"].append(
+            "Daily food amount must be positive to validate portion sizes"
+        )
+        result["recommendations"].append(
+            "Set a positive daily food amount for the feeding configuration"
+        )
+        return result
+
+    if meals_per_day <= 0:
+        result["warnings"].append(
+            "Meals per day is not positive; assuming a single meal for validation"
+        )
+        result["recommendations"].append(
+            "Adjust meals per day to a positive value in the feeding configuration"
+        )
+        meals_per_day = 1
+
+    percentage = (portion_value / daily_amount_value) * 100
+    result["percentage_of_daily"] = percentage
+
+    expected_percentage = 100 / meals_per_day
+
+    if portion_value > daily_amount_value:
+        result["valid"] = False
+        result["warnings"].append("Portion exceeds the configured daily amount")
+        result["recommendations"].append(
+            "Reduce the portion size or increase the daily food amount"
+        )
+
+    if percentage > 70:
+        result["valid"] = False
+        result["warnings"].append("Portion exceeds 70% of daily requirement")
+        result["recommendations"].append("Consider reducing portion size")
+    elif percentage > expected_percentage * 1.5:
+        result["warnings"].append(
+            "Portion is larger than typical for meal frequency"
+        )
+        result["recommendations"].append("Verify portion calculation")
+    elif percentage < 5:
+        result["warnings"].append(
+            "Portion is very small compared to daily requirement"
+        )
+        result["recommendations"].append(
+            "Consider increasing portion or meal frequency"
+        )
 
     return result
 
