@@ -79,7 +79,7 @@ def get_runtime_data(
 
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
-    if not store:
+    if store is None:
         return None
 
     runtime_data, needs_migration = _coerce_runtime_data(store.get(entry_id))
@@ -93,6 +93,9 @@ def get_runtime_data(
         _cleanup_domain_store(hass, store)
         return None
 
+    if runtime_data is None and not store:
+        _cleanup_domain_store(hass, store)
+
     return runtime_data
 
 
@@ -103,7 +106,7 @@ def pop_runtime_data(
 
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
-    if not store:
+    if store is None:
         return None
 
     value = store.pop(entry_id, None)
