@@ -433,12 +433,11 @@ class PawControlRuntimeData:
 type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 """Type alias for PawControl-specific config entries.
 
-Home Assistant now exposes ``ConfigEntry`` as a generic container whose type
-parameter describes the stored ``runtime_data`` payload.  By binding the alias to
-``PawControlRuntimeData`` we provide precise typing for every consumer of the
-integration's config entries.  This keeps call sites expressive while remaining
-faithful to the underlying data flow and forward compatible with future Home
-Assistant releases and their typing changes.
+By parameterising ``ConfigEntry`` with :class:`PawControlRuntimeData` we provide
+Home Assistant with the precise runtime payload type exposed by this
+integration.  This keeps call sites expressive, improves type-checker feedback,
+and remains compatible with forward-looking changes to Home Assistant's
+``ConfigEntry`` generics.
 """
 
 

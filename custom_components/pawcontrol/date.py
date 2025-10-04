@@ -1,13 +1,14 @@
 """Date platform for Paw Control integration.
 
-This module provides DateEntity entities for dog management that require
-only date input (no time component). These complement the datetime entities
-by handling date-only scenarios like birth dates, adoption dates, and
-scheduled dates that don't require specific times.
+This module provides :class:`~homeassistant.components.date.DateEntity`
+implementations that cover date-only workflows, complementing the
+datetime entities by handling birth dates, adoption anniversaries, and
+scheduled activities that do not require time components.
 
-Quality Scale: Platinum
-Home Assistant: 2025.8.2+
-Python: 3.13+
+Metadata:
+    Quality Scale: Platinum
+    Home Assistant: 2025.8.2+
+    Python: 3.13+
 """
 
 from __future__ import annotations
