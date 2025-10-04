@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import re
+from numbers import Real
 from typing import Any, Final
 
 from homeassistant.exceptions import ServiceValidationError
@@ -78,6 +79,112 @@ class ValidationError(Exception):
             message += f". {suggestion}"
 
         super().__init__(message)
+
+
+def _coerce_float(field: str, value: Any) -> float:
+    """Convert a value to float while providing helpful validation errors."""
+
+    if isinstance(value, bool):
+        raise ValidationError(
+            field,
+            value,
+            "Must be numeric",
+            "Use digits like 12.5 instead of true/false",
+        )
+
+    if isinstance(value, Real):
+        return float(value)
+
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            raise ValidationError(
+                field,
+                value,
+                "Must be numeric",
+                "Provide a number such as 12.5",
+            )
+        try:
+            return float(stripped)
+        except ValueError as err:
+            raise ValidationError(
+                field,
+                value,
+                "Must be numeric",
+                "Use digits with an optional decimal, for example 12.5",
+            ) from err
+
+    raise ValidationError(
+        field,
+        value,
+        "Must be numeric",
+        f"Received {type(value).__name__}",
+    )
+
+
+def _coerce_int(field: str, value: Any) -> int:
+    """Convert a value to int while validating fractional input."""
+
+    if isinstance(value, bool):
+        raise ValidationError(
+            field,
+            value,
+            "Must be a whole number",
+            "Provide digits like 15 instead of true/false",
+        )
+
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, Real):
+        if float(value).is_integer():
+            return int(value)
+        raise ValidationError(
+            field,
+            value,
+            "Must be a whole number",
+            f"Received fractional value: {value}",
+        )
+
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            raise ValidationError(
+                field,
+                value,
+                "Must be a whole number",
+                "Provide digits such as 15",
+            )
+
+        try:
+            return int(stripped)
+        except ValueError:
+            try:
+                float_value = float(stripped)
+            except ValueError as err:  # noqa: PERF203 - explicit error context
+                raise ValidationError(
+                    field,
+                    value,
+                    "Must be a whole number",
+                    "Use digits without decimals, for example 15",
+                ) from err
+
+            if not float_value.is_integer():
+                raise ValidationError(
+                    field,
+                    value,
+                    "Must be a whole number",
+                    f"Received fractional value: {float_value}",
+                )
+
+            return int(float_value)
+
+    raise ValidationError(
+        field,
+        value,
+        "Must be a whole number",
+        f"Received {type(value).__name__}",
+    )
 
 
 class InputValidator:
@@ -228,12 +335,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(weight, int | float):
-            raise ValidationError(
-                "weight", weight, "Must be numeric", f"Received {type(weight).__name__}"
-            )
-
-        weight = float(weight)
+        weight = _coerce_float("weight", weight)
 
         if weight <= 0:
             raise ValidationError(
@@ -286,12 +388,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(age, int | float):
-            raise ValidationError(
-                "age_months", age, "Must be numeric", f"Received {type(age).__name__}"
-            )
-
-        age = int(age)
+        age = _coerce_int("age_months", age)
 
         if age < min_months:
             raise ValidationError(
@@ -344,24 +441,8 @@ class InputValidator:
                 "Provide GPS longitude coordinate",
             )
 
-        if not isinstance(latitude, int | float):
-            raise ValidationError(
-                "latitude",
-                latitude,
-                "Must be numeric",
-                f"Received {type(latitude).__name__}",
-            )
-
-        if not isinstance(longitude, int | float):
-            raise ValidationError(
-                "longitude",
-                longitude,
-                "Must be numeric",
-                f"Received {type(longitude).__name__}",
-            )
-
-        latitude = float(latitude)
-        longitude = float(longitude)
+        latitude = _coerce_float("latitude", latitude)
+        longitude = _coerce_float("longitude", longitude)
 
         if not MIN_LATITUDE <= latitude <= MAX_LATITUDE:
             raise ValidationError(
@@ -408,15 +489,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(accuracy, int | float):
-            raise ValidationError(
-                "accuracy",
-                accuracy,
-                "Must be numeric",
-                f"Received {type(accuracy).__name__}",
-            )
-
-        accuracy = float(accuracy)
+        accuracy = _coerce_float("accuracy", accuracy)
 
         if accuracy < MIN_ACCURACY_METERS:
             raise ValidationError(
@@ -463,12 +536,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(amount, int | float):
-            raise ValidationError(
-                "amount", amount, "Must be numeric", f"Received {type(amount).__name__}"
-            )
-
-        amount = float(amount)
+        amount = _coerce_float("amount", amount)
 
         if amount <= 0:
             raise ValidationError(
@@ -523,15 +591,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(temperature, int | float):
-            raise ValidationError(
-                "temperature",
-                temperature,
-                "Must be numeric",
-                f"Received {type(temperature).__name__}",
-            )
-
-        temperature = float(temperature)
+        temperature = _coerce_float("temperature", temperature)
 
         if not MIN_TEMPERATURE_CELSIUS <= temperature <= MAX_TEMPERATURE_CELSIUS:
             raise ValidationError(
@@ -640,15 +700,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(duration, int | float):
-            raise ValidationError(
-                "duration",
-                duration,
-                "Must be numeric",
-                f"Received {type(duration).__name__}",
-            )
-
-        duration = int(duration)
+        duration = _coerce_int("duration", duration)
 
         if duration < min_minutes:
             raise ValidationError(
@@ -695,12 +747,7 @@ class InputValidator:
                 )
             return None
 
-        if not isinstance(radius, int | float):
-            raise ValidationError(
-                "radius", radius, "Must be numeric", f"Received {type(radius).__name__}"
-            )
-
-        radius = float(radius)
+        radius = _coerce_float("radius", radius)
 
         if radius <= 0:
             raise ValidationError(
