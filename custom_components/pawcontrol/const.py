@@ -22,6 +22,7 @@ try:
     from homeassistant.const import Platform
     from homeassistant.helpers import selector
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class Platform(str, Enum):
         """Minimal Platform enum used when Home Assistant isn't installed."""
 

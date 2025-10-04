@@ -22,12 +22,13 @@ try:
     from homeassistant.core import HomeAssistant
     from homeassistant.exceptions import HomeAssistantError
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class HomeAssistant:  # type: ignore[override]
         """Minimal stand-in used during unit tests."""
 
-
     class HomeAssistantError(Exception):
         """Fallback base error used when Home Assistant isn't installed."""
+
 
 _LOGGER = logging.getLogger(__name__)
 

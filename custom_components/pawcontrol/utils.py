@@ -19,8 +19,8 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta
 from functools import wraps
 from numbers import Real
-from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 from types import SimpleNamespace
+from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 
 try:
     from homeassistant.core import HomeAssistant
@@ -30,20 +30,20 @@ try:
     from homeassistant.helpers.entity import Entity
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class HomeAssistant:  # type: ignore[override]
         """Minimal stand-in for type checking during unit tests."""
 
-
     class Entity:  # type: ignore[override]
         """Lightweight placeholder entity used for tests."""
-
 
     DeviceEntry = dict[str, Any]  # type: ignore[assignment]
     DeviceInfo = dict[str, Any]  # type: ignore[assignment]
 
     def _missing_registry(*args: Any, **kwargs: Any) -> Any:
-        raise RuntimeError("Home Assistant registry helpers are unavailable in this environment")
-
+        raise RuntimeError(
+            "Home Assistant registry helpers are unavailable in this environment"
+        )
 
     dr = SimpleNamespace(async_get=_missing_registry)
     er = SimpleNamespace(async_get=_missing_registry)
@@ -52,7 +52,6 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         @staticmethod
         def utcnow() -> datetime:
             return datetime.utcnow()
-
 
     dt_util = _DateTimeModule()
 

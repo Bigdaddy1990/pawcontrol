@@ -11,8 +11,11 @@ from aiohttp import ClientResponse, ClientSession, ClientTimeout
 try:
     from homeassistant.exceptions import ConfigEntryAuthFailed
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class ConfigEntryAuthFailed(RuntimeError):
         """Fallback error used when Home Assistant isn't installed."""
+
+
 from yarl import URL
 
 from .exceptions import NetworkError, RateLimitError

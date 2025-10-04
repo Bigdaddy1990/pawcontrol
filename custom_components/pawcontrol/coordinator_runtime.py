@@ -17,13 +17,12 @@ try:
     from homeassistant.helpers.update_coordinator import CoordinatorUpdateFailed
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class ConfigEntryAuthFailed(RuntimeError):
         """Fallback error used when Home Assistant isn't available."""
 
-
     class CoordinatorUpdateFailed(RuntimeError):
         """Fallback error used when Home Assistant isn't available."""
-
 
     class _DateTimeModule:
         """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""
@@ -31,7 +30,6 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         @staticmethod
         def utcnow() -> datetime:
             return datetime.utcnow()
-
 
     dt_util = _DateTimeModule()
 

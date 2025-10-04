@@ -13,11 +13,11 @@ from aiohttp import ClientSession
 try:
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
             return datetime.utcnow()
-
 
     dt_util = _DateTimeModule()
 
