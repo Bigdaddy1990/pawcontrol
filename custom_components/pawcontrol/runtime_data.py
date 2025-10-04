@@ -43,13 +43,15 @@ def _get_domain_store(
 def _coerce_runtime_data(value: Any) -> PawControlRuntimeData | None:
     """Return a :class:`PawControlRuntimeData` instance if one is embedded."""
 
-    if isinstance(value, PawControlRuntimeData):
-        return value
-    if isinstance(value, Mapping):
-        candidate = value.get("runtime_data")
-        if isinstance(candidate, PawControlRuntimeData):
-            return candidate
+    match value:
+        case PawControlRuntimeData() as data:
+            return data
+
+        case {"runtime_data": PawControlRuntimeData() as data}:
+            return data
+
     return None
+
 
 
 def store_runtime_data(
