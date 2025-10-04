@@ -270,7 +270,12 @@ class CoordinatorMetrics:
     ) -> dict[str, Any]:
         """Return runtime statistics derived from cached metrics."""
         update_interval = (interval or timedelta()).total_seconds()
-        cache_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
+        raw_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
+        try:
+            cache_hit_rate = float(raw_hit_rate)
+        except (TypeError, ValueError):
+            cache_hit_rate = 0.0
+        cache_hit_rate = min(max(cache_hit_rate, 0.0), 100.0)
         return {
             "update_counts": {
                 "total": self.update_count,
@@ -292,7 +297,7 @@ class CoordinatorMetrics:
                 "hits": getattr(cache_metrics, "hits", 0),
                 "misses": getattr(cache_metrics, "misses", 0),
                 "entries": getattr(cache_metrics, "entries", 0),
-                "hit_rate": cache_hit_rate / 100,
+                "hit_rate": cache_hit_rate,
             },
         }
 
