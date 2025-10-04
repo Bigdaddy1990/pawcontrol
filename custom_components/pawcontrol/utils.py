@@ -826,14 +826,10 @@ def validate_portion_size(
         result["warnings"].append("Portion exceeds 70% of daily requirement")
         result["recommendations"].append("Consider reducing portion size")
     elif percentage > expected_percentage * 1.5:
-        result["warnings"].append(
-            "Portion is larger than typical for meal frequency"
-        )
+        result["warnings"].append("Portion is larger than typical for meal frequency")
         result["recommendations"].append("Verify portion calculation")
     elif percentage < 5:
-        result["warnings"].append(
-            "Portion is very small compared to daily requirement"
-        )
+        result["warnings"].append("Portion is very small compared to daily requirement")
         result["recommendations"].append(
             "Consider increasing portion or meal frequency"
         )
