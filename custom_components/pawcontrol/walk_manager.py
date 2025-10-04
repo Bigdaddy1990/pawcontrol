@@ -19,8 +19,8 @@ from collections import deque
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
-from xml.sax.saxutils import escape
 
+from defusedxml.sax.saxutils import escape
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
