@@ -8,16 +8,15 @@ Home Assistant runtime.
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from enum import StrEnum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
-
-import asyncio
 
 import pytest
 
@@ -50,12 +49,16 @@ def _load_module(name: str, path: Path) -> ModuleType:
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
     """Register minimal Home Assistant stubs required by repairs.py."""
 
-    homeassistant = sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
-    helpers = sys.modules.setdefault("homeassistant.helpers", ModuleType("homeassistant.helpers"))
+    sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
+    helpers = sys.modules.setdefault(
+        "homeassistant.helpers", ModuleType("homeassistant.helpers")
+    )
     components = sys.modules.setdefault(
         "homeassistant.components", ModuleType("homeassistant.components")
     )
-    util = sys.modules.setdefault("homeassistant.util", ModuleType("homeassistant.util"))
+    util = sys.modules.setdefault(
+        "homeassistant.util", ModuleType("homeassistant.util")
+    )
     data_entry_flow = ModuleType("homeassistant.data_entry_flow")
 
     class FlowResult(dict[str, Any]):  # pragma: no cover - simple mapping alias
@@ -101,7 +104,9 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
 
     selector_module = ModuleType("homeassistant.helpers.selector")
 
-    def selector(schema: dict[str, Any]) -> dict[str, Any]:  # pragma: no cover - pass-through helper
+    def selector(
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:  # pragma: no cover - pass-through helper
         return schema
 
     selector_module.selector = selector
@@ -145,7 +150,9 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
 
     issue_registry = ModuleType("homeassistant.helpers.issue_registry")
 
-    class IssueSeverity(StrEnum):  # pragma: no cover - mirrors Home Assistant enum semantics
+    class IssueSeverity(
+        StrEnum
+    ):  # pragma: no cover - mirrors Home Assistant enum semantics
         CRITICAL = "critical"
         ERROR = "error"
         WARNING = "warning"
@@ -157,7 +164,7 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
     helpers.issue_registry = issue_registry
 
     dt_module = ModuleType("homeassistant.util.dt")
-    dt_module.utcnow = lambda: datetime.now(timezone.utc)
+    dt_module.utcnow = lambda: datetime.now(UTC)
     sys.modules[dt_module.__name__] = dt_module
     util.dt = dt_module
 
@@ -186,7 +193,8 @@ def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any]]:
 
 
 def test_async_create_issue_normalises_unknown_severity(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]], caplog: pytest.LogCaptureFixture
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Severity values outside the registry should fall back to warnings."""
 
@@ -210,12 +218,15 @@ def test_async_create_issue_normalises_unknown_severity(
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["severity"] == issue_severity_cls.WARNING
-    assert kwargs["translation_placeholders"]["severity"] == issue_severity_cls.WARNING.value
+    assert (
+        kwargs["translation_placeholders"]["severity"]
+        == issue_severity_cls.WARNING.value
+    )
     assert "Unsupported issue severity 'info'" in caplog.text
 
 
 def test_async_create_issue_accepts_issue_severity_instances(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]]
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
 ) -> None:
     """Passing an IssueSeverity instance should be preserved."""
 
@@ -236,4 +247,6 @@ def test_async_create_issue_accepts_issue_severity_instances(
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["severity"] == issue_severity_cls.ERROR
-    assert kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
+    assert (
+        kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
+    )
