@@ -18,8 +18,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import ParamSpec, TypeVar
 
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+try:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.exceptions import HomeAssistantError
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+    class HomeAssistant:  # type: ignore[override]
+        """Minimal stand-in used during unit tests."""
+
+
+    class HomeAssistantError(Exception):
+        """Fallback base error used when Home Assistant isn't installed."""
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -339,7 +347,7 @@ async def retry_with_backoff(
             if retry_config.jitter:
                 import random
 
-                delay = delay * (0.5 + random.SystemRandom().random())
+                delay = delay * (0.5 + random.random())
 
             _LOGGER.warning(
                 "Retry attempt %d/%d failed for %s: %s - waiting %.1fs",

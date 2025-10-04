@@ -25,8 +25,23 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.util import dt as dt_util
+try:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+    class ConfigEntry:  # type: ignore[override]
+        """Lightweight stand-in used during unit tests."""
+
+        entry_id: str
+
+
+    class _DateTimeModule:
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.utcnow()
+
+
+    dt_util = _DateTimeModule()
 
 from .utils import is_number
 

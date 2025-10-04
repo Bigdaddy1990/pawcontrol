@@ -50,11 +50,53 @@ if _missing:
     ]
 
     def pytest_addoption(parser):
-        """Register pytest-asyncio compatibility option when dependencies are absent."""
+        """Register compatibility shims when optional dependencies are absent."""
         parser.addini(
             "asyncio_mode",
             "pytest-asyncio compatibility shim for missing dependency",
             default="auto",
+        )
+
+        # ``pytest-cov`` is an optional plugin that provides additional command
+        # line flags.  When it isn't installed pytest will exit early because
+        # it can't parse the ``--cov`` options configured in ``pytest.ini``.
+        # Registering lightweight stand-ins allows the rest of the suite to run
+        # without requiring the plugin.
+        cov_group = parser.getgroup(
+            "cov", "No-op coverage options when pytest-cov is unavailable"
+        )
+        cov_group.addoption(
+            "--cov",
+            action="append",
+            default=[],
+            dest="cov",
+            help="No-op placeholder added when pytest-cov isn't installed.",
+        )
+        cov_group.addoption(
+            "--cov-report",
+            action="append",
+            default=[],
+            dest="cov_report",
+            help="No-op placeholder added when pytest-cov isn't installed.",
+        )
+        cov_group.addoption(
+            "--cov-branch",
+            action="store_true",
+            dest="cov_branch",
+            help="No-op placeholder added when pytest-cov isn't installed.",
+        )
+        cov_group.addoption(
+            "--cov-fail-under",
+            action="store",
+            type=float,
+            dest="cov_fail_under",
+            help="No-op placeholder added when pytest-cov isn't installed.",
+        )
+        cov_group.addoption(
+            "--no-cov-on-fail",
+            action="store_true",
+            dest="no_cov_on_fail",
+            help="No-op placeholder added when pytest-cov isn't installed.",
         )
 
     print(
