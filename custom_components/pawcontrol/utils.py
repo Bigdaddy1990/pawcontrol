@@ -16,7 +16,7 @@ import inspect
 import logging
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
@@ -57,7 +57,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
     dt_util = _DateTimeModule()
 

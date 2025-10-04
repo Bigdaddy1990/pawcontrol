@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Final
 
@@ -29,7 +29,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
     dt_util = _DateTimeModule()
 

@@ -7,6 +7,7 @@ import pathlib
 import sys
 import types
 from dataclasses import dataclass
+from datetime import UTC
 
 import pytest
 
@@ -30,7 +31,7 @@ def _load_health_calculator_module() -> types.ModuleType:
     def _now():
         from datetime import datetime, timezone
 
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     ha_dt.now = _now
     ha_util.dt = ha_dt

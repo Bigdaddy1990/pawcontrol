@@ -22,7 +22,7 @@ from __future__ import annotations
 from asyncio import Task
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
 
 try:
@@ -38,7 +38,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.now(timezone.utc)
+            return datetime.now(UTC)
 
     dt_util = _DateTimeModule()
 
