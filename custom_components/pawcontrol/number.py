@@ -55,6 +55,11 @@ _LOGGER = logging.getLogger(__name__)
 # Type aliases for better code readability
 AttributeDict = dict[str, Any]
 
+# Many number entities trigger write operations (service calls) so we keep
+# the concurrency at one to honor the ``parallel-updates`` quality scale
+# rule while still allowing sequential updates from Home Assistant.
+PARALLEL_UPDATES = 1
+
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours

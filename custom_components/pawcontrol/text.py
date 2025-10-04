@@ -30,6 +30,10 @@ from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
+# Text helpers persist updates back to the coordinator; use a single
+# concurrent operation to satisfy the ``parallel-updates`` quality scale rule.
+PARALLEL_UPDATES = 1
+
 
 def _normalize_dog_configs(
     raw_configs: Iterable[Any] | None,

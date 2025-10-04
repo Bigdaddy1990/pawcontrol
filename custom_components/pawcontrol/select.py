@@ -57,6 +57,11 @@ _LOGGER = logging.getLogger(__name__)
 # Type aliases for better code readability
 AttributeDict = dict[str, Any]
 
+# Select entities invoke coordinator-backed actions; limit concurrency to one
+# operation at a time to comply with the ``parallel-updates`` requirement.
+PARALLEL_UPDATES = 1
+
+
 # Additional option lists for selects
 WALK_MODES = [
     "automatic",

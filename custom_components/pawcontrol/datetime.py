@@ -34,6 +34,10 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Date/time helpers write settings back to Paw Control, so limit concurrent
+# updates to a single request to satisfy the ``parallel-updates`` rule.
+PARALLEL_UPDATES = 1
+
 
 async def _async_add_entities_in_batches(
     async_add_entities_func,
