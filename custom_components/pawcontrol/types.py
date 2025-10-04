@@ -430,15 +430,14 @@ class PawControlRuntimeData:
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations
-type PawControlConfigEntry = ConfigEntry
+type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 """Type alias for PawControl-specific config entries.
 
-Home Assistant has deprecated direct use of ``ConfigEntry.runtime_data``.  This
-integration stores its runtime payload in ``hass.data`` and exposes helper
-functions (for example ``get_runtime_data``) that return the typed
-``PawControlRuntimeData`` instance.  The alias keeps call sites expressive while
-remaining faithful to the underlying data flow and forward compatible with
-future Home Assistant releases and their typing changes.
+By parameterising ``ConfigEntry`` with :class:`PawControlRuntimeData` we provide
+Home Assistant with the precise runtime payload type exposed by this
+integration.  This keeps call sites expressive, improves type-checker feedback,
+and remains compatible with forward-looking changes to Home Assistant's
+``ConfigEntry`` generics.
 """
 
 
