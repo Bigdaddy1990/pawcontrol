@@ -288,7 +288,9 @@ def test_async_create_issue_accepts_issue_severity_instances(
     )
 
 
-def _build_config_entries(entry: Any) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:
+def _build_config_entries(
+    entry: Any,
+) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:
     """Return a config entries namespace with tracking mocks."""
 
     updates: list[tuple[Any | None, Any | None]] = []

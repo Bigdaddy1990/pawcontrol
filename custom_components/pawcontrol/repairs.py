@@ -1095,9 +1095,7 @@ class PawControlRepairsFlow(RepairsFlow):
                 }
             ),
             description_placeholders={
-                "invalid_dogs": ", ".join(
-                    self._issue_data.get("invalid_dogs", [])
-                ),
+                "invalid_dogs": ", ".join(self._issue_data.get("invalid_dogs", [])),
                 "total_dogs": self._issue_data.get("total_dogs"),
             },
         )
@@ -1114,9 +1112,7 @@ class PawControlRepairsFlow(RepairsFlow):
                 await self._reload_config_entry()
                 return await self.async_step_complete_repair()
             if action == "view_logs":
-                return self.async_external_step(
-                    step_id="view_logs", url="/config/logs"
-                )
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
@@ -1281,7 +1277,6 @@ class PawControlRepairsFlow(RepairsFlow):
 
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
-
     async def _reduce_data_retention(self) -> None:
         """Reduce stored history to the recommended value."""
 
@@ -1352,9 +1347,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
         dogs = entry.data.get(CONF_DOGS, [])
         valid_dogs = [
-            dog
-            for dog in dogs
-            if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
+            dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
         ]
 
         if len(valid_dogs) == len(dogs):
