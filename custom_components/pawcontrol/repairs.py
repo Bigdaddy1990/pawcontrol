@@ -339,18 +339,35 @@ async def _check_notification_configuration_issues(
 
     # Check for mobile app availability
     mobile_enabled = notification_config.get("mobile_notifications", True)
-    if mobile_enabled and not hass.services.has_service("notify", "mobile_app"):
-        await async_create_issue(
-            hass,
-            entry,
-            f"{entry.entry_id}_mobile_app_missing",
-            ISSUE_MISSING_NOTIFICATIONS,
-            {
-                "missing_service": "mobile_app",
-                "notification_enabled_dogs": len(notification_enabled_dogs),
-            },
-            severity="warning",
-        )
+    if mobile_enabled:
+        has_mobile_app_service = hass.services.has_service("notify", "mobile_app")
+
+        if not has_mobile_app_service:
+            async_services = getattr(hass.services, "async_services", None)
+            if callable(async_services):
+                notify_services: Any
+                try:
+                    notify_services = async_services().get("notify", {})
+                except Exception:  # pragma: no cover - defensive fallback
+                    notify_services = {}
+
+                if isinstance(notify_services, dict):
+                    has_mobile_app_service = any(
+                        service.startswith("mobile_app") for service in notify_services
+                    )
+
+        if not has_mobile_app_service:
+            await async_create_issue(
+                hass,
+                entry,
+                f"{entry.entry_id}_mobile_app_missing",
+                ISSUE_MISSING_NOTIFICATIONS,
+                {
+                    "missing_service": "mobile_app",
+                    "notification_enabled_dogs": len(notification_enabled_dogs),
+                },
+                severity="warning",
+            )
 
 
 async def _check_outdated_configuration(
