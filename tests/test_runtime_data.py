@@ -135,6 +135,9 @@ def test_get_runtime_data_handles_legacy_container(
     hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
 
     assert get_runtime_data(hass, "legacy") is runtime_data
+    # The legacy container should be replaced with the actual runtime data for
+    # subsequent lookups to avoid repeated migrations.
+    assert hass.data[DOMAIN]["legacy"] is runtime_data
 
 
 def test_get_runtime_data_ignores_unknown_entries() -> None:
@@ -180,4 +183,15 @@ def test_pop_runtime_data_handles_legacy_container(
     hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
 
     assert pop_runtime_data(hass, "legacy") is runtime_data
-    assert hass.data[DOMAIN] == {}
+    assert DOMAIN not in hass.data
+
+
+def test_pop_runtime_data_cleans_up_domain_store(
+    runtime_data: PawControlRuntimeData,
+) -> None:
+    """Removing the final entry should drop the PawControl data namespace."""
+
+    hass = SimpleNamespace(data={DOMAIN: {"entry": runtime_data}})
+
+    assert pop_runtime_data(hass, "entry") is runtime_data
+    assert DOMAIN not in hass.data
