@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+import asyncio
+from inspect import unwrap
+from typing import Any, Callable, cast
 
 from aiohttp import ClientSession
 
@@ -30,6 +32,18 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
 
     request = getattr(session, "request", None)
     if not callable(request):
+        raise ValueError(
+            f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
+        )
+
+    def _is_coroutine(func: Callable[..., Any] | None) -> bool:
+        if func is None:
+            return False
+
+        candidate = unwrap(getattr(func, "__func__", func))
+        return asyncio.iscoroutinefunction(candidate)
+
+    if not _is_coroutine(request) and not _is_coroutine(getattr(type(session), "request", None)):
         raise ValueError(
             f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
         )

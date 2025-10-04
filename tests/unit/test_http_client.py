@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 from types import ModuleType
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -60,6 +60,23 @@ def test_ensure_shared_client_session_rejects_closed_pool(
         ensure_shared(session, owner="TestHelper")
 
     assert "received a closed aiohttp ClientSession" in str(excinfo.value)
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_requires_coroutine_request(
+    http_client_module: ModuleType, session_factory
+) -> None:
+    """A synchronous request attribute should be rejected."""
+
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    session = session_factory()
+    session.request = Mock()
+
+    with pytest.raises(ValueError) as excinfo:
+        ensure_shared(session, owner="TestHelper")
+
+    assert "aiohttp-compatible 'request' coroutine" in str(excinfo.value)
 
 
 @pytest.mark.unit
