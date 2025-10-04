@@ -81,6 +81,25 @@ async def async_create_issue(
     if data:
         issue_data.update(data)
 
+    def _serialise_issue_value(value: Any) -> str | int | float | None:
+        """Serialise issue metadata to supported storage/placeholder values."""
+
+        if value is None or isinstance(value, (str, int, float)):
+            return value
+
+        if isinstance(value, (list, tuple, set)):
+            return ", ".join(str(item) for item in value)
+
+        return str(value)
+
+    serialised_issue_data = {
+        key: _serialise_issue_value(value) for key, value in issue_data.items()
+    }
+
+    translation_placeholders = {
+        key: str(value) for key, value in serialised_issue_data.items() if value is not None
+    }
+
     await ir.async_create_issue(
         hass,
         DOMAIN,
@@ -90,8 +109,8 @@ async def async_create_issue(
         issue_domain=DOMAIN,
         severity=ir.IssueSeverity(severity),
         translation_key=issue_type,
-        translation_placeholders=issue_data,
-        data=issue_data,
+        translation_placeholders=translation_placeholders,
+        data=serialised_issue_data,
     )
 
     _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
