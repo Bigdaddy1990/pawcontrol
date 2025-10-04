@@ -47,9 +47,7 @@ def _load_module(name: str, filename: str):
 _ensure_package("custom_components", PACKAGE_ROOT.resolve())
 _ensure_package("custom_components.pawcontrol", PAWCONTROL_ROOT)
 
-_runtime_stub = types.ModuleType(
-    "custom_components.pawcontrol.coordinator_runtime"
-)
+_runtime_stub = types.ModuleType("custom_components.pawcontrol.coordinator_runtime")
 
 
 @dataclass(slots=True)
@@ -98,12 +96,8 @@ def _summarize_entity_budgets(
     total_capacity = sum(snapshot.capacity for snapshot in snapshots)
     total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)
     total_remaining = sum(snapshot.remaining for snapshot in snapshots)
-    denied_requests = sum(
-        len(snapshot.denied_requests) for snapshot in snapshots
-    )
-    average_utilisation = (
-        (total_allocated / total_capacity) if total_capacity else 0.0
-    )
+    denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)
+    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
     peak_utilisation = max(
         (snapshot.saturation for snapshot in snapshots),
         default=0.0,
