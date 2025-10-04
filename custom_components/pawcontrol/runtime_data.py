@@ -36,17 +36,28 @@ def _get_domain_store(
     return cast(DomainRuntimeStore, domain_data)
 
 
-def _coerce_runtime_data(value: Any) -> PawControlRuntimeData | None:
-    """Return a :class:`PawControlRuntimeData` instance if one is embedded."""
+def _coerce_runtime_data(
+    value: Any,
+) -> tuple[PawControlRuntimeData | None, bool]:
+    """Return runtime data and whether the store needs migration."""
 
     match value:
         case PawControlRuntimeData() as data:
-            return data
+            return data, False
 
         case {"runtime_data": PawControlRuntimeData() as data}:
-            return data
+            return data, True
 
-    return None
+    return None, False
+
+
+def _cleanup_domain_store(
+    hass: HomeAssistant, store: DomainRuntimeStore | None
+) -> None:
+    """Remove the PawControl domain store when it no longer holds entries."""
+
+    if store is not None and not store:
+        hass.data.pop(DOMAIN, None)
 
 
 def store_runtime_data(
@@ -71,7 +82,18 @@ def get_runtime_data(
     if not store:
         return None
 
-    return _coerce_runtime_data(store.get(entry_id))
+    runtime_data, needs_migration = _coerce_runtime_data(store.get(entry_id))
+    if runtime_data and needs_migration:
+        store[entry_id] = runtime_data
+    elif runtime_data is None and needs_migration:
+        # ``needs_migration`` is only ``True`` when an old structure was present.
+        # If the payload could not be coerced we should remove the legacy
+        # container to avoid future lookups hitting invalid data.
+        store.pop(entry_id, None)
+        _cleanup_domain_store(hass, store)
+        return None
+
+    return runtime_data
 
 
 def pop_runtime_data(
@@ -85,4 +107,12 @@ def pop_runtime_data(
         return None
 
     value = store.pop(entry_id, None)
-    return _coerce_runtime_data(value)
+    _cleanup_domain_store(hass, store)
+
+    runtime_data, needs_migration = _coerce_runtime_data(value)
+    if runtime_data and needs_migration:
+        # ``pop`` removed the legacy container, so we can return the
+        # extracted runtime data directly.
+        return runtime_data
+
+    return runtime_data
