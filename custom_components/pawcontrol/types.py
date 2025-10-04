@@ -31,11 +31,10 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     _RuntimeT = TypeVar("_RuntimeT")
 
-    class ConfigEntry[RuntimeT]:  # type: ignore[override]
+    class ConfigEntry[_RuntimeT]:  # type: ignore[override]
         """Lightweight generic stand-in used during unit tests."""
 
         entry_id: str
-        runtime_data: _RuntimeT | None
 
     class _DateTimeModule:
         @staticmethod
@@ -431,16 +430,15 @@ class PawControlRuntimeData:
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations
-type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
+type PawControlConfigEntry = ConfigEntry
 """Type alias for PawControl-specific config entries.
 
-Home Assistant removed ``ConfigEntry.runtime_data`` from the public API, so the
-integration standardizes on storing the runtime payload in ``hass.data``.  The
-alias keeps call sites expressive while remaining forward compatible with
-future Home Assistant releases and their typing changes.  Declaring the
-``ConfigEntry`` as ``ConfigEntry[PawControlRuntimeData]`` ensures IDEs and type
-checkers surface the runtime payload structure wherever the config entry is
-available, tightening type safety across the integration.
+Home Assistant has deprecated direct use of ``ConfigEntry.runtime_data``.  This
+integration stores its runtime payload in ``hass.data`` and exposes helper
+functions (for example ``get_runtime_data``) that return the typed
+``PawControlRuntimeData`` instance.  The alias keeps call sites expressive while
+remaining faithful to the underlying data flow and forward compatible with
+future Home Assistant releases and their typing changes.
 """
 
 
