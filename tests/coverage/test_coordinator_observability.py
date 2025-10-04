@@ -405,6 +405,19 @@ def test_normalise_webhook_status_defaults_and_errors() -> None:
     iterable_status = normalise_webhook_status(IterableManager())
     assert iterable_status["insecure_configs"] == ("dog-b", "dog-c")
 
+    class GeneratorManager:
+        @staticmethod
+        def webhook_security_status() -> dict[str, object]:
+            return {
+                "configured": True,
+                "secure": False,
+                "hmac_ready": False,
+                "insecure_configs": (config for config in ("dog-d", "dog-e")),
+            }
+
+    generator_status = normalise_webhook_status(GeneratorManager())
+    assert generator_status["insecure_configs"] == ("dog-d", "dog-e")
+
 
 def test_summarize_entity_budgets_empty_input() -> None:
     """Summary helper should handle empty iterables gracefully."""
