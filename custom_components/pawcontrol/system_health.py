@@ -49,7 +49,6 @@ def _extract_api_call_count(stats: Any) -> int:
     return _coerce_int(metrics.get("api_calls", 0))
 
 
-
 @callback
 def async_register(
     hass: HomeAssistant, register: system_health.SystemHealthRegistration
@@ -86,9 +85,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         remaining_quota = "unlimited"
 
     return {
-        "can_reach_backend": bool(
-            getattr(coordinator, "last_update_success", False)
-        ),
+        "can_reach_backend": bool(getattr(coordinator, "last_update_success", False)),
         "remaining_quota": remaining_quota,
     }
 
