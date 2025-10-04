@@ -250,3 +250,37 @@ def test_async_create_issue_accepts_issue_severity_instances(
     assert (
         kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
     )
+
+
+def test_async_create_issue_preserves_iterable_metadata(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+) -> None:
+    """Lists and dictionaries should remain structured in issue metadata."""
+
+    module, create_issue_mock, _ = repairs_module
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    asyncio.run(
+        module.async_create_issue(
+            hass,
+            entry,
+            "entry_duplicate",
+            "test_issue",
+            data={
+                "duplicate_ids": ["dog_alpha", "dog_bravo"],
+                "metrics": {"failed": 2, "total": 5},
+                "thresholds": (1, 2),
+            },
+        )
+    )
+
+    stored_data = create_issue_mock.await_args.kwargs["data"]
+    assert stored_data["duplicate_ids"] == ["dog_alpha", "dog_bravo"]
+    assert stored_data["metrics"] == {"failed": 2, "total": 5}
+    assert stored_data["thresholds"] == [1, 2]
+
+    placeholders = create_issue_mock.await_args.kwargs["translation_placeholders"]
+    assert placeholders["duplicate_ids"] == "dog_alpha, dog_bravo"
+    assert "failed=2" in placeholders["metrics"]
+    assert "total=5" in placeholders["metrics"]
