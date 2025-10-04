@@ -29,6 +29,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
 )
+from .runtime_data import get_runtime_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -390,10 +391,8 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
         entry: Configuration entry
     """
     try:
-        integration_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        coordinator = integration_data.get("coordinator")
-
-        if not coordinator:
+        runtime_data = get_runtime_data(hass, entry)
+        if runtime_data is None:
             await async_create_issue(
                 hass,
                 entry,
@@ -407,7 +406,10 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
             )
             return
 
-        if not coordinator.last_update_success:
+        coordinator = runtime_data.coordinator
+
+        if not getattr(coordinator, "last_update_success", True):
+            last_update_time = getattr(coordinator, "last_update_time", None)
             await async_create_issue(
                 hass,
                 entry,
@@ -415,8 +417,8 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
                 ISSUE_COORDINATOR_ERROR,
                 {
                     "error": "last_update_failed",
-                    "last_update": coordinator.last_update_time.isoformat()
-                    if coordinator.last_update_time
+                    "last_update": last_update_time.isoformat()
+                    if last_update_time
                     else None,
                     "suggestion": "Check logs for detailed error information",
                 },
@@ -1035,8 +1037,8 @@ async def async_register_repairs(hass: HomeAssistant) -> None:
     """Register initial repair checks for Paw Control integration."""
     _LOGGER.debug("Registering Paw Control repair checks")
 
-    # Iterate over all entries and run checks
-    for data in hass.data.get(DOMAIN, {}).values():
-        entry = data.get("entry")
-        if entry:
-            await async_check_for_issues(hass, entry)
+    # Iterate over all loaded entries and run checks for those with runtime data
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if get_runtime_data(hass, entry) is None:
+            continue
+        await async_check_for_issues(hass, entry)
