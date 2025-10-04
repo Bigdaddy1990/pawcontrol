@@ -122,8 +122,7 @@ async def async_create_issue(
 
         if isinstance(value, dict):
             return {
-                str(key): _serialise_issue_value(item)
-                for key, item in value.items()
+                str(key): _serialise_issue_value(item) for key, item in value.items()
             }
 
         return str(value)
