@@ -46,7 +46,7 @@ def _load_module(name: str, path: Path) -> ModuleType:
     return module
 
 
-def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
+def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
     """Register minimal Home Assistant stubs required by repairs.py."""
 
     sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
@@ -95,8 +95,39 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
 
     repairs_component = ModuleType("homeassistant.components.repairs")
 
-    class RepairsFlow:  # pragma: no cover - unused base class placeholder
-        pass
+    class RepairsFlow:  # pragma: no cover - minimal flow helpers
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema: Any | None = None,
+            description_placeholders: dict[str, Any] | None = None,
+            errors: dict[str, Any] | None = None,
+        ) -> FlowResult:
+            return FlowResult(
+                {
+                    "type": "form",
+                    "step_id": step_id,
+                    "data_schema": data_schema,
+                    "description_placeholders": description_placeholders or {},
+                    "errors": errors or {},
+                }
+            )
+
+        def async_external_step(
+            self, *, step_id: str, url: str
+        ) -> FlowResult:  # pragma: no cover - passthrough helper
+            return FlowResult({"type": "external", "step_id": step_id, "url": url})
+
+        def async_create_entry(
+            self, *, title: str, data: dict[str, Any]
+        ) -> FlowResult:  # pragma: no cover - passthrough helper
+            return FlowResult({"type": "create_entry", "title": title, "data": data})
+
+        def async_abort(
+            self, *, reason: str
+        ) -> FlowResult:  # pragma: no cover - passthrough helper
+            return FlowResult({"type": "abort", "reason": reason})
 
     repairs_component.RepairsFlow = RepairsFlow
     sys.modules[repairs_component.__name__] = repairs_component
@@ -158,8 +189,11 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
         WARNING = "warning"
 
     async_create_issue = AsyncMock()
+    async_delete_issue = AsyncMock()
     issue_registry.IssueSeverity = IssueSeverity
+    issue_registry.DOMAIN = "issues"
     issue_registry.async_create_issue = async_create_issue
+    issue_registry.async_delete_issue = async_delete_issue
     sys.modules[issue_registry.__name__] = issue_registry
     helpers.issue_registry = issue_registry
 
@@ -168,14 +202,16 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
     sys.modules[dt_module.__name__] = dt_module
     util.dt = dt_module
 
-    return async_create_issue, IssueSeverity
+    return async_create_issue, IssueSeverity, async_delete_issue
 
 
 @pytest.fixture
-def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any]]:
+def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any], AsyncMock]:
     """Return the loaded repairs module alongside the issue registry mock."""
 
-    async_create_issue, issue_severity_cls = _install_homeassistant_stubs()
+    async_create_issue, issue_severity_cls, async_delete_issue = (
+        _install_homeassistant_stubs()
+    )
 
     _ensure_package("custom_components", PROJECT_ROOT / "custom_components")
     _ensure_package(
@@ -189,16 +225,16 @@ def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any]]:
         module_name, PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py"
     )
 
-    return module, async_create_issue, issue_severity_cls
+    return module, async_create_issue, issue_severity_cls, async_delete_issue
 
 
 def test_async_create_issue_normalises_unknown_severity(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Severity values outside the registry should fall back to warnings."""
 
-    module, create_issue_mock, issue_severity_cls = repairs_module
+    module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
@@ -226,11 +262,11 @@ def test_async_create_issue_normalises_unknown_severity(
 
 
 def test_async_create_issue_accepts_issue_severity_instances(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
 ) -> None:
     """Passing an IssueSeverity instance should be preserved."""
 
-    module, create_issue_mock, issue_severity_cls = repairs_module
+    module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
@@ -250,3 +286,206 @@ def test_async_create_issue_accepts_issue_severity_instances(
     assert (
         kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
     )
+
+
+def _build_config_entries(entry: Any) -> tuple[Any, list[tuple[Any | None, Any | None]], AsyncMock]:
+    """Return a config entries namespace with tracking mocks."""
+
+    updates: list[tuple[Any | None, Any | None]] = []
+    reload_mock = AsyncMock(return_value=True)
+
+    def async_get_entry(entry_id: str) -> Any | None:
+        return entry if entry.entry_id == entry_id else None
+
+    def async_update_entry(
+        entry_obj: Any, data: Any | None = None, options: Any | None = None
+    ) -> None:
+        if data is not None:
+            entry_obj.data = data
+        if options is not None:
+            entry_obj.options = options
+        updates.append((data, options))
+
+    config_entries = SimpleNamespace(
+        async_get_entry=async_get_entry,
+        async_update_entry=async_update_entry,
+        async_reload=reload_mock,
+    )
+
+    return config_entries, updates, reload_mock
+
+
+def _create_flow(module: ModuleType, hass: Any, issue_id: str) -> Any:
+    """Instantiate the repairs flow with the provided Home Assistant stub."""
+
+    flow = module.PawControlRepairsFlow()
+    flow.hass = hass
+    flow.issue_id = issue_id
+    return flow
+
+
+def test_storage_warning_flow_reduces_retention(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Storage warning repair should lower retention and resolve the issue."""
+
+    module, _, _, delete_issue_mock = repairs_module
+    entry = module.ConfigEntry("entry")
+    entry.data = {module.CONF_DOGS: []}
+    entry.options = {"data_retention_days": 400}
+    config_entries, updates, _ = _build_config_entries(entry)
+
+    issue_id = "entry_storage_warning"
+    issue_data = {
+        "config_entry_id": entry.entry_id,
+        "issue_type": module.ISSUE_STORAGE_WARNING,
+        "current_retention": 400,
+        "recommended_max": 365,
+        "suggestion": "Consider reducing data retention period",
+    }
+
+    hass = SimpleNamespace(
+        data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+        config_entries=config_entries,
+    )
+
+    flow = _create_flow(module, hass, issue_id)
+
+    result = asyncio.run(flow.async_step_init())
+    assert result["type"] == "form"
+    assert result["step_id"] == "storage_warning"
+
+    delete_issue_mock.reset_mock()
+    updates.clear()
+    asyncio.run(flow.async_step_storage_warning({"action": "reduce_retention"}))
+
+    assert entry.options["data_retention_days"] == 365
+    assert updates[-1][1]["data_retention_days"] == 365
+    assert delete_issue_mock.await_count == 1
+
+
+def test_module_conflict_flow_disables_extra_gps_modules(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Module conflict repair should disable GPS for dogs beyond the limit."""
+
+    module, _, _, delete_issue_mock = repairs_module
+    entry = module.ConfigEntry("entry")
+    entry.data = {
+        module.CONF_DOGS: [
+            {
+                module.CONF_DOG_ID: f"dog{i}",
+                module.CONF_DOG_NAME: f"Dog {i}",
+                "modules": {module.MODULE_GPS: True, module.MODULE_HEALTH: True},
+            }
+            for i in range(6)
+        ]
+    }
+    entry.options = {}
+    config_entries, _, _ = _build_config_entries(entry)
+
+    issue_id = "entry_module_conflict"
+    issue_data = {
+        "config_entry_id": entry.entry_id,
+        "issue_type": module.ISSUE_MODULE_CONFLICT,
+        "intensive_dogs": 6,
+        "total_dogs": 6,
+        "suggestion": "Consider selective module enabling",
+    }
+
+    hass = SimpleNamespace(
+        data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+        config_entries=config_entries,
+    )
+
+    flow = _create_flow(module, hass, issue_id)
+    asyncio.run(flow.async_step_init())
+
+    delete_issue_mock.reset_mock()
+    asyncio.run(flow.async_step_module_conflict({"action": "reduce_load"}))
+
+    disabled = [
+        dog
+        for dog in entry.data[module.CONF_DOGS]
+        if dog["modules"].get(module.MODULE_GPS) is False
+    ]
+    assert disabled, "Expected at least one dog to have GPS disabled"
+    assert delete_issue_mock.await_count == 1
+
+
+def test_invalid_dog_data_flow_removes_entries(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Invalid dog data repair should remove malformed entries."""
+
+    module, _, _, delete_issue_mock = repairs_module
+    entry = module.ConfigEntry("entry")
+    entry.data = {
+        module.CONF_DOGS: [
+            {
+                module.CONF_DOG_ID: "valid",
+                module.CONF_DOG_NAME: "Valid Dog",
+            },
+            {module.CONF_DOG_ID: "invalid", module.CONF_DOG_NAME: ""},
+        ]
+    }
+    entry.options = {}
+    config_entries, _, _ = _build_config_entries(entry)
+
+    issue_id = "entry_invalid_dogs"
+    issue_data = {
+        "config_entry_id": entry.entry_id,
+        "issue_type": module.ISSUE_INVALID_DOG_DATA,
+        "invalid_dogs": ["invalid"],
+        "total_dogs": 2,
+    }
+
+    hass = SimpleNamespace(
+        data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+        config_entries=config_entries,
+    )
+
+    flow = _create_flow(module, hass, issue_id)
+    asyncio.run(flow.async_step_init())
+
+    delete_issue_mock.reset_mock()
+    asyncio.run(flow.async_step_invalid_dog_data({"action": "clean_up"}))
+
+    dogs = entry.data[module.CONF_DOGS]
+    assert len(dogs) == 1 and dogs[0][module.CONF_DOG_ID] == "valid"
+    assert delete_issue_mock.await_count == 1
+
+
+def test_coordinator_error_flow_triggers_reload(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Coordinator repair should reload the config entry and resolve the issue."""
+
+    module, _, _, delete_issue_mock = repairs_module
+    entry = module.ConfigEntry("entry")
+    entry.data = {module.CONF_DOGS: []}
+    entry.options = {}
+    config_entries, _, reload_mock = _build_config_entries(entry)
+
+    issue_id = "entry_coordinator_error"
+    issue_data = {
+        "config_entry_id": entry.entry_id,
+        "issue_type": module.ISSUE_COORDINATOR_ERROR,
+        "error": "coordinator_not_initialized",
+        "suggestion": "Try reloading the integration",
+    }
+
+    hass = SimpleNamespace(
+        data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+        config_entries=config_entries,
+    )
+
+    flow = _create_flow(module, hass, issue_id)
+    asyncio.run(flow.async_step_init())
+
+    delete_issue_mock.reset_mock()
+    reload_mock.reset_mock()
+    asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
+
+    assert reload_mock.await_count == 1
+    assert delete_issue_mock.await_count == 1
