@@ -161,7 +161,7 @@ def _coerce_int(field: str, value: Any) -> int:
         except ValueError:
             try:
                 float_value = float(stripped)
-            except ValueError as err:  # noqa: PERF203 - explicit error context
+            except ValueError as err:
                 raise ValidationError(
                     field,
                     value,
