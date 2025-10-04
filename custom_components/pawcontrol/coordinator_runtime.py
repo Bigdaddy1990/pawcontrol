@@ -30,7 +30,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         @staticmethod
         def utcnow() -> datetime:
             return datetime.utcnow()
-
+            return datetime.now(datetime.timezone.utc)
     dt_util = _DateTimeModule()
 
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
