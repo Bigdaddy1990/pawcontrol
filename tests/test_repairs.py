@@ -491,3 +491,80 @@ def test_coordinator_error_flow_triggers_reload(
 
     assert reload_mock.await_count == 1
     assert delete_issue_mock.await_count == 1
+    placeholders = create_issue_mock.await_args.kwargs["translation_placeholders"]
+    assert placeholders["duplicate_ids"] == "dog_alpha, dog_bravo"
+    assert "failed=2" in placeholders["metrics"]
+    assert "total=5" in placeholders["metrics"]
+
+
+def test_async_check_for_issues_checks_coordinator_health(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+) -> None:
+    """Coordinator health should be validated when scanning for issues."""
+
+    module, create_issue_mock, _ = repairs_module
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog_alpha",
+                    module.CONF_DOG_NAME: "Dog Alpha",
+                    "modules": {},
+                }
+            ]
+        },
+        options={},
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: None
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
+    assert kwargs["data"]["error"] == "coordinator_not_initialized"
+
+
+def test_notification_check_accepts_mobile_app_service_prefix(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+) -> None:
+    """Notification checks should detect mobile_app_* notify services."""
+
+    module, create_issue_mock, _ = repairs_module
+
+    hass = SimpleNamespace()
+
+    hass.services = SimpleNamespace(
+        has_service=lambda domain, service: False,
+        async_services=lambda: {"notify": {"mobile_app_jane": object()}},
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog_alpha",
+                    module.CONF_DOG_NAME: "Dog Alpha",
+                    "modules": {module.MODULE_NOTIFICATIONS: True},
+                }
+            ]
+        },
+        options={"notifications": {"mobile_notifications": True}},
+        version=1,
+    )
+
+    asyncio.run(module._check_notification_configuration_issues(hass, entry))
+
+    assert create_issue_mock.await_count == 0
