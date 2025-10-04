@@ -903,15 +903,14 @@ class WalkManager:
         cutoff = dt_util.now() - timedelta(days=7)
 
         def _parse_start(value: Any) -> datetime | None:
-            return value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            return (
+                value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            )
 
         recent_walks = [
             walk
             for walk in recent_walks
-            if (
-                (parsed := _parse_start(walk.get("start_time")))
-                and parsed >= cutoff
-            )
+            if ((parsed := _parse_start(walk.get("start_time"))) and parsed >= cutoff)
         ]
         if recent_walks:
             durations = [
@@ -938,9 +937,9 @@ class WalkManager:
         )
 
         # OPTIMIZE: Calculate walk streak efficiently
-        self._walk_data[dog_id]["walk_streak"] = await self._calculate_walk_streak_optimized(
-            dog_id
-        )
+        self._walk_data[dog_id][
+            "walk_streak"
+        ] = await self._calculate_walk_streak_optimized(dog_id)
 
         # Update energy level based on recent activity
         self._update_energy_level(dog_id, walk_data)
@@ -959,16 +958,15 @@ class WalkManager:
         recent_walks = self.get_walk_history(dog_id)
 
         def _parse_start(value: Any) -> datetime | None:
-            return value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            return (
+                value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            )
 
         cutoff = dt_util.now() - timedelta(days=30)
         recent_walks = [
             walk
             for walk in recent_walks
-            if (
-                (parsed := _parse_start(walk.get("start_time")))
-                and parsed >= cutoff
-            )
+            if ((parsed := _parse_start(walk.get("start_time"))) and parsed >= cutoff)
         ]
         if not recent_walks:
             return 0
@@ -1208,10 +1206,7 @@ class WalkManager:
         if not history:
             return []
 
-        if limit is not None:
-            history_slice = history[-limit:]
-        else:
-            history_slice = history[:]
+        history_slice = history[-limit:] if limit is not None else history[:]
 
         return [walk.copy() for walk in reversed(history_slice)]
 
@@ -1254,7 +1249,9 @@ class WalkManager:
         stats_snapshot = self._walk_data.get(dog_id, {}).copy()
 
         return {
-            "active_walk": active_walk.copy() if isinstance(active_walk, dict) else active_walk,
+            "active_walk": active_walk.copy()
+            if isinstance(active_walk, dict)
+            else active_walk,
             "history": self.get_walk_history(dog_id),
             "stats": stats_snapshot,
             "statistics": stats_snapshot.copy(),
