@@ -56,7 +56,7 @@ _LOGGER = logging.getLogger(__name__)
 AttributeDict = dict[str, Any]
 
 # Many number entities trigger write operations (service calls) so we keep
-# the concurrency at one to honour the ``parallel-updates`` quality scale
+# the concurrency at one to honor the ``parallel-updates`` quality scale
 # rule while still allowing sequential updates from Home Assistant.
 PARALLEL_UPDATES = 1
 
