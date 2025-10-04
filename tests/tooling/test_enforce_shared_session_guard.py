@@ -108,3 +108,33 @@ def test_from_import_module_alias_detection() -> None:
     offenders = guard._detect_client_session_calls(tree)
 
     assert len(offenders) == 1
+
+
+@pytest.mark.unit
+def test_main_handles_syntax_errors_gracefully(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The CLI guard should report parse errors without crashing."""
+
+    repo_root = tmp_path / "repo"
+    integration_root = repo_root / "custom_components" / "pawcontrol"
+    integration_root.mkdir(parents=True)
+
+    bad_file = integration_root / "bad.py"
+    bad_file.write_text("def broken(:\n", encoding="utf-8")
+
+    monkeypatch.setattr(guard, "REPO_ROOT", repo_root)
+    monkeypatch.setattr(guard, "INTEGRATION_ROOT", integration_root)
+    monkeypatch.setattr(
+        guard,
+        "CONFIG_PATH",
+        repo_root / "scripts" / "shared_session_guard_roots.toml",
+    )
+    monkeypatch.setattr(guard, "SCAN_ROOTS", (integration_root,))
+
+    exit_code = guard.main()
+    output = capsys.readouterr().out
+
+    assert exit_code == 1
+    assert "Unable to parse Python source" in output
+    assert "bad.py" in output

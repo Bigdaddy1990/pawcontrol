@@ -23,6 +23,10 @@ ERROR_TEMPLATE = (
     "{path}: Detected direct ClientSession instantiation. Use "
     "ensure_shared_client_session() to enforce shared-session reuse."
 )
+READ_ERROR_TEMPLATE = (
+    "{path}: Unable to read Python source ({error}). Skipping file from scan."
+)
+PARSE_ERROR_TEMPLATE = "{path}: Unable to parse Python source ({error}). Review file syntax before running the guard."
 
 
 def _iter_python_files(root: Path) -> Iterable[Path]:
@@ -172,7 +176,27 @@ def main() -> int:
             if file_path in ALLOWED_FILES:
                 continue
 
-            tree = ast.parse(file_path.read_text(encoding="utf-8"))
+            try:
+                source = file_path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as err:
+                failures.append(
+                    READ_ERROR_TEMPLATE.format(
+                        path=file_path.relative_to(REPO_ROOT),
+                        error=f"{err.__class__.__name__}: {err}",
+                    )
+                )
+                continue
+
+            try:
+                tree = ast.parse(source)
+            except SyntaxError as err:
+                failures.append(
+                    PARSE_ERROR_TEMPLATE.format(
+                        path=file_path.relative_to(REPO_ROOT),
+                        error=f"line {err.lineno}: {err.msg}",
+                    )
+                )
+                continue
             offenders = _detect_client_session_calls(tree)
             if offenders:
                 failures.append(
