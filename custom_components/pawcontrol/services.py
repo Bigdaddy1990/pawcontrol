@@ -130,7 +130,11 @@ class _CoordinatorResolver:
         if self._cached_coordinator is None:
             return
 
-        if entry_id is not None and self._cached_entry_id is not None and entry_id != self._cached_entry_id:
+        if (
+            entry_id is not None
+            and self._cached_entry_id is not None
+            and entry_id != self._cached_entry_id
+        ):
             # An unrelated config entry changed state; keep the cached coordinator.
             return
 
