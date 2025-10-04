@@ -31,7 +31,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     _RuntimeT = TypeVar("_RuntimeT")
 
-    class ConfigEntry[_RuntimeT]:  # type: ignore[override]
+    class ConfigEntry[RuntimeT]:  # type: ignore[override]
         """Lightweight generic stand-in used during unit tests."""
 
         entry_id: str
