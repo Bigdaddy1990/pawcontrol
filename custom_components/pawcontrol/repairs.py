@@ -970,6 +970,205 @@ class PawControlRepairsFlow(RepairsFlow):
             description_placeholders=self._issue_data,
         )
 
+    async def async_step_storage_warning(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle repair flow for storage warnings."""
+
+        if user_input is not None:
+            action = user_input.get("action")
+
+            if action == "reduce_retention":
+                await self._reduce_data_retention()
+                return await self.async_step_complete_repair()
+            if action == "configure":
+                return self.async_external_step(
+                    step_id="configure_storage", url="/config/integrations"
+                )
+            return await self.async_step_complete_repair()
+
+        return self.async_show_form(
+            step_id="storage_warning",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "reduce_retention",
+                                        "label": "Reduce data retention to recommended value",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Review storage settings manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
+            description_placeholders={
+                "current_retention": self._issue_data.get("current_retention"),
+                "recommended_max": self._issue_data.get("recommended_max"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+        )
+
+    async def async_step_module_conflict(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle repair flow for high resource module conflicts."""
+
+        if user_input is not None:
+            action = user_input.get("action")
+
+            if action == "reduce_load":
+                await self._limit_high_resource_modules()
+                return await self.async_step_complete_repair()
+            if action == "optimize":
+                await self._apply_performance_optimizations()
+                return await self.async_step_complete_repair()
+            if action == "configure":
+                return self.async_external_step(
+                    step_id="configure_modules", url="/config/integrations"
+                )
+            return await self.async_step_complete_repair()
+
+        return self.async_show_form(
+            step_id="module_conflict",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "reduce_load",
+                                        "label": "Disable intensive modules for extra dogs",
+                                    },
+                                    {
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
+                                    },
+                                    {
+                                        "value": "configure",
+                                        "label": "Adjust modules manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore warning"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
+            description_placeholders={
+                "intensive_dogs": self._issue_data.get("intensive_dogs"),
+                "total_dogs": self._issue_data.get("total_dogs"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+        )
+
+    async def async_step_invalid_dog_data(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle repair flow for invalid dog configuration data."""
+
+        if user_input is not None:
+            action = user_input.get("action")
+
+            if action == "clean_up":
+                await self._remove_invalid_dogs()
+                return await self.async_step_complete_repair()
+            if action == "reconfigure":
+                return self.async_external_step(
+                    step_id="reconfigure", url="/config/integrations"
+                )
+            return await self.async_step_complete_repair()
+
+        return self.async_show_form(
+            step_id="invalid_dog_data",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector(
+                        {
+                            "select": {
+                                "options": [
+                                    {
+                                        "value": "clean_up",
+                                        "label": "Remove invalid dog entries",
+                                    },
+                                    {
+                                        "value": "reconfigure",
+                                        "label": "Fix dog data manually",
+                                    },
+                                    {"value": "ignore", "label": "Ignore for now"},
+                                ]
+                            }
+                        }
+                    )
+                }
+            ),
+            description_placeholders={
+                "invalid_dogs": ", ".join(self._issue_data.get("invalid_dogs", [])),
+                "total_dogs": self._issue_data.get("total_dogs"),
+            },
+        )
+
+    async def async_step_coordinator_error(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle repair flow for coordinator errors."""
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            action = user_input.get("action")
+
+            if action == "reload":
+                if await self._reload_config_entry():
+                    return await self.async_step_complete_repair()
+                errors["base"] = "reload_failed"
+            elif action == "view_logs":
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
+            else:
+                return await self.async_step_complete_repair()
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("action"): selector(
+                    {
+                        "select": {
+                            "options": [
+                                {
+                                    "value": "reload",
+                                    "label": "Reload Paw Control",
+                                },
+                                {
+                                    "value": "view_logs",
+                                    "label": "Open system logs",
+                                },
+                                {"value": "ignore", "label": "Ignore for now"},
+                            ]
+                        }
+                    }
+                )
+            }
+        )
+
+        return self.async_show_form(
+            step_id="coordinator_error",
+            data_schema=data_schema,
+            description_placeholders={
+                "error": self._issue_data.get("error", "unknown"),
+                "last_update": self._issue_data.get("last_update"),
+                "suggestion": self._issue_data.get("suggestion"),
+            },
+            errors=errors,
+        )
+
     async def async_step_complete_repair(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -1101,6 +1300,113 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
         self.hass.config_entries.async_update_entry(entry, options=new_options)
+
+    async def _reduce_data_retention(self) -> None:
+        """Reduce stored history to the recommended value."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return
+
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return
+
+        recommended_max = self._issue_data.get("recommended_max")
+        if not isinstance(recommended_max, int):
+            recommended_max = 365
+
+        new_options = entry.options.copy()
+        if new_options.get("data_retention_days") == recommended_max:
+            return
+
+        new_options["data_retention_days"] = recommended_max
+        self.hass.config_entries.async_update_entry(entry, options=new_options)
+
+    async def _limit_high_resource_modules(self) -> None:
+        """Disable heavy modules for dogs beyond the recommended threshold."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return
+
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return
+
+        dogs = entry.data.get(CONF_DOGS, [])
+        updated_dogs: list[dict[str, Any]] = []
+        high_resource_limit = 5
+        high_resource_count = 0
+
+        for dog in dogs:
+            updated_dog = dog.copy()
+            modules = dict(updated_dog.get("modules", {}))
+
+            if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):
+                high_resource_count += 1
+                if high_resource_count > high_resource_limit:
+                    modules[MODULE_GPS] = False
+
+            updated_dog["modules"] = modules
+            updated_dogs.append(updated_dog)
+
+        if updated_dogs == dogs:
+            return
+
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = updated_dogs
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+
+    async def _remove_invalid_dogs(self) -> None:
+        """Remove dogs that are missing required identifiers."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            return
+
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if not entry:
+            return
+
+        dogs = entry.data.get(CONF_DOGS, [])
+        valid_dogs = [
+            dog for dog in dogs if dog.get(CONF_DOG_ID) and dog.get(CONF_DOG_NAME)
+        ]
+
+        if len(valid_dogs) == len(dogs):
+            return
+
+        new_data = entry.data.copy()
+        new_data[CONF_DOGS] = valid_dogs
+        self.hass.config_entries.async_update_entry(entry, data=new_data)
+
+    async def _reload_config_entry(self) -> bool:
+        """Reload the integration config entry to recover from coordinator errors."""
+
+        config_entry_id = self._issue_data.get("config_entry_id")
+        if not config_entry_id:
+            _LOGGER.error("Missing config entry id while handling coordinator repair")
+            return False
+
+        try:
+            result = await self.hass.config_entries.async_reload(config_entry_id)
+        except Exception as err:  # pragma: no cover - defensive logging
+            _LOGGER.error(
+                "Error reloading config entry %s during repair flow: %s",
+                config_entry_id,
+                err,
+            )
+            return False
+
+        if result is False:
+            _LOGGER.error(
+                "Reload of config entry %s reported failure during repair flow",
+                config_entry_id,
+            )
+            return False
+
+        return True
 
 
 async def async_create_fix_flow(
