@@ -18,10 +18,10 @@ try:
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
-    class ConfigEntryAuthFailed(RuntimeError):
+    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
         """Fallback error used when Home Assistant isn't available."""
 
-    class CoordinatorUpdateFailed(RuntimeError):
+    class CoordinatorUpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
         """Fallback error used when Home Assistant isn't available."""
 
     class _DateTimeModule:
