@@ -55,10 +55,10 @@ _LOGGER = logging.getLogger(__name__)
 # Type aliases for better code readability
 AttributeDict = dict[str, Any]
 
-# Many number entities trigger write operations (service calls) so we keep
-# the concurrency at one to honor the ``parallel-updates`` quality scale
-# rule while still allowing sequential updates from Home Assistant.
-PARALLEL_UPDATES = 1
+# Many number entities trigger write operations (service calls). The
+# coordinator applies its own throttling so we can keep Home Assistant's
+# parallel scheduling fully enabled.
+PARALLEL_UPDATES = 0
 
 # Configuration limits and defaults
 DEFAULT_WALK_DURATION_TARGET = 60  # minutes

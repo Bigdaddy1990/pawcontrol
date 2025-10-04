@@ -70,7 +70,7 @@ rules:
     comment: "Invalid payloads validated and logged before processing."
   parallel-updates:
     status: done
-    comment: "Data coordinator schedules parallel refreshes for entities."
+    comment: "All platforms set PARALLEL_UPDATES = 0 so coordinators can refresh entities in parallel."
   reauthentication-flow:
     status: done
     comment: "Config flow implements async_step_reauth and async_step_reauth_confirm handling (see config_flow.py)."

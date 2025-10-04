@@ -54,7 +54,7 @@ SensorValue = str | int | float | datetime | None
 AttributeDict = dict[str, Any]
 
 # Home Assistant platform configuration
-PARALLEL_UPDATES = 1
+PARALLEL_UPDATES = 0
 
 # OPTIMIZED: Performance constants for Platinum profiles
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
