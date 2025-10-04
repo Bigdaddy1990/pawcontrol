@@ -19,9 +19,9 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
+from html import escape
 from typing import Any
 
-from html import escape
 from homeassistant.util import dt as dt_util
 
 from .utils import is_number
