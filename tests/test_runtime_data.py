@@ -11,7 +11,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -114,7 +113,9 @@ def _entry(entry_id: str = "test-entry") -> PawControlConfigEntry:
     return cast(PawControlConfigEntry, _DummyEntry(entry_id))
 
 
-def test_store_and_get_runtime_data_roundtrip(runtime_data: PawControlRuntimeData) -> None:
+def test_store_and_get_runtime_data_roundtrip(
+    runtime_data: PawControlRuntimeData,
+) -> None:
     """Storing runtime data should make it retrievable via the helper."""
 
     hass = SimpleNamespace(data={})
@@ -126,7 +127,9 @@ def test_store_and_get_runtime_data_roundtrip(runtime_data: PawControlRuntimeDat
     assert get_runtime_data(hass, entry.entry_id) is runtime_data
 
 
-def test_get_runtime_data_handles_legacy_container(runtime_data: PawControlRuntimeData) -> None:
+def test_get_runtime_data_handles_legacy_container(
+    runtime_data: PawControlRuntimeData,
+) -> None:
     """Legacy dict containers should still be unwrapped."""
 
     hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
@@ -142,7 +145,9 @@ def test_get_runtime_data_ignores_unknown_entries() -> None:
     assert get_runtime_data(hass, "missing") is None
 
 
-def test_get_runtime_data_with_unexpected_container_type(runtime_data: PawControlRuntimeData) -> None:
+def test_get_runtime_data_with_unexpected_container_type(
+    runtime_data: PawControlRuntimeData,
+) -> None:
     """Non-mapping containers are treated as absent data."""
 
     hass = SimpleNamespace(data={DOMAIN: []})
@@ -167,7 +172,9 @@ def test_pop_runtime_data_removes_entry(runtime_data: PawControlRuntimeData) -> 
     assert get_runtime_data(hass, entry) is None
 
 
-def test_pop_runtime_data_handles_legacy_container(runtime_data: PawControlRuntimeData) -> None:
+def test_pop_runtime_data_handles_legacy_container(
+    runtime_data: PawControlRuntimeData,
+) -> None:
     """Legacy dict containers should be handled by ``pop_runtime_data`` too."""
 
     hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})

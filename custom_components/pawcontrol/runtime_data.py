@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .types import PawControlConfigEntry, PawControlRuntimeData
 
-
 DomainRuntimeStore = MutableMapping[str, PawControlRuntimeData | Mapping[str, Any]]
 
 
@@ -26,10 +25,7 @@ def _get_domain_store(
     """Return the PawControl storage dictionary from ``hass.data``."""
 
     domain_data: Any
-    if create:
-        domain_data = hass.data.setdefault(DOMAIN, {})
-    else:
-        domain_data = hass.data.get(DOMAIN)
+    domain_data = hass.data.setdefault(DOMAIN, {}) if create else hass.data.get(DOMAIN)
 
     if not isinstance(domain_data, MutableMapping):
         if not create:
@@ -51,7 +47,6 @@ def _coerce_runtime_data(value: Any) -> PawControlRuntimeData | None:
             return data
 
     return None
-
 
 
 def store_runtime_data(
