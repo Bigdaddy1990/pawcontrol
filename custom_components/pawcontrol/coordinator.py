@@ -271,6 +271,9 @@ class PawControlCoordinator(
     async def _async_setup(self) -> None:
         """Deprecated private alias retained for backward compatibility."""
 
+        _LOGGER.warning(
+            "PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead."
+        )
         await self.async_prepare_entry()
 
     async def _async_update_data(self) -> dict[str, Any]:

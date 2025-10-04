@@ -38,7 +38,11 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from custom_components.pawcontrol.coordinator_tasks import run_maintenance
+from custom_components.pawcontrol.runtime_data import get_runtime_data
+from custom_components.pawcontrol.types import PawControlRuntimeData
 from homeassistant import __version__ as ha_version
+from homeassistant.const import CONF_TOKEN
+from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 sys.modules.setdefault("bluetooth_adapters", ModuleType("bluetooth_adapters"))

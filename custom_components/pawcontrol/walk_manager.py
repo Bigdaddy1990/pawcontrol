@@ -1410,7 +1410,7 @@ class WalkManager:
         """Generate GPX 1.1 compliant data with full metadata."""
 
         def _escape(value: str) -> str:
-            return escape(value, {'"': "&quot;"})
+            return escape(value, {'"': "&quot;", "'": "&apos;"})
 
         def _format_attrs(attrs: dict[str, Any]) -> str:
             parts: list[str] = []
