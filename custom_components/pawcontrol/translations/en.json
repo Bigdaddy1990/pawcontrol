@@ -1000,10 +1000,5 @@
       "title": "Coordinator is unavailable",
       "description": "Paw Control could not access its coordinator ({error}). Follow the suggested action or reload the integration."
     }
-  },
-  "repairs": {
-    "errors": {
-      "reload_failed": "Reload failed. Check the logs and try again."
-    }
   }
 }
