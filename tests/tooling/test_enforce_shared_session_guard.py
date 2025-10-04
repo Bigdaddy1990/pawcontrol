@@ -130,7 +130,7 @@ def test_main_handles_syntax_errors_gracefully(
         "CONFIG_PATH",
         repo_root / "scripts" / "shared_session_guard_roots.toml",
     )
-    monkeypatch.setattr(guard, "SCAN_ROOTS", (integration_root,))
+    monkeypatch.setattr(guard, "_get_scan_roots", lambda: (integration_root,))
 
     exit_code = guard.main()
     output = capsys.readouterr().out

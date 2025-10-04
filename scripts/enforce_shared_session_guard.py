@@ -78,7 +78,10 @@ def _resolve_configured_roots() -> set[Path]:
     return roots
 
 
-SCAN_ROOTS: tuple[Path, ...] = tuple(sorted(_resolve_configured_roots()))
+def _get_scan_roots() -> tuple[Path, ...]:
+    """Return the directories that should be scanned for violations."""
+
+    return tuple(sorted(_resolve_configured_roots()))
 
 
 def _collect_client_session_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
@@ -171,7 +174,7 @@ def main() -> int:
 
     failures: list[str] = []
 
-    for root in SCAN_ROOTS:
+    for root in _get_scan_roots():
         for file_path in _iter_python_files(root):
             if file_path in ALLOWED_FILES:
                 continue
