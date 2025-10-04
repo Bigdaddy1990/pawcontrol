@@ -23,16 +23,15 @@ from asyncio import Task
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Final, Generic, Required, TypeVar, TypedDict
+from typing import TYPE_CHECKING, Any, Final, Required, TypedDict, TypeVar
 
 try:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
     _RuntimeT = TypeVar("_RuntimeT")
 
-    class ConfigEntry(Generic[_RuntimeT]):  # type: ignore[override]
+    class ConfigEntry[RuntimeT]:  # type: ignore[override]
         """Lightweight generic stand-in used during unit tests."""
 
         entry_id: str
