@@ -33,6 +33,10 @@ from .runtime_data import get_runtime_data
 
 _LOGGER = logging.getLogger(__name__)
 
+# JSON serialisable payload used for issue registry metadata
+type JSONPrimitive = str | int | float | bool | None
+type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
+
 # Issue types
 ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"
 ISSUE_DUPLICATE_DOG_IDS = "duplicate_dog_ids"
@@ -107,23 +111,41 @@ async def async_create_issue(
     if data:
         issue_data.update(data)
 
-    def _serialise_issue_value(value: Any) -> str | int | float | None:
-        """Serialise issue metadata to supported storage/placeholder values."""
+    def _serialise_issue_value(value: Any) -> JSONType:
+        """Serialise issue metadata to JSON-compatible structures."""
 
-        if value is None or isinstance(value, str | int | float):
+        if value is None or isinstance(value, str | int | float | bool):
             return value
 
         if isinstance(value, list | tuple | set):
-            return ", ".join(str(item) for item in value)
+            return [_serialise_issue_value(item) for item in value]
+
+        if isinstance(value, dict):
+            return {
+                str(key): _serialise_issue_value(item) for key, item in value.items()
+            }
 
         return str(value)
 
-    serialised_issue_data = {
+    def _stringify_placeholder(value: JSONType) -> str:
+        """Convert serialised metadata into user-friendly placeholder text."""
+
+        if isinstance(value, list):
+            return ", ".join(_stringify_placeholder(item) for item in value)
+
+        if isinstance(value, dict):
+            return ", ".join(
+                f"{key}={_stringify_placeholder(item)}" for key, item in value.items()
+            )
+
+        return str(value)
+
+    serialised_issue_data: dict[str, JSONType] = {
         key: _serialise_issue_value(value) for key, value in issue_data.items()
     }
 
     translation_placeholders = {
-        key: str(value)
+        key: _stringify_placeholder(value)
         for key, value in serialised_issue_data.items()
         if value is not None
     }
