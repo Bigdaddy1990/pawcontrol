@@ -320,7 +320,9 @@ async def test_other_entry_state_change_does_not_invalidate_cache(
         patch.object(
             hass.config_entries,
             "async_get_entry",
-            side_effect=lambda entry_id: entry if entry_id == entry.entry_id else other_entry,
+            side_effect=lambda entry_id: entry
+            if entry_id == entry.entry_id
+            else other_entry,
         ),
     ):
         handlers = await _register_services(hass, coordinator_mock)
