@@ -611,4 +611,3 @@ def _redact_sensitive_data(data: Any) -> Any:
     """Recursively redact sensitive data from diagnostic information."""
 
     return redact_sensitive_data(data, patterns=_REDACTED_KEY_PATTERNS)
-
