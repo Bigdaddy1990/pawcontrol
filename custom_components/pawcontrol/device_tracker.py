@@ -47,6 +47,11 @@ from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
+# Coordinator drives refreshes, so we can safely allow unlimited parallel
+# updates for this read-only platform while still complying with the
+# ``parallel-updates`` quality scale rule.
+PARALLEL_UPDATES = 0
+
 # GPS tracker constants
 DEFAULT_GPS_ACCURACY = 50  # meters
 MIN_LOCATION_UPDATE_INTERVAL = 30  # seconds

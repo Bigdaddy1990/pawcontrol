@@ -54,6 +54,10 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Select entities invoke coordinator-backed actions; limit concurrency to one
+# operation at a time to comply with the ``parallel-updates`` requirement.
+PARALLEL_UPDATES = 1
+
 # Type aliases for better code readability
 AttributeDict = dict[str, Any]
 

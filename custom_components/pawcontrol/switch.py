@@ -51,6 +51,11 @@ BATCH_SIZE = 15  # Optimized for profile-filtered entities
 BATCH_DELAY = 0.003  # Reduced to 3ms for faster setup
 MAX_CONCURRENT_BATCHES = 8  # Balanced for profile optimization
 
+# Switches toggle features and therefore execute actions. Limit concurrent
+# operations so we comply with the ``parallel-updates`` rule while preventing
+# conflicting commands to the same device.
+PARALLEL_UPDATES = 1
+
 
 class ProfileOptimizedSwitchFactory:
     """Factory for efficient profile-based switch creation with minimal entity count."""
