@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from collections.abc import Coroutine
 from pathlib import Path
 from types import ModuleType
 from unittest.mock import AsyncMock, Mock
@@ -89,6 +90,34 @@ def test_ensure_shared_client_session_returns_session(
 
     session = session_factory()
     session.request = AsyncMock()
+
+    validated = ensure_shared(session, owner="TestHelper")
+
+    assert validated is session
+
+
+class _WrapperSession:
+    """Minimal session mimic that proxies to an async ``_request`` method."""
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    async def _request(self, *args: object, **kwargs: object) -> str:
+        return "ok"
+
+    def request(self, *args: object, **kwargs: object) -> Coroutine[None, None, str]:
+        return self._request(*args, **kwargs)
+
+
+@pytest.mark.unit
+def test_ensure_shared_client_session_accepts_wrapped_request(
+    http_client_module: ModuleType,
+) -> None:
+    """Sessions that wrap a private coroutine should be accepted."""
+
+    ensure_shared = http_client_module.ensure_shared_client_session
+
+    session = _WrapperSession()
 
     validated = ensure_shared(session, owner="TestHelper")
 
