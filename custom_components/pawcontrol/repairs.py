@@ -110,10 +110,10 @@ async def async_create_issue(
     def _serialise_issue_value(value: Any) -> str | int | float | None:
         """Serialise issue metadata to supported storage/placeholder values."""
 
-        if value is None or isinstance(value, (str, int, float)):
+        if value is None or isinstance(value, str | int | float):
             return value
 
-        if isinstance(value, (list, tuple, set)):
+        if isinstance(value, list | tuple | set):
             return ", ".join(str(item) for item in value)
 
         return str(value)
@@ -123,7 +123,9 @@ async def async_create_issue(
     }
 
     translation_placeholders = {
-        key: str(value) for key, value in serialised_issue_data.items() if value is not None
+        key: str(value)
+        for key, value in serialised_issue_data.items()
+        if value is not None
     }
 
     await ir.async_create_issue(
