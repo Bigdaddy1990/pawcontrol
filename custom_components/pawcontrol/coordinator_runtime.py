@@ -8,13 +8,30 @@ import time
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from statistics import fmean
 from typing import Any
 
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import CoordinatorUpdateFailed
-from homeassistant.util import dt as dt_util
+try:
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+    from homeassistant.helpers.update_coordinator import CoordinatorUpdateFailed
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
+        """Fallback error used when Home Assistant isn't available."""
+
+    class CoordinatorUpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
+        """Fallback error used when Home Assistant isn't available."""
+
+    class _DateTimeModule:
+        """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""
+
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+    dt_util = _DateTimeModule()
 
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError

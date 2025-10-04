@@ -5,11 +5,21 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
-from homeassistant.util import dt as dt_util
+
+try:
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class _DateTimeModule:
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+    dt_util = _DateTimeModule()
 
 from .const import (
     CONF_WEATHER_ENTITY,

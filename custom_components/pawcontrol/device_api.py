@@ -7,7 +7,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout
-from homeassistant.exceptions import ConfigEntryAuthFailed
+
+try:
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
+        """Fallback error used when Home Assistant isn't installed."""
+
+
 from yarl import URL
 
 from .exceptions import NetworkError, RateLimitError

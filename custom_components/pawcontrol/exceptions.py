@@ -14,12 +14,24 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Final
 
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.util import dt as dt_util
+try:
+    from homeassistant.exceptions import HomeAssistantError
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class HomeAssistantError(Exception):
+        """Fallback error used when Home Assistant isn't installed."""
+
+    class _DateTimeModule:
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+    dt_util = _DateTimeModule()
 
 from .types import GPSLocation
 

@@ -22,11 +22,25 @@ from __future__ import annotations
 from asyncio import Task
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.util import dt as dt_util
+try:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class ConfigEntry:  # type: ignore[override]
+        """Lightweight stand-in used during unit tests."""
+
+        entry_id: str
+
+    class _DateTimeModule:
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+    dt_util = _DateTimeModule()
 
 from .utils import is_number
 

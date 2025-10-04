@@ -13,10 +13,50 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from enum import Enum
+from types import SimpleNamespace
 from typing import Final
 
-from homeassistant.const import Platform
-from homeassistant.helpers import selector
+try:
+    from homeassistant.const import Platform
+    from homeassistant.helpers import selector
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class Platform(str, Enum):
+        """Minimal Platform enum used when Home Assistant isn't installed."""
+
+        SENSOR = "sensor"
+        BINARY_SENSOR = "binary_sensor"
+        BUTTON = "button"
+        SWITCH = "switch"
+        NUMBER = "number"
+        SELECT = "select"
+        TEXT = "text"
+        DEVICE_TRACKER = "device_tracker"
+        DATE = "date"
+        DATETIME = "datetime"
+
+    class NumberSelectorMode(str, Enum):
+        BOX = "box"
+
+    @dataclass(frozen=True)
+    class NumberSelectorConfig:
+        min: float
+        max: float
+        step: float
+        mode: NumberSelectorMode
+        unit_of_measurement: str | None = None
+
+    class NumberSelector:
+        def __init__(self, config: NumberSelectorConfig) -> None:
+            self.config = config
+
+    selector = SimpleNamespace(
+        NumberSelector=NumberSelector,
+        NumberSelectorConfig=NumberSelectorConfig,
+        NumberSelectorMode=NumberSelectorMode,
+    )
 
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final[int] = 1

@@ -223,21 +223,20 @@ def test_circuit_breaker_half_open_cleanup() -> None:
     asyncio.run(scenario())
 
 
-def test_retry_with_backoff_success_and_failure(
-    fast_sleep: list[float], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_retry_with_backoff_success_and_failure(fast_sleep: list[float]) -> None:
     """Retry helper handles successes, jitter and exhausted attempts."""
 
     async def scenario() -> None:
-        # Deterministic jitter
-        monkeypatch.setattr("random.random", lambda: 0.5)
-
         # Succeeds on second attempt
         flakey = AsyncMock(side_effect=[ValueError("fail"), "good"])
         result = await retry_with_backoff(
             flakey,
             config=RetryConfig(
-                max_attempts=3, initial_delay=0.1, exponential_base=2.0, jitter=True
+                max_attempts=3,
+                initial_delay=0.1,
+                exponential_base=2.0,
+                jitter=True,
+                random_source=lambda: 0.5,
             ),
         )
         assert result == "good"
