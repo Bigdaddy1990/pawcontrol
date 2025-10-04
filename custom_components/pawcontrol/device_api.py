@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from aiohttp import ClientResponse, ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
+from aiohttp.client_exceptions import ContentTypeError
 
 try:
     from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -116,8 +118,10 @@ class PawControlDeviceClient:
 
         try:
             payload = await response.json()
-        except Exception as err:  # pragma: no cover - defensive
-            raise NetworkError(f"Invalid JSON response from device: {err}") from err
+        except (ContentTypeError, ValueError) as err:  # pragma: no cover - defensive
+            raise NetworkError(
+                "Device API returned a non-JSON response. Check the configured endpoint."
+            ) from err
         return payload
 
     async def async_get_feeding_payload(self, dog_id: str) -> Mapping[str, Any]:
@@ -159,8 +163,12 @@ class PawControlDeviceClient:
                 timeout=self._timeout,
                 headers=headers,
             )
-        except Exception as err:  # pragma: no cover - transport errors
-            raise NetworkError(f"Error talking to device API: {err}") from err
+        except asyncio.TimeoutError as err:  # pragma: no cover - transport timeout
+            raise NetworkError("Timed out while contacting the Paw Control device API") from err
+        except ClientError as err:  # pragma: no cover - transport errors
+            raise NetworkError(f"Client error talking to device API: {err}") from err
+        except OSError as err:  # pragma: no cover - local network failures
+            raise NetworkError(f"Network error talking to device API: {err}") from err
 
         if response.status == 401:
             raise ConfigEntryAuthFailed("Authentication with Paw Control device failed")
