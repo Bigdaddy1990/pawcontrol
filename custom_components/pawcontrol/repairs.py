@@ -14,7 +14,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
@@ -1040,13 +1040,17 @@ class PawControlRepairsFlow(RepairsFlow):
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
 
-@callback
-def async_create_fix_flow(
+async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
     data: dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
-    """Create a fix flow for a Paw Control repair issue.
+    """Create a repair flow compatible with the Repairs integration.
+
+    Home Assistant loads `repairs.py` integration platforms via
+    :func:`homeassistant.helpers.integration_platform.async_process_integration_platforms`
+    and expects them to expose an ``async_create_fix_flow`` coroutine that
+    returns a :class:`~homeassistant.components.repairs.RepairsFlow` instance.
 
     Args:
         hass: Home Assistant instance
