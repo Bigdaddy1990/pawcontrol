@@ -31,6 +31,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry, PawControlRuntimeData
 
@@ -56,6 +57,8 @@ REDACTED_KEYS = {
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
 }
+
+_REDACTED_KEY_PATTERNS = compile_redaction_patterns(REDACTED_KEYS)
 
 
 async def async_get_config_entry_diagnostics(
@@ -605,59 +608,6 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _redact_sensitive_data(data: Any) -> Any:
-    """Recursively redact sensitive data from diagnostic information.
+    """Recursively redact sensitive data from diagnostic information."""
 
-    Args:
-        data: Data to redact
-
-    Returns:
-        Data with sensitive information redacted
-    """
-    if isinstance(data, dict):
-        redacted = {}
-        for key, value in data.items():
-            # Check if key contains sensitive information
-            key_lower = key.lower()
-            is_sensitive = any(sensitive in key_lower for sensitive in REDACTED_KEYS)
-
-            if is_sensitive:
-                redacted[key] = "**REDACTED**"
-            else:
-                redacted[key] = _redact_sensitive_data(value)
-        return redacted
-
-    elif isinstance(data, list):
-        return [_redact_sensitive_data(item) for item in data]
-
-    elif isinstance(data, str):
-        # Check for patterns that look like sensitive data
-        if _looks_like_sensitive_string(data):
-            return "**REDACTED**"
-        return data
-
-    else:
-        return data
-
-
-def _looks_like_sensitive_string(value: str) -> bool:
-    """Check if a string looks like sensitive data.
-
-    Args:
-        value: String to check
-
-    Returns:
-        True if string appears to contain sensitive data
-    """
-    # Check for common sensitive patterns
-    sensitive_patterns = [
-        # UUID
-        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
-        r"\b[A-Za-z0-9]{20,}\b",  # Long alphanumeric strings (tokens)
-        r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",  # IP addresses
-        # Email addresses
-        r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
-    ]
-
-    import re
-
-    return any(re.search(pattern, value) for pattern in sensitive_patterns)
+    return redact_sensitive_data(data, patterns=_REDACTED_KEY_PATTERNS)
