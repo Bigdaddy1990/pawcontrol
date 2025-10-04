@@ -51,9 +51,13 @@ def summarize_entity_budgets(snapshots: Iterable[BudgetSnapshot]) -> dict[str, A
     total_capacity = sum(snapshot.capacity for snapshot in snapshot_list)
     total_allocated = sum(snapshot.total_allocated for snapshot in snapshot_list)
     total_remaining = sum(snapshot.remaining for snapshot in snapshot_list)
-    denied_requests = sum(len(tuple(snapshot.denied_requests)) for snapshot in snapshot_list)
+    denied_requests = sum(
+        len(tuple(snapshot.denied_requests)) for snapshot in snapshot_list
+    )
     average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
-    peak_utilisation = max((snapshot.saturation for snapshot in snapshot_list), default=0.0)
+    peak_utilisation = max(
+        (snapshot.saturation for snapshot in snapshot_list), default=0.0
+    )
 
     return {
         "active_dogs": len(snapshot_list),

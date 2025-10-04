@@ -326,6 +326,8 @@ def test_normalise_webhook_status_defaults_and_errors() -> None:
 
     iterable_status = normalise_webhook_status(IterableManager())
     assert iterable_status["insecure_configs"] == ("dog-b", "dog-c")
+
+
 def test_summarize_entity_budgets_empty_input() -> None:
     """Summary helper should handle empty iterables gracefully."""
 
@@ -340,4 +342,3 @@ def test_summarize_entity_budgets_empty_input() -> None:
         "peak_utilization": 0.0,
         "denied_requests": 0,
     }
-
