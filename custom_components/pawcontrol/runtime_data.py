@@ -51,7 +51,9 @@ def _coerce_runtime_data(
     return None, False
 
 
-def _cleanup_domain_store(hass: HomeAssistant, store: DomainRuntimeStore | None) -> None:
+def _cleanup_domain_store(
+    hass: HomeAssistant, store: DomainRuntimeStore | None
+) -> None:
     """Remove the PawControl domain store when it no longer holds entries."""
 
     if store is not None and not store:
