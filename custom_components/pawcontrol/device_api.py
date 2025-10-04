@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -163,8 +162,10 @@ class PawControlDeviceClient:
                 timeout=self._timeout,
                 headers=headers,
             )
-        except asyncio.TimeoutError as err:  # pragma: no cover - transport timeout
-            raise NetworkError("Timed out while contacting the Paw Control device API") from err
+        except TimeoutError as err:  # pragma: no cover - transport timeout
+            raise NetworkError(
+                "Timed out while contacting the Paw Control device API"
+            ) from err
         except ClientError as err:  # pragma: no cover - transport errors
             raise NetworkError(f"Client error talking to device API: {err}") from err
         except OSError as err:  # pragma: no cover - local network failures
