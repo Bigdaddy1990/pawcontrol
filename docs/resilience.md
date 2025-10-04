@@ -372,9 +372,10 @@ data:
 ```python
 # In custom component or script
 from homeassistant.helpers import config_entry
+from custom_components.pawcontrol.runtime_data import get_runtime_data
 
 entry = config_entry.async_entries(hass, "pawcontrol")[0]
-runtime_data = entry.runtime_data
+runtime_data = get_runtime_data(hass, entry)
 
 # Coordinator stats
 coord_stats = runtime_data.coordinator.get_statistics()

@@ -1,0 +1,21 @@
+# PawControl Platinum Traceability Matrix
+
+This matrix links the Platinum quality scale rules and Copilot guardrails to the
+source artifacts that demonstrate compliance. Each entry references the
+implementation as well as supporting documentation or tests so reviewers can
+traverse from requirement to evidence without trawling the repository.
+
+| Guardrail / Rule | Implementation Highlights | Evidence |
+| --- | --- | --- |
+| Runtime data lifecycle | Config entries persist runtime objects with `store_runtime_data`/`get_runtime_data`, keeping the legacy `hass.data` layout compatible with HA 2025.9+. | [`runtime_data.py`](../../custom_components/pawcontrol/runtime_data.py#L13-L58), [`__init__.py`](../../custom_components/pawcontrol/__init__.py#L696-L788) |
+| Coordinator setup contract | `async_setup_entry` awaits the public `async_prepare_entry()` hook with a timeout guard, avoiding private APIs. | [`__init__.py`](../../custom_components/pawcontrol/__init__.py#L360-L407), [`coordinator.py`](../../custom_components/pawcontrol/coordinator.py#L248-L312), [`tests/components/pawcontrol/test_init.py`](../../tests/components/pawcontrol/test_init.py#L120-L210) |
+| Async dependency posture | GPX exports rely on an inline serializer running on the event loop; the manifest and top-level requirements contain only async-friendly packages. | [`walk_manager.py`](../../custom_components/pawcontrol/walk_manager.py#L1388-L1558), [`manifest.json`](../../custom_components/pawcontrol/manifest.json#L1-L60), [`requirements.txt`](../../requirements.txt#L1-L3) |
+| Shared HTTP session guardrail | All HTTP helpers pass through `ensure_shared_client_session`; tooling and tests enforce the shared-session contract. | [`http_client.py`](../../custom_components/pawcontrol/http_client.py#L1-L210), [`scripts/enforce_shared_session_guard.py`](../../scripts/enforce_shared_session_guard.py#L1-L188), [`tests/tooling/test_enforce_shared_session_guard.py`](../../tests/tooling/test_enforce_shared_session_guard.py#L1-L110) |
+| Config flow + reauth | Multi-step config, discovery, options, and reauth flows guide the user through setup while validating credentials. | [`config_flow.py`](../../custom_components/pawcontrol/config_flow.py#L1-L690), [`config_flow_modules.py`](../../custom_components/pawcontrol/config_flow_modules.py#L1-L260), [`quality_scale.yaml`](../../custom_components/pawcontrol/quality_scale.yaml#L1-L80) |
+| Diagnostics & repairs | Diagnostics redact sensitive fields and repairs expose guided fixes; evidence is captured in the Platinum checklist. | [`diagnostics.py`](../../custom_components/pawcontrol/diagnostics.py#L34-L460), [`repairs.py`](../../custom_components/pawcontrol/repairs.py#L1-L320), [`QUALITY_CHECKLIST.md`](../QUALITY_CHECKLIST.md#L1-L40) |
+| Performance & benchmarking | Coordinator, data manager, daily reset, and analytics collector metrics feed the performance appendix for audit-ready timings. | [`coordinator.py`](../../custom_components/pawcontrol/coordinator.py#L399-L411), [`data_manager.py`](../../custom_components/pawcontrol/data_manager.py#L922-L959), [`services.py`](../../custom_components/pawcontrol/services.py#L2827-L2884), [`coordinator_tasks.py`](../../custom_components/pawcontrol/coordinator_tasks.py#L1-L160), [`performance_samples.md`](../performance_samples.md#L1-L40), [`generated/perf_samples/latest.json`](../../generated/perf_samples/latest.json) |
+| Quality documentation | The Platinum checklist and supporting docs stay in sync with the implementation, surfacing exemptions and evidence inline. | [`quality_scale.yaml`](../../custom_components/pawcontrol/quality_scale.yaml#L1-L80), [`QUALITY_CHECKLIST.md`](../QUALITY_CHECKLIST.md#L1-L60), [`compliance_gap_analysis.md`](../compliance_gap_analysis.md#L1-L110) |
+
+Keep this table updated whenever new guardrails are introduced or existing ones
+receive substantial rework. Linking to tests and documentation where possible
+ensures Platinum reviewers have a single source of truth.

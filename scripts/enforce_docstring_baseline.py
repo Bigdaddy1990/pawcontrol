@@ -7,6 +7,7 @@ import contextlib
 import io
 import json
 import os
+import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -37,11 +38,23 @@ def _execute_ruff(repo_root: Path, args: Sequence[str]) -> tuple[int, str, str]:
     previous_cwd = Path.cwd()
     try:
         os.chdir(repo_root)
-        with (
-            contextlib.redirect_stdout(stdout_buffer),
-            contextlib.redirect_stderr(stderr_buffer),
-        ):
-            exit_code = ruff_main.main(list(args))
+        if hasattr(ruff_main, "main"):
+            with (
+                contextlib.redirect_stdout(stdout_buffer),
+                contextlib.redirect_stderr(stderr_buffer),
+            ):
+                exit_code = ruff_main.main(list(args))
+        else:
+            ruff_bin = Path(ruff_main.find_ruff_bin())
+            completed = subprocess.run(
+                [str(ruff_bin), *args],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            exit_code = completed.returncode
+            stdout_buffer.write(completed.stdout)
+            stderr_buffer.write(completed.stderr)
     finally:
         os.chdir(previous_cwd)
 

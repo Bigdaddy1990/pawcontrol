@@ -256,7 +256,9 @@ class PawControlCoordinator(
         """Detach runtime managers during teardown or reload."""
         unbind_runtime_managers(self, self._modules)
 
-    async def _async_setup(self) -> None:
+    async def async_prepare_entry(self) -> None:
+        """Public hook to initialize coordinator state for a config entry."""
+
         if self._setup_complete:
             return
 
@@ -266,11 +268,19 @@ class PawControlCoordinator(
         self._modules.clear_caches()
         self._setup_complete = True
 
+    async def _async_setup(self) -> None:
+        """Deprecated private alias retained for backward compatibility."""
+
+        _LOGGER.warning(
+            "PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead."
+        )
+        await self.async_prepare_entry()
+
     async def _async_update_data(self) -> dict[str, Any]:
         if len(self.registry) == 0:
             return {}
 
-        await self._async_setup()
+        await self.async_prepare_entry()
         dog_ids = self.registry.ids()
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")

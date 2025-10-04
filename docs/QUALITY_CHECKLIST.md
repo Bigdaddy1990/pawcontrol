@@ -25,7 +25,7 @@ for transparency.
 - [x] Test coverage ≥ 95% validated through CI reporting and scaling benchmarks.【F:.github/workflows/ci.yml†L1-L120】【F:.github/workflows/coverage.yml†L1-L60】【F:pyproject.toml†L46-L66】
 
 ## Notes
-- Discovery remains optional for the currently supported hardware and is tracked as an exemption.
-- Reauthentication is not implemented because external services do not require credentials yet.
+- Discovery remains optional for the currently supported hardware and is tracked as an exemption in the quality scale configuration.
+- Reauthentication is handled via `async_step_reauth` and `async_step_reauth_confirm`, allowing credential refresh without removing the entry.
 
 - [x] **GitHub Topics** gesetzt (z. B. `home-assistant`, `hacs`, `integration`) – verbessert Auffindbarkeit im HACS-Store.

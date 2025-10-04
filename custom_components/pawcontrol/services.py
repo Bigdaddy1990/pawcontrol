@@ -62,6 +62,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .performance import performance_tracker
 from .runtime_data import get_runtime_data
 from .types import DogConfigData
 from .walk_manager import WeatherCondition
@@ -2845,24 +2846,31 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
     walk_manager = getattr(runtime_data, "walk_manager", None)
     notification_manager = getattr(runtime_data, "notification_manager", None)
 
-    try:
-        if walk_manager and hasattr(walk_manager, "async_cleanup"):
-            await walk_manager.async_cleanup()
+    with performance_tracker(
+        runtime_data,
+        "daily_reset_metrics",
+        max_samples=20,
+    ) as perf:
+        try:
+            if walk_manager and hasattr(walk_manager, "async_cleanup"):
+                await walk_manager.async_cleanup()
 
-        if notification_manager and hasattr(
-            notification_manager, "async_cleanup_expired_notifications"
-        ):
-            await notification_manager.async_cleanup_expired_notifications()
+            if notification_manager and hasattr(
+                notification_manager, "async_cleanup_expired_notifications"
+            ):
+                await notification_manager.async_cleanup_expired_notifications()
 
-        await coordinator.async_request_refresh()
+            await coordinator.async_request_refresh()
 
-        runtime_data.performance_stats.setdefault("daily_resets", 0)
-        runtime_data.performance_stats["daily_resets"] = (
-            runtime_data.performance_stats.get("daily_resets", 0) + 1
-        )
-        _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
-    except Exception as err:  # pragma: no cover - defensive logging
-        _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
+            runtime_data.performance_stats.setdefault("daily_resets", 0)
+            runtime_data.performance_stats["daily_resets"] = (
+                runtime_data.performance_stats.get("daily_resets", 0) + 1
+            )
+            _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
+        except Exception as err:  # pragma: no cover - defensive logging
+            perf.mark_failure(err)
+            _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
+            raise
 
 
 async def async_setup_daily_reset_scheduler(

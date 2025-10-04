@@ -128,7 +128,7 @@ class TestPawControlIntegrationSetup:
             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
         ):
             # Configure mocks
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -146,7 +146,7 @@ class TestPawControlIntegrationSetup:
             assert runtime_data is not None
             assert isinstance(runtime_data, PawControlRuntimeData)
 
-            mock_coordinator.return_value._async_setup.assert_awaited_once()
+            mock_coordinator.return_value.async_prepare_entry.assert_awaited_once()
             mock_coordinator.return_value.async_config_entry_first_refresh.assert_awaited_once()
 
             # Verify platform forwarding was initiated
@@ -170,7 +170,7 @@ class TestPawControlIntegrationSetup:
             "custom_components.pawcontrol.PawControlCoordinator"
         ) as mock_coordinator:
             # Make coordinator first refresh fail
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock(
                 side_effect=ConfigEntryNotReady("Coordinator failed to initialize")
             )
@@ -200,7 +200,7 @@ class TestPawControlIntegrationSetup:
                 "custom_components.pawcontrol.PawControlDataManager"
             ) as mock_data_manager,
         ):
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_data_manager.return_value.async_initialize = AsyncMock(
                 side_effect=Exception("Data manager initialization failed")
@@ -240,7 +240,7 @@ class TestPawControlIntegrationSetup:
             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
         ):
             # Configure mocks for success case
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -425,7 +425,7 @@ class TestPawControlIntegrationSetup:
             patch("homeassistant.helpers.service.async_register_admin_service"),
         ):
             # Configure mocks
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -526,7 +526,7 @@ class TestPawControlPlatformForwarding:
             ) as mock_forward,
         ):
             # Configure mocks
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -591,7 +591,7 @@ class TestPawControlPlatformForwarding:
             ),
         ):
             # Configure mocks
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
             mock_notification_manager.return_value.async_initialize = AsyncMock()
@@ -727,7 +727,7 @@ class TestPawControlPerformanceIntegration:
             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
         ):
             # Configure mocks for fast execution
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -792,7 +792,7 @@ class TestPawControlPerformanceIntegration:
             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
         ):
             # Configure mocks
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
@@ -883,7 +883,7 @@ class TestPawControlErrorHandling:
             patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
         ):
             # Add delays to simulate concurrent access
-            mock_coordinator.return_value._async_setup = AsyncMock()
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
             mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()

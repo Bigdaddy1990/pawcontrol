@@ -20,9 +20,9 @@
 - ✅ discovery.py vollständig implementiert
 
 ### 3. **Runtime Data Migration abgeschlossen**
-- ✅ hass.data Verwendung komplett entfernt
-- ✅ Alle Komponenten nutzen entry.runtime_data
-- ✅ Moderne API-Patterns implementiert
+- ✅ Direkte Zugriffe auf `hass.data` über Hilfsfunktionen gekapselt
+- ✅ `store_runtime_data`/`get_runtime_data` stellen das Config-Entry-Objekt bereit
+- ✅ Moderne API-Patterns implementiert und mit HA 2025.9 kompatibel
 
 ---
 
