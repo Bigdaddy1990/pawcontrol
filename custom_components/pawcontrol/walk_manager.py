@@ -16,6 +16,7 @@ import json
 import logging
 import math
 from collections import deque
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
@@ -184,6 +185,51 @@ class GPSCache:
         }
 
 
+@dataclass(slots=True)
+class WalkSession:
+    """Representation of an active walk session."""
+
+    walk_id: str
+    dog_id: str
+    walk_type: str
+    start_time: datetime
+    walker: str | None = None
+    leash_used: bool = True
+    weather: WeatherCondition | None = None
+    track_route: bool = True
+    safety_alerts: bool = True
+    start_location: dict[str, Any] | None = None
+    path: list[dict[str, Any]] = field(default_factory=list)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Convert the session to a mutable dictionary."""
+
+        return {
+            "walk_id": self.walk_id,
+            "dog_id": self.dog_id,
+            "walk_type": self.walk_type,
+            "start_time": self.start_time.isoformat(),
+            "walker": self.walker,
+            "leash_used": self.leash_used,
+            "weather": self.weather.value if self.weather else None,
+            "track_route": self.track_route,
+            "safety_alerts": self.safety_alerts,
+            "start_location": self.start_location,
+            "end_time": None,
+            "duration": None,
+            "distance": 0.0,
+            "end_location": None,
+            "status": "in_progress",
+            "average_speed": None,
+            "max_speed": None,
+            "calories_burned": None,
+            "elevation_gain": 0.0,
+            "path": list(self.path),
+            "notes": None,
+            "dog_weight_kg": None,
+        }
+
+
 class WalkManager:
     """Optimized walk and GPS management with advanced caching and performance monitoring.
 
@@ -193,6 +239,7 @@ class WalkManager:
 
     def __init__(self) -> None:
         """Initialize optimized walk manager."""
+        self._dogs: dict[str, dict[str, Any]] = {}
         self._walk_data: dict[str, dict[str, Any]] = {}
         self._gps_data: dict[str, dict[str, Any]] = {}
         self._current_walks: dict[str, dict[str, Any]] = {}
@@ -229,6 +276,15 @@ class WalkManager:
         self._batch_analysis_task: asyncio.Task | None = None
 
         _LOGGER.debug("WalkManager initialized with optimizations")
+
+    def _update_dog_container(self, dog_id: str) -> None:
+        """Ensure compatibility structure for tests and legacy callers."""
+
+        container = self._dogs.setdefault(dog_id, {})
+        container.setdefault("active_walk", None)
+        container["history"] = self._walk_history.get(dog_id, []).copy()
+        container["stats"] = self._walk_data.get(dog_id, {}).copy()
+        container["gps"] = self._gps_data.get(dog_id, {}).copy()
 
     async def async_initialize(self, dog_ids: list[str]) -> None:
         """Initialize walk manager for specified dogs with batch optimization.
@@ -274,6 +330,8 @@ class WalkManager:
 
                 self._walk_history[dog_id] = []
                 self._location_analysis_queue[dog_id] = []
+
+                self._update_dog_container(dog_id)
 
             # Start batch analysis task
             if self._batch_analysis_task is None:
@@ -480,8 +538,10 @@ class WalkManager:
                 return None
 
             if dog_id in self._current_walks:
-                _LOGGER.warning("Walk already in progress for %s", dog_id)
-                return None
+                _LOGGER.info(
+                    "Walk already in progress for %s - ending existing session", dog_id
+                )
+                await self._finalize_walk_locked(dog_id)
 
             now = dt_util.now()
             walk_id = f"{dog_id}_{int(now.timestamp())}"
@@ -520,37 +580,31 @@ class WalkManager:
                 }
 
             # OPTIMIZE: Pre-allocate path with capacity limit
-            walk_data = {
-                "walk_id": walk_id,
-                "dog_id": dog_id,
-                "start_time": now.isoformat(),
-                "end_time": None,
-                "duration": None,
-                "distance": 0.0,
-                "start_location": start_location,
-                "end_location": None,
-                "path": [],  # Will be limited to PATH_POINT_LIMIT
-                "walk_type": walk_type,
-                "status": "in_progress",
-                "average_speed": None,
-                "max_speed": None,
-                "calories_burned": None,
-                "elevation_gain": 0.0,  # OPTIMIZE: Added elevation tracking
-                "path_optimization_applied": False,  # Track if path was optimized
-                "walker": walker,
-                "leash_used": leash_flag,
-                "weather": weather_condition.value if weather_condition else None,
-                "notes": None,
-                "dog_weight_kg": None,
-                "track_route": track_route,
-                "safety_alerts": safety_alerts,
-            }
+            session = WalkSession(
+                walk_id=walk_id,
+                dog_id=dog_id,
+                walk_type=walk_type,
+                start_time=now,
+                walker=walker,
+                leash_used=leash_flag,
+                weather=weather_condition,
+                track_route=track_route,
+                safety_alerts=safety_alerts,
+                start_location=start_location,
+            )
+
+            walk_data = session.as_dict()
+            walk_data["path_optimization_applied"] = False
+            walk_data["track_route"] = track_route
+            walk_data["safety_alerts"] = safety_alerts
 
             self._current_walks[dog_id] = walk_data
 
             # Update walk status
             self._walk_data[dog_id]["walk_in_progress"] = True
             self._walk_data[dog_id]["current_walk"] = walk_data
+            self._update_dog_container(dog_id)
+            self._dogs[dog_id]["active_walk"] = walk_data
 
             _LOGGER.info(
                 "Started %s walk for %s (ID: %s, walker: %s, weather: %s, leash_used: %s)",
@@ -562,6 +616,118 @@ class WalkManager:
                 "yes" if leash_flag else "no",
             )
             return walk_id
+
+    async def _finalize_walk_locked(
+        self,
+        dog_id: str,
+        *,
+        notes: str | None = None,
+        dog_weight_kg: float | None = None,
+        save_route: bool = True,
+    ) -> dict[str, Any] | None:
+        """Finalize an active walk while the data lock is held."""
+
+        if dog_id not in self._current_walks:
+            _LOGGER.warning("No walk in progress for %s", dog_id)
+            return None
+
+        now = dt_util.now()
+        walk_data = self._current_walks[dog_id]
+
+        if notes is not None:
+            walk_data["notes"] = notes
+        if dog_weight_kg is not None:
+            walk_data["dog_weight_kg"] = dog_weight_kg
+
+        walk_data["save_route"] = save_route
+
+        # OPTIMIZE: Get end location from cache if available
+        end_location = None
+        cached_location = self._gps_cache.get_location(dog_id)
+        if cached_location is not None:
+            end_location = {
+                "latitude": cached_location[0],
+                "longitude": cached_location[1],
+                "accuracy": self._gps_data[dog_id].get("accuracy"),
+                "timestamp": cached_location[2].isoformat(),
+            }
+        elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:
+            end_location = {
+                "latitude": self._gps_data[dog_id]["latitude"],
+                "longitude": self._gps_data[dog_id]["longitude"],
+                "accuracy": self._gps_data[dog_id]["accuracy"],
+                "timestamp": now.isoformat(),
+            }
+
+        # Calculate walk statistics
+        start_time_raw = walk_data.get("start_time")
+        start_time = (
+            start_time_raw
+            if isinstance(start_time_raw, datetime)
+            else dt_util.parse_datetime(start_time_raw)
+        )
+        if start_time is None:
+            start_time = now
+        duration = (now - start_time).total_seconds()
+
+        # Update walk data
+        walk_data.update(
+            {
+                "end_time": now.isoformat(),
+                "duration": duration,
+                "end_location": end_location,
+                "status": "completed",
+            }
+        )
+
+        # OPTIMIZE: Calculate additional statistics with caching
+        if walk_data.get("path"):
+            # Optimize path if too many points
+            if len(walk_data["path"]) > PATH_POINT_LIMIT:
+                walk_data["path"] = self._optimize_path(walk_data["path"])
+                walk_data["path_optimization_applied"] = True
+
+            walk_data["distance"] = await self._calculate_total_distance_optimized(
+                walk_data["path"]
+            )
+            walk_data["average_speed"] = self._calculate_average_speed(walk_data)
+            walk_data["max_speed"] = self._calculate_max_speed(walk_data["path"])
+            walk_data["elevation_gain"] = self._calculate_elevation_gain(
+                walk_data["path"]
+            )
+            walk_data["calories_burned"] = self._estimate_calories_burned(
+                dog_id, walk_data
+            )
+
+        # Update daily statistics with batch optimization
+        await self._update_daily_walk_stats_optimized(dog_id, walk_data)
+
+        # OPTIMIZE: Store in history with size limit
+        self._walk_history[dog_id].append(walk_data.copy())
+
+        # Keep only last 100 walks to prevent memory leaks
+        if len(self._walk_history[dog_id]) > 100:
+            self._walk_history[dog_id] = self._walk_history[dog_id][-100:]
+            self._performance_metrics["memory_cleanups"] += 1
+
+        # Clear current walk
+        del self._current_walks[dog_id]
+        self._walk_data[dog_id]["walk_in_progress"] = False
+        self._walk_data[dog_id]["current_walk"] = None
+        self._dogs[dog_id]["active_walk"] = None
+        self._dogs[dog_id]["history"] = self._walk_history[dog_id]
+
+        # Invalidate statistics cache
+        self._invalidate_statistics_cache(dog_id)
+
+        _LOGGER.info(
+            "Completed walk for %s: %.1fm in %.0fs (path points: %d)",
+            dog_id,
+            walk_data["distance"],
+            duration,
+            len(walk_data.get("path", [])),
+        )
+        return walk_data
 
     async def async_end_walk(
         self,
@@ -581,99 +747,14 @@ class WalkManager:
         Returns:
             Completed walk data if successful, None otherwise
         """
+
         async with self._data_lock:
-            if dog_id not in self._current_walks:
-                _LOGGER.warning("No walk in progress for %s", dog_id)
-                return None
-
-            now = dt_util.now()
-            walk_data = self._current_walks[dog_id]
-
-            if notes is not None:
-                walk_data["notes"] = notes
-            if dog_weight_kg is not None:
-                walk_data["dog_weight_kg"] = dog_weight_kg
-
-            walk_data["save_route"] = save_route
-
-            # OPTIMIZE: Get end location from cache if available
-            end_location = None
-            cached_location = self._gps_cache.get_location(dog_id)
-            if cached_location is not None:
-                end_location = {
-                    "latitude": cached_location[0],
-                    "longitude": cached_location[1],
-                    "accuracy": self._gps_data[dog_id].get("accuracy"),
-                    "timestamp": cached_location[2].isoformat(),
-                }
-            elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:
-                end_location = {
-                    "latitude": self._gps_data[dog_id]["latitude"],
-                    "longitude": self._gps_data[dog_id]["longitude"],
-                    "accuracy": self._gps_data[dog_id]["accuracy"],
-                    "timestamp": now.isoformat(),
-                }
-
-            # Calculate walk statistics
-            start_time = dt_util.parse_datetime(walk_data["start_time"])
-            duration = (now - start_time).total_seconds()
-
-            # Update walk data
-            walk_data.update(
-                {
-                    "end_time": now.isoformat(),
-                    "duration": duration,
-                    "end_location": end_location,
-                    "status": "completed",
-                }
-            )
-
-            # OPTIMIZE: Calculate additional statistics with caching
-            if walk_data["path"]:
-                # Optimize path if too many points
-                if len(walk_data["path"]) > PATH_POINT_LIMIT:
-                    walk_data["path"] = self._optimize_path(walk_data["path"])
-                    walk_data["path_optimization_applied"] = True
-
-                walk_data["distance"] = await self._calculate_total_distance_optimized(
-                    walk_data["path"]
-                )
-                walk_data["average_speed"] = self._calculate_average_speed(walk_data)
-                walk_data["max_speed"] = self._calculate_max_speed(walk_data["path"])
-                walk_data["elevation_gain"] = self._calculate_elevation_gain(
-                    walk_data["path"]
-                )
-                walk_data["calories_burned"] = self._estimate_calories_burned(
-                    dog_id, walk_data
-                )
-
-            # Update daily statistics with batch optimization
-            await self._update_daily_walk_stats_optimized(dog_id, walk_data)
-
-            # OPTIMIZE: Store in history with size limit
-            self._walk_history[dog_id].append(walk_data.copy())
-
-            # Keep only last 100 walks to prevent memory leaks
-            if len(self._walk_history[dog_id]) > 100:
-                self._walk_history[dog_id] = self._walk_history[dog_id][-100:]
-                self._performance_metrics["memory_cleanups"] += 1
-
-            # Clear current walk
-            del self._current_walks[dog_id]
-            self._walk_data[dog_id]["walk_in_progress"] = False
-            self._walk_data[dog_id]["current_walk"] = None
-
-            # Invalidate statistics cache
-            self._invalidate_statistics_cache(dog_id)
-
-            _LOGGER.info(
-                "Completed walk for %s: %.1fm in %.0fs (path points: %d)",
+            return await self._finalize_walk_locked(
                 dog_id,
-                walk_data["distance"],
-                duration,
-                len(walk_data.get("path", [])),
+                notes=notes,
+                dog_weight_kg=dog_weight_kg,
+                save_route=save_route,
             )
-            return walk_data
 
     def _optimize_path(self, path: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Optimize walk path by removing redundant points.
@@ -817,7 +898,20 @@ class WalkManager:
         self._walk_data[dog_id]["last_walk_distance"] = walk_data["distance"]
 
         # OPTIMIZE: Batch calculate averages from recent walks
-        recent_walks = await self.async_get_walk_history(dog_id, 7)
+        recent_walks = self.get_walk_history(dog_id)
+        recent_walks.insert(0, walk_data.copy())
+        cutoff = dt_util.now() - timedelta(days=7)
+
+        def _parse_start(value: Any) -> datetime | None:
+            return (
+                value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            )
+
+        recent_walks = [
+            walk
+            for walk in recent_walks
+            if ((parsed := _parse_start(walk.get("start_time"))) and parsed >= cutoff)
+        ]
         if recent_walks:
             durations = [
                 w.get("duration", 0) for w in recent_walks if w.get("duration")
@@ -836,7 +930,7 @@ class WalkManager:
                 )
 
         # OPTIMIZE: Update weekly stats in single pass
-        week_walks = await self.async_get_walk_history(dog_id, 7)
+        week_walks = recent_walks
         self._walk_data[dog_id]["weekly_walks"] = len(week_walks)
         self._walk_data[dog_id]["weekly_distance"] = sum(
             w.get("distance", 0) for w in week_walks
@@ -861,7 +955,19 @@ class WalkManager:
         Returns:
             Current walk streak in days
         """
-        recent_walks = await self.async_get_walk_history(dog_id, 30)
+        recent_walks = self.get_walk_history(dog_id)
+
+        def _parse_start(value: Any) -> datetime | None:
+            return (
+                value if isinstance(value, datetime) else dt_util.parse_datetime(value)
+            )
+
+        cutoff = dt_util.now() - timedelta(days=30)
+        recent_walks = [
+            walk
+            for walk in recent_walks
+            if ((parsed := _parse_start(walk.get("start_time"))) and parsed >= cutoff)
+        ]
         if not recent_walks:
             return 0
 
@@ -869,7 +975,10 @@ class WalkManager:
         walks_by_date: dict[str, int] = {}
         for walk in recent_walks:
             try:
-                walk_date = dt_util.parse_datetime(walk["start_time"]).date()
+                walk_time = _parse_start(walk["start_time"])
+                if not walk_time:
+                    continue
+                walk_date = walk_time.date()
                 date_str = walk_date.isoformat()
                 walks_by_date[date_str] = walks_by_date.get(date_str, 0) + 1
             except (ValueError, TypeError):
@@ -1088,6 +1197,96 @@ class WalkManager:
 
             return sorted(recent_walks, key=lambda w: w["start_time"], reverse=True)
 
+    def get_walk_history(
+        self, dog_id: str, limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        """Return stored walk history synchronously for testing helpers."""
+
+        history = self._walk_history.get(dog_id, [])
+        if not history:
+            return []
+
+        history_slice = history[-limit:] if limit is not None else history[:]
+
+        return [walk.copy() for walk in reversed(history_slice)]
+
+    def get_last_walk_info(self, dog_id: str) -> dict[str, Any] | None:
+        """Return the most recent walk if available."""
+
+        history = self.get_walk_history(dog_id, limit=1)
+        return history[0] if history else None
+
+    def get_active_walk_info(self, dog_id: str) -> dict[str, Any] | None:
+        """Return details about the active walk."""
+
+        active_walk = self._dogs.get(dog_id, {}).get("active_walk")
+        if not active_walk:
+            return None
+
+        info = active_walk.copy()
+        start_time_raw = info.get("start_time")
+        start_time = (
+            start_time_raw
+            if isinstance(start_time_raw, datetime)
+            else dt_util.parse_datetime(start_time_raw)
+        )
+        if start_time:
+            elapsed = (dt_util.now() - start_time).total_seconds()
+            if elapsed >= 0:
+                info["elapsed_duration"] = elapsed
+
+        return info
+
+    def get_walk_data(self, dog_id: str) -> dict[str, Any]:
+        """Return a snapshot of walk data for a dog."""
+
+        if dog_id not in self._dogs:
+            return {}
+
+        container = self._dogs[dog_id]
+        active_walk = container.get("active_walk")
+
+        stats_snapshot = self._walk_data.get(dog_id, {}).copy()
+
+        return {
+            "active_walk": active_walk.copy()
+            if isinstance(active_walk, dict)
+            else active_walk,
+            "history": self.get_walk_history(dog_id),
+            "stats": stats_snapshot,
+            "statistics": stats_snapshot.copy(),
+            "gps": self._gps_data.get(dog_id, {}).copy(),
+        }
+
+    def get_daily_walk_stats(self, dog_id: str) -> dict[str, Any]:
+        """Return aggregated statistics for the current day."""
+
+        stats = self._walk_data.get(dog_id)
+        if not stats:
+            return {}
+
+        return {
+            "total_walks_today": stats.get("walks_today", 0),
+            "total_duration_today": stats.get("total_duration_today", 0),
+            "total_distance_today": stats.get("total_distance_today", 0.0),
+            "average_duration": stats.get("average_duration"),
+            "average_distance": stats.get("average_distance"),
+            "energy_level": stats.get("energy_level"),
+        }
+
+    def get_weekly_walk_stats(self, dog_id: str) -> dict[str, Any]:
+        """Return aggregated statistics for the current week."""
+
+        stats = self._walk_data.get(dog_id)
+        if not stats:
+            return {}
+
+        return {
+            "total_walks_this_week": stats.get("weekly_walks", 0),
+            "total_distance_this_week": stats.get("weekly_distance", 0.0),
+            "walk_streak": stats.get("walk_streak", 0),
+        }
+
     async def _update_location_analysis(
         self, dog_id: str, latitude: float, longitude: float
     ) -> None:
@@ -1181,6 +1380,7 @@ class WalkManager:
             self._walk_history.clear()
             self._location_analysis_queue.clear()
             self._statistics_cache.clear()
+            self._dogs.clear()
 
             # Clear caches
             self._gps_cache.clear()
