@@ -38,7 +38,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.utcnow()
+            return datetime.now(datetime.timezone.utc)
 
     dt_util = _DateTimeModule()
 
