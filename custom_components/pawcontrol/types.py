@@ -23,15 +23,16 @@ from asyncio import Task
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
+from typing import TYPE_CHECKING, Any, Final, Required, TypedDict, TypeVar
 
 try:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+    _RuntimeT = TypeVar("_RuntimeT")
 
-    class ConfigEntry:  # type: ignore[override]
-        """Lightweight stand-in used during unit tests."""
+    class ConfigEntry[RuntimeT]:  # type: ignore[override]
+        """Lightweight generic stand-in used during unit tests."""
 
         entry_id: str
 
@@ -432,9 +433,11 @@ class PawControlRuntimeData:
 type PawControlConfigEntry = ConfigEntry
 """Type alias for PawControl-specific config entries.
 
-Home Assistant removed ``ConfigEntry.runtime_data`` from the public API, so the
-integration standardizes on storing the runtime payload in ``hass.data``.  The
-alias keeps call sites expressive while remaining forward compatible with
+Home Assistant has deprecated direct use of ``ConfigEntry.runtime_data``.  This
+integration stores its runtime payload in ``hass.data`` and exposes helper
+functions (for example ``get_runtime_data``) that return the typed
+``PawControlRuntimeData`` instance.  The alias keeps call sites expressive while
+remaining faithful to the underlying data flow and forward compatible with
 future Home Assistant releases and their typing changes.
 """
 
