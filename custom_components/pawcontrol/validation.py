@@ -175,7 +175,7 @@ def _coerce_int(field: str, value: Any) -> int:
                     value,
                     "Must be a whole number",
                     f"Received fractional value: {float_value}",
-                )
+                ) from None
 
             return int(float_value)
 
