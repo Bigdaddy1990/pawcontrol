@@ -6,9 +6,9 @@ the mitigations in place to keep the Home Assistant event loop responsive.
 ## Third-party libraries with synchronous behaviour
 
 - **Async GPX builder** – the walk manager now renders GPX exports through a
-  dedicated XML serializer that escapes metadata inline, eliminating the
-  previous `defusedxml` dependency from the runtime manifest and top-level
-  requirements.【F:custom_components/pawcontrol/walk_manager.py†L1395-L1560】【F:custom_components/pawcontrol/manifest.json†L1-L60】【F:requirements.txt†L1-L3】
+  dedicated XML serializer that escapes metadata inline with Python's
+  standard-library helpers, eliminating the previous `defusedxml` dependency
+  from the runtime manifest and top-level requirements.【F:custom_components/pawcontrol/walk_manager.py†L1395-L1560】【F:custom_components/pawcontrol/manifest.json†L1-L60】【F:requirements.txt†L1-L3】
 - **Synchronous dependency cleanup** – unused libraries (`requests`,
   `urllib3`, `pyserial`, `cryptography`, `uv`, `aiodhcpwatcher`,
   `aiodiscover`, `aiousbwatcher`, `asyncio-mqtt`, `Jinja2`) have been pruned
