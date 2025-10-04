@@ -99,7 +99,7 @@ def _prepare_service_proxy(
 
 
 # Home Assistant platform configuration
-PARALLEL_UPDATES = 1
+PARALLEL_UPDATES = 0
 
 # OPTIMIZATION: Profile-based entity reduction
 PROFILE_BUTTON_LIMITS = {

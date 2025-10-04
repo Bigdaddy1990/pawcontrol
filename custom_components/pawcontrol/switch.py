@@ -51,10 +51,10 @@ BATCH_SIZE = 15  # Optimized for profile-filtered entities
 BATCH_DELAY = 0.003  # Reduced to 3ms for faster setup
 MAX_CONCURRENT_BATCHES = 8  # Balanced for profile optimization
 
-# Switches toggle features and therefore execute actions. Limit concurrent
-# operations so we comply with the ``parallel-updates`` rule while preventing
-# conflicting commands to the same device.
-PARALLEL_UPDATES = 1
+# Switches toggle features and therefore execute actions. The coordinator
+# prevents conflicting commands, so we can expose unlimited parallel entity
+# updates to Home Assistant.
+PARALLEL_UPDATES = 0
 
 
 class ProfileOptimizedSwitchFactory:

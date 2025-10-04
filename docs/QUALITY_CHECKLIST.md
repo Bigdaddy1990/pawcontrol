@@ -14,7 +14,7 @@ for transparency.
 
 ## Silver
 - [x] Services validated with rich error handling and typed schemas (`services.py`).
-- [x] `PARALLEL_UPDATES` tuned per platform with coordinator-backed scheduling.
+- [x] `PARALLEL_UPDATES = 0` on all coordinator-backed platforms to allow unlimited parallel refreshes.
 - [x] End-to-end style runtime simulations covered by scaling tests.
 
 ## Gold & Platinum
