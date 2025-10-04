@@ -19,6 +19,15 @@ def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
     return entry_or_id if isinstance(entry_or_id, str) else entry_or_id.entry_id
 
 
+def _coerce_entry(entry_or_id: PawControlConfigEntry | str) -> PawControlConfigEntry | None:
+    """Return the config entry if ``entry_or_id`` looks like one."""
+
+    entry_id = getattr(entry_or_id, "entry_id", None)
+    if isinstance(entry_id, str):
+        return cast(PawControlConfigEntry, entry_or_id)
+    return None
+
+
 def _get_domain_store(
     hass: HomeAssistant, *, create: bool
 ) -> DomainRuntimeStore | None:
@@ -54,11 +63,15 @@ def store_runtime_data(
     entry: PawControlConfigEntry,
     runtime_data: PawControlRuntimeData,
 ) -> None:
-    """Store runtime data in ``hass.data`` for the given config entry."""
+    """Store runtime data for a config entry."""
+
+    # Persist in hass.data for backwards compatibility with legacy helpers and
+    # attach to the config entry to leverage ``ConfigEntry.runtime_data``.
 
     store = _get_domain_store(hass, create=True)
     assert store is not None  # Satisfies the type checker
     store[entry.entry_id] = runtime_data
+    entry.runtime_data = runtime_data
 
 
 def get_runtime_data(
@@ -66,9 +79,15 @@ def get_runtime_data(
 ) -> PawControlRuntimeData | None:
     """Return the runtime data associated with a config entry."""
 
+    entry = _coerce_entry(entry_or_id)
+    if entry is not None:
+        entry_runtime = _coerce_runtime_data(getattr(entry, "runtime_data", None))
+        if entry_runtime is not None:
+            return entry_runtime
+
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
-    if not store:
+    if store is None:
         return None
 
     return _coerce_runtime_data(store.get(entry_id))
@@ -79,10 +98,19 @@ def pop_runtime_data(
 ) -> PawControlRuntimeData | None:
     """Remove and return runtime data for a config entry if present."""
 
+    entry = _coerce_entry(entry_or_id)
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
-    if not store:
-        return None
+    result: PawControlRuntimeData | None = None
 
-    value = store.pop(entry_id, None)
-    return _coerce_runtime_data(value)
+    if store is not None:
+        value = store.pop(entry_id, None)
+        result = _coerce_runtime_data(value)
+
+    if result is None and entry is not None:
+        result = _coerce_runtime_data(getattr(entry, "runtime_data", None))
+
+    if entry is not None:
+        entry.runtime_data = None
+
+    return result

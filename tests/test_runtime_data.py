@@ -125,6 +125,22 @@ def test_store_and_get_runtime_data_roundtrip(
 
     assert get_runtime_data(hass, entry) is runtime_data
     assert get_runtime_data(hass, entry.entry_id) is runtime_data
+    assert getattr(entry, "runtime_data", None) is runtime_data
+
+
+def test_get_runtime_data_prefers_entry_container(
+    runtime_data: PawControlRuntimeData,
+) -> None:
+    """Runtime data stored on the entry should be returned even without hass data."""
+
+    hass = SimpleNamespace(data={})
+    entry = _entry("entry-with-attr")
+
+    store_runtime_data(hass, entry, runtime_data)
+    # Simulate unexpected mutation of hass.data while retaining entry.runtime_data
+    hass.data[DOMAIN].pop(entry.entry_id)
+
+    assert get_runtime_data(hass, entry) is runtime_data
 
 
 def test_get_runtime_data_handles_legacy_container(
@@ -169,6 +185,7 @@ def test_pop_runtime_data_removes_entry(runtime_data: PawControlRuntimeData) -> 
 
     store_runtime_data(hass, entry, runtime_data)
     assert pop_runtime_data(hass, entry) is runtime_data
+    assert getattr(entry, "runtime_data", None) is None
     assert get_runtime_data(hass, entry) is None
 
 
@@ -181,3 +198,18 @@ def test_pop_runtime_data_handles_legacy_container(
 
     assert pop_runtime_data(hass, "legacy") is runtime_data
     assert hass.data[DOMAIN] == {}
+
+
+def test_pop_runtime_data_returns_entry_attribute_when_missing_store(
+    runtime_data: PawControlRuntimeData,
+) -> None:
+    """pop_runtime_data should fall back to entry.runtime_data when hass data is absent."""
+
+    hass = SimpleNamespace(data={})
+    entry = _entry("attr-only-entry")
+
+    store_runtime_data(hass, entry, runtime_data)
+    hass.data[DOMAIN].pop(entry.entry_id)
+
+    assert pop_runtime_data(hass, entry) is runtime_data
+    assert getattr(entry, "runtime_data", None) is None
