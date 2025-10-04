@@ -42,14 +42,22 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
             return False
 
         candidate = unwrap(getattr(func, "__func__", func))
+
         return asyncio.iscoroutinefunction(candidate)
 
-    if not _is_coroutine(request) and not _is_coroutine(
-        getattr(type(session), "request", None)
-    ):
-        raise ValueError(
-            f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
-        )
+    request_attr = getattr(type(session), "request", None)
+
+    if not _is_coroutine(request) and not _is_coroutine(request_attr):
+        # ``aiohttp.ClientSession.request`` is a thin synchronous wrapper around the
+        # private ``_request`` coroutine. Accept this pattern to avoid rejecting the
+        # managed Home Assistant session while still guarding synchronous callables.
+        if not callable(request_attr) or (
+            not _is_coroutine(getattr(session, "_request", None))
+            and not _is_coroutine(getattr(type(session), "_request", None))
+        ):
+            raise ValueError(
+                f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
+            )
 
     closed_attr = getattr(session, "closed", False)
     closed = closed_attr if isinstance(closed_attr, bool) else False
