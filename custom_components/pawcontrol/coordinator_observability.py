@@ -6,11 +6,64 @@ from collections.abc import Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
 from math import isfinite
-from typing import Any
-
-from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
+from typing import Any, Protocol
 
 _LOGGER = getLogger(__name__)
+
+
+class BudgetSnapshot(Protocol):
+    """Protocol describing the subset of snapshot data used for diagnostics."""
+
+    dog_id: str
+    capacity: int
+    base_allocation: int
+    dynamic_allocation: int
+    denied_requests: Iterable[str]
+
+    @property
+    def total_allocated(self) -> int:
+        """Return the total number of allocated entities."""
+
+    @property
+    def remaining(self) -> int:
+        """Return the remaining capacity within the budget."""
+
+    @property
+    def saturation(self) -> float:
+        """Return the saturation ratio for the entity budget."""
+
+
+def summarize_entity_budgets(snapshots: Iterable[BudgetSnapshot]) -> dict[str, Any]:
+    """Summarise entity budget usage for diagnostics."""
+
+    snapshot_list = list(snapshots)
+    if not snapshot_list:
+        return {
+            "active_dogs": 0,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        }
+
+    total_capacity = sum(snapshot.capacity for snapshot in snapshot_list)
+    total_allocated = sum(snapshot.total_allocated for snapshot in snapshot_list)
+    total_remaining = sum(snapshot.remaining for snapshot in snapshot_list)
+    denied_requests = sum(len(tuple(snapshot.denied_requests)) for snapshot in snapshot_list)
+    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
+    peak_utilisation = max((snapshot.saturation for snapshot in snapshot_list), default=0.0)
+
+    return {
+        "active_dogs": len(snapshot_list),
+        "total_capacity": total_capacity,
+        "total_allocated": total_allocated,
+        "total_remaining": total_remaining,
+        "average_utilization": round(average_utilisation * 100, 1),
+        "peak_utilization": round(peak_utilisation * 100, 1),
+        "denied_requests": denied_requests,
+    }
 
 
 class EntityBudgetTracker:
@@ -20,9 +73,9 @@ class EntityBudgetTracker:
 
     def __init__(self) -> None:
         """Initialise the budget tracker with an empty snapshot cache."""
-        self._snapshots: dict[str, EntityBudgetSnapshot] = {}
+        self._snapshots: dict[str, BudgetSnapshot] = {}
 
-    def record(self, snapshot: EntityBudgetSnapshot) -> None:
+    def record(self, snapshot: BudgetSnapshot) -> None:
         """Store the latest snapshot for a dog."""
 
         self._snapshots[snapshot.dog_id] = snapshot
@@ -47,7 +100,7 @@ class EntityBudgetTracker:
 
         return summarize_entity_budgets(self._snapshots.values())
 
-    def snapshots(self) -> Iterable[EntityBudgetSnapshot]:
+    def snapshots(self) -> Iterable[BudgetSnapshot]:
         """Expose raw snapshots (used in diagnostics)."""
 
         return tuple(self._snapshots.values())

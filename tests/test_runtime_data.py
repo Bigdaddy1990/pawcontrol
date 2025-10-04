@@ -82,6 +82,8 @@ PawControlConfigEntry = types_module.PawControlConfigEntry
 store_runtime_data = runtime_module.store_runtime_data
 get_runtime_data = runtime_module.get_runtime_data
 pop_runtime_data = runtime_module.pop_runtime_data
+_coerce_runtime_data = runtime_module._coerce_runtime_data
+_cleanup_domain_store = runtime_module._cleanup_domain_store
 
 
 class _DummyEntry:
@@ -194,4 +196,48 @@ def test_pop_runtime_data_cleans_up_domain_store(
     hass = SimpleNamespace(data={DOMAIN: {"entry": runtime_data}})
 
     assert pop_runtime_data(hass, "entry") is runtime_data
+    assert DOMAIN not in hass.data
+
+
+def test_coerce_runtime_data_returns_none_for_unknown_payload() -> None:
+    """Unexpected payloads should be ignored without requesting migration."""
+
+    coerced, needs_migration = _coerce_runtime_data("not-runtime-data")
+
+    assert coerced is None
+    assert needs_migration is False
+
+
+def test_cleanup_domain_store_removes_empty_store() -> None:
+    """Cleanup helper should remove empty PawControl namespaces."""
+
+    hass = SimpleNamespace(data={DOMAIN: {}})
+
+    _cleanup_domain_store(hass, hass.data[DOMAIN])
+
+    assert DOMAIN not in hass.data
+
+
+def test_pop_runtime_data_returns_none_when_store_missing() -> None:
+    """Popping runtime data from an empty store should return ``None``."""
+
+    hass = SimpleNamespace(data={})
+
+    assert pop_runtime_data(hass, "missing") is None
+
+
+def test_get_runtime_data_discards_uncoercible_legacy_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy payloads that cannot be migrated should be removed."""
+
+    hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": object()}}})
+
+    monkeypatch.setattr(
+        runtime_module,
+        "_coerce_runtime_data",
+        lambda value: (None, True),
+    )
+
+    assert get_runtime_data(hass, "legacy") is None
     assert DOMAIN not in hass.data
