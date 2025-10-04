@@ -110,10 +110,10 @@ async def async_create_issue(
     def _serialise_issue_value(value: Any) -> str | int | float | None:
         """Serialise issue metadata to supported storage/placeholder values."""
 
-        if value is None or isinstance(value, str | int | float):
+        if value is None or isinstance(value, (str, int, float)):
             return value
 
-        if isinstance(value, list | tuple | set):
+        if isinstance(value, (list, tuple, set)):
             return ", ".join(str(item) for item in value)
 
         return str(value)

@@ -214,7 +214,7 @@ class OptimizedDataCache:
             # Fallback estimate
             if isinstance(value, str):
                 return len(value) * 2  # Unicode chars
-            elif isinstance(value, list | tuple):
+            elif isinstance(value, (list, tuple)):
                 return len(value) * 100  # Rough estimate
             elif isinstance(value, dict):
                 return len(value) * 200  # Rough estimate
@@ -520,7 +520,7 @@ class PawControlDataStorage:
         """Count total entries in data structure."""
         count = 0
         for value in data.values():
-            if isinstance(value, list | dict):
+            if isinstance(value, (list, dict)):
                 count += len(value)
             else:
                 count += 1

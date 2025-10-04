@@ -186,7 +186,7 @@ def normalise_webhook_status(manager: Any) -> dict[str, Any]:
     status.setdefault("hmac_ready", False)
     insecure = status.get("insecure_configs", ())
     if isinstance(insecure, Iterable) and not isinstance(
-        insecure, str | bytes | bytearray
+        insecure, (str, bytes, bytearray)
     ):
         status["insecure_configs"] = tuple(insecure)
     else:

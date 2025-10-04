@@ -109,7 +109,7 @@ def _normalize_identifier_pair(
     if isinstance(identifier, tuple):
         candidate = identifier
     elif isinstance(identifier, Sequence) and not isinstance(
-        identifier, str | bytes | bytearray
+        identifier, (str, bytes, bytearray)
     ):
         candidate = tuple(identifier)
     else:

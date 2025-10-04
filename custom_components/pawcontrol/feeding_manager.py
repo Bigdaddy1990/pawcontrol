@@ -864,7 +864,9 @@ class FeedingManager:
             stripped_value = raw_value.strip()
             return [stripped_value] if stripped_value else []
 
-        if isinstance(raw_value, Iterable) and not isinstance(raw_value, bytes | str):
+        if isinstance(raw_value, Iterable) and not isinstance(
+            raw_value, (bytes, str)
+        ):
             normalized: list[str] = []
             for item in raw_value:
                 if not isinstance(item, str):
