@@ -46,6 +46,7 @@ from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
 from .notifications import PawControlNotificationManager
+from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
@@ -741,6 +742,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Get door sensor status
         door_sensor_status = await door_sensor_manager.async_get_detection_status()
         door_sensors_configured = door_sensor_status["configured_dogs"]
+
+        # Run repair checks to surface actionable issues in the repairs panel
+        await async_check_for_issues(hass, entry)
 
         setup_duration = time.time() - setup_start_time
         _LOGGER.info(

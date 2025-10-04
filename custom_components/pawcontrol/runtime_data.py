@@ -29,6 +29,11 @@ def _get_domain_store(
 
     if not isinstance(domain_data, MutableMapping):
         if not create:
+            # The store was populated with an unexpected container type. Remove
+            # it so future lookups and writes can recreate a clean mapping. The
+            # tests exercise this behaviour by ensuring ``DOMAIN`` is removed
+            # when invalid data is encountered.
+            hass.data.pop(DOMAIN, None)
             return None
         domain_data = {}
         hass.data[DOMAIN] = domain_data
