@@ -8,6 +8,8 @@ import sys
 import types
 from datetime import datetime
 
+import pytest
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = (REPO_ROOT / "custom_components").resolve()
 PAWCONTROL_ROOT = (PACKAGE_ROOT / "pawcontrol").resolve()
@@ -51,6 +53,7 @@ build_performance_snapshot = _observability.build_performance_snapshot
 build_security_scorecard = _observability.build_security_scorecard
 EntityBudgetTracker = _observability.EntityBudgetTracker
 normalise_webhook_status = _observability.normalise_webhook_status
+summarize_entity_budgets = _observability.summarize_entity_budgets
 
 
 class DummyMetrics:
@@ -208,6 +211,23 @@ def test_entity_budget_tracker_summary_and_saturation() -> None:
     assert summary["denied_requests"] == 1
     assert summary["peak_utilization"] == 100.0
     assert len(tracker.snapshots()) == 3
+    assert tracker.saturation() == pytest.approx(10 / 15)
+
+
+def test_entity_budget_tracker_handles_zero_capacity() -> None:
+    """Zero capacity snapshots should yield zero saturation."""
+
+    tracker = EntityBudgetTracker()
+    tracker.record(
+        DummySnapshot(
+            dog_id="dog-zero",
+            capacity=0,
+            base_allocation=2,
+            dynamic_allocation=3,
+        )
+    )
+
+    assert tracker.saturation() == 0.0
 
 
 def test_security_scorecard_reports_failure_reason() -> None:
@@ -249,6 +269,20 @@ def test_security_scorecard_coerces_invalid_numbers() -> None:
     assert entity_check["summary"]["peak_utilization"] == "150"
 
 
+def test_security_scorecard_resets_negative_current_interval() -> None:
+    """Negative current intervals should fall back to the target value."""
+
+    scorecard = build_security_scorecard(
+        adaptive={"current_interval_ms": -10.0, "target_cycle_ms": 180.0},
+        entity_summary={"peak_utilization": 10.0},
+        webhook_status={"configured": False},
+    )
+
+    adaptive_check = scorecard["checks"]["adaptive_polling"]
+    assert adaptive_check["current_ms"] == adaptive_check["target_ms"]
+    assert adaptive_check["pass"] is True
+
+
 def test_normalise_webhook_status_defaults_and_errors() -> None:
     """Webhook normalisation handles missing managers and raised exceptions."""
 
@@ -279,3 +313,32 @@ def test_normalise_webhook_status_defaults_and_errors() -> None:
     working_status = normalise_webhook_status(WorkingManager())
     assert working_status["insecure_configs"] == ("dog-a",)
     assert working_status["secure"] is True
+
+    class IterableManager:
+        @staticmethod
+        def webhook_security_status() -> dict[str, object]:
+            return {
+                "configured": True,
+                "secure": True,
+                "hmac_ready": True,
+                "insecure_configs": ["dog-b", "dog-c"],
+            }
+
+    iterable_status = normalise_webhook_status(IterableManager())
+    assert iterable_status["insecure_configs"] == ("dog-b", "dog-c")
+
+
+def test_summarize_entity_budgets_empty_input() -> None:
+    """Summary helper should handle empty iterables gracefully."""
+
+    summary = summarize_entity_budgets(())
+
+    assert summary == {
+        "active_dogs": 0,
+        "total_capacity": 0,
+        "total_allocated": 0,
+        "total_remaining": 0,
+        "average_utilization": 0.0,
+        "peak_utilization": 0.0,
+        "denied_requests": 0,
+    }
