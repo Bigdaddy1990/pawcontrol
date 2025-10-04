@@ -40,6 +40,7 @@ ISSUE_INVALID_GPS_CONFIG = "invalid_gps_configuration"
 ISSUE_MISSING_NOTIFICATIONS = "missing_notification_config"
 ISSUE_OUTDATED_CONFIG = "outdated_configuration"
 ISSUE_PERFORMANCE_WARNING = "performance_warning"
+ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
 ISSUE_STORAGE_WARNING = "storage_warning"
 ISSUE_MODULE_CONFLICT = "module_configuration_conflict"
 ISSUE_INVALID_DOG_DATA = "invalid_dog_data"
@@ -285,9 +286,8 @@ async def _check_gps_configuration_issues(
             hass,
             entry,
             f"{entry.entry_id}_gps_update_too_frequent",
-            ISSUE_PERFORMANCE_WARNING,
+            ISSUE_GPS_UPDATE_INTERVAL,
             {
-                "issue": "gps_update_too_frequent",
                 "current_interval": update_interval,
                 "recommended_interval": 30,
             },
@@ -510,7 +510,10 @@ class PawControlRepairsFlow(RepairsFlow):
             return await self.async_step_missing_notifications()
         elif self._repair_type == ISSUE_OUTDATED_CONFIG:
             return await self.async_step_outdated_config()
-        elif self._repair_type == ISSUE_PERFORMANCE_WARNING:
+        elif self._repair_type in {
+            ISSUE_PERFORMANCE_WARNING,
+            ISSUE_GPS_UPDATE_INTERVAL,
+        }:
             return await self.async_step_performance_warning()
         elif self._repair_type == ISSUE_STORAGE_WARNING:
             return await self.async_step_storage_warning()
