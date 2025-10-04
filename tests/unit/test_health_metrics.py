@@ -28,9 +28,9 @@ def _load_health_calculator_module() -> types.ModuleType:
     ha_dt = types.ModuleType("homeassistant.util.dt")
 
     def _now():
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.utcnow()
+        return datetime.now(timezone.utc)
 
     ha_dt.now = _now
     ha_util.dt = ha_dt

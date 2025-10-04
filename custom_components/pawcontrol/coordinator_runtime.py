@@ -8,7 +8,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from statistics import fmean
 from typing import Any
 
@@ -29,8 +29,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.utcnow()
-            return datetime.now(datetime.timezone.utc)
+            return datetime.now(timezone.utc)
 
     dt_util = _DateTimeModule()
 

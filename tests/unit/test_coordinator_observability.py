@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -19,7 +19,7 @@ from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
 @pytest.mark.unit
 def test_entity_budget_tracker_records_and_summarises() -> None:
     tracker = EntityBudgetTracker()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     tracker.record(
         EntityBudgetSnapshot(
             dog_id="a",

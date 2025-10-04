@@ -16,11 +16,11 @@ import inspect
 import logging
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
-from typing import Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
 
 try:
     from homeassistant.core import HomeAssistant
@@ -37,8 +37,14 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class Entity:  # type: ignore[override]
         """Lightweight placeholder entity used for tests."""
 
-    DeviceEntry = dict[str, Any]  # type: ignore[assignment]
-    DeviceInfo = dict[str, Any]  # type: ignore[assignment]
+    if TYPE_CHECKING:
+        from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
+        from homeassistant.helpers.entity import Entity as _Entity
+
+        Entity = _Entity
+    else:
+        DeviceEntry = dict[str, Any]  # type: ignore[assignment]
+        DeviceInfo = dict[str, Any]  # type: ignore[assignment]
 
     def _missing_registry(*args: Any, **kwargs: Any) -> Any:
         raise RuntimeError(
@@ -51,7 +57,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
-            return datetime.now(datetime.timezone.utc)
+            return datetime.now(timezone.utc)
 
     dt_util = _DateTimeModule()
 

@@ -273,6 +273,7 @@ class RetryConfig:
     max_delay: float = 60.0  # seconds
     exponential_base: float = 2.0
     jitter: bool = True  # Add randomness to delays
+    random_source: Callable[[], float] | None = None
 
 
 class RetryExhaustedError(HomeAssistantError):
@@ -348,8 +349,12 @@ async def retry_with_backoff(
             if retry_config.jitter:
                 import random
 
-                delay = delay * (0.5 + random.SystemRandom().random())
-                delay = delay * (0.5 + random.random())
+                random_value = (
+                    retry_config.random_source()
+                    if retry_config.random_source is not None
+                    else random.SystemRandom().random()
+                )
+                delay = delay * (0.5 + random_value)
 
             _LOGGER.warning(
                 "Retry attempt %d/%d failed for %s: %s - waiting %.1fs",

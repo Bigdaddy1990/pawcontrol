@@ -19,6 +19,9 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from aiohttp import ClientSession
 
+_PYTEST_COV_AVAILABLE = importlib.util.find_spec("pytest_cov") is not None
+_COV_SHIM_ACTIVE = False
+
 _REQUIRED_MODULES = (
     "homeassistant",
     "pytest_homeassistant_custom_component",
@@ -56,6 +59,12 @@ if _missing:
             "pytest-asyncio compatibility shim for missing dependency",
             default="auto",
         )
+
+        if _PYTEST_COV_AVAILABLE:
+            return
+
+        global _COV_SHIM_ACTIVE
+        _COV_SHIM_ACTIVE = True
 
         # ``pytest-cov`` is an optional plugin that provides additional command
         # line flags.  When it isn't installed pytest will exit early because
@@ -98,6 +107,28 @@ if _missing:
             dest="no_cov_on_fail",
             help="No-op placeholder added when pytest-cov isn't installed.",
         )
+
+    def pytest_configure(config):
+        """Warn when running without pytest-cov but coverage options are set."""
+
+        if not _COV_SHIM_ACTIVE:
+            return
+
+        options = config.option
+        if (
+            options.cov
+            or options.cov_report
+            or options.cov_branch
+            or options.cov_fail_under is not None
+            or options.no_cov_on_fail
+        ):
+            import warnings
+
+            warnings.warn(
+                "Running without pytest-cov - coverage data will not be collected",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     print(
         "Home Assistant test dependencies are unavailable - skipping Home Assistant "

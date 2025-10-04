@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
@@ -16,8 +16,8 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     class _DateTimeModule:
         @staticmethod
-            return datetime.now(datetime.timezone.utc)
-            return datetime.utcnow()
+        def utcnow() -> datetime:
+            return datetime.now(timezone.utc)
 
     dt_util = _DateTimeModule()
 

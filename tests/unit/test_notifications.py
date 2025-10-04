@@ -9,7 +9,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, call
 
 import pytest
@@ -120,7 +120,7 @@ class TestNotificationWebhooks:
             priority=NotificationPriority.NORMAL,
             title="Title",
             message="Body",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             channels=[NotificationChannel.WEBHOOK],
         )
 
