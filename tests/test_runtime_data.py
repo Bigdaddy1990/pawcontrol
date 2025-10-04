@@ -158,6 +158,9 @@ def test_get_runtime_data_with_unexpected_container_type(
     hass = SimpleNamespace(data={DOMAIN: []})
 
     assert get_runtime_data(hass, "legacy") is None
+    # The invalid container should be cleaned up entirely so future lookups do
+    # not keep encountering the bad structure.
+    assert DOMAIN not in hass.data
 
     # After storing data the invalid container should be replaced with a mapping.
     entry = _entry("recovered")
