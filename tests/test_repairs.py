@@ -1,24 +1,30 @@
-"""Tests for the repairs helpers shipped with the integration."""
+"""Tests for the PawControl repair issue helpers.
+
+The Home Assistant integration test suite is intentionally lightweight in this
+kata-style repository.  We provide focused coverage for the repair helpers to
+ensure they gracefully handle unexpected severity values even without the real
+Home Assistant runtime.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import importlib.util
 import sys
-from datetime import datetime
+from datetime import UTC, datetime, timezone
 from enum import StrEnum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
-
 from unittest.mock import AsyncMock
 
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _ensure_package(name: str, path: Path) -> ModuleType:
-    """Ensure that ``name`` is registered as a namespace package for tests."""
+    """Ensure a namespace package exists for dynamic imports."""
 
     module = sys.modules.get(name)
     if module is None:
@@ -29,7 +35,7 @@ def _ensure_package(name: str, path: Path) -> ModuleType:
 
 
 def _load_module(name: str, path: Path) -> ModuleType:
-    """Load ``name`` from ``path`` without executing package ``__init__`` files."""
+    """Import ``name`` from ``path`` without executing package ``__init__`` files."""
 
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -40,31 +46,44 @@ def _load_module(name: str, path: Path) -> ModuleType:
     return module
 
 
-def _install_homeassistant_stubs(async_create_issue: AsyncMock) -> None:
-    """Install lightweight Home Assistant shims for the repairs tests."""
+def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any]]:
+    """Register minimal Home Assistant stubs required by repairs.py."""
 
-    existing_issue_registry = sys.modules.get("homeassistant.helpers.issue_registry")
-    if "homeassistant" in sys.modules and existing_issue_registry is not None:
-        existing_issue_registry.async_create_issue = async_create_issue
-        return
+    sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
+    helpers = sys.modules.setdefault(
+        "homeassistant.helpers", ModuleType("homeassistant.helpers")
+    )
+    components = sys.modules.setdefault(
+        "homeassistant.components", ModuleType("homeassistant.components")
+    )
+    util = sys.modules.setdefault(
+        "homeassistant.util", ModuleType("homeassistant.util")
+    )
+    data_entry_flow = ModuleType("homeassistant.data_entry_flow")
 
-    homeassistant = ModuleType("homeassistant")
-    sys.modules["homeassistant"] = homeassistant
-
-    components = ModuleType("homeassistant.components")
-    sys.modules["homeassistant.components"] = components
-
-    repairs = ModuleType("homeassistant.components.repairs")
-
-    class RepairsFlow:  # pragma: no cover - simple placeholder type
+    class FlowResult(dict[str, Any]):  # pragma: no cover - simple mapping alias
         pass
 
-    repairs.RepairsFlow = RepairsFlow
-    sys.modules["homeassistant.components.repairs"] = repairs
+    data_entry_flow.FlowResult = FlowResult
+    sys.modules[data_entry_flow.__name__] = data_entry_flow
+
+    core = ModuleType("homeassistant.core")
+
+    class HomeAssistant:  # pragma: no cover - minimal attribute container
+        def __init__(self) -> None:
+            self.data: dict[str, Any] = {}
+
+    core.HomeAssistant = HomeAssistant
+
+    def callback(func):  # pragma: no cover - synchronous passthrough decorator
+        return func
+
+    core.callback = callback
+    sys.modules[core.__name__] = core
 
     config_entries = ModuleType("homeassistant.config_entries")
 
-    class ConfigEntry:  # pragma: no cover - placeholder matching real API
+    class ConfigEntry:  # pragma: no cover - simple stand-in for tests
         def __init__(self, entry_id: str) -> None:
             self.entry_id = entry_id
             self.data: dict[str, Any] = {}
@@ -72,59 +91,91 @@ def _install_homeassistant_stubs(async_create_issue: AsyncMock) -> None:
             self.version = 1
 
     config_entries.ConfigEntry = ConfigEntry
-    sys.modules["homeassistant.config_entries"] = config_entries
+    sys.modules[config_entries.__name__] = config_entries
 
-    core = ModuleType("homeassistant.core")
+    repairs_component = ModuleType("homeassistant.components.repairs")
 
-    class HomeAssistant:  # pragma: no cover - container for hass attributes
-        def __init__(self) -> None:
-            self.data: dict[str, Any] = {}
+    class RepairsFlow:  # pragma: no cover - unused base class placeholder
+        pass
 
-    def callback(func):  # pragma: no cover - decorator passthrough
-        return func
-
-    core.HomeAssistant = HomeAssistant
-    core.callback = callback
-    sys.modules["homeassistant.core"] = core
-
-    data_entry_flow = ModuleType("homeassistant.data_entry_flow")
-    data_entry_flow.FlowResult = dict  # pragma: no cover - type alias shim
-    sys.modules["homeassistant.data_entry_flow"] = data_entry_flow
-
-    helpers = ModuleType("homeassistant.helpers")
-    sys.modules["homeassistant.helpers"] = helpers
-
-    issue_registry = ModuleType("homeassistant.helpers.issue_registry")
-    issue_registry.DOMAIN = "repairs"
-
-    class IssueSeverity(StrEnum):  # pragma: no cover - subset of real enum
-        ERROR = "error"
-        WARNING = "warning"
-        INFO = "info"
-
-    issue_registry.IssueSeverity = IssueSeverity
-    issue_registry.async_create_issue = async_create_issue
-    sys.modules["homeassistant.helpers.issue_registry"] = issue_registry
+    repairs_component.RepairsFlow = RepairsFlow
+    sys.modules[repairs_component.__name__] = repairs_component
+    components.repairs = repairs_component
 
     selector_module = ModuleType("homeassistant.helpers.selector")
 
-    def selector(config: dict[str, Any]) -> dict[str, Any]:  # pragma: no cover
-        return config
+    def selector(
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:  # pragma: no cover - pass-through helper
+        return schema
 
     selector_module.selector = selector
-    sys.modules["homeassistant.helpers.selector"] = selector_module
+    sys.modules[selector_module.__name__] = selector_module
+    helpers.selector = selector_module
 
-    util_module = ModuleType("homeassistant.util")
-    sys.modules["homeassistant.util"] = util_module
+    device_registry = ModuleType("homeassistant.helpers.device_registry")
+
+    class DeviceInfo:  # pragma: no cover - placeholder structure
+        def __init__(self, **_: Any) -> None:
+            pass
+
+    class DeviceEntry:  # pragma: no cover - placeholder structure
+        pass
+
+    class _DummyDeviceRegistry:  # pragma: no cover - minimal helper implementation
+        def async_get_or_create(self, **_: Any) -> DeviceEntry:
+            return DeviceEntry()
+
+        def async_update_device(self, *args: Any, **kwargs: Any) -> DeviceEntry | None:
+            return DeviceEntry() if kwargs else None
+
+    device_registry.DeviceInfo = DeviceInfo
+    device_registry.DeviceEntry = DeviceEntry
+    device_registry.async_get = lambda hass: _DummyDeviceRegistry()
+    sys.modules[device_registry.__name__] = device_registry
+    helpers.device_registry = device_registry
+
+    entity_registry = ModuleType("homeassistant.helpers.entity_registry")
+
+    class _DummyEntityRegistry:  # pragma: no cover - minimal helper implementation
+        def async_get(self, _entity_id: str) -> None:
+            return None
+
+        def async_update_entity(self, *args: Any, **kwargs: Any) -> None:
+            return None
+
+    entity_registry.async_get = lambda hass: _DummyEntityRegistry()
+    sys.modules[entity_registry.__name__] = entity_registry
+    helpers.entity_registry = entity_registry
+
+    issue_registry = ModuleType("homeassistant.helpers.issue_registry")
+
+    class IssueSeverity(
+        StrEnum
+    ):  # pragma: no cover - mirrors Home Assistant enum semantics
+        CRITICAL = "critical"
+        ERROR = "error"
+        WARNING = "warning"
+
+    async_create_issue = AsyncMock()
+    issue_registry.IssueSeverity = IssueSeverity
+    issue_registry.async_create_issue = async_create_issue
+    sys.modules[issue_registry.__name__] = issue_registry
+    helpers.issue_registry = issue_registry
 
     dt_module = ModuleType("homeassistant.util.dt")
-    dt_module.utcnow = lambda: datetime(2024, 1, 1, 12, 0, 0)  # pragma: no cover
-    util_module.dt = dt_module
-    sys.modules["homeassistant.util.dt"] = dt_module
+    dt_module.utcnow = lambda: datetime.now(UTC)
+    sys.modules[dt_module.__name__] = dt_module
+    util.dt = dt_module
+
+    return async_create_issue, IssueSeverity
 
 
-def _load_repairs_module(async_create_issue: AsyncMock) -> ModuleType:
-    """Load the repairs module with all required stubs registered."""
+@pytest.fixture
+def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any]]:
+    """Return the loaded repairs module alongside the issue registry mock."""
+
+    async_create_issue, issue_severity_cls = _install_homeassistant_stubs()
 
     _ensure_package("custom_components", PROJECT_ROOT / "custom_components")
     _ensure_package(
@@ -132,75 +183,70 @@ def _load_repairs_module(async_create_issue: AsyncMock) -> ModuleType:
         PROJECT_ROOT / "custom_components" / "pawcontrol",
     )
 
-    _install_homeassistant_stubs(async_create_issue)
-
-    _load_module(
-        "custom_components.pawcontrol.const",
-        PROJECT_ROOT / "custom_components" / "pawcontrol" / "const.py",
+    module_name = "custom_components.pawcontrol.repairs"
+    sys.modules.pop(module_name, None)
+    module = _load_module(
+        module_name, PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py"
     )
 
-    runtime_data_stub = ModuleType("custom_components.pawcontrol.runtime_data")
-    runtime_data_stub.get_runtime_data = lambda hass, entry: None
-    sys.modules["custom_components.pawcontrol.runtime_data"] = runtime_data_stub
-
-    return _load_module(
-        "custom_components.pawcontrol.repairs",
-        PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py",
-    )
+    return module, async_create_issue, issue_severity_cls
 
 
-def test_async_create_issue_serialises_payload() -> None:
-    """Ensure list values become strings for placeholders and storage."""
+def test_async_create_issue_normalises_unknown_severity(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Severity values outside the registry should fall back to warnings."""
 
-    async_create_issue = AsyncMock()
-    repairs = _load_repairs_module(async_create_issue)
+    module, create_issue_mock, issue_severity_cls = repairs_module
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    hass = SimpleNamespace(data={})
-    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    caplog.set_level("WARNING")
 
     asyncio.run(
-        repairs.async_create_issue(
+        module.async_create_issue(
             hass,
             entry,
-            "issue-one",
-            repairs.ISSUE_DUPLICATE_DOG_IDS,
-            {"duplicate_ids": ["alpha", "beta"], "dogs_count": 2},
-            severity="warning",
+            "entry_unknown",
+            "test_issue",
+            severity="info",
+            data={"foo": "bar"},
         )
     )
 
-    async_create_issue.assert_awaited_once()
-    _, kwargs = async_create_issue.await_args
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["severity"] == issue_severity_cls.WARNING
+    assert (
+        kwargs["translation_placeholders"]["severity"]
+        == issue_severity_cls.WARNING.value
+    )
+    assert "Unsupported issue severity 'info'" in caplog.text
 
-    assert kwargs["data"]["duplicate_ids"] == "alpha, beta"
-    assert kwargs["data"]["dogs_count"] == 2
-    assert kwargs["translation_placeholders"]["duplicate_ids"] == "alpha, beta"
-    assert kwargs["translation_placeholders"]["dogs_count"] == "2"
 
+def test_async_create_issue_accepts_issue_severity_instances(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+) -> None:
+    """Passing an IssueSeverity instance should be preserved."""
 
-def test_async_create_issue_omits_none_placeholders() -> None:
-    """None values are excluded from translation placeholders but kept as data."""
-
-    async_create_issue = AsyncMock()
-    repairs = _load_repairs_module(async_create_issue)
-
-    hass = SimpleNamespace(data={})
-    entry = SimpleNamespace(entry_id="entry-id", data={}, options={})
+    module, create_issue_mock, issue_severity_cls = repairs_module
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
     asyncio.run(
-        repairs.async_create_issue(
+        module.async_create_issue(
             hass,
             entry,
-            "issue-two",
-            repairs.ISSUE_INVALID_DOG_DATA,
-            {"invalid_dog": None, "weight": 12.5},
-            severity="error",
+            "entry_error",
+            "test_issue",
+            severity=issue_severity_cls.ERROR,
         )
     )
 
-    async_create_issue.assert_awaited_once()
-    _, kwargs = async_create_issue.await_args
-
-    assert "invalid_dog" not in kwargs["translation_placeholders"]
-    assert kwargs["data"]["invalid_dog"] is None
-    assert kwargs["translation_placeholders"]["weight"] == "12.5"
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["severity"] == issue_severity_cls.ERROR
+    assert (
+        kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
+    )

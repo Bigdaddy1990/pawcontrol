@@ -14,7 +14,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.selector import selector
@@ -53,13 +53,37 @@ REPAIR_FLOW_CONFIG_MIGRATION = "repair_config_migration"
 REPAIR_FLOW_PERFORMANCE_OPTIMIZATION = "repair_performance_optimization"
 
 
+def _normalise_issue_severity(
+    severity: str | ir.IssueSeverity,
+) -> ir.IssueSeverity:
+    """Return a valid ``IssueSeverity`` for the provided ``severity`` value."""
+
+    if isinstance(severity, ir.IssueSeverity):
+        return severity
+
+    if isinstance(severity, str):
+        try:
+            return ir.IssueSeverity(severity.lower())
+        except ValueError:
+            _LOGGER.warning(
+                "Unsupported issue severity '%s'; falling back to warning.", severity
+            )
+            return ir.IssueSeverity.WARNING
+
+    _LOGGER.warning(
+        "Unexpected issue severity type %s; falling back to warning.",
+        type(severity).__name__,
+    )
+    return ir.IssueSeverity.WARNING
+
+
 async def async_create_issue(
     hass: HomeAssistant,
     entry: ConfigEntry,
     issue_id: str,
     issue_type: str,
     data: dict[str, Any] | None = None,
-    severity: str = "warning",
+    severity: str | ir.IssueSeverity = ir.IssueSeverity.WARNING,
 ) -> None:
     """Create a repair issue for the integration.
 
@@ -69,13 +93,15 @@ async def async_create_issue(
         issue_id: Unique issue identifier
         issue_type: Type of issue
         data: Additional issue data
-        severity: Issue severity (error, warning, info)
+        severity: Issue severity (``IssueSeverity`` or string such as ``"warning"``)
     """
+    issue_severity = _normalise_issue_severity(severity)
+
     issue_data = {
         "config_entry_id": entry.entry_id,
         "issue_type": issue_type,
         "created_at": dt_util.utcnow().isoformat(),
-        "severity": severity,
+        "severity": issue_severity.value,
     }
 
     if data:
@@ -107,7 +133,7 @@ async def async_create_issue(
         breaks_in_ha_version=None,
         is_fixable=True,
         issue_domain=DOMAIN,
-        severity=ir.IssueSeverity(severity),
+        severity=issue_severity,
         translation_key=issue_type,
         translation_placeholders=translation_placeholders,
         data=serialised_issue_data,
@@ -1033,21 +1059,25 @@ class PawControlRepairsFlow(RepairsFlow):
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
 
-@callback
-def async_create_repair_flow(
+async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
     data: dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
-    """Create a repair flow.
+    """Create a repair flow compatible with the Repairs integration.
+
+    Home Assistant loads `repairs.py` integration platforms via
+    :func:`homeassistant.helpers.integration_platform.async_process_integration_platforms`
+    and expects them to expose an ``async_create_fix_flow`` coroutine that
+    returns a :class:`~homeassistant.components.repairs.RepairsFlow` instance.
 
     Args:
         hass: Home Assistant instance
-        issue_id: Issue identifier
-        data: Issue data
+        issue_id: Identifier of the repair issue
+        data: Issue metadata provided by the registry
 
     Returns:
-        Repair flow instance
+        Repair flow instance bound to the Paw Control handler
     """
     return PawControlRepairsFlow()
 
