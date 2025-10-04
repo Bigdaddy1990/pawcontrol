@@ -1122,44 +1122,51 @@ class PawControlRepairsFlow(RepairsFlow):
     ) -> FlowResult:
         """Handle repair flow for coordinator errors."""
 
+        errors: dict[str, str] = {}
+
         if user_input is not None:
             action = user_input.get("action")
 
             if action == "reload":
-                await self._reload_config_entry()
-                return await self.async_step_complete_repair()
-            if action == "view_logs":
+                if await self._reload_config_entry():
+                    return await self.async_step_complete_repair()
+                errors["base"] = "reload_failed"
+            elif action == "view_logs":
                 return self.async_external_step(step_id="view_logs", url="/config/logs")
-            return await self.async_step_complete_repair()
+            else:
+                return await self.async_step_complete_repair()
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("action"): selector(
+                    {
+                        "select": {
+                            "options": [
+                                {
+                                    "value": "reload",
+                                    "label": "Reload Paw Control",
+                                },
+                                {
+                                    "value": "view_logs",
+                                    "label": "Open system logs",
+                                },
+                                {"value": "ignore", "label": "Ignore for now"},
+                            ]
+                        }
+                    }
+                )
+            }
+        )
 
         return self.async_show_form(
             step_id="coordinator_error",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("action"): selector(
-                        {
-                            "select": {
-                                "options": [
-                                    {
-                                        "value": "reload",
-                                        "label": "Reload Paw Control",
-                                    },
-                                    {
-                                        "value": "view_logs",
-                                        "label": "Open system logs",
-                                    },
-                                    {"value": "ignore", "label": "Ignore for now"},
-                                ]
-                            }
-                        }
-                    )
-                }
-            ),
+            data_schema=data_schema,
             description_placeholders={
                 "error": self._issue_data.get("error", "unknown"),
                 "last_update": self._issue_data.get("last_update"),
                 "suggestion": self._issue_data.get("suggestion"),
             },
+            errors=errors,
         )
 
     async def async_step_complete_repair(
@@ -1374,21 +1381,32 @@ class PawControlRepairsFlow(RepairsFlow):
         new_data[CONF_DOGS] = valid_dogs
         self.hass.config_entries.async_update_entry(entry, data=new_data)
 
-    async def _reload_config_entry(self) -> None:
+    async def _reload_config_entry(self) -> bool:
         """Reload the integration config entry to recover from coordinator errors."""
 
         config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
-            return
+            _LOGGER.error("Missing config entry id while handling coordinator repair")
+            return False
 
         try:
-            await self.hass.config_entries.async_reload(config_entry_id)
+            result = await self.hass.config_entries.async_reload(config_entry_id)
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.error(
                 "Error reloading config entry %s during repair flow: %s",
                 config_entry_id,
                 err,
             )
+            return False
+
+        if result is False:
+            _LOGGER.error(
+                "Reload of config entry %s reported failure during repair flow",
+                config_entry_id,
+            )
+            return False
+
+        return True
 
 
 async def async_create_fix_flow(

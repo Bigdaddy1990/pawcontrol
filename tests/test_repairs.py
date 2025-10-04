@@ -487,14 +487,50 @@ def test_coordinator_error_flow_triggers_reload(
 
     delete_issue_mock.reset_mock()
     reload_mock.reset_mock()
-    asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
+    result = asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
 
     assert reload_mock.await_count == 1
     assert delete_issue_mock.await_count == 1
-    placeholders = create_issue_mock.await_args.kwargs["translation_placeholders"]
-    assert placeholders["duplicate_ids"] == "dog_alpha, dog_bravo"
-    assert "failed=2" in placeholders["metrics"]
-    assert "total=5" in placeholders["metrics"]
+    assert result["type"] == "create_entry"
+
+
+def test_coordinator_error_flow_handles_failed_reload(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Coordinator repair should keep the issue when reload fails."""
+
+    module, _, _, delete_issue_mock = repairs_module
+    entry = module.ConfigEntry("entry")
+    entry.data = {module.CONF_DOGS: []}
+    entry.options = {}
+    config_entries, _, reload_mock = _build_config_entries(entry)
+
+    reload_mock.return_value = False
+
+    issue_id = "entry_coordinator_error"
+    issue_data = {
+        "config_entry_id": entry.entry_id,
+        "issue_type": module.ISSUE_COORDINATOR_ERROR,
+        "error": "coordinator_not_initialized",
+        "suggestion": "Try reloading the integration",
+    }
+
+    hass = SimpleNamespace(
+        data={module.ir.DOMAIN: {issue_id: SimpleNamespace(data=issue_data)}},
+        config_entries=config_entries,
+    )
+
+    flow = _create_flow(module, hass, issue_id)
+    asyncio.run(flow.async_step_init())
+
+    delete_issue_mock.reset_mock()
+    reload_mock.reset_mock()
+    result = asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
+
+    assert reload_mock.await_count == 1
+    assert delete_issue_mock.await_count == 0
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "reload_failed"
 
 
 def test_async_check_for_issues_checks_coordinator_health(
@@ -502,7 +538,7 @@ def test_async_check_for_issues_checks_coordinator_health(
 ) -> None:
     """Coordinator health should be validated when scanning for issues."""
 
-    module, create_issue_mock, _ = repairs_module
+    module, create_issue_mock, _, _ = repairs_module
 
     hass = SimpleNamespace()
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
@@ -541,7 +577,7 @@ def test_notification_check_accepts_mobile_app_service_prefix(
 ) -> None:
     """Notification checks should detect mobile_app_* notify services."""
 
-    module, create_issue_mock, _ = repairs_module
+    module, create_issue_mock, _, _ = repairs_module
 
     hass = SimpleNamespace()
 
