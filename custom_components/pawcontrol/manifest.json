@@ -48,7 +48,8 @@
   ],
   "quality_scale": "platinum",
   "requirements": [
-    "aiofiles>=23.1.0"
+    "aiofiles>=23.1.0",
+    "defusedxml>=0.7.1"
   ],
   "usb": [
     {
