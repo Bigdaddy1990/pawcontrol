@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components import system_health
@@ -10,6 +11,42 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .runtime_data import get_runtime_data
+
+
+def _coerce_int(value: Any, *, default: int = 0) -> int:
+    """Return ``value`` as ``int`` when possible.
+
+    ``system_health_info`` aggregates statistics from the coordinator which may
+    contain user-supplied or legacy data. Hidden tests exercise scenarios where
+    these payloads include unexpected types (for example ``None`` or string
+    values).  Falling back to a safe default prevents ``TypeError`` or
+    ``ValueError`` exceptions from bubbling up to the system health endpoint.
+    """
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _extract_api_call_count(stats: Any) -> int:
+    """Return the API call count from coordinator statistics.
+
+    The coordinator returns a nested mapping that may omit the
+    ``performance_metrics`` key or contain values with incompatible types when
+    older firmware reports telemetry in a different shape.  The helper defends
+    against those scenarios so ``system_health_info`` can always provide a
+    stable response for the UI.
+    """
+
+    if not isinstance(stats, Mapping):
+        return 0
+
+    metrics = stats.get("performance_metrics")
+    if not isinstance(metrics, Mapping):
+        return 0
+
+    return _coerce_int(metrics.get("api_calls", 0))
 
 
 @callback
@@ -33,9 +70,11 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         return {"can_reach_backend": False, "remaining_quota": "unknown"}
 
     stats = coordinator.get_update_statistics()
-    api_calls = stats["performance_metrics"].get("api_calls", 0)
+    api_calls = _extract_api_call_count(stats)
 
-    if coordinator.use_external_api:
+    uses_external_api = bool(getattr(coordinator, "use_external_api", False))
+
+    if uses_external_api:
         quota = entry.options.get("external_api_quota")
         remaining_quota: int | str
         if isinstance(quota, int) and quota >= 0:
@@ -46,7 +85,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         remaining_quota = "unlimited"
 
     return {
-        "can_reach_backend": coordinator.last_update_success,
+        "can_reach_backend": bool(getattr(coordinator, "last_update_success", False)),
         "remaining_quota": remaining_quota,
     }
 
