@@ -1000,10 +1000,5 @@
       "title": "Koordinator nicht verfügbar",
       "description": "Paw Control konnte nicht auf den Koordinator zugreifen ({error}). Folge der empfohlenen Maßnahme oder lade die Integration neu."
     }
-  },
-  "repairs": {
-    "errors": {
-      "reload_failed": "Neuladen fehlgeschlagen. Prüfe die Protokolle und versuche es erneut."
-    }
   }
 }
