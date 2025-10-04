@@ -313,7 +313,7 @@ async def _check_gps_configuration_issues(
                 "current_interval": update_interval,
                 "recommended_interval": 30,
             },
-            severity="info",
+            severity=ir.IssueSeverity.WARNING,
         )
 
 
@@ -390,7 +390,7 @@ async def _check_outdated_configuration(
                 "current_version": entry.version,
                 "required_version": 1,
             },
-            severity="info",
+            severity=ir.IssueSeverity.WARNING,
         )
 
 
@@ -415,7 +415,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
                 "recommended_max": 10,
                 "suggestion": "Consider performance mode optimization",
             },
-            severity="info",
+            severity=ir.IssueSeverity.WARNING,
         )
 
     # Check for conflicting module configurations
@@ -440,7 +440,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
                 "total_dogs": len(dogs),
                 "suggestion": "Consider selective module enabling",
             },
-            severity="info",
+            severity=ir.IssueSeverity.WARNING,
         )
 
 
@@ -465,7 +465,7 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
                 "recommended_max": 365,
                 "suggestion": "Consider reducing data retention period",
             },
-            severity="info",
+            severity=ir.IssueSeverity.WARNING,
         )
 
 
