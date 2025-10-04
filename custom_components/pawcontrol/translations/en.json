@@ -954,5 +954,51 @@
       "name": "Log Poop",
       "description": "Logs bowel movement information for health monitoring"
     }
+  },
+  "issues": {
+    "missing_dog_configuration": {
+      "title": "Add at least one dog",
+      "description": "Paw Control needs at least one dog profile. Configure a dog to continue. Dogs configured: {dogs_count}."
+    },
+    "duplicate_dog_ids": {
+      "title": "Duplicate dog IDs detected",
+      "description": "The following IDs are used more than once: {duplicate_ids}. Each of the {total_dogs} dogs must have a unique ID."
+    },
+    "invalid_dog_data": {
+      "title": "Incomplete dog details",
+      "description": "Some dogs are missing required information: {invalid_dogs}. Provide a name and ID for each of the {total_dogs} dogs."
+    },
+    "invalid_gps_configuration": {
+      "title": "GPS source missing",
+      "description": "GPS tracking is enabled for {gps_enabled_dogs} dog(s), but no GPS source is selected. Choose a GPS source in the options."
+    },
+    "missing_notification_config": {
+      "title": "Notification service unavailable",
+      "description": "The {missing_service} notification service is not available. {notification_enabled_dogs} dog(s) rely on this service."
+    },
+    "outdated_configuration": {
+      "title": "Update the configuration entry",
+      "description": "The configuration entry uses version {current_version}. Update it to version {required_version} through the options flow."
+    },
+    "performance_warning": {
+      "title": "Performance tuning recommended",
+      "description": "You configured {dog_count} dogs, which may affect performance. The recommended maximum is {recommended_max}."
+    },
+    "gps_update_interval_warning": {
+      "title": "GPS updates are too frequent",
+      "description": "The GPS update interval is {current_interval} seconds. Increase it to at least {recommended_interval} seconds to reduce load."
+    },
+    "storage_warning": {
+      "title": "Storage retention is too long",
+      "description": "Data retention is set to {current_retention} days. Reduce it to {recommended_max} days to keep the database lean."
+    },
+    "module_configuration_conflict": {
+      "title": "Too many intensive modules enabled",
+      "description": "{intensive_dogs} dog(s) use all intensive modules out of {total_dogs} configured. Disable some modules or enable performance mode."
+    },
+    "coordinator_error": {
+      "title": "Coordinator is unavailable",
+      "description": "Paw Control could not access its coordinator ({error}). Follow the suggested action or reload the integration."
+    }
   }
 }

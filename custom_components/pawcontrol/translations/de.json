@@ -954,5 +954,51 @@
       "name": "Kot protokollieren",
       "description": "Protokolliert Kotgang-Informationen für Gesundheitsüberwachung"
     }
+  },
+  "issues": {
+    "missing_dog_configuration": {
+      "title": "Mindestens einen Hund hinzufügen",
+      "description": "Paw Control benötigt mindestens ein Hundeprofil. Bitte richte einen Hund ein. Konfigurierte Hunde: {dogs_count}."
+    },
+    "duplicate_dog_ids": {
+      "title": "Doppelte Hunde-IDs erkannt",
+      "description": "Folgende IDs werden mehrfach verwendet: {duplicate_ids}. Alle {total_dogs} Hunde benötigen eine eindeutige ID."
+    },
+    "invalid_dog_data": {
+      "title": "Unvollständige Hundedaten",
+      "description": "Für einige Hunde fehlen Pflichtangaben: {invalid_dogs}. Vergib für alle {total_dogs} Hunde einen Namen und eine ID."
+    },
+    "invalid_gps_configuration": {
+      "title": "GPS-Quelle fehlt",
+      "description": "Für {gps_enabled_dogs} Hund(e) ist GPS aktiviert, aber keine Quelle ausgewählt. Wähle eine GPS-Quelle in den Optionen."
+    },
+    "missing_notification_config": {
+      "title": "Benachrichtigungsdienst nicht verfügbar",
+      "description": "Der Benachrichtigungsdienst {missing_service} ist nicht verfügbar. {notification_enabled_dogs} Hund(e) sind darauf angewiesen."
+    },
+    "outdated_configuration": {
+      "title": "Konfigurationseintrag aktualisieren",
+      "description": "Der Konfigurationseintrag verwendet Version {current_version}. Aktualisiere ihn im Options-Dialog auf Version {required_version}."
+    },
+    "performance_warning": {
+      "title": "Leistungsoptimierung empfohlen",
+      "description": "Es sind {dog_count} Hunde konfiguriert, was die Leistung beeinträchtigen kann. Empfohlen sind höchstens {recommended_max}."
+    },
+    "gps_update_interval_warning": {
+      "title": "GPS-Aktualisierung zu häufig",
+      "description": "Das GPS-Aktualisierungsintervall beträgt {current_interval} Sekunden. Erhöhe es auf mindestens {recommended_interval} Sekunden, um die Last zu reduzieren."
+    },
+    "storage_warning": {
+      "title": "Speicheraufbewahrung zu lang",
+      "description": "Die Datenaufbewahrung ist auf {current_retention} Tage gesetzt. Reduziere sie auf {recommended_max} Tage, um die Datenbank schlank zu halten."
+    },
+    "module_configuration_conflict": {
+      "title": "Zu viele ressourcenintensive Module aktiv",
+      "description": "{intensive_dogs} Hund(e) nutzen alle ressourcenintensiven Module bei insgesamt {total_dogs} Hunden. Deaktiviere Module oder aktiviere den Performance-Modus."
+    },
+    "coordinator_error": {
+      "title": "Koordinator nicht verfügbar",
+      "description": "Paw Control konnte nicht auf den Koordinator zugreifen ({error}). Folge der empfohlenen Maßnahme oder lade die Integration neu."
+    }
   }
 }
