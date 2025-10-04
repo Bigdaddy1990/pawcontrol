@@ -81,7 +81,7 @@ async def async_create_issue(
     if data:
         issue_data.update(data)
 
-    ir.async_create_issue(
+    await ir.async_create_issue(
         hass,
         DOMAIN,
         issue_id,
@@ -893,7 +893,7 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result indicating completion
         """
         # Remove the issue from the issue registry
-        ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+        await ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
 
         return self.async_create_entry(
             title="Repair completed",
