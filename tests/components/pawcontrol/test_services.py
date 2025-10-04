@@ -289,3 +289,66 @@ async def test_config_entry_state_change_invalidates_cache(
 
     assert entries_mock.call_count == 2
     get_entry_mock.assert_called_with(entry.entry_id)
+
+
+@pytest.mark.asyncio
+async def test_other_entry_state_change_does_not_invalidate_cache(
+    hass: HomeAssistant, coordinator_mock: SimpleNamespace
+) -> None:
+    """Ensure cache survives state changes for different config entries."""
+
+    hass.data.setdefault(DOMAIN, {})
+
+    entry = SimpleNamespace(
+        entry_id="test-entry",
+        state=ConfigEntryState.LOADED,
+        domain=DOMAIN,
+        runtime_data=SimpleNamespace(coordinator=coordinator_mock),
+    )
+    coordinator_mock.config_entry = entry
+
+    other_entry = SimpleNamespace(
+        entry_id="other-entry",
+        domain=DOMAIN,
+        state=ConfigEntryState.SETUP_ERROR,
+    )
+
+    with (
+        patch.object(
+            hass.config_entries, "async_entries", return_value=[entry]
+        ) as entries_mock,
+        patch.object(
+            hass.config_entries,
+            "async_get_entry",
+            side_effect=lambda entry_id: entry
+            if entry_id == entry.entry_id
+            else other_entry,
+        ),
+    ):
+        handlers = await _register_services(hass, coordinator_mock)
+        handler = handlers[(DOMAIN, SERVICE_START_WALK)]
+
+        call = ServiceCall(
+            hass,
+            DOMAIN,
+            SERVICE_START_WALK,
+            {"dog_id": "doggo"},
+        )
+
+        await handler(call)
+        assert entries_mock.call_count == 1
+
+        hass.bus.async_fire(
+            EVENT_CONFIG_ENTRY_STATE_CHANGED,
+            {
+                "entry_id": other_entry.entry_id,
+                "from_state": ConfigEntryState.LOADED,
+                "to_state": ConfigEntryState.SETUP_ERROR,
+            },
+        )
+        await hass.async_block_till_done()
+
+        await handler(call)
+
+    # Cache is still valid, so async_entries should not have been queried again.
+    assert entries_mock.call_count == 1
